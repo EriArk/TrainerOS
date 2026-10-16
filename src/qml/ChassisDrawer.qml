@@ -37,6 +37,12 @@ Item {
             + " Q " + (width-23) + " 1 " + (width-18) + " 10 L " + (width-10)
             + " 23 Q " + (width-5) + " 34 " + width + " 34";
     }
+    function topHighlight() {
+        if (button === "Y") return shoulder();
+        // Light catches the crown; it does not trace the exposed left foot.
+        return "M 18 9 Q 23 1 32 1 H " + (width-33)
+            + " Q " + (width-23) + " 1 " + (width-18) + " 10";
+    }
     width: closedWidth; height: Theme.adventureTabHeight
     onExpandedWidthChanged: if(expanded && !opening.running && !closing.running)width=expandedWidth
     onExpandedChanged: {
@@ -56,14 +62,27 @@ Item {
     // Mount at the existing lower screen lip. The curved feet join the bezel;
     // no separate rail or strip is painted over the chassis.
     Shape {
-        anchors.fill: parent
-        visible: root.headerVisible
-        // A soft contact shadow, not another bevel wrapped around the tab.
+        x: 0; y: 2; width: root.width; height: root.height
+        visible: root.height <= Theme.adventureTabHeight+0.1
         ShapePath {
-            strokeColor: "#18101e1d"; strokeWidth: 4
+            strokeColor: "#0a101e1d"; strokeWidth: 10
             fillColor: "transparent"; joinStyle: ShapePath.RoundJoin
             PathSvg { path: root.shoulder() }
         }
+        ShapePath {
+            strokeColor: "#14101e1d"; strokeWidth: 6
+            fillColor: "transparent"; joinStyle: ShapePath.RoundJoin
+            PathSvg { path: root.shoulder() }
+        }
+        ShapePath {
+            strokeColor: "#24101e1d"; strokeWidth: 3
+            fillColor: "transparent"; joinStyle: ShapePath.RoundJoin
+            PathSvg { path: root.shoulder() }
+        }
+    }
+    Shape {
+        anchors.fill: parent
+        visible: root.headerVisible
         ShapePath {
             strokeColor: "transparent"
             fillGradient: LinearGradient {
@@ -83,9 +102,9 @@ Item {
             PathSvg { path: root.shoulder() + " L " + root.width + " 34 H 0 Z" }
         }
         ShapePath {
-            strokeColor: !root.headerVisible ? "transparent" : root.button === "Y" ? Qt.lighter(Theme.yellow,1.35) : Theme.rim
+            strokeColor: root.button === "Y" ? Qt.lighter(Theme.yellow,1.35) : Theme.rim
             strokeWidth: 1; fillColor: "transparent"; joinStyle: ShapePath.RoundJoin
-            PathSvg { path: root.shoulder() }
+            PathSvg { path: root.topHighlight() }
         }
     }
     Item {
@@ -150,9 +169,10 @@ Item {
             Text { anchors.centerIn: parent; text: root.button; color: Theme.ink; font.family: Theme.displayFamily; font.pixelSize: 16; font.weight: Font.DemiBold }
         }
         Text {
-            x: root.keyInset+28; y: 9; width: 101; height: 22
+            x: root.keyInset+28; y: 7; width: root.closedWidth-x-22; height: 24
             text: root.label; color: root.button === "Y" ? Theme.ink : Theme.paper
-            font.pixelSize: 13; font.weight: Font.Medium; verticalAlignment: Text.AlignVCenter
+            font.pixelSize: 13; font.weight: Font.Medium
+            horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter
         }
         Item {
             x: 180; y: 11; width: Math.max(0,toggle.width-210); height: 20; clip: true
@@ -162,8 +182,9 @@ Item {
     }
     Item {
         id: tray
+        objectName: root.toggleName+"-content"
         x: 14; y: root.contentTop; width: root.width-28; height: Math.max(0,root.height-root.contentTop-6); clip: true
-        visible: root.expanded || root.height>root.contentTop+2
+        visible: root.height>Math.max(Theme.adventureTabHeight,root.contentTop)+2
         enabled: root.expanded
     }
 }

@@ -410,6 +410,7 @@ void startHomeSmoke(QQuickWindow* window, ShellController& shell, SessionState& 
             check(apps && games && games->x()>apps->x() && games->x()+games->width()<400 && apps->height()==36 && games->height()==36,"Compact handles sit side by side at the left bezel");
             check(apps && games && qAbs(apps->mapRectToScene(apps->boundingRect()).right()-games->mapRectToScene(games->boundingRect()).left()-32*apps->mapRectToScene(apps->boundingRect()).width()/apps->width())<2 && apps->z()>games->z(),"Quick Apps is in front of the yellow right handle");
             check(itemNamed("quick-apps-handle") && itemNamed("quick-apps-handle")->isVisible(),"Folded X keeps its handle");
+            check(itemNamed("quick-apps-handle-content") && !itemNamed("quick-apps-handle-content")->isVisible(),"Folded X hides app icons below its handle");
             capture("paired-handles-960");window->resize(1920,1080);shell.dispatch(Action::Secondary);break;
         }
         case 48:
