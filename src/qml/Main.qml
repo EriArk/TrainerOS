@@ -208,17 +208,36 @@ Window {
             z: 30; x: parent.width - width - 26; y: Theme.brandHeight + 21
         }
         Row {
+            id: faceNavigation
+            readonly property bool gameBrowser: shell.page === 1 && !shell.collectionsRoot
             objectName: "navigation-chassis"; x: 28; y: Theme.brandHeight + Theme.screenBevel + 5; spacing: 12; z: 2
             visible: shell.faceNames.length > 0
             FaceStep { objectName: "face-previous"; visible: shell.faceNames.length>1; enabled: shell.pairedNavigationAvailable; onActivated: shell.pressButton("L2") }
-            Text {
-                visible: shell.faceNames.length > 6
-                text: (shell.faceNames[shell.faceIndex] || "Collections") + "   " + (shell.faceIndex + 1) + " / " + shell.faceNames.length
-                height: 26; verticalAlignment: Text.AlignVCenter
-                width: Math.min(implicitWidth,Theme.screenBounds.width-160); elide: Text.ElideRight
-                color: Theme.ink; font.family: Theme.displayFamily; font.pixelSize: 15; font.bold: true
+            Row {
+                visible: faceNavigation.gameBrowser
+                spacing: 18
+                Repeater {
+                    model: faceNavigation.gameBrowser ? (shell.faceNames.length > 1 ? [-1,0,1] : [0]) : []
+                    Text {
+                        required property int modelData
+                        readonly property int targetIndex: (shell.faceIndex + modelData + shell.faceNames.length) % Math.max(1,shell.faceNames.length)
+                        objectName: modelData < 0 ? "browser-context-previous" : modelData > 0 ? "browser-context-next" : "browser-context-current"
+                        text: shell.faceNames[targetIndex] || ""
+                        width: Math.min(implicitWidth, Math.max(70,(Theme.screenBounds.width-180)/3))
+                        height: 26; verticalAlignment: Text.AlignVCenter; elide: Text.ElideRight
+                        color: modelData === 0 ? Theme.ink : Theme.muted
+                        opacity: modelData === 0 ? 1 : .72
+                        font.family: Theme.displayFamily; font.pixelSize: modelData === 0 ? 15 : 13
+                        font.bold: modelData === 0
+                        Accessible.role: modelData === 0 ? Accessible.StaticText : Accessible.Button
+                        Accessible.name: text
+                        Accessible.onPressAction: if (shell.pairedNavigationAvailable && modelData !== 0) shell.selectFace(targetIndex)
+                        Rectangle { anchors.left: parent.left; anchors.right: parent.right; anchors.bottom: parent.bottom; anchors.bottomMargin: -2; height: 2; color: Theme.focusGlow; visible: modelData === 0 }
+                        MouseArea { anchors.fill: parent; anchors.topMargin: -5; anchors.bottomMargin: -5; enabled: shell.pairedNavigationAvailable && modelData !== 0; onClicked: shell.selectFace(parent.targetIndex) }
+                    }
+                }
             }
-            Repeater {model:shell.faceNames.length > 6 ? [] : shell.faceNames
+            Repeater {model: faceNavigation.gameBrowser ? [] : shell.faceNames
                 Text {
                     required property int index;required property string modelData
                     objectName: "face-tab-" + index
