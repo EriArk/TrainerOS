@@ -10,6 +10,8 @@ Window {
     visible: true
     title: "TrainerOS"
     color: Theme.chassisDark
+    readonly property real uiScale: shell.settings.displayDensity(Screen.width, Screen.height,
+        width, height, shell.settings.displayProfile, shell.settings.interfaceScale)
     AppControlsWindow { flow: shell.apps; bridge: appsOverlay }
     AdventureExitWindow {
         presentation: adventureExitPresentation
@@ -26,8 +28,9 @@ Window {
     Binding { target: Theme; property: "themeId"; value: shell.settings.theme }
     Binding { target: Theme; property: "reducedMotion"; value: shell.settings.reducedMotion }
     Binding { target: Theme; property: "television"; value: shell.settings.displayProfile === "tv" }
-    Binding { target: Theme; property: "viewportWidth"; value: window.width }
-    Binding { target: Theme; property: "viewportHeight"; value: window.height }
+    Binding { target: Theme; property: "uiScale"; value: window.uiScale }
+    Binding { target: Theme; property: "viewportWidth"; value: window.width / window.uiScale }
+    Binding { target: Theme; property: "viewportHeight"; value: window.height / window.uiScale }
     Binding { target: Theme; property: "appsExpanded"; value: shell.quickAppsOpen && !sessionState.blocked && (!adventureLaunch.active || adventureLaunch.minimized) }
     Binding { target: shell.social; property: "surfaceAvailable"; value: !sessionState.blocked && ((window.active && (!adventureLaunch.active || adventureLaunch.minimized) && shell.unobstructed) || (playerOverlay.chatOpen && playerOverlay.conversationReady && adventureExitPresentation.ready)) }
     Binding { target: shell.social; property: "conversationVisible"; value: playerOverlay.chatOpen && playerOverlay.conversationReady || ((shell.primaryId === "social" || (shell.primaryId === "gamehub" && shell.hubFace === "lobby")) && !shell.serviceOpen
@@ -53,7 +56,9 @@ Window {
         objectName: "viewport"
         anchors.centerIn: parent
         width: Theme.viewportWidth; height: Theme.viewportHeight
-        // Native logical bounds; individual components reflow instead of stretching a fixed canvas.
+        // A live scene graph, rasterized at native resolution. Bounds change with
+        // window/aspect/user density; there is no fixed canvas or offscreen layer.
+        scale: window.uiScale
         clip: true
         Item {
         anchors.fill: parent

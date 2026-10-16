@@ -16,7 +16,7 @@ Window {
     x: Screen.virtualX; y: Screen.virtualY
     width: Screen.width; height: Screen.height
     visible: bridge.ready && permitted && (invitation.invitationBadge || (playing && players.players.length > 0))
-    readonly property real unit: Math.max(1, Math.min(width / 960, height / 540))
+    readonly property real unit: Theme.uiScale
     readonly property var hitRegions: {
         let regions = bubbles.visible ? bubbles.regions : []
         if (chip.visible) regions = regions.concat([{id: "invitation", rect: Qt.rect(chip.x,chip.y,chip.width,chip.height)}])

@@ -12,7 +12,7 @@ Window {
     transientParent: null
     x: Screen.virtualX; y: Screen.virtualY; width: Screen.width; height: Screen.height
     visible: bridge.ready && flow.current.length > 0
-    readonly property real unit: Math.max(1,Math.min(width/960,height/540))
+    readonly property real unit: Theme.uiScale
     readonly property var hitRegions: flow.controlsOpen ? [0,1,2].map(i => ({id:"control-"+i,rect:Qt.rect(card.x+(12+i*106)*unit,card.y+45*unit,100*unit,48*unit)})) : [{id:"open",rect:Qt.rect(chip.x,chip.y,chip.width,chip.height)}]
     onHitRegionsChanged: bridge.setRegions(hitRegions)
     Component.onCompleted: {bridge.attach(root);bridge.setRegions(hitRegions)}

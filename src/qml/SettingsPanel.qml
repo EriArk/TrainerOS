@@ -1,4 +1,5 @@
 import QtQuick
+import QtQuick.Window
 Item {
     id: root
     required property var shell
@@ -16,12 +17,21 @@ Item {
         MountedPanel {
             y: heading.height; width: parent.width; height: parent.height-y; color: "#d4e2d6"
             Rectangle { x: 0; y: 0; width: 245; height: parent.height; color: "#c5d8ca" }
-            Column { x: 13; y: 13; spacing: 4
+            Flickable {
+                id: categoriesViewport; x: 10; y: 10; width: 228; height: parent.height-20; clip: true
+                contentHeight: categoriesColumn.height; boundsBehavior: Flickable.StopAtBounds
+                function followFocus() {
+                    const top = root.settings.category*36
+                    contentY = Math.max(0, Math.min(Math.max(0,contentHeight-height), top < contentY ? top : top+32 > contentY+height ? top+32-height : contentY))
+                }
+                onHeightChanged: Qt.callLater(followFocus)
+                Connections { target: root.settings; function onChanged() { Qt.callLater(categoriesViewport.followFocus) } }
+                Column { id: categoriesColumn; x: 3; spacing: 4
                 Repeater { model: root.settings.categories
                     Rectangle {
                         required property int index; required property string modelData
                         objectName: "settings-category-"+index
-                        width: 218; height: Math.min(32,Math.floor((parent.parent.height-26-(root.settings.categories.length-1)*4)/root.settings.categories.length)); radius: 9
+                        width: 218; height: 32; radius: 9
                         readonly property bool selected: root.takesFocus && !root.settings.controlsFocused && root.settings.category===index
                         color: root.settings.category===index ? "#f5e5a7" : "transparent"
                         border.width: selected ? 3 : 0; border.color: Theme.focus
@@ -32,6 +42,7 @@ Item {
                         TapHandler { enabled: !root.shell.trainer.editing && !root.shell.hall.account.open && !root.settings.storage.busy; onTapped: root.settings.selectCategory(index,true) }
                     }
                 }
+            }
             }
             Item { x: 260; width: parent.width-x-16; height: parent.height
                 ScrapeSettingsPane { anchors.fill: parent; flow: root.shell.scraper; visible: root.settings.category===14; takesFocus: root.takesFocus && root.settings.controlsFocused }
@@ -45,22 +56,43 @@ Item {
                     StorageChoices { x: 0; y: 75; width: parent.width; height: parent.height-y-43; compact: true; flow: root.settings.storage; takesFocus: root.takesFocus && root.settings.controlsFocused }
                     Text { x: 5; y: parent.height-37; width: parent.width-10; height: 33; text: root.settings.storage.busy ? "Preparing your library…" : root.settings.storage.error || root.settings.storage.rows[root.settings.storage.focusIndex]?.path || ""; textFormat: Text.PlainText; color: root.settings.storage.error.length ? "#853b24" : Theme.muted; font.pixelSize: 12; wrapMode: Text.WrapAnywhere; maximumLineCount: 2; elide: Text.ElideMiddle }
                 }
-                Column { x: 0; y: root.settings.category===5 ? 158 : 13; width: parent.width; spacing: root.settings.category===4 || root.settings.category===5 || root.settings.category===8 || root.shell.trainer.editing || root.shell.hall.account.open ? 5 : 12; visible: root.settings.category!==6 && root.settings.category!==10 && root.settings.category!==11 && root.settings.category!==13 && root.settings.category!==14 && !root.settings.storage.open
-                    Repeater { model: root.shell.hall.account.open ? root.shell.hall.account.rows.map(r => ({title: r.label, detail: r.detail, kind: r.enabled ? "action" : "unavailable"})) : root.shell.trainer.editing ? root.shell.trainer.editRows : root.settings.controls
+                Flickable {
+                    id: controlsViewport; visible: root.settings.category!==6 && root.settings.category!==10 && root.settings.category!==11 && root.settings.category!==13 && root.settings.category!==14 && !root.settings.storage.open; x: 0; y: root.settings.category===5 ? 158 : 13
+                    width: parent.width; height: Math.max(0,parent.height-y-62); clip: true
+                    contentHeight: controlsColumn.height+8; boundsBehavior: Flickable.StopAtBounds
+                    function followFocus() {
+                        if (!root.settings.controlsFocused) return
+                        const index=root.shell.hall.account.open ? root.shell.hall.account.focusIndex : root.shell.trainer.editing ? root.shell.trainer.focusIndex : root.settings.rowFocus
+                        const item=controlsRepeater.itemAt(index)
+                        if (!item) return
+                        const top=item.y, bottom=top+item.height+8
+                        contentY=Math.max(0,Math.min(Math.max(0,contentHeight-height),top<contentY?top:bottom>contentY+height?bottom-height:contentY))
+                    }
+                    onHeightChanged: Qt.callLater(followFocus)
+                    onContentHeightChanged: Qt.callLater(followFocus)
+                    Connections { target: root.settings; function onChanged() { Qt.callLater(controlsViewport.followFocus) } }
+                    Column { id: controlsColumn; x: 4; y: 4; width: parent.width-12; spacing: root.settings.category===4 || root.settings.category===5 || root.settings.category===8 || root.shell.trainer.editing || root.shell.hall.account.open ? 5 : 12; visible: root.settings.category!==6 && root.settings.category!==10 && root.settings.category!==11 && root.settings.category!==13 && root.settings.category!==14 && !root.settings.storage.open
+                    // Rebuilt delegates have y=0 until the positioner's polish
+                    // pass. Follow the controller's row after final geometry.
+                    onPositioningComplete: controlsViewport.followFocus()
+                    Repeater { id: controlsRepeater; model: root.shell.hall.account.open ? root.shell.hall.account.rows.map(r => ({title: r.label, detail: r.detail, kind: r.enabled ? "action" : "unavailable"})) : root.shell.trainer.editing ? root.shell.trainer.editRows : root.settings.controls
+                        onItemAdded: Qt.callLater(controlsViewport.followFocus)
                         SettingControl {
                             required property int index; required property var modelData
                             objectName: (root.shell.hall.account.open ? "achievement-account-" : "settings-control-")+index; width: parent.width; height: root.shell.hall.account.open ? 56 : root.shell.trainer.editing ? 44 : root.settings.category===5 ? 32 : root.settings.category===4 ? 44 : root.settings.category===8 ? 58 : 68
                             title: root.settings.category===4 && !root.shell.trainer.editing && !root.shell.hall.account.open && index===0 ? (root.shell.trainer.exists ? "Edit Trainer" : "Create Trainer") : root.settings.category===4 && !root.shell.trainer.editing && !root.shell.hall.account.open && index===2 && root.shell.sampleLibrary ? "Preview registration & PIN" : modelData.title
-                            detail: root.settings.category===4 && !root.shell.trainer.editing && !root.shell.hall.account.open && index===0 ? (root.shell.trainer.profile.name || "Give your journey a name") : root.settings.category===4 && !root.shell.trainer.editing && !root.shell.hall.account.open && index===2 && root.shell.sampleLibrary ? "Development preview only" : modelData.detail || ""
+                            detail: root.settings.category===0 && index===4 ? modelData.detail + (root.shell.settings.displayDensity(Screen.width,Screen.height,100000,100000,root.settings.displayProfile,root.settings.interfaceScale) > Theme.uiScale+.001 ? " · Limited by window" : "") : root.settings.category===4 && !root.shell.trainer.editing && !root.shell.hall.account.open && index===0 ? (root.shell.trainer.profile.name || "Give your journey a name") : root.settings.category===4 && !root.shell.trainer.editing && !root.shell.hall.account.open && index===2 && root.shell.sampleLibrary ? "Development preview only" : modelData.detail || ""
                             kind: root.settings.category===4 && !root.shell.trainer.editing && !root.shell.hall.account.open && index===2 && root.shell.sampleLibrary ? "action" : modelData.kind
                             checked: root.settings.category===9 ? root.settings.readOnlySaves : root.settings.category===8 ? root.settings.worldEditing : root.settings.category===2 ? root.settings.videoPreviews : root.settings.reducedMotion
                             level: kind==="volume" ? root.shell.device.rows[0].level : kind==="brightness" ? root.shell.device.rows[1].level : -1
                             muted: kind==="volume" && root.shell.device.rows[0].muted
                             selected: root.takesFocus && root.settings.controlsFocused && (root.shell.hall.account.open ? root.shell.hall.account.focusIndex : root.shell.trainer.editing ? root.shell.trainer.focusIndex : root.settings.rowFocus)===index
                             onActivated: root.shell.activate(index)
+                            onAdjustmentRequested: direction => root.settings.adjustDisplay(index,direction)
                             onLevelRequested: value => root.shell.device.setQuickLevel(kind==="volume"?0:1,value)
                         }
                     }
+                }
                 }
                 Column { x: 0; y: 10; width: parent.width; spacing: 4; visible: root.settings.category===5
                     Repeater { model: root.shell.device.status

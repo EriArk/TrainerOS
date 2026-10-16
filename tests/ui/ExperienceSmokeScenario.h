@@ -42,8 +42,12 @@ inline void startExperienceSmoke(QQuickWindow* window,trainer::ShellController& 
             if(!directory.isEmpty())check(window->grabWindow().save(directory+"/gamehub-party.png"),"Expanded adapter capture");
             window->resize(1280,800);shell.openGameHubFace("overview");break;
         case 15:
-            check(window->findChild<QObject*>("viewport")->property("width").toInt()==1280,"Native logical width did not follow output");
-            check(window->findChild<QObject*>("viewport")->property("height").toInt()==800,"16:10 geometry did not reflow");
+            {
+                auto* view=window->findChild<QQuickItem*>("viewport");
+                const auto mapped=view->mapRectToScene(view->boundingRect());
+                check(qAbs(mapped.width()-1280)<1 && qAbs(mapped.height()-800)<1,"Density viewport did not fill native output");
+                check(qAbs(view->width()/view->height()-1.6)<.001,"16:10 geometry did not reflow");
+            }
             if(!directory.isEmpty())check(window->grabWindow().save(directory+"/gamehub-1280x800.png"),"Responsive capture");
             shell.openGameHubFace("lobby");break;
         case 16:
@@ -53,6 +57,42 @@ inline void startExperienceSmoke(QQuickWindow* window,trainer::ShellController& 
         case 17:
             if(!directory.isEmpty())check(window->grabWindow().save(directory+"/quick-apps.png"),"Global dock capture");
             shell.dispatch(trainer::Action::Back);break;
+        case 18:
+            shell.goToSection("home");window->resize(1920,1080);
+            shell.dispatch(trainer::Action::SystemMenu);shell.activate(0);
+            shell.settings()->selectCategory(0,true);shell.settings()->adjustDisplay(4,1);break;
+        case 19: {
+            check(shell.service()=="settings" && shell.settings()->rowFocus()==4,"Scaling lost settings focus");
+            QQuickItem* control=nullptr;
+            QList<QQuickItem*> pending{window->contentItem()};
+            while(!pending.isEmpty()) {
+                auto* item=pending.takeLast();
+                if(item->objectName()=="settings-control-4") {control=item;break;}
+                pending.append(item->childItems());
+            }
+            check(control && control->isVisible(),"Size control is unavailable");
+            if(control) {
+                const auto bounds=control->mapRectToScene(control->boundingRect());
+                check(bounds.top()>0 && bounds.bottom()<window->height(),"Scale setting is clipped after enlargement");
+            }
+            if(!directory.isEmpty())check(window->grabWindow().save(directory+"/settings-scale.png"),"Scale settings capture");
+            shell.settings()->resetDisplayScale();shell.goToSection("home");window->resize(3840,2160);break;
+        }
+        case 20: {
+            auto* view=window->findChild<QQuickItem*>("viewport");
+            const auto mapped=view->mapRectToScene(view->boundingRect());
+            check(qAbs(mapped.width()-3840)<1 && qAbs(mapped.height()-2160)<1,"4K scene does not cover output");
+            if(!directory.isEmpty())check(window->grabWindow().save(directory+"/home-4k.png"),"4K capture");
+            window->resize(800,450);shell.dispatch(trainer::Action::SystemMenu);shell.activate(0);
+            shell.settings()->selectCategory(0,true);
+            for(int i=0;i<10;i++)shell.settings()->adjustDisplay(4,1);break;
+        }
+        case 21: {
+            auto* view=window->findChild<QQuickItem*>("viewport");
+            check(view->width()>=799.9 && view->height()>=449.9,"Enlargement hides recovery controls");
+            if(!directory.isEmpty())check(window->grabWindow().save(directory+"/settings-small-window.png"),"Small window capture");
+            shell.settings()->resetDisplayScale();break;
+        }
         default:
             timer->stop();completed=true;
             QFile report(directory+"/experience-check.txt");if(report.open(QIODevice::WriteOnly))report.write((diagnostics.join('\n')+QString("\nqmlWarnings=%1\n").arg(warnings)).toUtf8());

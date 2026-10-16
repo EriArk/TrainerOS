@@ -225,10 +225,17 @@ void startHomeSmoke(QQuickWindow* window, ShellController& shell, SessionState& 
             capture("home-badges-kanto-960");
             progress->value.badgeSet = "hoenn-rse"; progress->publish(); break;
         case 11:
+            {
+                auto* art=itemNamed("home-card-illustration");
+                auto* card=itemNamed("home-game-card");
+                check(art && card && art->parentItem()==card,"Illustration must belong only to the game card");
+            }
             if (auto* backdrop = itemNamed("home-exit-picture")) {
                 const auto area = backdrop->mapRectToScene(backdrop->boundingRect());
                 check(backdrop->opacity() > 0 && backdrop->opacity() < 1, "Game screenshot stays translucent");
-                check(area.width() > window->width()*.4 && area.height() > window->height()*.6, "Screenshot covers the whole Home game card");
+                auto* card=itemNamed("home-game-card");
+                const auto cardArea=card->mapRectToScene(card->boundingRect());
+                check(area.width() > cardArea.width()*.97 && area.height() > cardArea.height()*.97, "Screenshot covers the whole Home game card");
             } else check(false, "Whole-card game backdrop exists");
             if (auto* launchButton = itemNamed("home-launch"))
                 check(qAbs(launchButton->width()-launchButton->height()) < 1, "Sculpted A keeps a circular footprint");

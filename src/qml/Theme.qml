@@ -5,6 +5,7 @@ QtObject {
     property string themeId: "turquoise"
     property bool reducedMotion: false
     property bool television: false
+    property real uiScale: 1
     property bool appsExpanded: false
     readonly property real appsDockWidth: 80
     property real appsFrameWidth: appsExpanded ? appsDockWidth : 0
@@ -41,8 +42,8 @@ QtObject {
     readonly property color focusGlow: "#ffbd24"
     readonly property var tabColors: ["#f4cc62", "#b4d8a0", "#98cadd", "#eba9ad", "#c6b4df", "#d9bfa0"]
     // Logical design space, separate from the physical display's pixel count.
-    property int viewportWidth: 960
-    property int viewportHeight: 540
+    property real viewportWidth: 960
+    property real viewportHeight: 540
     readonly property int pageMargin: 28
     // One chassis geometry for primary pages and frame-mounted services.
     readonly property int brandHeight: 63

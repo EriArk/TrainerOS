@@ -10,7 +10,13 @@ explicitly deferred. Preserve the existing visual language and gameplay guards;
 technical smoke success is not visual acceptance. Update Armada before device
 tests after checking active processes and protected operations.
 
-**Home visual reference correction:** retain a colourful illustrated scene even
+**Owner scaling/background correction:** provide shared live UI scaling with settings.
+Artwork and translucent game screenshots belong ONLY inside the complete game
+card; the surrounding Home retains the ordinary TrainerOS paper/chassis.
+Home17 full-page artwork and tiny fixed-pixel controls were rejected. Keep
+Odin as the only device target; preserve the passed Armada update.
+
+**Home visual reference correction:** retain colourful illustrated game-card and empty states even
 on first launch with no contacts or earned achievements. Do not substitute empty
 white dashboard panels, rectangular trophy tiles or a standard rectangular A.
 Keep the sculpted circular A, trophy/medallion presentation and deliberately

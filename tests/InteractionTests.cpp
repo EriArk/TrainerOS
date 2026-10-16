@@ -5,6 +5,8 @@
 #include <QTemporaryDir>
 #include <QFile>
 #include <QDir>
+#include <QSettings>
+#include "features/settings/DisplayScale.h"
 
 using namespace trainer;
 
@@ -25,6 +27,42 @@ void tap(TextEntryController& keyboard, Action action, int count = 1) {
 class InteractionTests : public QObject {
     Q_OBJECT
 private slots:
+    void displayDensityUsesLogicalScreenAndFluidWindow() {
+        QCOMPARE(displayDensity(1920,1080,1920,1080,"handheld",100),2.0);
+        QCOMPARE(displayDensity(1280,720,1280,720,"handheld",100),720.0/540.0);
+        QCOMPARE(displayDensity(3840,2160,3840,2160,"handheld",100),4.0);
+        // A 4K screen at DPR 2 reports 1920x1080 logical pixels. Qt supplies
+        // the other factor of two, not our density policy.
+        QCOMPARE(displayDensity(1920,1080,1920,1080,"handheld",100)*2,4.0);
+        QCOMPARE(displayDensity(3840,2160,3840,2160,"auto",100),1.0);
+        QVERIFY(displayDensity(1920,1080,1920,1080,"tv",100)>2.0);
+        QCOMPARE(displayDensity(1920,1080,1920,1080,"handheld",75),1.5);
+        QCOMPARE(displayDensity(1920,1080,800,450,"handheld",150),1.0);
+        const auto density=displayDensity(1920,1080,1280,800,"handheld",100);
+        QCOMPARE((1280/density)/(800/density),1.6);
+    }
+    void displaySettingsPersistWithoutChangingNavigation() {
+        QTemporaryDir path;
+        const auto app=QCoreApplication::applicationName(),org=QCoreApplication::organizationName();
+        QCoreApplication::setOrganizationName("TrainerOS-scale-tests");
+        QCoreApplication::setApplicationName(path.path().split('/').last());
+        QSettings settings; settings.clear();
+        SettingsController first;first.selectCategory(0,true);
+        QCOMPARE(first.interfaceScale(),100);QCOMPARE(first.displayProfile(),"handheld");
+        first.adjustDisplay(4,1);QCOMPARE(first.interfaceScale(),105);QCOMPARE(first.rowFocus(),4);
+        first.dispatch(Action::Left);QCOMPARE(first.interfaceScale(),100);
+        first.adjustDisplay(3,1);QCOMPARE(first.displayProfile(),"tv");
+        first.adjustDisplay(4,-1);SettingsController second;
+        QCOMPARE(second.interfaceScale(),95);QCOMPARE(second.displayProfile(),"tv");
+        for(int i=0;i<20;i++)first.adjustDisplay(4,-1);
+        QCOMPARE(first.interfaceScale(),75);
+        for(int i=0;i<40;i++)first.adjustDisplay(4,1);
+        QCOMPARE(first.interfaceScale(),150);
+        first.resetDisplayScale();QCOMPARE(second.interfaceScale(),100);
+        QCOMPARE(first.category(),0);QVERIFY(first.controlsFocused());QCOMPARE(first.rowFocus(),4);
+        settings.clear();settings.sync();
+        QCoreApplication::setApplicationName(app);QCoreApplication::setOrganizationName(org);
+    }
     void genericExperienceProfileAndLiveTargetStayIndependent() {
         class Library final:public LibraryRepository {
         public:

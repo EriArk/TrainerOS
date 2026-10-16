@@ -5,22 +5,11 @@ Item {
     required property var shell
     readonly property var flow: shell.dashboard
     readonly property bool active: visible && shell.unobstructed && !shell.quickAppsOpen && !shell.drawerOpen && !shell.keyboard.open
-    readonly property real unit: Math.max(1, Math.min(1.65, width / 920, height / 380))
+    readonly property real unit: 1
     readonly property real gap: 16 * unit
     readonly property real split: width * .49
     readonly property real usableHeight: height - (shell.chooseAdventureAvailable ? Theme.adventureCutoutHeight : 0) - 10
     function hints(h) { if (!visible) return null; return flow.focus === "play" ? [h("A",shell.liveGame.id ? "Return" : shell.homeGame.id ? shell.home.actionHint : "Choose a game"),h("Select","Game actions"),h("B","Back")] : [h("A","Open"),h("B","Play focus")] }
-
-    Image { anchors.fill: parent; source: "qrc:/series/multiverse.png"; fillMode: Image.PreserveAspectCrop; asynchronous: true }
-    Rectangle { anchors.fill: parent; color: "#55163335" }
-    Rectangle {
-        width: root.split; height: parent.height
-        gradient: Gradient {
-            orientation: Gradient.Horizontal
-            GradientStop { position: 0; color: "#de153b3c" }
-            GradientStop { position: 1; color: "#72153b3c" }
-        }
-    }
 
     // One quiet social area, with individual controls rather than a wall of tiles.
     Item {
@@ -28,7 +17,7 @@ Item {
         x: root.gap; y: 12 * root.unit
         width: root.split - 2 * root.gap
         height: root.usableHeight - awards.height - root.gap - y
-        Text { id: activityTitle; text: "Activity"; color: "#fff4ce"; font.family: Theme.displayFamily; font.pixelSize: 23 * root.unit }
+        Text { id: activityTitle; text: "Activity"; color: Theme.ink; font.family: Theme.displayFamily; font.pixelSize: 23 * root.unit }
         Row {
             id: chatRow
             y: 38 * root.unit; spacing: 11 * root.unit
@@ -67,8 +56,8 @@ Item {
             }
             Column {
                 x: 98*root.unit; y: 8*root.unit; width: parent.width-x; spacing: 7*root.unit
-                Text { width: parent.width; text: "Better together"; color: "#fff4ce"; font.family: Theme.displayFamily; font.pixelSize: 20*root.unit; elide: Text.ElideRight }
-                Text { width: parent.width; text: "Friends, messages and invitations\nmeet here."; color: "#d6e8df"; font.pixelSize: 13*root.unit; wrapMode: Text.WordWrap }
+                Text { width: parent.width; text: "Better together"; color: Theme.ink; font.family: Theme.displayFamily; font.pixelSize: 20*root.unit; elide: Text.ElideRight }
+                Text { width: parent.width; text: "Friends, messages and invitations\nmeet here."; color: Theme.muted; font.pixelSize: 13*root.unit; wrapMode: Text.WordWrap }
             }
         }
         ListView {
@@ -89,7 +78,7 @@ Item {
             Row {
                 y: 9 * root.unit; spacing: 9 * root.unit; visible: !events.count && root.flow.chats.length > 0
                 Text { text: "✓"; color: Theme.green; font.pixelSize: 18 * root.unit }
-                Text { text: "All caught up"; color: "#e7ecd8"; font.pixelSize: 14 * root.unit }
+                Text { text: "All caught up"; color: Theme.muted; font.pixelSize: 14 * root.unit }
             }
         }
     }
@@ -98,7 +87,7 @@ Item {
         x: activity.x; y: root.usableHeight-height; width: activity.width; height: 139 * root.unit
         Rectangle { width: parent.width; height: 1; color: "#70c6d6b6" }
         Rectangle { y: 1; width: parent.width; height: 1; color: "#203a4635" }
-        Text { y: 13 * root.unit; text: "Recent achievements"; color: "#fff4ce"; font.family: Theme.displayFamily; font.pixelSize: 19 * root.unit }
+        Text { y: 13 * root.unit; text: "Recent achievements"; color: Theme.ink; font.family: Theme.displayFamily; font.pixelSize: 19 * root.unit }
         ListView {
             id: trophies; objectName: "home-achievements"
             y: 45 * root.unit; width: parent.width; height: 70 * root.unit
@@ -148,15 +137,21 @@ Item {
                 for (let i=0; i<rows.length; ++i) if(rows[i].key===root.flow.focus) chosen=rows[i]
                 return chosen ? chosen.name + (chosen.offline ? " · Offline" : "") : "Your first achievements await"
             }
-            color: "#e4ebd1"; font.pixelSize: 12*root.unit; elide: Text.ElideRight
+            color: Theme.muted; font.pixelSize: 12*root.unit; elide: Text.ElideRight
         }
     }
     // The adapter owns the showcase; the shell keeps a single compact launch control.
     Rectangle {
-        id: showcase
+        id: showcase; objectName: "home-game-card"
         x: root.split + 2; y: 7 * root.unit
         width: parent.width-x-12*root.unit; height: parent.height-y-13*root.unit
         radius: 18 * root.unit; color: "#b5204c47"; border.color: "#c4d7a9"; border.width: 2
+        Image {
+            objectName: "home-card-illustration"
+            anchors.fill: parent; anchors.margins: 3
+            source: "qrc:/series/multiverse.png"; fillMode: Image.PreserveAspectCrop
+            asynchronous: true; opacity: gameBackdrop.status===Image.Ready ? 0 : .4
+        }
         Image {
             id: gameBackdrop; objectName: "home-exit-picture"
             anchors.fill: parent; anchors.margins: 3

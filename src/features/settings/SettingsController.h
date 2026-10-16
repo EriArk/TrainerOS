@@ -18,6 +18,7 @@ class SettingsController final : public QObject {
     Q_PROPERTY(trainer::CommunicationSettings* communication READ communication CONSTANT)
     Q_PROPERTY(QString theme READ theme NOTIFY changed)
     Q_PROPERTY(QString displayProfile READ displayProfile NOTIFY changed)
+    Q_PROPERTY(int interfaceScale READ interfaceScale NOTIFY changed)
     Q_PROPERTY(bool worldEditing READ worldEditing NOTIFY changed)
     Q_PROPERTY(bool reducedMotion READ reducedMotion NOTIFY changed)
     Q_PROPERTY(bool videoPreviews READ videoPreviews NOTIFY changed)
@@ -59,6 +60,11 @@ public:
     bool creditsOpen() const { return category_==6 && pane_; }
     QString theme() const { return value_.theme; }
     QString displayProfile() const;
+    int interfaceScale() const;
+    Q_INVOKABLE void adjustDisplay(int row, int direction);
+    Q_INVOKABLE void resetDisplayScale();
+    Q_INVOKABLE double displayDensity(double screenWidth, double screenHeight,
+        double windowWidth, double windowHeight, const QString& profile, int percent) const;
     bool worldEditing() const { return value_.worldEditing; }
     bool reducedMotion() const { return value_.reducedMotion; }
     bool videoPreviews() const { return value_.videoPreviews; }

@@ -14,12 +14,16 @@ Item {
     readonly property bool slider: kind === "volume" || kind === "brightness"
     signal activated()
     signal levelRequested(int value)
+    signal adjustmentRequested(int direction)
     implicitHeight: compact ? 43 : 78
     Accessible.role: slider ? Accessible.Slider : Accessible.Button
     Accessible.name: title + ", " + (slider ? level < 0 ? "Unavailable" : level + "%" : detail)
-    onSelectedChanged: if(selected && visible) forceActiveFocus(Qt.OtherFocusReason)
-    onVisibleChanged: if(selected && visible) forceActiveFocus(Qt.OtherFocusReason)
-    Component.onCompleted: if(selected && visible) forceActiveFocus(Qt.OtherFocusReason)
+    // A settings update can rebuild the row model and change scene density.
+    // Claim focus after those bindings settle, never re-enter them synchronously.
+    function claimFocus() { if(selected && visible) forceActiveFocus(Qt.OtherFocusReason) }
+    onSelectedChanged: Qt.callLater(claimFocus)
+    onVisibleChanged: Qt.callLater(claimFocus)
+    Component.onCompleted: Qt.callLater(claimFocus)
     Rectangle { anchors.fill: parent; radius: 10; color: root.selected ? "#fff4ce" : "#eaf0e6"; border.color: root.selected ? Theme.focus : "#bdcdbd"; border.width: root.selected ? 3 : 1 }
     Rectangle { anchors.fill: parent; anchors.margins: -3; radius: 13; color: "transparent"; visible: root.selected; border.width: 3; border.color: Theme.focusGlow; opacity: 0.45 }
     Text { x: root.textInset; y: root.compact ? 4 : root.height<60 ? 6 : 12; width: parent.width-root.textInset-13-(root.slider || root.kind==="theme" ? readout.implicitWidth+12 : 54); elide: Text.ElideRight; text: root.title; textFormat: Text.PlainText; color: root.kind === "unavailable" ? Theme.muted : Theme.ink; font.pixelSize: root.compact ? 13 : root.height<60 ? 16 : 19; font.bold: !root.compact }
@@ -47,5 +51,18 @@ Item {
     Rectangle { anchors.right: parent.right; anchors.rightMargin: 18; anchors.verticalCenter: parent.verticalCenter; width: 48; height: 26; radius: 13; visible: root.kind==="toggle"; color: root.checked ? Theme.chassis : "#acbdb0"; Rectangle { x: root.checked ? 25 : 3; y: 3; width: 20; height: 20; radius: 10; color: "#fffdf0" } }
     Text { anchors.right: parent.right; anchors.rightMargin: 20; anchors.verticalCenter: parent.verticalCenter; text: root.kind==="action" ? "›" : "—"; visible: root.kind==="action" || root.kind==="unavailable"; color: Theme.muted; font.pixelSize: 24 }
     // Keep slider dragging above the row activation surface.
-    TapHandler { enabled: !root.slider; onTapped: root.activated() }
+    TapHandler { enabled: !root.slider && root.kind!=="stepper"; onTapped: root.activated() }
+    Row {
+        anchors.right: parent.right; anchors.rightMargin: 10; anchors.verticalCenter: parent.verticalCenter
+        spacing: 8; visible: root.kind==="stepper"
+        Repeater {
+            model: ["−", "+"]
+            CapButton {
+                required property int index; required property string modelData
+                width: 38; height: 38; label: modelData; textSize: 22; tint: Theme.blue; claimsFocus: false
+                Accessible.name: (index ? "Increase " : "Decrease ") + root.title
+                onActivated: root.adjustmentRequested(index ? 1 : -1)
+            }
+        }
+    }
 }

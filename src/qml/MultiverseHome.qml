@@ -3,7 +3,7 @@ Item {
     id: root
     required property var shell
     readonly property var choice: shell.homeGame
-    readonly property real unit: Math.max(1, Math.min(1.65, width/410, height/250))
+    readonly property real unit: 1
     clip: true
     Column {
         x: 5*root.unit; y: 8*root.unit; width: parent.width-10*root.unit; spacing: 12*root.unit

@@ -1,11 +1,39 @@
 #include "SettingsController.h"
+#include "DisplayScale.h"
 #include "features/library/ScrapeController.h"
 #include "core/experience/ExperienceProviders.h"
 #include <algorithm>
 #include <QSettings>
 
 namespace trainer {
-QString SettingsController::displayProfile() const {return QSettings().value("display/profile","handheld").toString()=="tv"?"tv":"handheld";}
+QString SettingsController::displayProfile() const {
+    const auto value = QSettings().value("display/profile", "handheld").toString();
+    return QStringList{"auto", "handheld", "tv"}.contains(value) ? value : "handheld";
+}
+int SettingsController::interfaceScale() const {
+    return std::clamp(QSettings().value("display/interfaceScale", 100).toInt(), 75, 150);
+}
+double SettingsController::displayDensity(double sw, double sh, double ww, double wh,
+        const QString& profile, int percent) const {
+    return trainer::displayDensity(sw, sh, ww, wh, profile, percent);
+}
+void SettingsController::adjustDisplay(int row, int direction) {
+    if (saving_ || category_ != 0 || (row != 3 && row != 4) || !direction) return;
+    pane_ = true; row_ = row;
+    QSettings settings;
+    if (row == 3) {
+        const QStringList profiles{"auto", "handheld", "tv"};
+        settings.setValue("display/profile", profiles[(profiles.indexOf(displayProfile()) + (direction < 0 ? 2 : 1)) % 3]);
+    } else settings.setValue("display/interfaceScale", std::clamp(interfaceScale() + (direction < 0 ? -5 : 5), 75, 150));
+    settings.sync();
+    error_ = settings.status() == QSettings::NoError ? QString() : QStringLiteral("Could not save display settings");
+    emit changed();
+}
+void SettingsController::resetDisplayScale() {
+    QSettings settings; settings.setValue("display/interfaceScale", 100); settings.sync();
+    error_ = settings.status() == QSettings::NoError ? QString() : QStringLiteral("Could not save display settings");
+    emit changed();
+}
 void SettingsController::configureNearby(NativeActivityProvider* value) {
     if(nearby_==value)return;
     if(nearby_)disconnect(nearby_,nullptr,this,nullptr);
@@ -42,7 +70,7 @@ QVariantList SettingsController::controls() const {
         return QVariantMap{{"title",title},{"kind",kind},{"detail",detail}};
     };
     switch(category_) {
-    case 0: return {row("Shell color","theme",theme()),row("Reduced motion","toggle",reducedMotion()?"On":"Off"),row("Brightness","brightness",""),row("Options layout","action",displayProfile()=="tv"?"TV · larger controls":"Handheld · compact controls")};
+    case 0: return {row("Shell color","theme",theme()),row("Reduced motion","toggle",reducedMotion()?"On":"Off"),row("Brightness","brightness",""),row("Display profile","stepper",displayProfile()=="auto"?"Auto · system density":displayProfile()=="tv"?"TV · larger controls":"Handheld"),row("Interface size","stepper",QString::number(interfaceScale())+"%"),row("Reset interface size","action","Restore 100%")};
     case 1: return {row("Volume","volume",""),row("Interface sounds","unavailable","Sound packs are not available yet"),row("Background music","unavailable","Music playback is not available yet")};
     case 2: return {row("Video previews","toggle",videoPreviews()?"On · silent playback":"Off"),row("Adventure pictures","status","Clean exit pictures on Home and in Choose Adventure"),row("Field Guide illustrations","status","Illustrations and animated companions")};
     case 3: return {row("Charger vibration","unavailable","Patterns have not been verified on this handheld"),row("Device lighting","unavailable","Lighting support has not been verified")};
@@ -84,7 +112,8 @@ void SettingsController::activateRow(int index) {
     pane_=true; row_=std::clamp(index,0,std::max(0,int(controls().size())-1));
     if(category_==0 && row_<2) activate(row_);
     else if(category_==0 && row_==2) emit quickAdjustment(1,Action::Confirm);
-    else if(category_==0 && row_==3) QSettings().setValue("display/profile",displayProfile()=="tv"?"handheld":"tv");
+    else if(category_==0 && (row_==3 || row_==4)) { adjustDisplay(row_,1); return; }
+    else if(category_==0 && row_==5) resetDisplayScale();
     else if(category_==1 && row_==0) emit quickAdjustment(0,Action::Confirm);
     else if(category_==2 && row_==0) activate(3);
     else if(category_==4) emit trainerRequested(row_);
@@ -135,6 +164,7 @@ void SettingsController::dispatch(Action action) {
         if(category_==0 && row_==0) cycleTheme(action==Action::Left?-1:1);
         else if(category_==0 && row_==1 && reducedMotion()!=(action==Action::Right)) activate(1);
         else if(category_==0 && row_==2) emit quickAdjustment(1,action);
+        else if(category_==0 && (row_==3 || row_==4)) adjustDisplay(row_,action==Action::Left?-1:1);
         else if(category_==1 && row_==0) emit quickAdjustment(0,action);
         else if(category_==2 && row_==0 && videoPreviews()!=(action==Action::Right)) activate(3);
         else if(category_==9 && readOnlySaves()!=(action==Action::Right)) activateRow(0);
