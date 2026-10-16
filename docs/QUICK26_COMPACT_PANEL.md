@@ -21,6 +21,8 @@
 
 ## Проверки
 
+[Коммит реализации `4a4f68c`](https://github.com/EriArk/TrainerOS/commit/4a4f68c).
+
 Windows native build и Home UI smoke прошли, `qmlWarnings=0`:
 пустое/одно/много приложений, прокрутка, меню/возврат, X/Y, 960/1080p.
 ARM Release собран; установлен одинаковый бинарник на Odin и Flip:
