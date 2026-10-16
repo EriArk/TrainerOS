@@ -5,6 +5,7 @@
 #include "fixtures/adapters/CounterExperience.h"
 #include "core/experience/ExperienceNavigation.h"
 #include <QtTest>
+#include "core/model/GamePlayers.h"
 #include <QTemporaryDir>
 #include <QFile>
 #include "fixtures/HomeSocialFixture.h"
@@ -59,6 +60,48 @@ private slots:
         shell.dispatch(Action::Right);QCOMPARE(shell.dashboard()->focus(),"play");
         shell.activateDashboard("screens");QCOMPARE(shell.overviewFace(),"screens");
         shell.dispatch(Action::Back);QCOMPARE(shell.dashboard()->focus(),"screens");QVERIFY(launches.isEmpty());
+    }
+    void genericHomeScopesAchievementsAndSpatialFocus() {
+        MockLibraryRepository library;MockTrainerRepository profiles;MockAdventureAdapter adapter;DevelopmentPlatformService platform;
+        MockPokedexRepository dex;MockHallOfFameRepository archive;MockAchievementProvider achievements;
+        ShellController shell(library,profiles,adapter,platform,builtinExperiences(dex,dex),archive,achievements);
+        HomeDashboardController projection(library,achievements,*shell.social());
+        auto* dashboard=&projection;dashboard->setContext("emerald-demo",false);
+        const auto adapterRows=dashboard->achievements();QVERIFY(adapterRows.size()>3);
+        dashboard->setContext("emerald-demo",true);
+        const auto emerald=dashboard->achievements();QCOMPARE(emerald.size(),3);
+        for(const auto& row:emerald)QCOMPARE(row.toMap()["adventure"].toString(),"emerald-demo");
+        dashboard->move(Action::Up);QCOMPARE(dashboard->focus(),"screens");
+        dashboard->move(Action::Down);QCOMPARE(dashboard->focus(),"play");
+        dashboard->move(Action::Left);QCOMPARE(dashboard->focus(),emerald.last().toMap()["key"].toString());
+        dashboard->move(Action::Right);QCOMPARE(dashboard->focus(),"play");
+        const auto oldKey=emerald.first().toMap()["key"].toString();dashboard->select(oldKey);
+        dashboard->setContext("crystal-demo",true);QCOMPARE(dashboard->focus(),"play");
+        QVERIFY(dashboard->target(oldKey).isEmpty());
+        for(const auto& row:dashboard->achievements())QCOMPARE(row.toMap()["adventure"].toString(),"crystal-demo");
+        dashboard->setContext("unknown",true);QVERIFY(dashboard->achievements().isEmpty());
+        dashboard->setContext({},true);QVERIFY(dashboard->achievements().isEmpty());
+        dashboard->setContext("emerald-demo",false);QCOMPARE(dashboard->achievements(),adapterRows);
+        dashboard->setContext("emerald-demo",true);
+        HomeSocialFixture::publish(*shell.social(),{{"state","connected"},{"userId","self"},{"chats",QVariantList{
+            QVariantMap{{"id","one"},{"name","First"},{"kind","chats"},{"unread",1}},
+            QVariantMap{{"id","two"},{"name","Second"},{"kind","chats"},{"unread",1}}}}});
+        const auto chats=dashboard->chats();QCOMPARE(chats.size(),2);
+        dashboard->select(chats.first().toMap()["key"].toString());dashboard->move(Action::Right);
+        QCOMPARE(dashboard->focus(),chats.last().toMap()["key"].toString());
+        dashboard->move(Action::Right);QCOMPARE(dashboard->focus(),"screens");
+    }
+    void homeModeIconsRequireAdmittedRuntimeAndConnection() {
+        QVERIFY(multiplayerPresentation({}).isEmpty());
+        QVERIFY(multiplayerPresentation({{"id","future.runtime"},{"players",4}}).isEmpty());
+        auto profile=QJsonObject{{"id","runtime.retroarch.snes.snes9x.v1"},{"connections",QJsonArray{"nearby"}}};
+        const auto mode=multiplayerPresentation(profile);
+        QCOMPARE(mode["id"].toString(),"netplay");QVERIFY(mode["nearby"].toBool());QVERIFY(!mode["online"].toBool());
+        profile["connections"]=QJsonArray{"unknown"};QVERIFY(multiplayerPresentation(profile).isEmpty());
+        profile={{"id","runtime.handheld.gba-gen3-en.v1"},{"transport","netpacket"}};
+        QCOMPARE(multiplayerPresentation(profile)["id"].toString(),"link");
+        profile.remove("transport");QVERIFY(multiplayerPresentation(profile).isEmpty());
+        QCOMPARE(multiplayerPresentation({{"id","runtime.ppsspp.adhoc.v1"}})["id"].toString(),"wireless");
     }
     void dashboardScrollHasAnExclusiveShellInputOwner() {
         MockLibraryRepository library;MockTrainerRepository profiles;MockAdventureAdapter adapter;DevelopmentPlatformService platform;
@@ -291,9 +334,9 @@ private slots:
         QCOMPARE(shell.focusIndex(),7);QCOMPARE(rpg->lastFace,"second");
         emit rpg->screenRequested("counter",false,oldToken);QCOMPARE(rpg->lastFace,"second");
         rpg->requestText();QVERIFY(shell.keyboard()->isOpen());
-        rpg->setEnabled(false);QCOMPARE(shell.homeView(),"game-home");QVERIFY(!shell.keyboard()->isOpen());
+        rpg->setEnabled(false);QCOMPARE(shell.homeView(),"game-home");QVERIFY(shell.dashboard()->genericLayout());QVERIFY(!shell.keyboard()->isOpen());
         rpg->applyText("late");QVERIFY(rpg->lastText.isEmpty());
-        rpg->setEnabled(true);QCOMPARE(shell.homeView(),"rpg-home");QCOMPARE(shell.hubFace(),"overview");
+        rpg->setEnabled(true);QCOMPARE(shell.homeView(),"rpg-home");QVERIFY(!shell.dashboard()->genericLayout());QCOMPARE(shell.hubFace(),"overview");
         shell.openGameHubFace("adapter");shell.selectAdapterScreen("second");QCOMPARE(shell.focusIndex(),7);
         rpg->version=99;emit rpg->changed();QCOMPARE(shell.homeView(),"game-home");
         QCOMPARE(shell.currentAdventureId(),"rpg");

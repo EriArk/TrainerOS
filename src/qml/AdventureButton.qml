@@ -4,6 +4,7 @@ Item {
     id: root
     required property var shell
     objectName: "home-launch"
+    property bool showGlyph: true
     property bool selected: shell.page === 0 && shell.dashboard.focus === "play" && shell.unobstructed && !shell.drawerOpen && !shell.quickAppsOpen
     readonly property string actionLabel: !shell.homeGame.id ? "Choose" : shell.home.actionHint === "Play" ? "Start" : shell.home.actionHint
     readonly property real unit: Math.min(width,height)/220
@@ -49,6 +50,7 @@ Item {
                 color: "transparent"; border.color: "#ffe8b6"; border.width: 2
             }
             Rectangle {
+                visible: root.showGlyph
                 x: 35; y: 32; width: 100; height: 100; radius: 50
                 color: "#ec9b58"; border.color: "#b3683e"; border.width: 2
                 Text { anchors.centerIn: parent; anchors.verticalCenterOffset: -8; text: "A"; color: "#ffdfa2"; font.pixelSize: 55; font.bold: true }
@@ -56,9 +58,9 @@ Item {
             }
             Text {
                 objectName: "home-launch-label"
-                x: 19; y: 111; width: 132; horizontalAlignment: Text.AlignHCenter
+                x: 14; y: root.showGlyph ? 111 : (parent.height-height)/2-2; width: 142; horizontalAlignment: Text.AlignHCenter
                 text: root.actionLabel; color: "#70452f"; font.family: Theme.displayFamily
-                font.pixelSize: 28; font.weight: Font.DemiBold
+                font.pixelSize: root.showGlyph ? 28 : 35; font.weight: Font.DemiBold
             }
             Rectangle { x: 55; y: 16; width: 37; height: 2; rotation: -8; color: "#fff0c4"; opacity: 0.7 }
         }

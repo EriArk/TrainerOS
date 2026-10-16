@@ -505,6 +505,7 @@ void ShellController::syncExperience() {
     ExperienceModule* next=resolveExperience(game);
     Q_ASSERT(next);
     const auto descriptor=next->descriptor();
+    dashboard_.setContext(currentAdventureId(),descriptor.id=="generic");
     const bool changing=activeModule_!=next || experience_.owner()!=owner || experience_.adventure()!=currentAdventureId() || experience_.descriptor()!=descriptor;
     if(changing && activeModule_)experience_.rememberNavigation({{"module",activeModule_->navigation()},{"hall",hall_.navigationState()}});
     const bool changed=experience_.select(owner,currentAdventureId(),descriptor,record?record->revision:0);

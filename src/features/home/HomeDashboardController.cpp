@@ -15,6 +15,10 @@ HomeDashboardController::HomeDashboardController(LibraryRepository& library,Achi
     });
     connect(&provider_,&AchievementProvider::snapshotChanged,this,&HomeDashboardController::changed);
 }
+void HomeDashboardController::setContext(QString adventure,bool generic) {
+    if(adventure_==adventure && generic_==generic)return;
+    adventure_=std::move(adventure);generic_=generic;focus_="play";emit changed();
+}
 QVariantList HomeDashboardController::chats() const {
     auto rows=social_.quickConversations();
     for(auto& value:rows){auto row=value.toMap();row["key"]="chat:"+row["id"].toString();row["type"]="chat";value=row;}
@@ -30,7 +34,7 @@ QVariantList HomeDashboardController::achievements() const {
     if(context.accountId.isEmpty())return rows;
     QSet<QString> games;for(const auto& game:library_.adventures())games.insert(game.id);
     for(const auto& set:provider_.sets()) {
-        if(!set.supported || !games.contains(set.adventureId))continue;
+        if(!set.supported || !games.contains(set.adventureId) || (generic_ && set.adventureId!=adventure_))continue;
         const auto snapshot=provider_.snapshot(set.id);
         if(snapshot.context!=context || snapshot.setId!=set.id
            || (snapshot.state!=AchievementState::Ready && snapshot.state!=AchievementState::Offline))continue;
@@ -41,7 +45,7 @@ QVariantList HomeDashboardController::achievements() const {
             const auto identity=QJsonDocument(QJsonArray{context.providerId,context.accountId,set.id,definition->id}).toJson(QJsonDocument::Compact);
             const auto key="ra:"+QString::fromLatin1(QCryptographicHash::hash(identity,QCryptographicHash::Sha256).toHex());
             rows.append(QVariantMap{{"key",key},{"type","achievement"},{"id",definition->id},{"set",set.id},
-                {"name",definition->title},{"game",set.title},{"description",definition->description},
+                {"adventure",set.adventureId},{"name",definition->title},{"game",set.title},{"description",definition->description},
                 {"icon",definition->badgeName.isEmpty() ? QString() : "https://media.retroachievements.org/Badge/" + definition->badgeName + ".png"},
                 {"date",unlock.earnedAt},{"offline",snapshot.state==AchievementState::Offline},
                 {"mode",unlock.mode==AchievementMode::Hardcore?"Hardcore":unlock.mode==AchievementMode::Standard?"Standard":"Mode unavailable"}});
@@ -66,8 +70,24 @@ void HomeDashboardController::move(Action action) {
     const auto groups=zones();int zone=-1,index=-1;
     for(int i=0;i<groups.size();++i)if(groups[i].contains(focus_)){zone=i;index=groups[i].indexOf(focus_);break;}
     if(action==Action::Back){reset();return;}
-    if(focus_=="play" && action==Action::Left){select("screens");return;}
-    if(focus_=="screens" && action==Action::Right){select("play");return;}
+    if(generic_) {
+        if(focus_=="play") {
+            if(action==Action::Up){select("screens");return;}
+            if(action==Action::Left){for(int i:{2,1,0})if(!groups[i].isEmpty()){select(groups[i].last());return;}return;}
+            return;
+        }
+        if(focus_=="screens") {
+            if(action==Action::Down){reset();return;}
+            if(action==Action::Left){for(int i:{0,1})if(!groups[i].isEmpty()){select(groups[i].first());return;}return;}
+            return;
+        }
+        if(zone==2 && action==Action::Up){select("screens");return;}
+        if(zone==2 && action==Action::Left && index==0){for(int i:{1,0})if(!groups[i].isEmpty()){select(groups[i].last());return;}return;}
+        if(zone==2 && action==Action::Down)return;
+        if((zone==1 || (zone==0 && index==groups[0].size()-1)) && action==Action::Right){select(zone==0?"screens":groups[2].isEmpty()?"play":groups[2].first());return;}
+    }
+    if(!generic_ && focus_=="play" && action==Action::Left){select("screens");return;}
+    if(!generic_ && focus_=="screens" && action==Action::Right){select("play");return;}
     if(zone<0) {
         if(action==Action::Left || action==Action::Up || action==Action::Down)for(const auto& group:groups)if(!group.isEmpty()){select(group.first());return;}
         return;

@@ -1,5 +1,19 @@
 # AGENTS.md — TrainerOS
 
+**HOME-20 visual follow-up:** generic achievements show five medallions per row
+with individual captions. Enlarge the circular launch button and center its
+Start/Resume/Return label without the A letter. Enlarge the screenshot collage,
+center its visible bounds between the card top and divider, narrow the description,
+and use colourful metadata chips plus a dedicated multiplayer pictogram chip.
+These refinements do not redesign the separately owned Pokemon adapter.
+
+**HOME-20 owner correction:** only the generic Home card changes: selected-game
+Recent Achievements at its bottom, screenshot collage at top right, narrower
+text and metadata/player/runtime chips. Adapter-owned cards keep their own
+composition inside the existing card bounds; Pokemon Emerald remains unchanged
+for now. Never move Pokemon layout/logic into the generic shell. This supersedes
+the global achievement feed only for the generic card.
+
 ## Current owner contract — 16 October 2026
 
 **Flip available again, 16 October 2026:** the owner rebooted Flip after the

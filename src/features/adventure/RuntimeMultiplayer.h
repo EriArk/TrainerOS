@@ -31,6 +31,7 @@ class RuntimeMultiplayer final : public LobbyRuntimeService {
     Q_PROPERTY(QString invitation READ invitation NOTIFY changed)
     Q_PROPERTY(QString invitationId READ invitationId NOTIFY changed)
     Q_PROPERTY(bool invitationBadge READ invitationBadge NOTIFY changed)
+    Q_PROPERTY(QVariantMap gameModes READ gameModes NOTIFY availabilityChanged)
     Q_PROPERTY(QStringList onlineGames READ onlineGames NOTIFY availabilityChanged)
     Q_PROPERTY(QStringList nearbyGames READ nearbyGames NOTIFY availabilityChanged)
 public:
@@ -51,6 +52,7 @@ public:
     QString menuLabel() const;
     QVariantList gameMenuActions() const;
     bool canInvite() const;
+    QVariantMap gameModes() const {return gameModes_;}
     QStringList onlineGames() const { return onlineGames_; }
     QStringList nearbyGames() const { return nearbyGames_; }
     QStringList multiplayerGames() const { return multiplayerGames_; }
@@ -140,6 +142,7 @@ private:
     QString trainer_,identity_,game_,status_,transportPeer_,lastRequest_,scanPriority_;
     QJsonObject descriptor_;
     QMap<QString,QJsonObject> profiles_,games_;
+    QVariantMap gameModes_;
     QStringList onlineGames_,nearbyGames_,multiplayerGames_;
     retroarch::NetplayRequest request_;
     retroarch::NetplayClient client_{this};

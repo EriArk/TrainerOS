@@ -12,12 +12,15 @@ class HomeDashboardController final : public QObject {
     Q_PROPERTY(QVariantList chats READ chats NOTIFY changed)
     Q_PROPERTY(QVariantList activities READ activities NOTIFY changed)
     Q_PROPERTY(QVariantList achievements READ achievements NOTIFY changed)
+    Q_PROPERTY(bool genericLayout READ genericLayout NOTIFY changed)
     Q_PROPERTY(QString focus READ focus NOTIFY changed)
 public:
     HomeDashboardController(LibraryRepository&,AchievementProvider&,SocialController&,QObject* parent=nullptr);
     QVariantList chats() const;
     QVariantList activities() const;
     QVariantList achievements() const;
+    void setContext(QString adventure,bool generic);
+    bool genericLayout() const {return generic_;}
     QString focus() const{return focus_;}
     void select(const QString&);
     void move(Action);
@@ -31,6 +34,7 @@ private:
     LibraryRepository& library_;
     AchievementProvider& provider_;
     SocialController& social_;
-    QString focus_="play";
+    QString focus_="play",adventure_;
+    bool generic_=false;
 };
 }

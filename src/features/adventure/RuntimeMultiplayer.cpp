@@ -275,7 +275,7 @@ void RuntimeMultiplayer::refresh(const RetroArchInstallation& installation,QStri
     installation_=installation;
     if(!allowed_) {
         games_.clear();
-        if(!multiplayerGames_.isEmpty()){onlineGames_.clear();nearbyGames_.clear();multiplayerGames_.clear();emit availabilityChanged();}
+        if(!multiplayerGames_.isEmpty() || !gameModes_.isEmpty()){gameModes_.clear();onlineGames_.clear();nearbyGames_.clear();multiplayerGames_.clear();emit availabilityChanged();}
         update();return;
     }
     const auto records=library_.registrations();
@@ -339,7 +339,21 @@ void RuntimeMultiplayer::refresh(const RetroArchInstallation& installation,QStri
             {"platform",record.adventure.platformId},{"mode",profile["id"].toString()},{"seats",qMin(4,capacity)},{"runtime",profile.toVariantMap()}});
         social_.lobbyRuntime()->registerService(profile["id"].toString(),this);
     }
-    if(additionalLobbyGames)lobbyGames+=additionalLobbyGames(games_);
+    QVariantMap modes;
+    for(auto it=games_.cbegin();it!=games_.cend();++it) {
+        const auto mode=multiplayerPresentation(it.value());
+        if(!mode.isEmpty())modes.insert(it.key(),QVariantList{mode});
+    }
+    if(additionalLobbyGames) {
+        const auto additional=additionalLobbyGames(games_);lobbyGames+=additional;
+        for(const auto& value:additional) {
+            const auto row=value.toMap();const auto game=row["adventure"].toString();
+            if(row["mode"]!="remoteplay.v1" || !games_.contains(game))continue;
+            auto list=modes.value(game).toList();
+            list.append(QVariantMap{{"id","remoteplay"},{"label","Remote Play"},{"nearby",false},{"online",true}});modes.insert(game,list);
+        }
+    }
+    if(gameModes_!=modes){gameModes_=modes;emit availabilityChanged();}
     social_.setLobbyGames(lobbyGames);
     const auto visible=allowed_?games_.keys():QStringList{};
     QStringList online,nearby;

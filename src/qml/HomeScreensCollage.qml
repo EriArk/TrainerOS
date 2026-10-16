@@ -4,9 +4,17 @@ Item {
     id: root
     property url source
     property bool selected: false
+    property bool balanced: false
     signal activated()
-    readonly property real frameWidth: Math.min(width * .68, height * 1.45)
-    readonly property real frameHeight: height * .82
+    readonly property real frameWidth: balanced ? Math.min(width/1.55,(height-14)*1.24) : Math.min(width * .68, height * 1.45)
+    readonly property real frameHeight: balanced ? frameWidth*.75 : height*.82
+    readonly property real rearTop: (frameHeight-frameWidth*Math.sin(Math.PI/20)-frameHeight*Math.cos(Math.PI/20))/2
+    readonly property real frontTop: (frameHeight-frameWidth*Math.sin(Math.PI/30)-frameHeight*Math.cos(Math.PI/30))/2
+    readonly property real artTop: Math.min(rearTop,11+frontTop)
+    readonly property real artBottom: Math.max(frameHeight-rearTop,11+frameHeight-frontTop)+4
+    readonly property real artOffset: balanced ? (height-artBottom+artTop)/2-artTop : 0
+    readonly property real visualTop: artOffset+artTop
+    readonly property real visualBottom: artOffset+artBottom
     Accessible.role: Accessible.Button
     Accessible.name: "Game screenshots"
     Accessible.onPressAction: activated()
@@ -15,6 +23,8 @@ Item {
     onVisibleChanged: Qt.callLater(claimFocus)
     Component.onCompleted: Qt.callLater(claimFocus)
 
+    Item {
+    width: parent.width; height: parent.height; y: root.artOffset
     // The rear mount is stationery, not a second invented capture. The current
     // media repository retains one confirmed exit image per owner/adventure.
     Item {
@@ -58,6 +68,7 @@ Item {
                 color: Theme.ink; font.family: Theme.displayFamily; font.pixelSize: 12
             }
         }
+    }
     }
     MouseArea { anchors.fill: parent; onClicked: root.activated() }
 }

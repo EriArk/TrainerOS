@@ -299,6 +299,8 @@ target_link_libraries(traineros PRIVATE trainer_core Qt6::Quick Qt6::Multimedia)
 file(GLOB social_icons CONFIGURE_DEPENDS assets/icons/phosphor/*.svg)
 qt_add_resources(traineros social_icons PREFIX "/social-icons" BASE assets/icons/phosphor
     FILES ${social_icons} assets/icons/phosphor/LICENSE)
+file(GLOB home_icons CONFIGURE_DEPENDS assets/icons/home/*.svg)
+qt_add_resources(traineros home_icons PREFIX "/home-icons" BASE assets/icons/home FILES ${home_icons})
 set_source_files_properties(src/qml/Theme.qml PROPERTIES QT_QML_SINGLETON_TYPE TRUE)
 file(GLOB trainer_qml_sources CONFIGURE_DEPENDS src/qml/*.qml src/qml/*.js)
 foreach(qml_file IN LISTS trainer_qml_sources)
@@ -328,7 +330,7 @@ qt_add_qml_module(traineros
         src/qml/InvitationBadge.qml
         src/qml/HomeMenuCard.qml
         src/qml/Theme.qml
-        src/qml/HomeCardBackdrop.qml src/qml/HomeScreensCollage.qml
+        src/qml/HomeCardBackdrop.qml src/qml/HomeScreensCollage.qml src/qml/HomeMetadataChips.qml
         src/qml/Panel.qml
         src/qml/ChassisFrame.qml
         src/qml/ChassisTopRim.qml

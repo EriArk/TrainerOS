@@ -4,6 +4,7 @@ Item {
     id: root
     required property var shell
     readonly property var flow: shell.dashboard
+    readonly property bool generic: flow.genericLayout
     readonly property bool active: visible && shell.unobstructed && !shell.quickAppsOpen && !shell.drawerOpen && !shell.keyboard.open
     readonly property real unit: 1
     readonly property real gap: 16 * unit
@@ -16,7 +17,7 @@ Item {
         id: activity
         x: root.gap; y: 12 * root.unit
         width: root.split - 2 * root.gap
-        height: root.usableHeight - awards.height - root.gap - y
+        height: root.usableHeight - (root.generic ? 0 : awards.height + root.gap) - y
         Text { id: activityTitle; text: "Activity"; color: Theme.ink; font.family: Theme.displayFamily; font.pixelSize: 23 * root.unit }
         ListView {
             id: chatRow
@@ -85,21 +86,30 @@ Item {
     }
     Item {
         id: awards
-        x: activity.x; y: root.usableHeight-height; width: activity.width; height: 139 * root.unit
-        Rectangle { width: parent.width; height: 1; color: "#70c6d6b6" }
-        Rectangle { y: 1; width: parent.width; height: 1; color: "#203a4635" }
-        Text { y: 13 * root.unit; width: parent.width; elide: Text.ElideRight; text: "Recent achievements"; color: Theme.ink; font.family: Theme.displayFamily; font.pixelSize: 19 * root.unit }
+        objectName: "home-awards"
+        readonly property bool compact: root.generic && showcase.height < 330
+        parent: root.generic ? showcase : root
+        x: root.generic ? 20 : activity.x
+        y: root.generic ? parent.height-height-13 : root.usableHeight-height
+        width: root.generic ? parent.width-play.width-60 : activity.width
+        height: root.generic ? (compact ? 128 : 148) : 139
+        Rectangle { visible: !root.generic; width: parent.width; height: 1; color: "#70c6d6b6" }
+        Rectangle { visible: !root.generic; y: 1; width: parent.width; height: 1; color: "#203a4635" }
+        Text { y: root.generic ? 6 : 13; width: parent.width; elide: Text.ElideRight; text: "Recent achievements"; color: root.generic ? "#fff4ce" : Theme.ink; font.family: Theme.displayFamily; font.pixelSize: 19 * root.unit }
         ListView {
             id: trophies; objectName: "home-achievements"
-            y: 45 * root.unit; width: parent.width; height: 70 * root.unit
-            orientation: ListView.Horizontal; clip: true; spacing: 10 * root.unit; model: root.flow.achievements
+            y: root.generic ? (awards.compact ? 29 : 34) : 45; width: parent.width; height: root.generic ? (awards.compact ? 84 : 103) : 70
+            orientation: ListView.Horizontal; clip: true; spacing: root.generic ? 6 : 10; model: root.flow.achievements
             currentIndex: { for(let i=0;i<model.length;i++)if(model[i].key===root.flow.focus)return i;return -1 }
             onCurrentIndexChanged: if(currentIndex>=0)positionViewAtIndex(currentIndex,ListView.Contain)
             delegate: Item {
                 required property var modelData
-                width: 62 * root.unit; height: trophies.height
+                required property int index
+                objectName: "home-award-"+index
+                width: root.generic ? (trophies.width-4*trophies.spacing)/5 : 62; height: trophies.height
                 Rectangle {
-                    x: 2; y: 5; width: 58*root.unit; height: width; radius: width/2
+                    id: medallion
+                    x: root.generic ? (parent.width-width)/2 : 2; y: 5; width: root.generic ? Math.min(parent.width-6,awards.compact ? 46 : 58) : 58; height: width; radius: width/2
                     color: "#234b46"; border.color: "#769f87"; border.width: 2
                     Rectangle {
                         anchors.fill: parent; anchors.margins: 4; radius: width/2
@@ -113,32 +123,45 @@ Item {
                         Text { anchors.centerIn: parent; visible: badge.status !== Image.Ready; text: "★"; font.pixelSize: 26*root.unit; color: "#80542e" }
                     }
                     Rectangle { anchors.fill: parent; anchors.margins: -2; radius: width/2; color: "transparent"; border.color: Theme.focus; border.width: 3; visible: root.active && root.flow.focus===modelData.key }
-                    MouseArea { anchors.fill: parent; onClicked: root.shell.activateDashboard(modelData.key) }
-                    Accessible.role: Accessible.Button; Accessible.name: modelData.name + ", " + modelData.game
-                    Accessible.onPressAction: root.shell.activateDashboard(modelData.key)
                 }
+                Text {
+                    objectName: "home-achievement-caption"
+                    visible: root.generic; y: medallion.y+medallion.height+6; width: parent.width
+                    text: modelData.name; color: "#fff4ce"; font.pixelSize: 11
+                    horizontalAlignment: Text.AlignHCenter; wrapMode: Text.WordWrap
+                    maximumLineCount: 2; elide: Text.ElideRight
+                }
+                MouseArea { anchors.fill: parent; onClicked: root.shell.activateDashboard(modelData.key) }
+                Accessible.role: Accessible.Button; Accessible.name: modelData.name + ", " + modelData.game
+                Accessible.onPressAction: root.shell.activateDashboard(modelData.key)
             }
             Row {
-                visible: !trophies.count; spacing: 13*root.unit; y: 5
+                visible: !trophies.count; spacing: root.generic ? trophies.spacing : 13; y: 5
                 Repeater {
-                    model: 3
-                    Rectangle {
-                        width: 54*root.unit; height: width; radius: width/2; color: "#80244844"; border.color: "#9eae89"; border.width: 2
-                        Rectangle { anchors.fill: parent; anchors.margins: 5; radius: width/2; color: "transparent"; border.color: "#7d916f" }
-                        Text { anchors.centerIn: parent; text: "☆"; color: "#b9c6a2"; font.pixelSize: 29*root.unit }
+                    model: root.generic ? 5 : 3
+                    Item {
+                        width: root.generic ? (trophies.width-4*trophies.spacing)/5 : 54; height: root.generic ? 80 : 54
+                        Rectangle {
+                            anchors.horizontalCenter: parent.horizontalCenter
+                            width: root.generic ? Math.min(parent.width-6,awards.compact ? 46 : 58) : 54
+                            height: width; radius: width/2; color: "#80244844"; border.color: "#9eae89"; border.width: 2
+                            Rectangle { anchors.fill: parent; anchors.margins: 5; radius: width/2; color: "transparent"; border.color: "#7d916f" }
+                            Text { anchors.centerIn: parent; text: "☆"; color: "#b9c6a2"; font.pixelSize: 29*root.unit }
+                        }
                     }
                 }
             }
         }
         Text {
-            y: 113*root.unit; width: parent.width
+            visible: !root.generic || trophies.count === 0
+            y: root.generic ? parent.height-18 : 113; width: parent.width
             text: {
                 const rows = root.flow.achievements
                 let chosen = rows.length ? rows[0] : null
                 for (let i=0; i<rows.length; ++i) if(rows[i].key===root.flow.focus) chosen=rows[i]
                 return chosen ? chosen.name + (chosen.offline ? " · Offline" : "") : "Your first achievements await"
             }
-            color: Theme.muted; font.pixelSize: 12*root.unit; elide: Text.ElideRight
+            color: root.generic ? "#e1ebd4" : Theme.muted; font.pixelSize: 12*root.unit; elide: Text.ElideRight
         }
     }
     // The adapter owns the showcase; the shell keeps a single compact launch control.
@@ -153,20 +176,37 @@ Item {
         }
         Rectangle { anchors.fill: parent; anchors.margins: 4; radius: parent.radius-4; color: "transparent"; border.color: Theme.homeLandscape[5]; opacity: .35 }
         Item {
-            anchors { fill: parent; margins: 14 * root.unit; bottomMargin: 107 * root.unit }
+            objectName: "home-description"
+            x: 14; y: 14
+            width: root.generic ? parent.width*.57-24 : parent.width-28
+            height: root.generic ? Math.max(0,metadata.y-y-8) : parent.height-y-107
             clip: true; enabled: false
             ExperienceHost { anchors.fill: parent; shell: root.shell; showcase: true }
         }
+        HomeMetadataChips {
+            id: metadata
+            objectName: "home-metadata"
+            visible: root.generic && !!root.shell.homeGame.id
+            x: 20; y: awards.y-height-12; width: parent.width*.57-28
+            compact: awards.compact
+            game: root.shell.homeGame
+            modes: typeof runtimeMultiplayer !== "undefined" ? runtimeMultiplayer.gameModes[game.id] || [] : []
+        }
+        Rectangle { visible: root.generic; x: 20; y: awards.y; width: parent.width-40; height: 1; color: "#70c6d6b6" }
         AdventureButton {
             id: play
             anchors { right: parent.right; bottom: parent.bottom; rightMargin: 16*root.unit; bottomMargin: 10*root.unit }
-            width: 96*root.unit; height: width
+            width: root.generic ? (awards.compact ? 116 : 132) : 96; height: width
+            showGlyph: !root.generic
             shell: root.shell; selected: root.active && root.flow.focus === "play"
         }
         HomeScreensCollage {
             objectName: "home-screens"
-            anchors { left: parent.left; leftMargin: 22*root.unit; right: play.left; rightMargin: 24*root.unit; verticalCenter: play.verticalCenter }
-            height: 98*root.unit
+            x: root.generic ? parent.width*.58 : 22
+            y: root.generic ? 18 : play.y+(play.height-height)/2
+            width: root.generic ? parent.width*.42-22 : play.x-x-24
+            height: root.generic ? awards.y-36 : 98
+            balanced: root.generic
             source: root.shell.home.exitPreviewLabel ? root.shell.home.exitPreview : ""
             selected: root.active && root.flow.focus === "screens"
             onActivated: root.shell.activateDashboard("screens")

@@ -295,6 +295,66 @@ void startHomeSmoke(QQuickWindow* window, ShellController& shell, SessionState& 
         case 27:
             check(shell.primaryId()=="home" && shell.dashboard()->focus()=="screens","Back restores the Home collage focus");
             check(focusIs("home-screens"),"Collage owns visual controller focus");capture("home-collage-focus");break;
+        case 28: {
+            AdventureRegistration record;record.adventure.id="home-generic";
+            record.adventure.title="A long adventure across the valley";record.adventure.domain="multiverse";
+            record.adventure.platformId="gba";record.adventure.adapterId="test-process";
+            record.adventure.description="Explore the valley, meet your friends and discover a new story together. A long description should stay in its own readable column beside the photo album.";
+            record.contentPath=program;
+            store.saveAdventureAsync(record,window,[failed](LibraryWriteResult r){if(!r.success)*failed=true;});break;
+        }
+        case 29: {
+            shell.refreshLibrary();auto state=shell.navigationState();state["homeAdventure"]="home-generic";shell.restoreNavigation(state);
+            shell.goToPage(0);window->resize(960,540);break;
+        }
+        case 30: {
+            check(shell.dashboard()->genericLayout() && shell.homeGame()["id"]=="home-generic","A real selected game without an adapter uses the generic card");
+            auto* card=itemNamed("home-game-card");auto* awards=itemNamed("home-awards");
+            auto* screens=itemNamed("home-screens");auto* description=itemNamed("home-description");
+            check(card && awards && awards->parentItem()==card,"Generic achievements are inside the game card");
+            check(screens && description && screens->x()>description->x()+description->width(),"Description leaves space for the top-right collage");
+            check(screens && awards && screens->y()+screens->height()<awards->y(),"Collage sits above achievements");
+            if(screens && awards)check(qAbs((screens->y()+screens->property("visualTop").toDouble())-(awards->y()-screens->y()-screens->property("visualBottom").toDouble()))<1,"Collage visible bounds have equal top and divider spacing");
+            if(auto* button=itemNamed("home-launch"))check(!button->property("showGlyph").toBool() && button->width()>=116,"Generic launch button is larger and uses a centered word");
+            auto* summary=itemNamed("home-summary");
+            check(summary && description && summary->isVisible() && summary->mapRectToScene(summary->boundingRect()).bottom()<=description->mapRectToScene(description->boundingRect()).bottom()+1,"Compact generic card keeps its description visible");
+            check(shell.dashboard()->achievements().isEmpty(),"Generic game never receives another game's achievements");
+            capture("home-generic-960");
+            shell.dispatch(Action::Up);break;
+        }
+        case 31:
+            check(focusIs("home-screens"),"Up from generic Play reaches the top-right collage");
+            shell.dispatch(Action::Confirm);break;
+        case 32:
+            check(shell.overviewFace()=="screens","Generic collage opens Screens");shell.dispatch(Action::Back);break;
+        case 33:
+            check(shell.dashboard()->focus()=="screens","Generic Screens return keeps focus");
+            shell.dispatch(Action::Down);window->resize(1920,1080);break;
+        case 34:
+            check(focusIs("home-launch"),"Down from the generic collage returns to Play");capture("home-generic-1080p");break;
+        case 35: {
+            QVariantList rows;const QStringList names{"The first trail","A team to remember","Across the valley","A new chapter","The scenic route","Lasting memory"};
+            for(int i=0;i<names.size();++i)rows.append(QVariantMap{{"key","visual-fixture-"+QString::number(i)},{"name",names[i]},{"game","Original fixture"},{"icon",""}});
+            if(auto* trophies=itemNamed("home-achievements"))trophies->setProperty("model",rows);
+            if(auto* chips=itemNamed("home-metadata")) {
+                auto game=shell.homeGame();game["year"]="2004";game["genre"]="Adventure";game["playInfo"]=QVariantMap{{"label","1-4 players"}};
+                chips->setProperty("game",game);chips->setProperty("modes",QVariantList{QVariantMap{{"id","link"},{"label","Link"},{"online",true},{"nearby",true}},QVariantMap{{"id","remoteplay"},{"label","Remote Play"},{"online",true},{"nearby",false}}});
+            }
+            break;
+        }
+        case 36: {
+            auto* trophies=itemNamed("home-achievements");
+            for(int i=0;i<5;++i)if(auto* medal=itemNamed("home-award-"+QString::number(i))) {
+                const auto bounds=medal->mapRectToScene(medal->boundingRect());const auto row=trophies->mapRectToScene(trophies->boundingRect());
+                check(bounds.left()>=row.left()-1 && bounds.right()<=row.right()+1,"Five captioned achievement slots fit the row");
+            } else check(false,"Visible achievement fixture is missing");
+            capture("home-five-achievements-1080p");window->resize(960,540);break;
+        }
+        case 37: {
+            auto* summary=itemNamed("home-summary");auto* description=itemNamed("home-description");
+            check(summary && description && summary->mapRectToScene(summary->boundingRect()).bottom()<=description->mapRectToScene(description->boundingRect()).bottom()+1,"Compact card keeps description above colourful chips");
+            capture("home-five-achievements-960");break;
+        }
         default:
             check(warnings == 0, "QML warnings"); completed = true; timer->stop();
             if (!screenshotDir.isEmpty()) {
