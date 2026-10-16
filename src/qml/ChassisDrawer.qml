@@ -156,6 +156,7 @@ Item {
                     x: (root.button === "Y" ? root.keyInset : 18)+28; y: 7; width: root.closedWidth-x-22; height: 24
                     text: root.label; color: root.button === "Y" ? Theme.ink : Theme.paper
                     font.pixelSize: 13; font.weight: Font.Medium
+                    fontSizeMode: Text.HorizontalFit; minimumPixelSize: 10
                     horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter
                 }
                 MouseArea { anchors.fill: parent; onClicked: root.toggled() }
