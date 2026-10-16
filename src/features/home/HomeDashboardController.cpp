@@ -57,7 +57,7 @@ QList<QStringList> HomeDashboardController::zones() const {
     }return result;
 }
 QVariantMap HomeDashboardController::target(const QString& key) const {
-    if(key=="play")return {{"type","play"},{"key","play"}};
+    if(key=="play" || key=="screens")return {{"type",key},{"key",key}};
     for(const auto& rows:{chats(),activities(),achievements()})for(const auto& row:rows)if(row.toMap()["key"]==key)return row.toMap();
     return {}; // An expired focused item never becomes a new row at its old index.
 }
@@ -66,6 +66,8 @@ void HomeDashboardController::move(Action action) {
     const auto groups=zones();int zone=-1,index=-1;
     for(int i=0;i<groups.size();++i)if(groups[i].contains(focus_)){zone=i;index=groups[i].indexOf(focus_);break;}
     if(action==Action::Back){reset();return;}
+    if(focus_=="play" && action==Action::Left){select("screens");return;}
+    if(focus_=="screens" && action==Action::Right){select("play");return;}
     if(zone<0) {
         if(action==Action::Left || action==Action::Up || action==Action::Down)for(const auto& group:groups)if(!group.isEmpty()){select(group.first());return;}
         return;

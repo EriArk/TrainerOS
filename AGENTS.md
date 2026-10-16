@@ -10,6 +10,20 @@ explicitly deferred. Preserve the existing visual language and gameplay guards;
 technical smoke success is not visual acceptance. Update Armada before device
 tests after checking active processes and protected operations.
 
+**Latest owner Home backdrop correction:** the calm sky/sun/path placeholder in
+IMG_1047 was praised for its colours as well as composition. Provide a curated
+matching variant for every shell theme. Temporarily remove translucent game
+screenshots from the Home card; retain capture/history and other media views.
+This supersedes the screenshot-display requirement below. Keep art inside the
+card, preserve scaling and install only on Odin before the next screen.
+
+**Latest owner Home composition follow-up:** make the game card about one third
+wider (roughly two thirds of Home), narrow the left column, replace the separate
+Start Adventure caption with a tilted overlapping screenshot-frame collage.
+The collage is a shell-owned touch/controller link to GameHub Overview Screens;
+the full gallery remains #203. Put Start/Resume/Return inside the round A button.
+Use actual available captures and an inviting empty mount, never invented history.
+
 **Owner scaling/background correction:** provide shared live UI scaling with settings.
 Artwork and translucent game screenshots belong ONLY inside the complete game
 card; the surrounding Home retains the ordinary TrainerOS paper/chassis.

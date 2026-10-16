@@ -429,7 +429,9 @@ void ShellController::activateDashboard(const QString& key) {
     const auto target=dashboard_.target(key);if(target.isEmpty())return;
     dashboard_.select(key);
     if(target["type"]=="play"){confirm();emit changed();return;}
-    if(target["type"]=="chat") {
+    if(target["type"]=="screens") {
+        openGameHubFace("overview");showOverview("screens");dashboardReturn_=true;
+    } else if(target["type"]=="chat") {
         socialFace_=target["guild"].toString().isEmpty()?"chats":"communities";
         goToPage(SocialPage);social_.openQuickConversation(target["id"].toString());dashboardReturn_=true;
     } else if(target["type"]=="event") {

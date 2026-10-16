@@ -22,7 +22,7 @@ private slots:
         QVariantMap chat{{"id","one"},{"name","First"},{"kind","chats"},{"unread",1}};
         QVariantMap snapshot{{"state","connected"},{"userId","self"},{"chats",QVariantList{chat}}};
         HomeSocialFixture::publish(*shell.social(),snapshot);QCOMPARE(shell.dashboard()->chats().size(),1);
-        shell.dispatch(Action::Left);QCOMPARE(shell.dashboard()->focus(),"chat:one");
+        shell.dispatch(Action::Up);QCOMPARE(shell.dashboard()->focus(),"chat:one");
         shell.dispatch(Action::Confirm);QCOMPARE(shell.primaryId(),"social");QVERIFY(launches.isEmpty());
         QCOMPARE(commands.last()[0].toString(),"conversation");QCOMPARE(commands.last()[1].toMap()["id"],"one");
         shell.dispatch(Action::Back);QCOMPARE(shell.primaryId(),"home");QCOMPARE(shell.dashboard()->focus(),"chat:one");
@@ -44,6 +44,21 @@ private slots:
         shell.dispatch(Action::Back);QCOMPARE(shell.primaryId(),"home");QCOMPARE(shell.dashboard()->focus(),key);
         achievements.setAccount({});QVERIFY(shell.dashboard()->achievements().isEmpty());
         shell.dispatch(Action::Confirm);QCOMPARE(shell.primaryId(),"home");
+    }
+    void homeScreensOpensExistingRouteWithoutLaunchAndRestoresFocus() {
+        MockLibraryRepository library;MockTrainerRepository profiles;MockAdventureAdapter adapter;DevelopmentPlatformService platform;
+        MockPokedexRepository dex;MockHallOfFameRepository archive;MockAchievementProvider achievements;
+        ShellController shell(library,profiles,adapter,platform,builtinExperiences(dex,dex),archive,achievements);
+        QSignalSpy launches(&shell,&ShellController::homeLaunchPressed);
+        const auto game=shell.currentAdventureId();
+        shell.dispatch(Action::Left);QCOMPARE(shell.dashboard()->focus(),"screens");
+        shell.dispatch(Action::Confirm);QCOMPARE(shell.primaryId(),"gamehub");
+        QCOMPARE(shell.hubFace(),"overview");QCOMPARE(shell.overviewFace(),"screens");
+        QCOMPARE(shell.currentAdventureId(),game);QVERIFY(launches.isEmpty());
+        shell.dispatch(Action::Back);QCOMPARE(shell.primaryId(),"home");QCOMPARE(shell.dashboard()->focus(),"screens");
+        shell.dispatch(Action::Right);QCOMPARE(shell.dashboard()->focus(),"play");
+        shell.activateDashboard("screens");QCOMPARE(shell.overviewFace(),"screens");
+        shell.dispatch(Action::Back);QCOMPARE(shell.dashboard()->focus(),"screens");QVERIFY(launches.isEmpty());
     }
     void dashboardScrollHasAnExclusiveShellInputOwner() {
         MockLibraryRepository library;MockTrainerRepository profiles;MockAdventureAdapter adapter;DevelopmentPlatformService platform;

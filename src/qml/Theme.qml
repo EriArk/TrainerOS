@@ -20,6 +20,17 @@ QtObject {
         red: ["#984b51", "#713b45", "#432a37", "#cb9293"], green: ["#497c52", "#345b40", "#203d32", "#92b287"],
         blue: ["#3d739d", "#305477", "#233b53", "#87b2ca"], orange: ["#976038", "#72472d", "#49372b", "#c9a375"]})
     readonly property var palette: palettes[themeId] || palettes.turquoise
+    // The quiet Home landscape belongs to the shell theme, never to game media.
+    // sky, ground, path, sun, outer rim, inner rim, translucent base.
+    // Keep the approved muted blend with the shell's paper pattern underneath.
+    readonly property var homeLandscapePalettes: ({
+        turquoise: ["#638eca", "#497643", "#ddb467", "#fff2b1", "#c4d7a9", "#7b9b83", "#b5204c47"],
+        red: ["#916c89", "#614461", "#dcad98", "#f6d5ad", "#d4b2b0", "#a78996", "#b54f263a"],
+        green: ["#88a174", "#386334", "#c3b46e", "#e8e9a7", "#c2d0a5", "#889d7d", "#b52f4930"],
+        blue: ["#739ad0", "#456482", "#b1becb", "#d3e5dd", "#b5d0d6", "#819fb2", "#b5273f60"],
+        orange: ["#bd9168", "#80603b", "#e4bb79", "#ffe0a2", "#dbc39b", "#b19a79", "#b55e3b24"]
+    })
+    readonly property var homeLandscape: homeLandscapePalettes[themeId] || homeLandscapePalettes.turquoise
     readonly property color chassisTop: Qt.darker(palette[0], 1.12)
     readonly property color chassis: Qt.darker(palette[1], 1.12)
     readonly property color chassisDark: Qt.darker(palette[2], 1.08)

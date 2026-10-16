@@ -328,6 +328,7 @@ qt_add_qml_module(traineros
         src/qml/InvitationBadge.qml
         src/qml/HomeMenuCard.qml
         src/qml/Theme.qml
+        src/qml/HomeCardBackdrop.qml src/qml/HomeScreensCollage.qml
         src/qml/Panel.qml
         src/qml/ChassisFrame.qml
         src/qml/ChassisTopRim.qml

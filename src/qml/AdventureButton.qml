@@ -5,9 +5,10 @@ Item {
     required property var shell
     objectName: "home-launch"
     property bool selected: shell.page === 0 && shell.dashboard.focus === "play" && shell.unobstructed && !shell.drawerOpen && !shell.quickAppsOpen
+    readonly property string actionLabel: !shell.homeGame.id ? "Choose" : shell.home.actionHint === "Play" ? "Start" : shell.home.actionHint
     readonly property real unit: Math.min(width,height)/220
     Accessible.role: Accessible.Button
-    Accessible.name: shell.liveGame.id ? "Return to game" : shell.homeGame.id ? shell.home.actionHint : "Choose a game"
+    Accessible.name: actionLabel
     Accessible.onPressAction: root.shell.activateDashboard("play")
     function claimFocus() { if(selected && visible) forceActiveFocus(Qt.OtherFocusReason) }
     property bool depressed: false
@@ -50,8 +51,14 @@ Item {
             Rectangle {
                 x: 35; y: 32; width: 100; height: 100; radius: 50
                 color: "#ec9b58"; border.color: "#b3683e"; border.width: 2
-                Text { anchors.centerIn: parent; anchors.verticalCenterOffset: 2; text: "A"; color: "#ffdfa2"; font.pixelSize: 63; font.bold: true }
-                Text { anchors.centerIn: parent; text: "A"; color: "#70452f"; font.pixelSize: 63; font.bold: true }
+                Text { anchors.centerIn: parent; anchors.verticalCenterOffset: -8; text: "A"; color: "#ffdfa2"; font.pixelSize: 55; font.bold: true }
+                Text { anchors.centerIn: parent; anchors.verticalCenterOffset: -10; text: "A"; color: "#70452f"; font.pixelSize: 55; font.bold: true }
+            }
+            Text {
+                objectName: "home-launch-label"
+                x: 19; y: 111; width: 132; horizontalAlignment: Text.AlignHCenter
+                text: root.actionLabel; color: "#70452f"; font.family: Theme.displayFamily
+                font.pixelSize: 28; font.weight: Font.DemiBold
             }
             Rectangle { x: 55; y: 16; width: 37; height: 2; rotation: -8; color: "#fff0c4"; opacity: 0.7 }
         }

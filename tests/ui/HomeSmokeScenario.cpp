@@ -160,7 +160,7 @@ void startHomeSmoke(QQuickWindow* window, ShellController& shell, SessionState& 
             check(store.recentSessions().first().adventureId == "home-0" && store.recentSessions().size() == 5, "History replaces the latest card without duplicates");
             check(history->error().isEmpty(), "History writes succeeded");
             HomeSocialFixture::publish(*shell.social(),{{"state","connected"},{"userId","home-fixture"},{"chats",QVariantList{QVariantMap{{"id","home-chat"},{"name","Test friend"},{"kind","chats"},{"unread",1}}}}});
-            press(SDL_CONTROLLER_BUTTON_DPAD_LEFT);
+            press(SDL_CONTROLLER_BUTTON_DPAD_UP);
             check(shell.dashboard()->focus()=="chat:home-chat","D-pad reaches the Home conversation without launch");
             press(SDL_CONTROLLER_BUTTON_B);check(shell.primaryId()=="social" && *starts==1,"A opens selected conversation, not game");
             press(SDL_CONTROLLER_BUTTON_A);check(shell.primaryId()=="home" && shell.dashboard()->focus()=="chat:home-chat","Back preserves exact Home target");
@@ -230,13 +230,9 @@ void startHomeSmoke(QQuickWindow* window, ShellController& shell, SessionState& 
                 auto* card=itemNamed("home-game-card");
                 check(art && card && art->parentItem()==card,"Illustration must belong only to the game card");
             }
-            if (auto* backdrop = itemNamed("home-exit-picture")) {
-                const auto area = backdrop->mapRectToScene(backdrop->boundingRect());
-                check(backdrop->opacity() > 0 && backdrop->opacity() < 1, "Game screenshot stays translucent");
-                auto* card=itemNamed("home-game-card");
-                const auto cardArea=card->mapRectToScene(card->boundingRect());
-                check(area.width() > cardArea.width()*.97 && area.height() > cardArea.height()*.97, "Screenshot covers the whole Home game card");
-            } else check(false, "Whole-card game backdrop exists");
+            check(!itemNamed("home-exit-picture"), "Owner temporarily disabled screenshot backgrounds on Home");
+            if(auto* card=itemNamed("home-game-card"))check(card->width()>card->parentItem()->width()*.63,"Home reserves roughly two thirds for the game card");
+            check(itemNamed("home-screens") && itemNamed("home-launch-label"),"Screens collage and launch label are present");
             if (auto* launchButton = itemNamed("home-launch"))
                 check(qAbs(launchButton->width()-launchButton->height()) < 1, "Sculpted A keeps a circular footprint");
             capture("home-badges-hoenn-960");
@@ -280,6 +276,25 @@ void startHomeSmoke(QQuickWindow* window, ShellController& shell, SessionState& 
         case 18:
             check(shell.home()["badgeSlots"].toList().isEmpty(), "Unrelated save data cannot populate Journey");
             capture("journey-unknown-960"); shell.goToPage(0); break;
+        case 19:
+            window->resize(1920,1080);progress->selected=shell.currentAdventureId();
+            progress->value.badgeMask=255;progress->publish();break;
+        case 20: case 21: case 22: case 23: case 24: {
+            const auto theme=shell.settings()->theme();
+            auto* background=itemNamed("home-card-illustration");
+            check(background && background->property("themeId").toString()==theme,"Home backdrop follows the active theme live");
+            check(!itemNamed("home-exit-picture"),"A saved screenshot must not replace the themed landscape");
+            capture("home-theme-"+theme);
+            shell.settings()->cycleTheme(1);break;
+        }
+        case 25:
+            shell.activateDashboard("screens");break;
+        case 26:
+            check(shell.primaryId()=="gamehub" && shell.overviewFace()=="screens","Collage opens the existing Screens route");
+            shell.dispatch(Action::Back);break;
+        case 27:
+            check(shell.primaryId()=="home" && shell.dashboard()->focus()=="screens","Back restores the Home collage focus");
+            check(focusIs("home-screens"),"Collage owns visual controller focus");capture("home-collage-focus");break;
         default:
             check(warnings == 0, "QML warnings"); completed = true; timer->stop();
             if (!screenshotDir.isEmpty()) {
