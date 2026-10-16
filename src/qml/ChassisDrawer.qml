@@ -6,6 +6,7 @@ Item {
     property bool expanded: false
     property real expandedHeight: 229
     property real expandedWidth: Theme.screenBounds.width
+    property real contentTop: 58
     readonly property real closedWidth: Theme.adventureTabWidth
     property string button: "Y"
     property string label: "Recent games"
@@ -118,8 +119,8 @@ Item {
     }
     Item {
         id: tray
-        x: 14; y: 58; width: root.width-28; height: Math.max(0,root.height-64); clip: true
-        visible: root.expanded || root.height>60
+        x: 14; y: root.contentTop; width: root.width-28; height: Math.max(0,root.height-root.contentTop-6); clip: true
+        visible: root.expanded || root.height>root.contentTop+2
         enabled: root.expanded
     }
 }

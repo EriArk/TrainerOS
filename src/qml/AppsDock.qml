@@ -1,6 +1,6 @@
 import QtQuick
 
-// Recessed square app keys inside the frame-mounted Quick Apps panel.
+// Plain app icons in the shared chassis drawer; no keycaps or wells.
 Item {
     id: root
     objectName: "apps-chassis-dock"
@@ -28,37 +28,22 @@ Item {
             Component.onCompleted: Qt.callLater(claimFocus)
             Accessible.role: Accessible.Button; Accessible.name: modelData.name
             Accessible.onPressAction: root.flow.open(index, true)
-            // A shallow, theme-tinted seat keeps the key integrated with the casing.
-            Rectangle { anchors.horizontalCenter: parent.horizontalCenter; y: 2; width: 50; height: 50; radius: 13; color: Theme.rim; opacity: .5 }
-            Rectangle {
-                anchors.horizontalCenter: parent.horizontalCenter; y: 0; width: 50; height: 50; radius: 13
-                gradient: Gradient {
-                    GradientStop { position: 0; color: Theme.screenContact }
-                    GradientStop { position: 1; color: Theme.chassis }
-                }
-            }
-            Rectangle { anchors.horizontalCenter: parent.horizontalCenter; y: 4; width: 46; height: 46; radius: 11; color: Theme.chassisDark }
-            Rectangle {
-                id: key
+            Image {
                 anchors.horizontalCenter: parent.horizontalCenter
-                y: pointer.pressed ? 4 : 1; width: 46; height: 46; radius: 11
-                gradient: Gradient {
-                    GradientStop { position: 0; color: dock.currentIndex === index ? "#fff1ae" : Qt.lighter(Theme.chassisCrown, 1.22) }
-                    GradientStop { position: .52; color: dock.currentIndex === index ? Theme.yellow : Theme.chassisCrown }
-                    GradientStop { position: 1; color: dock.currentIndex === index ? "#d4ad57" : Theme.chassisTop }
-                }
-                border.color: dock.currentIndex === index ? Theme.focusGlow : Theme.rim
-                border.width: 1
+                y: pointer.pressed ? 4 : 1; width: 44; height: 44
+                fillMode: Image.PreserveAspectFit
+                source: "image://desktop-app/" + encodeURIComponent(modelData.icon || "application-x-executable")
+                sourceSize: Qt.size(88,88)
+                opacity: slot.selected ? 1 : .85
                 Behavior on y { NumberAnimation { duration: Theme.motion(65) } }
-                Rectangle { x: 10; y: 2; width: parent.width - 20; height: 1; color: "#baffffff" }
-                Image {
-                    anchors.centerIn: parent; width: 32; height: 32; fillMode: Image.PreserveAspectFit
-                    source: "image://desktop-app/" + encodeURIComponent(modelData.icon || "application-x-executable")
-                    sourceSize.width: 64; sourceSize.height: 64
-                }
             }
             Rectangle {
-                x: (parent.width - 8) / 2; y: 50; width: 8; height: 2; radius: 1
+                anchors.horizontalCenter: parent.horizontalCenter
+                y: 49; width: 30; height: 3; radius: 1.5
+                visible: slot.selected; color: Theme.yellow
+            }
+            Rectangle {
+                x: parent.width-10; y: 4; width: 4; height: 4; radius: 2
                 visible: modelData.running; color: "#b6ef9d"
             }
             MouseArea {
