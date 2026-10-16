@@ -8,8 +8,10 @@ Item {
     property real coverHeight: 130
     readonly property bool realCover: art.status === Image.Ready
     readonly property real aspect: realCover && art.implicitHeight > 0 ? art.implicitWidth / art.implicitHeight : 2 / 3
-    readonly property real bookWidth: Math.min(width - 26, coverHeight * aspect)
-    readonly property real bookHeight: Math.min(coverHeight, bookWidth / aspect)
+    // Reserve room for the selected case's 3.5% lift and halo at every size.
+    readonly property real availableCoverHeight: coverHeight - Math.max(0,coverHeight*0.035-1)
+    readonly property real bookWidth: Math.min(width - 26, availableCoverHeight * aspect)
+    readonly property real bookHeight: Math.min(availableCoverHeight, bookWidth / aspect)
     signal activated()
     Accessible.role: Accessible.ListItem
     Accessible.name: entry.title || ""

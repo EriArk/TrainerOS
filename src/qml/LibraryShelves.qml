@@ -10,8 +10,11 @@ Item {
     signal focusRequested(int index)
     signal activated(int index)
     signal emptyActivated()
-    readonly property int rowCount: Math.ceil(entries.length / columns)
-    readonly property real rowHeight: shelves.height / 2
+    // Small collections get one generous shelf; larger libraries keep two rows.
+    readonly property int visibleRows: entries.length <= columns ? 1 : 2
+    readonly property int displayColumns: visibleRows === 1 ? Math.max(1,entries.length) : columns
+    readonly property int rowCount: Math.max(visibleRows, Math.ceil(entries.length / columns))
+    readonly property real rowHeight: shelves.height / visibleRows
     readonly property int firstRow: Math.max(0,shelves.indexAt(1,shelves.contentY+1))
     function reveal() {
         if (!visible || !takesFocus || shelves.dragging || shelves.flicking) return
@@ -22,7 +25,7 @@ Item {
     }
     function scrollRows(direction) {
         if (!takesFocus) return
-        const next = Math.max(0,Math.min(Math.max(0,rowCount-2),firstRow+direction))
+        const next = Math.max(0,Math.min(Math.max(0,rowCount-visibleRows),firstRow+direction))
         shelves.positionViewAtIndex(next,ListView.Beginning)
         settleSelection()
     }
@@ -30,8 +33,8 @@ Item {
         if (!takesFocus || entries.length===0) return
         const row = Math.floor(selectionIndex/columns)
         const first = firstRow
-        if (row < first || row >= first+2) {
-            focusRequested(Math.min(entries.length-1,Math.max(first,Math.min(first+1,row))*columns + selectionIndex%columns))
+        if (row < first || row >= first+visibleRows) {
+            focusRequested(Math.min(entries.length-1,Math.max(first,Math.min(first+visibleRows-1,row))*columns + selectionIndex%columns))
             return
         }
         Qt.callLater(reveal)
@@ -77,7 +80,7 @@ Item {
                     required property int index
                     readonly property int gameIndex: shelfRow.index*root.columns+index
                     objectName: "shelf-game-"+gameIndex
-                    x: index*width; y: 8; width: shelfRow.width/root.columns; height: shelfRow.height-8
+                    x: index*width; y: 8; width: shelfRow.width/root.displayColumns; height: shelfRow.height-8
                     coverHeight: shelfRow.coverHeight
                     entry: root.entries[gameIndex] || ({})
                     selected: root.takesFocus && gameIndex===root.selectionIndex
@@ -96,12 +99,13 @@ Item {
     Text {
         anchors.horizontalCenter: parent.horizontalCenter; anchors.bottom: parent.bottom
         text: "⌄"; color: Theme.muted; font.pixelSize: 18
-        visible: root.firstRow+2<root.rowCount
+        visible: root.firstRow+root.visibleRows<root.rowCount
         MouseArea { anchors.fill: parent; anchors.margins: -7; enabled: root.takesFocus; onClicked: root.scrollRows(1) }
     }
     Text { anchors.right: parent.right; anchors.rightMargin: 20; anchors.bottom: parent.bottom; text: root.entries.length ? (root.selectionIndex+1)+" / "+root.entries.length : ""; color: Theme.muted; font.pixelSize: 11 }
     CapButton {
-        anchors.centerIn: parent; width: 330; height: 84
+        anchors.horizontalCenter: parent.horizontalCenter
+        y: shelves.y + (root.rowHeight-height)/2 - 8; width: 330; height: 84
         visible: root.entries.length===0; selected: visible && root.takesFocus
         label: "No games on these shelves"; detail: "Choose another collection or reset filters"
         onActivated: root.emptyActivated()
