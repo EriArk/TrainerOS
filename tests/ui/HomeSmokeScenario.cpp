@@ -376,8 +376,8 @@ void startHomeSmoke(QQuickWindow* window, ShellController& shell, SessionState& 
         case 42: {
             auto* apps=itemNamed("quick-apps-drawer");auto* games=itemNamed("continue-drawer");
             if(apps && qAbs(apps->height()-178)>0.1){--*stage;return;}
-            check(apps && games && apps->height()<229 && apps->height()>150,"Quick Apps is a lower mirrored drawer");
-            check(apps && apps->property("mirrored").toBool(),"Quick Apps mirrors the shared chassis");
+            check(apps && games && apps->height()<229 && apps->height()>150,"Quick Apps retains the lower expanded height");
+            check(apps && games && qAbs(apps->x()-games->x())<1,"Both expanded drawers originate at the left bezel");
             capture("quick-apps-empty-960");
             QJsonArray rows,running;
             for(int i=0;i<12;++i) {const auto id=QString("fixture-%1.desktop").arg(i,2,10,QChar('0'));rows.append(QJsonObject{{"id",id},{"name",QString("Application %1").arg(i+1)},{"icon","application-x-executable"}});running.append(id);}
@@ -398,15 +398,16 @@ void startHomeSmoke(QQuickWindow* window, ShellController& shell, SessionState& 
             check(shell.drawerOpen() && !shell.quickAppsOpen(),"Y replaces X");capture("adventures-shared-frame-960");shell.dispatch(Action::Back);break;
         case 47: {
             auto* apps=itemNamed("quick-apps-drawer");auto* games=itemNamed("continue-drawer");
-            if(apps && games && (qAbs(apps->width()-242)>0.1 || qAbs(games->width()-242)>0.1)){--*stage;return;}
-            check(apps && games && apps->width()==games->width() && apps->width()==242,"Closed X/Y handles share the shorter width");
+            if(apps && games && (qAbs(apps->width()-162)>0.1 || qAbs(games->width()-162)>0.1)){--*stage;return;}
+            check(apps && games && apps->width()==games->width() && apps->width()==162,"Closed X/Y handles share the shorter width");
+            check(apps && games && apps->x()>games->x() && apps->x()+apps->width()<400 && apps->height()==36 && games->height()==36,"Compact handles sit side by side at the left bezel");
             capture("paired-handles-960");window->resize(1920,1080);shell.dispatch(Action::Secondary);break;
         }
         case 48:
             if(auto* d=itemNamed("quick-apps-drawer");d && qAbs(d->height()-178)>0.1){--*stage;return;}
             capture("quick-apps-full-1080p");shell.closeDrawers();break;
         case 49:
-            if(auto* d=itemNamed("quick-apps-drawer");d && qAbs(d->width()-242)>0.1){--*stage;return;}
+            if(auto* d=itemNamed("quick-apps-drawer");d && qAbs(d->width()-162)>0.1){--*stage;return;}
             if(auto* launchButton=itemNamed("home-launch"))if(auto* d=itemNamed("quick-apps-drawer"))check(launchButton->mapRectToScene(launchButton->boundingRect()).bottom()<=d->mapRectToScene(d->boundingRect()).top(),"Folded Quick Apps never covers Start");
             check(!shell.quickAppsOpen() && shell.primaryId()=="home","Outside-close preserves the Home route");capture("paired-handles-1080p");break;
         default:

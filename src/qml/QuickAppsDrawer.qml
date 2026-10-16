@@ -5,7 +5,6 @@ ChassisDrawer {
     required property var shell
     objectName: "quick-apps-drawer"
     expanded: shell.quickAppsOpen
-    mirrored: true
     expandedHeight: 178
     button: "X"; label: "Quick Apps"; legend: "FAVOURITES · RUNNING APPS"
     toggleName: "quick-apps-handle"

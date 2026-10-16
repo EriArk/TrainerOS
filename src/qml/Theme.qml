@@ -68,9 +68,9 @@ QtObject {
     readonly property int contentTopInset: brandHeight + screenBevel + 27 - screenTop
     readonly property int footerHeight: 37
     readonly property int footerTop: viewportHeight - footerHeight
-    readonly property int adventureTabWidth: 242
-    readonly property int adventureTabHeight: 53
-    // Only the lower-left corner is occupied. Right-hand content reaches the lip.
+    readonly property int adventureTabWidth: 162
+    readonly property int adventureTabHeight: 36
+    // Both compact drawer handles are mounted at the lower-left screen lip.
     readonly property int adventureCutoutWidth: adventureTabWidth - screenBevel - screenBounds.x - panelInset + 16
     readonly property int adventureCutoutHeight: screenBounds.y + screenBounds.height - panelInset - (footerTop - adventureTabHeight) + 8
     readonly property rect screenBounds: Qt.rect(12, screenTop, viewportWidth - 24, footerTop - 5 - screenTop)

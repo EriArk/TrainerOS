@@ -1,5 +1,18 @@
 # AGENTS.md — TrainerOS
 
+**Owner visual direction, 16 October 2026:** keep TrainerOS tactile and dimensional:
+rounded molded shapes, visible thickness, upper highlights and soft contact
+shadows with consistent lighting. Preserve legibility and the shared warm palette.
+Apply screen by screen; this preference is not authorization for unrelated rewrites.
+
+**QUICK-23 — уточнение владельца:** оба ушка рядом слева, примерно на треть
+меньше QUICK-22 (162 × 36 вместо 242 × 53), округлые скосы и круглые Y/X.
+Сохраняем посадку на нижней окантовке экрана, без отдельной накладной полосы.
+Y жёлтое, X в цвете темы с розовой клавишей; размеры открытых панелей прежние.
+Это заменяет размещение справа и зеркальное ушко из QUICK-22; поведение прежнее.
+Установлено на Odin/Flip; [проверки и границы](docs/QUICK23_LEFT_HANDLES.md).
+Следующий шаг — просмотр владельцем, другие экраны пока не начинаем.
+
 **QUICK-22 owner correction:** X becomes a horizontal, right-anchored mirrored
 version of the Y Adventures drawer, using the same chassis/animation/behavior
 with a lower expanded height for smaller app icons and captions. Both folded
