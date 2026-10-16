@@ -68,14 +68,6 @@ Item {
             }
         }
     }
-    Text {
-        objectName: "quick-apps-caption"
-        y: 57; width: parent.width; height: 17
-        visible: dock.count>0
-        text: root.flow.rail[Math.max(0,dock.currentIndex)]?.name || ""
-        color: "#fff4de"; font.pixelSize: 12
-        horizontalAlignment: Text.AlignHCenter; elide: Text.ElideRight
-    }
     Column {
         anchors.centerIn: parent; spacing: 7; visible: dock.count===0
         Text { anchors.horizontalCenter: parent.horizontalCenter; text: "Quick Apps"; color: "#fff4ce"; font.family: Theme.displayFamily; font.pixelSize: 20 }

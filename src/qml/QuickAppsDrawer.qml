@@ -22,7 +22,7 @@ Item {
         objectName: "quick-apps-shelf"
         readonly property int count: root.shell.apps.rail.length
         width: Math.min(root.width-48, count ? Math.max(174,count*62+76) : 300)
-        height: root.expanded ? 96 : 0
+        height: root.expanded ? 68 : 0
         x: (root.width-width)/2
         y: root.height-height
         visible: height>0
@@ -64,7 +64,7 @@ Item {
         AppsDock {
             anchors.horizontalCenter: parent.horizontalCenter
             width: shelf.count ? Math.min(parent.width-76,shelf.count*62) : parent.width-76
-            y: 16; height: 76
+            y: 10; height: 54
             flow: root.shell.apps
             enabled: root.expanded && !root.shell.apps.menu.length
         }
