@@ -1,6 +1,7 @@
 #include "MultiversePresentation.h"
 #include "core/model/SeriesCatalog.h"
 #include "core/model/GamePlayers.h"
+#include "core/model/GameFavorite.h"
 #include <algorithm>
 #include <climits>
 #include "core/repository/CollectionRepository.h"
@@ -257,7 +258,7 @@ QVariantMap MultiversePresentation::present(const Game& game) const {
     const QVariantMap result{{"id",game.id},{"title",game.title},{"system",system},{"linked",game.linked},{"playable",playable},
         {"platformShort",platformLabel(game.system).badge},{"platformShape",platformLabel(game.system).shape},
         {"description",description},{"preview",preview.isEmpty() && repository_ ? repository_->artwork(game.id).value("cover").toString() : preview},{"time",time},
-        {"artwork",artwork},{"logo",artwork.value("marquee",artwork.value("wheel"))},{"screenshot",screenshot},
+        {"artwork",artwork},{"favorite",gameFavorite(artwork)},{"logo",artwork.value("marquee",artwork.value("wheel"))},{"screenshot",screenshot},
         {"cover",boxCover(artwork)},{"fallbackCover",placeholderCover(game.id,artwork.value("genre").toString())},
         {"year",year},{"genre",artwork.value("genre")},{"players",artwork.value("players")},{"playInfo",gamePlayers(artwork).presentation()},
         {"developer",artwork.value("developer")},{"publisher",artwork.value("publisher")},{"synopsis",artwork.value("desc")},

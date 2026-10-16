@@ -63,6 +63,7 @@ Item {
             onVisibleChanged: if (visible) root.model.gridColumns = columns
             onFocusRequested: index => root.shell.focusLibraryGame(index)
             onActivated: index => root.shell.activate(index)
+            onFavoriteRequested: gameId => root.shell.toggleLibraryFavorite(gameId)
             onEmptyActivated: browser.emptyActivated()
         }
         LibraryShelves {
@@ -72,10 +73,12 @@ Item {
             columns: root.model.shelfColumns; takesFocus: root.takesFocus && visible
             onFocusRequested: index => root.shell.focusLibraryGame(index)
             onActivated: index => root.shell.activate(index)
+            onFavoriteRequested: gameId => root.shell.toggleLibraryFavorite(gameId)
             onEmptyActivated: browser.emptyActivated()
         }
         LibraryWheel {
             id: browser
+            favoritesAvailable: true
             viewStyle: root.model.viewStyle; listPageSize: root.model.listPageSize
             onFocusRequested: index => root.shell.focusLibraryGame(index)
             anchors.fill: parent; visible: root.model.route === "games" && (root.model.viewStyle === "wheel" || root.model.viewStyle === "list")
@@ -87,6 +90,7 @@ Item {
             emptyTitle: root.model.query || root.model.filterLabel !== "All titles" ? "No matching titles" : "This collection is empty"
             emptyDetail: root.model.query || root.model.filterLabel !== "All titles" ? "Reset search and filter" : "Add games or edit collection rules"
             onActivated: index => root.shell.activate(index)
+            onFavoriteRequested: gameId => root.shell.toggleLibraryFavorite(gameId)
             onEmptyActivated: { if(root.model.collection.startsWith("user:") && !root.model.query && root.model.filterLabel === "All titles") root.shell.manageCollection(false); else root.shell.activate(0) }
         }
     }

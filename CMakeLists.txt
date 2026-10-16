@@ -325,6 +325,7 @@ qt_add_qml_module(traineros
         src/qml/ShelfCover.qml
         src/qml/LibraryWheel.qml
         src/qml/GameInformation.qml
+        src/qml/FavoriteStar.qml
         src/qml/PlayBadge.qml
         src/qml/GamePreview.qml
         src/qml/GameVideoPreview.qml

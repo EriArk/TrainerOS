@@ -13,6 +13,7 @@ Item {
     readonly property real bookWidth: Math.min(width - 26, availableCoverHeight * aspect)
     readonly property real bookHeight: Math.min(availableCoverHeight, bookWidth / aspect)
     signal activated()
+    signal favoriteRequested(string gameId)
     Accessible.role: Accessible.ListItem
     Accessible.name: entry.title || ""
     Accessible.selected: selected
@@ -22,6 +23,7 @@ Item {
 
     Item {
         id: book
+        z: 1
         x: (root.width-width)/2; y: root.coverHeight-height + (root.selected ? -3 : 0)
         width: root.bookWidth; height: root.bookHeight
         scale: root.selected ? 1.035 : 1
@@ -76,7 +78,13 @@ Item {
         Rectangle { x: 4; y: 1; width: 1; height: parent.height-2; color: "#40ffffff" }
         Rectangle { x: 1; y: 0; width: parent.width-2; height: 1; color: "#85ffffff" }
         Rectangle { anchors.fill: parent; radius: 2; color: "transparent"; border.width: 0.6; border.color: "#60182c2a" }
-        Text { visible: root.entry.linked === false; anchors.right: parent.right; anchors.top: parent.top; anchors.margins: 4; text: "!"; font.bold: true; color: Theme.yellow; font.pixelSize: 20 }
+        Text { visible: root.entry.linked === false; anchors.left: parent.left; anchors.top: parent.top; anchors.margins: 4; text: "!"; font.bold: true; color: Theme.yellow; font.pixelSize: 20 }
+        FavoriteStar {
+            objectName: "shelf-favorite-"+(root.entry.id || "")
+            anchors.right: parent.right; anchors.top: parent.top; anchors.margins: 2
+            marked: root.entry.favorite === true; active: root.active
+            onActivated: root.favoriteRequested(root.entry.id)
+        }
     }
     Item {
         id: caption; x: 7; y: root.coverHeight+16; width: root.width-14; height: 22; clip: true

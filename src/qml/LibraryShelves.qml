@@ -9,6 +9,7 @@ Item {
     required property int columns
     signal focusRequested(int index)
     signal activated(int index)
+    signal favoriteRequested(string gameId)
     signal emptyActivated()
     // Small collections get one generous shelf; larger libraries keep two rows.
     readonly property int visibleRows: entries.length <= columns ? 1 : 2
@@ -86,6 +87,7 @@ Item {
                     selected: root.takesFocus && gameIndex===root.selectionIndex
                     active: root.takesFocus && shelfRow.y+shelfRow.height>shelves.contentY && shelfRow.y<shelves.contentY+shelves.height
                     onActivated: root.activated(gameIndex)
+                    onFavoriteRequested: gameId => root.favoriteRequested(gameId)
                 }
             }
         }

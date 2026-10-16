@@ -10,6 +10,7 @@ Item {
     readonly property int visibleRows: Math.max(2,Math.floor(tiles.height/160))
     signal focusRequested(int index)
     signal activated(int index)
+    signal favoriteRequested(string gameId)
     signal emptyActivated()
     function reveal() {
         if (!visible || !takesFocus || tiles.dragging || tiles.flicking || !entries.length) return
@@ -82,7 +83,7 @@ Item {
                     playbackAllowed: false
                 }
                 Rectangle { x: 7; y: 2; width: parent.width-14; height: 1; color: "#60ffffff" }
-                Text { anchors.right: parent.right; anchors.top: parent.top; anchors.margins: 7; visible: tile.modelData.linked === false; text: "!"; color: Theme.yellow; font.bold: true; font.pixelSize: 18 }
+                Text { anchors.left: parent.left; anchors.top: parent.top; anchors.margins: 7; visible: tile.modelData.linked === false; text: "!"; color: Theme.yellow; font.bold: true; font.pixelSize: 18 }
             }
             Text {
                 x: 11; y: frame.y+frame.height+5; width: parent.width-22; height: 26
@@ -93,6 +94,12 @@ Item {
                 horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter
             }
             MouseArea { anchors.fill: parent; enabled: root.takesFocus; onClicked: root.activated(tile.index) }
+            FavoriteStar {
+                objectName: "grid-favorite-"+tile.index
+                x: frame.x+frame.width-width-2; y: frame.y+2
+                marked: tile.modelData.favorite === true; active: root.takesFocus
+                onActivated: root.favoriteRequested(tile.modelData.id)
+            }
         }
     }
     Text {

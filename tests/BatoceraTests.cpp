@@ -7,6 +7,8 @@
 #include <QFile>
 #include <QDir>
 #include <QUrl>
+#include <QDomDocument>
+#include <QLockFile>
 
 using namespace trainer;
 namespace {
@@ -17,6 +19,31 @@ void put(const QString& path,const QByteArray& bytes="Test fixture, not a ROM.")
 class BatoceraTests final : public QObject {
     Q_OBJECT
 private slots:
+    void favoritesPersistWithoutReplacingMetadataAndRejectUnsafeWrites() {
+        QTemporaryDir dir;const auto rom=dir.filePath("gba/nested/First.gba");put(rom);
+        const auto xml=dir.filePath("gba/gamelist.xml");
+        const QByteArray original="<gameList><!--keep--><game id='12' source='screenscraper'><path>./nested/First.gba</path><name>My title</name><custom>Keep this</custom><image>./art.png</image></game><folder><name>Folder</name></folder></gameList>";
+        put(xml,original);LocalStateStore store(dir.filePath("state"));store.open();QTRY_VERIFY(store.ready());
+        BatoceraLibrary folders(store,dir.path());QSignalSpy scanned(&folders,&BatoceraLibrary::scanFinished);folders.rescan();QTRY_COMPARE(scanned.size(),1);
+        const auto id=store.registrations().first().adventure.id;
+        int completed=0;QString error;
+        const auto done=[&](QString e){error=e;++completed;};
+        folders.setFavoriteAsync(id,true,this,done);QVERIFY(folders.writing());QTRY_COMPARE(completed,1);QVERIFY2(error.isEmpty(),qPrintable(error));
+        QVERIFY(folders.artwork(id)["favorite"].toBool());
+        QFile saved(xml);QVERIFY(saved.open(QIODevice::ReadOnly));auto bytes=saved.readAll();saved.close();QDomDocument doc;QVERIFY(doc.setContent(bytes));
+        auto game=doc.documentElement().firstChildElement("game");QCOMPARE(game.attribute("id"),"12");QCOMPARE(game.firstChildElement("custom").text(),"Keep this");QCOMPARE(game.firstChildElement("name").text(),"My title");QVERIFY(bytes.contains("<!--keep-->"));
+        { BatoceraLibrary reopened(store,dir.path());QSignalSpy scan(&reopened,&BatoceraLibrary::scanFinished);reopened.rescan();QTRY_COMPARE(scan.size(),1);QCOMPARE(reopened.artwork(id)["favorite"].toString(),"true"); }
+        folders.setFavoriteAsync(id,false,this,done);QTRY_COMPARE(completed,2);QVERIFY(error.isEmpty());QVERIFY(!folders.artwork(id)["favorite"].toBool());
+        QLockFile lock(dir.filePath("gba/.traineros-scrape.lock"));QVERIFY(lock.tryLock());folders.setFavoriteAsync(id,true,this,done);QTRY_COMPARE(completed,3);QVERIFY(!error.isEmpty());QVERIFY(!folders.artwork(id)["favorite"].toBool());lock.unlock();
+        const QList<QByteArray> invalid{"<gameList><broken>","<!DOCTYPE gameList><gameList/>","<gameList><game><path>./nested/First.gba</path><favorite>true</favorite><favorite>false</favorite></game></gameList>","<gameList><game><path>./nested/First.gba</path></game><game><path>./nested/First.gba</path></game></gameList>"};
+        for(const auto& content:invalid) {
+            put(xml,content);const auto expected=completed+1;folders.setFavoriteAsync(id,true,this,done);QTRY_COMPARE(completed,expected);QVERIFY(!error.isEmpty());
+            QFile unchanged(xml);QVERIFY(unchanged.open(QIODevice::ReadOnly));QCOMPARE(unchanged.readAll(),content);QVERIFY(!folders.artwork(id)["favorite"].toBool());
+        }
+        QVERIFY(QFile::remove(xml));const auto expected=completed+1;folders.setFavoriteAsync(id,true,this,done);QTRY_COMPARE(completed,expected);QVERIFY(error.isEmpty());
+        const auto scannedAgain=scanBatoceraLibrary(dir.path(),store.registrations());QCOMPARE(scannedAgain.entries.first().media["favorite"].toString(),"true");
+        QCOMPARE(store.recentSessions().size(),0);QCOMPARE(store.registrations().size(),1);
+    }
     void sharedWorldRequestsPreserveItsNameAndSurviveReopen() {
         QTemporaryDir dir;const auto state=dir.filePath("state");
         put(dir.filePath("gba/First.gba"));put(dir.filePath("gba/Second.gba"));

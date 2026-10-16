@@ -6,6 +6,8 @@ Item {
     required property var entry
     property bool active: false
     property bool previewsEnabled: false
+    property bool favoritesAvailable: false
+    signal favoriteRequested(string gameId)
     readonly property var artwork: entry.artwork || ({})
     readonly property var playInfo: entry.playInfo || ({})
     readonly property string gameId: entry.id || ""
@@ -25,7 +27,7 @@ Item {
     onGameIdChanged: { descriptionViewport.contentY = 0; title.restart() }
     Item {
         id: title; objectName: "library-detail-title"
-        width: parent.width - platformBadge.width - 12; height: 36; clip: true
+        width: parent.width - platformBadge.width - (root.favoritesAvailable ? 52 : 12); height: 36; clip: true
         readonly property real travel: Math.max(0, heading.implicitWidth-width)
         readonly property bool moving: root.active && root.visible && !Theme.reducedMotion && Qt.application.state === Qt.ApplicationActive && travel > 1
         function restart() { ticker.stop();heading.x=0;if(moving)ticker.start() }
@@ -51,6 +53,13 @@ Item {
         id: platformBadge; objectName: "library-detail-platform"
         anchors.right: parent.right; y: 0; frameless: true
         label: root.entry.platformShort || ""; shape: root.entry.platformShape || "console"
+    }
+    FavoriteStar {
+        id: favorite; objectName: "library-detail-favorite"
+        visible: root.favoritesAvailable
+        anchors.right: platformBadge.left; anchors.rightMargin: 4; y: 0
+        marked: root.entry.favorite === true; active: root.active
+        onActivated: root.favoriteRequested(root.gameId)
     }
     Flickable {
         id: descriptionViewport; objectName: "library-detail-scroll"

@@ -1071,10 +1071,27 @@ void ShellController::libraryAction(const QString& action) {
     const auto input=action=="search"?Action::Secondary:Action::ToggleContinue;
     if(multiverseFace_)multiverse_.dispatch(input);else worlds_.dispatch(input);
 }
+void ShellController::toggleLibraryFavorite(const QString& id) {
+    if(page_!=GamesPage || collectionsRoot_ || !multiverseFace_ || multiverse_.route()!="games"
+       || favoriteWriting_ || navigationLocked() || localModalOpen() || keyboard_.isOpen()
+       || drawerOpen_ || quickAppsOpen_ || homeMenuOpen_ || menuOpen_ || serviceOpen() || !notice_.isEmpty()
+       || social_.online()["open"].toBool() || moduleInvitation()["open"].toBool())return;
+    bool visible=false;
+    for(const auto& row:multiverse_.games())if(row.toMap()["id"].toString()==id){visible=true;break;}
+    const auto record=repository_.registration(id);
+    if(!visible || !record || record->removed || record->adventure.collectionOnly)return;
+    const bool next=!gameFavorite(repository_.artwork(id));
+    favoriteWriting_=true;
+    repository_.setFavoriteAsync(id,next,this,[this](const QString& error){
+        favoriteWriting_=false;
+        if(!error.isEmpty())showNotice(error);
+        else refreshLibrary();
+    });
+}
 void ShellController::pressButton(const QString& button) {
     static const QMap<QString,Action> actions{{"A",Action::Confirm},{"B",Action::Back},
         {"X",Action::Secondary},{"Y",Action::ToggleContinue},{"Select",Action::LocalAction},
-        {"Home",Action::Home},{"Start",Action::SystemMenu},{"R3",Action::ChangeView},
+        {"Home",Action::Home},{"Start",Action::SystemMenu},{"R3",Action::ChangeView},{"L3",Action::ToggleFavorite},
         {"L2",Action::PreviousFace},{"R2",Action::NextFace}};
     const auto found=actions.constFind(button);if(found!=actions.cend())dispatch(*found);
 }
@@ -1397,6 +1414,7 @@ void ShellController::openSocialNotification() {
     social_.openNotification();emit changed();
 }
 void ShellController::dispatch(Action action) {
+    if(action==Action::ToggleFavorite) {toggleLibraryFavorite(multiverse_.detail().value("id").toString());return;}
     if(action==Action::ChangeView) {
         libraryAction(multiverse_.viewStyle()=="wheel"?"view:list":multiverse_.viewStyle()=="list"?"view:shelves":multiverse_.viewStyle()=="shelves"?"view:grid":"view:wheel");return;
     }

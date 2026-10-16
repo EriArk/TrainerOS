@@ -11,11 +11,63 @@
 #include <QXmlStreamReader>
 #include <QSet>
 #include <QPointer>
+#include <QDomDocument>
+#include <QLockFile>
+#include <QSaveFile>
 #include <memory>
 #include <algorithm>
 
 namespace trainer {
 namespace {
+// Favorite is ordinary gamelist metadata, shared with imports and collections.
+// Use the scraper's lock and atomic replacement; retain every unrelated field.
+QString writeFavorite(const QString& root, const QString& path, bool favorite) {
+    const QFileInfo gameFile(path);
+    if(root.isEmpty() || !gameFile.isFile() || !gameFile.canonicalFilePath().startsWith(root+'/'))
+        return "Reconnect this game's library storage before changing favorites.";
+    QLockFile lock(QDir(root).filePath(".traineros-scrape.lock"));
+    if(!lock.tryLock(0))return "This system is already being updated. Try again in a moment.";
+    const auto xmlPath=QDir(root).filePath("gamelist.xml");
+    if(QFileInfo(xmlPath).isSymLink())return "The game list is a link; it was kept unchanged.";
+    QFile input(xmlPath);const bool existed=input.exists();QByteArray original;
+    if(existed) {
+        if(!input.open(QIODevice::ReadOnly) || input.size()>32*1024*1024)return "Couldn't read the game list.";
+        original=input.readAll();input.close();
+    }
+    QDomDocument doc;
+    if(existed) {
+        if(original.toUpper().contains("<!DOCTYPE") || !doc.setContent(original) || doc.documentElement().tagName()!="gameList")
+            return "The game list is invalid; it was kept unchanged.";
+    } else doc.appendChild(doc.createElement("gameList"));
+    QDomElement target;
+    for(auto node=doc.documentElement().firstChildElement("game");!node.isNull();node=node.nextSiblingElement("game")) {
+        const auto entry=node.firstChildElement("path");
+        if(!entry.nextSiblingElement("path").isNull())return "The game list has ambiguous paths; it was kept unchanged.";
+        if(QFileInfo(QDir(root).absoluteFilePath(entry.text())).canonicalFilePath()!=gameFile.canonicalFilePath())continue;
+        if(!target.isNull())return "The game list has duplicate games; it was kept unchanged.";
+        target=node;
+    }
+    if(target.isNull()) {
+        target=doc.createElement("game");doc.documentElement().appendChild(target);
+        auto node=doc.createElement("path");node.appendChild(doc.createTextNode("./"+QDir(root).relativeFilePath(path)));target.appendChild(node);
+    }
+    auto field=target.firstChildElement("favorite");
+    if(!field.nextSiblingElement("favorite").isNull())return "The favorite field is duplicated; the list was kept unchanged.";
+    if(field.isNull()){field=doc.createElement("favorite");target.appendChild(field);}
+    while(!field.firstChild().isNull())field.removeChild(field.firstChild());
+    field.appendChild(doc.createTextNode(favorite?"true":"false"));
+    QFile current(xmlPath);
+    if(existed!=current.exists() || (existed && (!current.open(QIODevice::ReadOnly) || current.size()!=original.size() || current.readAll()!=original)))
+        return "The game list changed. Refresh before retrying.";
+    current.close();const QFileInfo now(path);
+    if(now.canonicalFilePath()!=gameFile.canonicalFilePath() || now.size()!=gameFile.size() || now.lastModified()!=gameFile.lastModified())
+        return "The game file changed. Refresh before retrying.";
+    const auto bytes=doc.toByteArray(2);
+    if(bytes.size()>32*1024*1024)return "The game list is too large.";
+    QSaveFile output(xmlPath);output.setDirectWriteFallback(false);
+    if(!output.open(QIODevice::WriteOnly) || output.write(bytes)!=bytes.size() || !output.commit())return "Couldn't save favorites. The previous list was kept.";
+    return {};
+}
 const QStringList mediaTags{"image","screenshot","thumbnail","marquee","fanart","titleshot","video","manual","magazine","map","bezel","cartridge","boxart","boxback","wheel","mix"};
 const QHash<QString,QStringList>& formats() {
     static const auto value=[] {
@@ -301,6 +353,32 @@ QVariantMap BatoceraLibrary::artwork(const QString& id) const {
     result["displayFacts"]=display_["facts"].toBool(true);
     result["displayDescription"]=display_["description"].toBool(true);
     return result;
+}
+void BatoceraLibrary::setFavoriteAsync(const QString& id,bool favorite,QObject* context,std::function<void(QString)> done) {
+    if(busy_ || writing_){done("The library is refreshing. Try again in a moment.");return;}
+    const auto record=library_.registration(id);
+    if(!library_.editable() || !record || record->removed || record->adventure.collectionOnly){done("This game is no longer available in the library.");return;}
+    QString systemRoot;
+    const auto path=QFileInfo(record->contentPath).canonicalFilePath();
+    for(const auto& entry:QDir(roms_).entryInfoList(QDir::Dirs|QDir::NoDotAndDotDot)) {
+        const auto root=entry.canonicalFilePath();
+        if(formats().contains(romPlatformId(entry.fileName())) && !root.isEmpty() && path.startsWith(root+'/')){systemRoot=root;break;}
+    }
+    if(systemRoot.isEmpty()){done("Reconnect this game's library storage before changing favorites.");return;}
+    deferredScan_.stop();busy_=true;writing_=true;emit busyChanged();emit writingChanged();
+    auto result=std::make_shared<QString>();
+    thread_=QThread::create([result,systemRoot,path,favorite]{*result=writeFavorite(systemRoot,path,favorite);});
+    connect(thread_,&QThread::finished,this,[this,result,id,path,favorite,guard=QPointer<QObject>(context),done=std::move(done)] {
+        thread_->wait();delete thread_;thread_=nullptr;
+        const auto current=library_.registration(id);
+        if(result->isEmpty() && current && !current->removed && QFileInfo(current->contentPath).canonicalFilePath()==path)
+            media_[id]["favorite"]=favorite;
+        busy_=false;writing_=false;emit busyChanged();emit writingChanged();
+        if(result->isEmpty())emit changed();
+        if(guard)done(*result);
+        if(rescanPending_)rescan();
+    });
+    thread_->start();
 }
 void BatoceraLibrary::editLibraryAsync(const LibraryEdit& edit,QObject* context,std::function<void(QString)> done) {
     if(edit.kind!=LibraryEditKind::MoveFile){library_.editLibraryAsync(edit,context,std::move(done));return;}

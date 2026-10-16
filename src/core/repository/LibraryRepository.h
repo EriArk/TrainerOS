@@ -26,6 +26,9 @@ public:
     }
     virtual std::optional<ExitMedia> exitMedia(const QString&) const { return {}; }
     virtual QVariantMap artwork(const QString&) const { return {}; }
+    virtual void setFavoriteAsync(const QString&, bool, QObject*, std::function<void(QString)> done) {
+        done("Favorites cannot be edited in this library.");
+    }
     // Cached presentation identity, independent of visible artwork preferences.
     virtual QVariantMap experienceIdentity(const QString&) const { return {}; }
     virtual std::optional<qint64> recordedSeconds(const QString&) const { return {}; }

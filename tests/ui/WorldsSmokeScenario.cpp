@@ -291,6 +291,35 @@ void startWorldsSmoke(QQuickWindow* window, ShellController& shell, ControllerIn
             capture("drawer-favorites-swiped");window->resize(1280,800);break;
         }
         case 53: capture("drawer-favorites-16-10");shell.dispatch(Action::Back);break;
+        case 54:
+            window->resize(960,540);shell.openGamesRootItem("platforms",shell.gamesPlatforms().front().toMap()["id"].toString());
+            shell.libraryAction("view:wheel");break;
+        case 55: case 56: case 57: case 58: {
+            const auto view=shell.multiverse()->viewStyle();
+            QSignalSpy mapped(&input,&ControllerInput::action);press(SDL_CONTROLLER_BUTTON_LEFTSTICK);
+            check(mapped.size()==1 && qvariant_cast<Action>(mapped.first().first())==Action::ToggleFavorite,"L3 must map to favorite exactly once");
+            auto* surface=visibleItem(view=="grid"?"library-grid":view=="shelves"?"library-shelves":"library-detail-favorite");
+            QQuickItem* star=nullptr;
+            std::function<void(QQuickItem*)> findStar=[&](QQuickItem* item){
+                if(item->isVisible() && (item->objectName()=="library-detail-favorite" || item->objectName().startsWith("grid-favorite-") || item->objectName().startsWith("shelf-favorite-")) && !star)star=item;
+                for(auto* child:item->childItems())findStar(child);
+            };findStar(window->contentItem());
+            check(surface && star,"Favorite star missing in game view");
+            if(star) {
+                QSignalSpy tap(star,SIGNAL(activated()));
+                std::unique_ptr<QSignalSpy> launch;
+                if(view=="grid" || view=="shelves")launch=std::make_unique<QSignalSpy>(surface,SIGNAL(activated(int)));
+                QTest::mouseClick(window,Qt::LeftButton,Qt::NoModifier,star->mapToScene(QPointF(star->width()/2,star->height()/2)).toPoint());
+                check(tap.size()==1,"Touch must reach favorite star");
+                if(launch)check(launch->isEmpty(),"Favorite touch must not launch a game");
+                star->setProperty("marked",true);capture("favorite-"+view);
+            }
+            if(view=="wheel")shell.libraryAction("view:list");
+            else if(view=="list")shell.libraryAction("view:shelves");
+            else if(view=="shelves")shell.libraryAction("view:grid");
+            else press(b);
+            break;
+        }
         default:
             check(shell.collectionsRoot(),"Return to root failed");check(warnings==0,"QML warnings");completed=true;timer->stop();
             if(!directory.isEmpty()){QFile f(directory+"/collections-verification.txt");if(f.open(QIODevice::WriteOnly))f.write(((*failed?QString("FAILED\n"):QString("PASSED\n"))+diagnostics.join('\n')).toUtf8());}

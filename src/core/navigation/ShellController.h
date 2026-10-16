@@ -157,6 +157,7 @@ public:
     Q_INVOKABLE void manageCollection(bool create=false);
     Q_INVOKABLE void editCollection(int index);
     Q_INVOKABLE void libraryAction(const QString& action);
+    Q_INVOKABLE void toggleLibraryFavorite(const QString& id);
     Q_INVOKABLE void focusLibraryGame(int index);
     HallOfFameController* hall() { return &hall_; }
     LibraryManagementController* libraryManager() { return &libraryManager_; }
@@ -303,6 +304,7 @@ private:
     std::optional<ResumePoint> homeResumePoint(const QString& adventureId) const;
     ResumeAvailability homeResumeAvailability(const Adventure&) const;
     LibraryRepository& repository_;
+    bool favoriteWriting_ = false;
     QPointer<GameProgressProvider> progress_;
     AdventureAdapter& adapter_;
     LaunchPreparation launchPreparation_{repository_, adapter_, this};

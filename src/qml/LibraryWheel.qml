@@ -23,6 +23,8 @@ Item {
     property string emptyTitle: "No matching titles"
     property string emptyDetail: "Reset search and filter"
     signal activated(int index)
+    signal favoriteRequested(string gameId)
+    property bool favoritesAvailable: false
     signal emptyActivated()
     signal backActivated()
     readonly property real split: Math.round(width * 0.38)
@@ -179,6 +181,8 @@ Item {
         x: root.split + 20; y: 6; width: parent.width - x - 20; height: parent.height - 22
         visible: root.entries.length > 0
         entry: root.entry
+        favoritesAvailable: root.favoritesAvailable
+        onFavoriteRequested: gameId => root.favoriteRequested(gameId)
         active: root.visible && root.takesFocus && root.wheelFocused
         previewsEnabled: root.previewsEnabled
     }

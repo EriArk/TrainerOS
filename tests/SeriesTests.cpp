@@ -14,6 +14,11 @@ public:
     QList<PlaySession> sessions;
     QList<ResumePoint> moments;
     QHash<QString,QVariantMap> metadata;
+    QString favoriteError;
+    void setFavoriteAsync(const QString& id,bool value,QObject*,std::function<void(QString)> done) override {
+        if(favoriteError.isEmpty())metadata[id]["favorite"]=value;
+        done(favoriteError);
+    }
     QList<PlaySession> recentSessions()const override{return sessions;}
     QVariantMap artwork(const QString& id)const override{return metadata.value(id);}
     SeriesLibrary() {
@@ -41,6 +46,32 @@ public:
 class SeriesTests: public QObject {
     Q_OBJECT
 private slots:
+    void favoriteStarAndL3ShareIdentityAndRespectSurfaceGates() {
+        SeriesLibrary library;SeriesAdapter adapter;MockTrainerRepository profiles;DevelopmentPlatformService platform;MockPokedexRepository dex;
+        MockHallOfFameRepository archive;MockAchievementProvider achievements;
+        ShellController shell(library,profiles,adapter,platform,builtinExperiences(dex,dex),archive,achievements);
+        shell.goToPage(1);shell.openGamesRootItem("collections","mario");
+        const auto home=shell.currentAdventureId();const auto recent=shell.resumePoints();
+        shell.focusLibraryGame(1);const auto id=shell.multiverse()->detail()["id"].toString();
+        shell.pressButton("L3");QVERIFY(library.metadata[id]["favorite"].toBool());
+        QCOMPARE(shell.multiverse()->detail()["id"].toString(),id);QVERIFY(shell.multiverse()->detail()["favorite"].toBool());
+        for(const auto& view:QStringList{"list","shelves","grid","wheel"}) {
+            shell.libraryAction("view:"+view);QCOMPARE(shell.multiverse()->detail()["id"].toString(),id);
+            shell.toggleLibraryFavorite(id);QVERIFY(!shell.multiverse()->detail()["favorite"].toBool());
+            shell.dispatch(Action::ToggleFavorite);QVERIFY(shell.multiverse()->detail()["favorite"].toBool());
+        }
+        shell.toggleLibraryFavorite("z1");QVERIFY(!library.metadata["z1"]["favorite"].toBool()); // Not in current collection.
+        shell.dispatch(Action::ToggleContinue);shell.setDrawerSource("favorites");QCOMPARE(shell.drawerGames().size(),1);
+        shell.dispatch(Action::ToggleFavorite);QVERIFY(library.metadata[id]["favorite"].toBool());
+        shell.dispatch(Action::Back);shell.dispatch(Action::LocalAction);shell.toggleLibraryFavorite(id);
+        QVERIFY(library.metadata[id]["favorite"].toBool());shell.dispatch(Action::Back);
+        library.favoriteError="Read-only storage";shell.dispatch(Action::ToggleFavorite);
+        QVERIFY(library.metadata[id]["favorite"].toBool());QCOMPARE(shell.notice(),"Read-only storage");shell.dispatch(Action::Back);
+        library.favoriteError.clear();shell.toggleLibraryFavorite(id);QVERIFY(!library.metadata[id]["favorite"].toBool());
+        shell.dispatch(Action::ToggleContinue);shell.setDrawerSource("favorites");QVERIFY(shell.drawerGames().isEmpty());
+        QCOMPARE(shell.currentAdventureId(),home);QCOMPARE(shell.resumePoints(),recent);QVERIFY(adapter.launched.isEmpty());QVERIFY(library.sessions.isEmpty());
+        shell.dispatch(Action::Back);shell.goToPage(0);shell.toggleLibraryFavorite(id);QVERIFY(!library.metadata[id]["favorite"].toBool());
+    }
     void globalFavoritesDrawerPreservesSourcesAndDoesNotLaunch() {
         SeriesLibrary library;library.metadata["m1"]={{"favorite","true"}};library.metadata["z1"]={{"favorite",1}};
         library.sessions={{"one","m2",QDateTime::currentDateTimeUtc()},{"two","m1",QDateTime::currentDateTimeUtc().addSecs(-10)}};
