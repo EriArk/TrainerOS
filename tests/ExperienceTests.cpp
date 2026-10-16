@@ -25,18 +25,18 @@ private slots:
         QCOMPARE(album.current()["id"].toString(),"3");
         album.dispatch(Action::Left);QCOMPARE(album.index(),2);
         album.select(5);album.dispatch(Action::Confirm);QCOMPARE(album.index(),5);
-        album.toggleFavorite();QVERIFY(album.current()["favorite"].toBool());
-        album.chooseFilter(1);QCOMPARE(album.count(),1);QCOMPARE(album.current()["id"].toString(),"5");
+        album.toggleFavorite();QCOMPARE(album.count(),8);
+        album.dispatch(Action::ChangeView);QVERIFY(album.favoritesView());QCOMPARE(album.count(),1);QCOMPARE(album.current()["id"].toString(),"5");
         album.select(0);album.toggleFavorite();QCOMPARE(album.count(),0);QVERIFY(album.current().isEmpty());
-        album.chooseFilter(0);album.select(5);album.toggleFavorite();
-        ScreensController reopened;reopened.configure(temp.path(),"one");reopened.setMedia(media);reopened.chooseFilter(1);
+        album.switchLibrary();album.select(5);album.toggleFavorite();
+        ScreensController reopened;reopened.configure(temp.path(),"one");reopened.setMedia(media);reopened.switchLibrary();
         QCOMPARE(reopened.count(),1);QCOMPARE(reopened.current()["id"].toString(),"5");
-        reopened.configure(temp.path(),"two");reopened.setMedia(media);reopened.chooseFilter(1);QCOMPARE(reopened.count(),0);
-        reopened.configure(temp.path(),"one");reopened.setMedia(media);reopened.chooseFilter(1);QCOMPARE(reopened.count(),1);
+        reopened.configure(temp.path(),"two");reopened.setMedia(media);reopened.switchLibrary();QCOMPARE(reopened.count(),0);
+        reopened.configure(temp.path(),"one");reopened.setMedia(media);reopened.switchLibrary();QCOMPARE(reopened.count(),1);
         // Replacing a game's final image does not transfer a star to the new image.
         auto replacement=media;auto row=replacement[5].toMap();row["id"]="new-capture";replacement[5]=row;
         reopened.setMedia(replacement);QCOMPARE(reopened.count(),0);
-        album.forGame("b");QCOMPARE(album.count(),4);album.select(2);const auto id=album.current()["id"];
+        album.forGame("b");QCOMPARE(album.count(),3);album.select(2);const auto id=album.current()["id"];
         media.prepend(QVariantMap{{"id","later"},{"adventure","b"},{"game","Second"},{"day","18 Oct 2026"}});
         album.setMedia(media);QCOMPARE(album.current()["id"],id);
         auto deleted=media;for(int i=deleted.size()-1;i>=0;--i)if(deleted[i].toMap()["id"]==id)deleted.removeAt(i);
@@ -189,6 +189,8 @@ private slots:
         shell.dispatch(Action::Right);QCOMPARE(shell.focusIndex(),1);
         shell.dispatch(Action::Right);QCOMPARE(shell.focusIndex(),1);
         shell.dispatch(Action::Confirm);QCOMPARE(shell.overviewFace(),"screens");
+        shell.dispatch(Action::ChangeView);QVERIFY(shell.album()->favoritesView());
+        shell.dispatch(Action::ChangeView);QVERIFY(!shell.album()->favoritesView());QCOMPARE(shell.focusIndex(),1);
         shell.goToSection("apps");shell.goToSection("gamehub");QCOMPARE(shell.overviewFace(),"screens");QCOMPARE(shell.focusIndex(),1);
         shell.dispatch(Action::LocalAction);QVERIFY(shell.album()->filtering());
         shell.dispatch(Action::Back);QVERIFY(!shell.album()->filtering());
@@ -198,6 +200,8 @@ private slots:
         QCOMPARE(shell.focusIndex(),0); // Home deep link overrides the album's old selection.
         QCOMPARE(shell.album()->count(),1);
         shell.dispatch(Action::Confirm);QCOMPARE(shell.overviewFace(),"screens");
+        shell.dispatch(Action::ChangeView);QVERIFY(shell.album()->favoritesView());
+        shell.dispatch(Action::ChangeView);QVERIFY(!shell.album()->favoritesView());QCOMPARE(shell.focusIndex(),0);
         shell.dispatch(Action::Back);QCOMPARE(shell.primaryId(),"home");
         QVERIFY(launches.isEmpty());
     }

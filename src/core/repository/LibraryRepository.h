@@ -26,6 +26,10 @@ public:
         return result;
     }
     virtual std::optional<ExitMedia> exitMedia(const QString&) const { return {}; }
+    virtual std::optional<QVariantList> screenMedia() const { return {}; }
+    virtual void setScreenFavoriteAsync(const QString&,bool,QObject*,std::function<void(QString)> done) {
+        done("Photo storage is unavailable.");
+    }
     virtual QVariantMap artwork(const QString&) const { return {}; }
     virtual void setFavoriteAsync(const QString&, bool, QObject*, std::function<void(QString)> done) {
         done("Favorites cannot be edited in this library.");

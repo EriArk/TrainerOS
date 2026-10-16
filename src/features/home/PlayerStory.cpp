@@ -52,6 +52,7 @@ QVariantList PlayerStory::history() const {
     return rows;
 }
 QVariantList PlayerStory::media() const {
+    if(const auto album=library_.screenMedia())return *album;
     QVariantList rows;
     QHash<QString,QSize> currentSizes;
     for(const auto& game:library_.adventures()) {

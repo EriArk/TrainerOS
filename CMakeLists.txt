@@ -82,6 +82,7 @@ add_library(trainer_core STATIC
     src/core/storage/SqliteOwnership.cpp
     src/integrations/achievements/TrainerAchievementProvider.h
     src/core/storage/SqliteExitMedia.cpp
+    src/core/storage/SqliteScreens.cpp
     src/platform/input/AdventureOverlayService.h
     src/platform/input/AdventureOverlayService.cpp
     src/platform/input/InvitationOverlayService.h

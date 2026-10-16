@@ -140,6 +140,18 @@ public:
 private:
     LocalStateStore* store_;
 };
+class SavedScreenImages final : public QQuickImageProvider {
+public:
+    explicit SavedScreenImages(LocalStateStore* store) : QQuickImageProvider(Image),store_(store) {}
+    QImage requestImage(const QString& id,QSize* size,const QSize& requested) override {
+        const auto frame=store_?store_->screenImage(id):QImage{};
+        if(size)*size=frame.size();
+        return requested.isValid() && (requested.width()<frame.width() || requested.height()<frame.height())
+            ? frame.scaled(requested.boundedTo(frame.size()),Qt::KeepAspectRatio,Qt::SmoothTransformation):frame;
+    }
+private:
+    LocalStateStore* store_;
+};
 class ExitFrameImages final : public QQuickImageProvider {
 public:
     explicit ExitFrameImages(AdventureExitPresentation& controller) : QQuickImageProvider(Image), controller_(controller) {}
@@ -909,6 +921,7 @@ int main(int argc, char* argv[]) {
         pokemonModule(shell).party()->configureArtwork(&classicArt, &sprites);
         engine.addImageProvider("exit-frame", new ExitFrameImages(exitPresentation));
         engine.addImageProvider("exit-media", new SavedExitImages(store.get()));
+        engine.addImageProvider("screens",new SavedScreenImages(store.get()));
         int qmlWarnings = 0;
         QStringList diagnostics;
         QObject::connect(&engine, &QQmlEngine::warnings, &engine,

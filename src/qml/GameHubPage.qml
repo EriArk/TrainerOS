@@ -14,7 +14,7 @@ Item {
         if(shell.overviewFace === "timeline") return [h("←→","Timeline"),h("B","My Story")]
         if(shell.overviewFace === "screens") {
             if(shell.album.filtering) return [h("↑↓","Filters"),h("A","Choose"),h("B","Album")]
-            return [h("←→","Film"),h("L3","Star"),h("Select","Filter"),h("B","My Story")]
+            return [h("←→","Film"),h("L3","Star"),h("R3",shell.album.favoritesView ? "Recent" : "Favorites"),h("Select","Filter"),h("B","My Story")]
         }
         return [h("A","Open"),h("B","Home")]
     }

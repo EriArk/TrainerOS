@@ -12,6 +12,7 @@ void ScreensController::configure(const QString& directory,const QString& owner)
     const auto path=directory.isEmpty() || owner.isEmpty()?QString():QDir(directory).filePath("screens/"+QString::fromLatin1(QCryptographicHash::hash(owner.toUtf8(),QCryptographicHash::Sha256).toHex())+".json");
     if(owner_==owner && path_==path)return;
     directory_=directory;owner_=owner;path_=path;favorites_.clear();source_.clear();items_.clear();filter_.clear();selected_.clear();error_.clear();index_=0;filtering_=false;
+    favoritesView_=false;busy_=false;bufferSelection_.clear();favoriteSelection_.clear();
     QFile file(path_);
     if(file.exists()) {
         if(file.size()>1024*1024 || !file.open(QIODevice::ReadOnly))error_="Could not read album favorites.";
@@ -30,8 +31,8 @@ void ScreensController::setMedia(const QVariantList& media) {
 void ScreensController::rebuild() {
     items_.clear();
     for(const auto& item:source_) {
-        auto row=item.toMap();const bool favorite=favorites_.contains(row["id"].toString());
-        if(filter_=="favorites" && !favorite)continue;
+        auto row=item.toMap();const bool favorite=row.contains("favorite")?row["favorite"].toBool():favorites_.contains(row["id"].toString());
+        if(favorite!=favoritesView_)continue;
         if(filter_.startsWith("game:") && row["adventure"].toString()!=filter_.mid(5))continue;
         row["favorite"]=favorite;items_.append(row);
     }
@@ -42,7 +43,7 @@ void ScreensController::rebuild() {
 }
 QVariantMap ScreensController::current() const {return items_.value(index_).toMap();}
 QVariantList ScreensController::filters() const {
-    QVariantList result{QVariantMap{{"id",""},{"label","All games"}},QVariantMap{{"id","favorites"},{"label","Starred moments"}}};
+    QVariantList result{QVariantMap{{"id",""},{"label","All games"}}};
     QSet<QString> seen;
     for(const auto& item:source_) {
         const auto row=item.toMap();const auto id=row["adventure"].toString();if(seen.contains(id))continue;seen.insert(id);
@@ -56,7 +57,15 @@ QString ScreensController::filterLabel() const {
 }
 void ScreensController::select(int index) {if(index<0 || index>=count())return;index_=index;selected_=current()["id"].toString();emit changed();}
 void ScreensController::close() {filtering_=false;emit changed();}
-void ScreensController::forGame(const QString& id) {filter_="game:"+id;selected_.clear();index_=0;filtering_=false;rebuild();}
+void ScreensController::forGame(const QString& id) {
+    filter_="game:"+id;selected_.clear();index_=0;filtering_=false;favoritesView_=false;
+    // Home's latest picture may already live in the favorite library.
+    for(const auto& item:source_) {
+        const auto row=item.toMap();if(row["adventure"].toString()!=id)continue;
+        selected_=row["id"].toString();favoritesView_=row.contains("favorite")?row["favorite"].toBool():favorites_.contains(selected_);break;
+    }
+    rebuild();
+}
 void ScreensController::showFilters() {
     filtering_=!filtering_;filterFocus_=0;
     const auto list=filters();for(int i=0;i<list.size();++i)if(list[i].toMap()["id"].toString()==filter_)filterFocus_=i;
@@ -67,13 +76,29 @@ void ScreensController::chooseFilter(int index) {
     filter_=list[index].toMap()["id"].toString();filtering_=false;index_=0;rebuild();
 }
 void ScreensController::toggleFavorite() {
+    if(busy_)return;
     const auto id=current()["id"].toString();if(id.isEmpty())return;
+    if(repository_ && repository_->screenMedia()) {
+        busy_=true;error_.clear();const auto owner=owner_;const bool favorite=!current()["favorite"].toBool();emit changed();
+        repository_->setScreenFavoriteAsync(id,favorite,this,[this,owner](const QString& error){
+            if(owner_!=owner)return;
+            busy_=false;error_=error;
+            if(error.isEmpty())setMedia(repository_->screenMedia().value_or(QVariantList{}));
+            emit changed();
+        });
+        return;
+    }
     auto next=favorites_;if(next.contains(id))next.remove(id);else next.insert(id);
     if(path_.isEmpty()){error_="Choose a Trainer to save favorite moments.";emit changed();return;}
     QDir().mkpath(QFileInfo(path_).absolutePath());QSaveFile file(path_);
     QStringList ordered(next.begin(),next.end());ordered.sort();const auto bytes=QJsonDocument(QJsonArray::fromStringList(ordered)).toJson(QJsonDocument::Compact);
     if(!file.open(QIODevice::WriteOnly)||file.write(bytes)!=bytes.size()||!file.commit()) {error_="Could not save this star. Your favorites are unchanged.";emit changed();return;}
     favorites_=next;error_.clear();rebuild();
+}
+void ScreensController::switchLibrary() {
+    if(filtering_ || busy_)return;
+    (favoritesView_?favoriteSelection_:bufferSelection_)=selected_;
+    favoritesView_=!favoritesView_;selected_=favoritesView_?favoriteSelection_:bufferSelection_;index_=0;rebuild();
 }
 void ScreensController::dispatch(Action action) {
     if(filtering_) {
@@ -83,6 +108,7 @@ void ScreensController::dispatch(Action action) {
         emit changed();return;
     }
     if(action==Action::LocalAction){showFilters();return;}
+    if(action==Action::ChangeView){switchLibrary();return;}
     if(action==Action::ToggleFavorite){toggleFavorite();return;}
     if(action==Action::Back){close();return;}
     int delta=action==Action::Left?-1:action==Action::Right?1:0;

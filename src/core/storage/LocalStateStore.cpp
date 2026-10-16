@@ -3,6 +3,7 @@
 #include "SqliteLibrary.h"
 #include "LibraryFileMove.h"
 #include "SqliteExitMedia.h"
+#include "SqliteScreens.h"
 #include "SqliteOwnership.h"
 #include <QDir>
 #include <QTimer>
@@ -21,7 +22,7 @@
 
 namespace trainer {
 namespace {
-constexpr int SchemaVersion = 14;
+constexpr int SchemaVersion = 15;
 QString failedWrite() { return "Couldn't save changes. Check free space or storage access, then try again."; }
 struct LoadedState {
     QString error;
@@ -35,6 +36,7 @@ struct LoadedState {
     LibrarySnapshot library;
     PlayHistorySnapshot history;
     QList<ExitMedia> exitMedia;
+    QVariantList screens;
     QList<ChampionRecord> champions;
     QList<HallOfFameEntry> archive;
     QHash<QString,PokedexProgress> journal;
@@ -219,6 +221,8 @@ public:
             }
             if(openError.isEmpty() && (!query.exec("PRAGMA user_version") || !query.next()))openError=failedWrite();
             if(openError.isEmpty() && query.value(0).toInt()<14){query.finish();openError=migrateChampions(db);}
+            if(openError.isEmpty() && (!query.exec("PRAGMA user_version") || !query.next()))openError=failedWrite();
+            if(openError.isEmpty() && query.value(0).toInt()<15){query.finish();openError=migrateScreens(db);}
             if (openError.isEmpty()) {
                 ownerId_ = localOwner(db);
                 if (ownerId_.isEmpty()) openError = "Your Trainer ownership needs recovery. Existing data has been kept.";
@@ -298,6 +302,8 @@ public:
         if (!journal.error.isEmpty()) return fail(journal.error);
         state.journal = journal.records;
         state.exitMedia = readExitMedia(db, ownerId_);
+        if(const auto error=seedScreens(db,ownerId_,directory,state.exitMedia);!error.isEmpty())return fail(error);
+        state.screens=readScreens(db,ownerId_);
         return state;
     }
     QString keepChampions(const QList<ChampionRecord>& records,QList<ChampionRecord>& snapshot) {
@@ -415,7 +421,7 @@ public:
         // All personal rows disappear together. Shared library and save files
         // never participate. Retired owner IDs remain reserved, including the
         // legacy root-account association, so a new Trainer cannot inherit it.
-        for(const auto& table:QStringList{"exit_media","hall_of_fame","champion_records","play_sessions","pokedex_records","pokedex_favorites","shell_state","trainer_access"}) {
+        for(const auto& table:QStringList{"screens","screen_owners","exit_media","hall_of_fame","champion_records","play_sessions","pokedex_records","pokedex_favorites","shell_state","trainer_access"}) {
             if(!error.isEmpty())break;
             q.prepare("DELETE FROM "+table+" WHERE trainer_id=?");q.addBindValue(ownerId_);
             if(!q.exec())error=failedWrite();
@@ -462,9 +468,14 @@ public:
         return error.isEmpty() ? snapshot.error : error;
     }
     QString preferences(const ShellPreferences& value) { return writePreferences(db, value); }
+    QString screenFavorite(const QString& id,bool favorite,QVariantList& snapshot) {
+        const auto error=starScreen(db,ownerId_,id,favorite);
+        if(error.isEmpty())snapshot=readScreens(db,ownerId_);
+        return error;
+    }
     QString playSession(const PlaySession& value, const std::optional<ExitMediaSource>& source,
                         const std::optional<ExitCapture>& capture, PlayHistorySnapshot& snapshot,
-                        QList<ExitMedia>& media, QString& warning) {
+                        QList<ExitMedia>& media, QVariantList& screens, QString& warning) {
         // Source is fixed at process start, never resolved from current Home at
         // completion. Hashing/encoding and all SQLite work stay off the UI thread.
         std::optional<PreparedExitMedia> prepared;
@@ -489,6 +500,7 @@ public:
             if (prepared) pendingMedia.insert(value.id, *prepared);
             if (value.outcome != PlaySessionOutcome::Running) pendingMedia.remove(value.id);
             media = readExitMedia(db, ownerId_);
+            screens = readScreens(db,ownerId_);
         }
         return error;
     }
@@ -535,7 +547,7 @@ void LocalStateStore::open() {
                 ownerId_ = state.ownerId; accountOwner_ = state.accountOwner; profiles_ = state.profiles; profile_ = state.profile; favorites_ = state.favorites; navigation_ = state.navigation;
                 worlds_ = state.library.worlds; registrations_ = state.library.registrations; preferences_ = state.library.preferences;
                 ++libraryRevision_;
-                history_ = state.history; archive_ = state.archive; champions_=state.champions; journal_ = state.journal; exitMedia_ = state.exitMedia;
+                history_ = state.history; archive_ = state.archive; champions_=state.champions; journal_ = state.journal; exitMedia_ = state.exitMedia; screens_=state.screens;
             }
             emit opened(ready_);
         }, Qt::QueuedConnection);
@@ -758,9 +770,10 @@ void LocalStateStore::saveSessionMediaAsync(const PlaySession& value, const std:
     auto snapshot = std::make_shared<PlayHistorySnapshot>();
     auto media = std::make_shared<QList<ExitMedia>>();
     auto warning = std::make_shared<QString>();
-    write([value, source, capture, snapshot, media, warning](SqliteWorker& worker) { return worker.playSession(value, source, capture, *snapshot, *media, *warning); },
-          [this, snapshot, media, warning, guard = QPointer<QObject>(context), completed](const QString& error) {
-        if (error.isEmpty()) { history_ = *snapshot; exitMedia_ = *media; emit libraryChanged(); }
+    auto screens = std::make_shared<QVariantList>();
+    write([value, source, capture, snapshot, media, screens, warning](SqliteWorker& worker) { return worker.playSession(value, source, capture, *snapshot, *media, *screens, *warning); },
+          [this, snapshot, media, screens, warning, guard = QPointer<QObject>(context), completed](const QString& error) {
+        if (error.isEmpty()) { history_ = *snapshot; exitMedia_ = *media; screens_=*screens; emit libraryChanged(); }
         else emit userWriteFailed();
         if (guard) completed(error.isEmpty() ? *warning : error);
     });
@@ -771,6 +784,19 @@ std::optional<ExitMedia> LocalStateStore::exitMedia(const QString& adventureId) 
     for (const auto& media : exitMedia_) if (media.trainerId == profile_->id && media.domain == record->adventure.domain
         && media.adventureId == adventureId && media.registrationRevision == record->revision) return media;
     return {};
+}
+void LocalStateStore::setScreenFavoriteAsync(const QString& id,bool favorite,QObject* context,std::function<void(QString)> done) {
+    auto snapshot=std::make_shared<QVariantList>();
+    write([id,favorite,snapshot](SqliteWorker& worker){return worker.screenFavorite(id,favorite,*snapshot);},
+        [this,snapshot,guard=QPointer<QObject>(context),done](const QString& error){
+            if(error.isEmpty()){screens_=*snapshot;emit libraryChanged();}
+            if(guard)done(error);
+        });
+}
+QImage LocalStateStore::screenImage(const QString& identity) const {
+    const auto owner=identity.section('/',0,0),id=identity.section('/',1);
+    if(!ready_ || !profile_ || owner!=profile_->id || id.isEmpty())return {};
+    return readScreenImage(QDir(directory_).filePath("traineros.sqlite3"),owner,id);
 }
 QImage LocalStateStore::exitImage(const QString& sessionId) const {
     for (const auto& media : exitMedia_) if (media.sessionId == sessionId) {

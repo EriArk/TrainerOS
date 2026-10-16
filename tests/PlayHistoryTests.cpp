@@ -1,6 +1,7 @@
 #include "LegacyStoreFixture.h"
 #include "core/storage/SqlitePlayHistory.h"
 #include "core/storage/LocalStateStore.h"
+#include "core/storage/SqliteScreens.h"
 #include "features/home/PlayHistoryController.h"
 #include "features/home/ExitImage.h"
 #include <QPainter>
@@ -10,6 +11,7 @@
 #include <QFile>
 #include <QDir>
 #include <QSqlQuery>
+#include <QCryptographicHash>
 
 using namespace trainer;
 class PlayHistoryTests final : public QObject {
@@ -48,6 +50,81 @@ class PlayHistoryTests final : public QObject {
         QTRY_VERIFY(done); QVERIFY(ok);
     }
 private slots:
+    void cleanExitsAccumulateWhileHomeKeepsLatestAndStarsSurviveGameRemoval() {
+        QTemporaryDir dir;const auto content=this->content(dir);const auto now=QDateTime::currentDateTimeUtc();
+        {
+            LocalStateStore store(dir.path());store.open();QTRY_VERIFY(store.ready());profile(store);addAdventure(store,content);
+            ExitMediaSource source{"owner","pokemon",*store.registration("journey")};
+            QImage image(160,144,QImage::Format_RGB32);image.fill(Qt::darkGreen);
+            for(int i=0;i<3;++i) {
+                PlaySession session{"photo-"+QString::number(i),"journey",now.addSecs(i*10),{},{},PlaySessionOutcome::Running};
+                QVERIFY(saveMedia(store,session,source).isEmpty());session.outcome=PlaySessionOutcome::Returned;session.endedAt=now.addSecs(i*10+3);session.elapsedSeconds=3;
+                QVERIFY(saveMedia(store,session,source,ExitCapture{image,now.addSecs(i*10+2)}).isEmpty());
+            }
+            QCOMPARE(store.screenMedia()->size(),3);QCOMPARE(store.exitMedia("journey")->sessionId,"photo-2");
+            bool done=false;QString error;store.setScreenFavoriteAsync("photo-0",true,this,[&](const QString& e){error=e;done=true;});QTRY_VERIFY(done);QVERIFY(error.isEmpty());
+            QVERIFY(!store.screenImage("owner/photo-0").isNull());QVERIFY(store.screenImage("another/photo-0").isNull());
+        }
+        QVERIFY(QFile::remove(content));
+        LocalStateStore reopened(dir.path());reopened.open();QTRY_VERIFY(reopened.ready());
+        QCOMPARE(reopened.screenMedia()->size(),3);QVERIFY(!reopened.screenImage("owner/photo-0").isNull());
+        QVERIFY(!reopened.exitMedia("journey")); // Home's build-validation gate is unchanged.
+        for(const auto& row:*reopened.screenMedia())if(row.toMap()["id"]=="photo-0")QVERIFY(row.toMap()["favorite"].toBool());
+    }
+    void photoBufferRetainsHundredOrdinaryAndUnlimitedStarsAtomically() {
+        QTemporaryDir dir;const auto path=dir.filePath("photos.sqlite3");const QString connection="photo-buffer-fixture";
+        {
+            auto db=QSqlDatabase::addDatabase("QSQLITE",connection);db.setDatabaseName(path);QVERIFY(db.open());
+            QSqlQuery q(db);QVERIFY(q.exec("CREATE TABLE trainer_profile(id TEXT PRIMARY KEY)"));
+            QVERIFY(q.exec("INSERT INTO trainer_profile VALUES('one'),('two')"));
+            QVERIFY(migrateScreens(db).isEmpty());
+            QImage image(160,144,QImage::Format_RGB32);image.fill(Qt::darkGreen);QByteArray jpeg;QBuffer out(&jpeg);out.open(QIODevice::WriteOnly);QVERIFY(image.save(&out,"JPEG"));
+            const auto start=QDateTime::fromString("2026-10-17T00:00:00Z",Qt::ISODate);
+            QVERIFY(db.transaction());
+            for(int i=0;i<205;++i) {
+                ExitMedia m{QString::number(i),"one","multiverse",QString::number(i%3),1,"fixture",start.addSecs(i),jpeg};
+                QVERIFY(appendScreen(db,m,"Remembered title",i<105).isEmpty());
+            }
+            QVERIFY(pruneScreens(db,"one").isEmpty());QVERIFY(db.commit());
+            QCOMPARE(readScreens(db,"one").size(),205); // 105 stars + 100 ordinary.
+            QVERIFY(db.transaction());
+            QVERIFY(appendScreen(db,{"205","one","multiverse","0",1,"fixture",start.addSecs(205),jpeg},"New photo").isEmpty());
+            QVERIFY(pruneScreens(db,"one").isEmpty());QVERIFY(db.commit());
+            auto rows=readScreens(db,"one");QCOMPARE(rows.size(),205);QCOMPARE(rows.first().toMap()["id"].toString(),"205");
+            QVERIFY(readScreenImage(path,"one","105").isNull()); // Oldest ordinary evicted.
+            QVERIFY(!readScreenImage(path,"one","0").isNull()); // Older starred picture retained.
+            QVERIFY(readScreenImage(path,"two","0").isNull());
+            QVERIFY(starScreen(db,"two","0",true).size()>0);
+            QVERIFY(starScreen(db,"one","106",true).isEmpty());
+            QVERIFY(q.exec("CREATE TRIGGER refuse_photo_delete BEFORE DELETE ON screens BEGIN SELECT RAISE(ABORT,'fixture'); END"));
+            // Fill the newly free ordinary slot before un-starring an old photo.
+            QVERIFY(db.transaction());QVERIFY(appendScreen(db,{"206","one","multiverse","1",1,"fixture",start.addSecs(206),jpeg},"New photo").isEmpty());QVERIFY(db.commit());
+            QVERIFY(!starScreen(db,"one","0",false).isEmpty());
+            QVERIFY(!readScreenImage(path,"one","0").isNull());
+            for(const auto& row:readScreens(db,"one"))if(row.toMap()["id"]=="0")QVERIFY(row.toMap()["favorite"].toBool());
+            QVERIFY(q.exec("DROP TRIGGER refuse_photo_delete"));
+            QVERIFY(starScreen(db,"one","0",false).isEmpty());QVERIFY(readScreenImage(path,"one","0").isNull());
+            QVERIFY(q.exec("UPDATE screens SET jpeg=X'0001' WHERE id='1'"));QVERIFY(readScreenImage(path,"one","1").isNull());
+            q.finish();db.close();
+            QVERIFY(db.open());QCOMPARE(readScreens(db,"one").size(),205);QCOMPARE(readScreens(db,"two").size(),0);
+        }
+        QSqlDatabase::removeDatabase(connection);
+    }
+    void photoMigrationImportsExistingStarsOnce() {
+        QTemporaryDir dir;const QString connection="photo-migration-fixture";
+        {
+            auto db=QSqlDatabase::addDatabase("QSQLITE",connection);db.setDatabaseName(dir.filePath("traineros.sqlite3"));QVERIFY(db.open());QSqlQuery q(db);
+            QVERIFY(q.exec("CREATE TABLE trainer_profile(id TEXT PRIMARY KEY)"));QVERIFY(q.exec("INSERT INTO trainer_profile VALUES('one')"));
+            QVERIFY(q.exec("CREATE TABLE adventures(id TEXT PRIMARY KEY,title TEXT)"));QVERIFY(q.exec("INSERT INTO adventures VALUES('game','Remembered')"));QVERIFY(migrateScreens(db).isEmpty());
+            QImage image(160,144,QImage::Format_RGB32);image.fill(Qt::darkGreen);QByteArray jpeg;QBuffer out(&jpeg);out.open(QIODevice::WriteOnly);QVERIFY(image.save(&out,"JPEG"));
+            QDir().mkpath(dir.filePath("screens"));QFile favorites(dir.filePath("screens/"+QString::fromLatin1(QCryptographicHash::hash("one",QCryptographicHash::Sha256).toHex())+".json"));
+            QVERIFY(favorites.open(QIODevice::WriteOnly));favorites.write("[\"saved\"]");favorites.close();
+            const QList<ExitMedia> old{{"saved","one","multiverse","game",1,"fixture",QDateTime::currentDateTimeUtc(),jpeg}};
+            QVERIFY(seedScreens(db,"one",dir.path(),old).isEmpty());QCOMPARE(readScreens(db,"one").size(),1);QVERIFY(readScreens(db,"one").first().toMap()["favorite"].toBool());
+            QVERIFY(q.exec("DELETE FROM screens"));QVERIFY(seedScreens(db,"one",dir.path(),old).isEmpty());QVERIFY(readScreens(db,"one").isEmpty());
+        }
+        QSqlDatabase::removeDatabase(connection);
+    }
     void remoteClientWithoutLocalAdventureDoesNotWriteLocalProgress() {
         QTemporaryDir dir;LocalStateStore store(dir.path());store.open();QTRY_VERIFY(store.ready());profile(store);
         ProcessService process;AdventureLaunchController launch(process);PlayHistoryController history(launch,store);

@@ -1,4 +1,5 @@
 #include "SqliteExitMedia.h"
+#include "SqliteScreens.h"
 #include <QBuffer>
 #include <QCryptographicHash>
 #include <QFile>
@@ -88,7 +89,10 @@ QString writeExitMedia(QSqlDatabase& db, const PlaySession& session, const Prepa
     for (const auto& value : QVariantList{source.trainerId, source.domain, session.adventureId, session.id, source.registration.revision,
              source.registration.contentPath, prepared.contentSize, prepared.contentModified, prepared.buildSha256,
              capture.capturedAt.toUTC().toString(Qt::ISODateWithMs), frame.width(), frame.height(), bytes, hash(bytes)}) q.addBindValue(value);
-    return q.exec() ? QString() : failure();
+    if(!q.exec())return failure();
+    const ExitMedia media{session.id,source.trainerId,source.domain,session.adventureId,source.registration.revision,prepared.buildSha256,capture.capturedAt,bytes};
+    const auto error=appendScreen(db,media,source.registration.adventure.title);
+    return error.isEmpty()?pruneScreens(db,source.trainerId):error;
 }
 QList<ExitMedia> readExitMedia(QSqlDatabase& db, const QString& owner) {
     QList<ExitMedia> result;

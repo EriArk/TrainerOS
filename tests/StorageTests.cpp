@@ -86,7 +86,17 @@ private slots:
             QCOMPARE(f.store.load()->id, identity); QCOMPARE(f.store.load()->createdAt, created);
             QCOMPARE(f.store.load()->name, "ERI 2"); QVERIFY(f.store.progress("pikachu").favorite);
             QVERIFY(!f.store.progress("pikachu").caught.has_value());
-            QCOMPARE(f.shell.navigationState(), navigation);
+            // Empty legacy slot names may be materialized by the existing
+            // adapter-navigation migration; they carry no selected screen.
+            const auto normalized=[](QJsonObject state) {
+                auto experience=state["experienceNavigation"].toObject();auto entries=experience["entries"].toObject();
+                for(auto it=entries.begin();it!=entries.end();++it) {
+                    auto entry=it.value().toObject();for(const auto& key:{"0","1"})if(entry[key].toString().isEmpty())entry.remove(key);
+                    it.value()=entry;
+                }
+                experience["entries"]=entries;state["experienceNavigation"]=experience;return state;
+            };
+            QCOMPARE(normalized(f.shell.navigationState()), normalized(navigation));
             QVERIFY(!f.shell.menuOpen()); QVERIFY(!f.shell.keyboard()->isOpen()); QVERIFY(!f.shell.trainer()->editing());
             auto* trainer = f.shell.trainer(); trainer->beginEdit(); trainer->setDraftName("ERI 3"); trainer->activate(2);
             QTRY_VERIFY(!trainer->saving());
@@ -185,13 +195,13 @@ private slots:
         f.session.requestExit(); QTRY_VERIFY(!f.session.choices().isEmpty());
         QVERIFY(exited.isEmpty()); QCOMPARE(f.store.navigation(), QJsonObject());
         QVERIFY(query.exec("ROLLBACK")); f.session.activate(0); QTRY_VERIFY(!exited.isEmpty());
-        QCOMPARE(f.store.navigation()["page"].toString(), "worlds");
+        QCOMPARE(f.store.navigation()["page"].toString(), "games");
         // A second change can explicitly skip only browsing state after a failed flush.
         f.session.dispatch(Action::Back); f.shell.goToPage(2);
         QVERIFY(query.exec("BEGIN IMMEDIATE")); f.session.requestExit();
         QTRY_COMPARE(f.session.choices().size(), 3);
         const auto count = exited.size(); f.session.activate(2); QTRY_VERIFY(exited.size() > count);
-        QCOMPARE(f.store.navigation()["page"].toString(), "worlds"); QVERIFY(query.exec("ROLLBACK"));
+        QCOMPARE(f.store.navigation()["page"].toString(), "games"); QVERIFY(query.exec("ROLLBACK"));
     }
     void completionContextMayDisappear() {
         QTemporaryDir dir; LocalStateStore store(dir.path()); store.open(); QTRY_VERIFY(store.ready());

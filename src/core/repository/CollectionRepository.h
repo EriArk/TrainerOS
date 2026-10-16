@@ -29,6 +29,8 @@ public:
     PlayerHistory playerHistory() const override { return personal_.playerHistory(); }
     QList<PlaySession> gameSessions(const QString& id) const override { return personal_.gameSessions(id); }
     std::optional<ExitMedia> exitMedia(const QString& id) const override { return personal_.exitMedia(id); }
+    std::optional<QVariantList> screenMedia() const override { return personal_.screenMedia(); }
+    void setScreenFavoriteAsync(const QString& id,bool favorite,QObject* context,std::function<void(QString)> done) override { personal_.setScreenFavoriteAsync(id,favorite,context,std::move(done)); }
     std::optional<qint64> recordedSeconds(const QString& id) const override { return personal_.recordedSeconds(id); }
     qint64 gameSessionCount(const QString& id) const override { return personal_.gameSessionCount(id); }
     HomeSnapshot home() const override { return personal_.home(); }

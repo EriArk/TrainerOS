@@ -71,6 +71,9 @@ public:
                               const std::optional<ExitCapture>&, QObject*, std::function<void(QString)>) override;
     std::optional<ExitMedia> exitMedia(const QString&) const override;
     QImage exitImage(const QString& sessionId) const;
+    std::optional<QVariantList> screenMedia() const override { return screens_; }
+    void setScreenFavoriteAsync(const QString&,bool,QObject*,std::function<void(QString)>) override;
+    QImage screenImage(const QString& identity) const;
     std::optional<AdventureRegistration> registration(const QString&) const override;
     QList<AdventureRegistration> registrations() const override { return registrations_; }
     void editLibraryAsync(const LibraryEdit&, QObject*, std::function<void(QString)>) override;
@@ -114,6 +117,7 @@ private:
     ShellPreferences preferences_;
     PlayHistorySnapshot history_;
     QList<ExitMedia> exitMedia_;
+    QVariantList screens_;
     QList<ChampionRecord> champions_;
     QList<HallOfFameEntry> archive_;
     QHash<QString,PokedexProgress> journal_;

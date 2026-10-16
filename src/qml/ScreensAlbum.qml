@@ -8,7 +8,7 @@ Item {
     readonly property var current: album.current
     readonly property var previous: album.items[album.index-1] || ({})
     readonly property var next: album.items[album.index+1] || ({})
-    readonly property bool canBrowse: active && !album.filtering
+    readonly property bool canBrowse: active && !album.filtering && !album.busy
     objectName: "screens-album"
     Item {
         width: parent.width; height: 27
@@ -18,8 +18,9 @@ Item {
         }
         Text {
             anchors.horizontalCenter: parent.horizontalCenter
-            text: "Screens"+(root.album.count ? "  \u00b7  "+(root.album.index+1)+" / "+root.album.count : "")
+            text: (root.album.favoritesView ? "\u2605 Favorites" : "Recent photos")+(root.album.count ? "  \u00b7  "+(root.album.index+1)+" / "+root.album.count : "")
             font.family: Theme.displayFamily; font.pixelSize: 17; color: Theme.ink
+            MouseArea { anchors.fill: parent; anchors.margins: -6; enabled: root.canBrowse; onClicked: root.album.switchLibrary() }
         }
         Text {
             anchors.right: parent.right; width: Math.min(250,parent.width*.3); horizontalAlignment: Text.AlignRight
@@ -80,7 +81,7 @@ Item {
         }
         Text {
             y: 21; width: parent.width; horizontalAlignment: Text.AlignHCenter
-            text: (root.current.day || "")+"  \u00b7  "+(root.current.clock || "")+"  \u00b7  Last exit"
+            text: (root.current.day || "")+"  \u00b7  "+(root.current.clock || "")+"  \u00b7  Exit"
             font.pixelSize: 10; color: Theme.muted
         }
     }
@@ -141,7 +142,7 @@ Item {
         HomeScreensCollage { width: Math.min(300,parent.width*.5); height: Math.max(70,parent.height-42); anchors.horizontalCenter: parent.horizontalCenter; balanced: true; frameCount: 3; enabled: false }
         Text {
             anchors.bottom: parent.bottom; width: parent.width; horizontalAlignment: Text.AlignHCenter
-            text: root.album.filterLabel==="Starred moments" ? "Star a moment to keep it here." : "Your next adventure leaves a memory."
+            text: root.album.favoritesView ? "Star a moment to keep it here." : "Your latest 100 photos. Star the ones to keep."
             color: Theme.muted; font.pixelSize: 14; wrapMode: Text.WordWrap
         }
     }

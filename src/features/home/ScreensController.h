@@ -1,5 +1,6 @@
 #pragma once
 #include "core/input/Action.h"
+#include "core/repository/LibraryRepository.h"
 #include <QObject>
 #include <QVariantList>
 #include <QSet>
@@ -17,8 +18,11 @@ class ScreensController : public QObject {
     Q_PROPERTY(int filterFocus READ filterFocus NOTIFY changed)
     Q_PROPERTY(QString filterLabel READ filterLabel NOTIFY changed)
     Q_PROPERTY(QString error READ error NOTIFY changed)
+    Q_PROPERTY(bool favoritesView READ favoritesView NOTIFY changed)
+    Q_PROPERTY(bool busy READ busy NOTIFY changed)
 public:
     explicit ScreensController(QObject* parent=nullptr):QObject(parent){}
+    void setRepository(LibraryRepository* repository) {repository_=repository;}
     void configure(const QString& directory,const QString& owner);
     void setOwner(const QString& owner) {configure(directory_,owner);}
     void setMedia(const QVariantList& media);
@@ -33,6 +37,9 @@ public:
     int filterFocus() const {return filterFocus_;}
     QString filterLabel() const;
     QString error() const {return error_;}
+    bool favoritesView() const {return favoritesView_;}
+    bool busy() const {return busy_;}
+    Q_INVOKABLE void switchLibrary();
     Q_INVOKABLE void select(int index);
     Q_INVOKABLE void close();
     Q_INVOKABLE void toggleFavorite();
@@ -46,6 +53,9 @@ private:
     QVariantList source_,items_;
     QSet<QString> favorites_;
     QString directory_,path_,owner_,filter_,selected_,error_;
+    QString bufferSelection_,favoriteSelection_;
+    LibraryRepository* repository_=nullptr;
+    bool favoritesView_=false,busy_=false;
     int index_=0,filterFocus_=0;
     bool filtering_=false;
 };

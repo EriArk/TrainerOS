@@ -100,7 +100,7 @@ private slots:
         QCOMPARE(shell.service(),"trainer-setup");QVERIFY(!shell.menuOpen());
         shell.dispatch(Action::Back);QVERIFY(shell.menuOpen());QVERIFY(!shell.powerMenu());QCOMPARE(shell.focusIndex(),2);
         shell.goToPage(3);session.requestTrainerSwitch("two");
-        QTRY_COMPARE(restarted.size(),1);QVERIFY(exited.isEmpty());QVERIFY(session.blocked());QCOMPARE(store.navigation()["page"].toString(),"trainer");
+        QTRY_COMPARE(restarted.size(),1);QVERIFY(exited.isEmpty());QVERIFY(session.blocked());QCOMPARE(store.navigation()["page"].toString(),"social");
         session.dispatch(Action::Back);session.dispatch(Action::NextPage);QVERIFY(session.blocked());
     }
     void realFlowCreatesWithoutPreviewPinAndBoundsChooser() {

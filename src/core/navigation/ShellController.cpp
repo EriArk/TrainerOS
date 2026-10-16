@@ -96,6 +96,7 @@ ShellController::ShellController(LibraryRepository& repo, TrainerRepository& pro
     }
     connect(this,&ShellController::changed,this,&ShellController::syncExperience);
     connect(&album_,&ScreensController::changed,this,&ShellController::changed);
+    album_.setRepository(&repository_);
     connect(&social_,&SocialController::presentationChanged,this,&ShellController::changed,Qt::QueuedConnection);
     settings_.setScraper(&scraper_);
     connect(&libraryTools_,&LibraryToolsController::browserActionRequested,this,&ShellController::libraryAction);
@@ -1448,6 +1449,10 @@ void ShellController::dispatch(Action action) {
         return;
     }
     if(action==Action::ChangeView) {
+        if(page_==GameHubPage && hubFace_=="overview" && overviewFace_=="screens") {
+            if(pairedNavigationAvailable() && !navigationLocked())album_.switchLibrary();
+            return;
+        }
         libraryAction(multiverse_.viewStyle()=="wheel"?"view:list":multiverse_.viewStyle()=="list"?"view:shelves":multiverse_.viewStyle()=="shelves"?"view:grid":"view:wheel");return;
     }
     if(action==Action::ScrollUp || action==Action::ScrollDown) {
