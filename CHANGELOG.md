@@ -3,6 +3,7 @@
 ## 2026-10-16 — Quick Apps: группы и скос экранной рамки
 
 [Реализация `6534a4d`](https://github.com/EriArk/TrainerOS/commit/6534a4d).
+[Ушки, скрытие иконок и финальная доставка `0f7ccd4`](https://github.com/EriArk/TrainerOS/commit/0f7ccd4).
 
 [QUICK-30](docs/QUICK30_GROUPED_PANEL.md): панель продолжает нижний корпус во
 всю ширину, с внутренним скосом вместо диагональных верхних срезов. Избранные
