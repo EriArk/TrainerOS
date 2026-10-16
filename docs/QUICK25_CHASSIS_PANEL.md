@@ -19,6 +19,8 @@
 
 ## Проверки и установка
 
+[Коммит реализации `6be0995`](https://github.com/EriArk/TrainerOS/commit/6be0995).
+
 - Windows native build и Home smoke прошли: пустая панель, одно приложение,
   двенадцать приложений/прокрутка, 960/1080p, переключение X/Y, меню и возврат.
   `build/quick25-home/home-check.txt`: `qmlWarnings=0`.
