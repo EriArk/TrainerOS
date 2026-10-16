@@ -242,7 +242,7 @@ Window {
                 enabled: !shell.drawerOpen && !shell.quickAppsOpen && !shell.serviceOpen
                 anchors.fill: parent; anchors.margins: Theme.panelInset
                 // Home has no face row; its content starts below the active tab.
-                anchors.topMargin: shell.primaryId === "home" ? Theme.brandHeight + Theme.screenBevel - Theme.screenTop : Theme.contentTopInset
+                anchors.topMargin: shell.primaryId === "home" || (shell.page === 1 && shell.collectionsRoot) ? Theme.brandHeight + Theme.screenBevel - Theme.screenTop : Theme.contentTopInset
                 clip: true
                 anchors.bottomMargin: Theme.panelInset
                 HomeDashboard { id: experienceHost; anchors.fill: parent; shell: shellController; visible: (!shell.serviceOpen || shell.service === "settings" || shell.service === "account-profile") && shell.primaryId === "home" }
@@ -341,10 +341,10 @@ Window {
                 if (shell.service === "device") return [h("←→","Adjust"),h("Y","Refresh"),h("A","Select"),h("B","Back")]
                 if (shell.serviceOpen) return [h("A","Select"),h("B","Back")]
                 if(shell.collectionManager.open) return [h("A","Choose"),h("B","Back")]
-                if (shell.page === 1 && shell.collectionsRoot) return [h("A","Open collection"),h("Select","New / edit"),h("B","Home")]
+                if (shell.page === 1 && shell.collectionsRoot) return shell.gamesRootZone === "collections" ? [h("A","Open"),h("Select","Collection actions"),h("B","Home")] : [h("A","Open platform"),h("B","Home")]
                 if (shell.page === 1) {
                     const list = shell.multiverseFace ? shell.multiverse.route === "games" : shell.worlds.route === "adventures"
-                    let result = list ? [h("X","Search"),h("Y","Filter"),h("A","Play"),h("B",shell.multiverseFace ? (shell.multiverse.collection === "multiverse" ? "Systems" : "Collections") : "Regions")] : [h("A","Open"),h("B","Back")]
+                    let result = list ? [h("X","Search"),h("Y","Filter"),h("A","Play"),h("B","Games")] : [h("A","Open"),h("B","Back")]
                     if(shell.canHoldConfirm) result.push(h("Hold A","Options"))
                     result.push(h("Select",list ? "Game actions" : "Collection actions"))
                     return result

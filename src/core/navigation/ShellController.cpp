@@ -391,7 +391,10 @@ void ShellController::selectFace(int index) {
         socialFace_=QStringList{"chats","communities","friends"}.value(index,"chats");
         social_.setFace(socialFace_);
     } else if(page_==AppsPage)appsFace_=QStringList{"apps","crates","browser","files"}.value(index,"apps");
-    else if(page_==GamesPage && !collectionsRoot_)openCollection(index);
+    else if(page_==GamesPage && !collectionsRoot_) {
+        const auto rows=gamesRootZone_=="platforms"?gamesPlatforms():gamesCollections();
+        openGamesRootItem(gamesRootZone_,rows.value(index).toMap()["id"].toString());
+    }
     emit changed();
 }
 bool ShellController::pairedNavigationAvailable() {
@@ -554,7 +557,7 @@ QVariantList ShellController::gameHistory() const {
     return rows;
 }
 QStringList ShellController::faceNames() const {
-    if(page_==GamesPage && !collectionsRoot_) {QStringList names;for(const auto& row:collections())names.append(row.toMap()["name"].toString());return names;}
+    if(page_==GamesPage && !collectionsRoot_) {QStringList names;for(const auto& row:gamesRootZone_=="platforms"?gamesPlatforms():gamesCollections())names.append(row.toMap()["name"].toString());return names;}
     if(page_==GameHubPage) {
         QStringList result{"Overview","RetroAchievements"};
         if(experience_.hasAdapter())result.append(experience_.descriptor().adapter.label);
@@ -566,9 +569,7 @@ QStringList ShellController::faceNames() const {
 }
 int ShellController::faceIndex() const {
     if(page_==GamesPage) {
-        const auto list=collections();
-        for(int i=0;i<list.size();++i)if(list[i].toMap()["id"]==worldCollection_)return i;
-        return 0;
+        return gamesRootZone_=="platforms"?gamesPlatformIndex():gamesCollectionIndex();
     }
     if(page_==GameHubPage)return hubFaceIds().indexOf(hubFace_);
     if(page_==SocialPage)return socialFace_=="communities"?1:socialFace_=="friends" || socialFace_=="recent"?2:0;
@@ -651,6 +652,8 @@ QJsonObject ShellController::navigationState() const {
             {"worldsFace",multiverseFace_?"multiverse":"pokemon"},
             {"globalHome",true},{"homeCollection",homeCollection_},{"worldCollection",worldCollection_},
             {"collectionsRoot",collectionsRoot_},{"collectionFocus",collectionFocus_},
+            {"gamesRoot",QJsonObject{{"zone",gamesRootZone_},{"collection",gamesCollectionId_},{"platform",gamesPlatformId_},
+                {"collectionScroll",collectionScroll_},{"platformScroll",platformScroll_}}},
             {"resume", drawerFocus_ < points_.size() ? points_[drawerFocus_].id : QString()},
             {"worlds", worlds_.navigationState()}, {"hall", hall_.navigationState()}};
     if(activeModule_){const auto legacy=activeModule_->legacyState();for(auto it=legacy.begin();it!=legacy.end();++it)state[it.key()]=it.value();}
@@ -706,6 +709,17 @@ void ShellController::restoreNavigation(const QJsonObject& state) {
     }
     collectionsRoot_=state["collectionsRoot"].toBool(true);
     collectionFocus_=std::clamp(state["collectionFocus"].toInt(),0,std::max(0,int(collections().size())-1));
+    const auto rootState=state["gamesRoot"].toObject();
+    gamesRootZone_=rootState["zone"].toString("collections");
+    if(!QStringList{"collections","platforms"}.contains(gamesRootZone_))gamesRootZone_="collections";
+    gamesCollectionId_=rootState["collection"].toString(collections().value(collectionFocus_).toMap()["id"].toString());
+    gamesPlatformId_=rootState["platform"].toString(state["multiverse"].toObject()["system"].toString());
+    collectionScroll_=std::max(0.0,rootState["collectionScroll"].toDouble());
+    platformScroll_=std::max(0.0,rootState["platformScroll"].toDouble());
+    if(rootState.isEmpty() && worldCollection_=="multiverse") {
+        gamesRootZone_="platforms";
+        if(state["multiverse"].toObject()["route"]!="games")collectionsRoot_=true;
+    }
     if(!state["globalHome"].toBool() && multiverseHome_) {
         const auto legacy=state["multiverse"].toObject();
         const auto scoped=legacy["collections"].toObject()[homeCollection_].toObject();
@@ -905,10 +919,54 @@ void ShellController::goToPage(int page) {
     transition.unblock();
     { PerformanceTrace::Scope phase("navigation.publish"); emit changed(); }
 }
+QVariantList ShellController::gamesCollections() const {
+    QVariantList rows;
+    for(const auto& row:collections()) {
+        const auto id=row.toMap()["id"].toString();
+        if(id!="multiverse" && id!="auto:favorites")rows.append(row);
+    }
+    return rows;
+}
+int ShellController::gamesCollectionIndex() const {
+    const auto rows=gamesCollections();
+    if(gamesCollectionId_=="_create")return rows.size();
+    for(int i=0;i<rows.size();++i)if(rows[i].toMap()["id"]==gamesCollectionId_)return i;
+    return 0;
+}
+int ShellController::gamesPlatformIndex() const {
+    const auto rows=gamesPlatforms();
+    for(int i=0;i<rows.size();++i)if(rows[i].toMap()["id"]==gamesPlatformId_)return i;
+    return 0;
+}
+void ShellController::focusGamesRootItem(const QString& zone,const QString& id) {
+    if(page_!=GamesPage || !collectionsRoot_ || navigationLocked() || !pairedNavigationAvailable())return;
+    const auto rows=zone=="collections"?gamesCollections():gamesPlatforms();
+    bool found=zone=="collections" && id=="_create";
+    for(const auto& row:rows)if(row.toMap()["id"]==id)found=true;
+    if(!found || (zone!="collections" && zone!="platforms"))return;
+    gamesRootZone_=zone;
+    if(zone=="collections")gamesCollectionId_=id;else gamesPlatformId_=id;
+    emit changed();
+}
+void ShellController::openGamesRootItem(const QString& zone,const QString& id) {
+    if(page_!=GamesPage || navigationLocked() || !pairedNavigationAvailable())return;
+    if(zone=="collections") {
+        if(id=="_create") {gamesRootZone_=zone;gamesCollectionId_=id;manageCollection(true);emit changed();return;}
+        for(int i=0;i<collections().size();++i)if(collections()[i].toMap()["id"]==id && id!="multiverse" && id!="auto:favorites") {
+            gamesRootZone_=zone;gamesCollectionId_=id;openCollection(i);return;
+        }
+    } else if(zone=="platforms") {
+        for(const auto& row:gamesPlatforms())if(row.toMap()["id"]==id) {
+            gamesRootZone_=zone;gamesPlatformId_=id;worldCollection_="multiverse";multiverseFace_=true;collectionsRoot_=false;
+            multiverse_.openSystem(id);emit changed();return;
+        }
+    }
+}
 void ShellController::openCollection(int index) {
     const auto list=collections();if(index<0 || index>=list.size())return;
     const bool fromRoot=collectionsRoot_;
     collectionFocus_=index;worldCollection_=list[index].toMap()["id"].toString();
+    gamesRootZone_="collections";gamesCollectionId_=worldCollection_;
     multiverseFace_=true;collectionsRoot_=false;
     if(multiverseFace_){multiverse_.setCollection(worldCollection_);if(fromRoot)multiverse_.showSystems();}
     else if(fromRoot)worlds_.showRegions();
@@ -921,6 +979,13 @@ void ShellController::editCollection(int index) {
 void ShellController::openContext(const QString& type,const QString& target) {
     if(navigationLocked() || homeMenuOpen_ || menuOpen_ || serviceOpen() || keyboard_.isOpen() || localModalOpen() || !notice_.isEmpty())return;
     if(type.isEmpty() && page_==HomePage && dashboard_.focus()!="play")return;
+    if(type.isEmpty() && page_==GamesPage && collectionsRoot_) {
+        if(gamesRootZone_=="collections") {
+            if(gamesCollectionId_=="_create")manageCollection(true);
+            else collectionManager()->begin(gamesCollections().value(gamesCollectionIndex()).toMap()["id"].toString());
+        }
+        return;
+    }
     if(type=="collection" || (type.isEmpty() && page_==1 && (collectionsRoot_ || multiverse_.route()!="games"))) {
         const auto id=target.isEmpty()?(collectionsRoot_?collections().value(collectionFocus_).toMap()["id"].toString():worldCollection_):target;
         if(page_==1 && collectionManager()->known(id))collectionManager()->begin(id);
@@ -952,7 +1017,7 @@ void ShellController::pressButton(const QString& button) {
 }
 void ShellController::manageCollection(bool create) {
     if(page_!=1 || navigationLocked() || menuOpen_ || serviceOpen() || keyboard_.isOpen() || localModalOpen() || !notice_.isEmpty())return;
-    const auto id=collectionsRoot_?collections().value(collectionFocus_).toMap()["id"].toString():worldCollection_;
+    const auto id=collectionsRoot_?gamesCollections().value(gamesCollectionIndex()).toMap()["id"].toString():worldCollection_;
     collectionManager()->begin(create?QString():id);
 }
 void ShellController::cycleCollection(int delta) {
@@ -1420,14 +1485,28 @@ void ShellController::dispatch(Action action) {
         if (page_ == 1) {
             if(collectionsRoot_) {
                 if(action==Action::Back){goToPage(0);return;}
-                if(action==Action::Confirm)openCollection(collectionFocus_);
-                else {
-                    const int delta=action==Action::Left?-1:action==Action::Right?1:action==Action::Up?-3:action==Action::Down?3:0;
-                    collectionFocus_=std::clamp(collectionFocus_+delta,0,std::max(0,int(collections().size())-1));emit changed();
+                if(action==Action::Confirm) {
+                    if(gamesRootZone_=="platforms")openGamesRootItem("platforms",gamesPlatforms().value(gamesPlatformIndex()).toMap()["id"].toString());
+                    else openGamesRootItem("collections",gamesCollectionIndex()==gamesCollections().size()?QString("_create"):gamesCollections()[gamesCollectionIndex()].toMap()["id"].toString());
+                } else if(gamesRootZone_=="platforms") {
+                    const auto rows=gamesPlatforms();int i=gamesPlatformIndex();
+                    if(action==Action::Up)gamesRootZone_="collections";
+                    else {
+                        const int delta=action==Action::Left?-1:action==Action::Right?1:0;
+                        if(!rows.isEmpty())gamesPlatformId_=rows[std::clamp(i+delta,0,int(rows.size())-1)].toMap()["id"].toString();
+                    }
+                } else {
+                    const auto rows=gamesCollections();
+                    if(action==Action::Down && !gamesPlatforms().isEmpty())gamesRootZone_="platforms";
+                    else {
+                        const int i=std::clamp(gamesCollectionIndex()+(action==Action::Left?-1:action==Action::Right?1:0),0,int(rows.size()));
+                        gamesCollectionId_=i==rows.size()?QString("_create"):rows[i].toMap()["id"].toString();
+                    }
                 }
+                emit changed();
                 return;
             }
-            if(action==Action::Back && (multiverseFace_?(multiverse_.collection()!="multiverse" || multiverse_.route()=="systems"):worlds_.route()=="regions")) {
+            if(action==Action::Back) {
                 collectionsRoot_=true;emit changed();return;
             }
             if (multiverseFace_) multiverse_.dispatch(action); else worlds_.dispatch(action);

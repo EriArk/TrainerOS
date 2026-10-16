@@ -10,60 +10,40 @@ void startWorldsSmoke(QQuickWindow* window, ShellController& shell, ControllerIn
         MockAdventureAdapter&, SDL_Joystick* joystick, const QString& directory,
         bool& completed, int& warnings, QStringList& diagnostics) {
     auto step=std::make_shared<int>(0);auto failed=std::make_shared<bool>(false);
-    auto timer=new QTimer(window);timer->setInterval(500);
+    auto timer=new QTimer(window);timer->setInterval(650);
     QObject::connect(timer,&QTimer::timeout,window,[=,&shell,&input,&completed,&warnings,&diagnostics]{
         const auto check=[&](bool ok,const QString& text){if(!ok){*failed=true;diagnostics<<QString("Stage %1: %2").arg(*step-1).arg(text);}};
         const auto press=[&](SDL_GameControllerButton b){SDL_JoystickSetVirtualButton(joystick,b,1);input.poll();SDL_JoystickSetVirtualButton(joystick,b,0);input.poll();};
         const auto capture=[&](const QString& name){const auto frame=window->grabWindow();check(!frame.isNull(),"Empty render");if(!directory.isEmpty())check(frame.save(directory+"/"+name+".png"),"Cannot save render");};
         const auto focus=[&]{auto* item=window->activeFocusItem();check(item && item->isVisible() && item->isEnabled(),"Hidden or missing focus");};
-        auto* editor=shell.collectionManager();
         constexpr auto a=SDL_CONTROLLER_BUTTON_B,b=SDL_CONTROLLER_BUTTON_A;
         switch((*step)++) {
-        case 0:
-            check(input.connected(),"SDL controller missing");press(SDL_CONTROLLER_BUTTON_RIGHTSHOULDER);break;
-        case 1:
-            check(shell.collectionsRoot(),"Collections root missing");capture("collections");focus();press(a);break;
-        case 2:
-            check(shell.multiverse()->collection()=="pokemon" && shell.multiverse()->route()=="games","Pokemon must open games directly");
-            check(!shell.multiverse()->games().isEmpty(),"Pokemon games missing");capture("pokemon-collection");focus();
+        case 0: shell.goToPage(1);break;
+        case 1: {
+            check(shell.collectionsRoot(),"Games root missing");focus();capture("games-root-960");
+            auto* ribbon=window->findChild<QQuickItem*>("series-grid");auto* grid=window->findChild<QQuickItem*>("games-platforms");
+            QFile geometry(directory+"/root-geometry.txt"); if(geometry.open(QIODevice::WriteOnly))geometry.write(QString("ribbon %1 x %2, grid %3 x %4, platform %5").arg(ribbon?ribbon->width():0).arg(ribbon?ribbon->height():0).arg(grid?grid->width():0).arg(grid?grid->height():0).arg(shell.gamesPlatforms().front().toMap()["name"].toString()).toUtf8());
+            check(ribbon && qAbs(ribbon->width()/ribbon->property("cell").toDouble()-6)<0.01,"Six circular collections must fit");
+            check(grid && qAbs(grid->width()/grid->property("cellWidth").toDouble()-grid->property("columns").toInt())<0.01 && qAbs(grid->height()/grid->property("cellHeight").toDouble()-1)<0.01,"Platform ribbon must use adaptive columns in one row");
+            for(auto* item:window->findChildren<QQuickItem*>())if(item->objectName().startsWith("games-platform-") && item->isVisible()) {
+                check(qAbs(item->width()/item->height()-2.0/3.0)<0.001,"Platform cover proportions must be 2:3");
+                check(qAbs(item->parentItem()->height()-item->y()-item->height()-6)<0.01,"Cover bottom inset must remain six units");
+            }
             press(SDL_CONTROLLER_BUTTON_DPAD_DOWN);break;
-        case 3:
-            check(shell.multiverse()->focusIndex()==1,"Controller cannot browse game wheel");
-            press(b);check(shell.collectionsRoot(),"Back did not return to collections");press(SDL_CONTROLLER_BUTTON_BACK);break;
-        case 4:
-            check(editor->isOpen(),"Select did not open collection creation");press(a);break;
-        case 5:
-            check(shell.keyboard()->isOpen(),"Collection name keyboard missing");press(b);
-            editor->applyText("Weekend picks");press(SDL_CONTROLLER_BUTTON_DPAD_DOWN);press(a);break;
-        case 6:
-            check(editor->title()=="Choose games","Manual game picker missing");
-            press(SDL_CONTROLLER_BUTTON_DPAD_DOWN);press(SDL_CONTROLLER_BUTTON_DPAD_DOWN);press(a);capture("collection-game-picker");
-            press(SDL_CONTROLLER_BUTTON_DPAD_UP);press(a);break;
-        case 7:
-            check(!editor->isOpen() && editor->definitions().size()==1,"Collection not saved");
-            shell.activate(shell.collections().size()-1);break;
-        case 8:
-            check(shell.multiverse()->games().size()==1,"Manual membership not reflected in game list");
-            capture("custom-collection");press(b);window->resize(800,450);break;
-        case 9:
-            capture("collections-800");shell.editCollection(shell.collections().size()-1);break;
-        case 10:
-            check(editor->isOpen(),"Touch edit collection failed");capture("collection-editor-800");
-            press(SDL_CONTROLLER_BUTTON_START);break;
-        case 11:
-            check(shell.menuOpen(),"Start unavailable over collection editor");press(b);press(b);
-            shell.goToPage(0);break;
-        case 12: {
-            const auto id=shell.currentAdventureId();
-            SDL_JoystickSetVirtualAxis(joystick,SDL_CONTROLLER_AXIS_TRIGGERRIGHT,32767);input.poll();
-            SDL_JoystickSetVirtualAxis(joystick,SDL_CONTROLLER_AXIS_TRIGGERRIGHT,-32768);input.poll();
-            check(shell.currentAdventureId()==id && shell.faceNames().isEmpty(),"Home still cycles collections");
-            press(SDL_CONTROLLER_BUTTON_X);break;
         }
-        case 13:
-            check(shell.drawerOpen(),"Recent games drawer missing");capture("recent-games-800");press(b);break;
+        case 2: check(shell.gamesRootZone()=="platforms","Down must enter platforms");focus();capture("games-platform-focus");press(a);break;
+        case 3: check(!shell.collectionsRoot() && shell.multiverse()->route()=="games","Platform must open games directly");capture("platform-browser");press(b);break;
+        case 4: check(shell.collectionsRoot() && shell.gamesRootZone()=="platforms","Back must restore platform focus");press(SDL_CONTROLLER_BUTTON_DPAD_UP);break;
+        case 5: check(shell.gamesRootZone()=="collections","Up must restore collections");shell.openGamesRootItem("collections",shell.gamesCollections().front().toMap()["id"].toString());break;
+        case 6: check(!shell.collectionsRoot(),"Collection opens directly");capture("collection-browser");press(b);window->resize(1920,1080);break;
+        case 7: capture("games-root-1080");window->resize(1280,800);break;
+        case 8: capture("games-root-16-10");shell.openGamesRootItem("collections","_create");break;
+        case 9: check(shell.collectionManager()->isOpen(),"Create card opens editor");capture("collection-create");press(b);window->resize(960,540);break;
+        case 10: capture("collection-ribbon-end");shell.dispatch(Action::ToggleContinue);break;
+        case 11: check(shell.drawerOpen(),"Global Y drawer unavailable");press(b);shell.dispatch(Action::Secondary);break;
+        case 12: check(shell.quickAppsOpen(),"Global X drawer unavailable");press(b);shell.openGamesRootItem("collections","pokemon");press(b);break;
         default:
-            check(!shell.drawerOpen(),"Back did not dismiss recent games");check(warnings==0,"QML warnings");completed=true;timer->stop();
+            check(shell.collectionsRoot(),"Return to root failed");check(warnings==0,"QML warnings");completed=true;timer->stop();
             if(!directory.isEmpty()){QFile f(directory+"/collections-verification.txt");if(f.open(QIODevice::WriteOnly))f.write(((*failed?QString("FAILED\n"):QString("PASSED\n"))+diagnostics.join('\n')).toUtf8());}
             QCoreApplication::exit(*failed?1:0);break;
         }

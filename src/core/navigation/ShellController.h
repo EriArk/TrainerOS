@@ -69,6 +69,13 @@ class ShellController final : public QObject {
     Q_PROPERTY(QVariantMap homeGame READ homeGame NOTIFY changed)
     Q_PROPERTY(bool collectionsRoot READ collectionsRoot NOTIFY changed)
     Q_PROPERTY(QVariantList collections READ collections NOTIFY changed)
+    Q_PROPERTY(QVariantList gamesCollections READ gamesCollections NOTIFY changed)
+    Q_PROPERTY(QVariantList gamesPlatforms READ gamesPlatforms NOTIFY changed)
+    Q_PROPERTY(QString gamesRootZone READ gamesRootZone NOTIFY changed)
+    Q_PROPERTY(int gamesCollectionIndex READ gamesCollectionIndex NOTIFY changed)
+    Q_PROPERTY(int gamesPlatformIndex READ gamesPlatformIndex NOTIFY changed)
+    Q_PROPERTY(qreal collectionScroll MEMBER collectionScroll_)
+    Q_PROPERTY(qreal platformScroll MEMBER platformScroll_)
     Q_PROPERTY(bool multiverseFace READ multiverseFace NOTIFY changed)
     Q_PROPERTY(bool multiverseHome READ multiverseHome NOTIFY changed)
     Q_PROPERTY(trainer::MultiversePresentation* multiverse READ multiverse CONSTANT)
@@ -133,6 +140,13 @@ public:
     MultiversePresentation* multiverse() { return &multiverse_; }
     bool collectionsRoot() const { return collectionsRoot_; }
     QVariantList collections() const { return multiverse_.collections(); }
+    QVariantList gamesCollections() const;
+    QVariantList gamesPlatforms() const { return multiverse_.allSystems(); }
+    QString gamesRootZone() const { return gamesRootZone_; }
+    int gamesCollectionIndex() const;
+    int gamesPlatformIndex() const;
+    Q_INVOKABLE void openGamesRootItem(const QString& zone, const QString& id);
+    Q_INVOKABLE void focusGamesRootItem(const QString& zone, const QString& id);
     bool multiverseFace() const { return multiverseFace_; }
     bool multiverseHome() const { return homeView()=="game-home"; }
     QVariantMap homeGame() const { return multiverse_.game(currentAdventureId()); }
@@ -316,6 +330,8 @@ private:
     bool drawerOpen_ = false;
     bool collectionsRoot_ = true;
     int collectionFocus_ = 0;
+    QString gamesRootZone_ = "collections", gamesCollectionId_ = "pokemon", gamesPlatformId_;
+    qreal collectionScroll_ = 0, platformScroll_ = 0;
     QString homeCollection_ = "pokemon", worldCollection_ = "pokemon";
     bool multiverseFace_ = true, multiverseHome_ = false;
     int multiverseDrawerFocus_ = 0;

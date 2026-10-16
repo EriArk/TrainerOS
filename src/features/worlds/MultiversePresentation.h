@@ -44,6 +44,8 @@ public:
     bool sample() const { return sample_; }
     QString route() const { return route_; }
     QVariantList systems() const;
+    QVariantList allSystems() const;
+    void openSystem(const QString& id);
     QVariantList games() const;
     QVariantMap detail() const;
     QVariantMap selected() const;

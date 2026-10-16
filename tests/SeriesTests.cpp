@@ -41,6 +41,34 @@ public:
 class SeriesTests: public QObject {
     Q_OBJECT
 private slots:
+    void gamesRootKeepsIndependentScopesAndStableIdentity() {
+        SeriesLibrary library;SeriesAdapter adapter;MockTrainerRepository profiles;DevelopmentPlatformService platform;
+        MockPokedexRepository dex;MockHallOfFameRepository archive;MockAchievementProvider achievements;
+        ShellController shell(library,profiles,adapter,platform,builtinExperiences(dex,dex),archive,achievements);
+        shell.goToPage(1);const auto home=shell.currentAdventureId();
+        for(const auto& row:shell.gamesCollections()) {
+            QVERIFY(row.toMap()["id"]!="multiverse");QVERIFY(row.toMap()["id"]!="auto:favorites");
+        }
+        QCOMPARE(shell.gamesPlatforms().size(),3);
+        shell.dispatch(Action::NextFace);QVERIFY(shell.collectionsRoot());QVERIFY(shell.faceNames().isEmpty());
+        shell.openGamesRootItem("collections","mario");QCOMPARE(shell.multiverse()->games().size(),2);
+        QCOMPARE(shell.gamesPlatforms().size(),3); // Root platforms are not narrowed by the browsed collection.
+        shell.dispatch(Action::Back);QCOMPARE(shell.gamesRootZone(),"collections");
+        shell.dispatch(Action::Down);QCOMPARE(shell.gamesRootZone(),"platforms");
+        shell.openGamesRootItem("platforms","gba");QCOMPARE(shell.multiverse()->route(),"games");
+        QCOMPARE(shell.multiverse()->games().size(),2);QCOMPARE(shell.multiverse()->detail()["platformShort"].toString(),QString("GBA"));
+        const auto platforms=shell.gamesPlatforms();const auto next=(shell.gamesPlatformIndex()+1)%platforms.size();
+        shell.selectFace(next);QCOMPARE(shell.gamesPlatformIndex(),next);
+        shell.dispatch(Action::Back);QVERIFY(shell.collectionsRoot());QCOMPARE(shell.gamesRootZone(),"platforms");
+        shell.setProperty("collectionScroll",2.0);shell.setProperty("platformScroll",1.0);
+        const auto state=shell.navigationState();shell.restoreNavigation(state);
+        QCOMPARE(shell.gamesPlatformIndex(),next);QCOMPARE(shell.property("collectionScroll").toDouble(),2.0);
+        QCOMPARE(shell.property("platformScroll").toDouble(),1.0);QCOMPARE(shell.currentAdventureId(),home);QVERIFY(adapter.launched.isEmpty());
+        shell.focusGamesRootItem("collections","zelda");QVERIFY(shell.collectionsRoot());
+        QCOMPARE(shell.gamesCollections()[shell.gamesCollectionIndex()].toMap()["id"].toString(),QString("zelda"));
+        QCOMPARE(shell.currentAdventureId(),home);QVERIFY(adapter.launched.isEmpty());
+        shell.openGamesRootItem("collections","_create");QVERIFY(shell.collectionManager()->isOpen());
+    }
     void classificationAndFallback() {
         QCOMPARE(seriesForTitle("Sonic Advance 2 (USA)"),"sonic");
         QCOMPARE(seriesForTitle("Dragon Ball Z - Supersonic Warriors"),"multiverse");
@@ -92,7 +120,7 @@ private slots:
         library.sessions={{"s1","m1",time},{"s2","p1",time.addSecs(-10)},{"s3","m1",time.addSecs(-20)}};
         MockTrainerRepository profiles;DevelopmentPlatformService platform;MockPokedexRepository dex;MockHallOfFameRepository archive;MockAchievementProvider achievements;
         ShellController shell(library,profiles,adapter,platform,builtinExperiences(dex,dex),archive,achievements);
-        QCOMPARE(shell.primaryNames()[1],"Collections");
+        QCOMPARE(shell.primaryNames()[1],"Games");
         shell.goToPage(1);shell.activate(0);QVERIFY(shell.multiverseFace());
         QCOMPARE(shell.multiverse()->route(),"games");QCOMPARE(shell.multiverse()->games().size(),1);
         QCOMPARE(shell.multiverse()->detail()["id"],"p1");

@@ -5,6 +5,8 @@ Item {
     id: root
     property var entry: ({})
     property bool selected: false
+    property bool compact: false
+    property bool portrait: false
     readonly property var cardPalette: Platforms.theme(entry.id)
     signal activated()
     Accessible.role: Accessible.Button
@@ -12,11 +14,15 @@ Item {
     onSelectedChanged: { scene.requestPaint(); if(selected && visible)forceActiveFocus(Qt.OtherFocusReason) }
     onVisibleChanged: if(selected && visible)forceActiveFocus(Qt.OtherFocusReason)
     onEntryChanged: scene.requestPaint()
+    Rectangle { x: 2; y: 4; width: parent.width-4; height: parent.height-4; radius: 12; color: "#4014262b" }
     Canvas {
-        id: scene; anchors.fill: parent
+        id: scene
+        width: root.width * Theme.uiScale; height: root.height * Theme.uiScale
+        scale: 1 / Theme.uiScale; transformOrigin: Item.TopLeft; antialiasing: true
+        onCanvasSizeChanged: requestPaint()
         onPaint: {
-            const c=getContext("2d"),w=width,h=height,p=root.cardPalette
-            c.reset()
+            const c=getContext("2d"),w=root.width,h=root.height,p=root.cardPalette
+            c.reset();c.scale(Theme.uiScale,Theme.uiScale)
             function round(x,y,rw,rh,r) {
                 c.beginPath();c.moveTo(x+r,y);c.lineTo(x+rw-r,y);c.quadraticCurveTo(x+rw,y,x+rw,y+r)
                 c.lineTo(x+rw,y+rh-r);c.quadraticCurveTo(x+rw,y+rh,x+rw-r,y+rh)
@@ -40,7 +46,12 @@ Item {
             c.lineWidth=1;c.strokeStyle="#36ffffff"
             for(let y=92;y<156;y+=14){c.beginPath();c.moveTo(0,y);c.lineTo(280,y);c.stroke()}
             for(let x=-280;x<500;x+=55){c.beginPath();c.moveTo(185,53);c.lineTo(x,156);c.stroke()}
-            c.save();c.translate(168,53);c.rotate(-.13)
+            c.save()
+            if(root.portrait) {
+                c.scale(280/w,156/h);c.translate(w/2,h*0.39)
+                const deviceScale=w/185;c.scale(deviceScale,deviceScale)
+            } else c.translate(168,53)
+            c.rotate(-.13)
             const kind=p[3],body=p[2]
             if(kind==="keyboard") {
                 material(-72,-26,147,82,9,body)
@@ -95,9 +106,9 @@ Item {
         }
     }
     Column {
-        x: 16; y: parent.height-56; width: parent.width-32; spacing: 3
-        Text {width: parent.width; text: root.entry.name || ""; font.family: Theme.displayTypeface.name; font.pixelSize: 22; font.bold: true; color: "#ffffff"; elide: Text.ElideRight}
-        Text {text: (root.entry.count || 0)+" Adventures"; font.pixelSize: 12; color: "#d1e4f4"}
+        x: root.portrait ? 10 : 16; anchors.bottom: parent.bottom; anchors.bottomMargin: root.compact ? 10 : 12; width: parent.width-2*x; spacing: 3
+        Text {width: parent.width; height: root.portrait ? 38 : implicitHeight; text: root.entry.name || ""; font.family: Theme.displayFamily; font.pixelSize: root.compact ? 17 : 22; minimumPixelSize: 12; fontSizeMode: Text.Fit; wrapMode: Text.WordWrap; maximumLineCount: 2; font.bold: true; color: "#ffffff"; elide: Text.ElideRight}
+        Text {width: parent.width; text: (root.entry.count || 0)+(root.portrait ? " games" : " Adventures"); font.pixelSize: 12; color: "#d1e4f4"; elide: Text.ElideRight}
     }
     MouseArea {anchors.fill: parent; onClicked: root.activated()}
 }

@@ -153,7 +153,7 @@ QVariantList MultiversePresentation::systems() const {
         auto platforms=multiversePlatforms();
         // Unknown imported categories remain usable, never silently discarded.
         for(const auto& g:entries_) if(std::none_of(platforms.begin(),platforms.end(),[&](const auto& p){return p.id==g.system;}))
-            platforms.append({g.system,g.system,g.system,"console"});
+            platforms.append({g.system,g.system.isEmpty()?QString("Other platforms"):g.system,g.system,"console"});
         for(const auto& p:platforms) {
             const auto count=std::count_if(entries_.begin(),entries_.end(),[&](const auto& g){return g.system==p.id && g.linked && belongs(g);});
             if(count)result.append(QVariantMap{{"id",p.id},{"name",p.name},{"shape",p.shape},{"count",int(count)}});
@@ -168,6 +168,26 @@ QVariantList MultiversePresentation::systems() const {
 QString MultiversePresentation::systemName() const {
     for (const auto& item : systems()) if (item.toMap()["id"] == system_) return item.toMap()["name"].toString();
     return {};
+}
+QVariantList MultiversePresentation::allSystems() const {
+    if(collection_=="multiverse")return systems();
+    auto platforms=multiversePlatforms();
+    QHash<QString,int> counts;
+    for(const auto& game:entries_)if(game.linked) {
+        ++counts[game.system];
+        if(std::none_of(platforms.begin(),platforms.end(),[&](const auto& p){return p.id==game.system;}))
+            platforms.append({game.system,game.system.isEmpty()?QString("Other platforms"):game.system,game.system,"console"});
+    }
+    QVariantList rows;
+    for(const auto& p:platforms)if(counts.value(p.id))rows.append(QVariantMap{{"id",p.id},{"name",p.name},{"shape",p.shape},{"count",counts[p.id]}});
+    return rows;
+}
+void MultiversePresentation::openSystem(const QString& id) {
+    bool valid=false;
+    for(const auto& row:allSystems())if(row.toMap()["id"]==id)valid=true;
+    if(!valid)return;
+    setCollection("multiverse");system_=id;route_="games";
+    emit gamesChanged();emit changed();
 }
 QString MultiversePresentation::filterLabel() const { return QStringList{"All titles","Linked only","Missing files"}[filters_.value(system_)]; }
 QVariantMap MultiversePresentation::present(const Game& game) const {
