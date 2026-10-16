@@ -4,19 +4,17 @@ Item {
     id: root
     required property var shell
     readonly property var media: shell.storyMedia
-    readonly property var capture: media[shell.focusIndex] || ({})
     readonly property var sessions: shell.storyHistory
     readonly property var latest: sessions.length ? sessions[0] : ({})
     readonly property bool summary: shell.overviewFace === "summary"
     readonly property bool screens: shell.overviewFace === "screens"
     readonly property bool active: visible && shell.unobstructed
-    readonly property bool hasCapture: !!capture.source
     readonly property real bottomInset: Theme.adventureCutoutHeight
     Item {
-        id: heading; width: parent.width; height: 44
+        id: heading; width: parent.width; height: root.screens ? 0 : 44; visible: !root.screens
         Text {
             width: parent.width; height: parent.height
-            text: "My Story"; textFormat: Text.PlainText
+            text: root.shell.overviewFace === "screens" ? "Screens" : "My Story"; textFormat: Text.PlainText
             font.family: Theme.displayFamily; font.pixelSize: 26; font.bold: true
             color: Theme.ink; elide: Text.ElideRight; verticalAlignment: Text.AlignVCenter
         }
@@ -107,34 +105,9 @@ Item {
         y: heading.height+7; width: parent.width; height: parent.height-y-root.bottomInset
         shell: root.shell; active: root.active && visible; visible: root.shell.overviewFace === "timeline"
     }
-    Item {
-        y: heading.height+8; width: parent.width; height: parent.height-y-root.bottomInset; visible: root.screens
-        Text {
-            text: "‹  My Story"; color: Theme.muted; font.pixelSize: 14
-            MouseArea { anchors.fill: parent; anchors.margins: -8; enabled: root.active; onClicked: root.shell.showOverview("summary") }
-        }
-        Row {
-            anchors.right: parent.right; spacing: 18
-            Text { text: "‹"; color: Theme.ink; font.pixelSize: 22; opacity: root.shell.focusIndex > 0 ? 1 : .3
-                MouseArea { anchors.fill: parent; anchors.margins: -6; enabled: root.active && root.shell.focusIndex > 0; onClicked: root.shell.activate(root.shell.focusIndex-1,"overview-media") } }
-            Text { text: root.hasCapture ? (root.shell.focusIndex+1)+" / "+root.media.length : ""; color: Theme.muted; font.pixelSize: 13; y: 5 }
-            Text { text: "›"; color: Theme.ink; font.pixelSize: 22; opacity: root.shell.focusIndex+1 < root.media.length ? 1 : .3
-                MouseArea { anchors.fill: parent; anchors.margins: -6; enabled: root.active && root.shell.focusIndex+1 < root.media.length; onClicked: root.shell.activate(root.shell.focusIndex+1,"overview-media") } }
-        }
-        Rectangle {
-            x: 0; y: 30; width: parent.width; height: parent.height-y; radius: 12
-            color: Theme.chassisDark; border.color: Theme.rim; border.width: 2
-            Image {
-                anchors.fill: parent; anchors.margins: 10; anchors.bottomMargin: 34
-                visible: root.hasCapture; source: root.screens && root.hasCapture ? root.capture.source : ""
-                asynchronous: true; sourceSize: Qt.size(1600,1000); fillMode: Image.PreserveAspectFit
-            }
-            Text {
-                anchors.horizontalCenter: parent.horizontalCenter
-                width: parent.width-100; horizontalAlignment: Text.AlignHCenter; elide: Text.ElideRight; textFormat: Text.PlainText
-                y: root.hasCapture ? parent.height-27 : parent.height/2-height/2
-                text: root.capture.caption || "No saved game moments yet"; color: Theme.paper; font.pixelSize: 16
-            }
-        }
+    ScreensAlbum {
+        y: 0; width: parent.width; height: parent.height-root.bottomInset
+        shell: root.shell; visible: root.screens
+        active: root.active && visible
     }
 }

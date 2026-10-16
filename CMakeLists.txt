@@ -61,6 +61,7 @@ add_library(trainer_core STATIC
     src/features/library/LibraryToolsController.cpp
     src/features/library/ScrapeController.cpp
     src/features/home/HomeDashboardController.cpp
+    src/features/home/ScreensController.cpp
     src/features/home/PlayerStory.cpp
     src/features/apps/AppsController.cpp
     src/features/downloads/DownloadsController.cpp
@@ -362,6 +363,8 @@ qt_add_qml_module(traineros
         src/qml/GenericExperiencePage.qml
         src/qml/HomeDashboard.qml
     src/qml/GameHubPage.qml
+        src/qml/AlbumPhoto.qml
+        src/qml/ScreensAlbum.qml
         src/qml/GameHubOverview.qml
         src/qml/GameTimeline.qml
         src/qml/MenuGlyph.qml

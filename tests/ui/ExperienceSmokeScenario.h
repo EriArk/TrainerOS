@@ -108,6 +108,8 @@ inline void startExperienceSmoke(QQuickWindow* window,trainer::ShellController& 
             shell.activate(0,"overview-screens");break;
         case 25:
             check(shell.overviewFace()=="screens","Overview media action did not open Screens");
+            check(window->findChild<QQuickItem*>("screens-album")->isVisible(),"Album is not visible");
+            if(!directory.isEmpty())check(window->grabWindow().save(directory+"/album-empty.png"),"Empty album capture");
             shell.dispatch(trainer::Action::Back);break;
         case 26:
             check(shell.overviewFace()=="summary" && shell.focusIndex()==1,"Screens Back lost media focus");

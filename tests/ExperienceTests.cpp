@@ -8,12 +8,48 @@
 #include "core/model/GamePlayers.h"
 #include <QTemporaryDir>
 #include <QFile>
+#include <QBuffer>
 #include "fixtures/HomeSocialFixture.h"
 
 using namespace trainer;
 class ExperienceTests : public QObject {
     Q_OBJECT
 private slots:
+    void albumKeepsIdentityFiltersAndOwnerScopedStars() {
+        QTemporaryDir temp;ScreensController album;
+        album.configure(temp.path(),"one");
+        QVariantList media;
+        for(int i=0;i<9;++i)media.append(QVariantMap{{"id",QString::number(i)},{"adventure",i%2?"b":"a"},{"game",i%2?"Second":"First"},{"day",i<4?"17 Oct 2026":"16 Oct 2026"},{"source","fixture"}});
+        album.setMedia(media);QCOMPARE(album.items().size(),9);
+        album.select(2);album.dispatch(Action::Right);QCOMPARE(album.index(),3);
+        QCOMPARE(album.current()["id"].toString(),"3");
+        album.dispatch(Action::Left);QCOMPARE(album.index(),2);
+        album.select(5);album.dispatch(Action::Confirm);QCOMPARE(album.index(),5);
+        album.toggleFavorite();QVERIFY(album.current()["favorite"].toBool());
+        album.chooseFilter(1);QCOMPARE(album.count(),1);QCOMPARE(album.current()["id"].toString(),"5");
+        album.select(0);album.toggleFavorite();QCOMPARE(album.count(),0);QVERIFY(album.current().isEmpty());
+        album.chooseFilter(0);album.select(5);album.toggleFavorite();
+        ScreensController reopened;reopened.configure(temp.path(),"one");reopened.setMedia(media);reopened.chooseFilter(1);
+        QCOMPARE(reopened.count(),1);QCOMPARE(reopened.current()["id"].toString(),"5");
+        reopened.configure(temp.path(),"two");reopened.setMedia(media);reopened.chooseFilter(1);QCOMPARE(reopened.count(),0);
+        reopened.configure(temp.path(),"one");reopened.setMedia(media);reopened.chooseFilter(1);QCOMPARE(reopened.count(),1);
+        // Replacing a game's final image does not transfer a star to the new image.
+        auto replacement=media;auto row=replacement[5].toMap();row["id"]="new-capture";replacement[5]=row;
+        reopened.setMedia(replacement);QCOMPARE(reopened.count(),0);
+        album.forGame("b");QCOMPARE(album.count(),4);album.select(2);const auto id=album.current()["id"];
+        media.prepend(QVariantMap{{"id","later"},{"adventure","b"},{"game","Second"},{"day","18 Oct 2026"}});
+        album.setMedia(media);QCOMPARE(album.current()["id"],id);
+        auto deleted=media;for(int i=deleted.size()-1;i>=0;--i)if(deleted[i].toMap()["id"]==id)deleted.removeAt(i);
+        album.setMedia(deleted);QVERIFY(album.current()["id"]!=id);
+        album.forGame("missing");QCOMPARE(album.count(),0);QVERIFY(album.current().isEmpty());
+        album.showFilters();album.dispatch(Action::Down);album.dispatch(Action::Confirm);QVERIFY(!album.filtering());
+        album.configure(temp.path()+"/blocked","three");QFile blocked(temp.path()+"/blocked");QVERIFY(blocked.open(QIODevice::WriteOnly));blocked.close();
+        album.setMedia(media);album.select(0);album.toggleFavorite();QVERIFY(!album.error().isEmpty());QVERIFY(!album.current()["favorite"].toBool());
+        QVariantList many;for(int i=0;i<300;++i)many.append(QVariantMap{{"id",QString::number(i)},{"day","17 Oct 2026"}});
+        album.setMedia(many);QCOMPARE(album.items().size(),300);
+        album.select(299);album.dispatch(Action::Right);QCOMPARE(album.index(),299);
+        album.dispatch(Action::Left);QCOMPARE(album.index(),298);
+    }
     void adapterBrowsingRestoresThroughItsOwnNavigationContract() {
         MockLibraryRepository library;MockTrainerRepository profiles;MockAdventureAdapter adapter;DevelopmentPlatformService platform;
         MockHallOfFameRepository archive;MockAchievementProvider achievements;
@@ -121,6 +157,11 @@ private slots:
                 media.capturedAt=QDateTime::fromString("2026-10-16T10:00:00Z",Qt::ISODate);
                 if(id=="emerald-demo")media.capturedAt=media.capturedAt.addSecs(60);
                 else if(id!="crystal-demo")media.adventureId="wrong-game";
+                QImage image(id=="emerald-demo"?QSize(160,144):QSize(320,180),QImage::Format_RGB32);image.fill(Qt::darkGreen);
+                if(id=="crystal-demo")for(int y=0;y<image.height();++y)for(int x=0;x<40;++x) {
+                    image.setPixelColor(x,y,Qt::black);image.setPixelColor(image.width()-1-x,y,Qt::black);
+                }
+                QBuffer buffer(&media.jpeg);buffer.open(QIODevice::WriteOnly);image.save(&buffer,"JPEG");
                 return media;
             }
             PlayerHistory playerHistory() const override {
@@ -137,6 +178,9 @@ private slots:
         QCOMPARE(media[0].toMap()["adventure"].toString(),"emerald-demo");
         QCOMPARE(media[1].toMap()["adventure"].toString(),"crystal-demo");
         QCOMPARE(media[1].toMap()["source"].toString(),"image://exit-media/capture-crystal-demo");
+        QVERIFY(qAbs(media[0].toMap()["ratio"].toDouble()-160.0/144)<.001);
+        QVERIFY(qAbs(media[1].toMap()["ratio"].toDouble()-4.0/3)<.025);
+        QCOMPARE(story.media(),media); // Cached dimensions retain the cropped provider ratio.
         MockTrainerRepository profiles;MockAdventureAdapter adapter;DevelopmentPlatformService platform;
         MockPokedexRepository dex;MockHallOfFameRepository archive;
         ShellController shell(library,profiles,adapter,platform,builtinExperiences(dex,dex),archive,provider);
@@ -144,9 +188,17 @@ private slots:
         shell.openGameHubFace("overview");shell.showOverview("screens");
         shell.dispatch(Action::Right);QCOMPARE(shell.focusIndex(),1);
         shell.dispatch(Action::Right);QCOMPARE(shell.focusIndex(),1);
+        shell.dispatch(Action::Confirm);QCOMPARE(shell.overviewFace(),"screens");
+        shell.goToSection("apps");shell.goToSection("gamehub");QCOMPARE(shell.overviewFace(),"screens");QCOMPARE(shell.focusIndex(),1);
+        shell.dispatch(Action::LocalAction);QVERIFY(shell.album()->filtering());
+        shell.dispatch(Action::Back);QVERIFY(!shell.album()->filtering());
+        shell.dispatch(Action::ToggleFavorite);QVERIFY(!shell.album()->error().isEmpty()); // No storage configured for this fixture; L3 reached album.
         shell.dispatch(Action::Back);shell.showOverview("screens");QCOMPARE(shell.focusIndex(),1);
         shell.goToSection("home");shell.activateDashboard("screens");
         QCOMPARE(shell.focusIndex(),0); // Home deep link overrides the album's old selection.
+        QCOMPARE(shell.album()->count(),1);
+        shell.dispatch(Action::Confirm);QCOMPARE(shell.overviewFace(),"screens");
+        shell.dispatch(Action::Back);QCOMPARE(shell.primaryId(),"home");
         QVERIFY(launches.isEmpty());
     }
     void dashboardFocusDoesNotRetargetOnUnreadUpdates() {

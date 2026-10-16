@@ -2,6 +2,8 @@
 #include "core/repository/LibraryRepository.h"
 #include "integrations/achievements/AchievementProvider.h"
 #include <QVariantList>
+#include <QHash>
+#include <QSize>
 
 namespace trainer {
 // Read-only presentation of existing owner/account-scoped caches. Independent
@@ -16,5 +18,6 @@ public:
 private:
     LibraryRepository& library_;
     AchievementProvider& achievements_;
+    mutable QHash<QString,QSize> framedSizes_;
 };
 }

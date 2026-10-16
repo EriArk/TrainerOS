@@ -95,6 +95,7 @@ ShellController::ShellController(LibraryRepository& repo, TrainerRepository& pro
         connect(module,&ExperienceModule::textCancelled,this,[this,module]{if(textModule_==module){textModule_=nullptr;textTarget_=TextTarget::None;keyboard_.cancel();}});
     }
     connect(this,&ShellController::changed,this,&ShellController::syncExperience);
+    connect(&album_,&ScreensController::changed,this,&ShellController::changed);
     connect(&social_,&SocialController::presentationChanged,this,&ShellController::changed,Qt::QueuedConnection);
     settings_.setScraper(&scraper_);
     connect(&libraryTools_,&LibraryToolsController::browserActionRequested,this,&ShellController::libraryAction);
@@ -426,16 +427,11 @@ void ShellController::showOverview(const QString& face) {
     if(page_!=GameHubPage || hubFace_!="overview" || !pairedNavigationAvailable())return;
     if(!QStringList{"summary","timeline","screens"}.contains(face))return;
     if(overviewFace_=="timeline")overviewSessionId_=storyHistory().value(overviewFocus_).toMap()["id"].toString();
-    if(overviewFace_=="screens")overviewMediaId_=storyMedia().value(overviewFocus_).toMap()["id"].toString();
     const auto previous=overviewFace_;
     overviewFace_=face;overviewFocus_=face=="summary" && previous=="screens"?1:0;
     if(face=="timeline" && !overviewSessionId_.isEmpty()) {
         const auto rows=storyHistory();
         for(int i=0;i<rows.size();++i)if(rows[i].toMap()["id"]==overviewSessionId_){overviewFocus_=i;break;}
-    }
-    if(face=="screens" && !overviewMediaId_.isEmpty()) {
-        const auto rows=storyMedia();
-        for(int i=0;i<rows.size();++i)if(rows[i].toMap()["id"]==overviewMediaId_){overviewFocus_=i;break;}
     }
     emit changed();
 }
@@ -460,9 +456,7 @@ void ShellController::activateDashboard(const QString& key) {
     if(target["type"]=="play"){confirm();emit changed();return;}
     if(target["type"]=="screens") {
         openGameHubFace("overview");showOverview("screens");
-        const auto media=storyMedia();
-        overviewFocus_=media.size(); // Missing media stays empty, never another game's frame.
-        for(int i=0;i<media.size();++i)if(media[i].toMap()["adventure"]==currentAdventureId()){overviewFocus_=i;break;}
+        album_.forGame(currentAdventureId());
         dashboardReturn_=true;
     } else if(target["type"]=="person") {
         socialFace_="chats";goToPage(SocialPage);
@@ -506,6 +500,7 @@ bool ShellController::dispatchGameHub(Action action) {
         if(action==Action::Back && !modal && !navigationLocked() && before==activeModule_->navigation()){showAdapterMenu();return true;}
         return handled;
     }
+    if(overviewFace_=="screens" && (action!=Action::Back || album_.filtering())) {album_.dispatch(action);return true;}
     if(action==Action::Back) {
         if(overviewFace_!="summary")showOverview("summary");else goToPage(HomePage);
     } else if(action==Action::Confirm) {
@@ -536,8 +531,10 @@ void ShellController::syncExperience() {
     const auto game=homeAdventure();
     const auto record=game?repository_.registration(game->id):std::nullopt;
     const auto owner=trainer_.profile()["id"].toString();
-    if(experience_.owner()!=owner){overviewFocus_=0;overviewSessionId_.clear();overviewMediaId_.clear();overviewFace_="summary";}
+    if(experience_.owner()!=owner){overviewFocus_=0;overviewSessionId_.clear();overviewFace_="summary";}
     if(!experience_.owner().isEmpty() && experience_.owner()!=owner){dashboard_.reset();achievementNotifications_.clear();achievementToast_.clear();++achievementToastGeneration_;}
+    album_.setOwner(owner);
+    album_.setMedia(storyMedia());
     ExperienceModule* next=resolveExperience(game);
     Q_ASSERT(next);
     const auto descriptor=next->descriptor();
@@ -701,7 +698,7 @@ int ShellController::focusIndex() const {
     if (page_ == 1 && collectionsRoot_) return collectionFocus_;
     if (page_ == 1) return multiverseFace_ ? multiverse_.focusIndex() : worlds_.focusIndex();
     if(adapterActive() && activeModule_)return adapterMenuOpen_?adapterMenuFocus_:activeModule_->focusIndex();
-    if(page_==GameHubPage)return hubFace_=="ra"?hall_.focusIndex():overviewFocus_;
+    if(page_==GameHubPage)return hubFace_=="ra"?hall_.focusIndex():hubFace_=="overview" && overviewFace_=="screens"?album_.index():overviewFocus_;
     return drawerOpen_ ? drawerSelection() : 0;
 }
 QJsonObject ShellController::navigationState() const {
@@ -1179,6 +1176,7 @@ void ShellController::activate(int index, const QString& area) {
         if(hubFace_=="ra"){if(area.isEmpty())hall_.activate(index);else hall_.activateControl(area,index);return;}
         if(hubFace_=="lobby"){social_.activate(index);return;}
         if(adapterActive() && activeModule_){activeModule_->activate(index,area);return;}
+        if(overviewFace_=="screens" && area=="overview-media"){album_.select(index);return;}
         overviewFocus_=std::clamp(index,0,qMax(0,int(overviewFace_=="timeline"?storyHistory().size():overviewFace_=="screens"?storyMedia().size():2)-1));
         if(area=="overview-timeline")showOverview("timeline");
         else if(area=="overview-screens")showOverview("screens");
@@ -1443,7 +1441,12 @@ void ShellController::openSocialNotification() {
     social_.openNotification();emit changed();
 }
 void ShellController::dispatch(Action action) {
-    if(action==Action::ToggleFavorite) {toggleLibraryFavorite(multiverse_.detail().value("id").toString());return;}
+    if(action==Action::ToggleFavorite) {
+        if(page_==GameHubPage && hubFace_=="overview" && overviewFace_=="screens") {
+            if(pairedNavigationAvailable() && !navigationLocked() && !album_.filtering())album_.toggleFavorite();
+        } else toggleLibraryFavorite(multiverse_.detail().value("id").toString());
+        return;
+    }
     if(action==Action::ChangeView) {
         libraryAction(multiverse_.viewStyle()=="wheel"?"view:list":multiverse_.viewStyle()=="list"?"view:shelves":multiverse_.viewStyle()=="shelves"?"view:grid":"view:wheel");return;
     }
@@ -1522,7 +1525,7 @@ void ShellController::dispatch(Action action) {
         quickAppsOpen_=false;apps_.leave();
     }
     if(!menuOpen_ && !keyboard_.isOpen() && !localModalOpen() && !serviceOpen() && notice_.isEmpty() && action==Action::LocalAction) {openContext();return;}
-    if(action==Action::Back && dashboardReturn_ && !keyboard_.isOpen() && !localModalOpen()
+    if(action==Action::Back && dashboardReturn_ && !(page_==GameHubPage && overviewFace_=="screens" && album_.filtering()) && !keyboard_.isOpen() && !localModalOpen()
        && !menuOpen_ && !serviceOpen() && !drawerOpen_ && notice_.isEmpty()) {goToPage(HomePage);return;}
     if(action==Action::ContextMenu && canHoldConfirm()) {
         openContext("game",(multiverseFace_?multiverse_.detail():worlds_.detail()).value("id").toString());return;

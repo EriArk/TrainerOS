@@ -129,10 +129,12 @@ public:
 class SavedExitImages final : public QQuickImageProvider {
 public:
     explicit SavedExitImages(LocalStateStore* store) : QQuickImageProvider(Image), store_(store) {}
-    QImage requestImage(const QString& id, QSize* size, const QSize&) override {
+    QImage requestImage(const QString& id, QSize* size, const QSize& requested) override {
         PerformanceTrace::Scope perf("SavedExitImages.requestImage");
         const auto frame = frameExitImage(store_ ? store_->exitImage(id) : QImage{});
         if (size) *size = frame.size();
+        if(requested.isValid() && (requested.width()<frame.width() || requested.height()<frame.height()))
+            return frame.scaled(requested.boundedTo(frame.size()),Qt::KeepAspectRatio,Qt::SmoothTransformation);
         return frame;
     }
 private:
@@ -362,12 +364,14 @@ int main(int argc, char* argv[]) {
                 shell.keyboard()->configure(stateDirectory,ready ? store->ownerId() : QString());
                 shell.collectionManager()->configure(stateDirectory,ready?store->ownerId():QString());
                 shell.apps()->configure(stateDirectory,ready?store->ownerId():QString());
+                shell.album()->configure(stateDirectory,ready?store->ownerId():QString());
             });
             QObject::connect(store.get(), &LocalStateStore::accessNeeded, &shell, [&] {
                 shell.social()->setOwner({});
                 shell.keyboard()->configure(stateDirectory,{});
                 shell.collectionManager()->configure(stateDirectory,{});
                 shell.apps()->configure(stateDirectory,{});
+                shell.album()->configure(stateDirectory,{});
             });
         }
         if (personalLibrary && !smoke) {

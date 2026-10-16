@@ -1,6 +1,7 @@
 #pragma once
 #include "features/home/HomeDashboardController.h"
 #include "features/home/PlayerStory.h"
+#include "features/home/ScreensController.h"
 #include "core/input/Action.h"
 #include "features/social/SocialController.h"
 #include "LaunchPreparation.h"
@@ -57,6 +58,7 @@ class ShellController final : public QObject {
     Q_PROPERTY(QVariantMap story READ story NOTIFY changed)
     Q_PROPERTY(QVariantList storyHistory READ storyHistory NOTIFY changed)
     Q_PROPERTY(QVariantList storyMedia READ storyMedia NOTIFY changed)
+    Q_PROPERTY(trainer::ScreensController* album READ album CONSTANT)
     Q_PROPERTY(QVariantMap liveGame READ liveGame NOTIFY changed)
     Q_PROPERTY(QVariantList notifications READ notifications NOTIFY changed)
     Q_PROPERTY(QVariantMap passiveNotice READ passiveNotice NOTIFY changed)
@@ -213,6 +215,7 @@ public:
     QVariantMap story() const { return story_.summary(); }
     QVariantList storyHistory() const { return story_.history(); }
     QVariantList storyMedia() const { return story_.media(); }
+    ScreensController* album() {return &album_;}
     QVariantMap liveGame() const { return liveGame_; }
     QVariantList notifications() const;
     QVariantMap passiveNotice() const;
@@ -337,6 +340,7 @@ private:
     SocialController social_;
     HomeDashboardController dashboard_;
     PlayerStory story_;
+    ScreensController album_;
     bool dashboardReturn_=false;
     QString service_;
     enum class TextTarget { None, TrainerName, WorldsSearch, MultiverseSearch, Library, LibraryTools, Collections, Archive, Module, AchievementAccount, SetupName, Network, Social, Communication, Scraper };
@@ -354,7 +358,6 @@ private:
     bool adapterMenuOpen_ = true, quickAppsOpen_ = false;
     int adapterMenuFocus_ = 0, overviewFocus_ = 0;
     QString overviewSessionId_;
-    QString overviewMediaId_;
     QString socialFace_ = "chats";
     int drawerFocus_ = 0;
     int menuFocus_ = 0;

@@ -12,7 +12,10 @@ Item {
         }
         if(shell.hubFace === "ra") return [h("A","Open"),h("Select","Refresh"),h("B","Back")]
         if(shell.overviewFace === "timeline") return [h("←→","Timeline"),h("B","My Story")]
-        if(shell.overviewFace === "screens") return [h("←→","Screens"),h("B","My Story")]
+        if(shell.overviewFace === "screens") {
+            if(shell.album.filtering) return [h("↑↓","Filters"),h("A","Choose"),h("B","Album")]
+            return [h("←→","Film"),h("L3","Star"),h("Select","Filter"),h("B","My Story")]
+        }
         return [h("A","Open"),h("B","Home")]
     }
     readonly property bool available: visible && !shell.serviceOpen && !shell.menuOpen
