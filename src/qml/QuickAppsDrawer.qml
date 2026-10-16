@@ -7,7 +7,6 @@ ChassisDrawer {
     expanded: shell.quickAppsOpen
     expandedHeight: 76
     contentTop: 12
-    showExpandedHeader: false
     button: "X"; label: "Quick Apps"; toggleName: "quick-apps-handle"
     onToggled: shell.toggleQuickApps()
     Binding {

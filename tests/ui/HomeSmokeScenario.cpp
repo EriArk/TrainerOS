@@ -35,6 +35,31 @@ void startHomeSmoke(QQuickWindow* window, ShellController& shell, SessionState& 
     auto* progress = new HomeProgressFixture(window);
     auto stage = std::make_shared<int>(0), starts = std::make_shared<int>(0), returns = std::make_shared<int>(0);
     auto failed = std::make_shared<bool>(false);
+    QObject::connect(window, &QQuickWindow::afterAnimating, window, [=, &diagnostics] {
+        if (*stage < 41 || *stage > 51) return;
+        QQuickItem* panels[2]{};
+        QList<QQuickItem*> pending{window->contentItem()};
+        while (!pending.isEmpty()) {
+            auto* item = pending.takeLast(); pending.append(item->childItems());
+            if (item->objectName()=="quick-apps-drawer") panels[0]=item;
+            if (item->objectName()=="continue-drawer") panels[1]=item;
+        }
+        const auto require = [&](bool ok, const QString& message) {
+            if (!ok) { *failed=true; if (!diagnostics.contains(message)) diagnostics.append(message); }
+        };
+        for (auto* panel : panels) if (panel) {
+            require(qAbs(panel->width()-panel->property("closedWidth").toReal())<.1 ||
+                    qAbs(panel->width()-panel->property("expandedWidth").toReal())<.1,
+                    "Drawer animation never stretches horizontally");
+            if (panel->property("panelVisible").toBool())
+                for (auto* other : panels) if (other)
+                    require(other->property("handleDrop").toReal()>43.8,
+                            "Both handles sink before a panel rises");
+        }
+        if (panels[0] && panels[1])
+            require(!(panels[0]->property("panelVisible").toBool() && panels[1]->property("panelVisible").toBool()),
+                    "Switching drawers closes one before raising the next");
+    });
     auto returningToSelector = std::make_shared<bool>(false);
     const auto program = QDir(QCoreApplication::applicationDirPath()).filePath(
 #ifdef Q_OS_WIN
@@ -401,11 +426,13 @@ void startHomeSmoke(QQuickWindow* window, ShellController& shell, SessionState& 
             check(shell.apps()->focusIndex()==11,"Horizontal app navigation reaches overflow");capture("quick-apps-overflow-960");
             shell.dispatch(Action::ToggleContinue);break;
         case 46:
-            if(auto* d=itemNamed("continue-drawer");d && qAbs(d->height()-229)>0.1){--*stage;return;}
-            check(shell.drawerOpen() && !shell.quickAppsOpen(),"Y replaces X");capture("adventures-shared-frame-960");shell.dispatch(Action::Back);break;
+            if(auto* d=itemNamed("continue-drawer");d && qAbs(d->height()-188)>0.1){--*stage;return;}
+            check(shell.drawerOpen() && !shell.quickAppsOpen(),"Y replaces X");
+            check(itemNamed("continue-toggle") && !itemNamed("continue-toggle")->isVisible(),"Expanded Y hides its old header");
+            capture("adventures-shared-frame-960");shell.dispatch(Action::Back);break;
         case 47: {
             auto* apps=itemNamed("quick-apps-drawer");auto* games=itemNamed("continue-drawer");
-            if(apps && games && (qAbs(apps->width()-174)>0.1 || qAbs(games->width()-174)>0.1)){--*stage;return;}
+            if(apps && games && (qAbs(apps->width()-174)>0.1 || qAbs(games->width()-174)>0.1 || apps->property("handleDrop").toReal()>.1 || games->property("handleDrop").toReal()>.1)){--*stage;return;}
             check(apps && games && apps->width()==games->width() && apps->width()==174,"Closed X/Y handles share the shorter width");
             check(apps && games && games->x()>apps->x() && games->x()+games->width()<400 && apps->height()==36 && games->height()==36,"Compact handles sit side by side at the left bezel");
             check(apps && games && qAbs(apps->mapRectToScene(apps->boundingRect()).right()-games->mapRectToScene(games->boundingRect()).left()-32*apps->mapRectToScene(apps->boundingRect()).width()/apps->width())<2 && apps->z()>games->z(),"Quick Apps is in front of the yellow right handle");
@@ -417,7 +444,7 @@ void startHomeSmoke(QQuickWindow* window, ShellController& shell, SessionState& 
             if(auto* d=itemNamed("quick-apps-drawer");d && qAbs(d->height()-76)>0.1){--*stage;return;}
             capture("quick-apps-full-1080p");shell.closeDrawers();break;
         case 49:
-            if(auto* d=itemNamed("quick-apps-drawer");d && (qAbs(d->height()-36)>0.1 || qAbs(d->width()-174)>0.1)){--*stage;return;}
+            if(auto* d=itemNamed("quick-apps-drawer");d && (qAbs(d->height()-36)>0.1 || qAbs(d->width()-174)>0.1 || d->property("handleDrop").toReal()>.1)){--*stage;return;}
             if(auto* launchButton=itemNamed("home-launch"))if(auto* d=itemNamed("quick-apps-drawer"))check(launchButton->mapRectToScene(launchButton->boundingRect()).bottom()<=d->mapRectToScene(d->boundingRect()).top(),"Folded Quick Apps never covers Start");
             check(!shell.quickAppsOpen() && shell.primaryId()=="home","Outside-close preserves the Home route");capture("paired-handles-1080p");break;
         case 50: {

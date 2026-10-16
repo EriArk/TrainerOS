@@ -241,7 +241,9 @@ Window {
             x: Theme.screenBounds.x
             anchors.bottom: footer.top
             shell: shellController; z: 3
-            visible: !shell.serviceOpen && !shell.drawerOpen
+            visible: !shell.serviceOpen
+            handlesRecessed: shell.quickAppsOpen || shell.drawerOpen || panelVisible || drawer.panelVisible
+            otherPanelVisible: drawer.panelVisible
         }
         ContinueDrawer {
             id: drawer
@@ -249,7 +251,9 @@ Window {
             x: Theme.screenBounds.x + (expandedWidth-width)/(expandedWidth-closedWidth)*(closedWidth-Theme.drawerHandleOverlap)
             anchors.bottom: footer.top; shell: shellController
             z: 2
-            visible: (shell.chooseAdventureAvailable || shell.drawerOpen) && !shell.quickAppsOpen
+            visible: !shell.serviceOpen && (shell.chooseAdventureAvailable || shell.drawerOpen || panelVisible)
+            handlesRecessed: shell.quickAppsOpen || shell.drawerOpen || panelVisible || quickDrawer.panelVisible
+            otherPanelVisible: quickDrawer.panelVisible
         }
         Item {
             id: footer

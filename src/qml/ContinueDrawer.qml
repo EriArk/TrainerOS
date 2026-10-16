@@ -5,7 +5,7 @@ ChassisDrawer {
     id: root
     required property var shell
     expanded: shell.drawerOpen
-    legend: shell.sampleLibrary ? "RECENT GAMES · SAMPLE DATA" : "RECENT GAMES · PLAY FROM HOME"
+    expandedHeight: 188
     onToggled: shell.activate(1,"continue")
     Item {
         parent: root.contentItem
