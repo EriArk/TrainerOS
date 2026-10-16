@@ -208,7 +208,7 @@ void FluxerSession::reset() {
     leaveVoice();calls_.clear();callNotices_.clear();voiceStatus_.clear();
     ++epoch_;
     attachmentBusy_=false;attachmentReply_=nullptr;notificationSound_=true;
-    profile_={};profileStatus_.clear();profileBusy_=false;person_={};++personRevision_;
+    profile_={};userSettings_={};++profileReadRevision_;profileStatus_.clear();profileBusy_=false;person_={};++personRevision_;
     voiceInput_.clear();voiceOutput_.clear();voiceVolume_=100;
     ++onlineSendRevision_;onlineSendTimer_.stop();onlineQueue_.clear();onlineSending_=false;online_.bind({},{});
     delete proof_; proof_=nullptr;
@@ -351,6 +351,7 @@ void FluxerSession::publish() {
     emit snapshot(generation_, {{"state",state_},{"status",status_},{"name",name_},{"code",code_},
         {"lobbyDirectory",lobbyDirectoryState()},
         {"temporaryContacts",temporaryContacts_.state()},
+        {"presence",userSettings_.value("status").toString()},{"customStatus",customStatus()},
         {"person",person_},{"profile",profile_.toVariantMap()},{"profileStatus",profileStatus_},{"profileBusy",profileBusy_},
         {"audio",audioConfiguration().toVariantMap()},
         {"unreadCount",unreadCount},{"doNotDisturb",doNotDisturb_},{"privatePreviews",privatePreviews_},
@@ -958,17 +959,62 @@ void FluxerSession::updateProfile(const QJsonObject& user) {
     profile_={{"name",user["global_name"].toString()},{"bio",user["bio"].toString()},
         {"avatar",avatar(user)},{"tag",user["username"].toString()+"#"+user["discriminator"].toString()}};
 }
+QString FluxerSession::customStatus() const {
+    const auto status=userSettings_["custom_status"].toObject();
+    const auto expiry=QDateTime::fromString(status["expires_at"].toString(),Qt::ISODate);
+    return expiry.isValid() && expiry<=QDateTime::currentDateTimeUtc()?QString():status["text"].toString();
+}
+void FluxerSession::updateUserSettings(const QJsonObject& settings) {
+    const auto status=settings["status"].toString();
+    if(QStringList{"online","idle","dnd","invisible"}.contains(status))userSettings_["status"]=status;
+    if(settings.contains("custom_status")) {
+        const auto custom=settings["custom_status"].toObject();
+        userSettings_["custom_status"]=QJsonObject{{"text",custom["text"].toString().left(128)},{"expires_at",custom["expires_at"]}};
+        const auto expiry=QDateTime::fromString(custom["expires_at"].toString(),Qt::ISODate);
+        const auto delay=QDateTime::currentDateTimeUtc().msecsTo(expiry);
+        if(expiry.isValid() && delay>0 && delay<2147483000) {
+            const auto epoch=epoch_;
+            QTimer::singleShot(int(delay)+1,this,[this,epoch]{if(epoch==epoch_)publish();});
+        }
+    }
+}
+void FluxerSession::refreshProfile() {
+    if(self_.isEmpty() || profileBusy_)return;
+    const auto revision=++profileReadRevision_,epoch=epoch_;
+    profileStatus_.clear();
+    request("GET","/v1/users/@me",{},[this,revision,epoch](Reply r){
+        if(epoch!=epoch_ || revision!=profileReadRevision_)return;
+        if(r.status==200)updateProfile(r.body.object());
+        else profileStatus_="Couldn't refresh your profile. Try again.";
+        publish();
+    });
+    request("GET","/v1/users/@me/settings",{},[this,revision,epoch](Reply r){
+        if(epoch!=epoch_ || revision!=profileReadRevision_)return;
+        if(r.status==200)updateUserSettings(r.body.object());
+        else profileStatus_="Couldn't refresh your status. Try again.";
+        publish();
+    });
+}
 void FluxerSession::profileCommand(const QVariantMap& args) {
     if(self_.isEmpty()||profileBusy_)return;
     const auto field=args["field"].toString(),value=args["value"].toString();
-    if(field!="global_name"&&field!="bio"&&field!="avatar")return;
+    if(field!="global_name"&&field!="bio"&&field!="avatar"&&field!="status"&&field!="custom_status")return;
+    const bool settings=field=="status" || field=="custom_status";
+    if(field=="status" && !QStringList{"online","idle","dnd","invisible"}.contains(value))return;
+    if(field=="custom_status" && value.size()>128)return;
     if((field=="global_name"&&value.size()>32)||(field=="bio"&&value.size()>320)
         ||(field=="avatar"&&!value.isEmpty()&&(!value.startsWith("data:image/jpeg;base64,")||value.size()>13981016)))return;
+    ++profileReadRevision_;const auto epoch=epoch_;
+    QJsonValue data=value.isEmpty()?QJsonValue(QJsonValue::Null):QJsonValue(value);
+    if(field=="custom_status" && !value.isEmpty())data=QJsonObject{{"text",value},{"expires_at",QJsonValue::Null}};
     profileBusy_=true;profileStatus_="Saving...";publish();
-    verifiedRequest("PATCH","/v1/users/@me",{{field,value.isEmpty()?QJsonValue(QJsonValue::Null):QJsonValue(value)}},[this](Reply r){
+    verifiedRequest("PATCH",settings?"/v1/users/@me/settings":"/v1/users/@me",{{field,data}},[this,settings,epoch](Reply r){
+        if(epoch!=epoch_)return;
         profileBusy_=false;
-        if(r.status==200&&r.body.object()["id"].toString()==self_){updateProfile(r.body.object());profileStatus_="Saved";}
-        else {profileStatus_=r.status==429?"Please wait before saving again.":"Couldn't save your profile. Try again.";}
+        if(r.status==200 && (settings || r.body.object()["id"].toString()==self_)){
+            if(settings)updateUserSettings(r.body.object());else updateProfile(r.body.object());
+            profileStatus_="Saved";
+        }else profileStatus_=r.status==429?"Please wait before saving again.":"Couldn't save your profile. Try again.";
         publish();
     });
 }
@@ -1037,6 +1083,7 @@ void FluxerSession::sendAttachment(const QVariantMap& args) {
     });
 }
 void FluxerSession::command(QString operation, QVariantMap args) {
+    if(operation=="profile-refresh"){refreshProfile();return;}
     if(operation=="profile-read"){readProfile(args["id"].toString(),args["request"].toString());return;}
     if(operation=="profile-update"){profileCommand(args);return;}
     if(operation=="audio-settings") {
@@ -1553,6 +1600,7 @@ void FluxerSession::gatewayEvent(const QJsonObject& event) {
     else if(op==9) {gatewaySession_.clear();sequence_=0;socket_->abort();request("GET","/v1/users/@me",{},[this](Reply r){if(r.status!=200)fail(r,"Session interrupted");});}
     else if(op==0) {
         sequence_=event["s"].toInteger();const auto type=event["t"].toString();
+        if(type=="USER_SETTINGS_UPDATE"){++profileReadRevision_;updateUserSettings(d);publish();return;}
         if(type=="USER_UPDATE"){updateProfile(d);publish();return;}
         if(type=="VOICE_SERVER_UPDATE"){voiceGrant(d);return;}
         if(type=="VOICE_STATE_UPDATE") {
@@ -1571,7 +1619,7 @@ void FluxerSession::gatewayEvent(const QJsonObject& event) {
                 calls_[id]=call;
             }
             updateCallNotice(type,id,d);
-            if(type!="CALL_DELETE"&&!wasRinging&&d["ringing"].toArray().contains(self_)&&!doNotDisturb_&&!muted_.contains(id))emit incomingMessage(generation_,id,"Incoming call","Press Home to answer");
+            if(type!="CALL_DELETE"&&!wasRinging&&d["ringing"].toArray().contains(self_)&&!notificationsSuppressed()&&!muted_.contains(id))emit incomingMessage(generation_,id,"Incoming call","Press Home to answer");
             publish();return;
         }
         if(type=="MESSAGE_UPDATE"||type=="MESSAGE_DELETE"||type=="CHANNEL_PINS_UPDATE"||type=="CHANNEL_DELETE"||type=="GUILD_UPDATE"||type=="GUILD_DELETE") {
@@ -1596,7 +1644,8 @@ void FluxerSession::gatewayEvent(const QJsonObject& event) {
             if(!historyFile_.isEmpty()&&!historySave_.isActive())historySave_.start();
         }
         if(type=="READY"||type=="RESUMED") {
-            if(type=="READY") {gatewaySession_=d["session_id"].toString();readThrough_.clear();quietThrough_.clear();unread_.clear();mentions_.clear();calls_.clear();readsReady_=true;
+            if(type=="READY") {
+            updateUserSettings(d["user_settings"].toObject());gatewaySession_=d["session_id"].toString();readThrough_.clear();quietThrough_.clear();unread_.clear();mentions_.clear();calls_.clear();readsReady_=true;
                 for(const auto& v:d["read_states"].toArray())applyReadState(v.toObject(),false);
                 for(auto it=channels_.cbegin();it!=channels_.cend();++it)updateUnread(it.key());}
             reconnectAttempt_=0;status_="Connected";refresh();
@@ -1640,7 +1689,7 @@ void FluxerSession::gatewayEvent(const QJsonObject& event) {
                 for(const auto& user:d["mentions"].toArray())if(user.toObject()["id"]==self_)mentioned=true;
                 if(fresh&&mentioned&&author["id"]!=self_)++mentions_[channel];
                 if(fresh&&transportEnvelope(d["content"].toString()).isEmpty()&&author["id"]!=self_&&relationships_.value(author["id"].toString())["type"].toInt()!=2
-                    &&!muted_.contains(channel)&&!doNotDisturb_)
+                    &&!muted_.contains(channel)&&!notificationsSuppressed())
                     emit incomingMessage(generation_,channel,privatePreviews_?(mentioned?QString("New mention"):QString("New message")):label(author),
                         privatePreviews_?QString("Open Social to catch up"):d["content"].toString().left(160));
             }
@@ -1649,7 +1698,7 @@ void FluxerSession::gatewayEvent(const QJsonObject& event) {
             if(type=="RELATIONSHIP_ADD") {
                 const auto id=d["id"].toString();const bool incoming=d["type"].toInt()==3&&relationships_.value(id)["type"].toInt()!=3;
                 if(idValid(id))relationships_[id]=d;
-                if(incoming&&!doNotDisturb_&&!temporaryContacts_.state()["peers"].toMap()[id].toMap()["temporary"].toBool())emit incomingMessage(generation_,"request:"+id,"Friend request",privatePreviews_?QString("Open Home notifications"):label(d["user"].toObject()));
+                if(incoming&&!notificationsSuppressed()&&!temporaryContacts_.state()["peers"].toMap()[id].toMap()["temporary"].toBool())emit incomingMessage(generation_,"request:"+id,"Friend request",privatePreviews_?QString("Open Home notifications"):label(d["user"].toObject()));
             }
             if(type=="CHANNEL_RECIPIENT_REMOVE") {
                 const auto channel=d["channel_id"].toString();const auto user=d["user"].toObject()["id"].toString(d["user_id"].toString());

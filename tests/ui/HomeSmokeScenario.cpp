@@ -60,6 +60,7 @@ void startHomeSmoke(QQuickWindow* window, ShellController& shell, SessionState& 
             require(!(panels[0]->property("panelVisible").toBool() && panels[1]->property("panelVisible").toBool()),
                     "Switching drawers closes one before raising the next");
     });
+    auto artworkWaits = std::make_shared<int>(0);
     auto returningToSelector = std::make_shared<bool>(false);
     const auto program = QDir(QCoreApplication::applicationDirPath()).filePath(
 #ifdef Q_OS_WIN
@@ -308,6 +309,8 @@ void startHomeSmoke(QQuickWindow* window, ShellController& shell, SessionState& 
         case 20: case 21: case 22: case 23: case 24: {
             const auto theme=shell.settings()->theme();
             auto* background=itemNamed("home-card-illustration");
+            if(background && !background->property("artworkReady").toBool() && ++*artworkWaits<20){--*stage;return;}
+            check(background && background->property("artworkReady").toBool(),"Themed artwork loaded and painted before capture");*artworkWaits=0;
             check(background && background->property("themeId").toString()==theme,"Home backdrop follows the active theme live");
             check(!itemNamed("home-exit-picture"),"A saved screenshot must not replace the themed landscape");
             capture("home-theme-"+theme);
@@ -485,6 +488,23 @@ void startHomeSmoke(QQuickWindow* window, ShellController& shell, SessionState& 
             capture("navigation-social-1080p");shell.goToPage(2);break;
         case 57:
             capture("navigation-gamehub-1080p");break;
+        case 58: {
+            auto state=shell.social()->account();state["userId"]="profile-fixture";state["name"]="Mika";state["presence"]="idle";
+            state["profile"]=QVariantMap{{"name","Mika"},{"tag","mika#1234"},{"bio","One more adventure."},{"avatar","qrc:/home-backdrops/green.png"}};
+            HomeSocialFixture::publish(*shell.social(),state);
+            shell.openAccountProfile();break;
+        }
+        case 59:
+            check(shell.service()=="account-profile" && shell.primaryId()=="gamehub","Account profile overlays the original route");
+            check(itemNamed("account-profile-card") && itemNamed("account-profile-card")->isVisible(),"Profile card is visible");
+            capture("account-profile-1080p");shell.settings()->communication()->editProfile();break;
+        case 60:
+            capture("account-profile-editor-1080p");shell.settings()->communication()->activate(0);break;
+        case 61:
+            check(shell.keyboard()->isOpen(),"Profile editor uses the shared keyboard");
+            shell.dispatch(Action::Back);check(!shell.keyboard()->isOpen() && shell.settings()->communication()->profileEditing(),"Keyboard Back returns to profile editing");
+            shell.dispatch(Action::Back);check(!shell.settings()->communication()->profileEditing() && shell.service()=="account-profile","Editor Back returns to profile");
+            shell.dispatch(Action::Back);check(shell.service().isEmpty() && shell.primaryId()=="gamehub","Profile Back restores the underlying route");break;
         default:
             check(warnings == 0, "QML warnings"); completed = true; timer->stop();
             if (!screenshotDir.isEmpty()) {

@@ -291,6 +291,8 @@ endif()
 qt_add_executable(traineros src/app/Main.cpp)
 qt_add_resources(traineros series_art PREFIX "/series" BASE assets/series
     FILES assets/series/pokemon.png assets/series/mario.png assets/series/zelda.png assets/series/sonic.png assets/series/final-fantasy.png assets/series/metroid.png assets/series/castlevania.png assets/series/kirby.png assets/series/metal-slug.png assets/series/multiverse.png)
+qt_add_resources(traineros home_backdrops PREFIX "/home-backdrops" BASE assets/home-backdrops
+    FILES assets/home-backdrops/turquoise.png assets/home-backdrops/red.png assets/home-backdrops/green.png assets/home-backdrops/blue.png assets/home-backdrops/orange.png)
 qt_add_resources(traineros display_fonts PREFIX "/fonts" BASE assets/fonts
     FILES assets/fonts/Fredoka.ttf assets/fonts/OFL.txt
           assets/fonts/ChakraPetch-Bold.ttf assets/fonts/ChakraPetch-OFL.txt
@@ -340,6 +342,8 @@ qt_add_qml_module(traineros
         src/qml/CapButton.qml
         src/qml/PlatformBadge.qml
         src/qml/Hint.qml
+        src/qml/AccountAvatar.qml
+        src/qml/AccountProfilePanel.qml
         src/qml/FaceStep.qml
         src/adapters/pokemon/HomePage.qml
         src/adapters/pokemon/PokemonExperienceViews.qml

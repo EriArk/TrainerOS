@@ -69,11 +69,24 @@ Window {
             objectName: "brand-extension"
             width: Theme.brandWidth; height: Theme.brandHeight
             z: 1
+            AccountAvatar {
+                x: 14; y: 10; width: 40
+                name: shell.social.account.name || "Player"
+                source: (shell.social.account.profile || {}).avatar || ""
+                presence: shell.social.account.state === "connected" ? shell.social.account.presence || "" : ""
+            }
             Text {
-                anchors.centerIn: parent; width: parent.width - 24
-                horizontalAlignment: Text.AlignHCenter
-                text: "TRAINER OS"; color: "#edf5e9"; font.pixelSize: 25; font.weight: Font.Bold
-                font.family: Theme.brandFamily; font.letterSpacing: 0.6
+                x: 64; y: 18; width: parent.width-x-16; height: 28
+                text: shell.social.account.userId ? (shell.social.account.profile || {}).name || shell.social.account.name || "Your profile" : "Sign in"
+                color: Theme.paper; font.family: Theme.displayFamily; font.pixelSize: 20
+                elide: Text.ElideRight; textFormat: Text.PlainText; verticalAlignment: Text.AlignVCenter
+            }
+            MouseArea {
+                objectName: "account-profile-toggle"; anchors.fill: parent
+                enabled: shell.unobstructed && !shell.quickAppsOpen
+                onClicked: shell.openAccountProfile()
+                Accessible.role: Accessible.Button; Accessible.name: "Your Fluxer profile"
+                Accessible.onPressAction: shell.openAccountProfile()
             }
             Text {
                 x: 12; y: 46; width: parent.width - 24
@@ -223,19 +236,19 @@ Window {
                 anchors.topMargin: shell.primaryId === "home" ? Theme.brandHeight + Theme.screenBevel - Theme.screenTop : Theme.contentTopInset
                 clip: true
                 anchors.bottomMargin: Theme.panelInset
-                HomeDashboard { id: experienceHost; anchors.fill: parent; shell: shellController; visible: (!shell.serviceOpen || shell.service === "settings") && shell.primaryId === "home" }
-                GameHubPage { id: gameHubPage; anchors.fill: parent; shell: shellController; visible: (!shell.serviceOpen || shell.service === "settings") && shell.primaryId === "gamehub" }
-                AppsPage { anchors.fill: parent; flow: shell.apps; active: shell.primaryId === "apps" && shell.appsFace === "apps"; visible: (!shell.serviceOpen || shell.service === "settings") && active }
+                HomeDashboard { id: experienceHost; anchors.fill: parent; shell: shellController; visible: (!shell.serviceOpen || shell.service === "settings" || shell.service === "account-profile") && shell.primaryId === "home" }
+                GameHubPage { id: gameHubPage; anchors.fill: parent; shell: shellController; visible: (!shell.serviceOpen || shell.service === "settings" || shell.service === "account-profile") && shell.primaryId === "gamehub" }
+                AppsPage { anchors.fill: parent; flow: shell.apps; active: shell.primaryId === "apps" && shell.appsFace === "apps"; visible: (!shell.serviceOpen || shell.service === "settings" || shell.service === "account-profile") && active }
                 WorkspacePlaceholder {
                     anchors.fill: parent
-                    visible: (!shell.serviceOpen || shell.service === "settings") && shell.primaryId === "apps" && shell.appsFace !== "apps"
+                    visible: (!shell.serviceOpen || shell.service === "settings" || shell.service === "account-profile") && shell.primaryId === "apps" && shell.appsFace !== "apps"
                     title: shell.appsFace === "crates" ? "Crates" : shell.appsFace === "browser" ? "Browser" : "Files"
                     message: title + " is not available in this build."
                 }
-                SocialPage { anchors.fill: parent; shell: shellController; visible: (!shell.serviceOpen || shell.service === "settings") && shell.primaryId === "social" }
-                SeriesPage { anchors.fill: parent; shell: shellController; visible: (!shell.serviceOpen || shell.service === "settings") && shell.page === 1 && shell.collectionsRoot }
-                WorldsPage { anchors.fill: parent; shell: shellController; visible: (!shell.serviceOpen || shell.service === "settings") && shell.page === 1 && !shell.collectionsRoot && !shell.multiverseFace }
-                MultiversePage { anchors.fill: parent; shell: shellController; visible: (!shell.serviceOpen || shell.service === "settings") && shell.page === 1 && !shell.collectionsRoot && shell.multiverseFace }
+                SocialPage { anchors.fill: parent; shell: shellController; visible: (!shell.serviceOpen || shell.service === "settings" || shell.service === "account-profile") && shell.primaryId === "social" }
+                SeriesPage { anchors.fill: parent; shell: shellController; visible: (!shell.serviceOpen || shell.service === "settings" || shell.service === "account-profile") && shell.page === 1 && shell.collectionsRoot }
+                WorldsPage { anchors.fill: parent; shell: shellController; visible: (!shell.serviceOpen || shell.service === "settings" || shell.service === "account-profile") && shell.page === 1 && !shell.collectionsRoot && !shell.multiverseFace }
+                MultiversePage { anchors.fill: parent; shell: shellController; visible: (!shell.serviceOpen || shell.service === "settings" || shell.service === "account-profile") && shell.page === 1 && !shell.collectionsRoot && shell.multiverseFace }
             }
         }
         MouseArea {
@@ -350,7 +363,7 @@ Window {
                 transformOrigin: Item.Right
 
 
-                Repeater { model: footer.actions
+                Repeater { model: footer.actions.filter(function(item) { return item.button !== "X" && item.button !== "Y" })
                     delegate: Hint {
                         required property var modelData
                         button: modelData.button; label: modelData.label
@@ -391,6 +404,7 @@ Window {
                 SettingsPanel { anchors.fill: parent; shell: shellController }
             }
         }
+        AccountProfilePanel { width: parent.width; height: Theme.footerTop; shell: shellController; z: 2.5 }
         AppsMenu {
             x: screen.x; y: screen.y; width: screen.width; height: screen.height
             flow: shell.apps; z: 2

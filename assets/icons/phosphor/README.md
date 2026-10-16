@@ -1,3 +1,7 @@
 Phosphor Icons regular SVGs, MIT.
 Upstream: https://github.com/phosphor-icons/core/tree/2b75f3ad12b420c9504ef05df8d2564a28f8500e
-Unmodified assets; same icon family used by Fluxer.
+Imported assets are unmodified; same icon family used by Fluxer.
+
+Exception: wrench.svg is an original TrainerOS outline drawn for the profile
+editor (2026-10-16), distributed under GPL-3.0-or-later like the original
+TrainerOS UI. It is not an upstream Phosphor asset.

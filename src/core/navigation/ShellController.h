@@ -221,6 +221,7 @@ public:
     Q_INVOKABLE void openSocialNotification();
     Q_INVOKABLE void closeHomeMenu();
     Q_INVOKABLE void openProfile();
+    Q_INVOKABLE void openAccountProfile();
     bool powerMenu() const { return powerMenu_; }
     QString notice() const { return notice_; }
     bool moduleServiceBusy() const { return moduleWriting() || modulesBlocked(); }

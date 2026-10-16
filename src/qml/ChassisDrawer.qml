@@ -19,7 +19,7 @@ Item {
     readonly property real closedWidth: Theme.adventureTabWidth
     property string button: "Y"
     property string label: "Recent games"
-    readonly property real keyInset: button === "Y" ? 30 : 18
+    readonly property real keyInset: button === "Y" ? 30 : 22
     property string toggleName: "continue-toggle"
     property alias contentItem: tray
     signal toggled()
@@ -153,7 +153,7 @@ Item {
                     Text { anchors.centerIn: parent; text: root.button; color: Theme.ink; font.family: Theme.displayFamily; font.pixelSize: 16; font.weight: Font.DemiBold }
                 }
                 Text {
-                    x: root.keyInset+28; y: 7; width: root.closedWidth-x-22; height: 24
+                    x: (root.button === "Y" ? root.keyInset : 18)+28; y: 7; width: root.closedWidth-x-22; height: 24
                     text: root.label; color: root.button === "Y" ? Theme.ink : Theme.paper
                     font.pixelSize: 13; font.weight: Font.Medium
                     horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter

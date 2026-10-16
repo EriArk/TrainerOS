@@ -130,9 +130,9 @@ ShellController::ShellController(LibraryRepository& repo, TrainerRepository& pro
     connect(&social_,&SocialController::lobbyRequested,this,[this]{
         closeHomeMenu();openGameHubFace("lobby");
     });
-    connect(settings_.communication(),&CommunicationSettings::changed,this,[this]{if(service_=="settings" && settings_.category()==13)emit changed();});
-    connect(settings_.communication(),&CommunicationSettings::backRequested,this,[this]{settings_.selectCategory(13,false);});
-    connect(this,&ShellController::changed,this,[this]{if(service_!="settings" || settings_.category()!=13)settings_.communication()->leave();});
+    connect(settings_.communication(),&CommunicationSettings::changed,this,[this]{if(service_=="account-profile" || (service_=="settings" && settings_.category()==13))emit changed();});
+    connect(settings_.communication(),&CommunicationSettings::backRequested,this,[this]{if(service_=="account-profile"){service_.clear();emit changed();}else settings_.selectCategory(13,false);});
+    connect(this,&ShellController::changed,this,[this]{if(service_!="account-profile" && (service_!="settings" || settings_.category()!=13))settings_.communication()->leave();});
     connect(settings_.communication(),&CommunicationSettings::textRequested,this,[this](QString title,QString text,int limit){textTarget_=TextTarget::Communication;keyboard_.begin(title,text,limit,false,"Save",true);});
     connect(settings_.clock(), &ClockController::backRequested, this, [this]{ if(service_=="settings")settings_.selectCategory(11,false); });
     connect(this, &ShellController::changed, this, [this]{ if(service_!="settings" || settings_.category()!=11)settings_.clock()->leave(); });
@@ -1146,6 +1146,10 @@ void ShellController::closeHomeMenu() {
     if (!homeMenuOpen_ || navigationLocked()) return;
     homeMenuOpen_ = false; emit changed();
 }
+void ShellController::openAccountProfile() {
+    if(!canReceiveNearby() || quickAppsOpen_ || moduleWriting() || !apps_.menu().isEmpty())return;
+    service_="account-profile";settings_.communication()->beginProfile();emit changed();
+}
 void ShellController::openProfile() {
     if(navigationLocked() || moduleWriting() || keyboard_.isOpen() || trainer_.saving())return;
     homeMenuOpen_=false;service_="profile";trainer_.reload();emit changed();
@@ -1303,6 +1307,11 @@ void ShellController::dispatch(Action action) {
         } else if (action == Action::SystemMenu) {
             homeMenuOpen_=false;optionsReturn_=true;dispatch(action);
         }
+        return;
+    }
+    if(service_=="account-profile" && !menuOpen_ && notice_.isEmpty() && action!=Action::SystemMenu && action!=Action::Home) {
+        if(keyboard_.isOpen())keyboard_.dispatch(action);
+        else settings_.communication()->dispatch(action);
         return;
     }
     if(!keyboard_.isOpen() && !menuOpen_ && !homeMenuOpen_ && !apps_.menu().isEmpty()) {

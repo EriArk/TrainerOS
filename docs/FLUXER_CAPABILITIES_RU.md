@@ -80,7 +80,7 @@ Go Live. Для него отдельно выбираются минималь�
 | Поиск по сообщениям | [Search](https://docs.fluxer.app/http-api/search/) | Есть у Fluxer; владелец исключил из текущего объёма, не реализовывать свой индекс |
 | Друзья, заявки, принятие, удаление, блокировки | [Relationships](https://docs.fluxer.app/http-api/users/relationships/) | Подключено; временная дружба использует те же операции |
 | Профиль, имя, аватар | [Current user](https://docs.fluxer.app/http-api/users/current-user/) | Подключено; не смешивать профиль общения с локальным Trainer |
-| Presence, пользовательский статус, настройки уведомлений | [Settings](https://docs.fluxer.app/http-api/users/settings/) | Используется часть; локальная DND/отображение остаются в оболочке |
+| Presence, пользовательский статус, настройки уведомлений | [Settings](https://docs.fluxer.app/http-api/users/settings/) | QUICK-34 подключает доступность и текстовый статус в карточке профиля; локальная DND сохраняется отдельно |
 | Комьюнити, категории, каналы | [Guilds](https://docs.fluxer.app/http-api/guilds/), [Guild channels](https://docs.fluxer.app/http-api/guild-channels/) | Просмотр/участие подключены; бот каталога использует тематические каналы |
 | Роли, участники, права и ограничения каналов | [Members](https://docs.fluxer.app/http-api/guild-members/), [Permissions](https://docs.fluxer.app/http-api/permissions/) | Допуск обязан учитывать Fluxer; отдельную систему прав не дублировать |
 | Приглашения в комьюнити/группу | [Invites](https://docs.fluxer.app/http-api/invites/) | Подключено; приглашение в игру имеет собственное явное согласие |

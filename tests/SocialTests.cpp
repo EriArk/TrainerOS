@@ -747,6 +747,41 @@ private slots:
         s.updateProfile({{"id",s.self_},{"avatar","../other"}});
         QVERIFY(s.profile_["avatar"].toString().isEmpty());
     }
+    void profileCardReusesEditorWithoutAudioOrAccountLeak() {
+        SocialController social;CommunicationSettings flow;flow.configure(&social);
+        QVariantMap state{{"userId","self"},{"state","connected"},{"presence","idle"},{"customStatus","Playing"},{"profile",QVariantMap{{"name","Mika"}}}};
+        social.receive(0,state);QSignalSpy commands(&social,&SocialController::commandRequested);
+        QSignalSpy text(&flow,&CommunicationSettings::textRequested);QSignalSpy back(&flow,&CommunicationSettings::backRequested);
+        flow.beginProfile();QCOMPARE(commands.last()[0].toString(),QString("profile-refresh"));QVERIFY(!flow.refresh_.isActive());
+        QCOMPARE(flow.rows().size(),6);QVERIFY(flow.rows()[1].toMap()["selected"].toBool());
+        flow.activate(3);QCOMPARE(commands.last()[1].toMap()["value"].toString(),QString("invisible"));
+        flow.activate(4);QCOMPARE(text.last()[1].toString(),QString("Playing"));flow.applyText("New status");
+        QCOMPARE(commands.last()[1].toMap()["field"].toString(),QString("custom_status"));
+        flow.editProfile();QVERIFY(flow.profileEditing());QCOMPARE(flow.rows().size(),4);
+        flow.activate(0);QCOMPARE(text.last()[1].toString(),QString("Mika"));flow.applyText("Ren");
+        QCOMPARE(commands.last()[1].toMap()["field"].toString(),QString("global_name"));
+        flow.activate(1);QVERIFY(flow.choosingAvatar());flow.dispatch(Action::Back);QVERIFY(!flow.choosingAvatar());QVERIFY(flow.profileEditing());
+        flow.activate(2);state["userId"]="other";social.receive(0,state);auto before=commands.size();flow.applyText("Old account draft");QCOMPARE(commands.size(),before);QVERIFY(!flow.profileEditing());
+        flow.dispatch(Action::Back);QCOMPARE(back.size(),1);flow.leave();
+    }
+    void providerStatusIsConfirmedAndRejectsStaleReads() {
+        FluxerSession session;QList<Completion> replies;QStringList paths;QList<QJsonObject> bodies;
+        session.setTransport([&](QByteArray,QString path,QJsonObject body,Completion done,QByteArray){paths<<path;bodies<<body;replies<<done;});bind(session);
+        session.updateUserSettings({{"status","idle"},{"custom_status",QJsonObject{{"text","Old"}}}});
+        session.refreshProfile();QCOMPARE(paths.last(),QString("/v1/users/@me/settings"));auto stale=replies.last();
+        session.profileCommand({{"field","status"},{"value","invisible"}});QCOMPARE(paths.last(),QString("/v1/users/@me/settings"));
+        QCOMPARE(session.userSettings_["status"].toString(),QString("idle"));
+        replies.last()({500,{}});QVERIFY(!session.profileBusy_);QCOMPARE(session.userSettings_["status"].toString(),QString("idle"));
+        session.profileCommand({{"field","status"},{"value","invisible"}});replies.last()({200,QJsonDocument(QJsonObject{{"status","invisible"}})});
+        stale({200,QJsonDocument(QJsonObject{{"status","online"}})});QCOMPARE(session.userSettings_["status"].toString(),QString("invisible"));
+        session.updateUserSettings({{"status","dnd"}});QVERIFY(session.notificationsSuppressed());session.updateUserSettings({{"status","online"}});QVERIFY(!session.notificationsSuppressed());
+        const auto count=paths.size();session.profileCommand({{"field","status"},{"value","offline"}});QCOMPARE(paths.size(),count);
+        session.profileCommand({{"field","custom_status"},{"value","New"}});QCOMPARE(bodies.last()["custom_status"].toObject()["text"].toString(),QString("New"));
+        replies.last()({200,QJsonDocument(QJsonObject{{"custom_status",QJsonObject{{"text","New"}}}})});QCOMPARE(session.customStatus(),QString("New"));
+        session.profileCommand({{"field","custom_status"},{"value",""}});QVERIFY(bodies.last()["custom_status"].isNull());auto pending=replies.last();
+        session.setOwner("trainer-b",2);pending({200,QJsonDocument(QJsonObject{{"status","online"}})});QVERIFY(session.userSettings_.isEmpty());
+        session.updateUserSettings({{"custom_status",QJsonObject{{"text","Expired"},{"expires_at","2000-01-01T00:00:00Z"}}}});QVERIFY(session.customStatus().isEmpty());
+    }
     void communicationSettingsKeepSelectionAndUseSharedPreferences() {
         SocialController social;CommunicationSettings settings;settings.configure(&social);
         QVariantMap state{{"userId","self"},{"state","connected"},{"audio",QVariantMap{{"volume",60}}},{"profile",QVariantMap{{"name","Friend"}}}};

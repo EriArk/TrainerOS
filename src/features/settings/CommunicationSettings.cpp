@@ -54,7 +54,7 @@ void CommunicationSettings::configure(SocialController* social){
     social_=social;
     connect(social,&SocialController::changed,this,[this]{
         const auto id=account()["userId"].toString();
-        if(id!=accountId_){stopTest();pendingAvatar_=false;avatar_.clear();choosingAvatar_=false;textField_.clear();accountId_=id;focus_=0;}
+        if(id!=accountId_){profileEditing_=false;stopTest();pendingAvatar_=false;avatar_.clear();choosingAvatar_=false;textField_.clear();accountId_=id;focus_=0;}
         focus_=qBound(0,focus_,qMax(0,int(rows().size())-1));emit changed();
     });
 }
@@ -67,7 +67,15 @@ QString CommunicationSettings::status() const{
     return account()["profileStatus"].toString();
 }
 void CommunicationSettings::send(const QString& op,const QVariantMap& args){if(social_)social_->reviewCommand(op,args);}
-void CommunicationSettings::begin(){active_=true;error_.clear();scan();refresh_.start();emit changed();}
+void CommunicationSettings::begin(){profileOnly_=profileEditing_=false;active_=true;error_.clear();scan();refresh_.start();emit changed();}
+void CommunicationSettings::beginProfile(){
+    leave();profileOnly_=true;profileEditing_=false;active_=true;focus_=0;error_.clear();
+    send("profile-refresh");emit changed();
+}
+void CommunicationSettings::editProfile(){
+    if(!profileOnly_ || choosingAvatar_ || account()["userId"].toString().isEmpty() || account()["profileBusy"].toBool())return;
+    profileEditing_=!profileEditing_;focus_=0;emit changed();
+}
 void CommunicationSettings::leave(){
     if(!active_)return;
     active_=false;refresh_.stop();scanLimit_.stop();scan_.kill();stopTest();
@@ -93,6 +101,17 @@ QVariantList CommunicationSettings::rows() const{
         result.append(row("Remove picture","","action"));result.append(row("Cancel","","action"));return result;
     }
     if(state["userId"].toString().isEmpty())return {row(state["code"].toString().isEmpty()?"Sign in":"Cancel sign-in",state["code"].toString().isEmpty()?state["status"].toString():"Open fluxer.app/handoff · "+state["code"].toString())};
+    if(profileOnly_ && !profileEditing_) {
+        const auto presence=state["presence"].toString();
+        QVariantList result;
+        for(const auto& item:QList<QPair<QString,QString>>{{"online","Online"},{"idle","Away"},{"dnd","Do Not Disturb"},{"invisible","Invisible"}}) {
+            auto value=row(item.second,presence==item.first?"Selected":"","presence");
+            value["selected"]=presence==item.first;value["presence"]=item.first;result.append(value);
+        }
+        result.append(row("Set a status",state["customStatus"].toString().isEmpty()?"What are you up to?":state["customStatus"].toString()));
+        result.append(row("Edit profile","Name, picture and about me"));
+        return result;
+    }
     QVariantList result{
         row("Display name",user["name"].toString().isEmpty()?state["name"].toString():user["name"].toString(),"action","Profile"),
         row("Profile picture","Choose from Pictures"),row("About me",user["bio"].toString().isEmpty()?"Add a little about yourself":user["bio"].toString()),
@@ -101,6 +120,7 @@ QVariantList CommunicationSettings::rows() const{
         row("Do Not Disturb",state["doNotDisturb"].toBool()?"On":"Off","toggle","Notifications"),
         row("Notification sounds",state.value("notificationSound",true).toBool()?"On":"Off","toggle"),
         row("Hide message previews",state.value("privatePreviews",true).toBool()?"On":"Off","toggle")};
+    if(profileOnly_){result=result.mid(0,3);result.append(row("Done","Back to your profile"));return result;}
     auto volume=result[5].toMap();volume["level"]=audio.value("volume",100);result[5]=volume;
     for(int i=7;i<=9;++i){auto value=result[i].toMap();value["checked"]=value["detail"]=="On";result[i]=value;}
     const auto voice=state["voice"].toMap();
@@ -134,6 +154,15 @@ void CommunicationSettings::startTest(){
 void CommunicationSettings::activate(int index){
     if(index<0||index>=rows().size()||pendingAvatar_||account()["profileBusy"].toBool())return;
     focus_=index;error_.clear();
+    if(profileOnly_ && !choosingAvatar_ && !account()["userId"].toString().isEmpty()) {
+        if(!profileEditing_) {
+            if(index<4)send("profile-update",{{"field","status"},{"value",rows()[index].toMap()["presence"]}});
+            else if(index==4){textField_="custom_status";emit textRequested("Your status",account()["customStatus"].toString(),128);}
+            else editProfile();
+            emit changed();return;
+        }
+        if(index==3){editProfile();return;}
+    }
     if(choosingAvatar_){
         if(index<pictures_.size()){pendingAvatar_=true;avatar_.choosePicture(pictures_[index].toMap()["path"].toString());}
         else {if(index==pictures_.size())send("profile-update",{{"field","avatar"},{"value",""}});choosingAvatar_=false;focus_=1;}
@@ -148,17 +177,20 @@ void CommunicationSettings::activate(int index){
 }
 void CommunicationSettings::applyText(const QString& text){
     if(textField_.isEmpty())return;
-    send("profile-update",{{"field",textField_},{"value",text.trimmed()}});textField_.clear();
+    const auto field=textField_;textField_.clear();
+    send("profile-update",{{"field",field},{"value",text.trimmed()}});
 }
 void CommunicationSettings::dispatch(Action action){
     if(action==Action::Back){
         if(choosingAvatar_){pendingAvatar_=false;avatar_.clear();choosingAvatar_=false;focus_=1;emit changed();}
+        else if(profileOnly_ && profileEditing_){editProfile();}
         else {stopTest();emit backRequested();}return;
     }
+    if(profileOnly_ && action==Action::LocalAction){editProfile();return;}
     if(action==Action::Up)focus_=qMax(0,focus_-1);
     if(action==Action::Down)focus_=qMin(int(rows().size())-1,focus_+1);
     if(action==Action::Confirm){activate(focus_);return;}
-    if(!choosingAvatar_&&!account()["userId"].toString().isEmpty()&&(action==Action::Left||action==Action::Right)){
+    if(!profileOnly_&&!choosingAvatar_&&!account()["userId"].toString().isEmpty()&&(action==Action::Left||action==Action::Right)){
         const int direction=action==Action::Left?-1:1;
         if(focus_==3||focus_==4)cycleDevice(focus_==3?"input":"output",direction);
         else if(focus_==5)setVolume(account()["audio"].toMap().value("volume",100).toInt()+direction*5);

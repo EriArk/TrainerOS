@@ -15,12 +15,16 @@ class CommunicationSettings final : public QObject {
     Q_PROPERTY(int focusIndex READ focusIndex NOTIFY changed)
     Q_PROPERTY(int microphoneLevel READ microphoneLevel NOTIFY meterChanged)
     Q_PROPERTY(bool testing READ testing NOTIFY changed)
+    Q_PROPERTY(bool profileEditing READ profileEditing NOTIFY changed)
     Q_PROPERTY(bool choosingAvatar READ choosingAvatar NOTIFY changed)
 public:
     explicit CommunicationSettings(QObject* parent=nullptr);
     ~CommunicationSettings() override;
     void configure(SocialController* social);
     void begin();
+    void beginProfile();
+    bool profileEditing() const { return profileEditing_; }
+    Q_INVOKABLE void editProfile();
     void leave();
     void dispatch(Action action);
     void applyText(const QString& text);
@@ -55,6 +59,7 @@ private:
     QString defaultInput_,error_,textField_,accountId_;
     QByteArray scanBytes_,meterBytes_;
     int focus_=0,level_=0,scanStage_=0;
+    bool profileOnly_=false,profileEditing_=false;
     bool active_=false,testing_=false,choosingAvatar_=false,pendingAvatar_=false;
 };
 }

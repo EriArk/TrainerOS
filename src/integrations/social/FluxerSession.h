@@ -107,7 +107,12 @@ private:
     QByteArray voiceGrantIdentity_;
     bool voiceReplacing_ = false;
     bool voiceMuted_=true,voiceDeaf_=false;
-    QJsonObject profile_;
+    QJsonObject profile_,userSettings_;
+    quint64 profileReadRevision_=0;
+    void refreshProfile();
+    void updateUserSettings(const QJsonObject& settings);
+    QString customStatus() const;
+    bool notificationsSuppressed() const { return doNotDisturb_ || userSettings_["status"]=="dnd"; }
     QVariantMap person_;
     quint64 personRevision_=0;
     void readProfile(QString id, QString requestId);

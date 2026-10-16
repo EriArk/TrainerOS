@@ -18,10 +18,9 @@ Item {
         x: root.gap; y: 12 * root.unit
         width: root.split - 2 * root.gap
         height: root.usableHeight - (root.generic ? 0 : awards.height + root.gap) - y
-        Text { id: activityTitle; text: "Activity"; color: Theme.ink; font.family: Theme.displayFamily; font.pixelSize: 23 * root.unit }
         ListView {
             id: chatRow; objectName: "home-people"
-            y: 38 * root.unit; width: parent.width; height: 80 * root.unit
+            y: 6 * root.unit; width: parent.width; height: 80 * root.unit
             orientation: ListView.Horizontal; clip: true; spacing: 8 * root.unit
             model: root.flow.people
             currentIndex: { for(let i=0;i<model.length;i++)if(model[i].key===root.flow.focus)return i;return -1 }
@@ -50,7 +49,7 @@ Item {
         }
         Item {
             visible: root.flow.people.length === 0 && root.flow.activities.length === 0
-            x: 3*root.unit; y: 48*root.unit; width: parent.width; height: 92*root.unit
+            x: 3*root.unit; y: 16*root.unit; width: parent.width; height: 92*root.unit
             Rectangle {
                 x: 3; y: 9*root.unit; width: 67*root.unit; height: 55*root.unit; radius: 17*root.unit
                 color: "#b484a5"; rotation: -10; border.color: "#edd3d9"; border.width: 2
@@ -68,7 +67,7 @@ Item {
         }
         ListView {
             id: events; objectName: "home-activity"
-            y: root.flow.people.length ? chatRow.y + chatRow.height + 8 * root.unit : 44 * root.unit
+            y: root.flow.people.length ? chatRow.y + chatRow.height + 8 * root.unit : 12 * root.unit
             width: parent.width; height: Math.max(0, parent.height-y)
             clip: true; spacing: 9 * root.unit; model: root.flow.activities
             currentIndex: { for(let i=0;i<model.length;i++) if(model[i].key===root.flow.focus)return i;return -1 }
@@ -177,17 +176,31 @@ Item {
             color: root.generic ? "#e1ebd4" : Theme.muted; font.pixelSize: 12*root.unit; elide: Text.ElideRight
         }
     }
+    // A softly raised card: diffuse contact shadows, a darker lower edge,
+    // and a lit top rim. Text and adapter presentation keep their own geometry.
+    Repeater {
+        model: 5
+        Rectangle {
+            required property int index
+            x: showcase.x-6+index; y: showcase.y+5+index
+            width: showcase.width+12-index*2; height: showcase.height+5-index
+            radius: showcase.radius+6-index
+            color: ["#04142220","#07142220","#0b142220","#10142220","#17142220"][index]
+        }
+    }
+    Rectangle { x: showcase.x; y: showcase.y+5; width: showcase.width; height: showcase.height; radius: showcase.radius; color: Theme.chassisFoot; border.color: Theme.edgeShadow; border.width: 1 }
     // The adapter owns the showcase; the shell keeps a single compact launch control.
     Rectangle {
         id: showcase; objectName: "home-game-card"
-        x: root.split + 2; y: 7 * root.unit
-        width: parent.width-x-12*root.unit; height: parent.height-y-13*root.unit
-        radius: 18 * root.unit; color: Theme.homeLandscape[6]; border.color: Theme.homeLandscape[4]; border.width: 2
+        x: root.split + 8; y: 11 * root.unit
+        width: parent.width-x-19*root.unit; height: parent.height-y-19*root.unit
+        radius: 18 * root.unit; border.color: Theme.edgeLight; border.width: 1
+        gradient: Gradient { GradientStop { position: 0; color: Qt.lighter(Theme.rim,1.16) } GradientStop { position: .14; color: Theme.chassisTop } GradientStop { position: 1; color: Theme.chassisDark } }
         HomeCardBackdrop {
             objectName: "home-card-illustration"
-            anchors.fill: parent; anchors.margins: 3
+            anchors.fill: parent; anchors.margins: 4
         }
-        Rectangle { anchors.fill: parent; anchors.margins: 4; radius: parent.radius-4; color: "transparent"; border.color: Theme.homeLandscape[5]; opacity: .35 }
+        Rectangle { anchors.fill: parent; anchors.margins: 4; radius: parent.radius-4; color: "transparent"; border.color: Theme.edgeLight; opacity: .38 }
         Item {
             objectName: "home-description"
             x: 14; y: 14
