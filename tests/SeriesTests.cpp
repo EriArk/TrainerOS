@@ -41,6 +41,42 @@ public:
 class SeriesTests: public QObject {
     Q_OBJECT
 private slots:
+    void shelvesNavigateRowsPreserveIdentityAndLaunch() {
+        SeriesLibrary library;SeriesAdapter adapter;
+        for(int i=0;i<21;++i){auto r=library.records[2];r.adventure.id=QString("shelf-%1").arg(i);r.adventure.title=QString("Shelf %1").arg(i,2,10,QChar('0'));library.records.append(r);}
+        MultiversePresentation model(library,adapter);model.openSystem("gba");model.setViewStyle("shelves");
+        QCOMPARE(model.shelfColumns(),5);model.focusGame(0);
+        model.dispatch(Action::Left);model.dispatch(Action::Up);QCOMPARE(model.focusIndex(),0);
+        model.dispatch(Action::Down);QCOMPARE(model.focusIndex(),5);
+        model.dispatch(Action::Right);QCOMPARE(model.focusIndex(),6);
+        model.dispatch(Action::Up);QCOMPARE(model.focusIndex(),1);
+        model.focusGame(4);model.dispatch(Action::Right);QCOMPARE(model.focusIndex(),4);
+        model.focusGame(19);model.dispatch(Action::Down);QCOMPARE(model.focusIndex(),22);
+        model.dispatch(Action::Down);QCOMPARE(model.focusIndex(),22);
+        const auto id=model.detail()["id"];const auto games=model.games();
+        model.setViewStyle("wheel");model.setViewStyle("list");model.setViewStyle("shelves");
+        QCOMPARE(model.detail()["id"],id);QCOMPARE(model.games(),games);
+        MultiversePresentation restored(library,adapter);restored.restoreNavigation(model.navigationState());
+        QCOMPARE(restored.viewStyle(),"shelves");QCOMPARE(restored.detail()["id"],id);
+        restored.setCollection("mario");QCOMPARE(restored.viewStyle(),"wheel");
+        restored.openSystem("gba");QCOMPARE(restored.viewStyle(),"shelves");QCOMPARE(restored.detail()["id"],id);
+        QVERIFY(adapter.launched.isEmpty());restored.dispatch(Action::Confirm);QCOMPARE(adapter.launched,id.toString());
+    }
+    void coversUseGenreAndStableIdWithoutScreenshotSubstitution() {
+        SeriesLibrary library;SeriesAdapter adapter;
+        library.metadata["z1"]={{"genre","Role Playing Game"},{"screenshot","file:///screen.png"},{"cover","file:///screen.png"}};
+        library.metadata["x1"]={{"genre","Racing"},{"boxart","file:///box.png"},{"image","file:///image.png"}};
+        MultiversePresentation model(library,adapter);
+        const auto fantasy=model.game("z1")["fallbackCover"].toString();
+        QVERIFY(fantasy.startsWith("qrc:/cover-fallbacks/fantasy-"));QVERIFY(model.game("z1")["cover"].toString().isEmpty());
+        QVERIFY(model.game("x1")["fallbackCover"].toString().startsWith("qrc:/cover-fallbacks/racing-"));
+        QCOMPARE(model.game("x1")["cover"].toString(),"file:///box.png");
+        library.records[2].adventure.title="Renamed game";model.refresh();QCOMPARE(model.game("z1")["fallbackCover"].toString(),fantasy);
+        const QList<QPair<QString,QString>> genres{{"Sports / Football","sports"},{"Puzzle","puzzle"},{"Shoot'em up","scifi"},{"Fighting","action"},{"Unknown","neutral"},{"","neutral"}};
+        for(const auto& pair:genres){library.metadata["x1"]["genre"]=pair.first;model.refresh();QVERIFY(model.game("x1")["fallbackCover"].toString().startsWith("qrc:/cover-fallbacks/"+pair.second+"-"));}
+        library.metadata["z1"]["image"]="file:///new-cover.png";model.refresh();
+        QCOMPARE(model.game("z1")["cover"].toString(),"file:///new-cover.png");QCOMPARE(model.game("z1")["fallbackCover"].toString(),fantasy);
+    }
     void gamesRootKeepsIndependentScopesAndStableIdentity() {
         SeriesLibrary library;SeriesAdapter adapter;MockTrainerRepository profiles;DevelopmentPlatformService platform;
         MockPokedexRepository dex;MockHallOfFameRepository archive;MockAchievementProvider achievements;

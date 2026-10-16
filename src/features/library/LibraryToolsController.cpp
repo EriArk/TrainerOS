@@ -77,7 +77,7 @@ QVariantList LibraryToolsController::rows() const {
         if(reviews_["more"].toBool())result.append(row("More reviews",!reviews_["busy"].toBool()));
         return result;
     }
-    const auto viewRows=[&] { return QVariantList{row("View: Wheel"+(browserView_=="wheel"?QString(" ✓"):QString())),row("View: List"+(browserView_=="list"?QString(" ✓"):QString()))}; };
+    const auto viewRows=[&] { return QVariantList{row("View: Wheel"+(browserView_=="wheel"?QString(" ✓"):QString())),row("View: List"+(browserView_=="list"?QString(" ✓"):QString())),row("View: Shelves"+(browserView_=="shelves"?QString(" ✓"):QString()))}; };
     if(route_=="browse") { QVariantList result{row("Search library"),row("Change filter")};if(!browserView_.isEmpty())result.append(viewRows());result.append(row("Back"));return result; }
     if(route_=="game"){QVariantList result{row("Rename"),row("Move",catalog_ && !repository_.storageRootFor(game_.adventure.id).isEmpty()),row("Удалить"),row("Properties"),row("Download information & artwork",!repository_.storageRootFor(game_.adventure.id).isEmpty()),row("Collections"),row("Play together",multiplayerAvailable && multiplayerAvailable(game_.adventure.id)),row("Lobby",multiplayerAvailable && multiplayerAvailable(game_.adventure.id))};if(browserActions_){result.append(row("Search library"));result.append(row("Change filter"));if(!browserView_.isEmpty())result.append(viewRows());}return result;}
     if(route_=="move-kind")return {row("Platform / folder",catalog_ && !repository_.storageRootFor(game_.adventure.id).isEmpty()),row("Another World")};
@@ -133,7 +133,7 @@ void LibraryToolsController::activate(int index) {
         const auto command=(route_=="browse"?index:index-8);
         const bool hasView=!browserView_.isEmpty();
         close();if(command<2)emit browserActionRequested(command==0?"search":"filter");
-        else if(hasView && command<4)emit browserActionRequested(command==2?"view:wheel":"view:list");
+        else if(hasView && command<5)emit browserActionRequested(command==2?"view:wheel":command==3?"view:list":"view:shelves");
         return;
     }
     if(route_=="game"&&index==7){const auto game=game_.adventure.id;close();emit lobbyRequested(game);return;}

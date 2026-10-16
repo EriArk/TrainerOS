@@ -83,7 +83,7 @@ void startWorldsSmoke(QQuickWindow* window, ShellController& shell, ControllerIn
             check(wheel,"Touch R3 hint missing");if(wheel)QTest::mouseClick(window,Qt::LeftButton,Qt::NoModifier,wheel->mapToScene(QPointF(wheel->width()/2,wheel->height()/2)).toPoint());
             break;
         }
-        case 15: check(shell.multiverse()->viewStyle()=="wheel","Touch R3 did not select Wheel");check(shell.multiverse()->detail()["id"].toString()==*selectedId,"Picker lost ID");press(SDL_CONTROLLER_BUTTON_RIGHTSTICK);check(shell.multiverse()->viewStyle()=="list","R3 button did not select List");window->resize(1920,1080);break;
+        case 15: check(shell.multiverse()->viewStyle()=="shelves","Touch R3 did not select Shelves");press(SDL_CONTROLLER_BUTTON_RIGHTSTICK);check(shell.multiverse()->viewStyle()=="wheel","R3 did not cycle to Wheel");check(shell.multiverse()->detail()["id"].toString()==*selectedId,"Picker lost ID");press(SDL_CONTROLLER_BUTTON_RIGHTSTICK);check(shell.multiverse()->viewStyle()=="list","R3 button did not select List");window->resize(1920,1080);break;
         case 16: {
             capture("list-1080");const auto before=shell.multiverse()->focusIndex();
             press(SDL_CONTROLLER_BUTTON_DPAD_RIGHT);
@@ -117,6 +117,60 @@ void startWorldsSmoke(QQuickWindow* window, ShellController& shell, ControllerIn
             if(list){QSignalSpy changed(list,SIGNAL(focusRequested(int)));QMetaObject::invokeMethod(list,"turnPage",Q_ARG(QVariant,1));check(changed.isEmpty(),"Last page must not wrap on swipe");
                 for(auto* row:list->findChildren<QQuickItem*>())if(row->objectName().startsWith("library-list-row-") && row->isVisible())check(row->y()+row->height()<=list->height()-34,"A list row is cut off");}
             press(b);break;
+        }
+        case 21: shell.openGamesRootItem("platforms",shell.gamesPlatforms().front().toMap()["id"].toString());shell.libraryAction("view:shelves");break;
+        case 22: {
+            auto* shelves=visibleItem("library-shelves");check(shelves,"Shelves missing");
+            check(!visibleItem("library-detail-picture"),"Shelves must not retain a visible information pane");
+            QVariantList fixture;
+            const QStringList groups{"fantasy","racing","sports","scifi","puzzle","action","neutral"};
+            for(int i=0;i<103;++i)fixture.append(QVariantMap{{"id",QString("shelf-fixture-%1").arg(i)},
+                {"title",i==0?"A very long adventure title for the selected cover caption":QString("Adventure %1").arg(i+1)},
+                {"platformShort","GBA"},{"linked",i!=3},
+                {"cover",i==2?"qrc:/series/kirby.png":""},
+                {"fallbackCover",QString("qrc:/cover-fallbacks/%1-%2.png").arg(groups[i%groups.size()]).arg(i%2)}});
+            if(shelves){shelves->setProperty("entries",fixture);shelves->setProperty("selectionIndex",0);}break;
+        }
+        case 23: {
+            auto* shelves=visibleItem("library-shelves");auto* scroll=visibleItem("shelves-scroll");
+            check(shelves && scroll,"Shelves fixture unavailable");focus();capture("shelves-960");
+            if(shelves && scroll){
+                check(shelves->property("columns").toInt()==5,"Five covers must fit a shelf");
+                check(qAbs(shelves->property("rowHeight").toDouble()*2-scroll->height())<0.1,"Two complete shelf rows must fit");
+                int coverCount=0;
+                std::function<void(QQuickItem*)> countCovers=[&](QQuickItem* item){
+                    if(item->objectName().startsWith("shelf-game-"))++coverCount;
+                    for(auto* child:item->childItems())countCovers(child);
+                };countCovers(scroll);
+                check(coverCount>=10 && coverCount<=20,"Shelf delegates must be virtualized, not instantiate the whole library");
+                auto* real=visibleItem("shelf-game-2");
+                check(real && real->property("realCover").toBool(),"Real artwork must replace the generated placeholder");
+                auto* image=real?real->findChild<QQuickItem*>("shelf-cover-art"):nullptr;
+                check(image && qAbs(image->width()/image->height()-image->implicitWidth()/image->implicitHeight())<0.01,"Cover case must follow actual image proportions without letterboxing");
+                QSignalSpy launch(shelves,SIGNAL(activated(int)));
+                auto from=scroll->mapToScene(QPointF(60,scroll->height()-55)).toPoint();
+                QTest::mousePress(window,Qt::LeftButton,Qt::NoModifier,from);
+                for(int i=1;i<=8;++i)QTest::mouseMove(window,from-QPoint(0,i*22),25);
+                QTest::mouseRelease(window,Qt::LeftButton,Qt::NoModifier,from-QPoint(0,176));
+                check(launch.isEmpty(),"Shelf swipe must never launch a game");
+            }break;
+        }
+        case 24: {
+            auto* shelves=visibleItem("library-shelves");auto* scroll=visibleItem("shelves-scroll");
+            check(scroll && scroll->property("contentY").toDouble()>1,"Vertical touch swipe must move shelves");capture("shelves-scrolled");
+            if(shelves)shelves->setProperty("selectionIndex",102);break;
+        }
+        case 25: {
+            auto* shelves=visibleItem("library-shelves");auto* scroll=visibleItem("shelves-scroll");
+            check(visibleItem("shelf-game-102"),"Final partial shelf selection must be visible");capture("shelves-last-row");
+            if(scroll && shelves){check(scroll->property("contentY").toDouble()<=scroll->property("contentHeight").toDouble()-scroll->height()+0.1,"Shelves overscrolled last row");shelves->setProperty("selectionIndex",0);}
+            window->resize(1920,1080);break;
+        }
+        case 26: capture("shelves-1080");window->resize(1280,800);break;
+        case 27: {
+            auto* shelves=visibleItem("library-shelves");
+            check(shelves && shelves->property("firstRow").toInt()==0,"Resizing must keep the selected first game on screen");
+            capture("shelves-16-10");press(b);break;
         }
         default:
             check(shell.collectionsRoot(),"Return to root failed");check(warnings==0,"QML warnings");completed=true;timer->stop();

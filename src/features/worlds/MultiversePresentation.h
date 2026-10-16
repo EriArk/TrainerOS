@@ -19,6 +19,7 @@ class MultiversePresentation final : public QObject {
     Q_PROPERTY(QString route READ route NOTIFY changed)
     Q_PROPERTY(QString viewStyle READ viewStyle NOTIFY changed)
     Q_PROPERTY(int listPageSize READ listPageSize CONSTANT)
+    Q_PROPERTY(int shelfColumns READ shelfColumns CONSTANT)
     Q_PROPERTY(QVariantList systems READ systems NOTIFY libraryChanged)
     Q_PROPERTY(QVariantList games READ games NOTIFY gamesChanged)
     Q_PROPERTY(QVariantMap detail READ detail NOTIFY changed)
@@ -41,6 +42,7 @@ public:
     void setCollection(const QString&);
 
     int listPageSize() const { return 7; }
+    int shelfColumns() const { return 5; }
     QString viewStyle() const { return views_.value(system_, "wheel"); }
     void setViewStyle(const QString&);
     void focusGame(int index);

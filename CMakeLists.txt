@@ -293,6 +293,8 @@ qt_add_resources(traineros series_art PREFIX "/series" BASE assets/series
     FILES assets/series/pokemon.png assets/series/mario.png assets/series/zelda.png assets/series/sonic.png assets/series/final-fantasy.png assets/series/metroid.png assets/series/castlevania.png assets/series/kirby.png assets/series/metal-slug.png assets/series/multiverse.png)
 qt_add_resources(traineros home_backdrops PREFIX "/home-backdrops" BASE assets/home-backdrops
     FILES assets/home-backdrops/turquoise.png assets/home-backdrops/red.png assets/home-backdrops/green.png assets/home-backdrops/blue.png assets/home-backdrops/orange.png)
+qt_add_resources(traineros cover_fallbacks PREFIX "/cover-fallbacks" BASE assets/cover-fallbacks
+    FILES assets/cover-fallbacks/fantasy-0.png assets/cover-fallbacks/fantasy-1.png assets/cover-fallbacks/fantasy-2.png assets/cover-fallbacks/fantasy-3.png assets/cover-fallbacks/fantasy-4.png assets/cover-fallbacks/fantasy-5.png assets/cover-fallbacks/racing-0.png assets/cover-fallbacks/racing-1.png assets/cover-fallbacks/sports-0.png assets/cover-fallbacks/sports-1.png assets/cover-fallbacks/scifi-0.png assets/cover-fallbacks/scifi-1.png assets/cover-fallbacks/puzzle-0.png assets/cover-fallbacks/puzzle-1.png assets/cover-fallbacks/action-0.png assets/cover-fallbacks/action-1.png assets/cover-fallbacks/neutral-0.png assets/cover-fallbacks/neutral-1.png)
 qt_add_resources(traineros display_fonts PREFIX "/fonts" BASE assets/fonts
     FILES assets/fonts/Fredoka.ttf assets/fonts/OFL.txt
           assets/fonts/ChakraPetch-Bold.ttf assets/fonts/ChakraPetch-OFL.txt
@@ -318,6 +320,8 @@ qt_add_qml_module(traineros
     QML_FILES
         src/qml/AdventureArtwork.qml
         src/qml/LibraryGameList.qml
+        src/qml/LibraryShelves.qml
+        src/qml/ShelfCover.qml
         src/qml/LibraryWheel.qml
         src/qml/GameInformation.qml
         src/qml/PlayBadge.qml

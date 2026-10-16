@@ -179,7 +179,7 @@ Item {
         x: root.split + 20; y: 6; width: parent.width - x - 20; height: parent.height - 22
         visible: root.entries.length > 0
         entry: root.entry
-        active: root.takesFocus && root.wheelFocused
+        active: root.visible && root.takesFocus && root.wheelFocused
         previewsEnabled: root.previewsEnabled
     }
     CapButton {

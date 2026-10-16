@@ -6,8 +6,40 @@
 #include "core/repository/CollectionRepository.h"
 #include <QFileInfo>
 #include <QJsonArray>
+#include <QCryptographicHash>
+#include <QRegularExpression>
 
 namespace trainer {
+namespace {
+QString placeholderCover(const QString& id, const QString& genre) {
+    // Catalogue genre only: never infer a genre from a filename or game title.
+    const auto text=genre.toCaseFolded();
+    const QList<QPair<QString,QString>> groups{
+        {"racing","racing|driving|race|гонк|course|conduite"},
+        {"sports","sport|football|soccer|basketball|tennis|golf|спорт"},
+        {"puzzle","puzzle|logic|логич|головолом|réflexion"},
+        {"scifi","science.fiction|sci.fi|space|космос|космич|shoot.em.up|shmup"},
+        {"fantasy","role.play|rpg|adventure|platform|приключ|ролевая|платформ|aventure"},
+        {"action","action|fight|shooter|beat.em.up|экшен|боевик|драк|стрелял|combat|tir"}
+    };
+    QString group="neutral";
+    for(const auto& pair:groups)if(QRegularExpression(pair.second).match(text).hasMatch()){group=pair.first;break;}
+    const auto bytes=QCryptographicHash::hash((id+":"+group).toUtf8(),QCryptographicHash::Sha256);
+    const auto variant=static_cast<unsigned char>(bytes[0])%(group=="fantasy"?6:2);
+    return QString("qrc:/cover-fallbacks/%1-%2.png").arg(group).arg(variant);
+}
+QString boxCover(const QVariantMap& art) {
+    for(const auto& key:QStringList{"boxart","image","cover"}) {
+        const auto value=art.value(key).toString();
+        if(value.isEmpty())continue;
+        bool screenshot=false;
+        for(const auto& field:QStringList{"screenshot","titleshot","fanart","mix"})
+            if(value==art.value(field).toString())screenshot=true;
+        if(!screenshot)return value;
+    }
+    return {};
+}
+}
 MultiversePresentation::MultiversePresentation(bool sample, QObject* parent) : QObject(parent), sample_(sample) {
     if (sample_) entries_ = {{"sample-courier", "gb", "Star Courier", true},
         {"sample-lantern", "gb", "Lantern Valley", false}, {"sample-orbit", "snes", "Orbit Rally", true},
@@ -127,7 +159,7 @@ QJsonObject MultiversePresentation::localNavigation() const {
         {"focused",detail().value("id").toString()},{"views",views}};
 }
 void MultiversePresentation::setViewStyle(const QString& style) {
-    if(route_!="games" || (style!="wheel" && style!="list") || style==viewStyle())return;
+    if(route_!="games" || (style!="wheel" && style!="list" && style!="shelves") || style==viewStyle())return;
     views_[system_]=style;emit changed();
 }
 void MultiversePresentation::focusGame(int index) {
@@ -145,7 +177,7 @@ void MultiversePresentation::restoreLocal(const QJsonObject& state) {
     if(collection_!="multiverse")system_="_series";
     queries_.clear();filters_.clear();positions_.clear();views_.clear();
     const auto views=state["views"].toObject();
-    for(auto i=views.begin();i!=views.end();++i)if(i.value()=="wheel" || i.value()=="list")views_[i.key()]=i.value().toString();
+    for(auto i=views.begin();i!=views.end();++i)if(i.value()=="wheel" || i.value()=="list" || i.value()=="shelves")views_[i.key()]=i.value().toString();
     const auto queries=state["queries"].toObject(),filters=state["filters"].toObject(),positions=state["positions"].toObject();
     auto keys=multiversePlatforms(); keys.append({"_series","","",""});
     for(const auto& p:keys) {
@@ -226,6 +258,7 @@ QVariantMap MultiversePresentation::present(const Game& game) const {
         {"platformShort",platformLabel(game.system).badge},{"platformShape",platformLabel(game.system).shape},
         {"description",description},{"preview",preview.isEmpty() && repository_ ? repository_->artwork(game.id).value("cover").toString() : preview},{"time",time},
         {"artwork",artwork},{"logo",artwork.value("marquee",artwork.value("wheel"))},{"screenshot",screenshot},
+        {"cover",boxCover(artwork)},{"fallbackCover",placeholderCover(game.id,artwork.value("genre").toString())},
         {"year",year},{"genre",artwork.value("genre")},{"players",artwork.value("players")},{"playInfo",gamePlayers(artwork).presentation()},
         {"developer",artwork.value("developer")},{"publisher",artwork.value("publisher")},{"synopsis",artwork.value("desc")},
         {"action",game.linked?"Start Adventure":"File unavailable"},
@@ -309,6 +342,17 @@ void MultiversePresentation::activate(int index) {
     emit changed();
 }
 void MultiversePresentation::dispatch(Action action) {
+    if(route_=="games" && viewStyle()=="shelves" &&
+       (action==Action::Left || action==Action::Right || action==Action::Up || action==Action::Down)) {
+        const int current=focusIndex(), columns=shelfColumns(), count=filtered().size();
+        if(!count)return;
+        int next=current;
+        if(action==Action::Left && current%columns>0)--next;
+        if(action==Action::Right && current%columns<columns-1)next=std::min(count-1,current+1);
+        if(action==Action::Up && current>=columns)next=current-columns;
+        if(action==Action::Down && (current/columns+1)*columns<count)next=std::min(count-1,current+columns);
+        focusGame(next);return;
+    }
     if(route_=="games" && viewStyle()=="list" && (action==Action::Left || action==Action::Right)) {
         const int current=focusIndex(), size=listPageSize(), count=filtered().size();
         const int page=current/size+(action==Action::Left?-1:1);
