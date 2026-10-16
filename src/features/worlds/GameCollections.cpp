@@ -1,5 +1,6 @@
 #include "GameCollections.h"
 #include "core/model/GamePlayers.h"
+#include "core/model/GameFavorite.h"
 #include "core/model/SeriesCatalog.h"
 #include "core/repository/CollectionRepository.h"
 #include <QCryptographicHash>
@@ -14,7 +15,6 @@
 namespace trainer {
 namespace {
 QVariantMap row(const QString& label) { return {{"label",label},{"enabled",true}}; }
-bool favorite(const QVariantMap& data) { return data.value("favorite").toString()=="true" || data.value("favorite").toString()=="1"; }
 }
 void GameCollections::configure(const QString& directory,const QString& owner) {
     close();definitions_={};file_.clear();writable_=!owner.isEmpty();error_.clear();
@@ -65,7 +65,7 @@ bool GameCollections::known(const QString& id) const {
 bool GameCollections::contains(const QString& collection,const Adventure& game) const {
     const auto data=library_.artwork(game.id);
     if(collection=="auto:recent")return played(game.id);
-    if(collection=="auto:favorites")return favorite(data);
+    if(collection=="auto:favorites")return gameFavorite(data);
     if(collection=="auto:unplayed")return !played(game.id);
     if(collection=="auto:multiplayer")return gamePlayers(data).maximum>=2;
     for(const auto& value:definitions_) {
@@ -79,7 +79,7 @@ bool GameCollections::contains(const QString& collection,const Adventure& game) 
         if(rules["players"].toInt()>0 && gamePlayers(data).maximum<rules["players"].toInt())return false;
         if(rules["played"].toString()=="yes" && !played(game.id))return false;
         if(rules["played"].toString()=="no" && played(game.id))return false;
-        if(rules["favorite"].toBool() && !favorite(data))return false;
+        if(rules["favorite"].toBool() && !gameFavorite(data))return false;
         return true;
     }
     return false;

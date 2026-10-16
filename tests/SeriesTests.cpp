@@ -41,6 +41,66 @@ public:
 class SeriesTests: public QObject {
     Q_OBJECT
 private slots:
+    void globalFavoritesDrawerPreservesSourcesAndDoesNotLaunch() {
+        SeriesLibrary library;library.metadata["m1"]={{"favorite","true"}};library.metadata["z1"]={{"favorite",1}};
+        library.sessions={{"one","m2",QDateTime::currentDateTimeUtc()},{"two","m1",QDateTime::currentDateTimeUtc().addSecs(-10)}};
+        SeriesAdapter adapter;MockTrainerRepository profiles;DevelopmentPlatformService platform;MockPokedexRepository dex;
+        MockHallOfFameRepository archive;MockAchievementProvider achievements;
+        ShellController shell(library,profiles,adapter,platform,builtinExperiences(dex,dex),archive,achievements);
+        shell.goToPage(1);shell.openGamesRootItem("collections","mario");
+        const auto recent=shell.resumePoints();const auto home=shell.currentAdventureId();
+        shell.setDrawerSource("favorites");QCOMPARE(shell.drawerSource(),"recent"); // Closed surface cannot steal L2/R2.
+        shell.dispatch(Action::ToggleContinue);shell.dispatch(Action::Right);shell.setDrawerScroll(1.25);
+        shell.dispatch(Action::NextFace);QVERIFY(shell.drawerOpen());QCOMPARE(shell.drawerSource(),"favorites");
+        QCOMPARE(shell.drawerGames().size(),2);QCOMPARE(shell.multiverse()->collection(),"mario");
+        shell.dispatch(Action::Right);const auto chosen=shell.drawerGames()[shell.focusIndex()].toMap()["id"].toString();
+        shell.setDrawerScroll(2.5);shell.dispatch(Action::PreviousFace);
+        QCOMPARE(shell.focusIndex(),1);QCOMPARE(shell.drawerScroll(),1.25);
+        shell.dispatch(Action::NextFace);QCOMPARE(shell.focusIndex(),1);QCOMPARE(shell.drawerScroll(),2.5);
+        QCOMPARE(shell.currentAdventureId(),home);shell.selectDrawerGame(chosen);QVERIFY(!shell.drawerOpen());
+        QCOMPARE(shell.currentAdventureId(),"z1");QVERIFY(adapter.launched.isEmpty());QCOMPARE(shell.resumePoints(),recent);
+        QCOMPARE(library.sessions.size(),2);
+        for(int page=0;page<5;++page){shell.goToPage(page);shell.dispatch(Action::ToggleContinue);QVERIFY(shell.drawerOpen());shell.dispatch(Action::ToggleContinue);QVERIFY(!shell.drawerOpen());}
+    }
+    void favoriteRemovalCannotRetargetConfirmAndLiveGameRemainsPinned() {
+        SeriesLibrary library;library.metadata["m1"]={{"favorite",true}};library.metadata["z1"]={{"favorite",true}};
+        SeriesAdapter adapter;MockTrainerRepository profiles;DevelopmentPlatformService platform;MockPokedexRepository dex;
+        MockHallOfFameRepository archive;MockAchievementProvider achievements;
+        ShellController shell(library,profiles,adapter,platform,builtinExperiences(dex,dex),archive,achievements);
+        shell.dispatch(Action::ToggleContinue);shell.setDrawerSource("favorites");const auto home=shell.currentAdventureId();
+        library.metadata["m1"]["favorite"]=false;shell.refreshLibrary();QCOMPARE(shell.focusIndex(),-1);
+        shell.dispatch(Action::Confirm);QCOMPARE(shell.currentAdventureId(),home);QVERIFY(shell.drawerOpen());
+        shell.selectDrawerGame("favorite:m1");QCOMPARE(shell.currentAdventureId(),home);
+        shell.dispatch(Action::Right);QCOMPARE(shell.focusIndex(),0);
+        shell.setLiveGame({{"id","m2"},{"title","Running"}});shell.dispatch(Action::Confirm);
+        QCOMPARE(shell.currentAdventureId(),"m2");QVERIFY(!shell.notice().isEmpty());QVERIFY(adapter.launched.isEmpty());
+        shell.dispatch(Action::Back);shell.setLiveGame({});
+        // Revalidate the source on A even before a metadata refresh signal arrives.
+        library.metadata["z1"]["favorite"]=false;shell.dispatch(Action::Confirm);QVERIFY(shell.drawerOpen());
+        QVERIFY(shell.drawerGames().isEmpty());QVERIFY(adapter.launched.isEmpty());
+    }
+    void favoritesRestoreStableIdentityAndOwnerNavigationWithoutCaps() {
+        SeriesLibrary library;
+        for(int i=0;i<105;++i){auto r=library.records[0];r.adventure.id=QString("favorite-%1").arg(i);r.adventure.title=QString("Game %1").arg(i,3,10,QChar('0'));library.records.append(r);library.metadata[r.adventure.id]={{"favorite","true"}};}
+        library.records.last().removed=true;library.records[4].contentAvailable=false;
+        SeriesAdapter adapter;MockTrainerRepository profiles;DevelopmentPlatformService platform;MockPokedexRepository dex;
+        MockHallOfFameRepository archive;MockAchievementProvider achievements;
+        ShellController shell(library,profiles,adapter,platform,builtinExperiences(dex,dex),archive,achievements);
+        shell.dispatch(Action::ToggleContinue);shell.setDrawerSource("favorites");QCOMPARE(shell.drawerGames().size(),104);
+        QCOMPARE(shell.drawerGames().front().toMap()["summary"],"Game file unavailable");
+        for(int i=0;i<101;++i)shell.dispatch(Action::Right);
+        auto chosen=shell.drawerGames()[shell.focusIndex()].toMap()["id"].toString();shell.setDrawerScroll(98.5);
+        const auto state=shell.navigationState();shell.dispatch(Action::Back);shell.restoreNavigation(state);
+        shell.dispatch(Action::ToggleContinue);QCOMPARE(shell.drawerGames()[shell.focusIndex()].toMap()["id"].toString(),chosen);QCOMPARE(shell.drawerScroll(),98.5);
+        library.records[105].adventure.title="A renamed title";shell.refreshLibrary();
+        QCOMPARE(shell.drawerGames()[shell.focusIndex()].toMap()["id"].toString(),chosen);
+        auto other=state;other.remove("drawer");other.remove("resume");shell.restoreNavigation(other);
+        QVERIFY(!shell.drawerOpen());QCOMPARE(shell.drawerSource(),"recent");QCOMPARE(shell.drawerScroll(),-1.);
+        shell.restoreNavigation(state);shell.restoreNavigation({}); // Brand-new Trainer has no saved navigation yet.
+        QVERIFY(!shell.drawerOpen());QCOMPARE(shell.drawerSource(),"recent");QCOMPARE(shell.drawerScroll(),-1.);
+        shell.restoreNavigation(state);shell.dispatch(Action::ToggleContinue);shell.dispatch(Action::SystemMenu);
+        shell.setDrawerSource("recent");QCOMPARE(shell.drawerSource(),"favorites");
+    }
     void selectGameOpensCollectionPickerWithoutChangingHomeOrLaunching() {
         SeriesLibrary library;SeriesAdapter adapter;MockTrainerRepository profiles;DevelopmentPlatformService platform;
         MockPokedexRepository dex;MockHallOfFameRepository archive;MockAchievementProvider achievements;

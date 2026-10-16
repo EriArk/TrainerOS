@@ -255,6 +255,42 @@ void startWorldsSmoke(QQuickWindow* window, ShellController& shell, ControllerIn
             if(cancel)QTest::mouseClick(window,Qt::LeftButton,Qt::NoModifier,cancel->mapToScene(QPointF(cancel->width()/2,cancel->height()/2)).toPoint());
             check(!shell.collectionManager()->isOpen(),"Touch cancel must close picker");press(b);break;
         }
+        case 46: shell.dispatch(Action::ToggleContinue);break;
+        case 47: {
+            auto* drawer=visibleItem("continue-drawer");auto* cards=visibleItem("drawer-cards");
+            check(drawer && qAbs(drawer->height()-162)<.1,"Y drawer must retain its original height");
+            check(cards && cards->width()>0,"Recent games cards missing");focus();capture("drawer-recent-960");
+            shell.dispatch(Action::Right);shell.dispatch(Action::NextFace);break;
+        }
+        case 48: {
+            check(shell.drawerSource()=="favorites" && shell.collectionsRoot(),"L2/R2 must change drawer source, not Games context");
+            check(shell.drawerGames().isEmpty(),"Demo must not invent registered favorites");focus();capture("drawer-favorites-empty");
+            auto* recent=visibleItem("drawer-source-recent");check(recent,"Recent source touch target missing");
+            if(recent)QTest::mouseClick(window,Qt::LeftButton,Qt::NoModifier,recent->mapToScene(QPointF(recent->width()/2,recent->height()/2)).toPoint());break;
+        }
+        case 49:
+            check(shell.drawerSource()=="recent" && shell.focusIndex()==1,"Returning by touch must preserve Recent game selection");
+            shell.dispatch(Action::PreviousFace);break;
+        case 50: {
+            // Visual-only long-list fixture; real favorite identity/removal/launch guards live in SeriesTests.
+            auto* cards=visibleItem("drawer-cards");auto* empty=visibleItem("resume-empty");
+            QVariantList rows;for(int i=0;i<104;++i)rows.append(QVariantMap{{"id",QString("fixture-%1").arg(i)},{"title",QString("Favorite adventure %1").arg(i+1)},
+                {"world","Game Boy Advance"},{"preview",""},{"previewLabel","Favorite game"},{"location",""},{"time",""},{"summary","Ready to play"}});
+            if(empty)empty->setVisible(false);if(cards)cards->setProperty("model",rows);break;
+        }
+        case 51: {
+            auto* cards=visibleItem("drawer-cards");auto* cap=visibleItem("resume-0");
+            check(cards && cap && qAbs((cap->width()+8)*4+30-cards->width())<.1,"Favorites must keep four cards per row");
+            capture("drawer-favorites-fixture-960");
+            if(cards){auto from=cards->mapToScene(QPointF(cards->width()-40,cards->height()/2)).toPoint();QTest::mousePress(window,Qt::LeftButton,Qt::NoModifier,from);
+                for(int i=1;i<=8;++i)QTest::mouseMove(window,from-QPoint(i*35,0),25);
+                QTest::mouseRelease(window,Qt::LeftButton,Qt::NoModifier,from-QPoint(280,0));}break;
+        }
+        case 52: {
+            auto* cards=visibleItem("drawer-cards");check(cards && cards->property("contentX").toDouble()>1,"Favorites must support touch scrolling");
+            capture("drawer-favorites-swiped");window->resize(1280,800);break;
+        }
+        case 53: capture("drawer-favorites-16-10");shell.dispatch(Action::Back);break;
         default:
             check(shell.collectionsRoot(),"Return to root failed");check(warnings==0,"QML warnings");completed=true;timer->stop();
             if(!directory.isEmpty()){QFile f(directory+"/collections-verification.txt");if(f.open(QIODevice::WriteOnly))f.write(((*failed?QString("FAILED\n"):QString("PASSED\n"))+diagnostics.join('\n')).toUtf8());}

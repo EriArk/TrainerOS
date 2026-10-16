@@ -1,3 +1,5 @@
+#include <cmath>
+#include "core/model/GameFavorite.h"
 #include "core/PerformanceTrace.h"
 #include "ShellController.h"
 #include "core/model/SeriesCatalog.h"
@@ -304,10 +306,7 @@ void ShellController::refreshLibrary() {
     const auto records=repository_.registrations();
     settings_.setLegacyTrashAvailable(std::any_of(records.cbegin(),records.cend(),[](const auto& r){return r.removed && !r.trashPath.isEmpty();}));
     if(activeModule_ && adapterActive())activeModule_->show(experience_.screen());
-    const QString selected = drawerFocus_ < points_.size() ? points_[drawerFocus_].id : QString();
     refreshContinue();
-    drawerFocus_ = 0;
-    for (int i = 0; i < points_.size(); ++i) if (points_[i].id == selected) drawerFocus_ = i;
     refreshExperience();
     emit changed();
 }
@@ -594,6 +593,8 @@ void ShellController::refreshExperience() {
 }
 
 void ShellController::refreshContinue() {
+    const auto recentId=points_.value(drawerFocus_).adventureId;
+    const auto favoriteId=favorites_.value(favoriteFocus_).adventureId;
     points_.clear();
     auto sessions=repository_.recentSessions();
     auto states=repository_.resumePoints();
@@ -616,7 +617,43 @@ void ShellController::refreshContinue() {
         }
         std::stable_sort(points_.begin(),points_.end(),[](const auto& a,const auto& b){return a.recordedAt>b.recordedAt;});
     }
+    drawerFocus_=0;
+    for(int i=0;i<points_.size();++i)if(points_[i].adventureId==recentId)drawerFocus_=i;
+    favorites_.clear();
+    auto games=repository_.adventures();
+    std::sort(games.begin(),games.end(),[](const auto& a,const auto& b){
+        const auto order=a.title.compare(b.title,Qt::CaseInsensitive);return order?order<0:a.id<b.id;
+    });
+    QSet<QString> seen;
+    for(const auto& game:games) {
+        const auto registration=repository_.registration(game.id);
+        if(game.collectionOnly || !registration || registration->removed || seen.contains(game.id)
+            || !gameFavorite(repository_.artwork(game.id)))continue;
+        seen.insert(game.id);favorites_.append({"favorite:"+game.id,game.id,{},{},{}});
+    }
+    favoriteFocus_=favoriteSelectionLost_?-1:0;
+    if(!favoriteId.isEmpty()) {
+        favoriteFocus_=-1;
+        for(int i=0;i<favorites_.size();++i)if(favorites_[i].adventureId==favoriteId)favoriteFocus_=i;
+        favoriteSelectionLost_=favoriteFocus_<0;
+    }
 }
+void ShellController::setDrawerSource(const QString& source) {
+    if(!drawerOpen_ || navigationLocked() || homeMenuOpen_ || keyboard_.isOpen() || menuOpen_ || !notice_.isEmpty() || localModalOpen())return;
+    if(source!="recent" && source!="favorites")return;
+    if(drawerFavorites_==(source=="favorites"))return;
+    drawerFavorites_=source=="favorites";
+    emit drawerSourceChanged();emit changed();
+}
+void ShellController::setDrawerScroll(qreal position) {
+    if(drawerOpen_ && std::isfinite(position))drawerScroll_[drawerFavorites_?1:0]=std::max(qreal(0),position);
+}
+void ShellController::selectDrawerGame(const QString& id) {
+    if(!drawerOpen_ || navigationLocked() || homeMenuOpen_ || menuOpen_ || keyboard_.isOpen() || !notice_.isEmpty() || localModalOpen())return;
+    const auto& entries=drawerEntries();
+    for(int i=0;i<entries.size();++i)if(entries[i].id==id){drawerSelection()=i;if(drawerFavorites_)favoriteSelectionLost_=false;confirm();emit changed();return;}
+}
+
 
 int ShellController::focusIndex() const {
     if (!notice_.isEmpty()) return 0;
@@ -625,7 +662,7 @@ int ShellController::focusIndex() const {
     if (downloads_.isOpen()) return downloads_.focusIndex();
     if (scraper_.isOpen()) return scraper_.focusIndex();
     if (libraryTools_.isOpen()) return libraryTools_.focusIndex();
-    if (drawerOpen_) return drawerFocus_;
+    if (drawerOpen_) return drawerSelection();
     if (service_ == "library") return libraryManager_.files()->isOpen() ? libraryManager_.files()->focusIndex() : libraryManager_.focusIndex();
     if (service_ == "trainer-settings") return hall_.account()->isOpen() ? hall_.account()->focusIndex() : trainerSettingsFocus_;
     if (service_ == "trainer-setup") return trainerSetup_.focusIndex();
@@ -637,7 +674,7 @@ int ShellController::focusIndex() const {
     if (page_ == 1) return multiverseFace_ ? multiverse_.focusIndex() : worlds_.focusIndex();
     if(adapterActive() && activeModule_)return adapterMenuOpen_?adapterMenuFocus_:activeModule_->focusIndex();
     if(page_==GameHubPage)return hubFace_=="ra"?hall_.focusIndex():overviewFocus_;
-    return drawerOpen_ ? drawerFocus_ : 0;
+    return drawerOpen_ ? drawerSelection() : 0;
 }
 QJsonObject ShellController::navigationState() const {
     const QStringList pages{"home","games","gamehub","social","apps"};
@@ -654,16 +691,20 @@ QJsonObject ShellController::navigationState() const {
             {"collectionsRoot",collectionsRoot_},{"collectionFocus",collectionFocus_},
             {"gamesRoot",QJsonObject{{"zone",gamesRootZone_},{"collection",gamesCollectionId_},{"platform",gamesPlatformId_},
                 {"collectionScroll",collectionScroll_},{"platformScroll",platformScroll_}}},
-            {"resume", drawerFocus_ < points_.size() ? points_[drawerFocus_].id : QString()},
+            {"resume", points_.value(drawerFocus_).id},
+            {"drawer",QJsonObject{{"source",drawerSource()},{"favorite",favorites_.value(favoriteFocus_).adventureId},
+                {"favoriteLost",favoriteSelectionLost_},{"recentScroll",drawerScroll_[0]},{"favoriteScroll",drawerScroll_[1]}}},
             {"worlds", worlds_.navigationState()}, {"hall", hall_.navigationState()}};
     if(activeModule_){const auto legacy=activeModule_->legacyState();for(auto it=legacy.begin();it!=legacy.end();++it)state[it.key()]=it.value();}
     return state;
 }
 void ShellController::restoreNavigation(const QJsonObject& state) {
     if(navigationLocked())return;
-    homeMenuOpen_=quickAppsOpen_=false;
+    homeMenuOpen_=quickAppsOpen_=drawerOpen_=false;
     const int version=state["version"].toInt();
     if(version<1 || version>ShellNavigationVersion) {
+        drawerFavorites_=favoriteSelectionLost_=false;drawerFocus_=favoriteFocus_=0;
+        drawerScroll_[0]=drawerScroll_[1]=-1;emit drawerSourceChanged();
         experience_.clear();socialFace_="chats";hubFace_="overview";appsFace_="apps";
         social_.setFace(socialFace_);refreshExperience();goToPage(HomePage);return;
     }
@@ -762,6 +803,16 @@ void ShellController::restoreNavigation(const QJsonObject& state) {
     adapterMenuFocus_=qMax(0,experience_.index());
     drawerFocus_=0;
     for(int i=0;i<points_.size();++i)if(points_[i].id==state["resume"].toString())drawerFocus_=i;
+    const auto drawer=state["drawer"].toObject();drawerFavorites_=drawer["source"]=="favorites";
+    favoriteSelectionLost_=drawer["favoriteLost"].toBool();favoriteFocus_=favoriteSelectionLost_?-1:0;
+    const auto favoriteId=drawer["favorite"].toString();
+    if(!favoriteId.isEmpty()) {
+        favoriteFocus_=-1;for(int i=0;i<favorites_.size();++i)if(favorites_[i].adventureId==favoriteId)favoriteFocus_=i;
+        favoriteSelectionLost_=favoriteFocus_<0;
+    }
+    drawerScroll_[0]=std::max(-1.,drawer["recentScroll"].toDouble(-1));
+    drawerScroll_[1]=std::max(-1.,drawer["favoriteScroll"].toDouble(-1));
+    emit drawerSourceChanged();
     refreshExperience(); // restore advances the generation; all callbacks bind it again.
     if(page_==GameHubPage)setHubFace(hubFace_);
     else if(page_==SocialPage)social_.setFace(socialFace_);
@@ -823,13 +874,15 @@ QVariantMap ShellController::home() const {
     for(auto it=progress.begin();it!=progress.end();++it)if(!result.contains(it.key()))result.insert(it.key(),it.value());
     return result;
 }
-QVariantList ShellController::resumePoints() const {
-    PerformanceTrace::Scope perf("ShellController.resumePoints");
+QVariantList ShellController::resumePoints() const { return continueRows(points_,false); }
+QVariantList ShellController::drawerGames() const { return continueRows(drawerEntries(),drawerFavorites_); }
+QVariantList ShellController::continueRows(const QList<ContinueEntry>& entries, bool favorites) const {
+    PerformanceTrace::Scope perf("ShellController.continueRows");
 
     QVariantList result;
     const auto adventures = repository_.adventures();
     const auto worlds = repository_.worlds();
-    for (const auto& point : points_) {
+    for (const auto& point : entries) {
         const auto media = repository_.exitMedia(point.adventureId);
         QString title = "Unavailable Adventure";
         QString world;
@@ -851,8 +904,10 @@ QVariantList ShellController::resumePoints() const {
             else if (point.session->outcome == PlaySessionOutcome::Failed) summary = "Ended with an error · you can retry";
             else if (point.session->elapsedSeconds) summary = recordedDuration(*point.session->elapsedSeconds) + " · Last session";
         }
+        if(favorites)if(const auto registration=repository_.registration(point.adventureId);registration && !registration->contentAvailable)
+            summary="Game file unavailable";
         result.append(QVariantMap{{"id", point.id}, {"title", title}, {"world", world},
-            {"location", location}, {"summary", summary}, {"previewLabel", media ? "Last exit · " + media->capturedAt.toLocalTime().toString("dd MMM · HH:mm") : point.resumePoint ? resumeLabel(status) : "Recent Adventure"},
+            {"location", location}, {"summary", summary}, {"previewLabel", media ? "Last exit · " + media->capturedAt.toLocalTime().toString("dd MMM · HH:mm") : point.resumePoint ? resumeLabel(status) : favorites ? "Favorite game" : "Recent Adventure"},
             {"time", point.recordedAt.toLocalTime().toString("dd MMM · HH:mm")},
             {"preview", media ? "image://exit-media/" + media->sessionId : point.resumePoint && !point.resumePoint->previewKey.isEmpty() ? "image://moments/" + point.resumePoint->previewKey : repository_.artwork(point.adventureId).value("cover").toString()}});
     }
@@ -1050,8 +1105,9 @@ void ShellController::activate(int index, const QString& area) {
     else if (keyboard_.isOpen()) { keyboard_.activate(index); return; }
     else if (libraryTools_.isOpen()) {libraryTools_.activate(index);return;}
     else if (drawerOpen_) {
-        auto& focus = drawerFocus_;
-        focus = std::clamp(index, 0, std::max(0, int(resumePoints().size()) - 1));
+        auto& focus = drawerSelection();
+        focus = std::clamp(index, 0, std::max(0, int(drawerEntries().size()) - 1));
+        if(drawerFavorites_)favoriteSelectionLost_=false;
     }
     else if (service_ == "library") { libraryManager_.activate(index, area); return; }
     else if (service_ == "trainer-settings") { trainerSettingsAction(index); return; }
@@ -1155,8 +1211,16 @@ void ShellController::confirm() {
         return;
     }
     if (drawerOpen_) {
-        if (points_.isEmpty()) { drawerOpen_ = false; return; }
-        const auto& point = points_.at(drawerFocus_);
+        const auto& entries=drawerEntries();
+        if(entries.isEmpty())return;
+        if(drawerSelection()<0 || drawerSelection()>=entries.size())return;
+        const auto point=entries.at(drawerSelection());
+        if(drawerFavorites_) {
+            const auto registration=repository_.registration(point.adventureId);
+            if(!registration || registration->removed || !gameFavorite(repository_.artwork(point.adventureId))) {
+                refreshContinue();favoriteFocus_=-1;favoriteSelectionLost_=true;return;
+            }
+        }
         if(!liveGame_.value("id").toString().isEmpty() && liveGame_.value("id")!=point.adventureId) {
             notice_="Your running game stays selected. Return to it or exit from Game Options first.";return;
         }
@@ -1436,6 +1500,7 @@ void ShellController::dispatch(Action action) {
         return;
     }
     if (action == Action::PreviousFace || action == Action::NextFace) {
+        if(drawerOpen_) {setDrawerSource(drawerFavorites_?"recent":"favorites");return;}
         if(pairedNavigationAvailable()) {
             drawerOpen_=false;
             if(page_==HomePage){dashboard_.move(action);return;}
@@ -1446,9 +1511,7 @@ void ShellController::dispatch(Action action) {
     }
     if (action == Action::ToggleContinue && chooseAdventureAvailable()) {
         if(!drawerOpen_) {
-            const auto focused=points_.value(drawerFocus_).adventureId;
-            repository_.refreshContentAvailability();refreshContinue();drawerFocus_=0;
-            for(int i=0;i<points_.size();++i)if(points_[i].adventureId==focused){drawerFocus_=i;break;}
+            repository_.refreshContentAvailability();refreshContinue();
         }
         drawerOpen_ = !drawerOpen_; emit changed(); return;
     }
@@ -1468,8 +1531,9 @@ void ShellController::dispatch(Action action) {
             if (action == Action::Back) drawerOpen_ = false;
             else if (action == Action::Confirm) confirm();
             else if (action == Action::Left || action == Action::Right) {
-                auto& focus = drawerFocus_;
-                focus = std::clamp(focus + (action == Action::Right ? 1 : -1), 0, std::max(0, int(resumePoints().size()) - 1));
+                auto& focus = drawerSelection();
+                focus = std::clamp(focus + (action == Action::Right ? 1 : -1), 0, std::max(0, int(drawerEntries().size()) - 1));
+                if(drawerFavorites_)favoriteSelectionLost_=false;
             }
             emit changed(); return;
         }
@@ -1552,8 +1616,8 @@ void ShellController::dispatch(Action action) {
     } else if (action == Action::Confirm) confirm();
     else if (notice_.isEmpty() && (menuOpen_ || drawerOpen_)) {
         // Page actions use fixed physical buttons. Only an open list moves focus.
-        int* focus = menuOpen_ ? &menuFocus_ : &drawerFocus_;
-        const int count = menuOpen_ ? menuItems().size() : std::max(1, int(points_.size()));
+        int* focus = menuOpen_ ? &menuFocus_ : &drawerSelection();
+        const int count = menuOpen_ ? menuItems().size() : std::max(1, int(drawerEntries().size()));
         int delta = 0;
         if (menuOpen_) delta = action == Action::Up ? -1 : action == Action::Down ? 1 : 0;
         else if (drawerOpen_) delta = action == Action::Left ? -1 : action == Action::Right ? 1 : 0;

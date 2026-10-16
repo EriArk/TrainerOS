@@ -10,45 +10,93 @@ ChassisDrawer {
     Item {
         parent: root.contentItem
         anchors.fill: parent
+        Row {
+            id: sources
+            anchors.horizontalCenter: parent.horizontalCenter
+            height: 20; spacing: 12
+            Text { text: "‹ L2"; color: Theme.rim; font.pixelSize: 11; anchors.verticalCenter: parent.verticalCenter }
+            Repeater {
+                model: [{id: "recent", label: "Recent games"}, {id: "favorites", label: "★ Favorites"}]
+                delegate: Item {
+                    required property var modelData
+                    objectName: "drawer-source-" + modelData.id
+                    width: sourceText.implicitWidth + 8; height: 20
+                    readonly property bool chosen: root.shell.drawerSource === modelData.id
+                    Accessible.role: Accessible.Button; Accessible.name: modelData.label
+                    Text {
+                        id: sourceText; anchors.centerIn: parent; text: modelData.label
+                        font.pixelSize: 12; font.weight: parent.chosen ? Font.DemiBold : Font.Normal
+                        color: parent.chosen ? Theme.yellow : Theme.paper; opacity: parent.chosen ? 1 : 0.68
+                    }
+                    Rectangle { anchors.bottom: parent.bottom; anchors.horizontalCenter: parent.horizontalCenter; width: sourceText.width; height: 1; color: Theme.yellow; visible: parent.chosen }
+                    TapHandler { onTapped: root.shell.setDrawerSource(modelData.id) }
+                }
+            }
+            Text { text: "R2 ›"; color: Theme.rim; font.pixelSize: 11; anchors.verticalCenter: parent.verticalCenter }
+        }
         ListView {
             id: cards
-            x: 5; y: 5; width: parent.width - 10; height: 132
+            objectName: "drawer-cards"
+            x: 5; y: 23; width: parent.width - 10; height: 116
             orientation: ListView.Horizontal
-            interactive: false
+            interactive: true
             clip: true
             spacing: 10
             // Closed drawer has no delegates/images to rebuild on page changes.
             // Keep them through the closing animation while its contents show.
-            model: visible ? root.shell.resumePoints : []
-            currentIndex: root.expanded ? root.shell.focusIndex : 0
+            model: visible ? root.shell.drawerGames : []
+            readonly property int selectionIndex: root.expanded ? root.shell.focusIndex : 0
+            currentIndex: selectionIndex
+            property bool restoring: false
+            readonly property real stride: (width - 3 * spacing) / 4 + spacing
+            function remember() { if(root.expanded && !restoring)root.shell.setDrawerScroll(Math.max(0, contentX) / stride) }
+            function restore() {
+                restoring = true
+                Qt.callLater(function() {
+                    cards.forceLayout()
+                    if(root.shell.drawerScroll < 0) { restoring = false; reveal(); return }
+                    contentX = Math.max(0, Math.min(Math.max(0, contentWidth - width), root.shell.drawerScroll * stride))
+                    restoring = false
+                    const card = itemAtIndex(selectionIndex)
+                    if (card) card.claimSelection()
+                })
+            }
             function reveal() {
-                positionViewAtIndex(currentIndex, ListView.Contain)
-                const card = itemAtIndex(currentIndex)
+                if(restoring || !root.expanded || selectionIndex < 0 || selectionIndex >= count)return
+                forceLayout()
+                positionViewAtIndex(selectionIndex, ListView.Contain)
+                const card = itemAtIndex(selectionIndex)
                 if (card) {
                     if (card.x - 4 < contentX) contentX = card.x - 4
                     else if (card.x + card.width + 4 > contentX + width) contentX = card.x + card.width + 4 - width
                     card.claimSelection()
                 }
+                remember()
             }
-            onCurrentIndexChanged: Qt.callLater(reveal)
-            onCurrentItemChanged: Qt.callLater(reveal)
-            onWidthChanged: Qt.callLater(reveal)
-            onCountChanged: Qt.callLater(reveal)
-            Connections { target: root; function onExpandedChanged() { Qt.callLater(cards.reveal) } }
-            Connections { target: root.shell; function onChanged() { if (root.expanded) Qt.callLater(cards.reveal) } }
+            onSelectionIndexChanged: { if(!restoring)Qt.callLater(reveal) }
+            onCurrentItemChanged: Qt.callLater(function() {
+                const card = itemAtIndex(selectionIndex)
+                if (root.expanded && card) card.claimSelection()
+                else if (root.expanded && count > 0 && selectionIndex < 0) root.forceActiveFocus(Qt.OtherFocusReason)
+            })
+            onWidthChanged: restore()
+            onCountChanged: restore()
+            onMovementEnded: remember()
+            Connections { target: root; function onExpandedChanged() { if(root.expanded)cards.restore() } }
+            Connections { target: root.shell; function onDrawerSourceChanged() { cards.restore() } }
                 delegate: Item {
                     required property int index
                     required property var modelData
                     function claimSelection() { resumeCap.requestFocus() }
-                    width: (cards.width-3*cards.spacing)/4; height: 132
+                    width: (cards.width-3*cards.spacing)/4; height: 116
                     CapButton {
                         id: resumeCap
                         objectName: "resume-" + index
                         deferredFocus: true
-                        x: 4; y: 4; width: parent.width - 8; height: 124
+                        x: 4; y: 4; width: parent.width - 8; height: 108
                         tint: [Theme.green, Theme.blue, Theme.pink][index % 3]
                         selected: root.expanded && !root.shell.menuOpen && root.shell.notice.length === 0 && root.shell.focusIndex === index
-                        onActivated: root.shell.activate(index)
+                        onActivated: root.shell.selectDrawerGame(modelData.id)
                         Item {
                             id: cardBackground
                             x: 5; y: 5; width: parent.width - 10; height: parent.height - 10; clip: true
@@ -69,8 +117,8 @@ ChassisDrawer {
                                 }
                             }
                         }
-                        Text { x: 10; y: 40; width: parent.width - 24; elide: Text.ElideRight; textFormat: Text.PlainText; text: modelData.world; color: Theme.ink; font.pixelSize: 16; font.bold: true }
-                        Text { x: 10; y: 63; width: parent.width-20; elide: Text.ElideRight; text: modelData.previewLabel; color: Theme.muted; font.pixelSize: 11 }
+                        Text { x: 10; y: 37; width: parent.width - 24; elide: Text.ElideRight; textFormat: Text.PlainText; text: modelData.world; color: Theme.ink; font.pixelSize: 14; font.bold: true }
+                        Text { x: 10; y: 56; width: parent.width-20; elide: Text.ElideRight; text: modelData.previewLabel; color: Theme.muted; font.pixelSize: 10 }
                         Item {
                             id: ribbon
                             x: 10; y: 7; width: parent.width - 20; height: 28
@@ -105,7 +153,7 @@ ChassisDrawer {
                         }
                         Item {
                             id: readingWell
-                            x: 5; y: 84; width: parent.width - 10; height: parent.height - y - 5; clip: true
+                            x: 5; y: 71; width: parent.width - 10; height: parent.height - y - 5; clip: true
                             Rectangle { anchors.fill: parent; color: resumeCap.capTint }
                             Loader {
                                 anchors.fill: parent
@@ -139,21 +187,31 @@ ChassisDrawer {
                             }
                         }
                         Column {
-                            x: 10; y: 87; width: parent.width - 20; spacing: 2
-                            Text { width: parent.width; elide: Text.ElideRight; textFormat: Text.PlainText; text: (modelData.location.length ? modelData.location + " · " : "") + modelData.time; color: Theme.ink; font.pixelSize: 11 }
-                            Text { width: parent.width; elide: Text.ElideRight; textFormat: Text.PlainText; text: modelData.summary; color: Theme.muted; font.pixelSize: 11 }
+                            x: 10; y: 73; width: parent.width - 20; spacing: 0
+                            Text { width: parent.width; elide: Text.ElideRight; textFormat: Text.PlainText; text: (modelData.location.length ? modelData.location + " · " : "") + modelData.time; color: Theme.ink; font.pixelSize: 10 }
+                            Text { width: parent.width; elide: Text.ElideRight; textFormat: Text.PlainText; text: modelData.summary; color: Theme.muted; font.pixelSize: 10 }
                         }
                     }
                 }
         }
-        CapButton {
+        Item {
+            id: emptyState
             objectName: "resume-empty"
-            x: 5; y: 5
-            visible: root.shell.resumePoints.length === 0
-            width: 500; height: 105
-            label: "No recent games yet"; detail: ""
-            selected: visible && root.expanded && !root.shell.menuOpen && root.shell.notice.length === 0
-            onActivated: root.shell.activate(0)
+            x: 5; y: 27; width: parent.width-10; height: 105
+            visible: root.shell.drawerGames.length === 0
+            readonly property bool selected: visible && root.expanded && !root.shell.menuOpen && root.shell.notice.length === 0
+            onSelectedChanged: if(selected)Qt.callLater(function() { if(selected)forceActiveFocus(Qt.OtherFocusReason) })
+            Accessible.role: Accessible.StaticText
+            Accessible.name: emptyTitle.text
+            Row {
+                anchors.centerIn: parent; spacing: 14
+                Text { visible: root.shell.drawerSource === "favorites"; text: "☆"; color: Theme.yellow; font.pixelSize: 36; anchors.verticalCenter: parent.verticalCenter }
+                Column {
+                    spacing: 4
+                    Text { id: emptyTitle; text: root.shell.drawerSource === "favorites" ? "Your favorites belong here" : "No recent games yet"; color: Theme.paper; font.pixelSize: 16 }
+                    Text { visible: root.shell.drawerSource === "favorites"; text: "Favorite games from across your library"; color: Theme.paper; opacity: .65; font.pixelSize: 12 }
+                }
+            }
         }
     }
 }

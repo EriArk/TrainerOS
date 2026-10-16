@@ -104,6 +104,9 @@ class ShellController final : public QObject {
     Q_PROPERTY(bool serviceOpen READ serviceOpen NOTIFY changed)
     Q_PROPERTY(bool sampleLibrary READ sampleLibrary CONSTANT)
     Q_PROPERTY(QVariantList resumePoints READ resumePoints NOTIFY changed)
+    Q_PROPERTY(QVariantList drawerGames READ drawerGames NOTIFY changed)
+    Q_PROPERTY(QString drawerSource READ drawerSource NOTIFY drawerSourceChanged)
+    Q_PROPERTY(qreal drawerScroll READ drawerScroll NOTIFY drawerSourceChanged)
     Q_PROPERTY(QStringList menuItems READ menuItems NOTIFY changed)
     Q_PROPERTY(trainer::TrainerSetupPresentation* trainerSetup READ trainerSetup CONSTANT)
     Q_PROPERTY(bool powerMenu READ powerMenu NOTIFY changed)
@@ -243,6 +246,12 @@ public:
     bool runtimeChangeBlocked() const { return scraper_.busy() || moduleWriting() || navigationLocked(); }
     QVariantMap home() const;
     QVariantList resumePoints() const;
+    QVariantList drawerGames() const;
+    QString drawerSource() const { return drawerFavorites_ ? "favorites" : "recent"; }
+    qreal drawerScroll() const { return drawerScroll_[drawerFavorites_ ? 1 : 0]; }
+    Q_INVOKABLE void setDrawerSource(const QString& source);
+    Q_INVOKABLE void setDrawerScroll(qreal position);
+    Q_INVOKABLE void selectDrawerGame(const QString& id);
     QStringList menuItems() const;
     void dispatch(Action);
     QJsonObject navigationState() const;
@@ -251,6 +260,7 @@ public:
     Q_INVOKABLE void goToTrainerFace(const QString& face);
     Q_INVOKABLE void activate(int index, const QString& area = {});
 signals:
+    void drawerSourceChanged();
     void liveGameRequested(bool options);
     void togetherRequested(QString game);
     void changed();
@@ -281,6 +291,10 @@ private:
     void cycleCollection(int delta);
     void trainerSettingsAction(int);
     void refreshContinue();
+    QVariantList continueRows(const QList<ContinueEntry>& entries, bool favorites) const;
+    const QList<ContinueEntry>& drawerEntries() const { return drawerFavorites_ ? favorites_ : points_; }
+    int& drawerSelection() { return drawerFavorites_ ? favoriteFocus_ : drawerFocus_; }
+    int drawerSelection() const { return drawerFavorites_ ? favoriteFocus_ : drawerFocus_; }
     bool localModalOpen();
     void showTrainerFace(const QString& face);
     bool navigationLocked(bool primaryRecovery = false) const;
@@ -318,6 +332,11 @@ private:
     enum class TextTarget { None, TrainerName, WorldsSearch, MultiverseSearch, Library, LibraryTools, Collections, Archive, Module, AchievementAccount, SetupName, Network, Social, Communication, Scraper };
     TextTarget textTarget_ = TextTarget::None;
     QList<ContinueEntry> points_;
+    QList<ContinueEntry> favorites_;
+    bool drawerFavorites_ = false;
+    bool favoriteSelectionLost_ = false;
+    int favoriteFocus_ = 0;
+    qreal drawerScroll_[2] = {-1, -1}; // Unvisited source: reveal its saved selection first.
     QString homeAdventureId_, homeResumeId_;
     ResumeSource homeResumeSource_;
     int page_ = 0;

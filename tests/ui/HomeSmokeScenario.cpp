@@ -86,8 +86,8 @@ void startHomeSmoke(QQuickWindow* window, ShellController& shell, SessionState& 
             SDL_JoystickSetVirtualButton(joystick, button, 1); input.poll(); SDL_JoystickSetVirtualButton(joystick, button, 0); input.poll();
         };
         const auto focusIs = [&](const QString& name) { return window->activeFocusItem() && window->activeFocusItem()->objectName() == name; };
-        const auto itemNamed = [&](const QString& name) -> QQuickItem* {
-            QList<QQuickItem*> pending{window->contentItem()};
+        const auto itemNamed = [&](const QString& name, QQuickItem* scope = nullptr) -> QQuickItem* {
+            QList<QQuickItem*> pending{scope ? scope : window->contentItem()};
             while (!pending.isEmpty()) {
                 auto* item = pending.takeLast();
                 if (item->objectName() == name) return item;
@@ -130,8 +130,14 @@ void startHomeSmoke(QQuickWindow* window, ShellController& shell, SessionState& 
         case 1:
             check(store.recentSessions().size() == 5 && shell.home()["adventureId"] == "home-4", "Latest launch is the default Home");
             check(focusIs("home-launch"), "Main button has initial focus");
+            { auto legacy=shell.navigationState();legacy.remove("drawer");legacy["resume"]=shell.resumePoints().last().toMap()["id"].toString();shell.restoreNavigation(legacy); }
             press(SDL_CONTROLLER_BUTTON_X); break;
         case 2:
+            if(auto* drawer=itemNamed("continue-drawer");drawer && qAbs(drawer->height()-162)>.1){--*stage;return;}
+            if(auto* selected=window->activeFocusItem()) {
+                const auto bounds=selected->mapRectToScene(selected->boundingRect());
+                check(focusIs("resume-4") && bounds.left()>=0 && bounds.right()<=window->width(),QString("Legacy selection without scroll must be revealed on first open (index=%1 focus=%2 left=%3 right=%4 width=%5)").arg(shell.focusIndex()).arg(selected->objectName()).arg(bounds.left()).arg(bounds.right()).arg(window->width()));
+            } else check(false,"Migrated drawer selection has no focus");
             for (int i = 0; i < 4; ++i) press(SDL_CONTROLLER_BUTTON_DPAD_RIGHT);
             break;
         case 3: {
@@ -371,7 +377,7 @@ void startHomeSmoke(QQuickWindow* window, ShellController& shell, SessionState& 
             if(auto* chips=itemNamed("home-metadata")) {
                 auto game=shell.homeGame();game["year"]="2004";game["genre"]="Adventure";game["playInfo"]=QVariantMap{{"label","1-4 players"}};
                 chips->setProperty("game",game);
-                if(auto* marks=itemNamed("home-connection-marks"))marks->setProperty("modes",QVariantList{QVariantMap{{"id","link"},{"label","Link"},{"online",true},{"nearby",true}},QVariantMap{{"id","remoteplay"},{"label","Remote Play"},{"online",true},{"nearby",false}}});
+                if(auto* marks=itemNamed("home-connection-marks",itemNamed("home-game-card")))marks->setProperty("modes",QVariantList{QVariantMap{{"id","link"},{"label","Link"},{"online",true},{"nearby",true}},QVariantMap{{"id","remoteplay"},{"label","Remote Play"},{"online",true},{"nearby",false}}});
             }
             break;
         }
@@ -390,7 +396,7 @@ void startHomeSmoke(QQuickWindow* window, ShellController& shell, SessionState& 
             for(int i=0;i<4;++i)if(auto* person=itemNamed("home-person-"+QString::number(i))) {
                 check(person->mapRectToScene(person->boundingRect()).right()<=people->mapRectToScene(people->boundingRect()).right()+1,"Four named people fit Home");
             }else check(false,"Recent person is missing");
-            check(itemNamed("home-connection-marks") && itemNamed("home-connection-marks")->isVisible() && itemNamed("home-connection-marks")->height()==18,"Connection marks sit quietly beside platform");
+            check(itemNamed("home-connection-marks",itemNamed("home-game-card")) && itemNamed("home-connection-marks",itemNamed("home-game-card"))->isVisible() && itemNamed("home-connection-marks",itemNamed("home-game-card"))->height()==18,"Connection marks sit quietly beside platform");
             capture("home-five-achievements-960");shell.dispatch(Action::NextFace);break;
         }
         case 38:
