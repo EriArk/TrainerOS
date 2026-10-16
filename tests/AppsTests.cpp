@@ -15,6 +15,31 @@ class AppsTests:public QObject {
         apps.accept({{"event","ready"}});
     }
 private slots:
+    void pinnedAndRunningAreSeparateWithoutDuplicates() {
+        QTemporaryDir dir;AppsController apps;apps.configure(dir.path(),"alice");seed(apps);
+        apps.options(1);apps.menuAction(0); // Writer sorts after Calculator but is pinned first.
+        apps.accept({{"event","state"},{"running",QJsonArray{"a.desktop","z.desktop"}},{"current",""}});
+        const auto rail=apps.rail();QCOMPARE(rail.size(),2);
+        QCOMPARE(rail[0].toMap()["id"].toString(),"z.desktop");
+        QVERIFY(rail[0].toMap()["railPinned"].toBool());QVERIFY(rail[0].toMap()["running"].toBool());
+        QCOMPARE(rail[1].toMap()["id"].toString(),"a.desktop");QVERIFY(!rail[1].toMap()["railPinned"].toBool());
+        apps.select(0,true);apps.options(0,true);apps.menuAction(0);
+        QCOMPARE(apps.rail()[apps.focusIndex()].toMap()["id"].toString(),"z.desktop");
+        apps.accept({{"event","state"},{"running",QJsonArray{"z.desktop"}},{"current",""}});
+        QCOMPARE(apps.focusIndex(),0);QCOMPARE(apps.rail().size(),1);
+    }
+    void favoriteCapacityBlocksNewPinsWithoutDeletingSavedFavorites() {
+        QTemporaryDir dir;AppsController apps;apps.configure(dir.path(),"alice");seed(apps);
+        apps.setFavoriteCapacity(1);apps.options(0);apps.menuAction(0);
+        apps.options(1);apps.menuAction(0);
+        QCOMPARE(apps.rail().size(),1);QVERIFY(!apps.rows()[1].toMap()["favorite"].toBool());
+        QVERIFY(apps.status().contains("full"));QVERIFY(!apps.menu().isEmpty());
+        apps.setFavoriteCapacity(2);apps.menuAction(0);QCOMPARE(apps.rail().size(),2);
+        apps.setFavoriteCapacity(1);QCOMPARE(apps.rail().size(),1);
+        QVERIFY(apps.rows()[1].toMap()["favorite"].toBool());
+        AppsController reopened;reopened.configure(dir.path(),"alice");seed(reopened);
+        QCOMPARE(reopened.rail().size(),2);
+    }
     void emptyQuickTrayNeverLaunchesTheUnderlyingGrid() {
         AppsController apps;seed(apps);QSignalSpy commands(&apps,&AppsController::commandRequested);
         apps.focusRail();apps.dispatch(Action::Confirm,true);apps.dispatch(Action::LocalAction,true);

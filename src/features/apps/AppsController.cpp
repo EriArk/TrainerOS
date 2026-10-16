@@ -70,6 +70,7 @@ void AppsController::send(const QJsonObject& packet) {
     process_.write(QJsonDocument(packet).toJson(QJsonDocument::Compact)+'\n');
 }
 void AppsController::accept(const QJsonObject& packet) {
+    const auto previous=railFocused_?selected():QString{};
     const auto event=packet["event"].toString();
     if(event=="catalogue") {
         catalogue_.clear();QSet<QString> ids;
@@ -94,7 +95,7 @@ void AppsController::accept(const QJsonObject& packet) {
         else if(name=="left"||name=="up")controlFocus_=std::max(0,controlFocus_-1);
         else if(name=="right"||name=="down")controlFocus_=std::min(2,controlFocus_+1);
     } else if(event=="error")status_=packet["message"].toString();
-    normalize();emit changed();
+    normalize(previous);emit changed();
 }
 QVariantMap AppsController::decorated(const QVariantMap& source) const {
     auto row=source;const auto id=row["id"].toString();row["favorite"]=favorites_.contains(id);
@@ -105,14 +106,39 @@ QVariantList AppsController::rows() const {
     QVariantList result;for(const auto& value:catalogue_)if(hiddenIds_.contains(value.toMap()["id"].toString())==hidden_)result.append(decorated(value.toMap()));return result;
 }
 QVariantList AppsController::rail() const {
-    QVariantList result;for(const auto& value:catalogue_) {
+    QVariantList result;QSet<QString> pinned;
+    for(const auto& value:catalogue_) {
         const auto id=value.toMap()["id"].toString();
-        if(running_.contains(id)||(favorites_.contains(id)&&!hiddenIds_.contains(id)))result.append(decorated(value.toMap()));
+        if(favorites_.contains(id)&&(!hiddenIds_.contains(id)||running_.contains(id))&&pinned.size()<favoriteCapacity_) {
+            auto row=decorated(value.toMap());row["railPinned"]=true;result.append(row);pinned.insert(id);
+        }
+    }
+    for(const auto& value:catalogue_) {
+        const auto id=value.toMap()["id"].toString();
+        if(running_.contains(id)&&!favorites_.contains(id)) {
+            auto row=decorated(value.toMap());row["railPinned"]=false;result.append(row);
+        }
     }return result;
+}
+int AppsController::visibleFavoriteCount() const {
+    int count=0;for(const auto& value:catalogue_) {
+        const auto id=value.toMap()["id"].toString();
+        if(favorites_.contains(id)&&!hiddenIds_.contains(id))++count;
+    }return count;
+}
+void AppsController::setFavoriteCapacity(int value) {
+    value=std::max(0,value);if(value==favoriteCapacity_)return;
+    const auto previous=railFocused_?selected():QString{};
+    favoriteCapacity_=value;normalize(previous);emit changed();
 }
 QString AppsController::currentName() const {for(const auto& v:catalogue_)if(v.toMap()["id"]==current_)return v.toMap()["name"].toString();return "Application";}
 QString AppsController::selected() const{return (railFocused_?rail():rows()).value(railFocused_?railFocus_:focus_).toMap()["id"].toString();}
-void AppsController::normalize(){focus_=std::clamp(focus_,0,std::max(0,int(rows().size())-1));railFocus_=std::clamp(railFocus_,0,std::max(0,int(rail().size())-1));if(rail().isEmpty())railFocused_=false;}
+void AppsController::normalize(const QString& preferredRailId){
+    focus_=std::clamp(focus_,0,std::max(0,int(rows().size())-1));
+    const auto items=rail();
+    for(int i=0;!preferredRailId.isEmpty()&&i<items.size();++i)if(items[i].toMap()["id"].toString()==preferredRailId){railFocus_=i;break;}
+    railFocus_=std::clamp(railFocus_,0,std::max(0,int(items.size())-1));if(items.isEmpty())railFocused_=false;
+}
 void AppsController::refresh(){
     if(process_.state()==QProcess::NotRunning&&!helper_.isEmpty()){start(python_,helper_);return;}
     emit commandRequested({{"command","refresh"}});
@@ -127,7 +153,7 @@ void AppsController::open(int index,bool rail) {
 void AppsController::options(int index,bool rail){if(index<0||index>=(rail?this->rail():rows()).size())return;select(index,rail);menuId_=selected();menuFocus_=0;emit changed();}
 QVariantList AppsController::menu() const {
     if(menuId_.isEmpty())return {};
-    return {QVariantMap{{"label",favorites_.contains(menuId_)?"Remove favorite":"Add to favorites"}},
+    return {QVariantMap{{"label",favorites_.contains(menuId_)?"Remove favorite":visibleFavoriteCount()>=favoriteCapacity_?"Favorites full - remove one":"Add to favorites"}},
             QVariantMap{{"label",hiddenIds_.contains(menuId_)?"Show in Apps":"Hide from Apps"}},
             QVariantMap{{"label",hidden_?"All applications":"Hidden applications"}},QVariantMap{{"label","Back"}}};
 }
@@ -140,12 +166,18 @@ bool AppsController::persist(const QSet<QString>& favorites,const QSet<QString>&
 }
 void AppsController::menuAction(int index) {
     if(menuId_.isEmpty())return;
+    const auto previous=railFocused_?selected():QString{};
     auto favorites=favorites_,hidden=hiddenIds_;
-    if(index==0){if(!favorites.remove(menuId_))favorites.insert(menuId_);persist(favorites,hidden);}
+    if(index==0){
+        if(!favorites.remove(menuId_)) {
+            if(visibleFavoriteCount()>=favoriteCapacity_) {status_="Favorites are full. Remove a favorite first.";emit changed();return;}
+            favorites.insert(menuId_);
+        }persist(favorites,hidden);
+    }
     else if(index==1){if(!hidden.remove(menuId_))hidden.insert(menuId_);persist(favorites,hidden);}
     else if(index==2){showHidden();return;}
     else if(index!=3)return;
-    menuId_.clear();normalize();emit changed();
+    menuId_.clear();normalize(previous);emit changed();
 }
 void AppsController::showHidden(){hidden_=!hidden_;focus_=0;railFocused_=false;menuId_.clear();emit changed();}
 void AppsController::leave(){menuId_.clear();hidden_=false;railFocused_=false;normalize();emit changed();}

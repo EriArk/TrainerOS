@@ -8,6 +8,7 @@
 #include <QImage>
 #include <QPainter>
 #include <QTimer>
+#include <QTemporaryDir>
 #include <QQmlComponent>
 #include <QQmlEngine>
 #include "features/home/BadgeAssets.h"
@@ -383,6 +384,9 @@ void startHomeSmoke(QQuickWindow* window, ShellController& shell, SessionState& 
             QJsonArray rows,running;
             for(int i=0;i<12;++i) {const auto id=QString("fixture-%1.desktop").arg(i,2,10,QChar('0'));rows.append(QJsonObject{{"id",id},{"name",QString("Application %1").arg(i+1)},{"icon","application-x-executable"}});running.append(id);}
             shell.apps()->accept({{"event","catalogue"},{"rows",rows}});shell.apps()->accept({{"event","state"},{"running",running},{"current",""}});shell.apps()->accept({{"event","ready"}});
+            QTemporaryDir preferences; shell.apps()->configure(preferences.path(),"quick-apps-fixture");
+            shell.apps()->options(0);shell.apps()->menuAction(0);
+            shell.apps()->options(1);shell.apps()->menuAction(0);
             shell.dispatch(Action::Right);break;
         }
         case 43:
@@ -392,6 +396,8 @@ void startHomeSmoke(QQuickWindow* window, ShellController& shell, SessionState& 
             shell.dispatch(Action::Back);check(shell.quickAppsOpen(),"B closes the child menu first");
             for(int i=0;i<14;++i)shell.dispatch(Action::Right);break;
         case 45:
+            check(itemNamed("quick-apps-favorites") && itemNamed("quick-apps-favorites")->property("contentX").toReal()==0,"Favorites stay fixed while navigating running apps");
+            check(itemNamed("quick-apps-list") && itemNamed("quick-apps-list")->property("contentX").toReal()>0,"Only the running section scrolls on overflow");
             check(shell.apps()->focusIndex()==11,"Horizontal app navigation reaches overflow");capture("quick-apps-overflow-960");
             shell.dispatch(Action::ToggleContinue);break;
         case 46:

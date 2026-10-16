@@ -12,6 +12,7 @@ class AppsController final : public QObject {
     Q_OBJECT
     Q_PROPERTY(QVariantList rows READ rows NOTIFY changed)
     Q_PROPERTY(QVariantList rail READ rail NOTIFY changed)
+    Q_PROPERTY(int favoriteCapacity READ favoriteCapacity WRITE setFavoriteCapacity NOTIFY changed)
     Q_PROPERTY(QVariantList menu READ menu NOTIFY changed)
     Q_PROPERTY(int focusIndex READ focusIndex NOTIFY changed)
     Q_PROPERTY(int menuIndex READ menuIndex NOTIFY changed)
@@ -33,6 +34,8 @@ public:
     std::function<QString()> launchGuard;
     QVariantList rows() const;
     QVariantList rail() const;
+    int favoriteCapacity() const { return favoriteCapacity_; }
+    void setFavoriteCapacity(int);
     QVariantList menu() const;
     int focusIndex() const{return railFocused_?railFocus_:focus_;}
     int menuIndex() const{return menuFocus_;}
@@ -63,7 +66,8 @@ signals:
     void homeRequested();
 private:
     void send(const QJsonObject&);
-    void normalize();
+    void normalize(const QString& preferredRailId={});
+    int visibleFavoriteCount() const;
     bool persist(const QSet<QString>& favorites,const QSet<QString>& hidden);
     QVariantMap decorated(const QVariantMap&) const;
     QString selected() const;
@@ -74,6 +78,7 @@ private:
     QSet<QString> favorites_,hiddenIds_,running_;
     QString preferences_,menuId_,current_,status_="Applications are available on Armada.",launching_,python_,helper_;
     int focus_=0,railFocus_=0,menuFocus_=0,controlFocus_=0;
+    int favoriteCapacity_=10;
     qint64 processId_=0;
     bool railFocused_=false,hidden_=false,ready_=false,controls_=false;
 };

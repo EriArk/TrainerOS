@@ -17,6 +17,15 @@ Item {
     property string toggleName: "continue-toggle"
     property alias contentItem: tray
     signal toggled()
+    // Same nested recess widths as ChassisFrame. A screen cutout, not a raised lip.
+    function screenCutout(inset) {
+        const left = inset, right = width-inset;
+        const bottom = Theme.screenBevel-inset;
+        const radius = Math.max(1,15-inset);
+        return "M " + left + " -16 H " + right + " V " + (bottom-radius)
+            + " Q " + right + " " + bottom + " " + (right-radius) + " " + bottom
+            + " H " + left + " Z";
+    }
     function shoulder() {
         // The right Y sits behind the left X. Only the inner joining foot
         // flares out; the exposed outer end rounds directly into the screen lip.
@@ -48,6 +57,7 @@ Item {
     // no separate rail or strip is painted over the chassis.
     Shape {
         anchors.fill: parent
+        visible: root.headerVisible
         // A soft contact shadow, not another bevel wrapped around the tab.
         ShapePath {
             strokeColor: "#18101e1d"; strokeWidth: 4
@@ -73,9 +83,39 @@ Item {
             PathSvg { path: root.shoulder() + " L " + root.width + " 34 H 0 Z" }
         }
         ShapePath {
-            strokeColor: root.button === "Y" ? Qt.lighter(Theme.yellow,1.35) : Theme.rim
+            strokeColor: !root.headerVisible ? "transparent" : root.button === "Y" ? Qt.lighter(Theme.yellow,1.35) : Theme.rim
             strokeWidth: 1; fillColor: "transparent"; joinStyle: ShapePath.RoundJoin
             PathSvg { path: root.shoulder() }
+        }
+    }
+    Item {
+        x: -1; y: -15; width: root.width+2; height: root.height+15
+        visible: !root.headerVisible
+        clip: true
+        Shape {
+        x: 1; y: 15; width: root.width; height: root.height
+        ShapePath {
+            strokeColor: "transparent"; fillRule: ShapePath.OddEvenFill
+            fillColor: Theme.chassis
+            // Paint past the clipped side edges so antialiasing cannot expose
+            // the previous screen perimeter below its raised bottom edge.
+            PathSvg { path: "M -1 -16 H " + (root.width+1) + " V " + (root.height+1) + " H -1 Z" + root.screenCutout(0) }
+        }
+        ShapePath {
+            strokeColor: "transparent"; fillRule: ShapePath.OddEvenFill
+            fillColor: Theme.edgeShadow
+            PathSvg { path: root.screenCutout(0) + root.screenCutout(2) }
+        }
+        ShapePath {
+            strokeColor: "transparent"; fillRule: ShapePath.OddEvenFill
+            fillColor: Theme.screenSlope
+            PathSvg { path: root.screenCutout(2) + root.screenCutout(9) }
+        }
+        ShapePath {
+            strokeColor: "transparent"; fillRule: ShapePath.OddEvenFill
+            fillColor: Theme.screenContact
+            PathSvg { path: root.screenCutout(9) + root.screenCutout(Theme.screenBevel) }
+        }
         }
     }
     Item {
