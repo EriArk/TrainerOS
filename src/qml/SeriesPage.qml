@@ -148,7 +148,9 @@ Item {
         id: platforms
         objectName: "games-platforms"
         x: 30; y: divider.y + 29; width: parent.width - 60; height: parent.height - y - 18
-        readonly property int columns: Math.max(1, Math.round(width / ((height - 12) * 2 / 3 + 16)))
+        readonly property real coverAspect: 3 / 4
+        readonly property real coverGap: 6
+        readonly property int columns: Math.max(1, Math.round(width / ((height - 12) * coverAspect + coverGap)))
         cellWidth: width / columns; cellHeight: height; flow: GridView.FlowTopToBottom
         clip: true; boundsBehavior: Flickable.StopAtBounds; keyNavigationEnabled: false
         model: shell.gamesPlatforms; currentIndex: shell.gamesPlatformIndex
@@ -170,7 +172,8 @@ Item {
             property alias control: card
             PlatformCard {
                 id: card; objectName: "games-platform-" + modelData.id
-                width: Math.min(parent.width - 16, (parent.height - 12) * 2 / 3); height: width * 1.5
+                width: Math.min(parent.width - platforms.coverGap, (parent.height - 12) * platforms.coverAspect)
+                height: width / platforms.coverAspect
                 x: (parent.width-width)/2; y: parent.height-height-6
                 compact: true; portrait: true; entry: modelData
                 selected: root.takesFocus && shell.gamesRootZone === "platforms" && platforms.currentIndex === index

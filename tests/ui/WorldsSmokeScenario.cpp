@@ -26,7 +26,7 @@ void startWorldsSmoke(QQuickWindow* window, ShellController& shell, ControllerIn
             check(ribbon && qAbs(ribbon->width()/ribbon->property("cell").toDouble()-6)<0.01,"Six circular collections must fit");
             check(grid && qAbs(grid->width()/grid->property("cellWidth").toDouble()-grid->property("columns").toInt())<0.01 && qAbs(grid->height()/grid->property("cellHeight").toDouble()-1)<0.01,"Platform ribbon must use adaptive columns in one row");
             for(auto* item:window->findChildren<QQuickItem*>())if(item->objectName().startsWith("games-platform-") && item->isVisible()) {
-                check(qAbs(item->width()/item->height()-2.0/3.0)<0.001,"Platform cover proportions must be 2:3");
+                check(qAbs(item->width()/item->height()-3.0/4.0)<0.001,"Platform cover proportions must be 3:4");
                 check(qAbs(item->parentItem()->height()-item->y()-item->height()-6)<0.01,"Cover bottom inset must remain six units");
             }
             press(SDL_CONTROLLER_BUTTON_DPAD_DOWN);break;
