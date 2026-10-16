@@ -209,6 +209,52 @@ void startWorldsSmoke(QQuickWindow* window, ShellController& shell, ControllerIn
             capture("grid-16-10");auto* grid=visibleItem("library-grid");if(grid)grid->setProperty("entries",QVariantList{});break;
         }
         case 35: capture("grid-empty");press(b);break;
+        case 36: {
+            window->resize(960,540);
+            shell.openGamesRootItem("platforms",shell.gamesPlatforms().front().toMap()["id"].toString());
+            *selectedId=shell.multiverse()->detail()["id"].toString();
+            shell.collectionManager()->beginMembership(*selectedId);break;
+        }
+        case 37:
+            check(shell.collectionManager()->isOpen(),"Collection picker missing");break;
+        case 38: {
+            check(shell.collectionManager()->route()=="membership","Select must open collection picker");
+            focus();capture("collection-picker-empty");
+            auto* create=visibleItem("collection-create");check(create,"Touch create action missing");
+            if(create)QTest::mouseClick(window,Qt::LeftButton,Qt::NoModifier,create->mapToScene(QPointF(create->width()/2,create->height()/2)).toPoint());
+            break;
+        }
+        case 39:
+            check(shell.keyboard()->isOpen(),"Create must request a name");
+            shell.keyboard()->cancel();shell.collectionManager()->applyText("Weekend adventures");break;
+        case 40:
+            check(shell.collectionManager()->route()=="membership-new","Creation must stay inside picker");
+            focus();capture("collection-picker-create");press(a);break;
+        case 41: {
+            check(!shell.collectionManager()->isOpen(),"Create and add must return to game");
+            check(shell.multiverse()->detail()["id"].toString()==*selectedId,"Collection edit changed game selection");
+            shell.collectionManager()->beginMembership(*selectedId);break;
+        }
+        case 42:
+            check(shell.collectionManager()->rows().value(0).toMap()["member"].toBool(),"Existing membership must be marked");
+            focus();capture("collection-picker-added");press(a);break;
+        case 43: {
+            auto* model=shell.collectionManager();
+            for(int i=0;i<12;++i){model->beginMembership(*selectedId);model->activate(model->rows().size()-2);shell.keyboard()->cancel();model->applyText(QString("Collection %1 with a longer title").arg(i+1));model->activate(1);}
+            model->beginMembership(*selectedId);break;
+        }
+        case 44:
+            capture("collection-picker-many");
+            for(int i=0;i<12;++i)press(SDL_CONTROLLER_BUTTON_DPAD_DOWN);
+            break;
+        case 45: {
+            auto* choice=visibleItem("collection-choice-12");auto* choices=visibleItem("collection-choices");
+            check(choice && choices && choices->property("contentY").toDouble()>0,"Controller must reveal last collection");
+            capture("collection-picker-scrolled");
+            auto* cancel=visibleItem("collection-cancel");check(cancel,"Touch cancel missing");
+            if(cancel)QTest::mouseClick(window,Qt::LeftButton,Qt::NoModifier,cancel->mapToScene(QPointF(cancel->width()/2,cancel->height()/2)).toPoint());
+            check(!shell.collectionManager()->isOpen(),"Touch cancel must close picker");press(b);break;
+        }
         default:
             check(shell.collectionsRoot(),"Return to root failed");check(warnings==0,"QML warnings");completed=true;timer->stop();
             if(!directory.isEmpty()){QFile f(directory+"/collections-verification.txt");if(f.open(QIODevice::WriteOnly))f.write(((*failed?QString("FAILED\n"):QString("PASSED\n"))+diagnostics.join('\n')).toUtf8());}

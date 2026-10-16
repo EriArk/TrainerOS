@@ -85,7 +85,8 @@ bool GameCollections::contains(const QString& collection,const Adventure& game) 
     return false;
 }
 QString GameCollections::title() const {
-    if(route_=="membership")return "Game collections";
+    if(route_=="membership")return "Add to collection";
+    if(route_=="membership-new")return "Create collection";
     if(route_=="new")return "New collection";
     if(route_=="pick")return "Choose "+field_;
     if(route_=="games")return "Choose games";
@@ -93,7 +94,10 @@ QString GameCollections::title() const {
     return draft_.value("name").toString("Collections");
 }
 QString GameCollections::detail() const {
-    if(route_=="membership")return "A game can belong to several manual collections.";
+    if(route_=="membership" || route_=="membership-new") {
+        for(const auto& a:library_.adventures())if(a.id==game_)return a.title;
+        return "Choose a collection for this game.";
+    }
     if(route_=="remove")return "Only this collection is removed. Games, saves and history stay where they are.";
     if(route_=="games")return query_.isEmpty()?"Select games, then Save collection.":"Search: "+query_;
     if(route_=="edit")return draft_["dynamic"].toBool()?"Games matching every rule are added automatically. Missing metadata does not match a rule.":"Choose games from any system. No files are moved.";
@@ -104,9 +108,13 @@ void GameCollections::begin(const QString& id) {
     for(const auto& v:definitions_)if(v.toObject()["id"]==id){edit(v.toObject());return;}
     draft_={};route_="new";focus_=0;query_.clear();error_.clear();emit changed();
 }
-void GameCollections::beginMembership(const QString& game) {game_=game;route_="membership";focus_=0;emit changed();}
+void GameCollections::beginMembership(const QString& game) {
+    close();game_=game;route_="membership";
+    if(writable_)error_.clear();
+    emit changed();
+}
 void GameCollections::edit(const QJsonObject& value) { draft_=value;route_="edit";focus_=0;error_.clear();emit changed(); }
-void GameCollections::close() {route_.clear();draft_={};query_.clear();focus_=0;emit changed();}
+void GameCollections::close() {route_.clear();draft_={};game_.clear();field_.clear();query_.clear();focus_=0;emit changed();}
 QList<Adventure> GameCollections::candidates() const {
     QList<Adventure> games;for(const auto& a:library_.adventures())if(!a.collectionOnly && a.title.contains(query_,Qt::CaseInsensitive)) {
         const auto r=library_.registration(a.id);if(r && r->removed)continue;games.append(a);
@@ -125,9 +133,15 @@ QVariantList GameCollections::rows() const {
     if(route_=="remove")return {row("Cancel"),row("Delete collection")};
     if(route_=="pick") {QVariantList result;for(const auto& v:options(field_))result.append(row(v.isEmpty()?"Any":field_=="platform"?platformLabel(v).name:v));return result;}
     if(route_=="membership") {
-        QVariantList result;for(const auto& d:definitions_)if(!d.toObject()["dynamic"].toBool())result.append(row((d.toObject()["games"].toArray().contains(game_)?"✓  ":"+  ")+d.toObject()["name"].toString()));
-        result.append(row("New manual collection"));result.append(row("Done"));return result;
+        QVariantList result;for(const auto& value:definitions_) {
+            const auto d=value.toObject();if(d["dynamic"].toBool())continue;
+            const auto games=d["games"].toArray();
+            result.append(QVariantMap{{"label",d["name"].toString()},{"member",games.contains(game_)},
+                {"count",games.size()},{"enabled",writable_}});
+        }
+        result.append(row("Create collection"));result.append(row("Cancel"));return result;
     }
+    if(route_=="membership-new")return {row(draft_["name"].toString().isEmpty()?"Collection name":draft_["name"].toString()),row("Create & add game"),row("Cancel")};
     if(route_=="games") {
         QVariantList result{row(query_.isEmpty()?"Search games":"Search: "+query_),row("Save collection")};
         const auto ids=draft_["games"].toArray();for(const auto& a:candidates())result.append(row((ids.contains(a.id)?"✓  ":"+  ")+a.title+" · "+platformLabel(a.platformId).badge));return result;
@@ -156,9 +170,19 @@ void GameCollections::activate(int index) {
         QList<int> manual;for(int i=0;i<definitions_.size();++i)if(!definitions_[i].toObject()["dynamic"].toBool())manual.append(i);
         if(index<manual.size()) {
             auto next=definitions_;auto d=next[manual[index]].toObject();auto ids=d["games"].toArray();
-            if(ids.contains(game_)) { for(int i=ids.size()-1;i>=0;--i)if(ids[i]==game_)ids.removeAt(i); } else ids.append(game_);
-            d["games"]=ids;next[manual[index]]=d;save(next);
-        } else if(index==manual.size()) {begin();activate(0);draft_["games"]=QJsonArray{game_};} else {close();return;}
+            if(!ids.contains(game_))ids.append(game_);
+            d["games"]=ids;next[manual[index]]=d;if(save(next))close();
+        } else if(index==manual.size()) {
+            draft_={{"id","user:"+QUuid::createUuid().toString(QUuid::WithoutBraces)},
+                {"name",""},{"dynamic",false},{"games",QJsonArray{game_}},{"rules",QJsonObject{}}};
+            route_="membership-new";focus_=0;field_="name";emit textRequested("Collection name",{},48);
+        } else {close();return;}
+    } else if(route_=="membership-new") {
+        if(index==0){field_="name";emit textRequested("Collection name",draft_["name"].toString(),48);}
+        else if(index==1) {
+            if(draft_["name"].toString().trimmed().isEmpty())error_="Give the collection a name.";
+            else {auto next=definitions_;next.append(draft_);if(save(next))close();}
+        } else {dispatch(Action::Back);return;}
     } else if(route_=="pick") {
         auto rules=draft_["rules"].toObject();rules[field_]=options(field_).value(index);draft_["rules"]=rules;route_="edit";focus_=0;
     } else if(route_=="games") {
@@ -189,15 +213,17 @@ void GameCollections::activate(int index) {
     emit changed();
 }
 void GameCollections::applyText(const QString& text) {
+    if(!isOpen() || field_.isEmpty() || !writable_)return;
     const auto value=text.trimmed().left(48);
-    if(field_=="name")draft_["name"]=value;
+    if(field_=="name") {draft_["name"]=value;if(route_=="membership-new"){focus_=1;error_.clear();}}
     else if(field_=="search"){query_=value;focus_=0;}
     else {auto rules=draft_["rules"].toObject();rules[field_]=value;draft_["rules"]=rules;}
     emit changed();
 }
 void GameCollections::dispatch(Action action) {
     if(action==Action::Back) {
-        if(route_=="games" || route_=="pick" || route_=="remove"){route_="edit";focus_=0;}else close();
+        if(route_=="membership-new"){draft_={};field_.clear();route_="membership";focus_=std::max(0,int(rows().size())-2);if(writable_)error_.clear();}
+        else if(route_=="games" || route_=="pick" || route_=="remove"){route_="edit";focus_=0;}else close();
     } else if(action==Action::Confirm){activate(focus_);return;}
     else if(action==Action::Up || action==Action::Down)focus_=std::clamp(focus_+(action==Action::Up?-1:1),0,std::max(0,int(rows().size())-1));
     emit changed();

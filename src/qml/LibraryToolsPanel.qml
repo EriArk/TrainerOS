@@ -21,7 +21,7 @@ Item {
                 width: parent.width; height: root.reviews ? 285 : Math.min(232,list.contentHeight)
             ListView {
                 id: list; width: root.reviews ? parent.width*0.36 : parent.width; height: parent.height; clip: true; spacing: 6
-                interactive: false; keyNavigationEnabled: false
+                interactive: true; keyNavigationEnabled: false
                 model: root.tools.rows; currentIndex: root.tools.focusIndex
                 function reveal() {if(count)positionViewAtIndex(currentIndex,ListView.Contain)}
                 onCurrentIndexChanged: Qt.callLater(reveal)

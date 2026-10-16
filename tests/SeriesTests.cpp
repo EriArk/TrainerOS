@@ -41,6 +41,52 @@ public:
 class SeriesTests: public QObject {
     Q_OBJECT
 private slots:
+    void selectGameOpensCollectionPickerWithoutChangingHomeOrLaunching() {
+        SeriesLibrary library;SeriesAdapter adapter;MockTrainerRepository profiles;DevelopmentPlatformService platform;
+        MockPokedexRepository dex;MockHallOfFameRepository archive;MockAchievementProvider achievements;
+        ShellController shell(library,profiles,adapter,platform,builtinExperiences(dex,dex),archive,achievements);
+        const auto home=shell.currentAdventureId();shell.goToPage(1);shell.openGamesRootItem("platforms","snes");
+        shell.dispatch(Action::LocalAction);QCOMPARE(shell.libraryTools()->route(),"game");
+        QCOMPARE(shell.libraryTools()->rows()[5].toMap()["label"].toString(),"Add to collection");
+        shell.activate(5);QCOMPARE(shell.collectionManager()->route(),"membership");QVERIFY(!shell.libraryTools()->isOpen());
+        shell.activate(0);QVERIFY(shell.keyboard()->isOpen());shell.keyboard()->cancel();
+        shell.collectionManager()->applyText("Weekend");shell.activate(1);QVERIFY(!shell.collectionManager()->isOpen());
+        QVERIFY(shell.collectionManager()->definitions()[0].toObject()["games"].toArray().contains("m1"));
+        QCOMPARE(shell.currentAdventureId(),home);QVERIFY(adapter.launched.isEmpty());
+    }
+    void collectionPickerCreatesAddsIdempotentlyAndCancelsDrafts() {
+        SeriesLibrary library;QTemporaryDir dir;GameCollections model(library);model.configure(dir.path(),"one");
+        model.beginMembership("m1");QCOMPARE(model.route(),"membership");QCOMPARE(model.rows().size(),2);
+        model.activate(0);QCOMPARE(model.route(),"membership-new");model.applyText("  Weekend  ");
+        QVERIFY(model.definitions().isEmpty());model.dispatch(Action::Back);
+        QCOMPARE(model.route(),"membership");QVERIFY(model.definitions().isEmpty());
+        model.activate(0);model.applyText("  ");model.activate(1);QVERIFY(!model.error().isEmpty());QVERIFY(model.definitions().isEmpty());
+        model.activate(0);model.applyText("Weekend");model.activate(1);QVERIFY(!model.isOpen());
+        QCOMPARE(model.definitions().size(),1);auto id=model.definitions()[0].toObject()["id"].toString();
+        QVERIFY(model.contains(id,library.records[0].adventure));
+        model.beginMembership("m1");QVERIFY(model.rows()[0].toMap()["member"].toBool());model.activate(0);
+        QCOMPARE(model.definitions()[0].toObject()["games"].toArray(),QJsonArray{"m1"});
+        model.beginMembership("m2");model.activate(0);QVERIFY(!model.isOpen());
+        QCOMPARE(model.definitions()[0].toObject()["games"].toArray(),(QJsonArray{"m1","m2"}));
+        model.beginMembership("m1");model.activate(1);model.applyText("Second");model.activate(1);
+        QCOMPARE(model.definitions().size(),2);QVERIFY(model.contains(id,library.records[0].adventure));
+        GameCollections restored(library);restored.configure(dir.path(),"one");QCOMPARE(restored.definitions(),model.definitions());
+        restored.beginMembership("z1");restored.activate(2);restored.configure(dir.path(),"two");
+        restored.applyText("Stale keyboard");restored.activate(1);QVERIFY(restored.definitions().isEmpty());
+        restored.configure(dir.path(),"one");QCOMPARE(restored.definitions(),model.definitions());
+        QCOMPARE(library.records.size(),4);QCOMPARE(library.records[0].contentPath,"/roms/snes/m1");QVERIFY(library.sessions.isEmpty());
+    }
+    void collectionPickerKeepsUnreadableStorageAndDynamicDefinitions() {
+        SeriesLibrary library;QTemporaryDir dir;GameCollections model(library);model.configure(dir.path(),"one");
+        model.begin();model.activate(1);model.applyText("Automatic legacy");model.activate(9);
+        const auto original=model.definitions();model.beginMembership("m1");QCOMPARE(model.rows().size(),2);
+        model.activate(0);model.applyText("Manual");model.activate(1);QCOMPARE(model.definitions()[0],original[0]);
+        auto files=QDir(dir.filePath("collections")).entryList({"*.json"},QDir::Files);QCOMPARE(files.size(),1);
+        QFile file(dir.filePath("collections/"+files[0]));QVERIFY(file.open(QIODevice::WriteOnly));file.write("future-or-broken");file.close();
+        model.configure(dir.path(),"one");model.beginMembership("m1");QVERIFY(!model.error().isEmpty());
+        model.activate(0);model.applyText("Do not overwrite");model.activate(1);model.dispatch(Action::Back);
+        QVERIFY(!model.isOpen());QVERIFY(file.open(QIODevice::ReadOnly));QCOMPARE(file.readAll(),QByteArray("future-or-broken"));
+    }
     void shelvesNavigateRowsPreserveIdentityAndLaunch() {
         SeriesLibrary library;SeriesAdapter adapter;
         for(int i=0;i<21;++i){auto r=library.records[2];r.adventure.id=QString("shelf-%1").arg(i);r.adventure.title=QString("Shelf %1").arg(i,2,10,QChar('0'));library.records.append(r);}

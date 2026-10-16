@@ -16,6 +16,7 @@ class GameCollections final : public QObject {
     Q_PROPERTY(QString error READ error NOTIFY changed)
     Q_PROPERTY(QVariantList rows READ rows NOTIFY changed)
     Q_PROPERTY(int focusIndex READ focusIndex NOTIFY changed)
+    Q_PROPERTY(QString route READ route NOTIFY changed)
 public:
     GameCollections(LibraryRepository& library, QObject* parent=nullptr):QObject(parent),library_(library){}
     void configure(const QString& directory,const QString& owner);
@@ -31,6 +32,7 @@ public:
     QString error() const { return error_; }
     QVariantList rows() const;
     int focusIndex() const { return focus_; }
+    QString route() const { return route_; }
     void begin(const QString& id={});
     void beginMembership(const QString& game);
     void close();
