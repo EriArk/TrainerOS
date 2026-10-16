@@ -238,15 +238,16 @@ Window {
         }
         QuickAppsDrawer {
             id: quickDrawer
-            x: Theme.screenBounds.x + (expandedWidth-width)/(expandedWidth-closedWidth)*(closedWidth-8)
+            x: Theme.screenBounds.x
             anchors.bottom: footer.top
-            shell: shellController; z: shell.quickAppsOpen ? 2 : 1
+            shell: shellController; z: 3
             visible: !shell.serviceOpen && !shell.drawerOpen
         }
         ContinueDrawer {
             id: drawer
             objectName: "continue-drawer"
-            x: Theme.screenBounds.x; anchors.bottom: footer.top; shell: shellController
+            x: Theme.screenBounds.x + (expandedWidth-width)/(expandedWidth-closedWidth)*(closedWidth-Theme.drawerHandleOverlap)
+            anchors.bottom: footer.top; shell: shellController
             z: 2
             visible: (shell.chooseAdventureAvailable || shell.drawerOpen) && !shell.quickAppsOpen
         }

@@ -9,14 +9,21 @@ Item {
     readonly property real closedWidth: Theme.adventureTabWidth
     property string button: "Y"
     property string label: "Recent games"
+    readonly property real keyInset: button === "Y" ? 30 : 18
     property string legend: ""
     property string toggleName: "continue-toggle"
     property alias contentItem: tray
     signal toggled()
     function shoulder() {
-        return "M 0 31 Q 5 31 10 23 L 18 9 Q 23 1 32 1 H " + (width-33)
+        // The right Y sits behind the left X. Only the inner joining foot
+        // flares out; the exposed outer end rounds directly into the screen lip.
+        if (button === "Y")
+            return "M 0 34 Q 8 34 14 23 L 23 9 Q 28 1 37 1 H " + (width-32)
+                + " Q " + (width-23) + " 1 " + (width-18) + " 9 L " + (width-2)
+                + " 28 Q " + (width+1) + " 34 " + (width-5) + " 34";
+        return "M 5 34 Q -1 34 2 28 L 18 9 Q 23 1 32 1 H " + (width-33)
             + " Q " + (width-23) + " 1 " + (width-18) + " 10 L " + (width-10)
-            + " 23 Q " + (width-5) + " 31 " + width + " 31";
+            + " 23 Q " + (width-5) + " 34 " + width + " 34";
     }
     width: closedWidth; height: Theme.adventureTabHeight
     onExpandedWidthChanged: if(expanded && !opening.running && !closing.running)width=expandedWidth
@@ -38,18 +45,9 @@ Item {
     // no separate rail or strip is painted over the chassis.
     Shape {
         anchors.fill: parent
+        // A soft contact shadow, not another bevel wrapped around the tab.
         ShapePath {
-            strokeColor: "#10101e1d"; strokeWidth: 9
-            fillColor: "transparent"; joinStyle: ShapePath.RoundJoin
-            PathSvg { path: root.shoulder() }
-        }
-        ShapePath {
-            strokeColor: "#18101e1d"; strokeWidth: 6
-            fillColor: "transparent"; joinStyle: ShapePath.RoundJoin
-            PathSvg { path: root.shoulder() }
-        }
-        ShapePath {
-            strokeColor: "#36101e1d"; strokeWidth: 3
+            strokeColor: "#18101e1d"; strokeWidth: 4
             fillColor: "transparent"; joinStyle: ShapePath.RoundJoin
             PathSvg { path: root.shoulder() }
         }
@@ -87,17 +85,18 @@ Item {
             model: 4
             delegate: Rectangle {
                 required property int index
-                x: 14+index; y: 7+index; width: 29-index*2; height: width; radius: width/2
+                x: root.keyInset-4+index; y: 7+index; width: 29-index*2; height: width; radius: width/2
                 color: ["#0a101e1d","#12101e1d","#1c101e1d","#28101e1d"][index]
             }
         }
         Rectangle {
-            x: 18; y: 10; width: 21; height: 21; radius: width/2
+            x: root.keyInset; y: 10; width: 21; height: 21; radius: width/2
             color: Qt.darker(keyCap.tint,1.3)
         }
         Rectangle {
             id: keyCap
-            x: 18; y: 7; width: 21; height: 21; radius: width/2
+            objectName: "drawer-key-"+root.button
+            x: root.keyInset; y: 7; width: 21; height: 21; radius: width/2
             readonly property color tint: root.button === "Y" ? Theme.yellow : Theme.pink
             border.color: Qt.lighter(tint,1.35); border.width: 0.7
             gradient: Gradient {
@@ -107,7 +106,7 @@ Item {
             Text { anchors.centerIn: parent; text: root.button; color: Theme.ink; font.family: Theme.displayFamily; font.pixelSize: 16; font.weight: Font.DemiBold }
         }
         Text {
-            x: 46; y: 9; width: 101; height: 22
+            x: root.keyInset+28; y: 9; width: 101; height: 22
             text: root.label; color: root.button === "Y" ? Theme.ink : Theme.paper
             font.pixelSize: 13; font.weight: Font.Medium; verticalAlignment: Text.AlignVCenter
         }

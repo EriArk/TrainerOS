@@ -376,8 +376,9 @@ void startHomeSmoke(QQuickWindow* window, ShellController& shell, SessionState& 
         case 42: {
             auto* apps=itemNamed("quick-apps-drawer");auto* games=itemNamed("continue-drawer");
             if(apps && qAbs(apps->height()-178)>0.1){--*stage;return;}
-            check(apps && games && apps->height()<229 && apps->height()>150,"Quick Apps retains the lower expanded height");
-            check(apps && games && qAbs(apps->x()-games->x())<1,"Both expanded drawers originate at the left bezel");
+            auto* shelf=itemNamed("quick-apps-shelf");
+            check(shelf && apps && shelf->width()<apps->width() && shelf->height()<150,"Quick Apps opens a compact shelf rather than a full-width drawer");
+            check(shelf && apps && qAbs(shelf->x()+shelf->width()/2-apps->width()/2)<1,"Quick Apps shelf is centered");
             capture("quick-apps-empty-960");
             QJsonArray rows,running;
             for(int i=0;i<12;++i) {const auto id=QString("fixture-%1.desktop").arg(i,2,10,QChar('0'));rows.append(QJsonObject{{"id",id},{"name",QString("Application %1").arg(i+1)},{"icon","application-x-executable"}});running.append(id);}
@@ -397,19 +398,33 @@ void startHomeSmoke(QQuickWindow* window, ShellController& shell, SessionState& 
             if(auto* d=itemNamed("continue-drawer");d && qAbs(d->height()-229)>0.1){--*stage;return;}
             check(shell.drawerOpen() && !shell.quickAppsOpen(),"Y replaces X");capture("adventures-shared-frame-960");shell.dispatch(Action::Back);break;
         case 47: {
-            auto* apps=itemNamed("quick-apps-drawer");auto* games=itemNamed("continue-drawer");
-            if(apps && games && (qAbs(apps->width()-162)>0.1 || qAbs(games->width()-162)>0.1)){--*stage;return;}
-            check(apps && games && apps->width()==games->width() && apps->width()==162,"Closed X/Y handles share the shorter width");
-            check(apps && games && apps->x()>games->x() && apps->x()+apps->width()<400 && apps->height()==36 && games->height()==36,"Compact handles sit side by side at the left bezel");
+            auto* apps=itemNamed("quick-apps-folded");auto* games=itemNamed("continue-drawer");
+            if(apps && games && (qAbs(apps->width()-174)>0.1 || qAbs(games->width()-174)>0.1)){--*stage;return;}
+            check(apps && games && apps->width()==games->width() && apps->width()==174,"Closed X/Y handles share the shorter width");
+            check(apps && games && games->x()>apps->x() && games->x()+games->width()<400 && apps->height()==36 && games->height()==36,"Compact handles sit side by side at the left bezel");
+            check(apps && games && qAbs(apps->mapRectToScene(apps->boundingRect()).right()-games->mapRectToScene(games->boundingRect()).left()-32*apps->mapRectToScene(apps->boundingRect()).width()/apps->width())<2 && apps->parentItem()->z()>games->z(),"Quick Apps is in front of the yellow right handle");
             capture("paired-handles-960");window->resize(1920,1080);shell.dispatch(Action::Secondary);break;
         }
         case 48:
             if(auto* d=itemNamed("quick-apps-drawer");d && qAbs(d->height()-178)>0.1){--*stage;return;}
             capture("quick-apps-full-1080p");shell.closeDrawers();break;
         case 49:
-            if(auto* d=itemNamed("quick-apps-drawer");d && qAbs(d->width()-162)>0.1){--*stage;return;}
-            if(auto* launchButton=itemNamed("home-launch"))if(auto* d=itemNamed("quick-apps-drawer"))check(launchButton->mapRectToScene(launchButton->boundingRect()).bottom()<=d->mapRectToScene(d->boundingRect()).top(),"Folded Quick Apps never covers Start");
+            if(auto* d=itemNamed("quick-apps-shelf");d && d->opacity()>0){--*stage;return;}
+            if(auto* launchButton=itemNamed("home-launch"))if(auto* d=itemNamed("quick-apps-folded"))check(launchButton->mapRectToScene(launchButton->boundingRect()).bottom()<=d->mapRectToScene(d->boundingRect()).top(),"Folded Quick Apps never covers Start");
             check(!shell.quickAppsOpen() && shell.primaryId()=="home","Outside-close preserves the Home route");capture("paired-handles-1080p");break;
+        case 50: {
+            QJsonArray rows{QJsonObject{{"id","fixture-single.desktop"},{"name","One application"},{"icon","application-x-executable"}}};
+            shell.apps()->accept({{"event","catalogue"},{"rows",rows}});
+            shell.apps()->accept({{"event","state"},{"running",QJsonArray{"fixture-single.desktop"}},{"current",""}});
+            shell.dispatch(Action::Secondary);break;
+        }
+        case 51: {
+            auto* shelf=itemNamed("quick-apps-shelf");
+            if(shelf && shelf->width()>170){--*stage;return;}
+            auto* icon=itemNamed("quick-app-slot-0");
+            check(shelf && icon && qAbs(shelf->mapRectToScene(shelf->boundingRect()).center().x()-icon->mapRectToScene(icon->boundingRect()).center().x())<1,"A single icon stays centered on the compact shelf");
+            capture("quick-apps-single-1080p");shell.closeDrawers();break;
+        }
         default:
             check(warnings == 0, "QML warnings"); completed = true; timer->stop();
             if (!screenshotDir.isEmpty()) {
