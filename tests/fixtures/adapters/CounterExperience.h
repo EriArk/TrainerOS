@@ -14,6 +14,7 @@ public:
     QVariantList liveActions(const ExperienceLiveContext&) const override {return {QVariantMap{{"id","inspect"},{"label","Inspect fixture session"}}};}
     void invokeLiveAction(const QString&,const ExperienceLiveContext& context) override {lastLiveGame=context.adventure;++liveCalls;}
     void show(const QString& screen) override {lastFace=screen;}
+    void leave(bool) override {if(resetOnLeave)count=0;}
     bool dispatch(Action action) override {if(action==Action::Confirm){++count;emit changed();}return true;}
     bool activate(int index,const QString&) override {count=index;emit changed();return true;}
     void activateHome(int index,const QString&) override {count=index;emit changed();}
@@ -24,6 +25,7 @@ public:
     quint64 token() const {return context_.generation;}
     void requestFace(){emit screenRequested("second",false,context_.generation);}
     int count=0,version=2,liveCalls=0;
+    bool resetOnLeave=false;
     QString lastFace,lastText,matchGame,lastLiveGame;
 private:
     QString id_;

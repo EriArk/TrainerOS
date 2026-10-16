@@ -14,6 +14,21 @@ using namespace trainer;
 class ExperienceTests : public QObject {
     Q_OBJECT
 private slots:
+    void adapterBrowsingRestoresThroughItsOwnNavigationContract() {
+        MockLibraryRepository library;MockTrainerRepository profiles;MockAdventureAdapter adapter;DevelopmentPlatformService platform;
+        MockHallOfFameRepository archive;MockAchievementProvider achievements;
+        auto factory=[&](const ExperienceServices& services) {
+            ExperienceModules modules;auto module=std::make_unique<test::CounterExperience>("test");
+            module->matchGame="emerald-demo";module->resetOnLeave=true;
+            modules.push_back(std::move(module));modules.push_back(std::make_unique<GenericExperience>(services));return modules;
+        };
+        ShellController shell(library,profiles,adapter,platform,factory,archive,achievements);
+        shell.openGameHubFace("adapter");shell.selectAdapterScreen("second");shell.activate(7);
+        shell.goToSection("apps");shell.goToSection("gamehub");
+        QCOMPARE(shell.hubFace(),"adapter");QCOMPARE(shell.adapterScreen(),"second");QCOMPARE(shell.focusIndex(),7);
+        shell.openGameHubFace("overview");shell.openGameHubFace("adapter");
+        QCOMPARE(shell.adapterScreen(),"second");QCOMPARE(shell.focusIndex(),7);
+    }
     void overviewTimelineRunsLeftToRightAndRestoresSession() {
         class HistoryLibrary : public LibraryRepository {
             MockLibraryRepository base;
@@ -28,13 +43,31 @@ private slots:
                     {"old",id,now.addDays(-1),{},{},PlaySessionOutcome::Interrupted}};
             }
             qint64 gameSessionCount(const QString&) const override { return 87; }
+            PlayerHistory playerHistory() const override {
+                auto rows=gameSessions("emerald-demo");rows[1].adventureId="crystal-demo";
+                return {rows,90,2,1234};
+            }
         } library;
         MockTrainerRepository profiles;MockAdventureAdapter adapter;DevelopmentPlatformService platform;
         MockPokedexRepository dex;MockHallOfFameRepository archive;MockAchievementProvider achievements;
         ShellController shell(library,profiles,adapter,platform,builtinExperiences(dex,dex),archive,achievements);
         shell.openGameHubFace("overview");QCOMPARE(shell.home()["sessionCount"].toLongLong(),87);
+        QCOMPARE(shell.story()["sessionCount"].toLongLong(),90);
+        QCOMPARE(shell.story()["gamesPlayed"].toLongLong(),2);
+        QCOMPARE(shell.storyHistory()[1].toMap()["adventure"].toString(),"crystal-demo");
+        const auto originalGame=shell.currentAdventureId();
+        QSignalSpy launches(&shell,&ShellController::homeLaunchPressed);
+        shell.dispatch(Action::LocalAction);QVERIFY(!shell.menuOpen());
         shell.showOverview("timeline");QCOMPARE(shell.focusIndex(),0);
         shell.dispatch(Action::Left);QCOMPARE(shell.focusIndex(),1);
+        const auto story=shell.storyHistory();
+        shell.goToSection("apps");shell.selectFace(3);
+        shell.goToSection("gamehub");QCOMPARE(shell.overviewFace(),"timeline");QCOMPARE(shell.focusIndex(),1);
+        shell.goToSection("apps");QCOMPARE(shell.appsFace(),"files");
+        shell.goToSection("gamehub");
+        shell.setLiveGame({{"id","crystal-demo"}});
+        QCOMPARE(shell.focusIndex(),1);QCOMPARE(shell.storyHistory(),story);
+        shell.setLiveGame({{"id",originalGame}});shell.setLiveGame({});
         shell.dispatch(Action::Left);QCOMPARE(shell.focusIndex(),1);
         QCOMPARE(shell.gameHistory()[1].toMap()["outcome"].toString(),"interrupted");
         QVERIFY(shell.gameHistory()[1].toMap()["ended"].toString().isEmpty());
@@ -42,6 +75,79 @@ private slots:
         shell.showOverview("timeline");QCOMPARE(shell.focusIndex(),1);
         shell.dispatch(Action::Right);QCOMPARE(shell.focusIndex(),0);
         shell.showOverview("screens");shell.dispatch(Action::Back);QCOMPARE(shell.focusIndex(),1);
+        QCOMPARE(shell.currentAdventureId(),originalGame);QVERIFY(launches.isEmpty());
+    }
+    void storyAchievementsAreAccountScopedAndDeduplicateEditions() {
+        MockLibraryRepository library;
+        class Provider : public AchievementProvider {
+        public:
+            AchievementContext identity{"fixture","owner"};
+            AchievementContext snapshotOwner=identity;
+            AchievementState state=AchievementState::Ready;
+            AchievementContext context() const override { return identity; }
+            QList<AchievementSet> sets() const override {
+                return {{"first","same-provider-game","emerald-demo","First",{},true},
+                    {"edition","same-provider-game","emerald-demo","Second",{},true},
+                    {"uninstalled","foreign","missing-game","Absent",{},true}};
+            }
+            AchievementSnapshot snapshot(const QString& id) const override {
+                return {snapshotOwner,id,state,{{"award","Award",{},{}},{"locked","Locked",{},{}}},
+                    {{"award",true,AchievementMode::Standard,{}},{"award",true,AchievementMode::Hardcore,{}},
+                     {"locked",false,{},{}},{"no-definition",true,{},{}}},{}};
+            }
+            void refresh(const QString&) override {}
+        } provider;
+        PlayerStory story(library,provider);
+        QCOMPARE(story.summary()["achievementCount"].toString(),"1");
+        provider.state=AchievementState::Offline;
+        QCOMPARE(story.summary()["achievementCount"].toString(),"1");
+        provider.state=AchievementState::Loading;
+        QCOMPARE(story.summary()["achievementCount"].toString(),"1");
+        provider.identity.accountId="another-owner";
+        QVERIFY(story.summary()["achievementCount"].toString()!="1");
+        provider.identity.accountId.clear();
+        QCOMPARE(story.summary()["achievementNote"].toString(),"Connect RetroAchievements");
+    }
+    void storyCollageUsesDistinctGamesAndRejectsWrongMediaIdentity() {
+        class Library : public LibraryRepository {
+            MockLibraryRepository base;
+        public:
+            QList<World> worlds() const override { return base.worlds(); }
+            QList<Adventure> adventures() const override { return base.adventures(); }
+            QList<ResumePoint> resumePoints() const override { return {}; }
+            HomeSnapshot home() const override { return base.home(); }
+            std::optional<ExitMedia> exitMedia(const QString& id) const override {
+                ExitMedia media;media.sessionId="capture-"+id;media.adventureId=id;
+                media.capturedAt=QDateTime::fromString("2026-10-16T10:00:00Z",Qt::ISODate);
+                if(id=="emerald-demo")media.capturedAt=media.capturedAt.addSecs(60);
+                else if(id!="crystal-demo")media.adventureId="wrong-game";
+                return media;
+            }
+            PlayerHistory playerHistory() const override {
+                return {{{"past-session","removed-game",QDateTime::currentDateTimeUtc(),{},{},PlaySessionOutcome::Interrupted}},1,1,{}};
+            }
+            std::optional<AdventureRegistration> registration(const QString& id) const override {
+                if(id!="removed-game")return {};
+                AdventureRegistration record;record.adventure.id=id;record.adventure.title="A remembered game";record.removed=true;return record;
+            }
+        } library;
+        DisconnectedAchievementProvider provider;PlayerStory story(library,provider);
+        QCOMPARE(story.history().first().toMap()["game"].toString(),"A remembered game");
+        const auto media=story.media();QCOMPARE(media.size(),2);
+        QCOMPARE(media[0].toMap()["adventure"].toString(),"emerald-demo");
+        QCOMPARE(media[1].toMap()["adventure"].toString(),"crystal-demo");
+        QCOMPARE(media[1].toMap()["source"].toString(),"image://exit-media/capture-crystal-demo");
+        MockTrainerRepository profiles;MockAdventureAdapter adapter;DevelopmentPlatformService platform;
+        MockPokedexRepository dex;MockHallOfFameRepository archive;
+        ShellController shell(library,profiles,adapter,platform,builtinExperiences(dex,dex),archive,provider);
+        QSignalSpy launches(&shell,&ShellController::homeLaunchPressed);
+        shell.openGameHubFace("overview");shell.showOverview("screens");
+        shell.dispatch(Action::Right);QCOMPARE(shell.focusIndex(),1);
+        shell.dispatch(Action::Right);QCOMPARE(shell.focusIndex(),1);
+        shell.dispatch(Action::Back);shell.showOverview("screens");QCOMPARE(shell.focusIndex(),1);
+        shell.goToSection("home");shell.activateDashboard("screens");
+        QCOMPARE(shell.focusIndex(),0); // Home deep link overrides the album's old selection.
+        QVERIFY(launches.isEmpty());
     }
     void dashboardFocusDoesNotRetargetOnUnreadUpdates() {
         MockLibraryRepository library;MockTrainerRepository profiles;MockAdventureAdapter adapter;DevelopmentPlatformService platform;
@@ -308,7 +414,7 @@ private slots:
         QCOMPARE(shell.primaryNames(),QStringList({"Home","Games","GameHub","Social","Apps"}));
         shell.openGameHubFace("lobby");
         QCOMPARE(shell.primaryId(),"gamehub");QCOMPARE(shell.hubFace(),"lobby");
-        QCOMPARE(shell.faceNames(),QStringList({"Overview","RetroAchievements","Lobby"}));
+        QCOMPARE(shell.faceNames(),QStringList({"My Story","RetroAchievements","Lobby"}));
         shell.dispatch(Action::NextFace);QCOMPARE(shell.hubFace(),"overview");
         shell.goToSection("apps");QCOMPARE(shell.faceNames(),QStringList({"Apps","Crates","Browser","Files"}));
         shell.selectFace(3);QCOMPARE(shell.appsFace(),"files");

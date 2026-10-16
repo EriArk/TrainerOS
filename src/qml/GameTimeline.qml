@@ -4,10 +4,10 @@ Item {
     id: root
     required property var shell
     property bool active: false
-    readonly property var events: shell.gameHistory
-    readonly property int total: shell.home.sessionCount || 0
+    readonly property var events: shell.storyHistory
+    readonly property int total: shell.story.sessionCount || 0
     Text {
-        text: "‹  Overview"; font.pixelSize: 13; color: Theme.muted
+        text: "‹  My Story"; font.pixelSize: 13; color: Theme.muted
         MouseArea { anchors.fill: parent; anchors.margins: -8; enabled: root.active; onClicked: root.shell.showOverview("summary") }
     }
     Text {
@@ -27,6 +27,14 @@ Item {
         onCountChanged: Qt.callLater(reveal)
         onVisibleChanged: if(visible) Qt.callLater(reveal)
         onWidthChanged: Qt.callLater(reveal)
+        onMovementEnded: {
+            // A touch swipe becomes the remembered browsing position too.
+            if (!root.active || !count) return
+            const selected = currentItem
+            if (selected && selected.x >= contentX && selected.x+selected.width <= contentX+width) return
+            const index = indexAt(contentX+width/2,height/2)
+            if (index >= 0) root.shell.activate(count-1-index,"overview-event")
+        }
         delegate: Item {
             id: event
             required property var modelData
@@ -44,8 +52,8 @@ Item {
             }
             Text {
                 x: 10; y: event.above ? event.axis+16 : event.axis-34; width: parent.width-20
-                text: modelData.date; horizontalAlignment: Text.AlignHCenter
-                font.family: Theme.displayFamily; font.pixelSize: 16; color: Theme.ink
+                text: modelData.date + "  \u00b7  " + modelData.clock; horizontalAlignment: Text.AlignHCenter
+                font.family: Theme.displayFamily; font.pixelSize: 13; color: Theme.ink
             }
             Rectangle { x: card.x+1; y: card.y+3; width: card.width; height: card.height; radius: 10; color: "#20193f3b" }
             Rectangle {
@@ -58,7 +66,7 @@ Item {
                     GradientStop { position: 1; color: Qt.tint(Theme.paper,Qt.alpha(event.accent,0.24)) }
                 }
                 Rectangle { x: 12; y: 13; width: 4; height: parent.height-26; radius: 2; color: event.accent }
-                Text { x: 26; y: 9; text: modelData.clock; color: Theme.muted; font.pixelSize: 12 }
+                Text { x: 26; y: 9; width: parent.width-36; text: modelData.game; textFormat: Text.PlainText; elide: Text.ElideRight; color: Theme.ink; font.pixelSize: 14 }
                 Text {
                     x: 26; y: 29; width: parent.width-36; text: modelData.duration
                     font.family: Theme.displayFamily; font.pixelSize: 19; minimumPixelSize: 13

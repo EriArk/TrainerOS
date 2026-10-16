@@ -46,6 +46,26 @@ public:
 class SeriesTests: public QObject {
     Q_OBJECT
 private slots:
+    void primaryTabsRestoreGameLocationUntilExplicitBack() {
+        SeriesLibrary library;SeriesAdapter adapter;MockTrainerRepository profiles;DevelopmentPlatformService platform;MockPokedexRepository dex;
+        MockHallOfFameRepository archive;MockAchievementProvider achievements;
+        ShellController shell(library,profiles,adapter,platform,builtinExperiences(dex,dex),archive,achievements);
+        shell.goToSection("games");shell.openGamesRootItem("platforms","gba");
+        shell.focusLibraryGame(1);const auto selected=shell.multiverse()->detail()["id"];
+        for(const auto& view:QStringList{"wheel","list","shelves","grid"}) {
+            shell.libraryAction("view:"+view);
+            for(const auto& section:QStringList{"home","gamehub","social","apps"}) {
+                shell.goToSection(section);shell.goToSection("games");
+                QVERIFY(!shell.collectionsRoot());QCOMPARE(shell.multiverse()->route(),"games");
+                QCOMPARE(shell.multiverse()->viewStyle(),view);QCOMPARE(shell.multiverse()->detail()["id"],selected);
+            }
+            shell.dispatch(Action::NextPage);shell.dispatch(Action::PreviousPage);
+            QVERIFY(!shell.collectionsRoot());QCOMPARE(shell.multiverse()->detail()["id"],selected);
+        }
+        shell.dispatch(Action::Back);QVERIFY(shell.collectionsRoot());
+        shell.goToSection("home");shell.goToSection("games");QVERIFY(shell.collectionsRoot());
+        QVERIFY(adapter.launched.isEmpty());
+    }
     void favoriteStarAndL3ShareIdentityAndRespectSurfaceGates() {
         SeriesLibrary library;SeriesAdapter adapter;MockTrainerRepository profiles;DevelopmentPlatformService platform;MockPokedexRepository dex;
         MockHallOfFameRepository archive;MockAchievementProvider achievements;
@@ -361,7 +381,9 @@ private slots:
         QVERIFY(!shell.collectionsRoot());QCOMPARE(shell.multiverse()->collection(),"mario");
         shell.dispatch(Action::Confirm);QVERIFY(!adapter.launched.isEmpty());
         shell.dispatch(Action::Back);QVERIFY(shell.collectionsRoot());QCOMPARE(shell.focusIndex(),1);
-        shell.activate(2);shell.goToPage(0);shell.goToPage(1);QVERIFY(shell.collectionsRoot());QCOMPARE(shell.focusIndex(),2);
+        shell.activate(2);const auto location=shell.multiverse()->navigationState();
+        shell.goToPage(0);shell.goToPage(1);QVERIFY(!shell.collectionsRoot());QCOMPARE(shell.multiverse()->navigationState(),location);
+        shell.dispatch(Action::Back);QVERIFY(shell.collectionsRoot());QCOMPARE(shell.focusIndex(),2);
         shell.goToPage(0);const auto before=shell.navigationState();
         shell.dispatch(Action::NextFace);shell.dispatch(Action::PreviousFace);
         QCOMPARE(shell.navigationState(),before);QVERIFY(shell.faceNames().isEmpty());

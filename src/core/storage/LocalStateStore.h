@@ -62,6 +62,7 @@ public:
     QList<ResumePoint> resumePoints() const override { return {}; }
     HomeSnapshot home() const override;
     QList<PlaySession> recentSessions() const override { return history_.recent; }
+    PlayerHistory playerHistory() const override { return history_.player; }
     QList<PlaySession> gameSessions(const QString& id) const override { return history_.sessions.value(id); }
     std::optional<qint64> recordedSeconds(const QString&) const override;
     qint64 gameSessionCount(const QString& id) const override { return history_.counts.value(id); }

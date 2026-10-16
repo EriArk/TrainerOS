@@ -26,6 +26,7 @@ public:
     std::optional<quint64> libraryRevision() const override { return personal_.libraryRevision(); }
     QList<ResumePoint> resumePoints() const override { return personal_.resumePoints(); }
     QList<PlaySession> recentSessions() const override { return personal_.recentSessions(); }
+    PlayerHistory playerHistory() const override { return personal_.playerHistory(); }
     QList<PlaySession> gameSessions(const QString& id) const override { return personal_.gameSessions(id); }
     std::optional<ExitMedia> exitMedia(const QString& id) const override { return personal_.exitMedia(id); }
     std::optional<qint64> recordedSeconds(const QString& id) const override { return personal_.recordedSeconds(id); }

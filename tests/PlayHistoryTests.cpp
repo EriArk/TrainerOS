@@ -80,6 +80,12 @@ private slots:
             QVERIFY(q.exec("INSERT INTO play_sessions VALUES('last','0','2025-01-01T00:00:00.000Z',NULL,NULL,'running','owner')"));
             const auto result=readPlayHistory(db,"owner");QVERIFY(result.error.isEmpty());QCOMPARE(result.recent.size(),121);
             QCOMPARE(result.recent[0].id,"last");QCOMPARE(result.recent[1].adventureId,"120");
+            QCOMPARE(result.player.sessionCount,122);
+            QCOMPARE(result.player.gamesPlayed,121);
+            QCOMPARE(result.player.sessions.size(),50);
+            QCOMPARE(result.player.sessions.first().id,"last");
+            QCOMPARE(result.player.sessions[1].adventureId,"120");
+            QVERIFY(!result.player.recordedSeconds);
             QCOMPARE(result.sessions.value("0").size(),2);
             QCOMPARE(result.sessions.value("0").first().id,"last");
             QVERIFY(!result.sessions.contains("121"));
@@ -93,15 +99,23 @@ private slots:
             QCOMPARE(bounded.sessions.value("0").first().id,"repeat54");
             QCOMPARE(bounded.sessions.value("0").last().id,"repeat5");
             QCOMPARE(bounded.counts.value("0"),57);
+            QCOMPARE(bounded.player.sessionCount,177);
+            QCOMPARE(bounded.player.gamesPlayed,121);
+            QCOMPARE(bounded.player.sessions.size(),50);
+            QCOMPARE(bounded.player.sessions.last().id,"repeat5");
             QVERIFY(!bounded.totals.contains("0")); // Unknown duration is not zero.
             QVERIFY(!bounded.counts.contains("121"));
             const auto other=readPlayHistory(db,"other");
+            QCOMPARE(other.player.sessionCount,1);
+            QCOMPARE(other.player.gamesPlayed,1);
+            QCOMPARE(other.player.sessions.first().adventureId,"121");
             QCOMPARE(other.counts.value("121"),1);
             QVERIFY(!other.counts.contains("0"));
             QVERIFY(q.exec("UPDATE play_sessions SET elapsed_seconds=120 WHERE id='repeat0'"));
             const auto timed=readPlayHistory(db,"owner");
             QCOMPARE(timed.counts.value("0"),57);
             QCOMPARE(timed.totals.value("0"),120); // Includes rows outside the 50-event window.
+            QCOMPARE(timed.player.recordedSeconds,std::optional<qint64>(120));
         }
         QSqlDatabase::removeDatabase(connection);
     }

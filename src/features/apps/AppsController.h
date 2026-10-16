@@ -57,7 +57,7 @@ public:
     Q_INVOKABLE void showHidden();
     Q_INVOKABLE void showControls();
     Q_INVOKABLE void control(int index);
-    void leave();
+    void leave(bool preserveLocation=false);
 signals:
     void changed();
     void commandRequested(QJsonObject);

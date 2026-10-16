@@ -7,12 +7,13 @@ Item {
     function hints(h) {
         if(shell.hubFace === "lobby") return shell.social.hints
         if(shell.adapterActive) {
-            if(shell.adapterMenuOpen) return [h("↑↓","Screens"),h("A","Open"),h("B","Overview")]
+            if(shell.adapterMenuOpen) return [h("↑↓","Screens"),h("A","Open"),h("B","My Story")]
             return adapterPresenter.hints(h) || [h("A","Open"),h("Select","Actions"),h("B","Screens")]
         }
         if(shell.hubFace === "ra") return [h("A","Open"),h("Select","Refresh"),h("B","Back")]
-        return shell.overviewFace === "timeline" ? [h("←→","Timeline"),h("Select","Game actions"),h("B","Overview")]
-            : [h("A","Open"),h("Select","Game actions"),h("B",shell.overviewFace === "summary" ? "Home" : "Overview")]
+        if(shell.overviewFace === "timeline") return [h("←→","Timeline"),h("B","My Story")]
+        if(shell.overviewFace === "screens") return [h("←→","Screens"),h("B","My Story")]
+        return [h("A","Open"),h("B","Home")]
     }
     readonly property bool available: visible && !shell.serviceOpen && !shell.menuOpen
         && !shell.drawerOpen && !shell.quickAppsOpen && !shell.keyboard.open && !shell.notice.length

@@ -15,6 +15,14 @@ class AppsTests:public QObject {
         apps.accept({{"event","ready"}});
     }
 private slots:
+    void leavingForAnotherPrimaryPreservesBrowsingModeAndFocus() {
+        QTemporaryDir dir;AppsController apps;apps.configure(dir.path(),"alice");seed(apps);
+        apps.select(1);apps.leave(true);QCOMPARE(apps.focusIndex(),1);
+        apps.options(1);apps.menuAction(0);apps.select(0,true);
+        apps.leave(true);QVERIFY(apps.railFocused());QCOMPARE(apps.focusIndex(),0);
+        apps.showHidden();apps.leave(true);QVERIFY(apps.hiddenView());
+        apps.leave();QVERIFY(!apps.hiddenView());QVERIFY(!apps.railFocused());
+    }
     void pinnedAndRunningAreSeparateWithoutDuplicates() {
         QTemporaryDir dir;AppsController apps;apps.configure(dir.path(),"alice");seed(apps);
         apps.options(1);apps.menuAction(0); // Writer sorts after Calculator but is pinned first.

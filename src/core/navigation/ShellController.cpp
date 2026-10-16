@@ -65,7 +65,7 @@ ShellController::ShellController(LibraryRepository& repo, TrainerRepository& pro
     : QObject(parent), repository_(repo), adapter_(adapter), platform_(platform),
       keyboard_(this), trainer_(profiles, this), worlds_(repo, adapter, this), multiverse_(repo, adapter, this),
       hall_(archive, achievements, this),
-      libraryManager_(repo, nullptr, this), libraryTools_(repo,this), scraper_(repo,this), settings_(this), device_(this), diagnostics_(this), dashboard_(repo,achievements,social_,this) {
+      libraryManager_(repo, nullptr, this), libraryTools_(repo,this), scraper_(repo,this), settings_(this), device_(this), diagnostics_(this), dashboard_(repo,achievements,social_,this), story_(repo,achievements) {
 
     connect(&dashboard_,&HomeDashboardController::changed,this,&ShellController::changed);
     modules_=factory({repo,trainer_,hall_,archive,profiles});
@@ -370,9 +370,15 @@ void ShellController::goToSection(const QString& id) {
 }
 void ShellController::setHubFace(const QString& requested) {
     const auto face=hubFaceIds().contains(requested)?requested:QString("overview");
+    const bool switching=hubFace_!=face;
+    if(switching && adapterActive() && activeModule_)
+        experience_.rememberNavigation({{"module",activeModule_->navigation()},{"hall",hall_.navigationState()}});
     if(hubFace_!=face && activeModule_)activeModule_->leave(false);
     hubFace_=face;quickAppsOpen_=false;
-    if(face=="adapter")showExperienceScreen(experience_.screen());
+    if(face=="adapter") {
+        showExperienceScreen(experience_.screen());
+        if(switching && activeModule_)activeModule_->restoreNavigation(experience_.navigation()["module"].toObject());
+    }
     else if(face=="ra")hall_.showFace(2);
     else if(face=="lobby")social_.setFace("lobby");
     emit changed();
@@ -419,12 +425,17 @@ void ShellController::showAdapterMenu() {
 void ShellController::showOverview(const QString& face) {
     if(page_!=GameHubPage || hubFace_!="overview" || !pairedNavigationAvailable())return;
     if(!QStringList{"summary","timeline","screens"}.contains(face))return;
-    if(overviewFace_=="timeline")overviewSessionId_=gameHistory().value(overviewFocus_).toMap()["id"].toString();
+    if(overviewFace_=="timeline")overviewSessionId_=storyHistory().value(overviewFocus_).toMap()["id"].toString();
+    if(overviewFace_=="screens")overviewMediaId_=storyMedia().value(overviewFocus_).toMap()["id"].toString();
     const auto previous=overviewFace_;
     overviewFace_=face;overviewFocus_=face=="summary" && previous=="screens"?1:0;
     if(face=="timeline" && !overviewSessionId_.isEmpty()) {
-        const auto rows=gameHistory();
+        const auto rows=storyHistory();
         for(int i=0;i<rows.size();++i)if(rows[i].toMap()["id"]==overviewSessionId_){overviewFocus_=i;break;}
+    }
+    if(face=="screens" && !overviewMediaId_.isEmpty()) {
+        const auto rows=storyMedia();
+        for(int i=0;i<rows.size();++i)if(rows[i].toMap()["id"]==overviewMediaId_){overviewFocus_=i;break;}
     }
     emit changed();
 }
@@ -448,7 +459,11 @@ void ShellController::activateDashboard(const QString& key) {
     dashboard_.select(key);
     if(target["type"]=="play"){confirm();emit changed();return;}
     if(target["type"]=="screens") {
-        openGameHubFace("overview");showOverview("screens");dashboardReturn_=true;
+        openGameHubFace("overview");showOverview("screens");
+        const auto media=storyMedia();
+        overviewFocus_=media.size(); // Missing media stays empty, never another game's frame.
+        for(int i=0;i<media.size();++i)if(media[i].toMap()["adventure"]==currentAdventureId()){overviewFocus_=i;break;}
+        dashboardReturn_=true;
     } else if(target["type"]=="person") {
         socialFace_="chats";goToPage(SocialPage);
         if(!social_.openQuickConversation(target["conversation"].toString()))social_.profile(target["id"].toString());
@@ -495,9 +510,8 @@ bool ShellController::dispatchGameHub(Action action) {
         if(overviewFace_!="summary")showOverview("summary");else goToPage(HomePage);
     } else if(action==Action::Confirm) {
         if(overviewFace_=="summary")showOverview(overviewFocus_==0?"timeline":"screens");
-    } else if(action==Action::LocalAction)openContext("game",currentAdventureId());
-    else if(action==Action::Up || action==Action::Down || action==Action::Left || action==Action::Right) {
-        const int count=overviewFace_=="summary"?2:overviewFace_=="timeline"?gameHistory().size():0;
+    } else if(action==Action::Up || action==Action::Down || action==Action::Left || action==Action::Right) {
+        const int count=overviewFace_=="summary"?2:overviewFace_=="timeline"?storyHistory().size():storyMedia().size();
         const int direction=action==Action::Down || action==Action::Right?1:-1;
         // History is newest-first; the visual timeline runs oldest to newest.
         overviewFocus_=std::clamp(overviewFocus_+(overviewFace_=="timeline"?-direction:direction),0,qMax(0,count-1));
@@ -522,6 +536,7 @@ void ShellController::syncExperience() {
     const auto game=homeAdventure();
     const auto record=game?repository_.registration(game->id):std::nullopt;
     const auto owner=trainer_.profile()["id"].toString();
+    if(experience_.owner()!=owner){overviewFocus_=0;overviewSessionId_.clear();overviewMediaId_.clear();overviewFace_="summary";}
     if(!experience_.owner().isEmpty() && experience_.owner()!=owner){dashboard_.reset();achievementNotifications_.clear();achievementToast_.clear();++achievementToastGeneration_;}
     ExperienceModule* next=resolveExperience(game);
     Q_ASSERT(next);
@@ -531,7 +546,6 @@ void ShellController::syncExperience() {
     if(changing && activeModule_)experience_.rememberNavigation({{"module",activeModule_->navigation()},{"hall",hall_.navigationState()}});
     const bool changed=experience_.select(owner,currentAdventureId(),descriptor,record?record->revision:0);
     if(changed || changing) {
-        if(changing){overviewFocus_=0;overviewSessionId_.clear();}
         if(activeModule_)activeModule_->leave(false);
         if(textModule_){textModule_->cancelText();textModule_=nullptr;keyboard_.cancel();textTarget_=TextTarget::None;}
         hall_.editor()->cancel();activeModule_=next;
@@ -572,7 +586,7 @@ QVariantList ShellController::gameHistory() const {
 QStringList ShellController::faceNames() const {
     if(page_==GamesPage && !collectionsRoot_) {QStringList names;for(const auto& row:gamesRootZone_=="platforms"?gamesPlatforms():gamesCollections())names.append(row.toMap()["name"].toString());return names;}
     if(page_==GameHubPage) {
-        QStringList result{"Overview","RetroAchievements"};
+        QStringList result{"My Story","RetroAchievements"};
         if(experience_.hasAdapter())result.append(experience_.descriptor().adapter.label);
         result.append("Lobby");return result;
     }
@@ -950,7 +964,8 @@ void ShellController::goToPage(int page) {
     // hidden Home/drawer bindings do not rebuild the library repeatedly.
     QSignalBlocker transition(this);
     homeMenuOpen_ = false;dashboardReturn_=false;
-    const bool enteringWorlds = page_ != 1 && std::clamp(page, 0, int(primaryNames().size())-1) == 1;
+    if(adapterActive() && activeModule_)
+        experience_.rememberNavigation({{"module",activeModule_->navigation()},{"hall",hall_.navigationState()}});
     for(auto& module:modules_)module->leave(page!=page_);
     collectionManager()->close();
     { PerformanceTrace::Scope phase("navigation.tools"); libraryTools_.close(); }
@@ -958,7 +973,7 @@ void ShellController::goToPage(int page) {
     { PerformanceTrace::Scope phase("navigation.keyboard"); if(textTarget_==TextTarget::Social)social_.preserveText(keyboard_.text()); keyboard_.cancel(); }
     if(textModule_){textModule_->cancelText();textModule_=nullptr;}
     textTarget_ = TextTarget::None;
-    apps_.leave();
+    apps_.leave(true);
     social_.closeMenu();
     { PerformanceTrace::Scope phase("navigation.archive"); hall_.editor()->cancel(); }
     { PerformanceTrace::Scope phase("navigation.account"); hall_.account()->close(); }
@@ -970,16 +985,16 @@ void ShellController::goToPage(int page) {
     if(page_==AppsPage)apps_.refresh();
     if(page_==SocialPage)social_.setFace(socialFace_);
     if(page_==1 && multiverseFace_)multiverse_.setCollection(worldCollection_);
-    if (enteringWorlds) {
-        collectionsRoot_=true;
-        { PerformanceTrace::Scope phase("navigation.worlds"); worlds_.showRegions(); }
-        { PerformanceTrace::Scope phase("navigation.multiverse"); multiverse_.showSystems(); }
-    }
+    // Primary tabs resume their existing route and focus. Only explicit Back
+    // or a destination action goes to a root; switching tabs is not navigation up.
     if (page_ == 1) repository_.refreshContentAvailability();
     // Party observes the current Adventure, library and save provider directly.
     // Visiting an unrelated page must not republish the same actors/practice UI.
     syncExperience();
-    if(page_==GameHubPage)setHubFace(hubFace_);
+    if(page_==GameHubPage) {
+        setHubFace(hubFace_);
+        if(adapterActive() && activeModule_)activeModule_->restoreNavigation(experience_.navigation()["module"].toObject());
+    }
     drawerOpen_ = false;
     menuOpen_ = false;
     if (powerMenu_) menuFocus_ = 6;
@@ -1164,10 +1179,9 @@ void ShellController::activate(int index, const QString& area) {
         if(hubFace_=="ra"){if(area.isEmpty())hall_.activate(index);else hall_.activateControl(area,index);return;}
         if(hubFace_=="lobby"){social_.activate(index);return;}
         if(adapterActive() && activeModule_){activeModule_->activate(index,area);return;}
-        overviewFocus_=qMax(0,index);
+        overviewFocus_=std::clamp(index,0,qMax(0,int(overviewFace_=="timeline"?storyHistory().size():overviewFace_=="screens"?storyMedia().size():2)-1));
         if(area=="overview-timeline")showOverview("timeline");
         else if(area=="overview-screens")showOverview("screens");
-        else if(area=="experience")openContext("game",currentAdventureId());
         emit changed();return;
     }
     confirm();

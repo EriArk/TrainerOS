@@ -3,6 +3,8 @@ import QtQuick
 Item {
     id: root
     property url source
+    property url rearSource
+    property url thirdSource
     property bool selected: false
     property bool balanced: false
     property int frameCount: 2
@@ -27,7 +29,7 @@ Item {
 
     Item {
     width: parent.width; height: parent.height; y: root.artOffset
-    // A third empty album mount is optional; Home keeps its accepted two frames.
+    // Optional retained moments; empty mounts stay decorative. Home keeps two frames.
     Item {
         visible: root.frameCount > 2
         x: Math.max(0,(parent.width-root.frameWidth*1.30)/2)-root.frameWidth*.12
@@ -36,11 +38,11 @@ Item {
         Rectangle {
             anchors.fill: parent; radius: 4; color: Qt.lighter(Theme.rim,1.18); border.color: Theme.rim
             Rectangle { anchors.fill: parent; anchors.margins: 6; radius: 2; color: Theme.chassis; opacity: .35 }
+            Image { x: 6; y: 6; width: parent.width-12; height: parent.height-24; source: root.visible ? root.thirdSource : ""; sourceSize: Qt.size(360,240); asynchronous: true; fillMode: Image.PreserveAspectFit }
             Rectangle { x: 11; y: parent.height-12; width: parent.width*.44; height: 2; color: Theme.rim }
         }
     }
-    // The rear mount is stationery, not a second invented capture. The current
-    // media repository retains one confirmed exit image per owner/adventure.
+    // Global My Story can supply a different game for each rear mount.
     Item {
         x: Math.max(0,(parent.width-root.frameWidth*(root.balanced ? 1.30 : 1.38))/2)
         y: 0; width: root.frameWidth; height: root.frameHeight; rotation: -9
@@ -48,6 +50,7 @@ Item {
         Rectangle {
             anchors.fill: parent; radius: 4; color: "#d3dbc0"; border.color: "#899b7c"
             Rectangle { anchors.fill: parent; anchors.margins: 6; color: Theme.homeLandscape[5]; radius: 2; opacity: .55 }
+            Image { x: 6; y: 6; width: parent.width-12; height: parent.height-24; source: root.visible ? root.rearSource : ""; sourceSize: Qt.size(360,240); asynchronous: true; fillMode: Image.PreserveAspectFit }
             Rectangle { x: 11; y: parent.height-12; width: parent.width*.44; height: 2; color: "#94a181" }
         }
     }

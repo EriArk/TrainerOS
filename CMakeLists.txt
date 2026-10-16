@@ -61,6 +61,7 @@ add_library(trainer_core STATIC
     src/features/library/LibraryToolsController.cpp
     src/features/library/ScrapeController.cpp
     src/features/home/HomeDashboardController.cpp
+    src/features/home/PlayerStory.cpp
     src/features/apps/AppsController.cpp
     src/features/downloads/DownloadsController.cpp
     src/core/repository/BatoceraLibrary.cpp
