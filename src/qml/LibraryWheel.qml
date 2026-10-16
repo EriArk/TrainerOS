@@ -28,31 +28,22 @@ Item {
         for (let i = 0; i < key.length; ++i) hash = (hash * 31 + key.charCodeAt(i)) | 0
         return colors[(hash >>> 0) % colors.length]
     }
+    function scrollDescription(direction) { information.scrollDescription(direction) }
     Rectangle {
-        width: root.split; height: parent.height
+        x: 6; y: 8; width: root.split - 12; height: parent.height - 28; radius: 24
+        opacity: 0.13
         gradient: Gradient {
-            GradientStop { position: 0; color: "#c9d9d4" }
-            GradientStop { position: 0.5; color: "#eef0da" }
-            GradientStop { position: 1; color: "#b5cec8" }
+            GradientStop { position: 0; color: Theme.rim }
+            GradientStop { position: 0.48; color: Theme.paper }
+            GradientStop { position: 1; color: Theme.rim }
         }
     }
-    Rectangle { x: root.split; width: 2; height: parent.height; color: "#607e807a" }
-    Rectangle { x: root.split + 2; width: 6; height: parent.height; opacity: 0.3
-        gradient: Gradient { orientation: Gradient.Horizontal
-            GradientStop { position: 0; color: "#547870" }
-            GradientStop { position: 1; color: "transparent" }
-        }
-    }
-    Text {
-        x: 18; y: 12; width: root.split - 36
-        text: root.filterText
-        color: Theme.muted; font.pixelSize: 12; elide: Text.ElideRight; textFormat: Text.PlainText
-    }
+    Rectangle { x: root.split; y: 16; width: 1; height: parent.height - 38; color: Theme.ink; opacity: 0.12 }
     // The wheel sits inside a continuous recessed rail. Only nearby
     // delegates exist; logos decode asynchronously at display size.
     Item {
         id: rail
-        x: 0; y: 36; width: root.split; height: parent.height - 78; clip: true
+        x: 0; y: 10; width: root.split; height: parent.height - 40; clip: true
         Canvas {
             id: crystal
             objectName: "library-selection-crystal"
@@ -128,7 +119,7 @@ Item {
                 onSelectedChanged: if (selected && visible) forceActiveFocus(Qt.OtherFocusReason)
                 onVisibleChanged: if (selected && visible) forceActiveFocus(Qt.OtherFocusReason)
                 Component.onCompleted: if (selected && visible) forceActiveFocus(Qt.OtherFocusReason)
-                width: rail.width - 44; height: index === root.selectionIndex ? 104 : 42
+                width: rail.width - 36; height: index === root.selectionIndex ? Math.min(126, rail.height * 0.43) : 58
                 Behavior on height { NumberAnimation { duration: Theme.motion(130) } }
                 scale: PathView.logoScale === undefined ? 1 : PathView.logoScale
                 opacity: (PathView.logoOpacity === undefined ? 1 : PathView.logoOpacity) * (modelData.missing ? 0.55 : 1)
@@ -155,7 +146,7 @@ Item {
                     visible: logo.status !== Image.Ready
                     text: modelData.title; textFormat: Text.PlainText
                     color: root.titleColor(modelData.id || modelData.title); style: Text.Outline; styleColor: "#fff6d9"
-                    font.family: Theme.gameFamily; font.pixelSize: index === root.selectionIndex ? 31 : 23
+                    font.family: Theme.gameFamily; font.pixelSize: index === root.selectionIndex ? 35 : 25
                     fontSizeMode: Text.Fit; minimumPixelSize: 15
                     horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter
                     wrapMode: Text.WordWrap; maximumLineCount: 2; elide: Text.ElideRight
@@ -165,20 +156,14 @@ Item {
         }
     }
     Text {
-        x: 18; anchors.bottom: parent.bottom; anchors.bottomMargin: 14
+        x: 18; anchors.bottom: parent.bottom; anchors.bottomMargin: 24
         visible: !root.showBack
         text: root.entries.length ? (root.selectionIndex + 1) + " / " + root.entries.length : ""
         color: Theme.muted; font.pixelSize: 13
     }
-    Image {
-        x: root.split; y: 0; width: parent.width-x; height: parent.height
-        source: root.visible && root.entry.artwork ? root.entry.artwork.displayBackground || "" : ""
-        asynchronous: true; sourceSize.width: 960; sourceSize.height: 600; fillMode: Image.PreserveAspectCrop
-        opacity: 0.13
-    }
-
     GameInformation {
-        x: root.split + 20; y: 12; width: parent.width - x - 22; height: parent.height - 26
+        id: information
+        x: root.split + 20; y: 6; width: parent.width - x - 20; height: parent.height - 22
         visible: root.entries.length > 0
         entry: root.entry
         active: root.takesFocus && root.wheelFocused

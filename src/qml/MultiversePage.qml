@@ -4,26 +4,15 @@ Item {
     id: root
     required property var shell
     readonly property var model: shell.multiverse
-    readonly property bool takesFocus: visible && !shell.collectionManager.open && !shell.serviceOpen && !shell.libraryTools.open && !shell.scraper.open && !shell.menuOpen && !shell.keyboard.open && !shell.notice.length
+    readonly property bool takesFocus: visible && shell.pairedNavigationAvailable && !shell.collectionManager.open && !shell.serviceOpen && !shell.libraryTools.open && !shell.scraper.open && !shell.menuOpen && !shell.keyboard.open && !shell.notice.length
     PageHeader {
-        id: header; width: parent.width - (root.model.route === "games" ? 240 : 0)
+        id: header; visible: root.model.route !== "games"; height: visible ? implicitHeight : 0; width: parent.width - (root.model.route === "games" ? 240 : 0)
         title: root.model.collection !== "multiverse" ? root.model.collectionName : root.model.route === "systems" ? "All games" : root.model.systemName
         compact: root.model.route === "systems"
         subtitle: root.model.route === "systems" ? "" : root.model.sample ? "Development preview · fictional titles · no launch" : root.model.collection !== "multiverse" ? "Across your library" : "Your library across systems"
     }
-    SocialIconButton {
-        anchors.right: parent.right; anchors.rightMargin: 16; y: 10
-        icon: "dots-three"; label: root.model.route === "games" ? "Game actions" : "Collection actions"
-        onClicked: root.shell.openContext(root.model.route === "games" ? "game" : "collection",root.model.route === "games" ? root.model.detail.id : root.model.collection)
-    }
-    Row {
-        anchors.right: parent.right; anchors.rightMargin: 54; y: 6; spacing: 7
-        visible: root.model.route === "games"
-        CapButton { width: 88; height: 29; textSize: 12; label: "Search"; tint: Theme.blue; claimsFocus: false; onActivated: root.shell.libraryAction("search") }
-        CapButton { width: 88; height: 29; textSize: 12; label: "Filter"; tint: Theme.green; claimsFocus: false; onActivated: root.shell.libraryAction("filter") }
-    }
-    MountedPanel {
-        y: header.height; width: parent.width; height: parent.height - y; color: "#d9deed"
+    Item {
+        y: header.height; width: parent.width; height: parent.height - y
         Text {
             anchors.centerIn: parent
             visible: root.model.route === "systems" && root.model.systems.length === 0
@@ -61,7 +50,12 @@ Item {
                 }
             }
         }
+        Connections {
+            target: root.model
+            function onScrollRequested(direction) { if (root.takesFocus) browser.scrollDescription(direction) }
+        }
         LibraryWheel {
+            id: browser
             anchors.fill: parent; visible: root.model.route === "games"
             entries: root.model.games; entry: root.model.detail; selectionIndex: root.model.focusIndex
             takesFocus: root.takesFocus

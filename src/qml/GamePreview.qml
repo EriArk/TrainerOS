@@ -4,6 +4,10 @@ Item {
     id: root
     property url picture: ""
     property url video: ""
+    readonly property real imageAspect: still.status === Image.Ready && still.implicitHeight > 0 ? still.implicitWidth / still.implicitHeight : 1.5
+    property bool themedFallback: false
+    property string fallbackTitle: ""
+    property url fallbackArt: ""
     property bool playbackAllowed: false
     property bool settled: false
     readonly property bool eligible: visible && playbackAllowed && Qt.application.state === Qt.ApplicationActive && video.toString().startsWith("file:")
@@ -20,7 +24,30 @@ Item {
         asynchronous: true; sourceSize.width: 720; sourceSize.height: 420
         fillMode: Image.PreserveAspectFit
     }
-    SystemGlyph { anchors.centerIn: parent; width: 66; height: 70; shape: "handheld"; visible: still.status !== Image.Ready; opacity: 0.45 }
+    Loader {
+        anchors.fill: parent
+        active: root.visible && root.themedFallback && still.status !== Image.Ready
+        sourceComponent: HomeCardBackdrop {
+            radius: 4
+            Rectangle { anchors.fill: parent; color: "#30203730"; radius: 4 }
+            Image {
+                id: fallbackImage; anchors.centerIn: parent
+                width: parent.width * 0.78; height: parent.height * 0.72
+                source: root.fallbackArt; asynchronous: true; fillMode: Image.PreserveAspectFit
+                sourceSize: Qt.size(720, 400); mipmap: true
+            }
+            Text {
+                anchors.centerIn: parent; width: parent.width * 0.8; height: parent.height * 0.7
+                visible: fallbackImage.status !== Image.Ready
+                text: root.fallbackTitle; textFormat: Text.PlainText
+                font.family: Theme.gameFamily; font.pixelSize: 29; minimumPixelSize: 17; fontSizeMode: Text.Fit
+                wrapMode: Text.WordWrap; maximumLineCount: 3; elide: Text.ElideRight
+                horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter
+                color: "#fff3cb"; style: Text.Outline; styleColor: Theme.chassisDark
+            }
+        }
+    }
+    SystemGlyph { anchors.centerIn: parent; width: 66; height: 70; shape: "handheld"; visible: !root.themedFallback && still.status !== Image.Ready; opacity: 0.45 }
     Loader {
         id: videoLoader
         objectName: "game-preview-loader"

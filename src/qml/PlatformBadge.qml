@@ -5,9 +5,10 @@ Rectangle {
     id: root
     property string label: ""
     property string shape: "console"
+    property bool frameless: false
     width: 72; height: 44; radius: 7
-    color: "#d7ded7"; border.color: "#8c9f97"
-    Rectangle { x: 2; y: 2; width: parent.width - 4; height: 1; color: "#71877d" }
+    color: frameless ? "transparent" : "#d7ded7"; border.color: "#8c9f97"; border.width: frameless ? 0 : 1
+    Rectangle { visible: !root.frameless; x: 2; y: 2; width: parent.width - 4; height: 1; color: "#71877d" }
     Canvas {
         id: silhouette
         x: 20; y: 5; width: 32; height: 20

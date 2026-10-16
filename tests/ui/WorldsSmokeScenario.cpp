@@ -16,6 +16,7 @@ void startWorldsSmoke(QQuickWindow* window, ShellController& shell, ControllerIn
         const auto press=[&](SDL_GameControllerButton b){SDL_JoystickSetVirtualButton(joystick,b,1);input.poll();SDL_JoystickSetVirtualButton(joystick,b,0);input.poll();};
         const auto capture=[&](const QString& name){const auto frame=window->grabWindow();check(!frame.isNull(),"Empty render");if(!directory.isEmpty())check(frame.save(directory+"/"+name+".png"),"Cannot save render");};
         const auto focus=[&]{auto* item=window->activeFocusItem();check(item && item->isVisible() && item->isEnabled(),"Hidden or missing focus");};
+        const auto visibleItem=[&](const QString& name)->QQuickItem* { for(auto* item:window->findChildren<QQuickItem*>(name))if(item->isVisible())return item;return nullptr; };
         constexpr auto a=SDL_CONTROLLER_BUTTON_B,b=SDL_CONTROLLER_BUTTON_A;
         switch((*step)++) {
         case 0: shell.goToPage(1);break;
@@ -32,12 +33,32 @@ void startWorldsSmoke(QQuickWindow* window, ShellController& shell, ControllerIn
             press(SDL_CONTROLLER_BUTTON_DPAD_DOWN);break;
         }
         case 2: check(shell.gamesRootZone()=="platforms","Down must enter platforms");focus();capture("games-platform-focus");press(a);break;
-        case 3: check(!shell.collectionsRoot() && shell.multiverse()->route()=="games","Platform must open games directly");capture("platform-browser");press(b);break;
-        case 4: check(shell.collectionsRoot() && shell.gamesRootZone()=="platforms","Back must restore platform focus");press(SDL_CONTROLLER_BUTTON_DPAD_UP);break;
+        case 3: {
+            check(!shell.collectionsRoot() && shell.multiverse()->route()=="games","Platform must open games directly");capture("platform-browser");
+            auto* media=visibleItem("library-detail-picture");
+            auto* facts=visibleItem("library-detail-facts");
+            check(media && facts && facts->x()+facts->width()<media->x(),"Media frame and metadata must not overlap");
+            check(media && qAbs((media->width()-14)/(media->height()-14)-media->property("aspect").toDouble())<0.001,"Media frame must follow image proportions");
+            auto* scroll=visibleItem("library-detail-scroll");
+            auto* description=scroll?scroll->parentItem()->findChild<QQuickItem*>("multiverse-description"):nullptr;
+            check(description,"Description fixture missing");
+            if(description) description->setProperty("text",QString("A long game synopsis for deliberate reading. ").repeated(150));
+            break;
+        }
+        case 4: {
+            auto* scroll=visibleItem("library-detail-scroll");
+            check(scroll && scroll->property("contentY").toDouble()==0,"Description must start without automatic scrolling");
+            shell.dispatch(Action::ScrollDown);
+            check(scroll && scroll->property("contentY").toDouble()>0,QString("Right stick scrolls the description: content=%1 height=%2 active=%3 paired=%4").arg(scroll?scroll->property("contentHeight").toDouble():-1).arg(scroll?scroll->height():-1).arg(scroll?scroll->parentItem()->property("active").toBool():false).arg(shell.pairedNavigationAvailable()));
+            shell.dispatch(Action::Secondary);const auto offset=scroll?scroll->property("contentY").toDouble():0;
+            shell.dispatch(Action::ScrollDown);check(scroll && scroll->property("contentY").toDouble()==offset,"Drawer blocks background scrolling");
+            press(b);press(b);
+            check(shell.collectionsRoot() && shell.gamesRootZone()=="platforms","Back must restore platform focus");press(SDL_CONTROLLER_BUTTON_DPAD_UP);break;
+        }
         case 5: check(shell.gamesRootZone()=="collections","Up must restore collections");shell.openGamesRootItem("collections",shell.gamesCollections().front().toMap()["id"].toString());break;
-        case 6: check(!shell.collectionsRoot(),"Collection opens directly");capture("collection-browser");press(b);window->resize(1920,1080);break;
-        case 7: capture("games-root-1080");window->resize(1280,800);break;
-        case 8: capture("games-root-16-10");shell.openGamesRootItem("collections","_create");break;
+        case 6: check(!shell.collectionsRoot(),"Collection opens directly");capture("collection-browser");window->resize(1920,1080);break;
+        case 7: capture("browser-1080");window->resize(1280,800);break;
+        case 8: capture("browser-16-10");press(b);shell.openGamesRootItem("collections","_create");break;
         case 9: check(shell.collectionManager()->isOpen(),"Create card opens editor");capture("collection-create");press(b);window->resize(960,540);break;
         case 10: capture("collection-ribbon-end");shell.dispatch(Action::ToggleContinue);break;
         case 11: check(shell.drawerOpen(),"Global Y drawer unavailable");press(b);shell.dispatch(Action::Secondary);break;

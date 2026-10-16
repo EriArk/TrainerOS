@@ -69,6 +69,21 @@ private slots:
         QCOMPARE(shell.currentAdventureId(),home);QVERIFY(adapter.launched.isEmpty());
         shell.openGamesRootItem("collections","_create");QVERIFY(shell.collectionManager()->isOpen());
     }
+    void browserScrollIsDeliberateAndBlockedByDrawers() {
+        SeriesLibrary library;SeriesAdapter adapter;MockTrainerRepository profiles;DevelopmentPlatformService platform;
+        MockPokedexRepository dex;MockHallOfFameRepository archive;MockAchievementProvider achievements;
+        ShellController shell(library,profiles,adapter,platform,builtinExperiences(dex,dex),archive,achievements);
+        QSignalSpy scroll(shell.multiverse(), &MultiversePresentation::scrollRequested);
+        shell.goToPage(1);shell.dispatch(Action::ScrollDown);QCOMPARE(scroll.size(),0);
+        shell.openGamesRootItem("platforms","gba");const auto id=shell.multiverse()->detail()["id"];
+        shell.dispatch(Action::ScrollDown);QCOMPARE(scroll.size(),1);QCOMPARE(scroll.last()[0].toInt(),1);
+        shell.dispatch(Action::Secondary);QVERIFY(shell.quickAppsOpen());
+        shell.dispatch(Action::ScrollUp);QCOMPARE(scroll.size(),1);
+        shell.dispatch(Action::Back);QVERIFY(!shell.quickAppsOpen());
+        shell.dispatch(Action::ScrollUp);QCOMPARE(scroll.size(),2);QCOMPARE(scroll.last()[0].toInt(),-1);
+        QCOMPARE(shell.multiverse()->detail()["id"],id);QVERIFY(adapter.launched.isEmpty());
+        shell.dispatch(Action::Back);shell.dispatch(Action::ScrollDown);QCOMPARE(scroll.size(),2);
+    }
     void classificationAndFallback() {
         QCOMPARE(seriesForTitle("Sonic Advance 2 (USA)"),"sonic");
         QCOMPARE(seriesForTitle("Dragon Ball Z - Supersonic Warriors"),"multiverse");

@@ -59,6 +59,7 @@ public:
     void dispatch(Action);
     void activate(int);
 signals:
+    void scrollRequested(int direction);
     void changed();
     void gamesChanged();
     void libraryChanged();

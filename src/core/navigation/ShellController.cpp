@@ -1329,6 +1329,10 @@ void ShellController::dispatch(Action action) {
         if(page_==HomePage && pairedNavigationAvailable() && !navigationLocked()
            && !social_.online()["open"].toBool() && !moduleInvitation()["open"].toBool())
             emit dashboard_.scrollRequested(action==Action::ScrollDown?1:-1);
+        else if(page_==GamesPage && !collectionsRoot_ && multiverseFace_ && multiverse_.route()=="games"
+                && pairedNavigationAvailable() && !navigationLocked()
+                && !social_.online()["open"].toBool() && !moduleInvitation()["open"].toBool())
+            emit multiverse_.scrollRequested(action==Action::ScrollDown?1:-1);
         return;
     }
     if(keyboard_.isOpen()&&!menuOpen_&&!homeMenuOpen_&&notice_.isEmpty()&&!downloads_.isOpen()&&!social_.online()["open"].toBool()
