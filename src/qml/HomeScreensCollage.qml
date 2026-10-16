@@ -6,7 +6,7 @@ Item {
     property bool selected: false
     property bool balanced: false
     signal activated()
-    readonly property real frameWidth: balanced ? Math.min(width/1.55,(height-14)*1.24) : Math.min(width * .68, height * 1.45)
+    readonly property real frameWidth: balanced ? Math.min(width/1.48,(height-14)*1.24) : Math.min(width * .68, height * 1.45)
     readonly property real frameHeight: balanced ? frameWidth*.75 : height*.82
     readonly property real rearTop: (frameHeight-frameWidth*Math.sin(Math.PI/20)-frameHeight*Math.cos(Math.PI/20))/2
     readonly property real frontTop: (frameHeight-frameWidth*Math.sin(Math.PI/30)-frameHeight*Math.cos(Math.PI/30))/2
@@ -28,7 +28,7 @@ Item {
     // The rear mount is stationery, not a second invented capture. The current
     // media repository retains one confirmed exit image per owner/adventure.
     Item {
-        x: Math.max(0,(parent.width-root.frameWidth*1.38)/2)
+        x: Math.max(0,(parent.width-root.frameWidth*(root.balanced ? 1.30 : 1.38))/2)
         y: 0; width: root.frameWidth; height: root.frameHeight; rotation: -9
         Rectangle { x: 2; y: 4; width: parent.width; height: parent.height; radius: 5; color: "#40362d24" }
         Rectangle {
@@ -38,7 +38,7 @@ Item {
         }
     }
     Item {
-        x: Math.max(0,(parent.width-root.frameWidth*1.38)/2)+root.frameWidth*.38
+        x: Math.max(0,(parent.width-root.frameWidth*(root.balanced ? 1.30 : 1.38))/2)+root.frameWidth*(root.balanced ? .30 : .38)
         y: 11; width: root.frameWidth; height: root.frameHeight; rotation: 6
         Rectangle { x: 2; y: 4; width: parent.width; height: parent.height; radius: 5; color: "#50362d24" }
         Rectangle {

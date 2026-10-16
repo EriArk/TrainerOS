@@ -431,9 +431,10 @@ void ShellController::activateDashboard(const QString& key) {
     if(target["type"]=="play"){confirm();emit changed();return;}
     if(target["type"]=="screens") {
         openGameHubFace("overview");showOverview("screens");dashboardReturn_=true;
-    } else if(target["type"]=="chat") {
-        socialFace_=target["guild"].toString().isEmpty()?"chats":"communities";
-        goToPage(SocialPage);social_.openQuickConversation(target["id"].toString());dashboardReturn_=true;
+    } else if(target["type"]=="person") {
+        socialFace_="chats";goToPage(SocialPage);
+        if(!social_.openQuickConversation(target["conversation"].toString()))social_.profile(target["id"].toString());
+        dashboardReturn_=true;
     } else if(target["type"]=="event") {
         homeMenuOpen_=true;openNotificationById(target["id"].toString());
         if(page_!=HomePage)dashboardReturn_=true;
@@ -1336,6 +1337,7 @@ void ShellController::dispatch(Action action) {
     }
     if (action == Action::PreviousFace || action == Action::NextFace) {
         if(pairedNavigationAvailable()) {
+            if(page_==HomePage){dashboard_.move(action);return;}
             const auto count=faceNames().size();
             if(count>1)selectFace((faceIndex()+(action==Action::NextFace?1:count-1))%count);
         }

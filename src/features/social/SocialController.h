@@ -141,7 +141,7 @@ public:
     void releaseDirectConversation(const QString& peer);
     QString trainerIdentity() const {return owner_;}
     QVariantList rows() const;
-    QVariantList quickConversations() const;
+    QVariantList quickPeople() const;
     bool openQuickConversation(const QString& id);
     QVariantList messages() const { return snapshot_.value("messages").toList(); }
     QVariantList hints() const;

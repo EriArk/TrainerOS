@@ -196,7 +196,7 @@ Window {
         Row {
             objectName: "navigation-chassis"; x: 28; y: Theme.brandHeight + Theme.screenBevel + 5; spacing: 12; z: 2
             Hint {button:"L1 R1";label:"Sections";tint:Theme.blue;labelColor:Theme.ink}
-            Hint {button:"L2 R2";label:"";tint:Theme.green;visible:shell.faceNames.length>1;opacity:shell.pairedNavigationAvailable?1:.45}
+            Hint {button:"L2 R2";label:shell.page===0 ? "Blocks" : "";labelColor:Theme.ink;tint:Theme.green;visible:shell.page===0 || shell.faceNames.length>1;opacity:shell.pairedNavigationAvailable?1:.45}
             Text {
                 visible: shell.faceNames.length > 6
                 text: "‹   " + (shell.faceNames[shell.faceIndex] || "Collections") + "   ›   " + (shell.faceIndex + 1) + " / " + shell.faceNames.length

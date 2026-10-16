@@ -20,32 +20,36 @@ Item {
         height: root.usableHeight - (root.generic ? 0 : awards.height + root.gap) - y
         Text { id: activityTitle; text: "Activity"; color: Theme.ink; font.family: Theme.displayFamily; font.pixelSize: 23 * root.unit }
         ListView {
-            id: chatRow
-            y: 38 * root.unit; width: parent.width; height: 61 * root.unit
-            orientation: ListView.Horizontal; clip: true; spacing: 9 * root.unit
-            model: root.flow.chats
+            id: chatRow; objectName: "home-people"
+            y: 38 * root.unit; width: parent.width; height: 80 * root.unit
+            orientation: ListView.Horizontal; clip: true; spacing: 8 * root.unit
+            model: root.flow.people
             currentIndex: { for(let i=0;i<model.length;i++)if(model[i].key===root.flow.focus)return i;return -1 }
             onCurrentIndexChanged: if(currentIndex>=0)positionViewAtIndex(currentIndex,ListView.Contain)
             delegate: Item {
                     required property var modelData
-                    width: 46 * root.unit; height: width + 9 * root.unit
-                    Rectangle { y: 3; width: parent.width; height: width; radius: width / 2; color: "#88998d" }
+                    required property int index
+                    objectName: "home-person-"+index
+                    width: (chatRow.width-3*chatRow.spacing)/4; height: chatRow.height
+                    readonly property real diameter: Math.min(46,width-4)
+                    Rectangle { x: (parent.width-width)/2; y: 3; width: parent.diameter; height: width; radius: width / 2; color: "#88998d" }
                     Rectangle {
-                        width: parent.width; height: width; radius: width / 2
-                        color: modelData.kind === "groups" ? Theme.pink : modelData.guild ? Theme.green : Theme.blue
+                        x: (parent.width-width)/2; width: parent.diameter; height: width; radius: width / 2
+                        color: [Theme.blue,Theme.pink,Theme.green,Theme.yellow][index%4]
                         border.color: root.active && root.flow.focus === modelData.key ? Theme.focus : "#f8fff1"
                         border.width: root.active && root.flow.focus === modelData.key ? 3 : 2
                         Image { id: avatar; anchors.fill: parent; anchors.margins: 5; source: modelData.avatar || ""; asynchronous: true; sourceSize: Qt.size(96,96); fillMode: Image.PreserveAspectFit; visible: status === Image.Ready }
                         Text { anchors.centerIn: parent; visible: avatar.status !== Image.Ready; text: (modelData.name || "?").substring(0,1); color: Theme.ink; font.family: Theme.displayFamily; font.pixelSize: 25 * root.unit }
                         Rectangle { anchors.right: parent.right; anchors.top: parent.top; width: 11 * root.unit; height: width; radius: width / 2; color: Theme.yellow; border.width: 2; border.color: Theme.paper; visible: modelData.unread > 0 }
                     }
+                    Text { objectName: "home-person-name"; y: parent.diameter+7; width: parent.width; text: modelData.name || "?"; color: Theme.ink; font.pixelSize: 12; horizontalAlignment: Text.AlignHCenter; elide: Text.ElideRight; maximumLineCount: 1 }
                     MouseArea { anchors.fill: parent; onClicked: root.shell.activateDashboard(modelData.key) }
                     Accessible.role: Accessible.Button; Accessible.name: modelData.name
                     Accessible.onPressAction: root.shell.activateDashboard(modelData.key)
             }
         }
         Item {
-            visible: root.flow.chats.length === 0 && root.flow.activities.length === 0
+            visible: root.flow.people.length === 0 && root.flow.activities.length === 0
             x: 3*root.unit; y: 48*root.unit; width: parent.width; height: 92*root.unit
             Rectangle {
                 x: 3; y: 9*root.unit; width: 67*root.unit; height: 55*root.unit; radius: 17*root.unit
@@ -64,21 +68,30 @@ Item {
         }
         ListView {
             id: events; objectName: "home-activity"
-            y: root.flow.chats.length ? chatRow.y + 68 * root.unit : 44 * root.unit
+            y: root.flow.people.length ? chatRow.y + chatRow.height + 8 * root.unit : 44 * root.unit
             width: parent.width; height: Math.max(0, parent.height-y)
             clip: true; spacing: 9 * root.unit; model: root.flow.activities
             currentIndex: { for(let i=0;i<model.length;i++) if(model[i].key===root.flow.focus)return i;return -1 }
             onCurrentIndexChanged: if(currentIndex>=0)positionViewAtIndex(currentIndex,ListView.Contain)
             Connections { target: root.flow; function onScrollRequested(direction) { events.contentY=Math.max(events.originY,Math.min(events.originY+Math.max(0,events.contentHeight-events.height),events.contentY+direction*35*root.unit)) } }
-            delegate: CapButton {
+            delegate: Item {
+                id: eventRow
                 required property var modelData
-                width: events.width - 4; x: 2; height: 49 * root.unit; textSize: 14 * root.unit; tint: Theme.blue
-                label: modelData.name || "Activity"; detail: modelData.detail || ""
-                selected: root.active && root.flow.focus===modelData.key; claimsFocus: false
-                onActivated: root.shell.activateDashboard(modelData.key)
+                width: events.width; height: 52
+                readonly property bool selected: root.active && root.flow.focus===modelData.key
+                Rectangle { anchors.fill: parent; anchors.margins: 1; radius: 8; color: eventRow.selected ? "#30e8c66c" : eventPointer.containsMouse ? "#182f716b" : "transparent"; border.width: eventRow.selected ? 2 : 0; border.color: Theme.focus }
+                Rectangle { x: 5; y: 14; width: 24; height: 24; radius: 12; color: modelData.request ? Theme.pink : modelData.activity ? Theme.green : Theme.blue; opacity: .6 }
+                Text { x: 5; y: 13; width: 24; horizontalAlignment: Text.AlignHCenter; text: modelData.request ? "+" : modelData.activity ? "↗" : "·"; color: Theme.ink; font.pixelSize: 21 }
+                Text { x: 38; y: 6; width: parent.width-x-22; text: modelData.name || "Activity"; color: Theme.ink; font.pixelSize: 14; elide: Text.ElideRight }
+                Text { x: 38; y: 27; width: parent.width-x-22; text: modelData.detail || ""; color: Theme.muted; font.pixelSize: 12; elide: Text.ElideRight }
+                Text { anchors.right: parent.right; anchors.rightMargin: 6; anchors.verticalCenter: parent.verticalCenter; text: "›"; color: eventRow.selected ? Theme.ink : Theme.muted; font.pixelSize: 24 }
+                Rectangle { x: 38; y: parent.height-1; width: parent.width-x-8; height: 1; color: "#183c655e" }
+                MouseArea { id: eventPointer; anchors.fill: parent; hoverEnabled: true; onClicked: root.shell.activateDashboard(modelData.key) }
+                Accessible.role: Accessible.Button; Accessible.name: (modelData.name || "Activity")+", "+(modelData.detail || "")
+                Accessible.onPressAction: root.shell.activateDashboard(modelData.key)
             }
             Row {
-                y: 9 * root.unit; spacing: 9 * root.unit; visible: !events.count && root.flow.chats.length > 0
+                y: 9 * root.unit; spacing: 9 * root.unit; visible: !events.count && root.flow.people.length > 0
                 Text { text: "✓"; color: Theme.green; font.pixelSize: 18 * root.unit }
                 Text { text: "All caught up"; color: Theme.muted; font.pixelSize: 14 * root.unit }
             }
@@ -178,19 +191,18 @@ Item {
         Item {
             objectName: "home-description"
             x: 14; y: 14
-            width: root.generic ? parent.width*.57-24 : parent.width-28
+            width: root.generic ? parent.width*.54-24 : parent.width-28
             height: root.generic ? Math.max(0,metadata.y-y-8) : parent.height-y-107
-            clip: true; enabled: false
+            clip: true; enabled: root.generic
             ExperienceHost { anchors.fill: parent; shell: root.shell; showcase: true }
         }
         HomeMetadataChips {
             id: metadata
             objectName: "home-metadata"
             visible: root.generic && !!root.shell.homeGame.id
-            x: 20; y: awards.y-height-12; width: parent.width*.57-28
+            x: 20; y: awards.y-height-12; width: parent.width*.54-28
             compact: awards.compact
             game: root.shell.homeGame
-            modes: typeof runtimeMultiplayer !== "undefined" ? runtimeMultiplayer.gameModes[game.id] || [] : []
         }
         Rectangle { visible: root.generic; x: 20; y: awards.y; width: parent.width-40; height: 1; color: "#70c6d6b6" }
         AdventureButton {
@@ -202,9 +214,9 @@ Item {
         }
         HomeScreensCollage {
             objectName: "home-screens"
-            x: root.generic ? parent.width*.58 : 22
+            x: root.generic ? parent.width*.55 : 22
             y: root.generic ? 18 : play.y+(play.height-height)/2
-            width: root.generic ? parent.width*.42-22 : play.x-x-24
+            width: root.generic ? parent.width*.45-22 : play.x-x-24
             height: root.generic ? awards.y-36 : 98
             balanced: root.generic
             source: root.shell.home.exitPreviewLabel ? root.shell.home.exitPreview : ""

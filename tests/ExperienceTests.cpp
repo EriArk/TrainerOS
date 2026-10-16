@@ -20,17 +20,51 @@ private slots:
         ShellController shell(library,profiles,adapter,platform,builtinExperiences(dex,dex),archive,achievements);
         QSignalSpy launches(&shell,&ShellController::homeLaunchPressed);
         QSignalSpy commands(shell.social(),&SocialController::commandRequested);
-        QVariantMap chat{{"id","one"},{"name","First"},{"kind","chats"},{"unread",1}};
+        auto chat=HomeSocialFixture::chat("one","peer-one","First");
         QVariantMap snapshot{{"state","connected"},{"userId","self"},{"chats",QVariantList{chat}}};
-        HomeSocialFixture::publish(*shell.social(),snapshot);QCOMPARE(shell.dashboard()->chats().size(),1);
-        shell.dispatch(Action::Up);QCOMPARE(shell.dashboard()->focus(),"chat:one");
+        HomeSocialFixture::publish(*shell.social(),snapshot);QCOMPARE(shell.dashboard()->people().size(),1);
+        shell.dispatch(Action::Up);QCOMPARE(shell.dashboard()->focus(),"person:peer-one");
         shell.dispatch(Action::Confirm);QCOMPARE(shell.primaryId(),"social");QVERIFY(launches.isEmpty());
         QCOMPARE(commands.last()[0].toString(),"conversation");QCOMPARE(commands.last()[1].toMap()["id"],"one");
-        shell.dispatch(Action::Back);QCOMPARE(shell.primaryId(),"home");QCOMPARE(shell.dashboard()->focus(),"chat:one");
-        chat["id"]="two";snapshot["chats"]=QVariantList{chat};HomeSocialFixture::publish(*shell.social(),snapshot);commands.clear();
+        shell.dispatch(Action::Back);QCOMPARE(shell.primaryId(),"home");QCOMPARE(shell.dashboard()->focus(),"person:peer-one");
+        chat=HomeSocialFixture::chat("two","peer-two","Second");snapshot["chats"]=QVariantList{chat};HomeSocialFixture::publish(*shell.social(),snapshot);commands.clear();
         shell.dispatch(Action::Confirm);QCOMPARE(shell.primaryId(),"home");QVERIFY(commands.isEmpty());QVERIFY(launches.isEmpty());
-        shell.dispatch(Action::Left);QCOMPARE(shell.dashboard()->focus(),"chat:two");
-        shell.dispatch(Action::ToggleContinue);shell.dispatch(Action::Back);QCOMPARE(shell.dashboard()->focus(),"chat:two");
+        shell.dispatch(Action::Left);QCOMPARE(shell.dashboard()->focus(),"person:peer-two");
+        shell.dispatch(Action::ToggleContinue);shell.dispatch(Action::Back);QCOMPARE(shell.dashboard()->focus(),"person:peer-two");
+    }
+    void homePeopleMergeRecencyAndTriggersSkipEmptyBlocks() {
+        MockLibraryRepository library;MockTrainerRepository profiles;MockAdventureAdapter adapter;DevelopmentPlatformService platform;
+        MockPokedexRepository dex;MockHallOfFameRepository archive;MockAchievementProvider achievements;
+        ShellController shell(library,profiles,adapter,platform,builtinExperiences(dex,dex),archive,achievements);
+        auto* social=shell.social();auto* dashboard=shell.dashboard();
+        auto first=HomeSocialFixture::chat("one","11","Ren",2000);
+        auto second=HomeSocialFixture::chat("two","22","Iris",4000);
+        auto group=HomeSocialFixture::chat("group","33","Group",9000);group["kind"]="groups";
+        auto blocked=HomeSocialFixture::chat("blocked","44","Blocked",10000);
+        auto muted=HomeSocialFixture::chat("muted","55","Muted",11000);muted["muted"]=true;
+        QVariantMap snapshot{{"userId","99"},{"state","connected"},{"chats",QVariantList{first,second,group,blocked,muted}},
+            {"friends",QVariantList{QVariantMap{{"id","44"},{"type",2}}}}};
+        HomeSocialFixture::publish(*social,snapshot);
+        HomeSocialFixture::encounter(*social,"99","11",6);
+        HomeSocialFixture::encounter(*social,"99","66",5);
+        auto people=dashboard->people();QCOMPARE(people.size(),3);
+        QCOMPARE(people[0].toMap()["id"],"11");QCOMPARE(people[1].toMap()["id"],"66");
+        QCOMPARE(people[0].toMap()["conversation"],"one");
+        dashboard->setContext("emerald-demo",true);
+        QSignalSpy launches(&shell,&ShellController::homeLaunchPressed);
+        shell.dispatch(Action::NextFace);QCOMPARE(dashboard->focus(),"person:11");
+        shell.dispatch(Action::NextFace);QVERIFY(dashboard->focus().startsWith("event:"));
+        shell.dispatch(Action::NextFace);QCOMPARE(dashboard->focus(),"play");
+        shell.dispatch(Action::PreviousFace);QVERIFY(dashboard->focus().startsWith("event:"));
+        shell.dispatch(Action::PreviousFace);QCOMPARE(dashboard->focus(),"person:11");QVERIFY(launches.isEmpty());
+        // Recency updates do not replace the selected person with another row.
+        second["lastInteraction"]=9000;snapshot["chats"]=QVariantList{first,second};HomeSocialFixture::publish(*social,snapshot);
+        QCOMPARE(dashboard->focus(),"person:11");QCOMPARE(dashboard->target(dashboard->focus())["conversation"],"one");
+        first["unread"]=0;second["unread"]=0;snapshot["chats"]=QVariantList{first,second};HomeSocialFixture::publish(*social,snapshot);
+        shell.dispatch(Action::NextFace);QCOMPARE(dashboard->focus(),"play");
+        shell.dispatch(Action::PreviousFace);QCOMPARE(dashboard->focus(),"person:22");
+        snapshot={{"userId","other"},{"state","connected"}};HomeSocialFixture::publish(*social,snapshot);
+        QVERIFY(dashboard->people().isEmpty());shell.dispatch(Action::NextFace);QCOMPARE(dashboard->focus(),"play");
     }
     void dashboardAchievementsUseVerifiedAccountSnapshotsNotToasts() {
         MockLibraryRepository library;MockTrainerRepository profiles;MockAdventureAdapter adapter;DevelopmentPlatformService platform;
@@ -84,9 +118,9 @@ private slots:
         dashboard->setContext("emerald-demo",false);QCOMPARE(dashboard->achievements(),adapterRows);
         dashboard->setContext("emerald-demo",true);
         HomeSocialFixture::publish(*shell.social(),{{"state","connected"},{"userId","self"},{"chats",QVariantList{
-            QVariantMap{{"id","one"},{"name","First"},{"kind","chats"},{"unread",1}},
-            QVariantMap{{"id","two"},{"name","Second"},{"kind","chats"},{"unread",1}}}}});
-        const auto chats=dashboard->chats();QCOMPARE(chats.size(),2);
+            HomeSocialFixture::chat("one","peer-one","First"),
+            HomeSocialFixture::chat("two","peer-two","Second")}}});
+        const auto chats=dashboard->people();QCOMPARE(chats.size(),2);
         dashboard->select(chats.first().toMap()["key"].toString());dashboard->move(Action::Right);
         QCOMPARE(dashboard->focus(),chats.last().toMap()["key"].toString());
         dashboard->move(Action::Right);QCOMPARE(dashboard->focus(),"screens");

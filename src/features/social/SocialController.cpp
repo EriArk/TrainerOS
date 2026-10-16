@@ -467,15 +467,38 @@ QVariantMap SocialController::account() const {
     auto result=snapshot_;result.remove("friends");result.remove("chats");result.remove("messages");
     result["available"]=!owner_.isEmpty();return result;
 }
-QVariantList SocialController::quickConversations() const {
-    auto source=snapshot_.value("chats").toList();
-    std::stable_sort(source.begin(),source.end(),[](const auto& a,const auto& b){return a.toMap()["unread"].toInt()>b.toMap()["unread"].toInt();});
-    QVariantList result;int channels=0;
-    for(const auto& value:source) {
-        const auto row=value.toMap();if(row["id"].toString().isEmpty() || row["muted"].toBool())continue;
-        if(!row["guild"].toString().isEmpty() && ++channels>2)continue;
-        result.append(row);if(result.size()==6)break;
-    }return result;
+QVariantList SocialController::quickPeople() const {
+    if(snapshot_["userId"].toString().isEmpty() || snapshot_["state"]=="signed-out")return {};
+    QMap<QString,QVariantMap> people;
+    QSet<QString> excluded{snapshot_["userId"].toString()};
+    const auto friends=snapshot_["friends"].toList();
+    for(const auto& v:friends)if(v.toMap()["type"].toInt()==2)excluded.insert(v.toMap()["id"].toString());
+    for(const auto& v:snapshot_["chats"].toList()) {
+        const auto chat=v.toMap();const auto members=chat["members"].toList();
+        if(chat["kind"]!="chats" || !chat["guild"].toString().isEmpty() || members.size()!=1)continue;
+        const auto id=members.first().toMap()["id"].toString();
+        if(chat["muted"].toBool()){excluded.insert(id);continue;}
+        const auto when=chat["lastInteraction"].toLongLong();
+        if(id.isEmpty() || excluded.contains(id) || when<=0 || chat["id"].toString().isEmpty())continue;
+        if(people.contains(id) && people[id]["lastInteraction"].toLongLong()>=when)continue;
+        people[id]={{"id",id},{"name",chat["name"]},{"avatar",chat["avatar"]},
+            {"conversation",chat["id"]},{"unread",chat["unread"]},{"lastInteraction",when}};
+    }
+    for(const auto& v:recentTogether_.rows()) {
+        const auto recent=v.toMap();const auto id=recent["id"].toString();
+        if(excluded.contains(id))continue;
+        auto row=people.value(id,recent);row["lastInteraction"]=qMax(row["lastInteraction"].toLongLong(),recent["last"].toLongLong()*1000);
+        people[id]=row;
+    }
+    for(const auto& v:friends) {
+        const auto person=v.toMap();const auto id=person["id"].toString();if(!people.contains(id))continue;
+        if(!person["name"].toString().isEmpty())people[id]["name"]=person["name"];
+        if(!person["avatar"].toString().isEmpty())people[id]["avatar"]=person["avatar"];
+    }
+    QVariantList result;for(auto it=people.cbegin();it!=people.cend();++it)if(!excluded.contains(it.key()))result.append(it.value());
+    std::sort(result.begin(),result.end(),[](const auto& a,const auto& b){const auto x=a.toMap(),y=b.toMap();
+        return x["lastInteraction"]==y["lastInteraction"] ? x["id"].toString()<y["id"].toString() : x["lastInteraction"].toLongLong()>y["lastInteraction"].toLongLong();});
+    while(result.size()>16)result.removeLast();return result;
 }
 bool SocialController::openQuickConversation(const QString& id) {
     for(const auto& value:snapshot_.value("chats").toList()) {

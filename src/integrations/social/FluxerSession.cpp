@@ -273,7 +273,11 @@ void FluxerSession::publish() {
         const auto user=recipients.size()==1?recipients.first().toObject():QJsonObject();
         QString preview;const auto cached=historyCache_.value(it.key())["rows"].toArray();
         if(!privatePreviews_)for(auto i=cached.size();i>0;--i){const auto m=cached[i-1].toObject();if(transportEnvelope(m["content"].toString()).isEmpty()){preview=m["content"].toString().left(100);break;}}
-        chats.append(QVariantMap{{"avatar",avatar(user)},{"id",it.key()},{"name",name.isEmpty()?QString("Conversation"):name.left(120)},
+        // Fluxer snowflakes: 42-bit milliseconds since 2015-01-01, shifted by 22.
+        // https://fluxerapp-fluxer.mintlify.app/topics/snowflakes
+        bool validMessage=false;const auto messageId=c["last_message_id"].toString().toULongLong(&validMessage);
+        const qint64 lastInteraction=validMessage && messageId ? qint64(messageId>>22)+1420070400000LL : 0;
+        chats.append(QVariantMap{{"lastInteraction",lastInteraction},{"avatar",avatar(user)},{"id",it.key()},{"name",name.isEmpty()?QString("Conversation"):name.left(120)},
             {"call",calls_.contains(it.key())&&!calls_.value(it.key())["unavailable"].toBool()},
             {"ringing",!calls_.value(it.key())["unavailable"].toBool()&&calls_.value(it.key())["ringing"].toArray().contains(self_)&&voiceChannel_!=it.key()},
             {"missedCall",callNotices_.value(it.key())["missed"].toBool()?callNotices_.value(it.key())["message"].toString():QString()},

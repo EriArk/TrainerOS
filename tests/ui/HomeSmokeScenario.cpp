@@ -159,11 +159,11 @@ void startHomeSmoke(QQuickWindow* window, ShellController& shell, SessionState& 
             check(*starts == 1 && *returns == 1 && focusIs("home-launch"), "Main button alone launches and restores Home");
             check(store.recentSessions().first().adventureId == "home-0" && store.recentSessions().size() == 5, "History replaces the latest card without duplicates");
             check(history->error().isEmpty(), "History writes succeeded");
-            HomeSocialFixture::publish(*shell.social(),{{"state","connected"},{"userId","home-fixture"},{"chats",QVariantList{QVariantMap{{"id","home-chat"},{"name","Test friend"},{"kind","chats"},{"unread",1}}}}});
+            HomeSocialFixture::publish(*shell.social(),{{"state","connected"},{"userId","home-fixture"},{"chats",QVariantList{HomeSocialFixture::chat("home-chat","home-peer","Test friend")}}});
             press(SDL_CONTROLLER_BUTTON_DPAD_UP);
-            check(shell.dashboard()->focus()=="chat:home-chat","D-pad reaches the Home conversation without launch");
+            check(shell.dashboard()->focus()=="person:home-peer","D-pad reaches the Home conversation without launch");
             press(SDL_CONTROLLER_BUTTON_B);check(shell.primaryId()=="social" && *starts==1,"A opens selected conversation, not game");
-            press(SDL_CONTROLLER_BUTTON_A);check(shell.primaryId()=="home" && shell.dashboard()->focus()=="chat:home-chat","Back preserves exact Home target");
+            press(SDL_CONTROLLER_BUTTON_A);check(shell.primaryId()=="home" && shell.dashboard()->focus()=="person:home-peer","Back preserves exact Home target");
             press(SDL_CONTROLLER_BUTTON_DPAD_RIGHT);
             check(shell.dashboard()->focus()=="play","Right returns to Play");
             press(SDL_CONTROLLER_BUTTON_B); break;
@@ -333,12 +333,16 @@ void startHomeSmoke(QQuickWindow* window, ShellController& shell, SessionState& 
         case 34:
             check(focusIs("home-launch"),"Down from the generic collage returns to Play");capture("home-generic-1080p");break;
         case 35: {
+            HomeSocialFixture::publish(*shell.social(),{{"state","connected"},{"userId","home-fixture"},{"chats",QVariantList{
+                HomeSocialFixture::chat("a","aa","Ren",4000),HomeSocialFixture::chat("b","bb","Iris",3000),
+                HomeSocialFixture::chat("c","cc","Mika",2000),HomeSocialFixture::chat("d","dd","Theo",1000)}}});
             QVariantList rows;const QStringList names{"The first trail","A team to remember","Across the valley","A new chapter","The scenic route","Lasting memory"};
             for(int i=0;i<names.size();++i)rows.append(QVariantMap{{"key","visual-fixture-"+QString::number(i)},{"name",names[i]},{"game","Original fixture"},{"icon",""}});
             if(auto* trophies=itemNamed("home-achievements"))trophies->setProperty("model",rows);
             if(auto* chips=itemNamed("home-metadata")) {
                 auto game=shell.homeGame();game["year"]="2004";game["genre"]="Adventure";game["playInfo"]=QVariantMap{{"label","1-4 players"}};
-                chips->setProperty("game",game);chips->setProperty("modes",QVariantList{QVariantMap{{"id","link"},{"label","Link"},{"online",true},{"nearby",true}},QVariantMap{{"id","remoteplay"},{"label","Remote Play"},{"online",true},{"nearby",false}}});
+                chips->setProperty("game",game);
+                if(auto* marks=itemNamed("home-connection-marks"))marks->setProperty("modes",QVariantList{QVariantMap{{"id","link"},{"label","Link"},{"online",true},{"nearby",true}},QVariantMap{{"id","remoteplay"},{"label","Remote Play"},{"online",true},{"nearby",false}}});
             }
             break;
         }
@@ -353,7 +357,19 @@ void startHomeSmoke(QQuickWindow* window, ShellController& shell, SessionState& 
         case 37: {
             auto* summary=itemNamed("home-summary");auto* description=itemNamed("home-description");
             check(summary && description && summary->mapRectToScene(summary->boundingRect()).bottom()<=description->mapRectToScene(description->boundingRect()).bottom()+1,"Compact card keeps description above colourful chips");
-            capture("home-five-achievements-960");break;
+            auto* people=itemNamed("home-people");
+            for(int i=0;i<4;++i)if(auto* person=itemNamed("home-person-"+QString::number(i))) {
+                check(person->mapRectToScene(person->boundingRect()).right()<=people->mapRectToScene(people->boundingRect()).right()+1,"Four named people fit Home");
+            }else check(false,"Recent person is missing");
+            check(itemNamed("home-connection-marks") && itemNamed("home-connection-marks")->isVisible() && itemNamed("home-connection-marks")->height()==18,"Connection marks sit quietly beside platform");
+            capture("home-five-achievements-960");shell.dispatch(Action::NextFace);break;
+        }
+        case 38:
+            check(shell.dashboard()->focus()=="person:aa","R2 reaches people");shell.dispatch(Action::NextFace);break;
+        case 39:
+            check(shell.dashboard()->focus().startsWith("event:"),"R2 reaches notifications");capture("home-notification-focus");shell.dispatch(Action::NextFace);break;
+        case 40: {
+            check(shell.dashboard()->focus()=="play","R2 returns to game card");break;
         }
         default:
             check(warnings == 0, "QML warnings"); completed = true; timer->stop();

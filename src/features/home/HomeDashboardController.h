@@ -9,14 +9,14 @@ namespace trainer {
 // Read-only projections of existing services. This object owns focus, not data.
 class HomeDashboardController final : public QObject {
     Q_OBJECT
-    Q_PROPERTY(QVariantList chats READ chats NOTIFY changed)
+    Q_PROPERTY(QVariantList people READ people NOTIFY changed)
     Q_PROPERTY(QVariantList activities READ activities NOTIFY changed)
     Q_PROPERTY(QVariantList achievements READ achievements NOTIFY changed)
     Q_PROPERTY(bool genericLayout READ genericLayout NOTIFY changed)
     Q_PROPERTY(QString focus READ focus NOTIFY changed)
 public:
     HomeDashboardController(LibraryRepository&,AchievementProvider&,SocialController&,QObject* parent=nullptr);
-    QVariantList chats() const;
+    QVariantList people() const;
     QVariantList activities() const;
     QVariantList achievements() const;
     void setContext(QString adventure,bool generic);

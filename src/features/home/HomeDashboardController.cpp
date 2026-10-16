@@ -19,9 +19,9 @@ void HomeDashboardController::setContext(QString adventure,bool generic) {
     if(adventure_==adventure && generic_==generic)return;
     adventure_=std::move(adventure);generic_=generic;focus_="play";emit changed();
 }
-QVariantList HomeDashboardController::chats() const {
-    auto rows=social_.quickConversations();
-    for(auto& value:rows){auto row=value.toMap();row["key"]="chat:"+row["id"].toString();row["type"]="chat";value=row;}
+QVariantList HomeDashboardController::people() const {
+    auto rows=social_.quickPeople();
+    for(auto& value:rows){auto row=value.toMap();row["key"]="person:"+row["id"].toString();row["type"]="person";value=row;}
     return rows;
 }
 QVariantList HomeDashboardController::activities() const {
@@ -56,19 +56,30 @@ QVariantList HomeDashboardController::achievements() const {
     return rows;
 }
 QList<QStringList> HomeDashboardController::zones() const {
-    QList<QStringList> result;for(const auto& rows:{chats(),activities(),achievements()}) {
+    QList<QStringList> result;for(const auto& rows:{people(),activities(),achievements()}) {
         QStringList keys;for(const auto& row:rows)keys.append(row.toMap()["key"].toString());result.append(keys);
     }return result;
 }
 QVariantMap HomeDashboardController::target(const QString& key) const {
     if(key=="play" || key=="screens")return {{"type",key},{"key",key}};
-    for(const auto& rows:{chats(),activities(),achievements()})for(const auto& row:rows)if(row.toMap()["key"]==key)return row.toMap();
+    for(const auto& rows:{people(),activities(),achievements()})for(const auto& row:rows)if(row.toMap()["key"]==key)return row.toMap();
     return {}; // An expired focused item never becomes a new row at its old index.
 }
 void HomeDashboardController::select(const QString& key) {if(!target(key).isEmpty()){focus_=key;emit changed();}}
 void HomeDashboardController::move(Action action) {
     const auto groups=zones();int zone=-1,index=-1;
     for(int i=0;i<groups.size();++i)if(groups[i].contains(focus_)){zone=i;index=groups[i].indexOf(focus_);break;}
+    if(action==Action::PreviousFace || action==Action::NextFace) {
+        // Three Home blocks; trophies and Screens belong to the game context.
+        const int current=focus_.startsWith("person:")?0:focus_.startsWith("event:")?1:2;
+        const int direction=action==Action::NextFace?1:-1;
+        for(int step=1;step<=3;++step) {
+            const int next=(current+direction*step+6)%3;
+            if(next==2){reset();return;}
+            if(!groups[next].isEmpty()){select(groups[next].first());return;}
+        }
+        return;
+    }
     if(action==Action::Back){reset();return;}
     if(generic_) {
         if(focus_=="play") {

@@ -1,6 +1,14 @@
 # AGENTS.md — TrainerOS
 
-**HOME-20 visual follow-up:** generic achievements show five medallions per row
+**HOME-21 owner follow-up:** four recent people with nicknames replace conversation
+avatars; reuse direct-message recency and Recently Together, excluding groups/channels.
+Notifications become light text rows with focus/press affordances. Use available
+height for more description and slightly larger screenshots. Multiplayer marks
+move beside the platform above the title: small, quiet icons without a chip.
+L2/R2 cycle people, notifications and the game card, skipping empty blocks.
+The adapter-owned card remains unchanged.
+
+**HOME-20 visual follow-up (connection chip superseded by HOME-21):** generic achievements show five medallions per row
 with individual captions. Enlarge the circular launch button and center its
 Start/Resume/Return label without the A letter. Enlarge the screenshot collage,
 center its visible bounds between the card top and divider, narrow the description,
