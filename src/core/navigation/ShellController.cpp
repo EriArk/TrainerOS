@@ -946,7 +946,8 @@ void ShellController::libraryAction(const QString& action) {
 void ShellController::pressButton(const QString& button) {
     static const QMap<QString,Action> actions{{"A",Action::Confirm},{"B",Action::Back},
         {"X",Action::Secondary},{"Y",Action::ToggleContinue},{"Select",Action::LocalAction},
-        {"Home",Action::Home},{"Start",Action::SystemMenu}};
+        {"Home",Action::Home},{"Start",Action::SystemMenu},
+        {"L2",Action::PreviousFace},{"R2",Action::NextFace}};
     const auto found=actions.constFind(button);if(found!=actions.cend())dispatch(*found);
 }
 void ShellController::manageCollection(bool create) {

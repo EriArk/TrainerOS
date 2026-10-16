@@ -340,6 +340,7 @@ qt_add_qml_module(traineros
         src/qml/CapButton.qml
         src/qml/PlatformBadge.qml
         src/qml/Hint.qml
+        src/qml/FaceStep.qml
         src/adapters/pokemon/HomePage.qml
         src/adapters/pokemon/PokemonExperienceViews.qml
         src/adapters/pokemon/PokemonExperienceOverlay.qml

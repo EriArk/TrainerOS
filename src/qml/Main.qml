@@ -187,11 +187,13 @@ Window {
         }
         Row {
             objectName: "navigation-chassis"; x: 28; y: Theme.brandHeight + Theme.screenBevel + 5; spacing: 12; z: 2
-            Hint {button:"L1 R1";label:"Sections";tint:Theme.blue;labelColor:Theme.ink}
-            Hint {button:"L2 R2";label:shell.page===0 ? "Blocks" : "";labelColor:Theme.ink;tint:Theme.green;visible:shell.page===0 || shell.faceNames.length>1;opacity:shell.pairedNavigationAvailable?1:.45}
+            visible: shell.faceNames.length > 0
+            FaceStep { objectName: "face-previous"; visible: shell.faceNames.length>1; enabled: shell.pairedNavigationAvailable; onActivated: shell.pressButton("L2") }
             Text {
                 visible: shell.faceNames.length > 6
-                text: "‹   " + (shell.faceNames[shell.faceIndex] || "Collections") + "   ›   " + (shell.faceIndex + 1) + " / " + shell.faceNames.length
+                text: (shell.faceNames[shell.faceIndex] || "Collections") + "   " + (shell.faceIndex + 1) + " / " + shell.faceNames.length
+                height: 26; verticalAlignment: Text.AlignVCenter
+                width: Math.min(implicitWidth,Theme.screenBounds.width-160); elide: Text.ElideRight
                 color: Theme.ink; font.family: Theme.displayFamily; font.pixelSize: 15; font.bold: true
             }
             Repeater {model:shell.faceNames.length > 6 ? [] : shell.faceNames
@@ -199,11 +201,14 @@ Window {
                     required property int index;required property string modelData
                     objectName: "face-tab-" + index
                     text:modelData;color:shell.faceIndex===index?Theme.ink:Theme.muted
+                    height: 26; verticalAlignment: Text.AlignVCenter
+                    width: Math.min(implicitWidth,Math.max(65,(Theme.screenBounds.width-160)/Math.max(1,shell.faceNames.length)-12)); elide: Text.ElideRight
                     font.family:Theme.displayFamily;font.pixelSize:15;font.bold:shell.faceIndex===index
                     Rectangle {anchors.left:parent.left;anchors.right:parent.right;anchors.bottom:parent.bottom;anchors.bottomMargin:-3;height:2;color:Theme.focusGlow;visible:shell.faceIndex===index}
                     MouseArea { anchors.fill: parent; anchors.topMargin: -5; anchors.bottomMargin: -8; enabled: shell.pairedNavigationAvailable; onClicked: shell.selectFace(index) }
                 }
             }
+            FaceStep { objectName: "face-next"; forward: true; visible: shell.faceNames.length>1; enabled: shell.pairedNavigationAvailable; onActivated: shell.pressButton("R2") }
         }
         Item {
             id: screen

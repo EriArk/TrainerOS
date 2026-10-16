@@ -426,9 +426,11 @@ void startHomeSmoke(QQuickWindow* window, ShellController& shell, SessionState& 
             check(shell.apps()->focusIndex()==11,"Horizontal app navigation reaches overflow");capture("quick-apps-overflow-960");
             shell.dispatch(Action::ToggleContinue);break;
         case 46:
-            if(auto* d=itemNamed("continue-drawer");d && qAbs(d->height()-188)>0.1){--*stage;return;}
+            if(auto* d=itemNamed("continue-drawer");d && qAbs(d->height()-162)>0.1){--*stage;return;}
             check(shell.drawerOpen() && !shell.quickAppsOpen(),"Y replaces X");
             check(itemNamed("continue-toggle") && !itemNamed("continue-toggle")->isVisible(),"Expanded Y hides its old header");
+            if(auto* card=itemNamed("resume-0"))if(auto* panel=itemNamed("continue-drawer"))
+                check(card->width()*4+3*10+4*8<=panel->width()-38+.1,"Four recent cards fit the available drawer width");
             capture("adventures-shared-frame-960");shell.dispatch(Action::Back);break;
         case 47: {
             auto* apps=itemNamed("quick-apps-drawer");auto* games=itemNamed("continue-drawer");
@@ -461,6 +463,28 @@ void startHomeSmoke(QQuickWindow* window, ShellController& shell, SessionState& 
             check(apps && icon && qAbs(apps->mapRectToScene(apps->boundingRect()).center().x()-icon->mapRectToScene(icon->boundingRect()).center().x())<1,"A single app is centered in the drawer");
             capture("quick-apps-single-1080p");shell.closeDrawers();break;
         }
+        case 52:
+            shell.goToPage(4);break;
+        case 53: {
+            auto* previous=itemNamed("face-previous");auto* next=itemNamed("face-next");
+            auto* first=itemNamed("face-tab-0");auto* last=itemNamed("face-tab-3");
+            check(previous && next && first && last,"Apps has separate shoulder hints around its faces");
+            if(previous && next && first && last) {
+                check(previous->mapRectToScene(previous->boundingRect()).right()<=first->mapRectToScene(first->boundingRect()).left() &&
+                      next->mapRectToScene(next->boundingRect()).left()>=last->mapRectToScene(last->boundingRect()).right(),"Shoulder hints bracket the switched items");
+                QMetaObject::invokeMethod(next,"activated");
+            }
+            break;
+        }
+        case 54:
+            check(shell.appsFace()=="crates","Touch R2 advances the same Apps faces as the controller");
+            if(auto* previous=itemNamed("face-previous"))QMetaObject::invokeMethod(previous,"activated");break;
+        case 55:
+            check(shell.appsFace()=="apps","Touch L2 returns to Apps");capture("navigation-apps-1080p");shell.goToPage(3);break;
+        case 56:
+            capture("navigation-social-1080p");shell.goToPage(2);break;
+        case 57:
+            capture("navigation-gamehub-1080p");break;
         default:
             check(warnings == 0, "QML warnings"); completed = true; timer->stop();
             if (!screenshotDir.isEmpty()) {

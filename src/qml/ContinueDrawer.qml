@@ -5,18 +5,18 @@ ChassisDrawer {
     id: root
     required property var shell
     expanded: shell.drawerOpen
-    expandedHeight: 188
+    expandedHeight: 162
     onToggled: shell.activate(1,"continue")
     Item {
         parent: root.contentItem
         anchors.fill: parent
         ListView {
             id: cards
-            x: 5; y: 5; width: parent.width - 10; height: 158
+            x: 5; y: 5; width: parent.width - 10; height: 132
             orientation: ListView.Horizontal
             interactive: false
             clip: true
-            spacing: 14
+            spacing: 10
             // Closed drawer has no delegates/images to rebuild on page changes.
             // Keep them through the closing animation while its contents show.
             model: visible ? root.shell.resumePoints : []
@@ -40,12 +40,12 @@ ChassisDrawer {
                     required property int index
                     required property var modelData
                     function claimSelection() { resumeCap.requestFocus() }
-                    width: (root.expandedWidth - 72) / 3; height: 158
+                    width: (cards.width-3*cards.spacing)/4; height: 132
                     CapButton {
                         id: resumeCap
                         objectName: "resume-" + index
                         deferredFocus: true
-                        x: 4; y: 4; width: parent.width - 8; height: 150
+                        x: 4; y: 4; width: parent.width - 8; height: 124
                         tint: [Theme.green, Theme.blue, Theme.pink][index % 3]
                         selected: root.expanded && !root.shell.menuOpen && root.shell.notice.length === 0 && root.shell.focusIndex === index
                         onActivated: root.shell.activate(index)
@@ -69,11 +69,11 @@ ChassisDrawer {
                                 }
                             }
                         }
-                        Text { x: 12; y: 49; width: parent.width - 24; elide: Text.ElideRight; textFormat: Text.PlainText; text: modelData.world; color: Theme.ink; font.pixelSize: 18; font.bold: true }
-                        Text { x: 12; y: 76; text: modelData.previewLabel; color: Theme.muted; font.pixelSize: 11 }
+                        Text { x: 10; y: 40; width: parent.width - 24; elide: Text.ElideRight; textFormat: Text.PlainText; text: modelData.world; color: Theme.ink; font.pixelSize: 16; font.bold: true }
+                        Text { x: 10; y: 63; width: parent.width-20; elide: Text.ElideRight; text: modelData.previewLabel; color: Theme.muted; font.pixelSize: 11 }
                         Item {
                             id: ribbon
-                            x: 14; y: 8; width: parent.width - 28; height: 34
+                            x: 10; y: 7; width: parent.width - 20; height: 28
                             readonly property color tint: [Theme.yellow, Theme.pink, Theme.blue][index % 3]
                             Canvas {
                                 id: ribbonArt
@@ -99,13 +99,13 @@ ChassisDrawer {
                             }
                             Rectangle { x: 8; y: 2; width: parent.width - 23; height: 1; color: "#90fffef9" }
                             Text {
-                                x: 10; y: 6; width: parent.width - 29; elide: Text.ElideRight; textFormat: Text.PlainText
-                                text: modelData.title; color: Theme.ink; font.pixelSize: 17; font.bold: true
+                                x: 9; y: 4; width: parent.width - 26; elide: Text.ElideRight; textFormat: Text.PlainText
+                                text: modelData.title; color: Theme.ink; font.pixelSize: 14; font.bold: true
                             }
                         }
                         Item {
                             id: readingWell
-                            x: 5; y: 103; width: parent.width - 10; height: parent.height - y - 5; clip: true
+                            x: 5; y: 84; width: parent.width - 10; height: parent.height - y - 5; clip: true
                             Rectangle { anchors.fill: parent; color: resumeCap.capTint }
                             Loader {
                                 anchors.fill: parent
@@ -139,9 +139,9 @@ ChassisDrawer {
                             }
                         }
                         Column {
-                            x: 12; y: 106; width: parent.width - 24; spacing: 3
+                            x: 10; y: 87; width: parent.width - 20; spacing: 2
                             Text { width: parent.width; elide: Text.ElideRight; textFormat: Text.PlainText; text: (modelData.location.length ? modelData.location + " · " : "") + modelData.time; color: Theme.ink; font.pixelSize: 11 }
-                            Text { width: parent.width; elide: Text.ElideRight; textFormat: Text.PlainText; text: modelData.summary; color: Theme.muted; font.pixelSize: 12 }
+                            Text { width: parent.width; elide: Text.ElideRight; textFormat: Text.PlainText; text: modelData.summary; color: Theme.muted; font.pixelSize: 11 }
                         }
                     }
                 }
