@@ -345,6 +345,7 @@ private:
     QString hubFace_ = "overview", overviewFace_ = "summary", appsFace_ = "apps";
     bool adapterMenuOpen_ = true, quickAppsOpen_ = false;
     int adapterMenuFocus_ = 0, overviewFocus_ = 0;
+    QString overviewSessionId_;
     QString socialFace_ = "chats";
     int drawerFocus_ = 0;
     int menuFocus_ = 0;

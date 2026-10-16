@@ -32,6 +32,7 @@ public:
     // Cached presentation identity, independent of visible artwork preferences.
     virtual QVariantMap experienceIdentity(const QString&) const { return {}; }
     virtual std::optional<qint64> recordedSeconds(const QString&) const { return {}; }
+    virtual qint64 gameSessionCount(const QString& id) const { return gameSessions(id).size(); }
     virtual HomeSnapshot home() const = 0;
     virtual bool editable() const { return false; }
     virtual QString storageRootFor(const QString&) const { return {}; }

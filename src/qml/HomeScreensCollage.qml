@@ -5,13 +5,15 @@ Item {
     property url source
     property bool selected: false
     property bool balanced: false
+    property int frameCount: 2
     signal activated()
-    readonly property real frameWidth: balanced ? Math.min(width/1.48,(height-14)*1.24) : Math.min(width * .68, height * 1.45)
+    readonly property real frameWidth: balanced ? Math.min(width/1.48,(height-14)*(frameCount > 2 ? 1.10 : 1.24)) : Math.min(width * .68, height * 1.45)
     readonly property real frameHeight: balanced ? frameWidth*.75 : height*.82
     readonly property real rearTop: (frameHeight-frameWidth*Math.sin(Math.PI/20)-frameHeight*Math.cos(Math.PI/20))/2
     readonly property real frontTop: (frameHeight-frameWidth*Math.sin(Math.PI/30)-frameHeight*Math.cos(Math.PI/30))/2
     readonly property real artTop: Math.min(rearTop,11+frontTop)
-    readonly property real artBottom: Math.max(frameHeight-rearTop,11+frameHeight-frontTop)+4
+    readonly property real thirdTop: (frameHeight-frameWidth*Math.sin(Math.PI*16/180)-frameHeight*Math.cos(Math.PI*16/180))/2
+    readonly property real artBottom: Math.max(frameHeight-rearTop,11+frameHeight-frontTop,frameCount > 2 ? 12+frameHeight-thirdTop : 0)+4
     readonly property real artOffset: balanced ? (height-artBottom+artTop)/2-artTop : 0
     readonly property real visualTop: artOffset+artTop
     readonly property real visualBottom: artOffset+artBottom
@@ -25,6 +27,18 @@ Item {
 
     Item {
     width: parent.width; height: parent.height; y: root.artOffset
+    // A third empty album mount is optional; Home keeps its accepted two frames.
+    Item {
+        visible: root.frameCount > 2
+        x: Math.max(0,(parent.width-root.frameWidth*1.30)/2)-root.frameWidth*.12
+        y: 12; width: root.frameWidth; height: root.frameHeight; rotation: -16
+        Rectangle { x: 2; y: 4; width: parent.width; height: parent.height; radius: 5; color: "#30362d24" }
+        Rectangle {
+            anchors.fill: parent; radius: 4; color: Qt.lighter(Theme.rim,1.18); border.color: Theme.rim
+            Rectangle { anchors.fill: parent; anchors.margins: 6; radius: 2; color: Theme.chassis; opacity: .35 }
+            Rectangle { x: 11; y: parent.height-12; width: parent.width*.44; height: 2; color: Theme.rim }
+        }
+    }
     // The rear mount is stationery, not a second invented capture. The current
     // media repository retains one confirmed exit image per owner/adventure.
     Item {

@@ -11,11 +11,12 @@ Item {
             return adapterPresenter.hints(h) || [h("A","Open"),h("Select","Actions"),h("B","Screens")]
         }
         if(shell.hubFace === "ra") return [h("A","Open"),h("Select","Refresh"),h("B","Back")]
-        return [h("A","Open"),h("Select","Game actions"),h("B",shell.overviewFace === "summary" ? "Home" : "Overview")]
+        return shell.overviewFace === "timeline" ? [h("←→","Timeline"),h("Select","Game actions"),h("B","Overview")]
+            : [h("A","Open"),h("Select","Game actions"),h("B",shell.overviewFace === "summary" ? "Home" : "Overview")]
     }
     readonly property bool available: visible && !shell.serviceOpen && !shell.menuOpen
         && !shell.drawerOpen && !shell.quickAppsOpen && !shell.keyboard.open && !shell.notice.length
-    GameHubOverview { anchors.fill: parent; shell: root.shell; visible: root.shell.hubFace === "overview" }
+    GameHubOverview { anchors.fill: parent; anchors.margins: 10; shell: root.shell; visible: root.shell.hubFace === "overview" }
     HallOfFamePage { anchors.fill: parent; shell: root.shell; visible: root.shell.hubFace === "ra" }
     SocialPage { anchors.fill: parent; shell: root.shell; visible: root.shell.hubFace === "lobby" }
     Item {

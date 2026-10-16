@@ -30,7 +30,7 @@ inline void startExperienceSmoke(QQuickWindow* window,trainer::ShellController& 
         case 7:check(shell.homeView()=="pokemon-home","Disabled module did not fall back to the next compatible presenter");shell.goToTrainerFace("ra");break;
         case 8:shell.goToPage(0);break;
         case 9:check(labels().contains("Game actions") && !labels().contains("Refresh"),"Previous adapter face leaked hints into Home");shell.goToSection("social");break;
-        case 10:{QStringList expected;for(const auto& hint:shell.social()->hints())if(hint.toMap()["button"]!="X" && hint.toMap()["button"]!="Y")expected<<hint.toMap()["label"].toString();expected<<"Quick Apps"<<"Recent games"<<"Options"<<"System";check(labels()==expected,"Hidden adapter leaked hints into Social");break;}
+        case 10:{QStringList expected;for(const auto& hint:shell.social()->hints())if(hint.toMap()["button"]!="X" && hint.toMap()["button"]!="Y")expected<<hint.toMap()["label"].toString();expected<<"Options"<<"System";check(labels()==expected,"Hidden adapter leaked hints into Social");break;}
         case 11:shell.openGameHubFace("overview");break;
         case 12:
             if(!directory.isEmpty())check(window->grabWindow().save(directory+"/gamehub-overview.png"),"Overview capture");
@@ -93,6 +93,26 @@ inline void startExperienceSmoke(QQuickWindow* window,trainer::ShellController& 
             if(!directory.isEmpty())check(window->grabWindow().save(directory+"/settings-small-window.png"),"Small window capture");
             shell.settings()->resetDisplayScale();break;
         }
+        case 22:
+            shell.dispatch(trainer::Action::Back);shell.dispatch(trainer::Action::Back);shell.dispatch(trainer::Action::Back);
+            window->resize(1920,1080);shell.openGameHubFace("overview");shell.showOverview("timeline");break;
+        case 23: {
+            auto* timeline=window->findChild<QQuickItem*>("game-timeline");
+            check(timeline && timeline->isVisible(),"Horizontal timeline is not visible");
+            check(shell.gameHistory().isEmpty(),"Empty fixture acquired invented sessions");
+            if(!directory.isEmpty())check(window->grabWindow().save(directory+"/timeline-empty.png"),"Empty timeline capture");
+            shell.dispatch(trainer::Action::Back);break;
+        }
+        case 24:
+            check(shell.overviewFace()=="summary","Timeline Back did not restore Overview");
+            shell.activate(0,"overview-screens");break;
+        case 25:
+            check(shell.overviewFace()=="screens","Overview media action did not open Screens");
+            shell.dispatch(trainer::Action::Back);break;
+        case 26:
+            check(shell.overviewFace()=="summary" && shell.focusIndex()==1,"Screens Back lost media focus");
+            if(!directory.isEmpty())check(window->grabWindow().save(directory+"/overview-empty-final.png"),"Empty overview capture");
+            break;
         default:
             timer->stop();completed=true;
             QFile report(directory+"/experience-check.txt");if(report.open(QIODevice::WriteOnly))report.write((diagnostics.join('\n')+QString("\nqmlWarnings=%1\n").arg(warnings)).toUtf8());

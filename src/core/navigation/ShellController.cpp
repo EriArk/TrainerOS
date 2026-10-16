@@ -419,7 +419,14 @@ void ShellController::showAdapterMenu() {
 void ShellController::showOverview(const QString& face) {
     if(page_!=GameHubPage || hubFace_!="overview" || !pairedNavigationAvailable())return;
     if(!QStringList{"summary","timeline","screens"}.contains(face))return;
-    overviewFace_=face;overviewFocus_=0;emit changed();
+    if(overviewFace_=="timeline")overviewSessionId_=gameHistory().value(overviewFocus_).toMap()["id"].toString();
+    const auto previous=overviewFace_;
+    overviewFace_=face;overviewFocus_=face=="summary" && previous=="screens"?1:0;
+    if(face=="timeline" && !overviewSessionId_.isEmpty()) {
+        const auto rows=gameHistory();
+        for(int i=0;i<rows.size();++i)if(rows[i].toMap()["id"]==overviewSessionId_){overviewFocus_=i;break;}
+    }
+    emit changed();
 }
 void ShellController::closeDrawers() {
     if(keyboard_.isOpen() || localModalOpen() || homeMenuOpen_ || menuOpen_
@@ -485,13 +492,15 @@ bool ShellController::dispatchGameHub(Action action) {
         return handled;
     }
     if(action==Action::Back) {
-        if(overviewFace_!="summary"){overviewFace_="summary";overviewFocus_=0;}else goToPage(HomePage);
+        if(overviewFace_!="summary")showOverview("summary");else goToPage(HomePage);
     } else if(action==Action::Confirm) {
         if(overviewFace_=="summary")showOverview(overviewFocus_==0?"timeline":"screens");
     } else if(action==Action::LocalAction)openContext("game",currentAdventureId());
     else if(action==Action::Up || action==Action::Down || action==Action::Left || action==Action::Right) {
         const int count=overviewFace_=="summary"?2:overviewFace_=="timeline"?gameHistory().size():0;
-        overviewFocus_=std::clamp(overviewFocus_+(action==Action::Down || action==Action::Right?1:-1),0,qMax(0,count-1));
+        const int direction=action==Action::Down || action==Action::Right?1:-1;
+        // History is newest-first; the visual timeline runs oldest to newest.
+        overviewFocus_=std::clamp(overviewFocus_+(overviewFace_=="timeline"?-direction:direction),0,qMax(0,count-1));
     }
     emit changed();return true;
 }
@@ -522,6 +531,7 @@ void ShellController::syncExperience() {
     if(changing && activeModule_)experience_.rememberNavigation({{"module",activeModule_->navigation()},{"hall",hall_.navigationState()}});
     const bool changed=experience_.select(owner,currentAdventureId(),descriptor,record?record->revision:0);
     if(changed || changing) {
+        if(changing){overviewFocus_=0;overviewSessionId_.clear();}
         if(activeModule_)activeModule_->leave(false);
         if(textModule_){textModule_->cancelText();textModule_=nullptr;keyboard_.cancel();textTarget_=TextTarget::None;}
         hall_.editor()->cancel();activeModule_=next;
@@ -550,6 +560,10 @@ QVariantList ShellController::gameHistory() const {
         QString status=session.outcome==PlaySessionOutcome::Running?"Playing":session.outcome==PlaySessionOutcome::Failed?"Ended with an error":session.outcome==PlaySessionOutcome::Interrupted?"Interrupted":"Finished";
         rows.append(QVariantMap{{"id",session.id},{"adventure",session.adventureId},
             {"time",session.startedAt.toLocalTime().toString("dd MMM yyyy · HH:mm")},
+            {"date",session.startedAt.toLocalTime().toString("dd MMM yyyy")},
+            {"clock",session.startedAt.toLocalTime().toString("HH:mm")},
+            {"ended",session.endedAt.isValid()?session.endedAt.toLocalTime().toString("dd MMM yyyy · HH:mm"):QString()},
+            {"outcome",session.outcome==PlaySessionOutcome::Returned?"returned":session.outcome==PlaySessionOutcome::Running?"running":session.outcome==PlaySessionOutcome::Failed?"failed":"interrupted"},
             {"duration",session.elapsedSeconds?recordedDuration(*session.elapsedSeconds):session.outcome==PlaySessionOutcome::Running?QString("Session in progress"):QString("Duration unavailable")},
             {"status",status}});
     }
@@ -870,7 +884,8 @@ QVariantMap ShellController::home() const {
             {"adventureId", adventure ? adventure->id : QString()}, {"action", action}, {"actionHint", actionHint},
             {"exitPreview", media ? "image://exit-media/" + media->sessionId : adventure ? repository_.artwork(adventure->id).value("cover").toString() : QString()},
             {"exitPreviewLabel", media ? "Last exit · " + media->capturedAt.toLocalTime().toString("dd MMM · HH:mm") : QString()},
-            {"recordedTime", seconds ? recordedDuration(*seconds) : "—"}, {"milestone", milestone}};
+            {"recordedTime", seconds ? recordedDuration(*seconds) : "—"},
+            {"sessionCount",adventure?repository_.gameSessionCount(adventure->id):qint64(0)}, {"milestone", milestone}};
     for(auto it=progress.begin();it!=progress.end();++it)if(!result.contains(it.key()))result.insert(it.key(),it.value());
     return result;
 }

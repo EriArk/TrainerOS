@@ -9,6 +9,7 @@ struct PlayHistorySnapshot {
     QList<PlaySession> recent;
     QHash<QString, QList<PlaySession>> sessions;
     QHash<QString, qint64> totals;
+    QHash<QString, qint64> counts;
 };
 QString migratePlayHistory(QSqlDatabase&);
 QString interruptOpenSessions(QSqlDatabase&);

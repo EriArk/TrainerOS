@@ -50,11 +50,15 @@ PlayHistorySnapshot readPlayHistory(QSqlDatabase& db, const QString& owner) {
         if (sessions.isEmpty()) result.recent.append(session);
         sessions.append(session);
     }
-    query.prepare("SELECT adventure_id,SUM(elapsed_seconds) FROM play_sessions WHERE trainer_id=? AND elapsed_seconds IS NOT NULL GROUP BY adventure_id"); query.addBindValue(owner);
+    query.prepare("SELECT adventure_id,SUM(elapsed_seconds),COUNT(*) FROM play_sessions WHERE trainer_id=? GROUP BY adventure_id"); query.addBindValue(owner);
     if (!query.exec()) {
         result.error = failed(); return result;
     }
-    while (query.next()) result.totals.insert(query.value(0).toString(), query.value(1).toLongLong());
+    while (query.next()) {
+        const auto id=query.value(0).toString();
+        if(!query.value(1).isNull())result.totals.insert(id, query.value(1).toLongLong());
+        result.counts.insert(id, query.value(2).toLongLong());
+    }
     return result;
 }
 QString writePlaySession(QSqlDatabase& db, const QString& owner, const PlaySession& session) {

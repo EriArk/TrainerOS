@@ -29,6 +29,7 @@ public:
     QList<PlaySession> gameSessions(const QString& id) const override { return personal_.gameSessions(id); }
     std::optional<ExitMedia> exitMedia(const QString& id) const override { return personal_.exitMedia(id); }
     std::optional<qint64> recordedSeconds(const QString& id) const override { return personal_.recordedSeconds(id); }
+    qint64 gameSessionCount(const QString& id) const override { return personal_.gameSessionCount(id); }
     HomeSnapshot home() const override { return personal_.home(); }
     QList<AdventureRegistration> registrations() const override { return personal_.registrations(); }
     void editLibraryAsync(const LibraryEdit& e, QObject* c, std::function<void(QString)> done) override { personal_.editLibraryAsync(e,c,std::move(done)); }

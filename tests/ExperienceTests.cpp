@@ -14,6 +14,35 @@ using namespace trainer;
 class ExperienceTests : public QObject {
     Q_OBJECT
 private slots:
+    void overviewTimelineRunsLeftToRightAndRestoresSession() {
+        class HistoryLibrary : public LibraryRepository {
+            MockLibraryRepository base;
+        public:
+            QList<World> worlds() const override { return base.worlds(); }
+            QList<Adventure> adventures() const override { return base.adventures(); }
+            QList<ResumePoint> resumePoints() const override { return base.resumePoints(); }
+            HomeSnapshot home() const override { return base.home(); }
+            QList<PlaySession> gameSessions(const QString& id) const override {
+                const auto now=QDateTime::fromString("2026-10-16T10:00:00Z",Qt::ISODate);
+                return {{"new",id,now,now.addSecs(60),60,PlaySessionOutcome::Returned},
+                    {"old",id,now.addDays(-1),{},{},PlaySessionOutcome::Interrupted}};
+            }
+            qint64 gameSessionCount(const QString&) const override { return 87; }
+        } library;
+        MockTrainerRepository profiles;MockAdventureAdapter adapter;DevelopmentPlatformService platform;
+        MockPokedexRepository dex;MockHallOfFameRepository archive;MockAchievementProvider achievements;
+        ShellController shell(library,profiles,adapter,platform,builtinExperiences(dex,dex),archive,achievements);
+        shell.openGameHubFace("overview");QCOMPARE(shell.home()["sessionCount"].toLongLong(),87);
+        shell.showOverview("timeline");QCOMPARE(shell.focusIndex(),0);
+        shell.dispatch(Action::Left);QCOMPARE(shell.focusIndex(),1);
+        shell.dispatch(Action::Left);QCOMPARE(shell.focusIndex(),1);
+        QCOMPARE(shell.gameHistory()[1].toMap()["outcome"].toString(),"interrupted");
+        QVERIFY(shell.gameHistory()[1].toMap()["ended"].toString().isEmpty());
+        shell.dispatch(Action::Back);QCOMPARE(shell.overviewFace(),"summary");
+        shell.showOverview("timeline");QCOMPARE(shell.focusIndex(),1);
+        shell.dispatch(Action::Right);QCOMPARE(shell.focusIndex(),0);
+        shell.showOverview("screens");shell.dispatch(Action::Back);QCOMPARE(shell.focusIndex(),1);
+    }
     void dashboardFocusDoesNotRetargetOnUnreadUpdates() {
         MockLibraryRepository library;MockTrainerRepository profiles;MockAdventureAdapter adapter;DevelopmentPlatformService platform;
         MockPokedexRepository dex;MockHallOfFameRepository archive;MockAchievementProvider achievements;

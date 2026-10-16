@@ -92,6 +92,16 @@ private slots:
             QCOMPARE(bounded.recent.size(),121);QCOMPARE(bounded.sessions.value("0").size(),50);
             QCOMPARE(bounded.sessions.value("0").first().id,"repeat54");
             QCOMPARE(bounded.sessions.value("0").last().id,"repeat5");
+            QCOMPARE(bounded.counts.value("0"),57);
+            QVERIFY(!bounded.totals.contains("0")); // Unknown duration is not zero.
+            QVERIFY(!bounded.counts.contains("121"));
+            const auto other=readPlayHistory(db,"other");
+            QCOMPARE(other.counts.value("121"),1);
+            QVERIFY(!other.counts.contains("0"));
+            QVERIFY(q.exec("UPDATE play_sessions SET elapsed_seconds=120 WHERE id='repeat0'"));
+            const auto timed=readPlayHistory(db,"owner");
+            QCOMPARE(timed.counts.value("0"),57);
+            QCOMPARE(timed.totals.value("0"),120); // Includes rows outside the 50-event window.
         }
         QSqlDatabase::removeDatabase(connection);
     }

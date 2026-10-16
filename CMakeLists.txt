@@ -362,6 +362,7 @@ qt_add_qml_module(traineros
         src/qml/HomeDashboard.qml
     src/qml/GameHubPage.qml
         src/qml/GameHubOverview.qml
+        src/qml/GameTimeline.qml
         src/qml/MenuGlyph.qml
         src/qml/WorkspacePlaceholder.qml
         src/qml/PlayerProfilePanel.qml

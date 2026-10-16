@@ -64,6 +64,7 @@ public:
     QList<PlaySession> recentSessions() const override { return history_.recent; }
     QList<PlaySession> gameSessions(const QString& id) const override { return history_.sessions.value(id); }
     std::optional<qint64> recordedSeconds(const QString&) const override;
+    qint64 gameSessionCount(const QString& id) const override { return history_.counts.value(id); }
     void saveSessionAsync(const PlaySession&, QObject*, std::function<void(QString)>) override;
     void saveSessionMediaAsync(const PlaySession&, const std::optional<ExitMediaSource>&,
                               const std::optional<ExitCapture>&, QObject*, std::function<void(QString)>) override;
