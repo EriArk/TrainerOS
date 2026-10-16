@@ -21,8 +21,8 @@ Item {
         id: shelf
         objectName: "quick-apps-shelf"
         readonly property int count: root.shell.apps.rail.length
-        width: Math.min(root.width-48, count ? Math.max(174,count*82+40) : 340)
-        height: root.expanded ? (count ? 138 : 96) : 0
+        width: Math.min(root.width-48, count ? Math.max(174,count*62+76) : 300)
+        height: root.expanded ? 96 : 0
         x: (root.width-width)/2
         y: root.height-height
         visible: height>0
@@ -33,15 +33,15 @@ Item {
         // The whole button panel grows in height from the fixed bezel base.
         // Keys stay inside its body; there is no separate shelf beneath them.
         function crown() {
-            return "M 0 " + height + " Q 5 " + height + " 10 " + (height-14)
-                + " L 18 13 Q 21 3 31 3 H " + (width-31)
-                + " Q " + (width-21) + " 3 " + (width-18) + " 13 L " + (width-10)
-                + " " + (height-14) + " Q " + (width-5) + " " + height + " " + width + " " + height;
+            return "M 0 " + height + " C 15 " + height + " 19 " + (height-6) + " 26 " + (height-22)
+                + " L 43 18 Q 48 7 60 7 H " + (width-60)
+                + " Q " + (width-48) + " 7 " + (width-43) + " 18 L " + (width-26)
+                + " " + (height-22) + " C " + (width-19) + " " + (height-6) + " " + (width-15) + " " + height + " " + width + " " + height;
         }
         Shape {
             anchors.fill: parent
             ShapePath {
-                strokeColor: "#20101e1d"; strokeWidth: 5; fillColor: "transparent"
+                strokeColor: Theme.screenContact; strokeWidth: 4; fillColor: "transparent"
                 joinStyle: ShapePath.RoundJoin
                 PathSvg { path: shelf.crown() }
             }
@@ -56,15 +56,15 @@ Item {
                 PathSvg { path: shelf.crown() + " Z" }
             }
             ShapePath {
-                strokeColor: Theme.rim; strokeWidth: .8; fillColor: "transparent"
-                PathSvg { path: "M 18 13 Q 21 3 31 3 H " + (shelf.width-31) + " Q " + (shelf.width-21) + " 3 " + (shelf.width-18) + " 13" }
+                strokeColor: Theme.rim; strokeWidth: 1; fillColor: "transparent"
+                PathSvg { path: shelf.crown() }
             }
         }
         MouseArea { anchors.fill: parent }
         AppsDock {
             anchors.horizontalCenter: parent.horizontalCenter
-            width: shelf.count ? Math.min(parent.width-40,shelf.count*82) : parent.width-40
-            y: 18; height: shelf.count ? 104 : 60
+            width: shelf.count ? Math.min(parent.width-76,shelf.count*62) : parent.width-76
+            y: 16; height: 76
             flow: root.shell.apps
             enabled: root.expanded && !root.shell.apps.menu.length
         }
