@@ -219,7 +219,9 @@ Window {
                 objectName: "page-viewport"
                 enabled: !shell.drawerOpen && !shell.quickAppsOpen && !shell.serviceOpen
                 anchors.fill: parent; anchors.margins: Theme.panelInset
-                anchors.topMargin: Theme.contentTopInset; clip: true
+                // Home has no face row; its content starts below the active tab.
+                anchors.topMargin: shell.primaryId === "home" ? Theme.brandHeight + Theme.screenBevel - Theme.screenTop : Theme.contentTopInset
+                clip: true
                 anchors.bottomMargin: Theme.panelInset
                 HomeDashboard { id: experienceHost; anchors.fill: parent; shell: shellController; visible: (!shell.serviceOpen || shell.service === "settings") && shell.primaryId === "home" }
                 GameHubPage { id: gameHubPage; anchors.fill: parent; shell: shellController; visible: (!shell.serviceOpen || shell.service === "settings") && shell.primaryId === "gamehub" }
