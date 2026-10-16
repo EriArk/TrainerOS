@@ -317,6 +317,7 @@ qt_add_qml_module(traineros
     SOURCES src/platform/media/GameStreamView.h src/platform/media/GameStreamView.cpp
     QML_FILES
         src/qml/AdventureArtwork.qml
+        src/qml/LibraryGameList.qml
         src/qml/LibraryWheel.qml
         src/qml/GameInformation.qml
         src/qml/PlayBadge.qml
@@ -550,6 +551,7 @@ if(BUILD_TESTING)
     qt_add_executable(trainer_hotseat_handoff_tests tests/HotseatHandoffTests.cpp)
     target_link_libraries(trainer_hotseat_handoff_tests PRIVATE trainer_core Qt6::Test)
     add_test(NAME hotseat_handoff COMMAND trainer_hotseat_handoff_tests)
+    target_link_libraries(traineros PRIVATE Qt6::Test)
     target_sources(traineros PRIVATE tests/ui/WorldsSmokeScenario.cpp tests/ui/WorldsSmokeScenario.h)
     target_sources(traineros PRIVATE tests/ui/PokedexSmokeScenario.cpp tests/ui/PokedexSmokeScenario.h)
     target_sources(traineros PRIVATE tests/ui/ArtworkSmokeScenario.cpp tests/ui/ArtworkSmokeScenario.h)

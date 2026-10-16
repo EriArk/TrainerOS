@@ -993,7 +993,7 @@ void ShellController::openContext(const QString& type,const QString& target) {
     }
     if(type=="game" || page_==0 || page_==1) {
         const auto id=target.isEmpty()?(page_==1?multiverse_.detail()["id"].toString():currentAdventureId()):target;
-        if(page_==GamesPage)libraryTools_.beginBrowsing(id);else libraryTools_.beginGame(id);return;
+        if(page_==GamesPage)libraryTools_.beginBrowsing(id,multiverseFace_?multiverse_.viewStyle():QString());else libraryTools_.beginGame(id);return;
     }
     // Feature controllers own their captured person/message/entity targets.
     // This is the same dispatcher used by Select, with their existing guards.
@@ -1001,9 +1001,17 @@ void ShellController::openContext(const QString& type,const QString& target) {
     else if(page_==SocialPage)social_.dispatch(Action::LocalAction);
     else if(page_==GameHubPage)dispatchGameHub(Action::LocalAction);
 }
+void ShellController::focusLibraryGame(int index) {
+    if(page_!=GamesPage || collectionsRoot_ || !multiverseFace_ || !pairedNavigationAvailable()
+       || navigationLocked() || localModalOpen() || keyboard_.isOpen() || !notice_.isEmpty()
+       || social_.online()["open"].toBool() || moduleInvitation()["open"].toBool())return;
+    multiverse_.focusGame(index);
+}
 void ShellController::libraryAction(const QString& action) {
     if(page_!=GamesPage || collectionsRoot_ || navigationLocked() || localModalOpen()
-       || keyboard_.isOpen() || drawerOpen_ || menuOpen_ || serviceOpen() || !notice_.isEmpty())return;
+       || keyboard_.isOpen() || drawerOpen_ || quickAppsOpen_ || homeMenuOpen_ || menuOpen_ || serviceOpen() || !notice_.isEmpty()
+       || social_.online()["open"].toBool() || moduleInvitation()["open"].toBool())return;
+    if(multiverseFace_ && action.startsWith("view:")){multiverse_.setViewStyle(action.mid(5));return;}
     if(action!="search" && action!="filter")return;
     const auto input=action=="search"?Action::Secondary:Action::ToggleContinue;
     if(multiverseFace_)multiverse_.dispatch(input);else worlds_.dispatch(input);
@@ -1011,7 +1019,7 @@ void ShellController::libraryAction(const QString& action) {
 void ShellController::pressButton(const QString& button) {
     static const QMap<QString,Action> actions{{"A",Action::Confirm},{"B",Action::Back},
         {"X",Action::Secondary},{"Y",Action::ToggleContinue},{"Select",Action::LocalAction},
-        {"Home",Action::Home},{"Start",Action::SystemMenu},
+        {"Home",Action::Home},{"Start",Action::SystemMenu},{"R3",Action::ChangeView},
         {"L2",Action::PreviousFace},{"R2",Action::NextFace}};
     const auto found=actions.constFind(button);if(found!=actions.cend())dispatch(*found);
 }
@@ -1325,6 +1333,9 @@ void ShellController::openSocialNotification() {
     social_.openNotification();emit changed();
 }
 void ShellController::dispatch(Action action) {
+    if(action==Action::ChangeView) {
+        libraryAction(multiverse_.viewStyle()=="wheel"?"view:list":"view:wheel");return;
+    }
     if(action==Action::ScrollUp || action==Action::ScrollDown) {
         if(page_==HomePage && pairedNavigationAvailable() && !navigationLocked()
            && !social_.online()["open"].toBool() && !moduleInvitation()["open"].toBool())

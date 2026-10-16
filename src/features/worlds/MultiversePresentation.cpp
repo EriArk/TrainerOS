@@ -118,12 +118,21 @@ void MultiversePresentation::setCollection(const QString& id) {
 }
 
 QJsonObject MultiversePresentation::localNavigation() const {
-    QJsonObject queries,filters,positions;
+    QJsonObject queries,filters,positions,views;
+    for(auto i=views_.cbegin();i!=views_.cend();++i)views[i.key()]=i.value();
     for(auto i=queries_.cbegin();i!=queries_.cend();++i)queries[i.key()]=i.value();
     for(auto i=filters_.cbegin();i!=filters_.cend();++i)filters[i.key()]=i.value();
     for(auto i=positions_.cbegin();i!=positions_.cend();++i)positions[i.key()]=i.value();
     return {{"selected",selected_},{"system",system_},{"route",route_},{"queries",queries},{"filters",filters},{"positions",positions},
-        {"focused",detail().value("id").toString()}};
+        {"focused",detail().value("id").toString()},{"views",views}};
+}
+void MultiversePresentation::setViewStyle(const QString& style) {
+    if(route_!="games" || (style!="wheel" && style!="list") || style==viewStyle())return;
+    views_[system_]=style;emit changed();
+}
+void MultiversePresentation::focusGame(int index) {
+    if(route_!="games" || index<0 || index>=filtered().size())return;
+    positions_[system_]=index;emit changed();
 }
 void MultiversePresentation::showSystems() {
     route_ = collection_=="multiverse" ? "systems" : "games";
@@ -134,7 +143,9 @@ void MultiversePresentation::restoreLocal(const QJsonObject& state) {
     route_=state["route"].toString();if(route_=="detail")route_="games";
     if(!QStringList{"systems","games"}.contains(route_))route_="systems";
     if(collection_!="multiverse")system_="_series";
-    queries_.clear();filters_.clear();positions_.clear();
+    queries_.clear();filters_.clear();positions_.clear();views_.clear();
+    const auto views=state["views"].toObject();
+    for(auto i=views.begin();i!=views.end();++i)if(i.value()=="wheel" || i.value()=="list")views_[i.key()]=i.value().toString();
     const auto queries=state["queries"].toObject(),filters=state["filters"].toObject(),positions=state["positions"].toObject();
     auto keys=multiversePlatforms(); keys.append({"_series","","",""});
     for(const auto& p:keys) {
@@ -298,6 +309,12 @@ void MultiversePresentation::activate(int index) {
     emit changed();
 }
 void MultiversePresentation::dispatch(Action action) {
+    if(route_=="games" && viewStyle()=="list" && (action==Action::Left || action==Action::Right)) {
+        const int current=focusIndex(), size=listPageSize(), count=filtered().size();
+        const int page=current/size+(action==Action::Left?-1:1);
+        if(page>=0 && page*size<count)focusGame(std::min(count-1,page*size+current%size));
+        return;
+    }
     if (action == Action::Back) {
         if (route_ == "games" && collection_=="multiverse") route_ = "systems";
         emit changed(); return;

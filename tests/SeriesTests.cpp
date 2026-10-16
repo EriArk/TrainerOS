@@ -84,6 +84,54 @@ private slots:
         QCOMPARE(shell.multiverse()->detail()["id"],id);QVERIFY(adapter.launched.isEmpty());
         shell.dispatch(Action::Back);shell.dispatch(Action::ScrollDown);QCOMPARE(scroll.size(),2);
     }
+    void listViewIsScopedPersistentAndPreservesIdentity() {
+        SeriesLibrary library;SeriesAdapter adapter;MultiversePresentation model(library,adapter);
+        model.openSystem("gba");model.focusGame(1);const auto id=model.detail()["id"];
+        const auto games=model.games();model.setViewStyle("list");
+        QCOMPARE(model.viewStyle(),"list");QCOMPARE(model.detail()["id"],id);QCOMPARE(model.games(),games);
+        model.openSystem("snes");QCOMPARE(model.viewStyle(),"wheel");
+        model.setCollection("mario");model.setViewStyle("list");model.focusGame(1);
+        const auto mario=model.detail()["id"];model.setCollection("zelda");QCOMPARE(model.viewStyle(),"wheel");
+        const auto state=model.navigationState();MultiversePresentation restored(library,adapter);restored.restoreNavigation(state);
+        restored.setCollection("mario");QCOMPARE(restored.viewStyle(),"list");QCOMPARE(restored.detail()["id"],mario);
+        restored.openSystem("gba");QCOMPARE(restored.viewStyle(),"list");QCOMPARE(restored.detail()["id"],id);
+        restored.setViewStyle("grid");QCOMPARE(restored.viewStyle(),"list");
+        auto extra=library.records[2];extra.adventure.id="new";extra.adventure.title="AAA";library.records.append(extra);
+        restored.refresh();QCOMPARE(restored.detail()["id"],id);QCOMPARE(restored.viewStyle(),"list");
+        restored.restoreNavigation({});restored.openSystem("gba");QCOMPARE(restored.viewStyle(),"wheel");
+        QVERIFY(adapter.launched.isEmpty());
+    }
+    void listFocusSupportsLargeLibrariesAndKeepsLaunchExplicit() {
+        SeriesLibrary library;SeriesAdapter adapter;
+        for(int i=0;i<300;++i){auto r=library.records[2];r.adventure.id=QString("many-%1").arg(i);r.adventure.title=QString("Game %1").arg(i,3,10,QChar('0'));library.records.append(r);}
+        MultiversePresentation model(library,adapter);model.openSystem("gba");model.setViewStyle("list");
+        QCOMPARE(model.listPageSize(),7);
+        model.focusGame(0);model.dispatch(Action::Left);QCOMPARE(model.focusIndex(),0);
+        model.dispatch(Action::Right);QCOMPARE(model.focusIndex(),7);
+        model.dispatch(Action::Down);QCOMPARE(model.focusIndex(),8);
+        model.dispatch(Action::Left);QCOMPARE(model.focusIndex(),1);
+        model.focusGame(model.games().size()-1);model.dispatch(Action::Right);QCOMPARE(model.focusIndex(),model.games().size()-1);
+        model.focusGame(299);const auto id=model.detail()["id"].toString();
+        model.focusGame(-1);model.focusGame(10000);QCOMPARE(model.detail()["id"].toString(),id);
+        model.setViewStyle("wheel");model.setViewStyle("list");QCOMPARE(model.detail()["id"].toString(),id);
+        QVERIFY(adapter.launched.isEmpty());model.dispatch(Action::Confirm);QCOMPARE(adapter.launched,id);
+    }
+    void listChoiceAndPagingRespectShellModals() {
+        SeriesLibrary library;SeriesAdapter adapter;MockTrainerRepository profiles;DevelopmentPlatformService platform;
+        MockPokedexRepository dex;MockHallOfFameRepository archive;MockAchievementProvider achievements;
+        ShellController shell(library,profiles,adapter,platform,builtinExperiences(dex,dex),archive,achievements);
+        shell.goToPage(1);shell.openGamesRootItem("platforms","gba");const auto home=shell.currentAdventureId();
+        shell.focusLibraryGame(1);const auto id=shell.multiverse()->detail()["id"];
+        shell.dispatch(Action::ChangeView);QCOMPARE(shell.multiverse()->viewStyle(),"list");
+        shell.dispatch(Action::Secondary);shell.dispatch(Action::ChangeView);shell.focusLibraryGame(0);
+        QCOMPARE(shell.multiverse()->viewStyle(),"list");QCOMPARE(shell.multiverse()->detail()["id"],id);
+        shell.dispatch(Action::Back);shell.openContext();QVERIFY(shell.libraryTools()->isOpen());
+        const auto rows=shell.libraryTools()->rows();int wheel=-1;
+        for(int i=0;i<rows.size();++i)if(rows[i].toMap()["label"].toString().startsWith("View: Wheel"))wheel=i;
+        QVERIFY(wheel>=0);shell.libraryTools()->activate(wheel);
+        QVERIFY(!shell.libraryTools()->isOpen());QCOMPARE(shell.multiverse()->viewStyle(),"wheel");
+        QCOMPARE(shell.multiverse()->detail()["id"],id);QCOMPARE(shell.currentAdventureId(),home);QVERIFY(adapter.launched.isEmpty());
+    }
     void classificationAndFallback() {
         QCOMPARE(seriesForTitle("Sonic Advance 2 (USA)"),"sonic");
         QCOMPARE(seriesForTitle("Dragon Ball Z - Supersonic Warriors"),"multiverse");

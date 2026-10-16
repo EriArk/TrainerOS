@@ -56,6 +56,8 @@ Item {
         }
         LibraryWheel {
             id: browser
+            viewStyle: root.model.viewStyle; listPageSize: root.model.listPageSize
+            onFocusRequested: index => root.shell.focusLibraryGame(index)
             anchors.fill: parent; visible: root.model.route === "games"
             entries: root.model.games; entry: root.model.detail; selectionIndex: root.model.focusIndex
             takesFocus: root.takesFocus

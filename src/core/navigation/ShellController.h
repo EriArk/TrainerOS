@@ -154,6 +154,7 @@ public:
     Q_INVOKABLE void manageCollection(bool create=false);
     Q_INVOKABLE void editCollection(int index);
     Q_INVOKABLE void libraryAction(const QString& action);
+    Q_INVOKABLE void focusLibraryGame(int index);
     HallOfFameController* hall() { return &hall_; }
     LibraryManagementController* libraryManager() { return &libraryManager_; }
     LibraryToolsController* libraryTools() {return &libraryTools_;}

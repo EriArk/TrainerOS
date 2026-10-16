@@ -33,7 +33,7 @@ public:
     QVariantList rows() const;
     int focusIndex() const {return focus_;}
     void beginGame(const QString& id);
-    void beginBrowsing(const QString& id);
+    void beginBrowsing(const QString& id, const QString& view = {});
     void beginWorld(const QString& id, bool enabled);
     void beginTrash();
     void close();
@@ -77,6 +77,7 @@ private:
     int focus_=0;
     bool busy_=false;
     bool browserActions_=false;
+    QString browserView_;
     FileCatalog* catalog_=nullptr;
     DirectoryPage directory_;
     QString root_,destination_;

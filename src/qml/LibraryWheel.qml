@@ -7,6 +7,10 @@ Item {
     required property var entry
     required property int selectionIndex
     required property bool takesFocus
+    // Wheel and List share this split and one selected-game renderer.
+    property string viewStyle: "wheel"
+    property int listPageSize: 7
+    signal focusRequested(int index)
     property bool wheelFocused: true
     property bool previewsEnabled: false
     property bool showBack: false
@@ -39,11 +43,20 @@ Item {
         }
     }
     Rectangle { x: root.split; y: 16; width: 1; height: parent.height - 38; color: Theme.ink; opacity: 0.12 }
+    LibraryGameList {
+        x: 12; y: 10; width: root.split - 24; height: parent.height - y - 20
+        visible: root.viewStyle === "list"
+        entries: root.entries; selectionIndex: root.selectionIndex; pageSize: root.listPageSize
+        takesFocus: root.takesFocus && root.wheelFocused && visible
+        onActivated: index => root.activated(index)
+        onFocusRequested: index => root.focusRequested(index)
+    }
     // The wheel sits inside a continuous recessed rail. Only nearby
     // delegates exist; logos decode asynchronously at display size.
     Item {
         id: rail
-        x: 0; y: 10; width: root.split; height: parent.height - 40; clip: true
+        x: 0; y: 10; width: root.split; height: parent.height - y - 30; clip: true
+        visible: root.viewStyle === "wheel"
         Canvas {
             id: crystal
             objectName: "library-selection-crystal"
@@ -73,8 +86,8 @@ Item {
         }
         PathView {
             id: wheel
-            enabled: root.takesFocus
-            focus: root.takesFocus && root.wheelFocused
+            enabled: rail.visible && root.takesFocus
+            focus: rail.visible && root.takesFocus && root.wheelFocused
             anchors.fill: parent; model: root.entries
             currentIndex: root.selectionIndex
             interactive: false; pathItemCount: 5; cacheItemCount: 2
@@ -89,7 +102,7 @@ Item {
                 reveal()
             }
             function reveal() {
-                if (root.visible && root.takesFocus && root.wheelFocused && currentItem) currentItem.forceActiveFocus(Qt.OtherFocusReason)
+                if (rail.visible && root.visible && root.takesFocus && root.wheelFocused && currentItem) currentItem.forceActiveFocus(Qt.OtherFocusReason)
             }
             onCurrentIndexChanged: Qt.callLater(reveal)
             onCurrentItemChanged: Qt.callLater(reveal)
@@ -115,7 +128,7 @@ Item {
                 required property int index
                 required property var modelData
                 objectName: root.itemPrefix + (root.idsInNames ? modelData.id : index)
-                readonly property bool selected: root.takesFocus && root.wheelFocused && index === root.selectionIndex
+                readonly property bool selected: rail.visible && root.takesFocus && root.wheelFocused && index === root.selectionIndex
                 onSelectedChanged: if (selected && visible) forceActiveFocus(Qt.OtherFocusReason)
                 onVisibleChanged: if (selected && visible) forceActiveFocus(Qt.OtherFocusReason)
                 Component.onCompleted: if (selected && visible) forceActiveFocus(Qt.OtherFocusReason)
@@ -157,7 +170,7 @@ Item {
     }
     Text {
         x: 18; anchors.bottom: parent.bottom; anchors.bottomMargin: 24
-        visible: !root.showBack
+        visible: !root.showBack && root.viewStyle === "wheel"
         text: root.entries.length ? (root.selectionIndex + 1) + " / " + root.entries.length : ""
         color: Theme.muted; font.pixelSize: 13
     }

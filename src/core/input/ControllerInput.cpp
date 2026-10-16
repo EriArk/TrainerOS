@@ -140,6 +140,7 @@ void ControllerInput::poll() {
         {SDL_CONTROLLER_BUTTON_START, Action::SystemMenu},
         {SDL_CONTROLLER_BUTTON_GUIDE, Action::Home},
         {SDL_CONTROLLER_BUTTON_BACK, Action::LocalAction},
+        {SDL_CONTROLLER_BUTTON_RIGHTSTICK, Action::ChangeView},
         {BackButton, Action::Back},
         {SDL_CONTROLLER_BUTTON_X, Action::ToggleContinue},
         {SDL_CONTROLLER_BUTTON_Y, Action::Secondary},

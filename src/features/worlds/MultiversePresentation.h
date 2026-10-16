@@ -17,6 +17,8 @@ class MultiversePresentation final : public QObject {
     Q_PROPERTY(QString collectionArt READ collectionArt NOTIFY changed)
     Q_PROPERTY(QVariantList collections READ collections NOTIFY libraryChanged)
     Q_PROPERTY(QString route READ route NOTIFY changed)
+    Q_PROPERTY(QString viewStyle READ viewStyle NOTIFY changed)
+    Q_PROPERTY(int listPageSize READ listPageSize CONSTANT)
     Q_PROPERTY(QVariantList systems READ systems NOTIFY libraryChanged)
     Q_PROPERTY(QVariantList games READ games NOTIFY gamesChanged)
     Q_PROPERTY(QVariantMap detail READ detail NOTIFY changed)
@@ -38,6 +40,10 @@ public:
     QVariantList collections() const;
     void setCollection(const QString&);
 
+    int listPageSize() const { return 7; }
+    QString viewStyle() const { return views_.value(system_, "wheel"); }
+    void setViewStyle(const QString&);
+    void focusGame(int index);
     void showSystems();
     QJsonObject navigationState() const;
     void restoreNavigation(const QJsonObject&);
@@ -82,7 +88,7 @@ private:
     bool sample_;
     QString route_ = "systems", system_ = "gb", selected_;
     int systemFocus_ = 0;
-    QHash<QString, QString> queries_;
+    QHash<QString, QString> queries_, views_;
     QHash<QString, int> filters_, positions_;
     QList<Game> entries_;
     mutable QHash<QString,QVariantMap> presentations_;

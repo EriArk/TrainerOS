@@ -4,19 +4,29 @@
 #include <QImage>
 #include <QFile>
 #include <QTimer>
+#include <QSignalSpy>
+#include <QTest>
 #include <memory>
 using namespace trainer;
 void startWorldsSmoke(QQuickWindow* window, ShellController& shell, ControllerInput& input,
         MockAdventureAdapter&, SDL_Joystick* joystick, const QString& directory,
         bool& completed, int& warnings, QStringList& diagnostics) {
     auto step=std::make_shared<int>(0);auto failed=std::make_shared<bool>(false);
+    auto selectedId=std::make_shared<QString>();
     auto timer=new QTimer(window);timer->setInterval(650);
     QObject::connect(timer,&QTimer::timeout,window,[=,&shell,&input,&completed,&warnings,&diagnostics]{
         const auto check=[&](bool ok,const QString& text){if(!ok){*failed=true;diagnostics<<QString("Stage %1: %2").arg(*step-1).arg(text);}};
         const auto press=[&](SDL_GameControllerButton b){SDL_JoystickSetVirtualButton(joystick,b,1);input.poll();SDL_JoystickSetVirtualButton(joystick,b,0);input.poll();};
         const auto capture=[&](const QString& name){const auto frame=window->grabWindow();check(!frame.isNull(),"Empty render");if(!directory.isEmpty())check(frame.save(directory+"/"+name+".png"),"Cannot save render");};
         const auto focus=[&]{auto* item=window->activeFocusItem();check(item && item->isVisible() && item->isEnabled(),"Hidden or missing focus");};
-        const auto visibleItem=[&](const QString& name)->QQuickItem* { for(auto* item:window->findChildren<QQuickItem*>(name))if(item->isVisible())return item;return nullptr; };
+        const auto visibleItem=[&](const QString& name)->QQuickItem* {
+            std::function<QQuickItem*(QQuickItem*)> find=[&](QQuickItem* item)->QQuickItem* {
+                if(!item->isVisible())return nullptr;
+                if(item->objectName()==name)return item;
+                for(auto* child:item->childItems())if(auto* found=find(child))return found;
+                return nullptr;
+            };return find(window->contentItem());
+        };
         constexpr auto a=SDL_CONTROLLER_BUTTON_B,b=SDL_CONTROLLER_BUTTON_A;
         switch((*step)++) {
         case 0: shell.goToPage(1);break;
@@ -63,6 +73,51 @@ void startWorldsSmoke(QQuickWindow* window, ShellController& shell, ControllerIn
         case 10: capture("collection-ribbon-end");shell.dispatch(Action::ToggleContinue);break;
         case 11: check(shell.drawerOpen(),"Global Y drawer unavailable");press(b);shell.dispatch(Action::Secondary);break;
         case 12: check(shell.quickAppsOpen(),"Global X drawer unavailable");press(b);shell.openGamesRootItem("collections","pokemon");press(b);break;
+        case 13: shell.openGamesRootItem("platforms",shell.gamesPlatforms().front().toMap()["id"].toString());*selectedId=shell.multiverse()->detail()["id"].toString();shell.libraryAction("view:list");break;
+        case 14: {
+            auto* list=visibleItem("library-paged-list");check(list,"List is not visible");focus();capture("list-960");
+            check(shell.multiverse()->detail()["id"].toString()==*selectedId,"View change lost game identity");
+            auto* media=visibleItem("library-detail-picture");auto* facts=visibleItem("library-detail-facts");
+            check(media && facts && facts->x()+facts->width()<media->x(),"List lost shared information layout");
+            auto* wheel=visibleItem("footer-hint-R3");
+            check(wheel,"Touch R3 hint missing");if(wheel)QTest::mouseClick(window,Qt::LeftButton,Qt::NoModifier,wheel->mapToScene(QPointF(wheel->width()/2,wheel->height()/2)).toPoint());
+            break;
+        }
+        case 15: check(shell.multiverse()->viewStyle()=="wheel","Touch R3 did not select Wheel");check(shell.multiverse()->detail()["id"].toString()==*selectedId,"Picker lost ID");press(SDL_CONTROLLER_BUTTON_RIGHTSTICK);check(shell.multiverse()->viewStyle()=="list","R3 button did not select List");window->resize(1920,1080);break;
+        case 16: {
+            capture("list-1080");const auto before=shell.multiverse()->focusIndex();
+            press(SDL_CONTROLLER_BUTTON_DPAD_RIGHT);
+            if(shell.multiverse()->games().size()>7)check(shell.multiverse()->focusIndex()==before+7,"Right must flip a whole list page");
+            press(SDL_CONTROLLER_BUTTON_DPAD_LEFT);check(shell.multiverse()->focusIndex()==before,"Left must restore the previous list page");
+            window->resize(1280,800);break;
+        }
+        case 17: {
+            capture("list-16-10");window->resize(960,540);
+            auto* list=visibleItem("library-paged-list");
+            QVariantList fixture;for(int i=0;i<31;++i)fixture.append(QVariantMap{{"id",QString("fixture-%1").arg(i)},{"title",i==1?QString("A deliberately long game title that cannot fit in an ordinary list row"):QString("Page fixture %1").arg(i+1)},{"platformShort","GBA"},{"linked",i!=3}});
+            if(list){list->setProperty("entries",fixture);list->setProperty("selectionIndex",0);}break;
+        }
+        case 18: {
+            auto* list=visibleItem("library-paged-list");check(list,"Paged fixture missing");if(!list)break;
+            const int count=list->property("pageSize").toInt();check(count==7,"List must contain seven rows per page");
+            QSignalSpy changed(list,SIGNAL(focusRequested(int)));QSignalSpy launch(list,SIGNAL(activated(int)));
+            const auto from=list->mapToScene(QPointF(list->width()/2,120)).toPoint();
+            const auto to=list->mapToScene(QPointF(list->width()/2,50)).toPoint();
+            QTest::mousePress(window,Qt::LeftButton,Qt::NoModifier,from);QTest::mouseMove(window,to);QTest::mouseRelease(window,Qt::LeftButton,Qt::NoModifier,to);
+            check(changed.size()==1 && changed[0][0].toInt()==count,"Swipe must advance exactly one full page");
+            check(launch.isEmpty(),"Swipe must never launch a row");
+            list->setProperty("selectionIndex",count);break;
+        }
+        case 19: {
+            auto* list=visibleItem("library-paged-list");check(list && list->property("page").toInt()==1,"Second page did not advance");capture("list-page-two");
+            if(list)list->setProperty("selectionIndex",30);break;
+        }
+        case 20: {
+            auto* list=visibleItem("library-paged-list");capture("list-last-page");
+            if(list){QSignalSpy changed(list,SIGNAL(focusRequested(int)));QMetaObject::invokeMethod(list,"turnPage",Q_ARG(QVariant,1));check(changed.isEmpty(),"Last page must not wrap on swipe");
+                for(auto* row:list->findChildren<QQuickItem*>())if(row->objectName().startsWith("library-list-row-") && row->isVisible())check(row->y()+row->height()<=list->height()-34,"A list row is cut off");}
+            press(b);break;
+        }
         default:
             check(shell.collectionsRoot(),"Return to root failed");check(warnings==0,"QML warnings");completed=true;timer->stop();
             if(!directory.isEmpty()){QFile f(directory+"/collections-verification.txt");if(f.open(QIODevice::WriteOnly))f.write(((*failed?QString("FAILED\n"):QString("PASSED\n"))+diagnostics.join('\n')).toUtf8());}

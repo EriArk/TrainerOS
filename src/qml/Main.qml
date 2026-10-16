@@ -345,6 +345,7 @@ Window {
                 if (shell.page === 1) {
                     const list = shell.multiverseFace ? shell.multiverse.route === "games" : shell.worlds.route === "adventures"
                     let result = list ? [h("X","Search"),h("Y","Filter"),h("A","Play"),h("B","Games")] : [h("A","Open"),h("B","Back")]
+                    if(list && shell.multiverseFace) result.push(h("R3","View"))
                     if(shell.canHoldConfirm) result.push(h("Hold A","Options"))
                     result.push(h("Select",list ? "Game actions" : "Collection actions"))
                     return result
@@ -375,8 +376,9 @@ Window {
                 Repeater { model: footer.actions.filter(function(item) { return item.button !== "X" && item.button !== "Y" })
                     delegate: Hint {
                         required property var modelData
+                        objectName: "footer-hint-" + modelData.button
                         button: modelData.button; label: modelData.label
-                        interactive: ["A","B","X","Y","Select"].includes(button)
+                        interactive: ["A","B","X","Y","Select","R3"].includes(button)
                         onClicked: shell.pressButton(button)
                         tint: button === "B" ? Theme.pink : button === "X" || button === "←→" ? Theme.blue : button === "Y" ? Theme.yellow : Theme.green
                     }
