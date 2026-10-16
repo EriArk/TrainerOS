@@ -2,6 +2,12 @@
 
 ## Current owner contract — 16 October 2026
 
+**Flip available again, 16 October 2026:** the owner rebooted Flip after the
+Odin HOME-19 delivery. Mirror the same verified build onto Flip, preserve its
+settings/history, check Armada before device checks, and record the bounded
+delivery. This supersedes the temporary Odin-only target below; it does not
+authorize advancing to another screen before owner review.
+
 **Latest screen-by-screen correction:** the owner rejected the Home PC captures.
 Work on ONE screen at a time: correct Home, install on available handhelds,
 inspect the running result and let the owner review before advancing to Games.
