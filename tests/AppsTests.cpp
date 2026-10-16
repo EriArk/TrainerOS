@@ -15,6 +15,16 @@ class AppsTests:public QObject {
         apps.accept({{"event","ready"}});
     }
 private slots:
+    void emptyQuickTrayNeverLaunchesTheUnderlyingGrid() {
+        AppsController apps;seed(apps);QSignalSpy commands(&apps,&AppsController::commandRequested);
+        apps.focusRail();apps.dispatch(Action::Confirm,true);apps.dispatch(Action::LocalAction,true);
+        QVERIFY(commands.isEmpty());QVERIFY(apps.menu().isEmpty());
+        apps.accept({{"event","state"},{"running",QJsonArray{"a.desktop","z.desktop"}},{"current",""}});
+        apps.focusRail();apps.dispatch(Action::Right,true);QCOMPARE(apps.focusIndex(),1);
+        apps.dispatch(Action::Confirm,true);QCOMPARE(commands.last()[0].toJsonObject()["id"],"z.desktop");
+        apps.accept({{"event","state"},{"running",QJsonArray{}},{"current",""}});commands.clear();
+        apps.dispatch(Action::Confirm,true);QVERIFY(commands.isEmpty());
+    }
     void preferencesArePerTrainerAndSurviveReopen() {
         QTemporaryDir dir;AppsController apps;apps.configure(dir.path(),"alice");seed(apps);
         QCOMPARE(apps.rows().size(),2);QCOMPARE(apps.rows()[0].toMap()["name"].toString(),"Calculator");

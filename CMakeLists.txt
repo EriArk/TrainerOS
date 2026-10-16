@@ -364,7 +364,7 @@ qt_add_qml_module(traineros
         src/qml/ArchiveEditorPanel.qml
         src/qml/AchievementAccountPanel.qml
         src/qml/ControllerList.qml
-        src/qml/ContinueDrawer.qml
+        src/qml/ContinueDrawer.qml src/qml/ChassisDrawer.qml src/qml/QuickAppsDrawer.qml
         src/qml/SystemPanel.qml
         src/qml/ConnectionsPane.qml
         src/qml/StoragePanel.qml

@@ -1,5 +1,13 @@
 # AGENTS.md — TrainerOS
 
+**QUICK-22 owner correction:** X becomes a horizontal, right-anchored mirrored
+version of the Y Adventures drawer, using the same chassis/animation/behavior
+with a lower expanded height for smaller app icons and captions. Both folded
+handles are equally narrower. This supersedes the vertical dock and dynamic
+screen narrowing in #226. Reuse app runtime/pins and preserve child menus,
+keyboard/modal precedence, app processes and return focus. Deliver on Odin/Flip.
+
+
 **HOME-21 owner follow-up:** four recent people with nicknames replace conversation
 avatars; reuse direct-message recency and Recently Together, excluding groups/channels.
 Notifications become light text rows with focus/press affordances. Use available

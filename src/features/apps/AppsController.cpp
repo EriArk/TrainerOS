@@ -155,7 +155,18 @@ void AppsController::control(int index) {
     controls_=false;
     emit commandRequested({{"command",index==1?"minimize":index==2?"close":"resume"},{"id",current_}});emit changed();
 }
-void AppsController::dispatch(Action action) {
+void AppsController::dispatch(Action action,bool quick) {
+    if(quick && menuId_.isEmpty()) {
+        // An empty/changed quick tray must never activate an invisible Apps-grid item.
+        if(rail().isEmpty())return;
+        railFocused_=true;
+        if(action==Action::Confirm){open(railFocus_,true);return;}
+        if(action==Action::LocalAction){options(railFocus_,true);return;}
+        if(action==Action::Left || action==Action::Right) {
+            railFocus_+=action==Action::Right?1:-1;normalize();emit changed();
+        }
+        return;
+    }
     if(!menuId_.isEmpty()) {
         if(action==Action::Back)menuId_.clear();
         else if(action==Action::Up)menuFocus_=std::max(0,menuFocus_-1);

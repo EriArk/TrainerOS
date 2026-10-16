@@ -311,6 +311,13 @@ private slots:
             shell.dispatch(Action::Back);QCOMPARE(shell.primaryId(),root);QVERIFY(!shell.drawerOpen());
             shell.dispatch(Action::Secondary);QVERIFY(shell.quickAppsOpen());
             shell.dispatch(Action::Back);QVERIFY(!shell.quickAppsOpen());QCOMPARE(shell.primaryId(),root);
+            shell.dispatch(Action::Secondary);shell.dispatch(Action::ToggleContinue);
+            QVERIFY(shell.drawerOpen());QVERIFY(!shell.quickAppsOpen());
+            shell.dispatch(Action::Secondary);QVERIFY(shell.quickAppsOpen());QVERIFY(!shell.drawerOpen());
+            shell.closeDrawers();QVERIFY(!shell.quickAppsOpen());QCOMPARE(shell.primaryId(),root);
+            shell.dispatch(Action::Secondary);shell.dispatch(Action::NextFace);QVERIFY(!shell.quickAppsOpen());
+            shell.dispatch(Action::Secondary);shell.apps()->accept({{"event","foreground"},{"id","fixture.desktop"}});
+            QVERIFY(!shell.quickAppsOpen());shell.apps()->accept({{"event","shell"}});
         }
         shell.keyboard()->begin("Text","draft",32);
         shell.dispatch(Action::Secondary);QVERIFY(!shell.quickAppsOpen());QVERIFY(shell.keyboard()->isOpen());

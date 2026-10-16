@@ -29,7 +29,7 @@ public:
     void configure(const QString& directory,const QString& owner);
     void start(const QString& python,const QString& helper);
     void accept(const QJsonObject&); // Platform events, also usable by isolated test providers.
-    void dispatch(Action);
+    void dispatch(Action,bool quick=false);
     std::function<QString()> launchGuard;
     QVariantList rows() const;
     QVariantList rail() const;

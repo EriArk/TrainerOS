@@ -6,10 +6,6 @@ QtObject {
     property bool reducedMotion: false
     property bool television: false
     property real uiScale: 1
-    property bool appsExpanded: false
-    readonly property real appsDockWidth: 80
-    property real appsFrameWidth: appsExpanded ? appsDockWidth : 0
-    Behavior on appsFrameWidth { NumberAnimation { duration: Theme.motion(220); easing.type: Easing.OutCubic } }
     readonly property FontLoader displayTypeface: FontLoader { source: "qrc:/fonts/Fredoka.ttf" }
     readonly property string displayFamily: displayTypeface.name
     readonly property FontLoader brandTypeface: FontLoader { source: "qrc:/fonts/ChakraPetch-Bold.ttf" }
@@ -69,14 +65,13 @@ QtObject {
     readonly property int topRimHeight: 12
     readonly property real tabWidth: (viewportWidth - 12 - brandWidth - 4 * tabSpacing) / 5
     readonly property int panelInset: 12
-    readonly property real appsDockTop: footerTop - Math.min(360, footerTop - contentTopInset - 38) * (appsFrameWidth / appsDockWidth)
     readonly property int contentTopInset: brandHeight + screenBevel + 27 - screenTop
     readonly property int footerHeight: 37
     readonly property int footerTop: viewportHeight - footerHeight
-    readonly property int adventureTabWidth: 292
+    readonly property int adventureTabWidth: 242
     readonly property int adventureTabHeight: 53
     // Only the lower-left corner is occupied. Right-hand content reaches the lip.
     readonly property int adventureCutoutWidth: adventureTabWidth - screenBevel - screenBounds.x - panelInset + 16
     readonly property int adventureCutoutHeight: screenBounds.y + screenBounds.height - panelInset - (footerTop - adventureTabHeight) + 8
-    readonly property rect screenBounds: Qt.rect(12, screenTop, viewportWidth - 24 - appsFrameWidth, footerTop - 5 - screenTop)
+    readonly property rect screenBounds: Qt.rect(12, screenTop, viewportWidth - 24, footerTop - 5 - screenTop)
 }

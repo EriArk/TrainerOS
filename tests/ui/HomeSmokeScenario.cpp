@@ -371,6 +371,44 @@ void startHomeSmoke(QQuickWindow* window, ShellController& shell, SessionState& 
         case 40: {
             check(shell.dashboard()->focus()=="play","R2 returns to game card");break;
         }
+        case 41:
+            shell.dispatch(Action::Secondary);break;
+        case 42: {
+            auto* apps=itemNamed("quick-apps-drawer");auto* games=itemNamed("continue-drawer");
+            if(apps && qAbs(apps->height()-178)>0.1){--*stage;return;}
+            check(apps && games && apps->height()<229 && apps->height()>150,"Quick Apps is a lower mirrored drawer");
+            check(apps && apps->property("mirrored").toBool(),"Quick Apps mirrors the shared chassis");
+            capture("quick-apps-empty-960");
+            QJsonArray rows,running;
+            for(int i=0;i<12;++i) {const auto id=QString("fixture-%1.desktop").arg(i,2,10,QChar('0'));rows.append(QJsonObject{{"id",id},{"name",QString("Application %1").arg(i+1)},{"icon","application-x-executable"}});running.append(id);}
+            shell.apps()->accept({{"event","catalogue"},{"rows",rows}});shell.apps()->accept({{"event","state"},{"running",running},{"current",""}});shell.apps()->accept({{"event","ready"}});
+            shell.dispatch(Action::Right);break;
+        }
+        case 43:
+            capture("quick-apps-full-960");shell.dispatch(Action::LocalAction);break;
+        case 44:
+            check(!shell.apps()->menu().isEmpty() && shell.quickAppsOpen(),"Select opens an owned app menu without dismissing the tray");
+            shell.dispatch(Action::Back);check(shell.quickAppsOpen(),"B closes the child menu first");
+            for(int i=0;i<14;++i)shell.dispatch(Action::Right);break;
+        case 45:
+            check(shell.apps()->focusIndex()==11,"Horizontal app navigation reaches overflow");capture("quick-apps-overflow-960");
+            shell.dispatch(Action::ToggleContinue);break;
+        case 46:
+            if(auto* d=itemNamed("continue-drawer");d && qAbs(d->height()-229)>0.1){--*stage;return;}
+            check(shell.drawerOpen() && !shell.quickAppsOpen(),"Y replaces X");capture("adventures-shared-frame-960");shell.dispatch(Action::Back);break;
+        case 47: {
+            auto* apps=itemNamed("quick-apps-drawer");auto* games=itemNamed("continue-drawer");
+            if(apps && games && (qAbs(apps->width()-242)>0.1 || qAbs(games->width()-242)>0.1)){--*stage;return;}
+            check(apps && games && apps->width()==games->width() && apps->width()==242,"Closed X/Y handles share the shorter width");
+            capture("paired-handles-960");window->resize(1920,1080);shell.dispatch(Action::Secondary);break;
+        }
+        case 48:
+            if(auto* d=itemNamed("quick-apps-drawer");d && qAbs(d->height()-178)>0.1){--*stage;return;}
+            capture("quick-apps-full-1080p");shell.closeDrawers();break;
+        case 49:
+            if(auto* d=itemNamed("quick-apps-drawer");d && qAbs(d->width()-242)>0.1){--*stage;return;}
+            if(auto* launchButton=itemNamed("home-launch"))if(auto* d=itemNamed("quick-apps-drawer"))check(launchButton->mapRectToScene(launchButton->boundingRect()).bottom()<=d->mapRectToScene(d->boundingRect()).top(),"Folded Quick Apps never covers Start");
+            check(!shell.quickAppsOpen() && shell.primaryId()=="home","Outside-close preserves the Home route");capture("paired-handles-1080p");break;
         default:
             check(warnings == 0, "QML warnings"); completed = true; timer->stop();
             if (!screenshotDir.isEmpty()) {

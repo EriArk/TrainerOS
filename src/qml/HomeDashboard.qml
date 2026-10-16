@@ -204,10 +204,10 @@ Item {
             compact: awards.compact
             game: root.shell.homeGame
         }
-        Rectangle { visible: root.generic; x: 20; y: awards.y; width: parent.width-40; height: 1; color: "#70c6d6b6" }
+        Rectangle { visible: root.generic; x: 20; y: awards.y; width: parent.width-play.width-50; height: 1; color: "#70c6d6b6" }
         AdventureButton {
             id: play
-            anchors { right: parent.right; bottom: parent.bottom; rightMargin: 16*root.unit; bottomMargin: 10*root.unit }
+            anchors { right: parent.right; bottom: parent.bottom; rightMargin: 16*root.unit; bottomMargin: 29*root.unit }
             width: root.generic ? (awards.compact ? 116 : 132) : 96; height: width
             showGlyph: !root.generic
             shell: root.shell; selected: root.active && root.flow.focus === "play"

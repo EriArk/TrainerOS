@@ -28,9 +28,6 @@ Rectangle {
         const s = Theme.screenBounds;
         const outerRight = Theme.viewportWidth - 12;
         const left = s.x + inset, right = outerRight - inset;
-        const dockRight = right - Theme.appsFrameWidth;
-        const dockTop = Theme.appsDockTop + inset;
-        const rounding = Math.min(12, Theme.appsFrameWidth / 2);
         const top = -12, bottom = s.y + s.height - inset;
         const radius = Math.max(1, 15 - inset);
         const brandBottom = Theme.brandHeight + inset;
@@ -42,11 +39,7 @@ Rectangle {
         const diagonalLeft = Theme.brandWidth - Theme.brandBevel + diagonalOffset;
         return "M " + brandRight + " " + top
             + " H " + right
-            + " V " + (dockTop - rounding)
-            + " Q " + right + " " + dockTop + " " + (right - rounding) + " " + dockTop
-            + " H " + (dockRight + rounding)
-            + " Q " + dockRight + " " + dockTop + " " + dockRight + " " + (dockTop + rounding)
-            + " V " + (bottom - radius) + " Q " + dockRight + " " + bottom + " " + (dockRight - radius) + " " + bottom
+            + " V " + (bottom - radius) + " Q " + right + " " + bottom + " " + (right - radius) + " " + bottom
             + " H " + left
             + " V " + (brandBottom + radius) + " Q " + left + " " + brandBottom + " " + (left + radius) + " " + brandBottom
             + " H " + (diagonalLeft - 3) + " Q " + diagonalLeft + " " + brandBottom + " " + (diagonalLeft + 2) + " " + (brandBottom - 2)

@@ -1,22 +1,29 @@
 import QtQuick
 
-// Mounted in the expanding outer chassis, beyond the screen's continuous bevel.
+// Compact horizontal app tray inside the shared mirrored chassis drawer.
 Item {
     id: root
     objectName: "apps-chassis-dock"
     required property var flow
     clip: true
     ListView {
-        id: dock
-        anchors.fill: parent; anchors.topMargin: 3; anchors.bottomMargin: 3
-        model: root.flow.rail; spacing: 2; clip: true
+        id: dock; objectName: "quick-apps-list"
+        anchors.fill: parent; anchors.margins: 4
+        orientation: ListView.Horizontal; interactive: true
+        model: root.flow.rail; spacing: 8; clip: true
         currentIndex: root.flow.railFocused ? root.flow.focusIndex : -1
         onCurrentIndexChanged: if (currentIndex >= 0) positionViewAtIndex(currentIndex, ListView.Contain)
         delegate: Item {
             id: slot
             required property var modelData
             required property int index
-            width: dock.width; height: 66
+            objectName: "quick-app-slot-"+index
+            width: 94; height: 104
+            readonly property bool selected: dock.currentIndex===index && root.enabled
+            function claimFocus() { if(selected && visible)forceActiveFocus(Qt.OtherFocusReason) }
+            onSelectedChanged: Qt.callLater(claimFocus)
+            onVisibleChanged: Qt.callLater(claimFocus)
+            Component.onCompleted: Qt.callLater(claimFocus)
             Accessible.role: Accessible.Button; Accessible.name: modelData.name
             Accessible.onPressAction: root.flow.open(index, true)
             // Highlight below the cut-out and a dark well provide the recessed socket.
@@ -54,11 +61,17 @@ Item {
                 x: (parent.width - 12) / 2; y: 63; width: 12; height: 3; radius: 1.5
                 color: modelData.running ? "#b6ef9d" : "#356054"
             }
+            Text { x: 2; y: 73; width: parent.width-4; height: 31; text: modelData.name; color: "#e2eee6"; font.pixelSize: 12; horizontalAlignment: Text.AlignHCenter; maximumLineCount: 2; wrapMode: Text.WordWrap; elide: Text.ElideRight }
             MouseArea {
                 id: pointer; anchors.fill: parent
                 onClicked: root.flow.open(index, true)
                 onPressAndHold: root.flow.options(index, true)
             }
         }
+    }
+    Column {
+        anchors.centerIn: parent; spacing: 7; visible: dock.count===0
+        Text { anchors.horizontalCenter: parent.horizontalCenter; text: "Your apps, one button away"; color: "#fff4ce"; font.family: Theme.displayFamily; font.pixelSize: 20 }
+        Text { anchors.horizontalCenter: parent.horizontalCenter; text: "Pin favourites in Apps. Running apps appear here too."; color: "#e2eee6"; font.pixelSize: 13 }
     }
 }

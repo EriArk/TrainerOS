@@ -31,7 +31,6 @@ Window {
     Binding { target: Theme; property: "uiScale"; value: window.uiScale }
     Binding { target: Theme; property: "viewportWidth"; value: window.width / window.uiScale }
     Binding { target: Theme; property: "viewportHeight"; value: window.height / window.uiScale }
-    Binding { target: Theme; property: "appsExpanded"; value: shell.quickAppsOpen && !sessionState.blocked && (!adventureLaunch.active || adventureLaunch.minimized) }
     Binding { target: shell.social; property: "surfaceAvailable"; value: !sessionState.blocked && ((window.active && (!adventureLaunch.active || adventureLaunch.minimized) && shell.unobstructed) || (playerOverlay.chatOpen && playerOverlay.conversationReady && adventureExitPresentation.ready)) }
     Binding { target: shell.social; property: "conversationVisible"; value: playerOverlay.chatOpen && playerOverlay.conversationReady || ((shell.primaryId === "social" || (shell.primaryId === "gamehub" && shell.hubFace === "lobby")) && !shell.serviceOpen
             && (shell.socialSurface === "chats" || shell.socialSurface === "communities" || shell.social.lobbyChatVisible)) }
@@ -65,13 +64,6 @@ Window {
         visible: !sessionState.blocked
         enabled: !adventureLaunch.active || adventureLaunch.minimized
         ChassisFrame { anchors.fill: parent }
-        AppsDock {
-            flow: shell.apps
-            x: Theme.viewportWidth - Theme.appsDockWidth - 4; y: Theme.appsDockTop + 8
-            width: Theme.appsDockWidth - 6; height: Math.max(0, Theme.footerTop - y - 4)
-            visible: Theme.appsFrameWidth > 1; opacity: Theme.appsFrameWidth / Theme.appsDockWidth
-            enabled: Theme.appsExpanded && !shell.drawerOpen && !shell.apps.menu.length
-        }
         Item {
             id: brand
             objectName: "brand-extension"
@@ -239,19 +231,23 @@ Window {
                 MultiversePage { anchors.fill: parent; shell: shellController; visible: (!shell.serviceOpen || shell.service === "settings") && shell.page === 1 && !shell.collectionsRoot && shell.multiverseFace }
             }
         }
-        CapButton {
-            objectName: "quick-apps-handle"
-            x: Theme.viewportWidth - 78; y: Theme.footerTop - 27; width: 62; height: 27
-            label: "X"; centered: true; textSize: 14; tint: Theme.rim
-            visible: !shell.quickAppsOpen && !shell.serviceOpen
-            claimsFocus: false; onActivated: shell.toggleQuickApps()
+        MouseArea {
+            anchors.fill: parent; z: 1
+            enabled: (shell.drawerOpen || shell.quickAppsOpen) && !shell.apps.menu.length && !shell.menuOpen && !shell.keyboard.open && !shell.homeMenuOpen && !shell.notice.length
+            onClicked: shell.closeDrawers()
+        }
+        QuickAppsDrawer {
+            id: quickDrawer
+            x: Theme.viewportWidth + Theme.screenBevel-width; anchors.bottom: footer.top
+            shell: shellController; z: shell.quickAppsOpen ? 2 : 1
+            visible: !shell.serviceOpen && !shell.drawerOpen
         }
         ContinueDrawer {
             id: drawer
             objectName: "continue-drawer"
             x: -Theme.screenBevel; anchors.bottom: footer.top; shell: shellController
-            z: 1
-            visible: shell.chooseAdventureAvailable || shell.drawerOpen
+            z: shell.drawerOpen ? 2 : 1
+            visible: (shell.chooseAdventureAvailable || shell.drawerOpen) && !shell.quickAppsOpen
         }
         Item {
             id: footer
@@ -327,7 +323,8 @@ Window {
                 return [h("A",shell.trainer.editing ? "Select" : "Edit Trainer"),h("B",shell.trainer.editing ? "Cancel" : "Back")]
             }
             readonly property var actions: {
-                if(shell.quickAppsOpen) return [hint("↑↓","Apps"),hint("A","Open"),hint("Select","Options"),hint("X","Close"),hint("Y","Recent games")]
+                if(shell.apps.menu.length) return [hint("??","Choose"),hint("A","Select"),hint("B","Back")]
+                if(shell.quickAppsOpen && !shell.apps.menu.length) return [hint("←→","Apps"),hint("A","Open"),hint("Select","Options"),hint("X","Close"),hint("Y","Recent games")]
                 if(shell.keyboard.open || shell.menuOpen || shell.homeMenuOpen || shell.notice.length || !shell.chooseAdventureAvailable) return localActions
                 let result = localActions.filter(function(item) { return item.button !== "X" && item.button !== "Y" })
                 result.push(hint("X","Quick Apps")); result.push(hint("Y","Recent games"))

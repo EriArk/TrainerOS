@@ -187,6 +187,9 @@ ShellController::ShellController(LibraryRepository& repo, TrainerRepository& pro
         trainerSettingsAction(index);
     });
     connect(&apps_, &AppsController::changed, this, &ShellController::changed);
+    connect(&apps_, &AppsController::foregroundRequested, this, [this]{
+        if(quickAppsOpen_){quickAppsOpen_=false;apps_.leave();emit changed();}
+    });
     connect(&apps_, &AppsController::homeRequested, this, [this]{goToPage(0);});
     connect(&trainerSetup_, &TrainerSetupPresentation::changed, this, &ShellController::changed);
     connect(&trainerSetup_, &TrainerSetupPresentation::closeRequested, this, [this] {
@@ -415,6 +418,12 @@ void ShellController::showOverview(const QString& face) {
     if(page_!=GameHubPage || hubFace_!="overview" || !pairedNavigationAvailable())return;
     if(!QStringList{"summary","timeline","screens"}.contains(face))return;
     overviewFace_=face;overviewFocus_=0;emit changed();
+}
+void ShellController::closeDrawers() {
+    if(keyboard_.isOpen() || localModalOpen() || homeMenuOpen_ || menuOpen_
+       || !notice_.isEmpty() || !apps_.menu().isEmpty() || navigationLocked())return;
+    if(quickAppsOpen_)apps_.leave();
+    quickAppsOpen_=drawerOpen_=false;emit changed();
 }
 void ShellController::toggleQuickApps() {
     if(keyboard_.isOpen() || localModalOpen() || homeMenuOpen_ || menuOpen_
@@ -1307,7 +1316,8 @@ void ShellController::dispatch(Action action) {
     if(quickAppsOpen_) {
         if(action==Action::Back){quickAppsOpen_=false;apps_.leave();emit changed();return;}
         if(action!=Action::PreviousPage && action!=Action::NextPage && action!=Action::Home
-           && action!=Action::SystemMenu && action!=Action::ToggleContinue){apps_.dispatch(action);return;}
+           && action!=Action::SystemMenu && action!=Action::ToggleContinue
+           && action!=Action::PreviousFace && action!=Action::NextFace){apps_.dispatch(action,true);return;}
         quickAppsOpen_=false;apps_.leave();
     }
     if(!menuOpen_ && !keyboard_.isOpen() && !localModalOpen() && !serviceOpen() && notice_.isEmpty() && action==Action::LocalAction) {openContext();return;}
@@ -1337,6 +1347,7 @@ void ShellController::dispatch(Action action) {
     }
     if (action == Action::PreviousFace || action == Action::NextFace) {
         if(pairedNavigationAvailable()) {
+            drawerOpen_=false;
             if(page_==HomePage){dashboard_.move(action);return;}
             const auto count=faceNames().size();
             if(count>1)selectFace((faceIndex()+(action==Action::NextFace?1:count-1))%count);

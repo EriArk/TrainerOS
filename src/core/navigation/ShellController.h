@@ -182,6 +182,7 @@ public:
     Q_INVOKABLE void showAdapterMenu();
     Q_INVOKABLE void showOverview(const QString& face);
     Q_INVOKABLE void toggleQuickApps();
+    Q_INVOKABLE void closeDrawers();
     QStringList primaryNames() const;
     QString homeView() const {return experience_.descriptor().homeView;}
     QString experienceView() const {return adapterActive()?experience_.view():hubFace_=="ra"?QString("achievements"):overviewFace_=="timeline"?QString("game-history"):QString("game-details");}
