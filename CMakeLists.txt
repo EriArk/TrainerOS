@@ -320,6 +320,7 @@ qt_add_qml_module(traineros
     QML_FILES
         src/qml/AdventureArtwork.qml
         src/qml/LibraryGameList.qml
+        src/qml/LibraryGrid.qml
         src/qml/LibraryShelves.qml
         src/qml/ShelfCover.qml
         src/qml/LibraryWheel.qml

@@ -54,6 +54,17 @@ Item {
             target: root.model
             function onScrollRequested(direction) { if (root.takesFocus && browser.visible) browser.scrollDescription(direction) }
         }
+        LibraryGrid {
+            anchors.fill: parent
+            visible: root.model.route === "games" && root.model.viewStyle === "grid"
+            entries: root.model.games; selectionIndex: root.model.focusIndex
+            takesFocus: root.takesFocus && visible
+            onColumnsChanged: if (visible) root.model.gridColumns = columns
+            onVisibleChanged: if (visible) root.model.gridColumns = columns
+            onFocusRequested: index => root.shell.focusLibraryGame(index)
+            onActivated: index => root.shell.activate(index)
+            onEmptyActivated: browser.emptyActivated()
+        }
         LibraryShelves {
             anchors.fill: parent
             visible: root.model.route === "games" && root.model.viewStyle === "shelves"
@@ -67,7 +78,7 @@ Item {
             id: browser
             viewStyle: root.model.viewStyle; listPageSize: root.model.listPageSize
             onFocusRequested: index => root.shell.focusLibraryGame(index)
-            anchors.fill: parent; visible: root.model.route === "games" && root.model.viewStyle !== "shelves"
+            anchors.fill: parent; visible: root.model.route === "games" && (root.model.viewStyle === "wheel" || root.model.viewStyle === "list")
             entries: root.model.games; entry: root.model.detail; selectionIndex: root.model.focusIndex
             takesFocus: root.takesFocus && visible
             previewsEnabled: root.shell.settings.videoPreviews && !root.shell.serviceOpen && !adventureLaunch.active && !sessionState.blocked

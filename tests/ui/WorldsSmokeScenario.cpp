@@ -83,7 +83,7 @@ void startWorldsSmoke(QQuickWindow* window, ShellController& shell, ControllerIn
             check(wheel,"Touch R3 hint missing");if(wheel)QTest::mouseClick(window,Qt::LeftButton,Qt::NoModifier,wheel->mapToScene(QPointF(wheel->width()/2,wheel->height()/2)).toPoint());
             break;
         }
-        case 15: check(shell.multiverse()->viewStyle()=="shelves","Touch R3 did not select Shelves");press(SDL_CONTROLLER_BUTTON_RIGHTSTICK);check(shell.multiverse()->viewStyle()=="wheel","R3 did not cycle to Wheel");check(shell.multiverse()->detail()["id"].toString()==*selectedId,"Picker lost ID");press(SDL_CONTROLLER_BUTTON_RIGHTSTICK);check(shell.multiverse()->viewStyle()=="list","R3 button did not select List");window->resize(1920,1080);break;
+        case 15: check(shell.multiverse()->viewStyle()=="shelves","Touch R3 did not select Shelves");press(SDL_CONTROLLER_BUTTON_RIGHTSTICK);check(shell.multiverse()->viewStyle()=="grid","R3 did not cycle to Grid");press(SDL_CONTROLLER_BUTTON_RIGHTSTICK);check(shell.multiverse()->viewStyle()=="wheel","R3 did not cycle to Wheel");check(shell.multiverse()->detail()["id"].toString()==*selectedId,"Picker lost ID");press(SDL_CONTROLLER_BUTTON_RIGHTSTICK);check(shell.multiverse()->viewStyle()=="list","R3 button did not select List");window->resize(1920,1080);break;
         case 16: {
             capture("list-1080");const auto before=shell.multiverse()->focusIndex();
             press(SDL_CONTROLLER_BUTTON_DPAD_RIGHT);
@@ -172,6 +172,43 @@ void startWorldsSmoke(QQuickWindow* window, ShellController& shell, ControllerIn
             check(shelves && shelves->property("firstRow").toInt()==0,"Resizing must keep the selected first game on screen");
             capture("shelves-16-10");press(b);break;
         }
+        case 28: shell.openGamesRootItem("platforms",shell.gamesPlatforms().front().toMap()["id"].toString());shell.libraryAction("view:grid");window->resize(960,540);break;
+        case 29: {
+            auto* grid=visibleItem("library-grid");check(grid,"Grid missing");
+            check(!visibleItem("library-detail-picture") && !visibleItem("library-shelves"),"Grid must be its own full-area presentation");
+            QVariantList fixture;
+            for(int i=0;i<101;++i)fixture.append(QVariantMap{{"id",QString("grid-%1").arg(i)},{"title",i==0?"A long screenshot game title that must remain inside its own card":QString("Adventure %1").arg(i+1)},
+                {"linked",true},{"artwork",QVariantMap{{"screenshot",i%3==0?"qrc:/series/kirby.png":i%3==1?"qrc:/series/zelda.png":""}}}});
+            if(grid){grid->setProperty("entries",fixture);grid->setProperty("selectionIndex",0);}break;
+        }
+        case 30: {
+            auto* grid=visibleItem("library-grid");auto* scroll=visibleItem("grid-scroll");check(grid && scroll,"Grid scroll missing");focus();capture("grid-960");
+            if(grid && scroll){
+                check(grid->property("columns").toInt()==shell.multiverse()->gridColumns(),"Controller columns must match rendered columns");
+                auto* picture=visibleItem("grid-picture-0");check(picture && qAbs(picture->width()/picture->height()-picture->property("imageAspect").toDouble())<.01,"Grid frame must fit screenshot proportions without stretched fields");
+                int count=0;std::function<void(QQuickItem*)> countItems=[&](QQuickItem* item){if(item->objectName().startsWith("grid-game-"))++count;for(auto* child:item->childItems())countItems(child);};countItems(scroll);
+                check(count>0 && count<30,"Grid must virtualize large libraries");
+                QSignalSpy launch(grid,SIGNAL(activated(int)));
+                auto from=scroll->mapToScene(QPointF(70,scroll->height()-30)).toPoint();QTest::mousePress(window,Qt::LeftButton,Qt::NoModifier,from);
+                for(int i=1;i<=8;++i)QTest::mouseMove(window,from-QPoint(0,i*20),25);
+                QTest::mouseRelease(window,Qt::LeftButton,Qt::NoModifier,from-QPoint(0,160));check(launch.isEmpty(),"Grid swipe must not launch");
+            }break;
+        }
+        case 31: {
+            auto* grid=visibleItem("library-grid");auto* scroll=visibleItem("grid-scroll");
+            check(scroll && scroll->property("contentY").toDouble()>1,"Grid swipe must scroll vertically");
+            if(grid)grid->setProperty("selectionIndex",100);break;
+        }
+        case 32: {
+            check(visibleItem("grid-game-100"),"Last partial grid row must be reachable");capture("grid-last-row");
+            auto* grid=visibleItem("library-grid");if(grid)grid->setProperty("selectionIndex",0);window->resize(1920,1080);break;
+        }
+        case 33: capture("grid-1080");window->resize(1280,800);break;
+        case 34: {
+            auto* scroll=visibleItem("grid-scroll");check(scroll && qAbs(scroll->property("contentY").toDouble()-scroll->property("originY").toDouble())<1,"Grid resize must keep the first selected row at its origin");
+            capture("grid-16-10");auto* grid=visibleItem("library-grid");if(grid)grid->setProperty("entries",QVariantList{});break;
+        }
+        case 35: capture("grid-empty");press(b);break;
         default:
             check(shell.collectionsRoot(),"Return to root failed");check(warnings==0,"QML warnings");completed=true;timer->stop();
             if(!directory.isEmpty()){QFile f(directory+"/collections-verification.txt");if(f.open(QIODevice::WriteOnly))f.write(((*failed?QString("FAILED\n"):QString("PASSED\n"))+diagnostics.join('\n')).toUtf8());}

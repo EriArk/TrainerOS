@@ -62,6 +62,23 @@ private slots:
         restored.openSystem("gba");QCOMPARE(restored.viewStyle(),"shelves");QCOMPARE(restored.detail()["id"],id);
         QVERIFY(adapter.launched.isEmpty());restored.dispatch(Action::Confirm);QCOMPARE(adapter.launched,id.toString());
     }
+    void gridUsesResponsiveRowsAndRestoresExactGame() {
+        SeriesLibrary library;SeriesAdapter adapter;
+        for(int i=0;i<9;++i){auto r=library.records[2];r.adventure.id=QString("grid-%1").arg(i);r.adventure.title=QString("Grid %1").arg(i);library.records.append(r);}
+        MultiversePresentation model(library,adapter);model.openSystem("gba");model.setViewStyle("grid");
+        model.focusGame(2);model.dispatch(Action::Right);QCOMPARE(model.focusIndex(),2);
+        model.dispatch(Action::Down);QCOMPARE(model.focusIndex(),5);
+        const auto id=model.detail()["id"];model.setGridColumns(4);QCOMPARE(model.detail()["id"],id);
+        model.dispatch(Action::Down);QCOMPARE(model.focusIndex(),9);
+        model.dispatch(Action::Right);QCOMPARE(model.focusIndex(),10);
+        model.dispatch(Action::Down);QCOMPARE(model.focusIndex(),10);
+        const auto last=model.detail()["id"];
+        model.setViewStyle("shelves");model.setViewStyle("grid");QCOMPARE(model.detail()["id"],last);
+        MultiversePresentation restored(library,adapter);restored.restoreNavigation(model.navigationState());
+        QCOMPARE(restored.viewStyle(),"grid");QCOMPARE(restored.detail()["id"],last);
+        QVERIFY(adapter.launched.isEmpty());restored.dispatch(Action::Confirm);QCOMPARE(adapter.launched,last.toString());
+        model.applySearch("no-matching-grid-game");model.dispatch(Action::Down);QVERIFY(model.games().isEmpty());
+    }
     void coversUseGenreAndStableIdWithoutScreenshotSubstitution() {
         SeriesLibrary library;SeriesAdapter adapter;
         library.metadata["z1"]={{"genre","Role Playing Game"},{"screenshot","file:///screen.png"},{"cover","file:///screen.png"}};
@@ -131,7 +148,7 @@ private slots:
         const auto state=model.navigationState();MultiversePresentation restored(library,adapter);restored.restoreNavigation(state);
         restored.setCollection("mario");QCOMPARE(restored.viewStyle(),"list");QCOMPARE(restored.detail()["id"],mario);
         restored.openSystem("gba");QCOMPARE(restored.viewStyle(),"list");QCOMPARE(restored.detail()["id"],id);
-        restored.setViewStyle("grid");QCOMPARE(restored.viewStyle(),"list");
+        restored.setViewStyle("unknown-view");QCOMPARE(restored.viewStyle(),"list");
         auto extra=library.records[2];extra.adventure.id="new";extra.adventure.title="AAA";library.records.append(extra);
         restored.refresh();QCOMPARE(restored.detail()["id"],id);QCOMPARE(restored.viewStyle(),"list");
         restored.restoreNavigation({});restored.openSystem("gba");QCOMPARE(restored.viewStyle(),"wheel");

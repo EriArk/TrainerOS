@@ -20,6 +20,7 @@ class MultiversePresentation final : public QObject {
     Q_PROPERTY(QString viewStyle READ viewStyle NOTIFY changed)
     Q_PROPERTY(int listPageSize READ listPageSize CONSTANT)
     Q_PROPERTY(int shelfColumns READ shelfColumns CONSTANT)
+    Q_PROPERTY(int gridColumns READ gridColumns WRITE setGridColumns NOTIFY gridColumnsChanged)
     Q_PROPERTY(QVariantList systems READ systems NOTIFY libraryChanged)
     Q_PROPERTY(QVariantList games READ games NOTIFY gamesChanged)
     Q_PROPERTY(QVariantMap detail READ detail NOTIFY changed)
@@ -43,6 +44,8 @@ public:
 
     int listPageSize() const { return 7; }
     int shelfColumns() const { return 5; }
+    int gridColumns() const { return gridColumns_; }
+    void setGridColumns(int columns);
     QString viewStyle() const { return views_.value(system_, "wheel"); }
     void setViewStyle(const QString&);
     void focusGame(int index);
@@ -67,6 +70,7 @@ public:
     void dispatch(Action);
     void activate(int);
 signals:
+    void gridColumnsChanged();
     void scrollRequested(int direction);
     void changed();
     void gamesChanged();
@@ -90,6 +94,7 @@ private:
     bool sample_;
     QString route_ = "systems", system_ = "gb", selected_;
     int systemFocus_ = 0;
+    int gridColumns_ = 3;
     QHash<QString, QString> queries_, views_;
     QHash<QString, int> filters_, positions_;
     QList<Game> entries_;

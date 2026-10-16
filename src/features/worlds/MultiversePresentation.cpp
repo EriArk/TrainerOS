@@ -159,7 +159,7 @@ QJsonObject MultiversePresentation::localNavigation() const {
         {"focused",detail().value("id").toString()},{"views",views}};
 }
 void MultiversePresentation::setViewStyle(const QString& style) {
-    if(route_!="games" || (style!="wheel" && style!="list" && style!="shelves") || style==viewStyle())return;
+    if(route_!="games" || (style!="wheel" && style!="list" && style!="shelves" && style!="grid") || style==viewStyle())return;
     views_[system_]=style;emit changed();
 }
 void MultiversePresentation::focusGame(int index) {
@@ -177,7 +177,7 @@ void MultiversePresentation::restoreLocal(const QJsonObject& state) {
     if(collection_!="multiverse")system_="_series";
     queries_.clear();filters_.clear();positions_.clear();views_.clear();
     const auto views=state["views"].toObject();
-    for(auto i=views.begin();i!=views.end();++i)if(i.value()=="wheel" || i.value()=="list" || i.value()=="shelves")views_[i.key()]=i.value().toString();
+    for(auto i=views.begin();i!=views.end();++i)if(i.value()=="wheel" || i.value()=="list" || i.value()=="shelves" || i.value()=="grid")views_[i.key()]=i.value().toString();
     const auto queries=state["queries"].toObject(),filters=state["filters"].toObject(),positions=state["positions"].toObject();
     auto keys=multiversePlatforms(); keys.append({"_series","","",""});
     for(const auto& p:keys) {
@@ -341,10 +341,15 @@ void MultiversePresentation::activate(int index) {
     }
     emit changed();
 }
+void MultiversePresentation::setGridColumns(int columns) {
+    columns=std::clamp(columns,2,6);
+    if(gridColumns_==columns)return;
+    gridColumns_=columns;emit gridColumnsChanged();
+}
 void MultiversePresentation::dispatch(Action action) {
-    if(route_=="games" && viewStyle()=="shelves" &&
+    if(route_=="games" && (viewStyle()=="shelves" || viewStyle()=="grid") &&
        (action==Action::Left || action==Action::Right || action==Action::Up || action==Action::Down)) {
-        const int current=focusIndex(), columns=shelfColumns(), count=filtered().size();
+        const int current=focusIndex(), columns=viewStyle()=="grid"?gridColumns():shelfColumns(), count=filtered().size();
         if(!count)return;
         int next=current;
         if(action==Action::Left && current%columns>0)--next;

@@ -1334,7 +1334,7 @@ void ShellController::openSocialNotification() {
 }
 void ShellController::dispatch(Action action) {
     if(action==Action::ChangeView) {
-        libraryAction(multiverse_.viewStyle()=="wheel"?"view:list":multiverse_.viewStyle()=="list"?"view:shelves":"view:wheel");return;
+        libraryAction(multiverse_.viewStyle()=="wheel"?"view:list":multiverse_.viewStyle()=="list"?"view:shelves":multiverse_.viewStyle()=="shelves"?"view:grid":"view:wheel");return;
     }
     if(action==Action::ScrollUp || action==Action::ScrollDown) {
         if(page_==HomePage && pairedNavigationAvailable() && !navigationLocked()
