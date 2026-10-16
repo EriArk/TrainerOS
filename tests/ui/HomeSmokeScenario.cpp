@@ -377,8 +377,8 @@ void startHomeSmoke(QQuickWindow* window, ShellController& shell, SessionState& 
             auto* apps=itemNamed("quick-apps-drawer");auto* games=itemNamed("continue-drawer");
             if(apps && qAbs(apps->height()-178)>0.1){--*stage;return;}
             auto* shelf=itemNamed("quick-apps-shelf");
-            check(shelf && apps && shelf->width()<apps->width() && shelf->height()<150,"Quick Apps opens a compact shelf rather than a full-width drawer");
-            check(shelf && apps && qAbs(shelf->x()+shelf->width()/2-apps->width()/2)<1,"Quick Apps shelf is centered");
+            check(shelf && apps && shelf->width()<apps->width() && shelf->height()<150,"Quick Apps opens a compact button panel rather than a full-width drawer");
+            check(shelf && apps && qAbs(shelf->x()+shelf->width()/2-apps->width()/2)<1,"Quick Apps panel is centered");
             capture("quick-apps-empty-960");
             QJsonArray rows,running;
             for(int i=0;i<12;++i) {const auto id=QString("fixture-%1.desktop").arg(i,2,10,QChar('0'));rows.append(QJsonObject{{"id",id},{"name",QString("Application %1").arg(i+1)},{"icon","application-x-executable"}});running.append(id);}
@@ -409,7 +409,7 @@ void startHomeSmoke(QQuickWindow* window, ShellController& shell, SessionState& 
             if(auto* d=itemNamed("quick-apps-drawer");d && qAbs(d->height()-178)>0.1){--*stage;return;}
             capture("quick-apps-full-1080p");shell.closeDrawers();break;
         case 49:
-            if(auto* d=itemNamed("quick-apps-shelf");d && d->opacity()>0){--*stage;return;}
+            if(auto* d=itemNamed("quick-apps-shelf");d && d->height()>0.1){--*stage;return;}
             if(auto* launchButton=itemNamed("home-launch"))if(auto* d=itemNamed("quick-apps-folded"))check(launchButton->mapRectToScene(launchButton->boundingRect()).bottom()<=d->mapRectToScene(d->boundingRect()).top(),"Folded Quick Apps never covers Start");
             check(!shell.quickAppsOpen() && shell.primaryId()=="home","Outside-close preserves the Home route");capture("paired-handles-1080p");break;
         case 50: {
@@ -420,9 +420,9 @@ void startHomeSmoke(QQuickWindow* window, ShellController& shell, SessionState& 
         }
         case 51: {
             auto* shelf=itemNamed("quick-apps-shelf");
-            if(shelf && shelf->width()>170){--*stage;return;}
+            if(shelf && shelf->width()>180){--*stage;return;}
             auto* icon=itemNamed("quick-app-slot-0");
-            check(shelf && icon && qAbs(shelf->mapRectToScene(shelf->boundingRect()).center().x()-icon->mapRectToScene(icon->boundingRect()).center().x())<1,"A single icon stays centered on the compact shelf");
+            check(shelf && icon && qAbs(shelf->mapRectToScene(shelf->boundingRect()).center().x()-icon->mapRectToScene(icon->boundingRect()).center().x())<1,"A single app key stays centered inside the compact panel");
             capture("quick-apps-single-1080p");shell.closeDrawers();break;
         }
         default:

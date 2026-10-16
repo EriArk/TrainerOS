@@ -1,11 +1,11 @@
 import QtQuick
 
-// Actual app icons stand above a shared perspective shelf; no per-icon wells.
+// Recessed square app keys inside the frame-mounted Quick Apps panel.
 Item {
     id: root
     objectName: "apps-chassis-dock"
     required property var flow
-    property int hoveredIndex: -1
+    clip: true
     ListView {
         id: dock; objectName: "quick-apps-list"
         anchors.fill: parent
@@ -20,58 +20,60 @@ Item {
             required property var modelData
             required property int index
             objectName: "quick-app-slot-"+index
-            width: 72; height: 126
-            z: selected ? 2 : 1
+            width: 82; height: 104
             readonly property bool selected: dock.currentIndex===index && root.enabled
-            readonly property string iconSource: "image://desktop-app/" + encodeURIComponent(modelData.icon || "application-x-executable")
             function claimFocus() { if(selected && visible)forceActiveFocus(Qt.OtherFocusReason) }
             onSelectedChanged: Qt.callLater(claimFocus)
             onVisibleChanged: Qt.callLater(claimFocus)
             Component.onCompleted: Qt.callLater(claimFocus)
             Accessible.role: Accessible.Button; Accessible.name: modelData.name
-            Accessible.onPressAction: root.flow.open(index,true)
+            Accessible.onPressAction: root.flow.open(index, true)
+            // Highlight below the cut-out and a dark well provide the recessed socket.
+            Rectangle { anchors.horizontalCenter: parent.horizontalCenter; y: 1; width: 64; height: 64; radius: 17; color: Theme.edgeLight; opacity: .55 }
             Rectangle {
-                x: 10; y: 87; width: 52; height: 9; radius: 5
-                color: slot.selected ? "#70ffe37a" : "#28101e1d"
+                anchors.horizontalCenter: parent.horizontalCenter; y: 0; width: 64; height: 64; radius: 17
+                gradient: Gradient {
+                    GradientStop { position: 0; color: "#061f23" }
+                    GradientStop { position: .65; color: Theme.chassisDark }
+                    GradientStop { position: 1; color: Theme.screenContact }
+                }
+                border.color: Theme.edgeShadow
             }
-            Image {
-                x: 7; y: pointer.pressed ? 29 : slot.selected ? 23 : 27
-                width: 58; height: 58; fillMode: Image.PreserveAspectFit
-                source: slot.iconSource; sourceSize: Qt.size(96,96)
-                Behavior on y { NumberAnimation { duration: Theme.motion(100); easing.type: Easing.OutCubic } }
-            }
+            Rectangle { anchors.horizontalCenter: parent.horizontalCenter; y: 7; width: 54; height: 54; radius: 12; color: "#072b2d" }
             Rectangle {
+                id: key
                 anchors.horizontalCenter: parent.horizontalCenter
-                y: 105; width: 6; height: 4; radius: 2
-                visible: modelData.running
-                color: "#e5fffdf3"; border.color: Theme.chassisDark; border.width: .5
+                y: pointer.pressed ? 7 : 3; width: 54; height: 54; radius: 12
+                gradient: Gradient {
+                    GradientStop { position: 0; color: dock.currentIndex === index ? "#fff1ae" : "#d8e8df" }
+                    GradientStop { position: .52; color: dock.currentIndex === index ? Theme.yellow : "#bbd2c7" }
+                    GradientStop { position: 1; color: dock.currentIndex === index ? "#cca24b" : "#8fae9f" }
+                }
+                border.color: dock.currentIndex === index ? Theme.focusGlow : "#6e9787"
+                border.width: dock.currentIndex === index ? 2 : 1
+                Behavior on y { NumberAnimation { duration: Theme.motion(65) } }
+                Rectangle { x: 10; y: 2; width: parent.width - 20; height: 1; color: "#baffffff" }
+                Image {
+                    anchors.centerIn: parent; width: 36; height: 36; fillMode: Image.PreserveAspectFit
+                    source: "image://desktop-app/" + encodeURIComponent(modelData.icon || "application-x-executable")
+                    sourceSize.width: 64; sourceSize.height: 64
+                }
             }
+            Rectangle {
+                x: (parent.width - 12) / 2; y: 63; width: 12; height: 3; radius: 1.5
+                color: modelData.running ? "#b6ef9d" : "#356054"
+            }
+            Text { x: 2; y: 73; width: parent.width-4; height: 31; text: modelData.name; color: "#e2eee6"; font.pixelSize: 12; horizontalAlignment: Text.AlignHCenter; maximumLineCount: 2; wrapMode: Text.WordWrap; elide: Text.ElideRight }
             MouseArea {
-                id: pointer; anchors.fill: parent; hoverEnabled: true
-                onEntered: root.hoveredIndex=index
-                onExited: if(root.hoveredIndex===index)root.hoveredIndex=-1
-                onClicked: root.flow.open(index,true)
-                onPressAndHold: root.flow.options(index,true)
+                id: pointer; anchors.fill: parent
+                onClicked: root.flow.open(index, true)
+                onPressAndHold: root.flow.options(index, true)
             }
         }
     }
-    Rectangle {
-        id: caption
-        readonly property int index: dock.currentIndex>=0 ? dock.currentIndex : root.hoveredIndex
-        readonly property var entry: root.flow.rail[index] || ({})
-        width: Math.min(root.width,captionText.implicitWidth+16); height: 22; radius: 6
-        x: Math.max(0,Math.min(root.width-width,index*72-dock.contentX+36-width/2)); y: 0
-        visible: index>=0 && dock.count>0
-        color: "#e6193f3b"; border.color: "#60fffef9"; border.width: .5
-        Text { id: captionText; anchors.centerIn: parent; width: Math.min(implicitWidth,parent.width-12); text: caption.entry.name || ""; color: Theme.paper; font.pixelSize: 12; elide: Text.ElideRight }
-    }
-    Rectangle {
-        anchors.horizontalCenter: parent.horizontalCenter; y: 0; width: 244; height: 51; radius: 9
-        visible: dock.count===0; color: "#e6193f3b"; border.color: "#70fffef9"
-        Column {
-            anchors.centerIn: parent; spacing: 3
-            Text { anchors.horizontalCenter: parent.horizontalCenter; text: "Quick Apps"; color: Theme.paper; font.family: Theme.displayFamily; font.pixelSize: 18 }
-            Text { anchors.horizontalCenter: parent.horizontalCenter; text: "Pin favourites in Apps"; color: Theme.paper; font.pixelSize: 12 }
-        }
+    Column {
+        anchors.centerIn: parent; spacing: 7; visible: dock.count===0
+        Text { anchors.horizontalCenter: parent.horizontalCenter; text: "Quick Apps"; color: "#fff4ce"; font.family: Theme.displayFamily; font.pixelSize: 20 }
+        Text { anchors.horizontalCenter: parent.horizontalCenter; text: "Pin favourites in Apps"; color: "#e2eee6"; font.pixelSize: 13 }
     }
 }
