@@ -30,6 +30,8 @@ Adventures, с меньшей раскрытой высотой. Дополни�
 
 ## Проверки и установка
 
+[Реализация `7d5ab7a`](https://github.com/EriArk/TrainerOS/commit/7d5ab7a).
+
 Установлен на Odin и Flip 16 октября 2026: один Release-бинарник Qt 6.11.2,
 SHA256 `bff6684d61cd9578357916a07e103fc5b5120404d9a2b01ec81cdba324ba2f9b`.
 Оба устройства работают на Armada `20261015.01e50d4`.

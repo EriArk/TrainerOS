@@ -2,6 +2,8 @@
 
 ## 2026-10-16 — Quick Apps как зеркальная пара Adventures
 
+[Реализация `7d5ab7a`](https://github.com/EriArk/TrainerOS/commit/7d5ab7a).
+
 [QUICK-22](docs/QUICK22_MIRRORED_DRAWER.md): X теперь открывает компактный
 горизонтальный ряд приложений справа, на том же корпусе и анимации, что Y.
 Оба закрытых ушка укорочены симметрично; Quick Apps ниже в раскрытом состоянии.
