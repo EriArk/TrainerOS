@@ -71,7 +71,7 @@ Window {
             z: 1
             AccountAvatar {
                 id: headerAvatar
-                x: 10; y: (parent.height-height)/2; width: 44
+                x: 14; y: (parent.height-height)/2; width: 44
                 name: shell.social.account.name || "Player"
                 source: (shell.social.account.profile || {}).avatar || ""
                 presence: shell.social.account.state === "connected" ? shell.social.account.presence || "" : ""
