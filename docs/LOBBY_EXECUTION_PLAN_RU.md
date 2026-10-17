@@ -2,6 +2,10 @@
 
 ## Lobby v2 — действующий план 16 октября 2026
 
+Уточнение 17 октября: следующий блок — [My Lobbies / Home](LOBBY60_MY_LOBBIES.md),
+несколько членств через Fluxer и выход с передачей управления. Одобренный
+Game Picker #210 идёт после него. Это заменяет прежнее «дальше обсуждаем #210» ниже.
+
 Следовать LOBBY-16 → SOCIAL-16 в [ROADMAP](ROADMAP.md#current-execution-queue)
 после CORE/Home/Games. [Контракт](UX_CONTRACT_20261016_RU.md) и #179–187/#208–216
 заменяют Social Lobby, прежние кругляши и ручной Prepare. Старые L01–L08 ниже —
