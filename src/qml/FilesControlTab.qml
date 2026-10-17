@@ -9,11 +9,32 @@ Item {
     property bool recessed: false
     function point(px) {const p=buttons.mapFromItem(root,px,12);const i=Math.floor(p.x/(31+buttons.spacing));if(i>=0&&i<8)flow.focus("controls",i)}
     height: Theme.adventureTabHeight
-    clip: true
     readonly property real drop: recessed || !flow.view.controls ? height : 0
     Item {
-        y: root.drop; width: root.width; height: root.height
+        x: -8; y: -8; width: root.width+16; height: root.height+8
+        clip: true
+        layer.enabled: true
+        layer.textureSize: Qt.size(Math.ceil(width*Theme.uiScale),Math.ceil(height*Theme.uiScale))
+        layer.smooth: true
+        Item {
+        x: 8; y: 8+root.drop; width: root.width; height: root.height
         Behavior on y { NumberAnimation { duration: Theme.motion(150); easing.type: Easing.InOutCubic } }
+        // Same soft contact shadow as the neighbouring closed X/Y handles.
+        Shape {
+            x: panel.x; y: 2; width: panel.width; height: panel.height
+            ShapePath {
+                strokeColor: "#0a101e1d"; strokeWidth: 10; fillColor: "transparent"; joinStyle: ShapePath.RoundJoin
+                PathSvg { path: panel.shoulder }
+            }
+            ShapePath {
+                strokeColor: "#14101e1d"; strokeWidth: 6; fillColor: "transparent"; joinStyle: ShapePath.RoundJoin
+                PathSvg { path: panel.shoulder }
+            }
+            ShapePath {
+                strokeColor: "#24101e1d"; strokeWidth: 3; fillColor: "transparent"; joinStyle: ShapePath.RoundJoin
+                PathSvg { path: panel.shoulder }
+            }
+        }
         // Keep the row's existing screen coordinates; fit only the chassis skin.
         Shape {
             id: panel
@@ -27,7 +48,9 @@ Item {
                 PathSvg { path: panel.shoulder + " Z" }
             }
             ShapePath { strokeColor: Theme.rim; strokeWidth: 1; fillColor: "transparent"
-                PathSvg { path: panel.shoulder }
+                // Light catches only the crown, never the feet overlapping the chassis.
+                PathSvg { path: "M 21 9 Q 26 1 36 1 H " + (panel.width-36)
+                    + " Q " + (panel.width-26) + " 1 " + (panel.width-21) + " 9" }
             }
         }
         Row {
@@ -43,6 +66,7 @@ Item {
                     ToolTip.visible: mouse.containsMouse; ToolTip.delay: 600; ToolTip.text: modelData.label
                 }
             }
+        }
         }
     }
 }
