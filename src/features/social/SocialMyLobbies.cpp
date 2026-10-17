@@ -60,16 +60,16 @@ void SocialController::leaveViewedLobby(bool close) {
     if(&room==lobby_.activeRoom()&&(s["phase"]=="launching"||s["phase"]=="playing")) {
         toastTitle_="Lobby";toastText_="Finish the current game before leaving its lobby.";toastTimer_.start();emit presentationChanged();return;
     }
-    if(close&&room.hosting()) {
-        // Closing game participation is separate from deleting social history.
-        room.leave();emit changed();return;
-    }
     QString successor;
     for(const auto& v:s["members"].toArray()) {
         const auto m=v.toObject();
         if(m["id"]!=snapshot_["userId"].toString()&&!m["spectator"].toBool()) {successor=m["id"].toString();break;}
     }
     if(channel.isEmpty()) {if(room.hosting()&&successor.isEmpty())room.leave();else room.forgetMembership();emit changed();return;}
+    if(room.hosting()&&(close||successor.isEmpty())) {
+        lobbyCloseOnLeave_.insert(id);lobbyLeaving_.insert(id);leavingLobby_=id;
+        emit commandRequested("lobby-chat-close",{{"lobby",id},{"channel",channel},{"close",true}});emit changed();return;
+    }
     if(room.hosting()&&successor.isEmpty())lobbyCloseOnLeave_.insert(id);
     lobbyLeaving_.insert(id);leavingLobby_=id;
     emit commandRequested("leave-group",{{"channel",channel},{"successor",room.hosting()?successor:QString()}});emit changed();

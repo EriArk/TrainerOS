@@ -9,6 +9,7 @@
 #include <QSettings>
 #include "integrations/social/FluxerSession.h"
 #include "integrations/social/CommunityIdentity.h"
+#include "integrations/social/LobbyChatIdentity.h"
 #include "features/social/SocialController.h"
 #include "features/social/PlayerOverlayController.h"
 #include "features/adventure/AdventureExitPresentation.h"
@@ -35,6 +36,80 @@ class SocialTests : public QObject {
         s.channel_=channel;s.channels_[channel]={{"id",channel},{"type",1}};
     }
 private slots:
+    void lobbyGroupIdentitySurvivesRenameAndIsNotATitleHeuristic() {
+        FluxerSession s;bind(s);s.channels_.clear();s.face_="communities";s.channelsLoaded_=true;
+        const auto room=QUuid::createUuid().toString(QUuid::WithoutBraces);
+        const auto marker=QJsonObject{{"id","88"},{"channel_id",channel},{"pinned",true},{"author",QJsonObject{{"id",remote}}},{"content",lobbyChatIdentity::content(room,channel,remote)}};
+        s.channels_[channel]={{"id",channel},{"type",3},{"name","Weekend"}};
+        s.channels_["123"]={{"id","123"},{"type",3},{"name","Weekend"}};
+        Completion delayed;s.setTransport([&](auto,QString path,auto,Completion done,QByteArray){
+            if(path.contains(QString(channel)))delayed=done;else done({200,QJsonDocument(QJsonObject{{"items",QJsonArray{}}})});
+        });
+        QVERIFY(s.hiddenSocialGroup(channel));s.checkLobbyGroups();QVERIFY(s.hiddenSocialGroup(channel));QVERIFY(!s.hiddenSocialGroup("123"));
+        delayed({200,QJsonDocument(QJsonObject{{"items",QJsonArray{QJsonObject{{"message",marker}}}}})});
+        QVERIFY(s.hiddenSocialGroup(channel));s.channels_[channel]["name"]="Renamed";QVERIFY(s.hiddenSocialGroup(channel));
+        s.ensureConversation();QCOMPARE(s.channel_,QString("123"));
+        QVERIFY(lobbyChatIdentity::identity(marker,"123").isEmpty());auto forged=marker;forged["author"]=QJsonObject{{"id","99"}};QVERIFY(lobbyChatIdentity::identity(forged,channel).isEmpty());
+        s.navigationKey_="social-test/"+QUuid::createUuid().toString()+"/";s.saveLobbyChats();
+        FluxerSession restored;restored.navigationKey_=s.navigationKey_;restored.restoreLobbyChats();QCOMPARE(restored.lobbyChatRecords_,s.lobbyChatRecords_);QSettings().remove(s.navigationKey_);
+    }
+    void closedLobbyRemovesOfflineMembersBeforeOwnerAndRetriesPartialFailure() {
+        FluxerSession s;bind(s);const auto room=QUuid::createUuid().toString();
+        s.lobbyChatRecords_[channel]={{"lobby",room},{"managed",true}};
+        QJsonArray members{QJsonObject{{"id",remote}},QJsonObject{{"id","123"}}};QStringList deleted;bool fail=true;
+        s.setTransport([&](auto method,QString path,auto,Completion done,QByteArray){
+            if(method=="GET"){done({200,QJsonDocument(QJsonObject{{"id",channel},{"type",3},{"owner_id",s.self_},{"recipients",members}})});return;}
+            QVERIFY(method=="DELETE");deleted<<path;
+            if(path.endsWith("/recipients/123")&&fail){fail=false;done({503,{}});return;}
+            if(path.contains("/recipients/")){members.removeFirst();done({204,{}});}else done({204,{}});
+        });
+        QSignalSpy finished(&s,&FluxerSession::mutationFinished);
+        s.closeLobbyChat({{"lobby",room},{"channel",channel},{"close",true}});QVERIFY(finished.isEmpty());QCOMPARE(members.size(),1);
+        QCOMPARE(s.lobbyChatRecords_[channel]["cleanup"].toString(),QString("close"));
+        s.cleanupLobbyChat(channel);QCOMPARE(finished.size(),1);QVERIFY(members.isEmpty());QCOMPARE(deleted.last(),QString("/v1/channels/")+channel);QVERIFY(!s.channels_.contains(channel));
+        QVERIFY(!s.lobbyChatRecords_[channel].contains("cleanup"));
+    }
+    void unknownOrReusedOrdinaryConversationCannotBeMassDeleted() {
+        FluxerSession s;bind(s);int calls=0;const auto room=QUuid::createUuid().toString();
+        s.setTransport([&](auto method,QString path,auto,Completion done,QByteArray){++calls;
+            if(method=="GET")done({200,QJsonDocument(QJsonObject{{"id",channel},{"type",3},{"owner_id",s.self_},{"recipients",QJsonArray{QJsonObject{{"id",remote}}}}})});
+            else {QVERIFY(!path.contains("/recipients/"));done({204,{}});}
+        });
+        s.closeLobbyChat({{"lobby",room},{"channel",channel},{"close",true}});QCOMPARE(calls,0);
+        s.lobbyChatRecords_[channel]={{"lobby",room}};s.ordinaryGroups_.insert(channel);s.closeLobbyChat({{"lobby",room},{"channel",channel},{"close",true}});QCOMPARE(calls,2);
+    }
+    void newOwnerResolvesLobbyIdentityBeforeClosingAllMembers() {
+        FluxerSession s;bind(s);const auto room=QUuid::createUuid().toString();
+        s.channels_[channel]={{"id",channel},{"type",3}};
+        s.lobbyChatRecords_[channel]={{"lobby",room}}; // Accepted as guest before the pin probe.
+        const auto marker=QJsonObject{{"channel_id",channel},{"pinned",true},{"author",QJsonObject{{"id",remote}}},{"content",lobbyChatIdentity::content(room,channel,remote)}};
+        QStringList deleted;QJsonArray members{QJsonObject{{"id",remote}}};bool fail=true;
+        s.setTransport([&](auto method,QString path,auto,Completion done,QByteArray){
+            if(path.contains("/messages/pins")) {
+                if(fail){fail=false;done({503,{}});return;}
+                done({200,QJsonDocument(QJsonObject{{"items",QJsonArray{QJsonObject{{"message",marker}}}}})});return;
+            }
+            if(method=="GET"){done({200,QJsonDocument(QJsonObject{{"id",channel},{"type",3},{"owner_id",s.self_},{"recipients",members}})});return;}
+            QCOMPARE(method,QByteArray("DELETE"));deleted<<path;members={};done({204,{}});
+        });
+        s.closeLobbyChat({{"lobby",room},{"channel",channel},{"close",true}});QVERIFY(deleted.isEmpty());
+        QCOMPARE(s.lobbyChatRecords_[channel]["cleanup"].toString(),QString("classify-close"));
+        s.checkLobbyGroups();QCOMPARE(deleted,(QStringList{QString("/v1/channels/")+channel+"/recipients/"+remote,QString("/v1/channels/")+channel}));
+        QVERIFY(s.lobbyChatRecords_[channel]["managed"].toBool());
+    }
+    void controllerReachesHeaderMessagesComposerAndSafeRemoval() {
+        SocialController s;QObject::disconnect(&s,nullptr,s.session_,nullptr);
+        s.snapshot_={{"state","connected"},{"userId","self"},{"channel","dm"},{"friends",QVariantList{QVariantMap{{"id","friend"},{"type",1},{"name","Mika"}}}},
+            {"chats",QVariantList{QVariantMap{{"id","dm"},{"name","Mika"},{"kind","chats"},{"members",QVariantList{QVariantMap{{"id","friend"}}}}}}}};
+        QSignalSpy commands(&s,&SocialController::commandRequested),text(&s,&SocialController::textRequested);
+        s.dispatch(Action::Confirm);QVERIFY(s.reading());QCOMPARE(s.conversationControl(),11);
+        s.dispatch(Action::Up);QCOMPARE(s.conversationControl(),0);s.dispatch(Action::Down);QCOMPARE(s.conversationControl(),11);
+        s.dispatch(Action::ChangeView);QCOMPARE(text.size(),1);s.dispatch(Action::Back);QVERIFY(!s.reading());
+        s.dispatch(Action::ContextMenu);QVERIFY(s.menu().contains("Remove friend"));s.selectMenu(s.menu().indexOf("Remove friend"));QCOMPARE(s.menuMode_,QString("confirm"));
+        for(const auto& cmd:commands)QVERIFY(cmd[0]!="remove");s.selectMenu(1);QCOMPARE(commands.last()[0].toString(),QString("remove"));QCOMPARE(commands.last()[1].toMap()["id"].toString(),QString("friend"));
+        s.snapshot_["chats"]=QVariantList{QVariantMap{{"id","hidden"},{"kind","groups"},{"socialHidden",true},{"unread",2}},QVariantMap{{"id","ordinary"},{"name","Weekend"},{"kind","groups"}}};
+        s.face_="communities";QCOMPARE(s.rows().size(),1);QVERIFY(s.notifications().isEmpty());s.contextRow(0);QVERIFY(s.menu().contains("Leave group"));
+    }
     void peopleAreIdentitiesIncludingRequestsWithoutMixingGroups() {
         SocialController s;QObject::disconnect(&s,nullptr,s.session_,nullptr);
         s.snapshot_={{"state","connected"},{"userId","self"},{"friends",QVariantList{
@@ -51,7 +126,7 @@ private slots:
         int request=-1;for(int i=0;i<s.rows().size();++i)if(s.rows()[i].toMap()["id"]=="incoming")request=i;
         QVERIFY(request>=0);s.activate(request);QCOMPARE(commands.last()[0].toString(),QString("dm"));
         for(const auto& cmd:commands)QVERIFY(cmd[0]!="accept");
-        s.contextRow(request);QCOMPARE(s.menu(),QStringList{"Pin"});s.selectMenu(0);QCOMPARE(s.rows().first().toMap()["id"].toString(),QString("incoming"));
+        s.contextRow(request);QCOMPARE(s.menu(),(QStringList{"Pin","Profile"}));s.selectMenu(0);QCOMPARE(s.rows().first().toMap()["id"].toString(),QString("incoming"));
         s.filterPeople();s.applyText("Mik");QCOMPARE(s.rows().size(),1);QCOMPARE(s.rows().first().toMap()["channel"].toString(),QString("dm"));
     }
     void communityDrilldownReplacesListAndMenusStayBasic() {
@@ -60,7 +135,7 @@ private slots:
             QVariantMap{{"id","group"},{"name","Weekend"},{"kind","groups"},{"owner","self"}},
             QVariantMap{{"id","text"},{"name","general"},{"guild","guild"},{"kind","community-channel"}}}},
             {"communities",QVariantList{QVariantMap{{"id","guild"},{"name","Good company"},{"kind","community"}}}}};
-        QCOMPARE(s.rows().size(),2);s.contextRow(0);QCOMPARE(s.menu(),(QStringList{"Pin","Mute conversation"}));s.closeMenu();
+        QCOMPARE(s.rows().size(),2);s.contextRow(0);QCOMPARE(s.menu(),(QStringList{"Pin","Mute conversation","Group info","Leave group"}));s.closeMenu();
         s.activate(1);QVERIFY(s.communityOpen());QCOMPARE(s.rows().size(),1);QCOMPARE(s.rows().first().toMap()["id"].toString(),QString("text"));
         s.communityBack();QVERIFY(!s.communityOpen());QCOMPARE(s.rows().size(),2);QCOMPARE(s.focusIndex(),1);
         s.conversationProfile();QVERIFY(s.menu().contains("Members"));QVERIFY(s.menu().contains("Leave group"));QVERIFY(!s.menu().contains("Who can join my games"));
@@ -132,7 +207,7 @@ private slots:
         QCOMPARE(s.lobby_.state()["id"].toString(),first);
         s.lobby_.room(second)->setConversation("300");s.lobbyChatPending_.clear();
         QSignalSpy commands(&s,&SocialController::commandRequested);s.lobbyAction("leave");
-        QCOMPARE(commands.last()[0].toString(),QString("leave-group"));QCOMPARE(s.myLobbies().size(),2);
+        QCOMPARE(commands.last()[0].toString(),QString("lobby-chat-close"));QCOMPARE(s.myLobbies().size(),2);
         s.lobby_.room(second)->forgetMembership();QCOMPARE(s.myLobbies().size(),1);
         s.lobby_.room(first)->forgetMembership();QVERIFY(s.homeLobby().isEmpty());
     }
@@ -481,15 +556,16 @@ private slots:
         QCOMPARE(adds,1);QCOMPARE(results.last()[2].toString(),channel);
     }
     void lobbyChatStartsWithReadyFriendsWhileAnotherMemberConnects() {
-        FluxerSession s;bind(s);s.relationships_[remote]={{"type",1}};
-        s.setTransport([&](auto method,auto path,auto body,Completion done,QByteArray){
-            QCOMPARE(method,QByteArray("POST"));QCOMPARE(path,QString("/v1/users/@me/channels"));
-            QCOMPARE(body["recipients"].toArray(),QJsonArray{remote});
-            done({200,QJsonDocument(QJsonObject{{"id",channel},{"type",3}})});
+        FluxerSession s;bind(s);s.relationships_[remote]={{"type",1}};QStringList steps;
+        s.setTransport([&](auto method,QString path,auto body,Completion done,QByteArray){
+            if(path=="/v1/users/@me/channels"){QCOMPARE(body["recipients"].toArray(),QJsonArray{});steps<<"create";done({200,QJsonDocument(QJsonObject{{"id",channel},{"type",3}})});}
+            else if(path.endsWith("/messages")){steps<<"mark";QVERIFY(!lobbyChatIdentity::decode(body["content"].toString()).isEmpty());done({200,QJsonDocument(QJsonObject{{"id","555"}})});}
+            else if(path.endsWith("/pins/555")){steps<<"pin";done({204,{}});}
+            else {QCOMPARE(method,QByteArray("PUT"));QVERIFY(path.endsWith(QString("/recipients/")+remote));steps<<"add";done({204,{}});}
         });
         QSignalSpy results(&s,&FluxerSession::lobbyChatFinished);
         s.command("lobby-chat",{{"lobby",QUuid::createUuid().toString(QUuid::WithoutBraces)},{"host",true},{"peers",QStringList{remote,"3"}}});
-        QCOMPARE(results.size(),1);QCOMPARE(results.first()[2].toString(),channel);QVERIFY(results.first()[3].toString().isEmpty());
+        QCOMPARE(steps,(QStringList{"create","mark","pin","add"}));QCOMPARE(results.size(),1);QCOMPARE(results.first()[2].toString(),channel);
     }
     void lateGroupAdmissionRetriesTheGuestConversationAutomatically() {
         SocialController c;c.receive(0,{{"state","connected"},{"userId","2"}});
@@ -596,6 +672,8 @@ private slots:
         FluxerSession s;int creates=0,adds=0;const auto room=QUuid::createUuid().toString(QUuid::WithoutBraces);
         QJsonObject group{{"id",channel},{"type",3},{"recipients",QJsonArray{QJsonObject{{"id",remote}}}}};
         s.setTransport([&](auto method,auto path,auto,Completion done,QByteArray){
+            if(path.endsWith("/messages")){done({200,QJsonDocument(QJsonObject{{"id","555"}})});return;}
+            if(path.endsWith("/pins/555")){done({204,{}});return;}
             if(method=="POST") {QCOMPARE(path,QString("/v1/users/@me/channels"));++creates;done({200,QJsonDocument(group)});}
             else if(method=="GET")done({200,QJsonDocument(group)});
             else {QCOMPARE(method,QByteArray("PUT"));QVERIFY(path.endsWith("/recipients/3"));++adds;done({204,{}});}
@@ -932,6 +1010,7 @@ private slots:
         FluxerSession s;bind(s);s.channelsLoaded_=false;
         s.setTransport([](auto,auto,auto,Completion done,auto){done({200,QJsonDocument(QJsonArray{})});});
         s.channels_[remote]={{"id",remote},{"type",3},{"last_message_id","200"}};
+        s.ordinaryGroups_.insert(remote); // Already classified ordinary group, not a lobby channel.
         s.preferred_["groups"]=remote;s.channel_.clear();s.voiceChannel_=channel;s.voiceMuted_=true;
         s.command("face",{{"face","groups"}});QVERIFY(s.channel_.isEmpty());
         s.channelsLoaded_=true;s.ensureConversation();QCOMPARE(s.channel_,QString(remote));QCOMPARE(s.face_,QString("communities"));
@@ -1982,6 +2061,7 @@ private slots:
         c.receive(0,{{"state","connected"},{"channel",channel},{"historyMore",true},{"messages",QVariantList{QVariantMap{{"id","100"},{"text","old"}},QVariantMap{{"id","101"},{"text","new"}}}}});
         c.dispatch(Action::Right);c.dispatch(Action::Up);QCOMPARE(c.messageIndex(),0);
         QSignalSpy commands(&c,&SocialController::commandRequested);c.dispatch(Action::Up);
+        QCOMPARE(c.conversationControl(),0);c.dispatch(Action::Up); // Header is reachable; another Up loads older history.
         QCOMPARE(commands.last().first().toString(),QString("older"));
         c.receive(0,{{"state","connected"},{"channel",channel},{"historyPast",true},{"messages",QVariantList{QVariantMap{{"id","99"}},QVariantMap{{"id","100"}},QVariantMap{{"id","101"}}}}});
         QVERIFY(c.reading());QCOMPARE(c.messageIndex(),1);

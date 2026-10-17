@@ -45,6 +45,7 @@ class SocialController final : public QObject {
     Q_PROPERTY(int focusIndex READ focusIndex NOTIFY changed)
     Q_PROPERTY(int messageIndex READ messageIndex NOTIFY changed)
     Q_PROPERTY(bool reading READ reading NOTIFY changed)
+    Q_PROPERTY(int conversationControl READ conversationControl NOTIFY changed)
     Q_PROPERTY(QVariantList companyParties READ companyParties NOTIFY changed)
     Q_PROPERTY(bool partyFocused READ partyFocused NOTIFY changed)
     Q_PROPERTY(int partyIndex READ partyIndex NOTIFY changed)
@@ -152,7 +153,7 @@ public:
     void syncMyLobbies();
     void requestLobbyReady();
     void leaveViewedLobby(bool close=false);
-    QVariantMap lobbyState() const {return viewedLobby().state().toVariantMap();}
+    QVariantMap lobbyState() const {auto state=viewedLobby().state().toVariantMap();if(!state.isEmpty())state["leaving"]=lobbyLeaving_.contains(state["id"].toString());return state;}
     QVariantMap lobbyDirectory() const {return snapshot_["lobbyDirectory"].toMap();}
     QVariantList lobbyRows() const;
     QVariantList lobbyActions() const;
@@ -240,10 +241,11 @@ public:
     QVariantList hints() const;
     QString draft() const { return drafts_.value(snapshot_["channel"].toString()); }
     QString conversationName() const;
-    bool conversation() const { return !snapshot_.value("channel").toString().isEmpty(); }
+    bool conversation() const { return !snapshot_.value("channel").toString().isEmpty() && ((face_!="chats"&&face_!="communities")||!currentChat().value("socialHidden").toBool()); }
     int focusIndex() const {return focus_;}
     int messageIndex() const {return messageFocus_;}
     bool reading() const {return reading_;}
+    int conversationControl() const {return conversationControl_;}
     QStringList menu() const {return menu_;}
     int menuIndex() const {return menuFocus_;}
     QString menuTitle() const {return menuTitle_;}
@@ -359,6 +361,10 @@ signals:
     void backgroundNotification(QString title,QString text);
     void reviewsChanged(QString identity,QVariantMap state);
 private:
+    int conversationControl_=-1;
+    bool resettingSocial_=false;
+    QString enterConversationPerson_,enterConversationChannel_;
+    bool dispatchConversationControls(Action action);
     QString peopleFilter_,communityId_,socialSettingsKey_;
     QStringList pinnedPeople_,pinnedGroups_,pinnedCommunities_;
     QHash<QString,QVariantMap> faceRoutes_;

@@ -19,7 +19,13 @@ SocialController::SocialController(QObject* parent):QObject(parent),session_(new
     connect(this,&SocialController::changed,this,[this]{QTimer::singleShot(0,this,&SocialController::reconcileLobbyPreparation);});
     lobbyReminderTimer_.setInterval(15000);lobbyReminderTimer_.start();
     connect(&lobbyReminderTimer_,&QTimer::timeout,this,&SocialController::tickLobbyReminders);
-    connect(&lobby_,&LobbyCoordinator::membershipEnded,this,[this](QString room){lobbyReminders_.cancel(room);pendingLobbyReminder_={};});
+    connect(&lobby_,&LobbyCoordinator::membershipEnded,this,[this](QString room){
+        lobbyReminders_.cancel(room);pendingLobbyReminder_={};
+        if(auto* r=lobby_.room(room);r&&!resettingSocial_&&!lobbyLeaving_.contains(room)) {
+            const auto channel=r->state()["conversation"].toString();
+            if(!channel.isEmpty())emit commandRequested("lobby-chat-close",{{"lobby",room},{"channel",channel},{"close",r->hosting()}});
+        }
+    });
     connect(&lobbyRuntime_,&LobbyRuntime::changed,this,&SocialController::changed);
     lobbyPublishTimer_.setSingleShot(true);lobbyPublishTimer_.setInterval(1000);
     lobbyHeartbeat_.setInterval(60000);lobbyHeartbeat_.start();
@@ -92,7 +98,7 @@ SocialController::SocialController(QObject* parent):QObject(parent),session_(new
     connect(session_,&FluxerSession::partyPacket,this,[this](quint64 g,QString peer,QString name,QJsonObject p){if(g==generation_)emit partyPacket(peer,name,p);});
     connect(session_,&FluxerSession::partyFailed,this,[this](quint64 g,QString peer){if(g==generation_){
         if(peer.startsWith("company:")&&peer.count(':')==1)
-            for(auto* r:lobby_.rooms())if(r->state()["conversation"]==peer.mid(8))r->forgetMembership();
+            for(auto* r:lobby_.rooms())if(r->state()["conversation"]==peer.mid(8)&&!lobbyLeaving_.contains(r->state()["id"].toString()))r->forgetMembership();
         emit partyFailed(peer);
     }});
     connect(session_,&FluxerSession::partyReset,this,[this](quint64 g){if(g==generation_){gameActivities_.clear();companyParties_.clear();partyFocus_=false;emit partyReset();}});
@@ -125,7 +131,7 @@ SocialController::SocialController(QObject* parent):QObject(parent),session_(new
     draftSave_.setSingleShot(true);draftSave_.setInterval(700);connect(&draftSave_,&QTimer::timeout,this,&SocialController::saveDrafts);
     connect(session_,&FluxerSession::mutationFinished,this,[this](quint64 generation,QString operation,QString channel,QString id,bool success){
         if(generation!=generation_)return;
-        if(operation=="leave-group"&&!leavingLobby_.isEmpty()) {
+        if((operation=="leave-group"||operation=="lobby-chat-close")&&!leavingLobby_.isEmpty()) {
             auto* r=lobby_.room(leavingLobby_);
             if(r&&r->state()["conversation"]==channel){if(success){if(lobbyCloseOnLeave_.contains(leavingLobby_)&&r->hosting())r->leave();r->forgetMembership();}lobbyCloseOnLeave_.remove(leavingLobby_);lobbyLeaving_.remove(leavingLobby_);leavingLobby_.clear();emit changed();}
         }
@@ -141,7 +147,9 @@ SocialController::~SocialController() {
 void SocialController::setOwner(QString owner) {
     if(owner==owner_)return;
     streamAction("stop-watch");
+    resettingSocial_=true;
     lobby_.setStorage({});lobby_.configure({}, {},false);lobbySearch_.clear();lobbyTopic_.clear();lobbySelection_.clear();lobbyActionFocus_=0;
+    resettingSocial_=false;conversationControl_=-1;enterConversationPerson_.clear();enterConversationChannel_.clear();
     lobbyDraftReturn_=false;cancelLobbyDraft();
     viewedLobbyId_.clear();myLobbiesOpen_=false;lobbyLeaving_.clear();lobbyChatKeys_.clear();lobbyChatErrors_.clear();lobbyChatPending_.clear();
     publishedLobby_.clear();publishedRooms_.clear();readySwitch_.clear();lobbyPublicationVisible_=false;lobbyGames_.clear();
@@ -167,7 +175,7 @@ void SocialController::setFace(QString face) {
     if(face_==face)return;
     faceRoutes_[face_]={{"channel",snapshot_["channel"]},{"focus",focus_},{"community",communityId_}};
     saveSocialPreferences();closeMenu();selection_.stop();
-    partyFocus_=false;partyIndex_=0;face_=std::move(face);reading_=false;contacts_=false;
+    partyFocus_=false;partyIndex_=0;face_=std::move(face);reading_=false;contacts_=false;conversationControl_=-1;enterConversationPerson_.clear();enterConversationChannel_.clear();
     const auto route=faceRoutes_.value(face_);focus_=route.value("focus",0).toInt();
     if(face_=="communities")communityId_=route["community"].toString();
     if(face_!="lobby"&&face_!="recent")emit commandRequested("face",{{"face",face_},{"channel",route["channel"]},{"guild",communityId_}});
@@ -348,7 +356,7 @@ QVariantList SocialController::notifications() const {
         if(dismissedNotifications_.value(row["id"].toString()).toString()!=notificationStamp(row))result.append(row);
     }
     for(const auto& value:snapshot_["chats"].toList()) {
-        auto row=value.toMap();if((row["unread"].toInt()<=0&&!row["ringing"].toBool()&&row["missedCall"].toString().isEmpty())||row["muted"].toBool())continue;
+        auto row=value.toMap();if(row["socialHidden"].toBool()||(row["unread"].toInt()<=0&&!row["ringing"].toBool()&&row["missedCall"].toString().isEmpty())||row["muted"].toBool())continue;
         row["request"]=false;
         const auto voice=snapshot_["voice"].toMap();
         row["answerable"]=row["ringing"].toBool()&&snapshot_["state"]=="connected"
@@ -443,11 +451,12 @@ void SocialController::receive(quint64 generation,QVariantMap snapshot) {
         ||oldVoice["channel"]!=newVoice["channel"]))lobbyPublishTimer_.start();
     if(stream_.active()&&((!oldVoice["watching"].toString().isEmpty()&&newVoice["watching"].toString().isEmpty())
         ||newVoice["channel"]!=oldVoice["channel"]||newVoice["state"].toString().isEmpty()))stream_.close();
+    const bool switchingAccount=snapshot_["userId"]!=snapshot["userId"];
     snapshot_=std::move(snapshot);
     restoreSocialPreferences();
     if(contactsChanged||conversationAdmitted)lobbyChatKey_.clear();
     lobbyRuntime_.configure(snapshot_["userId"].toString(),snapshot_["state"]=="connected");
-    lobby_.configure(snapshot_["userId"].toString(),snapshot_["name"].toString(),snapshot_["state"]=="connected");
+    resettingSocial_=switchingAccount;lobby_.configure(snapshot_["userId"].toString(),snapshot_["name"].toString(),snapshot_["state"]=="connected");resettingSocial_=false;
     if(contactsChanged||conversationAdmitted)lobbyChatKeys_.clear();
     syncMyLobbies();syncLobbyChat();
     if(oldChannel!=snapshot_["channel"]){partyFocus_=false;partyIndex_=0;refreshPartyBrowse();}
@@ -506,6 +515,11 @@ void SocialController::receive(quint64 generation,QVariantMap snapshot) {
     if(oldChannel!=snapshot_["channel"]) {
         reading_=false;
         if(!contacts_)for(int i=0;i<list.size();++i)if(list[i].toMap()["id"]==snapshot_["channel"]||list[i].toMap()["channel"]==snapshot_["channel"]){focus_=i;break;}
+    }
+    if(!snapshot_["channel"].toString().isEmpty()&&(!enterConversationPerson_.isEmpty()||!enterConversationChannel_.isEmpty())) {
+        bool matches=snapshot_["channel"]==enterConversationChannel_;
+        for(const auto& p:currentChat()["members"].toList())if(p.toMap()["id"]==enterConversationPerson_)matches=true;
+        if(matches){reading_=true;conversationControl_=messages().isEmpty()?11:-1;enterConversationPerson_.clear();enterConversationChannel_.clear();}
     }
     const auto log=messages();
     const bool prepended=!messages().isEmpty() && snapshot_["historyPast"].toBool() && oldMessage.isValid();
@@ -607,10 +621,27 @@ QVariantList SocialController::hints() const {
         if(snapshot_["searchTotal"].toInt()>24)h("Y","Next page");
     } else {
         if(contacts_)h("A",rows().value(focus_).toMap()["type"].toInt()==3?"Accept request":"Conversation");
-        else h("A",reading_?"Message":focus_<0?(communityOpen()?"Back":face_=="communities"?"Create":"Find"):"Open");
-        if(conversation()){h("R3","Write");h("L3","Info");h(reading_?"←":"→",reading_?"People":"Messages");}
-        if(reading_&&messageFocus_==0&&snapshot_["historyMore"].toBool())h("↑","Earlier");
-        if(contacts_||reading_)h("B","Conversations");
+        else {
+            QString action = focus_<0?(communityOpen()?"Back":face_=="communities"?"Create":"Find"):"Open";
+            if(reading_) {
+                switch(conversationControl_) {
+                case 0: action="Info"; break;
+                case 1: action="Call"; break;
+                case 2: action="Options"; break;
+                case 10: action="Attach"; break;
+                case 11: action="Write"; break;
+                case 12: action="Emoji"; break;
+                case 13: action="Voice message"; break;
+                case 14: action="Send"; break;
+                default: action="Message"; break;
+                }
+            }
+            h("A",action);
+        }
+        if(conversation()){h("R3","Write");h("L3","Info");}
+        if(reading_&&conversationControl_>=0&&conversationControl_<3&&snapshot_["historyMore"].toBool())h("↑","Earlier");
+        if(reading_)h("B",face_=="communities"?"Channels":"People");
+        else if(contacts_||communityOpen())h("B","Back");
     }
     h("Select","Options");return result;
 }
@@ -624,9 +655,11 @@ void SocialController::activate(int index) {
         communityId_=row["id"].toString();focus_=0;saveSocialPreferences();
         emit commandRequested("guild",{{"id",communityId_}});
     } else if(row["kind"]=="person") {
+        enterConversationPerson_=row["id"].toString();enterConversationChannel_=row["channel"].toString();
         if(!row["channel"].toString().isEmpty())emit commandRequested("open",{{"id",row["channel"]}});
         else emit commandRequested("dm",{{"id",row["id"]}});
-    } else emit commandRequested("open",{{"id",row["id"]}});
+    } else {enterConversationChannel_=row["id"].toString();emit commandRequested("open",{{"id",row["id"]}});}
+    if(!enterConversationChannel_.isEmpty()&&enterConversationChannel_==snapshot_["channel"]){reading_=true;conversationControl_=messages().isEmpty()?11:-1;enterConversationPerson_.clear();enterConversationChannel_.clear();}
     emit changed();
 }
 void SocialController::compose() {
@@ -912,7 +945,7 @@ void SocialController::profile(QString id) {
         int type=0;for(const auto& v:snapshot_["friends"].toList())if(v.toMap()["id"]==id)type=v.toMap()["type"].toInt();
         if(type==3){add("Accept friend request","accept");add("Decline friend request","remove");}
         if(type==0)add("Add friend","add-id");
-        if(type==1)add("Remove friend","remove");
+        if(type==1)add("Remove friend","ask-remove-friend");
         if(type==1&&snapshot_["temporaryContacts"].toMap()["peers"].toMap()[id].toMap()["canKeep"].toBool())add("Keep as friend","contact-keep");
         if(type==4)add("Cancel friend request","remove");
         add(type==2?"Unblock":"Block",type==2?"remove":"block");
@@ -921,7 +954,7 @@ void SocialController::profile(QString id) {
     emit commandRequested("profile-read",{{"id",id},{"request",profileRequest_}});emit changed();
 }
 void SocialController::contextRow(int index) {
-    joinChoices_.clear();selection_.stop();reading_=false;
+    joinChoices_.clear();selection_.stop();if(index>=0)reading_=false;
     auto row=index<0?currentChat():rows().value(index).toMap();
     if(row.isEmpty()){collectionOptions();return;}
     if(row["kind"]=="chats") {
@@ -934,6 +967,11 @@ void SocialController::contextRow(int index) {
     const auto pins=kind=="person"?pinnedPeople_:kind=="groups"?pinnedGroups_:pinnedCommunities_;
     if(kind=="person"||kind=="groups"||kind=="community") {menu_<< (pins.contains(row["id"].toString())?"Unpin":"Pin");menuCommands_<<"pin";}
     if(!menuChannel_.isEmpty()){menu_<< (row["muted"].toBool()?"Unmute conversation":"Mute conversation");menuCommands_<<"mute";}
+    if(kind=="person") {
+        menu_<<"Profile";menuCommands_<<"profile:"+row["id"].toString();
+        int type=row["type"].toInt();for(const auto& p:snapshot_["friends"].toList())if(p.toMap()["id"]==row["id"])type=p.toMap()["type"].toInt();
+        if(type==1){menu_<<"Remove friend";menuCommands_<<"ask-remove-friend:"+row["id"].toString();}
+    } else if(kind=="groups") {menu_<<"Group info"<<"Leave group";menuCommands_<<"group-info"<<"ask-leave-group";}
     emit changed();
 }
 void SocialController::collectionOptions() {
@@ -1111,6 +1149,14 @@ void SocialController::confirmAction(QString title,QString operation,QString id)
 void SocialController::selectMenu(int index) {
     if(index<0||index>=menuCommands_.size()||snapshot_["mutationBusy"].toBool())return;
     const auto command=menuCommands_[index];
+    if(command=="group-info") {
+        const auto list=rows();for(int i=0;i<list.size();++i)if(list[i].toMap()["id"]==menuChannel_){groupDetails(i);return;}
+        groupDetails();return;
+    }
+    if(command=="ask-remove-friend"||command.startsWith("ask-remove-friend:")) {
+        const auto id=command=="ask-remove-friend"?menuSubject_:command.mid(QStringLiteral("ask-remove-friend:").size());
+        confirmAction("Remove friend?","remove",id);menuDetail_="Your conversation history will remain.";menu_[1]="Remove friend";emit changed();return;
+    }
     if(command.startsWith("lobby-file")||command=="lobby-write"||command=="lobby-send"||command=="lobby-emoji"){
         const bool valid=menuChannel_==snapshot_["channel"]&&lobbyChatVisible();closeMenu();if(!valid)return;
         if(command=="lobby-file")attachFile();
@@ -1339,23 +1385,28 @@ void SocialController::dispatch(Action action) {
         emit changed();return;
     }
 
+    if(dispatchConversationControls(action)){emit changed();return;}
+
     if(action==Action::Up||action==Action::Down) {
         if(reading_&&action==Action::Up&&messageFocus_==0&&snapshot_["historyMore"].toBool()){emit commandRequested("older",{});return;}
         auto& focus=reading_?messageFocus_:focus_;const int count=reading_?messages().size():rows().size();
         focus=qBound(reading_?0:-1,focus+(action==Action::Up?-1:1),qMax(0,count-1));
 
-    } else if(action==Action::Right&&conversation())reading_=true;
+    } else if(action==Action::Right&&conversation()){
+        if(focus_>=0&&focus_<rows().size())activate(focus_);
+        else {reading_=true;conversationControl_=messages().isEmpty()?11:-1;}
+    }
     else if(action==Action::Left)reading_=false;
     else if(action==Action::Confirm){if(reading_){const auto m=messages().value(messageFocus_).toMap();
         if(m["editable"].toBool()||m["media"].toBool()||!m["delivery"].toString().isEmpty()) {
             openMenu();
             if(m["attachments"].toList().size()==1)selectMenu(0);
         }
-    }else if(conversation()&&(rows().value(focus_).toMap()["id"]==snapshot_["channel"]||rows().value(focus_).toMap()["channel"]==snapshot_["channel"]))reading_=true;else activate(focus_);}
+    }else if(conversation()&&(rows().value(focus_).toMap()["id"]==snapshot_["channel"]||rows().value(focus_).toMap()["channel"]==snapshot_["channel"])){reading_=true;conversationControl_=messages().isEmpty()?11:-1;}else activate(focus_);}
     else if(action==Action::Back){if(reading_)reading_=false;else communityBack();}
     else if(action==Action::Secondary){if(face_=="groups"&&!conversation())openPeople("create-group");
         else if(face_=="communities"&&!conversation()){textPurpose_="create-community";emit textRequested("Community name",QString(),100);}else compose();}
-    else if(action==Action::ChangeView)composerTools();
+    else if(action==Action::ChangeView)compose();
     else if(action==Action::ToggleFavorite){if(reading_)conversationProfile();else {const auto row=rows().value(focus_).toMap();if(row["kind"]=="person")profile(row["id"].toString());else if(row["kind"]=="groups")groupDetails(focus_);else if(communityOpen())communityInfo();else collectionOptions();}}
     else if(action==Action::LocalAction||action==Action::ContextMenu)openMenu();
     if(reading_&&conversation()&&(action==Action::Up||action==Action::Down))emit commandRequested("history-position",{{"channel",snapshot_["channel"]},{"id",messageFocus_>=messages().size()-1?QString():messages().value(messageFocus_).toMap()["id"].toString()}});

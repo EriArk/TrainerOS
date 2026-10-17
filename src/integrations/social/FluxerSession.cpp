@@ -3,6 +3,7 @@
 #include "AltchaProof.h"
 #include "LobbyDirectory.h"
 #include "CommunityIdentity.h"
+#include "LobbyChatIdentity.h"
 #include "platform/storage/EncryptedCredentials.h"
 #include <QNetworkAccessManager>
 #include <QNetworkReply>
@@ -44,6 +45,7 @@ QString avatar(const QJsonObject& user) {
     return "https://fluxerusercontent.com/avatars/"+id+"/"+hash+".png?size=64";
 }
 QJsonObject transportEnvelope(const QString& text) {
+    const auto identity=lobbyChatIdentity::decode(text);if(!identity.isEmpty())return identity;
     const auto frame=LobbyWire::frame(text);if(!frame.isEmpty())return frame;
     const auto lobby=lobbyDirectory::decode(text);if(!lobby.isEmpty())return lobby;
     const auto native=OnlineLink::decode(text);
@@ -55,6 +57,9 @@ bool newer(const QString& a, const QString& b) {
 }
 }
 FluxerSession::FluxerSession(QObject* parent) : QObject(parent) {
+    lobbyChatMaintenance_.setInterval(15000);
+    connect(&lobbyChatMaintenance_,&QTimer::timeout,this,&FluxerSession::checkLobbyGroups);
+    lobbyChatMaintenance_.start();
     lobbyMembershipRetry_.setSingleShot(true);
     connect(&lobbyMembershipRetry_,&QTimer::timeout,this,[this]{lobbyDirectoryCommand("lobby-directory-ensure",{});});
     temporaryContacts_.setRequest([this](QByteArray method,QString path,QJsonObject body,TemporaryContacts::Completion done){
@@ -202,6 +207,7 @@ void FluxerSession::reset() {
     contactTimer_.stop();contactLobby_={};contactContextKnown_=false;contactGamePeers_.clear();temporaryContacts_.configure({},{});
     lobbySendTimer_.stop();lobbySending_=false;lobbyDeliveries_.clear();lobbyWire_.clear();
     ++lobbyDirectoryRevision_;lobbyChatChannels_.clear();lobbyChatBusy_.clear();lobbyChatUncertain_.clear();
+    lobbyChatRecords_.clear();ordinaryGroups_.clear();checkingGroups_.clear();cleaningGroups_.clear();
     lobbyDirectoryRows_.clear();lobbyDirectoryPending_.clear();
     lobbyDirectoryStatus_.clear();lobbyBotChannel_.clear();lobbyDirectoryBusy_=lobbyDirectoryNeedsJoin_=false;
     partyOpening_.clear();emit partyReset(generation_);
@@ -280,7 +286,7 @@ void FluxerSession::publish() {
         // https://fluxerapp-fluxer.mintlify.app/topics/snowflakes
         bool validMessage=false;const auto messageId=c["last_message_id"].toString().toULongLong(&validMessage);
         const qint64 lastInteraction=validMessage && messageId ? qint64(messageId>>22)+1420070400000LL : 0;
-        chats.append(QVariantMap{{"service",user["id"]==lobbyDirectory::bot},{"lastInteraction",lastInteraction},{"avatar",avatar(user)},{"id",it.key()},{"name",name.isEmpty()?QString("Conversation"):name.left(120)},
+        chats.append(QVariantMap{{"socialHidden",hiddenSocialGroup(it.key())},{"service",user["id"]==lobbyDirectory::bot},{"lastInteraction",lastInteraction},{"avatar",avatar(user)},{"id",it.key()},{"name",name.isEmpty()?QString("Conversation"):name.left(120)},
             {"call",calls_.contains(it.key())&&!calls_.value(it.key())["unavailable"].toBool()},
             {"ringing",!calls_.value(it.key())["unavailable"].toBool()&&calls_.value(it.key())["ringing"].toArray().contains(self_)&&voiceChannel_!=it.key()},
             {"missedCall",callNotices_.value(it.key())["missed"].toBool()?callNotices_.value(it.key())["message"].toString():QString()},
@@ -572,6 +578,7 @@ void FluxerSession::authenticated() {
         }
         contactTimer_.start();
         navigationKey_="social/navigation/"+QString::fromLatin1(QCryptographicHash::hash((owner_+"\n"+self_).toUtf8(),QCryptographicHash::Sha256).toHex())+"/";
+        restoreLobbyChats();
         if(!transport_) {QSettings settings;for(const auto& key:{"chats","groups","communities","guild","messages"})preferred_[key]=settings.value(navigationKey_+key).toString();
             doNotDisturb_=settings.value(navigationKey_+"dnd",false).toBool();privatePreviews_=settings.value(navigationKey_+"private",true).toBool();muted_=settings.value(navigationKey_+"muted").toStringList();notificationSound_=settings.value(navigationKey_+"sound",true).toBool();}
         loadHistoryCache();
@@ -621,7 +628,7 @@ void FluxerSession::refreshChannels() {
         for(const auto& id:previousPrivate)if(!channels_.contains(id)){historyCache_.remove(id);historyLru_.removeAll(id);callNotices_.remove(id);emit partyFailed(generation_,"company:"+id);}
         if(!channel_.isEmpty()&&!channels_.contains(channel_)) {channel_.clear();messages_.clear();messageOrder_.clear();}
         for(auto it=channels_.cbegin();it!=channels_.cend();++it)updateUnread(it.key());
-        channelsLoaded_=true;status_="Connected";ensureConversation();publish();
+        channelsLoaded_=true;status_="Connected";checkLobbyGroups();ensureConversation();publish();
     });
 }
 void FluxerSession::retainHistory() {
@@ -1152,6 +1159,7 @@ void FluxerSession::command(QString operation, QVariantMap args) {
         publish();return;
     }
     if(operation=="lobby-chat"){lobbyChatCommand(args);return;}
+    if(operation=="lobby-chat-close"){closeLobbyChat(args);return;}
     if(operation=="lobby-chat-cancel"){lobbyChatBusy_.remove(args["lobby"].toString());return;}
     if(operation=="runtime-probe-person") {
         const auto id=args["id"].toString();if(relationships_.value(id)["type"].toInt()!=1)return;
@@ -1186,7 +1194,7 @@ void FluxerSession::command(QString operation, QVariantMap args) {
         if(face_=="groups")face_="communities";
         if(face_=="communities")guild_=args["guild"].toString();
         const auto target=args["channel"].toString();
-        if(channels_.contains(target)) {
+        if(channels_.contains(target)&&!hiddenSocialGroup(target)) {
             const auto c=channels_[target];const auto kind=channelKind(c);
             if((face_=="chats"&&kind=="chats")||(face_=="communities"&&(kind=="groups"||(kind=="communities"&&!guild_.isEmpty()&&c["guild_id"]==guild_))))openConversation(target);
         }
@@ -1418,7 +1426,7 @@ bool FluxerSession::mutate(const QString& operation,const QVariantMap& args) {
             ensureConversation();
         } else if(operation=="create-group"||operation=="rename-group") {
             const auto updated=r.body.object();const auto updatedId=updated["id"].toString();
-            if(idValid(updatedId)&&updated["type"].toInt()==3){channels_[updatedId]=updated;if(operation=="create-group"&&face_=="communities"&&guild_.isEmpty())openConversation(updatedId);}
+            if(idValid(updatedId)&&updated["type"].toInt()==3){channels_[updatedId]=updated;if(operation=="create-group")ordinaryGroups_.insert(updatedId);if(operation=="create-group"&&face_=="communities"&&guild_.isEmpty())openConversation(updatedId);}
         } else {
             const auto revision=channelRevision_;
             request("GET","/v1/channels/"+channel,{},[this,channel,revision](Reply reply){
@@ -1451,6 +1459,7 @@ void FluxerSession::ensureConversation() {
     if(self_.isEmpty()||face_=="friends"||!channelsLoaded_||openingDm_)return;
     if(face_=="groups")face_="communities";
     auto matches=[&](const QJsonObject& c){
+        if(hiddenSocialGroup(c["id"].toString()))return false;
         const auto kind=channelKind(c);
         return face_=="chats"?kind=="chats":face_=="communities"?
             (guild_.isEmpty()?kind=="groups":kind=="communities"&&c["guild_id"]==guild_):false;
@@ -1655,11 +1664,12 @@ void FluxerSession::gatewayEvent(const QJsonObject& event) {
                 calls_[id]=call;
             }
             updateCallNotice(type,id,d);
-            if(type!="CALL_DELETE"&&!wasRinging&&d["ringing"].toArray().contains(self_)&&!notificationsSuppressed()&&!muted_.contains(id))emit incomingMessage(generation_,id,"Incoming call","Press Home to answer");
+            if(type!="CALL_DELETE"&&!wasRinging&&d["ringing"].toArray().contains(self_)&&!hiddenSocialGroup(id)&&!notificationsSuppressed()&&!muted_.contains(id))emit incomingMessage(generation_,id,"Incoming call","Press Home to answer");
             publish();return;
         }
         if(type=="MESSAGE_UPDATE"||type=="MESSAGE_DELETE"||type=="CHANNEL_PINS_UPDATE"||type=="CHANNEL_DELETE"||type=="GUILD_UPDATE"||type=="GUILD_DELETE") {
             const auto channel=d["channel_id"].toString(d["id"].toString());
+            if(type=="CHANNEL_PINS_UPDATE"){ordinaryGroups_.remove(channel);checkLobbyGroups();}
             for(auto it=communityChannels_.cbegin();it!=communityChannels_.cend();++it)
                 if(it.value()==channel||it.key()==d["id"].toString())invalidateCommunity(it.key());
             checkCommunities();
@@ -1731,7 +1741,7 @@ void FluxerSession::gatewayEvent(const QJsonObject& event) {
                     emit ordinaryMessage(generation_,{{"id",id},{"channel",channel},{"author",author["id"].toString()},
                         {"name",label(author)},{"text",d["content"].toString().left(180)}});
                 if(fresh&&transportEnvelope(d["content"].toString()).isEmpty()&&author["id"]!=self_&&relationships_.value(author["id"].toString())["type"].toInt()!=2
-                    &&!muted_.contains(channel)&&!notificationsSuppressed())
+                    &&!hiddenSocialGroup(channel)&&!muted_.contains(channel)&&!notificationsSuppressed())
                     emit incomingMessage(generation_,channel,privatePreviews_?(mentioned?QString("New mention"):QString("New message")):label(author),
                         privatePreviews_?QString("Open Social to catch up"):d["content"].toString().left(160));
             }

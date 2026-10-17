@@ -24,8 +24,8 @@ Item {
         SocialIconButton { objectName: "lobby-room-menu"; anchors.right: parent.right; y: 0; icon: "dots-three"; label: "Room options"
             onClicked: { root.menuAnchored(this); root.social.lobbyAction("room-menu") } }
         Item { objectName: "lobby-leave"; anchors.right: parent.right; anchors.rightMargin: 38; width: 70; height: 28
-            Text { anchors.centerIn: parent; text: "Leave ↗"; color: Theme.muted; font.pixelSize: 13 }
-            MouseArea { anchors.fill: parent; onClicked: root.social.lobbyAction("leave-confirm") }
+            Text { anchors.centerIn: parent; text: root.social.lobbyState.leaving ? "Closing…" : "Leave ↗"; color: Theme.muted; font.pixelSize: 13 }
+            MouseArea { anchors.fill: parent; enabled: !root.social.lobbyState.leaving; onClicked: root.social.lobbyAction("leave-confirm") }
             Accessible.role: Accessible.Button; Accessible.name: "Leave lobby"
             Accessible.onPressAction: root.social.lobbyAction("leave-confirm")
         }

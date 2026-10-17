@@ -115,6 +115,7 @@ FocusScope {
         Rectangle { x: people.x + people.width + 12; y: 12; width: 1; height: parent.height-28; color: Theme.chassis; opacity: .18 }
         SocialIconButton {
             x: 12; y: 6; visible: root.faceIndex===1 && root.social.communityOpen
+            highlighted: root.social.focusIndex<0 && !root.social.reading
             icon: "arrow-left"; label: "Back to communities"; onClicked: root.social.communityBack()
         }
         Text { x: root.faceIndex===1 && root.social.communityOpen ? 49 : 20; y: 12; width: people.width-x-16
@@ -124,7 +125,7 @@ FocusScope {
         }
         SocialIconButton {
             x: people.x+people.width-30; y: 6; tint: Theme.blue
-            highlighted: root.social.focusIndex<0 && !root.social.reading
+            highlighted: root.social.focusIndex<0 && !root.social.reading && !root.social.communityOpen
             icon: root.faceIndex===0 ? "magnifying-glass" : root.social.communityOpen ? "info" : "plus"
             label: root.faceIndex===0 ? "Find a person" : root.social.communityOpen ? "Community info" : "Create"
             onClicked: {root.anchorMenu(this);if(root.faceIndex===0)root.social.filterPeople();else if(root.social.communityOpen)root.social.communityInfo();else root.social.collectionOptions()}

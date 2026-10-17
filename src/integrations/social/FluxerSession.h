@@ -74,6 +74,16 @@ private:
     void addLobbyChatMembers(QString lobby,QString channel,QStringList peers);
     QHash<QString,QString> lobbyChatChannels_;
     QSet<QString> lobbyChatBusy_,lobbyChatUncertain_;
+    QMap<QString,QVariantMap> lobbyChatRecords_;
+    QSet<QString> ordinaryGroups_,checkingGroups_,cleaningGroups_;
+    QTimer lobbyChatMaintenance_{this};
+    bool hiddenSocialGroup(const QString& channel) const;
+    bool saveLobbyChats();
+    void restoreLobbyChats();
+    void checkLobbyGroups();
+    void markLobbyChat(QString lobby,QString channel,QStringList peers);
+    void cleanupLobbyChat(QString channel);
+    void closeLobbyChat(const QVariantMap& args);
     void lobbyDirectoryCommand(const QString& operation,const QVariantMap& args);
     void loadLobbyDirectory(int channel,QString before);
     QVariantMap lobbyDirectoryState() const;

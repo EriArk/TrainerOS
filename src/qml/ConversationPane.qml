@@ -10,6 +10,7 @@ Item {
     property bool readOnlyChat: false
     property bool filteredFeed: false
     property bool streamChat: false
+    readonly property int padControl: active && !embeddedRoom && social.reading ? social.conversationControl : -1
     property var messageRows: social.messages
     function sourceIndex(index) { const row=messageRows[index]; return row && row.sourceIndex !== undefined ? row.sourceIndex : index }
     function visibleIndex(index) { for(let i=0;i<messageRows.length;i++)if(sourceIndex(i)===index)return i;return -1 }
@@ -18,15 +19,17 @@ Item {
     signal focusRequested()
     function anchorMenu(item) { menuAnchored(item) }
     Rectangle { id: chatHeading; width: parent.width; height: root.embeddedRoom ? 0 : 45; visible: !root.embeddedRoom; radius: 0; color: "transparent"
+        Rectangle { width: parent.width-83; height: parent.height-2; radius: 7; color: "transparent"; border.width: root.padControl===0?2:0; border.color: Theme.chassis }
         AccountAvatar { x: 1; y: 4; width: 34; name: root.social.conversationName; source: root.social.conversationInfo.avatar || "" }
         Text { renderType: typeof Text.CurveRendering === "number" ? Text.CurveRendering : Text.QtRendering; x: 47; y: 5; width: parent.width - 112; text: root.social.conversationName; font.family: Theme.displayFamily; font.pixelSize: 18; color: Theme.ink; elide: Text.ElideRight; textFormat: Text.PlainText }
         Text { renderType: typeof Text.CurveRendering === "number" ? Text.CurveRendering : Text.QtRendering; x: 47; y: 27; width: parent.width - 112; text: root.account.historyBusy ? "Loading messages..." : root.social.conversationInfo.kind === "groups" ? "Group conversation" : root.social.conversationInfo.guild ? "Community channel" : "Personal conversation"; font.pixelSize: 10; color: Theme.muted; elide: Text.ElideRight; textFormat: Text.PlainText }
         MouseArea { width: parent.width - 74; height: parent.height; enabled: !root.compact; onClicked: root.social.conversationProfile() }
         SocialIconButton { anchors.right: options.left; y: 6; tint: Theme.green; icon: "phone"; label: "Call"
+            highlighted: root.padControl===1
             visible: !root.compact && !root.social.conversationInfo.guild
             enabled: !!root.account.voice && (root.account.voice.available || !!root.account.voice.channel)
             onClicked: { root.anchorMenu(this); root.social.call() } }
-        SocialIconButton { id: options; visible: !root.compact; anchors.right: parent.right; y: 6; icon: "dots-three"; label: "Conversation options"
+        SocialIconButton { id: options; highlighted: root.padControl===2; visible: !root.compact; anchors.right: parent.right; y: 6; icon: "dots-three"; label: "Conversation options"
             onClicked: { root.anchorMenu(this); root.social.contextRow() } }
         Rectangle { anchors.bottom: parent.bottom; width: parent.width; height: 1; color: Theme.chassis; opacity: .18 }
     }
@@ -74,7 +77,7 @@ Item {
             readonly property var previous: index > 0 ? root.messageRows[index-1] : null
             readonly property bool grouped: !!previous && !modelData.system && !previous.system && !!modelData.author && previous.author === modelData.author && !!modelData.timestamp && Math.abs(Date.parse(modelData.timestamp)-Date.parse(previous.timestamp)) < 300000
             width: log.width; height: content.height + (root.streamChat ? 4 : grouped ? 2 : 12)
-            Rectangle { anchors.fill: parent; radius: 5; color: root.social.reading && index === log.currentIndex ? Qt.rgba(Theme.rim.r,Theme.rim.g,Theme.rim.b,.15) : "transparent" }
+            Rectangle { anchors.fill: parent; radius: 5; color: root.social.reading && root.padControl<0 && index === log.currentIndex ? Qt.rgba(Theme.rim.r,Theme.rim.g,Theme.rim.b,.15) : "transparent" }
             MouseArea { anchors.fill: parent; onClicked: { root.focusRequested(); root.social.selectMessage(root.sourceIndex(index)) } onPressAndHold: { if (root.compact || root.readOnlyChat) return; root.social.selectMessage(root.sourceIndex(index)); root.anchorMenu(messageRow); if(root.embeddedRoom)root.social.lobbyChatTools();else root.social.options() } }
             AccountAvatar { x: 2; y: 6; width: 28; visible: !root.streamChat && !messageRow.grouped && !modelData.system
                 name: modelData.name; source: modelData.avatar || ""
@@ -121,12 +124,13 @@ Item {
         }
     }
     Rectangle { id: composer; visible: !root.readOnlyChat; anchors { left: parent.left; right: parent.right; bottom: parent.bottom; bottomMargin: 9 } height: visible ? 40 : 0; radius: 9; color: Theme.paper; border.color: Qt.rgba(Theme.chassis.r,Theme.chassis.g,Theme.chassis.b,.28)
-        SocialIconButton { id: attach; visible: !root.compact; width: visible ? 32 : 0; x: 3; anchors.verticalCenter: parent.verticalCenter; tint: Theme.blue; icon: "plus"; label: "Attach files"; enabled: !root.social.files.busy; onClicked: { root.anchorMenu(this); root.social.attachFile() } }
-        Text { renderType: typeof Text.CurveRendering === "number" ? Text.CurveRendering : Text.QtRendering; anchors { left: attach.right; right: emoji.left; margins: 7; verticalCenter: parent.verticalCenter } text: root.social.draft || "Write a message..."; font.pixelSize: 14; color: root.social.draft ? Theme.ink : Theme.muted; elide: Text.ElideRight; textFormat: Text.PlainText
+        SocialIconButton { id: attach; highlighted: root.padControl===10; visible: !root.compact; width: visible ? 32 : 0; x: 3; anchors.verticalCenter: parent.verticalCenter; tint: Theme.blue; icon: "plus"; label: "Attach files"; enabled: !root.social.files.busy; onClicked: { root.anchorMenu(this); root.social.attachFile() } }
+        Text { renderType: typeof Text.CurveRendering === "number" ? Text.CurveRendering : Text.QtRendering; anchors { left: attach.right; right: emoji.left; margins: 7; verticalCenter: parent.verticalCenter } text: root.social.draft || "Write a message...";
+            Rectangle { anchors.fill: parent; anchors.margins: -5; radius: 5; color: "transparent"; border.width: root.padControl===11?2:0; border.color: Theme.chassis } font.pixelSize: 14; color: root.social.draft ? Theme.ink : Theme.muted; elide: Text.ElideRight; textFormat: Text.PlainText
             MouseArea { anchors.fill: parent; anchors.topMargin: -10; anchors.bottomMargin: -10; onClicked: { root.focusRequested(); root.social.compose() } } }
-        SocialIconButton { id: emoji; visible: !root.compact; width: visible ? 32 : 0; anchors { right: mic.left; verticalCenter: parent.verticalCenter } tint: Theme.yellow; icon: "smiley"; label: "Emoji"; onClicked: { root.anchorMenu(this); root.social.emoji() } }
-        SocialIconButton { id: mic; visible: !root.compact && !root.embeddedRoom; width: visible ? 32 : 0; anchors { right: send.left; verticalCenter: parent.verticalCenter } tint: Theme.pink; icon: "microphone"; label: "Record voice message"; enabled: !root.account.voice || !root.account.voice.channel; onClicked: { root.anchorMenu(this); root.social.recordVoice() } }
-        SocialIconButton { id: send; objectName: "social-send"; anchors { right: parent.right; rightMargin: 3; verticalCenter: parent.verticalCenter } tint: Theme.green; icon: "paper-plane-right"; label: "Send"; highlighted: enabled
+        SocialIconButton { id: emoji; highlighted: root.padControl===12; visible: !root.compact; width: visible ? 32 : 0; anchors { right: mic.left; verticalCenter: parent.verticalCenter } tint: Theme.yellow; icon: "smiley"; label: "Emoji"; onClicked: { root.anchorMenu(this); root.social.emoji() } }
+        SocialIconButton { id: mic; highlighted: root.padControl===13; visible: !root.compact && !root.embeddedRoom; width: visible ? 32 : 0; anchors { right: send.left; verticalCenter: parent.verticalCenter } tint: Theme.pink; icon: "microphone"; label: "Record voice message"; enabled: !root.account.voice || !root.account.voice.channel; onClicked: { root.anchorMenu(this); root.social.recordVoice() } }
+        SocialIconButton { id: send; objectName: "social-send"; anchors { right: parent.right; rightMargin: 3; verticalCenter: parent.verticalCenter } tint: Theme.green; icon: "paper-plane-right"; label: "Send"; highlighted: root.padControl===14
             enabled: root.account.state === "connected" && !root.social.files.busy && (root.social.draft.trim().length > 0 || root.social.files.selected.length>0); onClicked: root.social.sendDraft() }
     }
 }

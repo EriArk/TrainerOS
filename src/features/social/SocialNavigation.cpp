@@ -56,7 +56,7 @@ QVariantList SocialController::communityRows() const {
         std::stable_sort(channels.begin(),channels.end(),[](const QVariant& a,const QVariant& b){return a.toMap()["position"].toInt()<b.toMap()["position"].toInt();});
         return channels;
     }
-    for(const auto& v:snapshot_["chats"].toList())if(v.toMap()["kind"]=="groups"){
+    for(const auto& v:snapshot_["chats"].toList())if(v.toMap()["kind"]=="groups"&&!v.toMap()["socialHidden"].toBool()){
         auto row=v.toMap();row["pinned"]=pinnedGroups_.contains(row["id"].toString());row["section"]="Groups";groups.append(row);
     }
     for(const auto& v:snapshot_["communities"].toList()){
@@ -106,5 +106,52 @@ void SocialController::communityInfo(){
     if(communityId_.isEmpty())return;
     closeMenu();menuGuild_=communityId_;menuChannel_.clear();menuMode_="community-info";menuTitle_=communityTitle();menuFocus_=0;
     menu_={"Invite link"};menuCommands_={"community-invite"};emit changed();
+}
+bool SocialController::dispatchConversationControls(Action action) {
+    if(face_!="chats"&&face_!="communities")return false;
+    if(action==Action::Back||action==Action::Left) {enterConversationPerson_.clear();enterConversationChannel_.clear();}
+    if(!reading_||!conversation())return false;
+    if(action==Action::Back){reading_=false;conversationControl_=-1;return true;}
+    if(action==Action::ChangeView){conversationControl_=11;compose();return true;}
+    if(action==Action::ToggleFavorite){conversationProfile();return true;}
+    if(conversationControl_<0) {
+        if(action==Action::Down&&messageFocus_>=messages().size()-1){conversationControl_=11;return true;}
+        if(action==Action::Up&&messageFocus_==0){conversationControl_=0;return true;}
+        if(action==Action::Confirm){
+            const auto message=messages().value(messageFocus_).toMap();openMenu();
+            if(message["attachments"].toList().size()==1&&!menuCommands_.isEmpty()&&menuCommands_.first().startsWith("attachment:"))selectMenu(0);
+            return true;
+        }
+        return false;
+    }
+    const bool header=conversationControl_<10;
+    if(action==Action::Left||action==Action::Right) {
+        const int first=header?0:10,last=header?2:14,step=action==Action::Left?-1:1;
+        if(conversationControl_==first&&step<0){reading_=false;conversationControl_=-1;return true;}
+        conversationControl_=qBound(first,conversationControl_+step,last);
+        if(header&&conversationControl_==1&&(!currentChat()["guild"].toString().isEmpty()||!snapshot_["voice"].toMap()["available"].toBool()))conversationControl_+=step;
+        if(conversationControl_==13&&!snapshot_["voice"].toMap()["channel"].toString().isEmpty())conversationControl_+=step;
+        return true;
+    }
+    if(action==Action::Up||action==Action::Down) {
+        if(header&&action==Action::Up){if(snapshot_["historyMore"].toBool())earlierMessages();return true;}
+        if(!header&&action==Action::Down)return true;
+        if(messages().isEmpty())conversationControl_=header?11:0;
+        else {conversationControl_=-1;messageFocus_=header?0:messages().size()-1;}
+        return true;
+    }
+    if(action==Action::ContextMenu||action==Action::LocalAction) {if(header)contextRow(-1);else composerTools();return true;}
+    if(action!=Action::Confirm)return false;
+    switch(conversationControl_) {
+    case 0:conversationProfile();break;
+    case 1:call();break;
+    case 2:contextRow(-1);break;
+    case 10:attachFile();break;
+    case 11:compose();break;
+    case 12:emoji();break;
+    case 13:recordVoice();break;
+    case 14:sendDraft();break;
+    }
+    return true;
 }
 }

@@ -251,8 +251,8 @@ public:
                 shell.goToPage(ShellController::SocialPage);social->setFace("chats");window->resize(1600,900);break;
             }
             case 1:capture("social-messages");social->contextRow(0);break;
-            case 2:check(social->menu().size()<=2,"Basic person context");capture("social-person-menu");social->closeMenu();shell.dispatch(Action::ChangeView);break;
-            case 3:check(social->menuMode_=="compose-tools","R3 opens composer controls without changing library view");capture("social-composer");social->closeMenu();shell.dispatch(Action::NextFace);social->snapshot_["channel"]="group";social->snapshot_["messages"]=QVariantList{};emit social->changed();break;
+            case 2:check(social->menu().size()<=4 && social->menu().contains("Profile"),"Basic person context retains profile and removal");capture("social-person-menu");social->closeMenu();social->reading_=true;social->conversationControl_=11;emit social->changed();break;
+            case 3:check(social->conversationControl_==11,"Visible controller focus on the composer");capture("social-composer");social->closeMenu();shell.dispatch(Action::NextFace);social->snapshot_["channel"]="group";social->snapshot_["messages"]=QVariantList{};emit social->changed();break;
             case 4:check(social->face_=="communities"&&social->rows().size()==2,"Groups and communities share second face");capture("social-communities");social->activate(1);social->snapshot_["channel"]="text";emit social->changed();break;
             case 5:check(social->communityOpen()&&social->rows().size()==1,"Community replaces left list with channels");capture("social-channels");social->dispatch(Action::Back);break;
             case 6:check(!social->communityOpen(),"B returns to groups and communities");shell.dispatch(Action::PreviousFace);social->snapshot_["channel"]="dm2";social->snapshot_["messages"]=QVariantList{};emit social->changed();window->resize(960,540);break;
