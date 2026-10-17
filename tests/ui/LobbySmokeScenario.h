@@ -262,8 +262,40 @@ public:
             }
         });timer->start();
     }
+    static void social67(QQuickWindow* window,ShellController& shell,QString directory,bool& completed,int& warnings,QStringList& diagnostics) {
+        auto* social=shell.social();QObject::disconnect(social->session_,nullptr,social,nullptr);QObject::disconnect(social,nullptr,social->session_,nullptr);
+        auto step=std::make_shared<int>(0);auto failed=std::make_shared<bool>(false);auto* timer=new QTimer(window);timer->setInterval(600);
+        const auto check=[failed,&diagnostics](bool ok,QString text){diagnostics.append((ok?"PASS ":"FAIL ")+text);if(!ok)*failed=true;};
+        const auto capture=[=](QString name){check(window->grabWindow().save(directory+"/"+name+".png"),name);};
+        QObject::connect(timer,&QTimer::timeout,window,[=,&shell,&completed,&warnings,&diagnostics]{
+            switch((*step)++) {
+            case 0: {
+                QVariantList people,communities;QJsonArray members{QJsonObject{{"id","1"},{"seat",1},{"connected",true}}};
+                const QStringList names{"Mika","Ren","Sofia Moonlight","Alex","Nori","Jules","Kai"};
+                for(int i=0;i<names.size();++i){const auto id=QString::number(i+2);people.append(QVariantMap{{"id",id},{"name",names[i]},{"type",1}});members.append(QJsonObject{{"id",id},{"name",names[i]},{"connected",true},{"seat",i+2}});}
+                const QStringList clubs{"Handheld adventures","Co-op corner","Retro racers"};
+                const QStringList descriptions{"Find your next adventure and share the little moments.","Good company for the games we love. Beginners welcome!","One more lap? Meet fellow racing fans and plan a session."};
+                for(int i=0;i<3;++i)communities.append(QVariantMap{{"id",QString::number(i+100)},{"name",clubs[i]},{"description",descriptions[i]},{"kind","community"},{"action","Join"},{"members",24+i*37},{"language","English"}});
+                social->receive(0,{{"state","connected"},{"userId","1"},{"name","Ren"},{"friends",people},{"searchResults",communities},{"searchTotal",3}});
+                social->recentTogether_.configure({},"1");social->recentTogether_.observe({{"id","fixture"},{"phase","playing"},{"ticket","co-play-fixture"},{"game",QJsonObject{{"id","kart"},{"title","Mario Kart 64"}}},{"members",members}},1792230000);
+                shell.goToPage(ShellController::SocialPage);social->setFace("chats");shell.dispatch(Action::NextFace);shell.dispatch(Action::NextFace);window->resize(1600,900);break;
+            }
+            case 1:check(social->face_=="friends","Discover is the third Social face");capture("discover-home");social->dispatch(Action::Down);social->dispatch(Action::Down);social->dispatch(Action::Confirm);break;
+            case 2:check(!social->discoverPreview().isEmpty(),"Controller A opens a preview");capture("discover-preview");social->dispatch(Action::Back);social->discoverAction("all");break;
+            case 3:check(social->discover()["all"].toBool(),"See all retains recent teammates");capture("discover-recent");social->discoverAction("back");window->resize(960,540);break;
+            case 4:capture("discover-home-handheld");social->query_="Mika";social->searchKind_="people";social->snapshot_["searchResults"]=QVariantList{QVariantMap{{"id","2"},{"name","Mika"},{"tag","mika#1234"},{"kind","person"},{"detail","Friends"}}};social->discoverArea_="results";social->searchFocus_=0;emit social->changed();break;
+            case 5:capture("discover-people");social->activateSearch(0);break;
+            case 6:check(social->profileVisible(),"Person opens the shared profile");capture("discover-person");social->closeMenu();social->query_.clear();social->snapshot_["searchResults"]=QVariantList{};social->snapshot_["searchTotal"]=0;social->snapshot_["searchStatus"]="No public TrainerOS communities yet. You can still join with an invitation.";social->recentTogether_.configure({},"empty-fixture");emit social->changed();break;
+            case 7:capture("discover-empty-handheld");social->snapshot_["communities"]=QVariantList{QVariantMap{{"id","123"},{"name","Our community"},{"kind","community"},{"owner","1"}}};shell.dispatch(Action::PreviousFace);social->contextRow(0);break;
+            case 8:check(social->menuCommands_.contains("ask-delete-community"),"Owner has explicit community deletion");capture("community-owner-menu");social->selectMenu(social->menuCommands_.indexOf("ask-delete-community"));break;
+            case 9:check(social->menuCommands_.value(0)=="cancel","Deletion defaults to cancel");capture("community-delete-confirmation");social->closeMenu();break;
+            default:timer->stop();completed=true;QFile report(directory+"/social67-check.txt");if(report.open(QIODevice::WriteOnly))report.write((diagnostics.join('\n')+QString("\nqmlWarnings=%1\n").arg(warnings)).toUtf8());QCoreApplication::exit(*failed||warnings?4:0);
+            }
+        });timer->start();
+    }
     static void start(QQuickWindow* window,ShellController& shell,ControllerInput& input,SDL_Joystick* joystick,
                       QString directory,bool& completed,int& warnings,QStringList& diagnostics) {
+        if(qEnvironmentVariableIsSet("TRAINEROS_SOCIAL67_SMOKE")){social67(window,shell,directory,completed,warnings,diagnostics);return;}
         if(qEnvironmentVariableIsSet("TRAINEROS_SOCIAL65_SMOKE")){social65(window,shell,directory,completed,warnings,diagnostics);return;}
         if(qEnvironmentVariableIsSet("TRAINEROS_LOBBY_CATALOGUE_SMOKE")){catalogue(window,shell,input,joystick,directory,completed,warnings,diagnostics);return;}
         auto* social=shell.social();

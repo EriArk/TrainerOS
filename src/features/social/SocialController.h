@@ -25,6 +25,8 @@ class SocialController final : public QObject {
     Q_PROPERTY(QString peopleFilter READ peopleFilter NOTIFY changed)
     Q_PROPERTY(QString communityTitle READ communityTitle NOTIFY changed)
     Q_PROPERTY(bool communityOpen READ communityOpen NOTIFY changed)
+    Q_PROPERTY(QVariantMap discover READ discover NOTIFY changed)
+    Q_PROPERTY(QVariantMap discoverPreview READ discoverPreview NOTIFY changed)
     Q_PROPERTY(QString searchKind READ searchKind NOTIFY changed)
     Q_PROPERTY(QString query READ query NOTIFY changed)
     Q_PROPERTY(int searchFocus READ searchFocus NOTIFY changed)
@@ -211,6 +213,11 @@ public:
     void dispatch(Action action);
     void showContacts();
     bool contacts() const { return contacts_; }
+    QVariantMap discover() const;
+    QVariantMap discoverPreview() const;
+    Q_INVOKABLE void discoverAction(QString action,int index=-1);
+    void dispatchDiscover(Action action);
+    bool textSecret() const {return textPurpose_.startsWith("community-secret:");}
     QString searchKind() const { return searchKind_; }
     QString query() const { return query_; }
     int searchFocus() const { return searchFocus_; }
@@ -491,6 +498,10 @@ private:
     bool reading_ = false, contacts_ = false, searchStarted_ = false;
     QString searchKind_ = "communities";
     int searchFocus_ = -1;
+    QString discoverArea_="search",verificationGuild_,verificationMethod_;
+    QVariantMap discoverPreview_;
+    bool discoverAll_=false;
+    int discoverPage_=0;
     QTimer selection_;
     QTimer draftSave_;
     QTimer toastTimer_;

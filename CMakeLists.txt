@@ -32,6 +32,8 @@ add_library(trainer_core STATIC
     src/integrations/social/FluxerStreams.cpp
     src/integrations/social/FluxerLobby.cpp
     src/integrations/social/FluxerLobbyChat.cpp
+    src/integrations/social/FluxerDiscover.cpp
+    src/features/social/SocialDiscover.cpp
     src/integrations/social/LobbyWire.cpp
     src/integrations/social/FluxerReviews.cpp
     src/integrations/social/AltchaProof.cpp
@@ -431,6 +433,8 @@ qt_add_qml_module(traineros
         src/qml/ConversationPane.qml
         src/qml/ChatFilePicker.qml
         src/qml/SocialPage.qml
+        src/qml/DiscoverPane.qml
+        src/qml/DiscoverCommunityCard.qml
         src/qml/LobbyPane.qml
         src/qml/LobbyRoom.qml
         src/qml/MyLobbiesPopup.qml

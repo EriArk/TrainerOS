@@ -105,7 +105,9 @@ void SocialController::composerTools(){
 void SocialController::communityInfo(){
     if(communityId_.isEmpty())return;
     closeMenu();menuGuild_=communityId_;menuChannel_.clear();menuMode_="community-info";menuTitle_=communityTitle();menuFocus_=0;
-    menu_={"Invite link"};menuCommands_={"community-invite"};emit changed();
+    menu_={"Invite link"};menuCommands_={"community-invite"};
+    const bool owner=snapshot_["communityOwner"].toBool();
+    menu_<<(owner?"Delete community":"Leave community");menuCommands_<<(owner?"ask-delete-community":"ask-leave-community");emit changed();
 }
 bool SocialController::dispatchConversationControls(Action action) {
     if(face_!="chats"&&face_!="communities")return false;

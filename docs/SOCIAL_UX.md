@@ -1,5 +1,13 @@
 # Social / Together interface - UX-01
 
+## Discover — 17 октября 2026
+
+[SOCIAL-67](SOCIAL67_DISCOVER.md): компактные People / Communities, лента
+реальных напарников, native TrainerOS discovery, профиль / предпросмотр и
+явное вступление. По полному неизвестному тегу — подтверждённая заявка вместо
+фиктивного профиля. Выход/удаление комьюнити входят в базовые действия с правами
+и подтверждением Fluxer. Global X/Y, L2/R2 и текущие лички сохраняются.
+
 ## Current Social routing — 16 October 2026
 
 [Social v3 contract](UX_CONTRACT_20261016_RU.md) and #217–223 supersede earlier

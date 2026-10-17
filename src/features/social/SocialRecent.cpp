@@ -2,12 +2,16 @@
 
 namespace trainer {
 QVariantList SocialController::recentPeople() const {
-    auto rows=recentTogether_.rows();
-    for(auto& value:rows) {
+    QVariantList rows;
+    for(const auto& value:recentTogether_.rows()) {
         auto row=value.toMap();int type=0;
-        for(const auto& v:snapshot_["friends"].toList())if(v.toMap()["id"]==row["id"])type=v.toMap()["type"].toInt();
+        for(const auto& v:snapshot_["friends"].toList())if(v.toMap()["id"]==row["id"]) {
+            const auto person=v.toMap();type=person["type"].toInt();row["avatar"]=person["avatar"];
+            if(!person["name"].toString().isEmpty())row["name"]=person["name"];
+        }
+        if(type==2)continue;
         row["type"]=type;row["friendLabel"]=type==1?"Friends":type==2?"Blocked":type==3?"Accept request":type==4?"Request sent":"Add friend";
-        row["canAdd"]=snapshot_["state"]=="connected"&&type!=1&&type!=2&&type!=4;value=row;
+        row["canAdd"]=snapshot_["state"]=="connected"&&type!=1&&type!=2&&type!=4;
         const auto contact=snapshot_["temporaryContacts"].toMap()["peers"].toMap()[row["id"].toString()].toMap();
         const auto error=snapshot_["temporaryContacts"].toMap()["error"].toString();
         row["contactStatus"]=error.isEmpty()?contact["status"]:error;
@@ -15,7 +19,7 @@ QVariantList SocialController::recentPeople() const {
             row["friendLabel"]=contact["canKeep"].toBool()?"Keep as friend":contact["pendingKeep"].toBool()?"Keeping friendship…":"Please wait…";
             row["canAdd"]=error.isEmpty()&&snapshot_["state"]=="connected"&&type==1&&contact["canKeep"].toBool();
         }
-        value=row;
+        rows.append(row);
     }
     return rows;
 }

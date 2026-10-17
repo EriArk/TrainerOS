@@ -31,11 +31,85 @@ class SocialTests : public QObject {
     using Completion=FluxerSession::Completion;
     static constexpr auto channel="1501314428688998182";
     static constexpr auto remote="1501314428688998183";
+    static QJsonObject playedRoom(QString self="1",QString peer="2") {
+        return {{"id","room"},{"phase","playing"},{"ticket","first-session"},{"game",QJsonObject{{"id","pong"},{"title","Pong"}}},
+            {"members",QJsonArray{QJsonObject{{"id",self},{"name","Self"},{"connected",true},{"seat",1}},
+                QJsonObject{{"id",peer},{"name","Guest"},{"connected",true},{"seat",2}}}}};
+    }
     static void bind(FluxerSession& s) {
         s.setOwner("trainer-a",1);s.self_="1501314428688998181";s.token_="synthetic-test-session";s.state_="connected";
         s.channel_=channel;s.channels_[channel]={{"id",channel},{"type",1}};
     }
 private slots:
+    void discoverPeopleAreProfilesAndUnknownTagsRequireConfirmation() {
+        FluxerSession s;bind(s);QStringList requests;
+        s.setTransport([&](auto method,auto path,auto,Completion done,QByteArray){requests<<method+" "+path;if(method=="GET")done({200,QJsonDocument(QJsonObject{{"id",remote},{"username","Mika"}})});});
+        s.relationships_[remote]={{"type",1},{"user",QJsonObject{{"id",remote},{"username","Mika"},{"discriminator","1234"}}}};
+        s.search("people","Mik");QCOMPARE(s.searchResults_.size(),1);QCOMPARE(s.searchResults_[0].toMap()["kind"].toString(),QString("person"));QVERIFY(requests.isEmpty());
+        s.command("search-action",{{"id",remote}});QVERIFY(requests.isEmpty());
+        s.search("people","Unknown#1234");QCOMPARE(s.searchResults_.first().toMap()["kind"].toString(),QString("request-tag"));QVERIFY(requests.isEmpty());
+        SocialController c;QSignalSpy commands(&c,&SocialController::commandRequested);
+        c.receive(0,{{"state","connected"},{"searchResults",s.searchResults_}});commands.clear();c.activateSearch(0);
+        QVERIFY(commands.isEmpty());QVERIFY(c.menuCommands_.contains("request-discovered-tag"));c.selectMenu(0);QVERIFY(commands.isEmpty());
+        c.activateSearch(0);c.selectMenu(1);QCOMPARE(commands.last()[0].toString(),QString("search-action"));
+        s.relationships_.clear();s.search("people",remote);QCOMPARE(requests.last(),QString("GET /v1/users/")+remote);QCOMPARE(s.searchResults_.size(),1);
+        s.relationships_[remote]={{"type",2}};requests.clear();s.search("people",remote);QVERIFY(s.searchResults_.isEmpty());QVERIFY(requests.isEmpty());
+    }
+    void discoverBareInviteAndUntrustedLinkNeverAutoJoin() {
+        FluxerSession s;bind(s);QStringList paths;
+        s.setTransport([&](auto method,auto path,auto,Completion done,QByteArray){QCOMPARE(method,QByteArray("GET"));paths<<path;
+            if(path.startsWith("/v1/discovery"))done({200,QJsonDocument(QJsonObject{{"guilds",QJsonArray{}},{"total",0}})});
+            else done({200,QJsonDocument(QJsonObject{{"code","Ab123"},{"guild",QJsonObject{{"id","123"},{"name","Club"}}}})});
+        });
+        s.search("communities","Ab123");QCOMPARE(paths.size(),2);QCOMPARE(paths.last(),QString("/v1/invites/Ab123"));QCOMPARE(s.searchResults_.first().toMap()["kind"].toString(),QString("invite"));
+        paths.clear();s.search("invite","https://other.example/Ab123");QVERIFY(paths.isEmpty());QVERIFY(s.searchResults_.isEmpty());
+        s.search("invite","https://user@fluxer.gg/Ab123");QVERIFY(paths.isEmpty());
+    }
+    void communityLeaveChecksFreshOwnershipAndPreservesOtherConversations() {
+        FluxerSession s;bind(s);s.guilds_["123"]={{"id","123"},{"owner_id",remote}};
+        s.channels_["124"]={{"id","124"},{"guild_id","123"},{"type",0}};s.channels_["125"]={{"id","125"},{"guild_id","126"},{"type",0}};
+        bool own=true,denied=false;int mutations=0;QSignalSpy done(&s,&FluxerSession::mutationFinished);
+        s.setTransport([&](auto method,auto path,auto body,Completion reply,QByteArray){
+            if(method=="GET"&&path=="/v1/guilds/123"){reply({200,QJsonDocument(QJsonObject{{"id","123"},{"owner_id",own?s.self_:remote}})});return;}
+            if(method=="DELETE"){++mutations;QCOMPARE(path,QString("/v1/users/@me/guilds/123"));QVERIFY(body.isEmpty());reply({denied?403:204,{}});return;}
+            reply({200,QJsonDocument(QJsonArray{})});
+        });
+        s.communityMembership("leave-community",{{"id","123"}});QCOMPARE(mutations,0);QVERIFY(s.guilds_.contains("123"));
+        own=false;denied=true;s.communityMembership("leave-community",{{"id","123"}});QVERIFY(s.guilds_.contains("123"));QVERIFY(!done.last()[4].toBool());
+        denied=false;s.communityMembership("leave-community",{{"id","123"}});QCOMPARE(mutations,2);QVERIFY(done.last()[4].toBool());
+        QVERIFY(!s.guilds_.contains("123"));QVERIFY(!s.channels_.contains("124"));QVERIFY(s.channels_.contains("125"));QVERIFY(s.channels_.contains(channel));
+    }
+    void communityDeleteRequiresProviderIdentityAndNeverRetriesUncertainMutation() {
+        FluxerSession s;bind(s);s.guilds_["123"]={{"id","123"},{"owner_id",s.self_}};
+        int posts=0;bool mfa=false,timeout=false;QSignalSpy verify(&s,&FluxerSession::communityVerificationRequired);
+        s.setTransport([&](auto method,auto path,auto body,Completion reply,QByteArray){
+            if(method=="GET"){reply({200,QJsonDocument(QJsonObject{{"id","123"},{"owner_id",s.self_}})});return;}
+            QCOMPARE(method,QByteArray("POST"));QCOMPARE(path,QString("/v1/guilds/123/delete"));++posts;
+            if(body.isEmpty())reply({403,QJsonDocument(QJsonObject{{"code","SUDO_MODE_REQUIRED"},{"has_mfa",mfa},{"methods",QJsonObject{{"totp",mfa}}}})});
+            else {QVERIFY(body.contains("password")||(body["mfa_method"]=="totp"&&body.contains("mfa_code")));reply({timeout?0:204,{}});}
+        });
+        s.communityMembership("delete-community",{{"id","123"}});QCOMPARE(posts,1);QCOMPARE(verify.last()[2].toString(),QString("password"));QVERIFY(s.guilds_.contains("123"));
+        mfa=true;s.communityMembership("delete-community",{{"id","123"}});QCOMPARE(verify.last()[2].toString(),QString("totp"));
+        timeout=true;s.communityMembership("delete-community",{{"id","123"},{"method","totp"},{"secret","123456"}});QCOMPARE(posts,3);QVERIFY(s.guilds_.contains("123"));
+        timeout=false;s.communityMembership("delete-community",{{"id","123"},{"method","totp"},{"secret","123456"}});QCOMPARE(posts,4);QVERIFY(!s.guilds_.contains("123"));
+    }
+    void communityConfirmationCapturesIdentityAndSecretIsNotAChatDraft() {
+        SocialController c;c.receive(0,{{"state","connected"},{"userId","1"},{"communities",QVariantList{QVariantMap{{"id","123"},{"name","Club"},{"kind","community"},{"owner","1"}}}}});
+        c.setFace("communities");c.contextRow(0);QVERIFY(c.menuCommands_.contains("ask-delete-community"));QVERIFY(!c.menuCommands_.contains("ask-leave-community"));
+        QSignalSpy commands(&c,&SocialController::commandRequested);c.selectMenu(c.menuCommands_.indexOf("ask-delete-community"));QVERIFY(commands.isEmpty());
+        c.communityId_="different";c.selectMenu(1);QCOMPARE(commands.last()[0].toString(),QString("delete-community"));QCOMPARE(commands.last()[1].toMap()["id"].toString(),QString("123"));
+        c.textPurpose_="community-secret:password";c.textId_="123";QVERIFY(c.textSecret());c.applyText("synthetic-password");QVERIFY(!c.textSecret());QVERIFY(c.draft().isEmpty());
+        QCOMPARE(commands.last()[1].toMap()["secret"].toString(),QString("synthetic-password"));QVERIFY(c.textId_.isEmpty());
+        c.textPurpose_="community-secret:totp";c.setOwner("different-owner");QVERIFY(!c.textSecret());
+    }
+    void discoverPreviewAndControllerPreserveSearchAndRequireExplicitJoin() {
+        SocialController c;c.receive(0,{{"state","connected"},{"userId","1"}});c.setFace("friends");
+        c.query_="Club";c.receive(0,{{"state","connected"},{"userId","1"},{"searchResults",QVariantList{QVariantMap{{"id","123"},{"name","Club"},{"kind","community"},{"action","Join"}}}}});
+        QSignalSpy commands(&c,&SocialController::commandRequested);c.dispatch(Action::Down);c.dispatch(Action::Confirm);
+        QCOMPARE(c.discoverPreview()["id"].toString(),QString("123"));QVERIFY(commands.isEmpty());c.dispatch(Action::Back);QVERIFY(c.discoverPreview().isEmpty());QCOMPARE(c.query_,QString("Club"));
+        c.activateSearch(0);c.discoverAction("join");QCOMPARE(commands.last()[0].toString(),QString("search-action"));c.discoverAction("back");
+        c.setFace("chats");c.setFace("friends");QCOMPARE(c.query_,QString("Club"));
+    }
     void lobbyGroupIdentitySurvivesRenameAndIsNotATitleHeuristic() {
         FluxerSession s;bind(s);s.channels_.clear();s.face_="communities";s.channelsLoaded_=true;
         const auto room=QUuid::createUuid().toString(QUuid::WithoutBraces);
@@ -580,7 +654,7 @@ private slots:
     }
     void recentTemporaryFriendUsesKeepActionAndHidesOnlyItsAutomaticRequest() {
         SocialController c;
-        const QJsonObject lobby{{"id","local-fixture"},{"members",QJsonArray{QJsonObject{{"id","1"},{"connected",true}},QJsonObject{{"id","2"},{"name","Guest"},{"connected",true}}}}};
+        const auto lobby=playedRoom();
         QVariantMap s{{"state","connected"},{"userId","1"},{"friends",QVariantList{QVariantMap{{"id","2"},{"type",1}}}},
             {"temporaryContacts",QVariantMap{{"peers",QVariantMap{{"2",QVariantMap{{"temporary",true},{"canKeep",true},{"status","Temporary lobby friend"}}}}}}}};
         c.receive(0,s);c.recentTogether_.observe(lobby,100);c.setFace("recent");
@@ -610,19 +684,22 @@ private slots:
     void recentTogetherPersistsOnlyActualMeetingsAndIsolatesAccounts() {
         QTemporaryDir dir;const auto path=dir.path()+"/recent.json";
         RecentTogether history;history.configure(path,"1");
-        QJsonObject room{{"id","room"},{"members",QJsonArray{
-            QJsonObject{{"id","2"},{"name","Guest"},{"connected",true}}}}};
+        auto room=playedRoom();room["phase"]="waiting";
         QVERIFY(!history.observe(room,100));QVERIFY(history.rows().isEmpty());
-        auto roster=room["members"].toArray();roster.append(QJsonObject{{"id","1"},{"name","Self"},{"connected",true}});
-        roster.append(QJsonObject{{"id","3"},{"name","Offline"},{"connected",false}});room["members"]=roster;
+        room["phase"]="launching";QVERIFY(!history.observe(room,100));room["phase"]="playing";
+        auto roster=room["members"].toArray();
+        roster.append(QJsonObject{{"id","3"},{"name","Offline"},{"seat",3},{"connected",false}});
+        roster.append(QJsonObject{{"id","4"},{"name","Watcher"},{"seat",4},{"connected",true},{"spectator",true}});
+        roster.append(QJsonObject{{"id","5"},{"name","Preparing"},{"seat",5},{"connected",true},{"admission","pending"}});room["members"]=roster;
         QVERIFY(history.observe(room,101));QCOMPARE(history.rows().size(),1);
         QVERIFY(!history.observe(room,102));QCOMPARE(history.rows().first().toMap()["last"].toLongLong(),101);
         RecentTogether reopened;reopened.configure(path,"1");QCOMPARE(reopened.rows(),history.rows());
         reopened.configure(path,"other-account");QVERIFY(reopened.rows().isEmpty());
-        reopened.configure(path,"1");QVERIFY(reopened.observe(room,102));QVERIFY(reopened.forget("2"));
+        reopened.configure(path,"1");QVERIFY(!reopened.observe(room,102));QCOMPARE(reopened.rows().first().toMap()["game"].toString(),QString("Pong"));QVERIFY(reopened.forget("2"));
         RecentTogether forgotten;forgotten.configure(path,"1");QVERIFY(forgotten.rows().isEmpty());
         QVERIFY(!reopened.observe(room,103)); // A heartbeat must not undo Forget.
-        reopened.observe({},104);QVERIFY(reopened.observe(room,105)); // A new meeting may.
+        reopened.observe({},104);QVERIFY(!reopened.observe(room,105));
+        room["ticket"]="second-session";QVERIFY(reopened.observe(room,106)); // A new successful game may.
     }
     void recentTogetherRecordsAcceptedLobbyAndKeepsOfflineActionsLocal() {
         SocialController c;c.receive(0,{{"state","connected"},{"userId","2"},{"name","Guest"}});
@@ -630,6 +707,8 @@ private slots:
         connect(&host,&LobbyCoordinator::outgoing,&c,[&](QString,QJsonObject p){c.lobby_.receive("1","Host",p);});
         connect(&c.lobby_,&LobbyCoordinator::outgoing,&host,[&](QString,QJsonObject p){host.receive("2","Guest",p);});
         QVERIFY(host.invite("2"));QVERIFY(c.recentPeople().isEmpty());c.lobby_.answer(true);
+        QVERIFY(c.recentPeople().isEmpty()); // Joining a room alone is not co-play.
+        c.recentTogether_.observe(playedRoom("2","1"),100);
         QCOMPARE(c.recentPeople().size(),1);QCOMPARE(c.recentPeople().first().toMap()["id"].toString(),"1");
         c.lobby_.leave();QCOMPARE(c.recentPeople().size(),1);c.setFace("recent");
         QSignalSpy commands(&c,&SocialController::commandRequested);c.dispatch(Action::Secondary);
@@ -1880,8 +1959,8 @@ private slots:
         c.dispatch(Action::LocalAction);QVERIFY(!c.menuCommands_.contains("community-filter"));QVERIFY(c.menuCommands_.contains("create-group"));
         FluxerSession s;bind(s);QString path;s.setTransport([&](auto,QString p,auto,Completion done,auto){path=p;done({200,QJsonDocument(QJsonObject{{"guilds",QJsonArray{}},{"total",0}})});});
         s.search("traineros","");QVERIFY(path.contains("tag=traineros-v1"));QVERIFY(!path.contains("query="));
-        QVERIFY(s.searchStatus_.contains("Private communities"));
-        s.search("communities","");QVERIFY(!path.contains("tag="));
+        QVERIFY(s.searchStatus_.contains("No public TrainerOS communities"));
+        s.search("communities","");QVERIFY(path.contains("tag=traineros-v1"));
     }
     void nativeChallengeUsesFreshHeaderAndNeverReplaysUncertainMutation() {
         FluxerSession s;QList<Completion> replies;QList<QByteArray> headers;bind(s);
@@ -2173,9 +2252,10 @@ private slots:
         s.setTransport([&](auto method,auto path,auto,Completion done, QByteArray){QCOMPARE(method,QByteArray("GET"));paths<<path;responses<<done;});bind(s);
         s.search("communities","old");s.search("communities","new & fun",24);
         QVERIFY(paths.last().contains("offset=24"));QVERIFY(paths.last().contains("%26"));
+        QVERIFY(paths.last().contains("tag=traineros-v1"));QVERIFY(paths.last().contains("sort_by=member_count"));
         responses[0]({200,QJsonDocument(QJsonObject{{"total",1},{"guilds",QJsonArray{QJsonObject{{"id",remote},{"name","Old"}}}}})});
         QVERIFY(s.searchResults_.isEmpty());QVERIFY(s.searching_);
-        responses[1]({200,QJsonDocument(QJsonObject{{"total",30},{"guilds",QJsonArray{QJsonObject{{"id",remote},{"name","New"},{"member_count",12}}}}})});
+        responses[1]({200,QJsonDocument(QJsonObject{{"total",30},{"guilds",QJsonArray{QJsonObject{{"id",remote},{"name","New"},{"member_count",12},{"custom_tags",QJsonArray{"traineros-v1"}}},QJsonObject{{"id","123"},{"name","Unmarked"}}}}})});
         QCOMPARE(s.searchResults_.size(),1);QCOMPARE(s.searchResults_[0].toMap()["name"].toString(),QString("New"));QCOMPARE(s.searchTotal_,30);
         s.search("communities","");QVERIFY(!paths.last().contains("query="));
     }
@@ -2193,7 +2273,7 @@ private slots:
         s.searchResults_.append(QVariantMap{{"id","aB1"},{"kind","invite"},{"action","Join"}});
         s.command("search-action",{{"id","aB1"}});
         s.search("communities","new search");QVERIFY(s.searching_);
-        join({204,{}});QVERIFY(s.searching_);QCOMPARE(s.searchStatus_,QString("Searching..."));
+        join({204,{}});QVERIFY(s.searching_);QCOMPARE(s.searchStatus_,QString::fromUtf8("Looking around…"));
         QVERIFY(s.searchResults_.isEmpty());
     }
 

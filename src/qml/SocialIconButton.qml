@@ -5,6 +5,7 @@ Item {
     id: root
     property string icon
     property string label
+    property real iconRotation: 0
     property bool highlighted: false
     property color tint: "transparent"
     property bool tooltipSuppressed: false
@@ -20,7 +21,7 @@ Item {
         border.width: root.tint.a > 0 || root.highlighted ? 1 : 0
         border.color: Qt.darker(color, 1.12)
     }
-    Image { anchors.centerIn: parent; width: 19; height: 19; sourceSize: Qt.size(38,38); source: "qrc:/social-icons/" + root.icon + ".svg" }
+    Image { anchors.centerIn: parent; width: 19; height: 19; rotation: root.iconRotation; sourceSize: Qt.size(38,38); source: "qrc:/social-icons/" + root.icon + ".svg" }
     MouseArea { id: mouse; anchors.fill: parent; hoverEnabled: true
         onClicked: { root.tooltipSuppressed = true; root.clicked() }
         onExited: root.tooltipSuppressed = false

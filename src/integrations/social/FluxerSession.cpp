@@ -350,7 +350,7 @@ void FluxerSession::publish() {
         const bool marked=communityMarked_.contains(it.key());
         // Joined communities stay visible regardless of discovery tags.
         communities.append(QVariantMap{{"id",it.key()},{"name",it.value()["name"].toString()},
-            {"kind","community"},{"traineros",marked},{"detail",marked?"TrainerOS":"Community"}});
+            {"kind","community"},{"owner",it.value()["owner_id"].toString()},{"traineros",marked},{"detail",marked?"TrainerOS":"Community"}});
     }
     std::sort(communities.begin(),communities.end(),[](const QVariant& a,const QVariant& b){return a.toMap()["name"].toString()<b.toMap()["name"].toString();});
     int unreadCount=0;for(auto it=channels_.cbegin();it!=channels_.cend();++it)
@@ -1223,6 +1223,7 @@ void FluxerSession::command(QString operation, QVariantMap args) {
         if(communityOnly_&&!communityMarked_.contains(guild_)){guild_.clear();channel_.clear();messages_.clear();messageOrder_.clear();}
         ensureConversation();checkCommunities();publish();return;
     }
+    if(operation=="leave-community"||operation=="delete-community"){communityMembership(operation,args);return;}
     if(operation=="community-invite") {
         const auto guild=args["id"].toString(),channel=communityChannels_.value(guild);
         if(mutationBusy_||!guilds_.contains(guild)||!idValid(channel))return;
@@ -1260,7 +1261,8 @@ void FluxerSession::command(QString operation, QVariantMap args) {
         const auto id=args["id"].toString();
         QVariantMap row;for(const auto& v:searchResults_)if(v.toMap()["id"]==id){row=v.toMap();break;}
         if(row.isEmpty()||searching_||row["action"]=="Joined"||row["action"]=="Sent")return;
-        if(row["kind"]=="person") {command("add",{{"text",id}});return;}
+        if(row["kind"]=="person")return;
+        if(row["kind"]=="request-tag") {command("add",{{"text",id}});return;}
         searching_=true;searchStatus_="Joining...";publish();
         const bool invite=row["kind"]=="invite";const auto revision=searchRevision_;
         request("POST",invite?"/v1/invites/"+QString::fromLatin1(QUrl::toPercentEncoding(id)):"/v1/discovery/guilds/"+id+"/join",{},[this,id,revision](Reply r){
@@ -1337,8 +1339,10 @@ void FluxerSession::command(QString operation, QVariantMap args) {
         const auto tag=args["text"].toString().trimmed();const auto split=tag.lastIndexOf('#');
         if(split<1||tag.size()-split!=5){status_="Enter username#1234";publish();return;}
         const auto revision=searchRevision_;
+        for(const auto& value:searchResults_)if(value.toMap()["kind"]=="request-tag"&&value.toMap()["id"]==tag){searching_=true;searchStatus_="Sending friend request...";publish();break;}
         request("POST","/v1/users/@me/relationships",{{"username",tag.left(split)},{"discriminator",tag.mid(split+1)}},[this,tag,revision](Reply r){
-            if(r.status>=200&&r.status<300){if(revision==searchRevision_){searchStatus_="Friend request sent";for(auto& v:searchResults_){auto row=v.toMap();if(row["kind"]=="person"&&row["id"]==tag)row["action"]="Sent";v=row;}}status_="Friend request sent";refresh();publish();}else {if(revision==searchRevision_)searchStatus_="Could not add this person. Check their full tag";fail(r,"Could not send friend request. Check the name and tag");}
+            if(revision==searchRevision_)searching_=false;
+            if(r.status>=200&&r.status<300){if(revision==searchRevision_){searchStatus_="Friend request sent";for(auto& v:searchResults_){auto row=v.toMap();if(row["kind"]=="request-tag"&&row["id"]==tag)row["action"]="Sent";v=row;}}status_="Friend request sent";refresh();publish();}else {if(revision==searchRevision_)searchStatus_="Could not add this person. Check their full tag";fail(r,"Could not send friend request. Check the name and tag");}
         });return;
     }
     if(idValid(id)&&(relationships_.contains(id)||(person_["loaded"].toBool()&&person_["id"]==id))&&(operation=="add-id"||operation=="accept"||operation=="remove"||operation=="block")) {
@@ -1476,46 +1480,6 @@ void FluxerSession::ensureConversation() {
     channel_.clear();messages_.clear();messageOrder_.clear();
 
 }
-void FluxerSession::search(QString mode,QString text,int offset) {
-    if(mode!="people"&&mode!="communities"&&mode!="traineros"&&mode!="invite")return;
-    const auto revision=++searchRevision_;searchMode_=mode;searchText_=text.trimmed().left(256);
-    searchOffset_=qMax(0,offset);searchTotal_=0;searchResults_.clear();searching_=false;searchStatus_.clear();
-    if(mode=="people") {
-        static const QRegularExpression tag("^[A-Za-z0-9_]{1,32}#[0-9]{4}$");
-        if(!tag.match(searchText_).hasMatch())searchStatus_="Enter their full tag: username#1234";
-        else {searchStatus_="Ready to send a friend request";searchResults_.append(QVariantMap{{"id",searchText_},{"name",searchText_},{"description","Send a friend request"},{"detail","New friend"},{"kind","person"},{"action","Add friend"}});}
-        publish();return;
-    }
-    QString path;
-    if(mode=="invite") {
-        QString code=searchText_;
-        if(code.contains('/')) {QUrl url(code.contains("://")?code:"https://"+code);code=url.path().section('/',-1);}
-        if(code.isEmpty()){searchStatus_="Enter a group or community invite link";publish();return;}
-        path="/v1/invites/"+QString::fromLatin1(QUrl::toPercentEncoding(code));
-    } else {
-        QUrlQuery q;if(!searchText_.isEmpty())q.addQueryItem("query",searchText_.left(100));q.addQueryItem("limit","24");q.addQueryItem("offset",QString::number(searchOffset_));
-        if(mode=="traineros")q.addQueryItem("tag","traineros-v1");
-        path="/v1/discovery/guilds?"+q.toString(QUrl::FullyEncoded);
-    }
-    searching_=true;searchStatus_="Searching...";publish();
-    request("GET",path,{},[this,revision,mode](Reply r){
-        if(revision!=searchRevision_)return;
-        searching_=false;
-        if(r.status!=200){searchStatus_=r.status==404?"Invite not found or expired":r.body.object()["message"].toString().left(180);if(searchStatus_.isEmpty())searchStatus_="Search is unavailable. Try again";if(r.status==401)fail(r,searchStatus_);else publish();return;}
-        if(mode=="invite") {
-            const auto b=r.body.object();const auto g=b["guild"].toObject(),c=b["channel"].toObject();
-            QString name=g["name"].toString();if(name.isEmpty())name=c["name"].toString();if(name.isEmpty())name="Group conversation";
-            searchResults_.append(QVariantMap{{"id",b["code"].toString()},{"name",name},{"description",QString("%1 members").arg(b["member_count"].toInt())},{"detail",g.isEmpty()?"Group invite":"Community invite"},{"kind","invite"},{"action","Join"}});searchTotal_=1;
-        } else {
-            const auto body=r.body.object();searchTotal_=body["total"].toInt();
-            for(const auto& v:body["guilds"].toArray()){auto g=v.toObject();if(!idValid(g["id"].toString()))continue;
-                searchResults_.append(QVariantMap{{"id",g["id"].toString()},{"name",g["name"].toString()},{"description",g["description"].toString()},{"detail",QString("%1 members").arg(g["member_count"].toInt())},{"kind","community"},{"action",guilds_.contains(g["id"].toString())?"Joined":"Join"}});
-            }
-        }
-        searchStatus_=searchResults_.isEmpty()?(mode=="traineros"?"No public TrainerOS communities yet. Private communities use invite links.":"No matches"):QString("%1 results").arg(searchTotal_);publish();
-    });
-}
-
 void FluxerSession::invalidateCommunity(const QString& id) {
     if(id.isEmpty())return;
     ++communityRevision_[id];communityChecked_.remove(id);communityMarked_.remove(id);

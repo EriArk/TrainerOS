@@ -131,11 +131,25 @@ SocialController::SocialController(QObject* parent):QObject(parent),session_(new
     draftSave_.setSingleShot(true);draftSave_.setInterval(700);connect(&draftSave_,&QTimer::timeout,this,&SocialController::saveDrafts);
     connect(session_,&FluxerSession::mutationFinished,this,[this](quint64 generation,QString operation,QString channel,QString id,bool success){
         if(generation!=generation_)return;
+        if(operation=="leave-community"||operation=="delete-community") {
+            verificationGuild_.clear();verificationMethod_.clear();
+            if(menuMode_=="community-progress")closeMenu();
+            if(success){pinnedCommunities_.removeAll(id);if(communityId_==id)communityBack();faceRoutes_.remove("communities");saveSocialPreferences();}
+            toastTitle_=success?"Community":"Could not complete action";
+            toastText_=success?(operation=="delete-community"?"Community deleted":"You left the community"):snapshot_["communityStatus"].toString();toastTimer_.start();emit presentationChanged();
+        }
         if((operation=="leave-group"||operation=="lobby-chat-close")&&!leavingLobby_.isEmpty()) {
             auto* r=lobby_.room(leavingLobby_);
             if(r&&r->state()["conversation"]==channel){if(success){if(lobbyCloseOnLeave_.contains(leavingLobby_)&&r->hosting())r->leave();r->forgetMembership();}lobbyCloseOnLeave_.remove(leavingLobby_);lobbyLeaving_.remove(leavingLobby_);leavingLobby_.clear();emit changed();}
         }
         if(success&&(operation=="edit-message"||operation=="delete-message"))editDrafts_.remove(channel+"/"+id);
+    });
+    connect(session_,&FluxerSession::communityVerificationRequired,this,[this](quint64 generation,QString guild,QString method){
+        if(generation!=generation_)return;
+        verificationGuild_=guild;verificationMethod_=method;
+        closeMenu();menuMode_="verify-community";menuTitle_="Confirm deletion";
+        menuDetail_=method=="password"?"Fluxer requires your password to delete this community.":"Fluxer requires an authenticator or backup code.";
+        menu_={"Cancel",method=="password"?"Enter password":"Enter code"};menuCommands_={"cancel","verify-community"};menuFocus_=0;emit changed();
     });
     thread_.start();
 }
@@ -165,9 +179,10 @@ void SocialController::setOwner(QString owner) {
     editDrafts_.clear();pickedPeople_.clear();dismissedNotifications_.clear();activityNotifications_.clear();presentedInvitation_.clear();notificationSettingsKey_.clear();
     toastTimer_.stop();toastTitle_.clear();toastText_.clear();emit presentationChanged();
     socialSettingsKey_.clear();peopleFilter_.clear();communityId_.clear();faceRoutes_.clear();pinnedPeople_.clear();pinnedGroups_.clear();pinnedCommunities_.clear();
+    discoverPreview_.clear();discoverArea_="search";discoverPage_=0;discoverAll_=false;verificationGuild_.clear();verificationMethod_.clear();
     owner_=std::move(owner);++generation_;snapshot_.clear();drafts_.clear();menu_.clear();toastChannel_.clear();directConversationLease_.clear();
     selection_.stop();contacts_=false;searchStarted_=false;searchFocus_=-1;
-    textPurpose_.clear();textChannel_.clear();query_.clear();focus_=messageFocus_=0;reading_=false;
+    textPurpose_.clear();textChannel_.clear();textId_.clear();query_.clear();focus_=messageFocus_=0;reading_=false;
     emit ownerRequested(owner_,generation_);emit changed();
 }
 void SocialController::setFace(QString face) {
@@ -533,6 +548,11 @@ void SocialController::receive(quint64 generation,QVariantMap snapshot) {
     if(snapshot_["state"]=="signed-out") {dismissedNotifications_.clear();activityNotifications_.clear();presentedInvitation_.clear();notificationSettingsKey_.clear();toastTimer_.stop();toastTitle_.clear();toastText_.clear();emit presentationChanged();draftSave_.stop();if(!draftFile_.isEmpty())QFile::remove(draftFile_);draftFile_.clear();drafts_.clear();editDrafts_.clear();menu_.clear();textPurpose_.clear();textChannel_.clear();searchStarted_=false;}
     if(face_=="friends"&&!searchStarted_&&snapshot_["state"]=="connected")runSearch();
     searchFocus_=qMin(searchFocus_,int(searchResults().size())-1);
+    if(!snapshot_["searching"].toBool()&&!searchResults().isEmpty()&&!discoverAll_) {
+        const int pageSize=query_.isEmpty()?3:6;
+        discoverPage_=qBound(0,discoverPage_,(int(searchResults().size())-1)/pageSize);
+        if(searchFocus_<0&&discoverArea_=="results")searchFocus_=discoverPage_*pageSize;
+    }
     emit changed();
 }
 QVariantMap SocialController::account() const {
@@ -615,10 +635,8 @@ QVariantList SocialController::hints() const {
         if(lobbyChatVisible()) {h("R3",lobbyChatExpanded_?"Room":"Expand chat");if(lobbyChatFocused_)h("L3",lobbySpectatorChat_?"Players":"Spectators");}return result;
     }
     if(face_=="friends") {
-        h("X","Search");
-        if(searchFocus_<0) {h("←→","Category");h("A","Enter search");}
-        else {const auto action=searchResults().value(searchFocus_).toMap()["action"].toString();if(action!="Joined"&&action!="Sent")h("A",action);h("B","Search bar");}
-        if(snapshot_["searchTotal"].toInt()>24)h("Y","Next page");
+        h("A",!discoverPreview_.isEmpty()?"Join":discoverArea_=="search"?"Search":"Open");h("B",discoverAll_?"Discover":"Back");
+        if(discoverArea_=="search")h("←→","People / Communities");
     } else {
         if(contacts_)h("A",rows().value(focus_).toMap()["type"].toInt()==3?"Accept request":"Conversation");
         else {
@@ -767,7 +785,16 @@ void SocialController::applyText(QString text) {
         textPurpose_.clear();emit changed();return;
     }
     if(textPurpose_=="lobby-search") {lobbySearch_=text.trimmed();lobbySelection_.clear();textPurpose_.clear();emit changed();return;}
-    if(textPurpose_=="search"){query_=text.trimmed();searchFocus_=-1;runSearch();}
+    if(textSecret()) {
+        const auto guild=textId_,method=textPurpose_.mid(QStringLiteral("community-secret:").size());
+        textPurpose_.clear();textId_.clear();
+        if(!guild.isEmpty()&&!text.isEmpty()) {
+            closeMenu();menuMode_="community-progress";menuTitle_="Community";menu_={"Deleting community…"};menuCommands_={"none"};menuFocus_=0;emit changed();
+            emit commandRequested("delete-community",{{"id",guild},{"method",method},{"secret",text}});
+        }
+        text.fill(QChar());return;
+    }
+    if(textPurpose_=="search"){query_=text.trimmed();discoverAll_=false;discoverPage_=0;searchFocus_=-1;runSearch();}
     else if(textPurpose_=="add")emit commandRequested("add",{{"text",text}});
     else if(textPurpose_=="create-community")emit commandRequested("create-community",{{"text",text}});
     else if(textPurpose_=="edit-message"||textPurpose_=="rename-group") {
@@ -972,6 +999,10 @@ void SocialController::contextRow(int index) {
         int type=row["type"].toInt();for(const auto& p:snapshot_["friends"].toList())if(p.toMap()["id"]==row["id"])type=p.toMap()["type"].toInt();
         if(type==1){menu_<<"Remove friend";menuCommands_<<"ask-remove-friend:"+row["id"].toString();}
     } else if(kind=="groups") {menu_<<"Group info"<<"Leave group";menuCommands_<<"group-info"<<"ask-leave-group";}
+    else if(kind=="community") {
+        const bool owner=row["owner"]==snapshot_["userId"];
+        menu_<<(owner?"Delete community":"Leave community");menuCommands_<<(owner?"ask-delete-community":"ask-leave-community");
+    }
     emit changed();
 }
 void SocialController::collectionOptions() {
@@ -1149,6 +1180,23 @@ void SocialController::confirmAction(QString title,QString operation,QString id)
 void SocialController::selectMenu(int index) {
     if(index<0||index>=menuCommands_.size()||snapshot_["mutationBusy"].toBool())return;
     const auto command=menuCommands_[index];
+    if(command=="ask-leave-community"||command=="ask-delete-community") {
+        const auto guild=menuGuild_;const auto name=menuTitle_;const bool deleting=command=="ask-delete-community";
+        confirmAction((deleting?"Delete ":"Leave ")+name+"?",deleting?"delete-community":"leave-community",guild);
+        menuDetail_=deleting?"This permanently deletes the community, its channels and messages for everyone.":"You will leave this community. You can rejoin with an invitation.";
+        menu_[1]=deleting?"Delete community":"Leave community";emit changed();return;
+    }
+    if(command=="delete-community"||command=="leave-community") {
+        const auto guild=menuSubject_;closeMenu();menuMode_="community-progress";menuTitle_="Community";
+        menu_={command=="delete-community"?"Deleting community…":"Leaving community…"};menuCommands_={"none"};menuFocus_=0;emit changed();
+        emit commandRequested(command,{{"id",guild}});return;
+    }
+    if(command=="verify-community") {
+        const auto guild=verificationGuild_,method=verificationMethod_;closeMenu();
+        textPurpose_="community-secret:"+method;textId_=guild;
+        emit textRequested(method=="password"?"Fluxer password · delete community":"Authenticator / backup code",{},method=="password"?256:32);return;
+    }
+    if(command=="request-discovered-tag") {const auto id=menuSubject_;closeMenu();emit commandRequested("search-action",{{"id",id}});return;}
     if(command=="group-info") {
         const auto list=rows();for(int i=0;i<list.size();++i)if(list[i].toMap()["id"]==menuChannel_){groupDetails(i);return;}
         groupDetails();return;
@@ -1359,21 +1407,7 @@ void SocialController::dispatch(Action action) {
     if(snapshot_.value("state")=="authorizing") {if(action==Action::Back)emit commandRequested("cancel-login",{});return;}
     if(snapshot_.value("state")=="signed-out"||snapshot_.isEmpty()) {if(action==Action::Confirm)login();return;}
     if(face_=="lobby") {dispatchLobby(action);return;}
-    if(face_=="friends") {
-        if(action==Action::Secondary||(action==Action::Confirm&&searchFocus_<0))editSearch();
-        else if(action==Action::Back)searchFocus_=-1;
-        else if((action==Action::Left||action==Action::Right)&&searchFocus_<0) {
-            const QStringList kinds{"people","communities","traineros","invite"};const int current=kinds.indexOf(searchKind_);
-            setSearchKind(kinds[(current+(action==Action::Right?1:3))%4]);
-        } else if(action==Action::Down)searchFocus_=qMin(searchFocus_<0?0:searchFocus_+2,int(searchResults().size())-1);
-        else if(action==Action::Up)searchFocus_=qMax(-1,searchFocus_-2);
-        else if(action==Action::Left)searchFocus_=qMax(0,searchFocus_-1);
-        else if(action==Action::Right)searchFocus_=qMin(searchFocus_+1,int(searchResults().size())-1);
-        else if(action==Action::Confirm)activateSearch(searchFocus_);
-        else if(action==Action::ToggleContinue&&snapshot_["searchTotal"].toInt()>24)runSearch(snapshot_["searchOffset"].toInt()+24<snapshot_["searchTotal"].toInt()?snapshot_["searchOffset"].toInt()+24:0);
-        else if(action==Action::LocalAction||action==Action::ContextMenu)openMenu();
-        emit changed();return;
-    }
+    if(face_=="friends") {dispatchDiscover(action);return;}
     if(partyFocus_) {
         if(action==Action::Left) {if(partyIndex_>0)--partyIndex_;else partyFocus_=false;}
         else if(action==Action::Right)partyIndex_=qMin(partyIndex_+1,int(companyParties().size())-1);
@@ -1419,23 +1453,6 @@ void SocialController::preview() {
 }
 void SocialController::showContacts() {setFace("chats");emit changed();}
 void SocialController::showFriends() {showContacts();}
-void SocialController::runSearch(int offset) {
-    searchStarted_=true;searchFocus_=-1;
-    emit commandRequested("search",{{"mode",searchKind_},{"text",query_},{"offset",offset}});
-}
-void SocialController::setSearchKind(QString kind) {
-    if(kind==searchKind_)return;
-    if(!QStringList{"people","communities","traineros","invite"}.contains(kind))return;
-    searchKind_=kind;query_.clear();runSearch();emit changed();
-}
-void SocialController::editSearch() {
-    textPurpose_="search";
-    emit textRequested(searchKind_=="people"?"Find someone · username#1234":searchKind_=="invite"?"Group or community invite":"Find communities",query_,searchKind_=="invite"?256:100);
-}
-void SocialController::activateSearch(int index) {
-    const auto row=searchResults().value(index).toMap();if(row.isEmpty()||row["action"]=="Joined"||row["action"]=="Sent")return;
-    searchFocus_=index;emit commandRequested("search-action",{{"id",row["id"]}});emit changed();
-}
 void SocialController::bindDrafts(const QString& accountId) {
     if(owner_.isEmpty()) {recentTogether_.configure({},accountId);return;}
     const auto key=QString::fromLatin1(QCryptographicHash::hash(("https://fluxer.app\n"+owner_+"\n"+accountId).toUtf8(),QCryptographicHash::Sha256).toHex());

@@ -1,5 +1,16 @@
 # Возможности Fluxer: справочник для TrainerOS
 
+## Discovery, люди и удаление комьюнити — 17 октября 2026
+
+Native discovery проверен по официальному upstream и read-only запросами двух
+тестовых аккаунтов: `tag=traineros-v1`, `sort_by=member_count`, HTTP 200, сейчас
+ноль опубликованных результатов. Публичный tag и pinned-маркер joined guild —
+разные механизмы; свой каталог не нужен. Поиск человека: известные identities,
+GET по user ID; полный тег позволяет отправить явную заявку, публичного lookup
+профиля по тегу не найдено. Leave — DELETE membership, Delete — POST guild/delete
+с проверкой владельца и sudo (пароль/MFA). WebAuthn-only остаётся в Fluxer.
+[Точные контракты, upstream revision и ограничения](SOCIAL67_DISCOVER.md#контракты-fluxer-и-фактическая-доступность).
+
 ## Уточнение области чата — 17 октября 2026
 
 Наличие медиафункций у Fluxer не означает, что они нужны в текущем Lobby:

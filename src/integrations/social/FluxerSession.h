@@ -35,6 +35,7 @@ public slots:
     void command(QString operation, QVariantMap arguments = {});
     void stop();
 signals:
+    void communityVerificationRequired(quint64 generation,QString guild,QString method);
     void ordinaryMessage(quint64 generation,QVariantMap message);
     void fileEvent(quint64 generation,QVariantMap event);
     void snapshot(quint64 generation, QVariantMap state);
@@ -196,6 +197,7 @@ private:
     QString communityStatus_, communityInvite_;
     void openConversation(const QString& id);
     void search(QString mode, QString text, int offset = 0);
+    void communityMembership(QString operation,QVariantMap args);
     bool mutate(const QString& operation, const QVariantMap& args);
     bool mutationBusy_ = false, channelsLoading_ = false;
     quint64 channelRevision_ = 0;

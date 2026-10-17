@@ -3,7 +3,7 @@
 #include <QVariantList>
 
 namespace trainer {
-// Device-local encounter history, scoped to Trainer and communication account.
+// Device-local successful co-play history, scoped to Trainer and communication account.
 class RecentTogether {
 public:
     void configure(QString file,QString self);

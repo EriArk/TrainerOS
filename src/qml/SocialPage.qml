@@ -49,7 +49,7 @@ FocusScope {
     Component.onCompleted: if (takesFocus) forceActiveFocus()
     PageHeader {
         id: heading
-        visible: root.faceIndex !== 3 && (!root.connected || root.faceIndex >= 2)
+        visible: root.faceIndex !== 3 && (!root.connected || root.faceIndex >= 4)
         height: visible ? implicitHeight : 0
         title: [root.social.contacts ? "Friends" : "Messages", "Communities", "Discover", "Lobby", "Recently together"][root.faceIndex]
         subtitle: root.connected ? (root.account.name || "") + " · " + (root.faceIndex === 1 && root.account.communityStatus ? root.account.communityStatus : root.account.status || "") : "A little closer, wherever you are."
@@ -176,64 +176,10 @@ FocusScope {
             Text { renderType: typeof Text.CurveRendering === "number" ? Text.CurveRendering : Text.QtRendering; width: parent.width; text: root.account.status && root.account.status!=="Connected" ? root.account.status : root.faceIndex===1 ? "Choose a group or community to join the conversation." : "Choose someone on the left, or find new friends in Discover."; font.pixelSize: 15; color: Theme.muted; horizontalAlignment: Text.AlignHCenter; wrapMode: Text.WordWrap }
         }
     }
-    Item {
-        id: searchPage
-        visible: root.connected && root.faceIndex === 2
+    DiscoverPane {
         anchors { top: heading.bottom; bottom: parent.bottom; left: parent.left; right: parent.right }
-        Rectangle { anchors.fill: parent; color: "#eaf0e3" }
-        Row {
-            id: categories; x: 16; y: 10; spacing: 10
-            Repeater {
-                model: [{kind:"people",title:"People",tint:Theme.pink}, {kind:"communities",title:"Communities",tint:Theme.green}, {kind:"traineros",title:"TrainerOS",tint:Theme.yellow}, {kind:"invite",title:"Invite link",tint:Theme.blue}]
-                CapButton { required property var modelData; width: (searchPage.width - 62) / 4; height: 38
-                    label: modelData.title; tint: modelData.tint; claimsFocus: false
-                    selected: root.social.searchKind === modelData.kind && root.social.searchFocus < 0
-                    onActivated: root.social.setSearchKind(modelData.kind)
-                }
-            }
-        }
-        CapButton {
-            id: searchBar; x: 16; y: categories.y + categories.height + 12; width: parent.width - 32; height: 48
-            label: root.social.query || (root.social.searchKind === "people" ? "username#1234" : root.social.searchKind === "invite" ? "Paste or enter an invitation" : "Search communities...")
-            tint: Theme.paper; claimsFocus: false; selected: false
-            onActivated: root.social.editSearch()
-        }
-        Text { renderType: typeof Text.CurveRendering === "number" ? Text.CurveRendering : Text.QtRendering; id: searchStatus; x: 20; y: searchBar.y + searchBar.height + 9; width: parent.width - 40
-            text: root.account.searchStatus || ""; font.pixelSize: 13; color: Theme.muted; textFormat: Text.PlainText; elide: Text.ElideRight
-        }
-        GridView {
-            id: results; x: 16; y: searchStatus.y + searchStatus.height + 10; width: parent.width - 24; height: parent.height - y - 12
-            clip: true; cellWidth: width / 2; cellHeight: 121
-            model: root.social.searchResults; currentIndex: root.social.searchFocus
-            onCurrentIndexChanged: if(currentIndex >= 0) positionViewAtIndex(currentIndex, GridView.Contain)
-            delegate: Item {
-                required property var modelData; required property int index
-                width: results.cellWidth; height: results.cellHeight
-                Rectangle { x: 0; y: 4; width: parent.width - 10; height: parent.height - 10; radius: 12; color: "#617b6959" }
-                Rectangle { width: parent.width - 10; height: parent.height - 10; radius: 12
-                    color: index % 3 === 0 ? "#e1efca" : index % 3 === 1 ? "#d8ebf1" : "#f3dfd4"
-                    border.width: results.currentIndex === index ? 3 : 1; border.color: results.currentIndex === index ? "#e7b327" : "#a2b4a3"
-                    Column { x: 14; y: 10; width: parent.width - 28; spacing: 4
-                        Text { renderType: typeof Text.CurveRendering === "number" ? Text.CurveRendering : Text.QtRendering; width: parent.width; text: modelData.name; font.family: Theme.displayFamily; font.pixelSize: 20; color: Theme.ink; textFormat: Text.PlainText; elide: Text.ElideRight }
-                        Text { renderType: typeof Text.CurveRendering === "number" ? Text.CurveRendering : Text.QtRendering; width: parent.width; text: modelData.description; font.pixelSize: 13; color: Theme.ink; wrapMode: Text.Wrap; maximumLineCount: 2; elide: Text.ElideRight; textFormat: Text.PlainText }
-                    }
-                    Text { renderType: typeof Text.CurveRendering === "number" ? Text.CurveRendering : Text.QtRendering; x: 14; anchors.bottom: parent.bottom; anchors.bottomMargin: 10; width: parent.width - 130; text: modelData.detail; font.pixelSize: 12; color: Theme.muted; elide: Text.ElideRight; textFormat: Text.PlainText }
-                    Rectangle { anchors { right: parent.right; bottom: parent.bottom; margins: 9 } width: 96; height: 25; radius: 8; color: Theme.yellow; border.color: "#b4a36a"
-                        Text { renderType: typeof Text.CurveRendering === "number" ? Text.CurveRendering : Text.QtRendering; anchors.centerIn: parent; text: modelData.action; color: Theme.ink; font.pixelSize: 13; font.bold: true; textFormat: Text.PlainText }
-                    }
-                    MouseArea { anchors.fill: parent; onClicked: root.social.activateSearch(index) }
-                }
-            }
-        }
-        Column {
-            visible: !results.count; anchors.horizontalCenter: parent.horizontalCenter; y: results.y + 22; spacing: 13
-            Item { width: 76; height: 69; anchors.horizontalCenter: parent.horizontalCenter
-                Rectangle { x: 44; y: 42; width: 31; height: 12; radius: 5; rotation: 45; color: "#648983" }
-                Rectangle { x: 0; y: 0; width: 55; height: 55; radius: 28; color: "#d1e8ef"; border.color: "#648983"; border.width: 6 }
-                Rectangle { x: 14; y: 12; width: 23; height: 9; radius: 5; rotation: -30; color: "#f4ffff" }
-            }
-            Text { renderType: typeof Text.CurveRendering === "number" ? Text.CurveRendering : Text.QtRendering; text: root.account.searching ? "Looking around..." : root.social.searchKind === "people" ? "Make a new friend" : root.social.searchKind === "invite" ? "A place for your people" : "Find your next community"; font.family: Theme.displayFamily; font.pixelSize: 24; color: Theme.ink; anchors.horizontalCenter: parent.horizontalCenter }
-        }
+        visible: root.connected && root.faceIndex === 2
+        social: root.social; takesFocus: root.takesFocus && visible
     }
     Rectangle {
         visible: root.social.menu.length > 0; anchors.fill: parent; color: "#6630433b"; z: 9

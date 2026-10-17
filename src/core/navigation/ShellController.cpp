@@ -285,7 +285,7 @@ ShellController::ShellController(LibraryRepository& repo, TrainerRepository& pro
         if(socialActive()||homeMenuOpen_)emit changed();
     });
     connect(&social_, &SocialController::textRequested, this, [this](QString title, QString text, int limit) {
-        textTarget_ = TextTarget::Social; keyboard_.begin(title,text,limit,false,social_.textSubmitLabel(),social_.textAllowsEmoji());
+        textTarget_ = TextTarget::Social; keyboard_.begin(title,text,limit,social_.textSecret(),social_.textSubmitLabel(),social_.textAllowsEmoji());
     });
     connect(&keyboard_, &TextEntryController::accepted, this, [this](const QString& text) {
         const auto target = textTarget_;
