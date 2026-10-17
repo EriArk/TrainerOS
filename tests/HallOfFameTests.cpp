@@ -55,6 +55,26 @@ void achievements(HallOfFameController& hall, int index = 0) {
 class HallOfFameTests : public QObject {
     Q_OBJECT
 private slots:
+    void achievementPopupUsesVerifiedFieldsAndTrapsUnrelatedActions() {
+        MutableArchive archive; GalleryProvider provider; HallOfFameController hall(archive,provider);
+        hall.setCurrentAdventure("current"); hall.showCurrentAchievements(); hall.activate(0);
+        QCOMPARE(hall.detail()["mode"].toString(),"Hardcore");
+        QVERIFY(!hall.detail()["earnedDate"].toString().isEmpty());
+        QVERIFY(hall.detail()["icon"].toString().endsWith("12345.png"));
+        QSignalSpy scroll(&hall,&HallOfFameController::detailScrollRequested);
+        hall.dispatch(Action::Down); QCOMPARE(scroll.count(),1);
+        hall.dispatch(Action::ToggleContinue); hall.dispatch(Action::Secondary); hall.dispatch(Action::Right);
+        QVERIFY(!hall.galleryMenuOpen()); QVERIFY(!hall.account()->isOpen()); QCOMPARE(hall.rowIndex(),0);
+        hall.dispatch(Action::Confirm); QCOMPARE(hall.route(),"achievements");
+        hall.activate(1); QVERIFY(hall.detail()["mode"].toString().isEmpty());
+        QVERIFY(hall.detail()["earnedDate"].toString().isEmpty());
+        QVERIFY(hall.detail()["icon"].toString().endsWith("12345_lock.png"));
+        hall.dispatch(Action::Back); hall.activate(2);
+        QCOMPARE(hall.detail()["earnedState"].toString(),"unknown");
+        QVERIFY(hall.detail()["earnedDate"].toString().isEmpty());
+        provider.owner.accountId="new-owner"; provider.publish();
+        QCOMPARE(hall.route(),"achievements"); QVERIFY(hall.detail()["icon"].toString().isEmpty());
+    }
     void universalGallerySurvivesCurrentGameAndAdapterNavigationRestoration() {
         MockLibraryRepository library; MockTrainerRepository profiles; MockAdventureAdapter adapter;
         DevelopmentPlatformService platform; MockPokedexRepository dex; MockHallOfFameRepository archive;
@@ -69,6 +89,9 @@ private slots:
         QCOMPARE(shell.hall()->gallery()["title"].toString(),"Pokémon Emerald");
         QVERIFY(!shell.hall()->isArchive()); QVERIFY(!shell.hall()->rows().isEmpty());
         shell.setLiveGame({});
+        // Returning to the saved selection can restore its modal detail.
+        QCOMPARE(shell.hall()->route(),"achievement-detail");
+        shell.dispatch(Action::Back);
         shell.dispatch(Action::ToggleContinue); QVERIFY(shell.drawerOpen());
         for(const auto& row:shell.drawerGames())if(row.toMap()["title"]=="Pokémon Crystal") {
             shell.selectDrawerGame(row.toMap()["id"].toString()); break;
@@ -271,14 +294,18 @@ private slots:
         QCOMPARE(shell.hall()->route(), "achievements");
         shell.activate(1);
         shell.dispatch(Action::ToggleContinue);
-        QVERIFY(shell.drawerOpen()); QVERIFY(!shell.pairedNavigationAvailable());
+        QVERIFY(!shell.drawerOpen()); QVERIFY(!shell.pairedNavigationAvailable());
         shell.dispatch(Action::PreviousFace);
         QCOMPARE(shell.hall()->route(), "achievement-detail");
         shell.dispatch(Action::Back);
         QCOMPARE(shell.currentAdventureId(), choice);
+        QCOMPARE(shell.hall()->route(),"achievements");
+        shell.dispatch(Action::ToggleContinue); QVERIFY(shell.drawerOpen());
+        shell.dispatch(Action::PreviousFace); QCOMPARE(shell.hall()->route(),"achievements");
+        shell.dispatch(Action::Back); shell.activate(1);
         shell.dispatch(Action::SystemMenu); shell.dispatch(Action::NextFace);
         QCOMPARE(shell.hall()->route(), "achievement-detail");
-        shell.dispatch(Action::Back);shell.hall()->dispatch(Action::Secondary);
+        shell.dispatch(Action::Back);shell.dispatch(Action::Back);shell.hall()->dispatch(Action::Secondary);
         QVERIFY(shell.hall()->account()->isOpen());
         shell.dispatch(Action::NextFace); QVERIFY(!shell.hall()->isArchive());
         shell.dispatch(Action::Back);shell.goToTrainerFace("hall");
@@ -296,7 +323,7 @@ private slots:
         QCOMPARE(restored.page(), 2);
         QCOMPARE(restored.hall()->route(), "archive-detail");
         restored.openGameHubFace("ra");
-        QCOMPARE(restored.hall()->route(), "achievement-detail");
+        QCOMPARE(restored.hall()->route(), "achievements"); // The popup was explicitly closed before leaving.
         QCOMPARE(restored.hall()->rowIndex(), 1);
         QCOMPARE(restored.currentAdventureId(), choice);
     }

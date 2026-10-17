@@ -265,7 +265,15 @@ void startAchievementGallerySmoke(QQuickWindow* window, ShellController& shell, 
         case 2:
             check(hall->rowIndex()==19,"2D controller navigation");check(grid && grid->property("contentY").toDouble()>0,"scroll follows focus");
             capture("scrolled");press(a);break;
-        case 3: check(hall->route()=="achievement-detail","detail opens");press(b);break;
+        case 3: {
+            check(hall->route()=="achievement-detail","detail opens");
+            auto* popup=window->findChild<QQuickItem*>("achievement-popup-card");
+            check(popup && popup->isVisible() && popup->width()<grid->width()*.85,"medium popup over gallery");
+            check(grid && grid->isVisible(),"gallery remains behind popup");
+            shell.dispatch(Action::NextFace);shell.dispatch(Action::Secondary);shell.dispatch(Action::ToggleContinue);
+            check(shell.hubFace()=="ra" && !shell.quickAppsOpen() && !shell.drawerOpen(),"popup traps background navigation");
+            capture("popup");press(b);break;
+        }
         case 4:
             check(hall->rowIndex()==19 && hall->route()=="achievements","back restores card");
             press(SDL_CONTROLLER_BUTTON_BACK);break;
@@ -281,7 +289,9 @@ void startAchievementGallerySmoke(QQuickWindow* window, ShellController& shell, 
         case 9:provider.setAccount("sample-trainer");provider.refresh("emerald-sample");break;
         case 10:capture("gallery-720");window->resize(1920,1080);break;
         case 11:capture("gallery-1080");window->resize(1024,768);break;
-        case 12:capture("gallery-4x3");break;
+        case 12:capture("gallery-4x3");press(a);break;
+        case 13:capture("popup-4x3");window->resize(1920,1080);break;
+        case 14:capture("popup-1080");press(b);break;
         default:
             check(warnings==0,"QML warnings");completed=true;timer->stop();
             QFile report(directory+"/verification.txt");if(report.open(QIODevice::WriteOnly))report.write(((*failed?QString("FAILED\n"):QString("PASSED\n"))+diagnostics.join('\n')).toUtf8());

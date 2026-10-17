@@ -79,6 +79,7 @@ public:
     QJsonObject navigationState() const;
     void restoreNavigation(const QJsonObject&);
 signals:
+    void detailScrollRequested(int delta);
     void changed();
     void rowsChanged();
     void messageRequested(const QString& message);

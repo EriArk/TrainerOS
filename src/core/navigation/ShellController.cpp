@@ -339,7 +339,7 @@ bool ShellController::canEditWorld() const {
 bool ShellController::localModalOpen() {
     return collectionManager()->isOpen() || downloads_.isOpen() || scraper_.isOpen() || (socialActive() && !social_.menu().isEmpty()) || libraryTools_.isOpen() || trainer_.editing()
         || (adapterActive() && activeModule_ && activeModule_->modalOpen())
-        || (page_==GameHubPage && hubFace_=="ra" && (hall_.editor()->isOpen() || hall_.account()->isOpen() || hall_.galleryMenuOpen()));
+        || (page_==GameHubPage && hubFace_=="ra" && (hall_.editor()->isOpen() || hall_.account()->isOpen() || hall_.galleryMenuOpen() || hall_.route()=="achievement-detail"));
 }
 bool ShellController::chooseAdventureAvailable() {
     return !homeMenuOpen_ && (!adapterActive() || !activeModule_ || activeModule_->recentsAllowed())
@@ -1531,6 +1531,11 @@ void ShellController::dispatch(Action action) {
         quickAppsOpen_=false;apps_.leave();
     }
     if(!menuOpen_ && !keyboard_.isOpen() && !localModalOpen() && !serviceOpen() && notice_.isEmpty() && action==Action::LocalAction) {openContext();return;}
+    if(dashboardReturn_ && page_==GameHubPage && hubFace_=="ra" && hall_.route()=="achievement-detail"
+       && (action==Action::Back || action==Action::Confirm) && !homeMenuOpen_ && !menuOpen_
+       && !keyboard_.isOpen() && !serviceOpen() && notice_.isEmpty()) {
+        hall_.dispatch(Action::Back); goToPage(HomePage); return;
+    }
     if(action==Action::Back && dashboardReturn_ && !(page_==GameHubPage && overviewFace_=="screens" && album_.filtering()) && !keyboard_.isOpen() && !localModalOpen()
        && !menuOpen_ && !serviceOpen() && !drawerOpen_ && notice_.isEmpty()) {goToPage(HomePage);return;}
     if(action==Action::ContextMenu && canHoldConfirm()) {

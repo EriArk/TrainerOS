@@ -11,9 +11,9 @@ Item {
     readonly property bool browsing: active && !detailOpen && !hall.galleryMenuOpen
     objectName: "achievement-gallery"
     Item {
-        anchors.fill: parent; visible: !root.detailOpen
+        anchors.fill: parent
         Item {
-            id: header; width: parent.width; height: root.height < 300 ? 52 : 68
+            id: header; width: parent.width; height: root.height < 300 ? 52 : 60
             Text {
                 x: 8; y: 0; width: parent.width-230; height: 32
                 text: root.summary.title || root.shell.home.adventure || "Your achievements"
@@ -85,7 +85,7 @@ Item {
                 }
                 Item {
                     id: medal
-                    width: Math.min(78,Math.max(32,trophy.height-(trophy.height < 100 ? 50 : 55))); height: width
+                    width: Math.min(trophy.width-24,112,Math.max(32,trophy.height-41)); height: width
                     anchors.horizontalCenter: parent.horizontalCenter; y: 6
                     Rectangle { x: 2; y: 4; width: parent.width; height: parent.height; radius: 18; color: "#25283a30" }
                     Rectangle {
@@ -112,19 +112,14 @@ Item {
                     Rectangle {
                         width: 18; height: 18; radius: 9; x: parent.width-17; y: parent.height-17
                         color: trophy.earned ? Theme.green : Theme.paper; border.color: trophy.metal
-                        Text { anchors.centerIn: parent; text: trophy.earned ? "✓" : trophy.locked ? "−" : "?"; font.pixelSize: 12; color: Theme.ink }
+                        Text { anchors.centerIn: parent; text: trophy.earned ? (trophy.modelData.mode === "Hardcore" ? "H" : "✓") : trophy.locked ? "−" : "?"; font.pixelSize: 12; color: Theme.ink }
                     }
                 }
                 Text {
-                    x: 9; y: medal.y+medal.height+4; width: parent.width-18; height: trophy.height < 100 ? 26 : 30
+                    x: 9; y: medal.y+medal.height+3; width: parent.width-18; height: 30
                     text: trophy.modelData.title; textFormat: Text.PlainText; wrapMode: Text.WordWrap
                     maximumLineCount: 2; elide: Text.ElideRight; horizontalAlignment: Text.AlignHCenter
                     font.family: Theme.displayFamily; font.pixelSize: trophy.height < 100 ? 10.5 : 12; color: Theme.ink
-                }
-                Text {
-                    y: parent.height-13; width: parent.width; horizontalAlignment: Text.AlignHCenter
-                    text: trophy.earned ? "✓ " + (trophy.modelData.mode || "Earned") : trophy.locked ? "Locked" : "Unknown"
-                    color: Theme.muted; font.pixelSize: 9
                 }
                 MouseArea { anchors.fill: parent; enabled: root.browsing; onClicked: root.shell.activate(trophy.index,"list") }
             }
@@ -157,7 +152,7 @@ Item {
             Rectangle { width: 2; radius: 1; color: Theme.rim; height: parent.height*grid.visibleArea.heightRatio; y: parent.height*grid.visibleArea.yPosition }
         }
     }
-    HallOfFamePage { anchors.fill: parent; shell: root.shell; visible: root.detailOpen }
+    AchievementPopup { anchors.fill: parent; shell: root.shell; visible: root.detailOpen; enabled: root.active; z: 4 }
     Rectangle {
         anchors.fill: parent; visible: root.hall.galleryMenuOpen; color: "#b3fffef9"; z: 5
         MouseArea { anchors.fill: parent; enabled: root.active; onClicked: root.hall.closeGalleryMenu() }

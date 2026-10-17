@@ -217,6 +217,10 @@ QVariantMap HallOfFameController::detail() const {
         result["description"] = definition.description;
         result["summary"] = unlockLabel(unlock);
         result["earnedState"] = !unlock.unlocked ? "unknown" : *unlock.unlocked ? "earned" : "locked";
+        result["icon"] = definition.badgeName.isEmpty() ? QString() : "https://media.retroachievements.org/Badge/" + definition.badgeName
+            + (unlock.unlocked.has_value() && !*unlock.unlocked ? "_lock.png" : ".png");
+        result["mode"] = unlock.unlocked.value_or(false) && unlock.mode ? modeLabel(unlock.mode) : QString();
+        result["earnedDate"] = unlock.unlocked.value_or(false) && unlock.earnedAt.isValid() ? dateLabel(unlock.earnedAt) : QString();
         result["time"] = unlock.unlocked.value_or(false) ? "Earned: " + dateLabel(unlock.earnedAt) : "Unlock date unavailable";
     }
     return result;
@@ -512,6 +516,12 @@ void HallOfFameController::dispatch(Action action) {
     if (account_.isOpen()) { account_.dispatch(action); return; }
     if (editor_.isOpen()) { editor_.dispatch(action); return; }
     if (galleryMode_ && !isArchive()) {
+        if (route_ == "achievement-detail") {
+            // The detail is a single modal card, not the legacy action workspace.
+            if (action == Action::Back || action == Action::Confirm) { back(); emit changed(); }
+            else if (action == Action::Up || action == Action::Down) emit detailScrollRequested(action == Action::Down ? 45 : -45);
+            return;
+        }
         if (galleryMenuOpen_) {
             if (action == Action::Up || action == Action::Down) {
                 galleryMenuFocus_ = std::clamp(galleryMenuFocus_ + (action == Action::Up ? -1 : 1), 0, 8);

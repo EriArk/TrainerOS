@@ -10,7 +10,7 @@ Item {
             if(shell.adapterMenuOpen) return [h("↑↓","Screens"),h("A","Open"),h("B","My Story")]
             return adapterPresenter.hints(h) || [h("A","Open"),h("Select","Actions"),h("B","Screens")]
         }
-        if(shell.hubFace === "ra") return shell.hall.galleryMenuOpen
+        if(shell.hubFace === "ra") return shell.hall.route === "achievement-detail" ? [h("A","Close"),h("B","Gallery")] : shell.hall.galleryMenuOpen
             ? [h("↑↓","Options"),h("A","Choose"),h("B","Gallery")]
             : [h("A","Open"),h("Select","Options"),h("B","Back")]
         if(shell.overviewFace === "timeline") return [h("←→","Timeline"),h("B","My Story")]
