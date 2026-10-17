@@ -44,7 +44,7 @@ public:
     bool releaseLive(const QString& peer,const QString& ticket,const QString& token);
     QJsonObject state() const;
     QString id() const {return id_;}
-    QStringList invitedPeers() const {return invites_.keys();}
+    QStringList invitedPeers(qint64 now=0) const {QStringList peers;for(auto it=invites_.cbegin();it!=invites_.cend();++it)if(it.value()>now)peers.append(it.key());return peers;}
     quint64 generation() const {return generation_;}
 signals:
     void changed();

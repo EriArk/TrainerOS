@@ -16,6 +16,7 @@
 
 namespace trainer {
 SocialController::SocialController(QObject* parent):QObject(parent),session_(new FluxerSession) {
+    connect(this,&SocialController::changed,this,[this]{QTimer::singleShot(0,this,&SocialController::reconcileLobbyPreparation);});
     lobbyReminderTimer_.setInterval(15000);lobbyReminderTimer_.start();
     connect(&lobbyReminderTimer_,&QTimer::timeout,this,&SocialController::tickLobbyReminders);
     connect(&lobby_,&LobbyCoordinator::membershipEnded,this,[this](QString room){lobbyReminders_.cancel(room);pendingLobbyReminder_={};});
@@ -119,6 +120,7 @@ void SocialController::setOwner(QString owner) {
     lobbyReminders_.configure({});pendingLobbyReminder_={};lobbyPlatform_.clear();lobbyMode_.clear();
     lobbyPublicationTopic_="other";
     lobbyLastRoom_.clear();lobbyRailFocused_=false;lobbyRailFocus_=1;
+    lobbyRoomFocus_="game";lobbyChatExpanded_=false;lobbySpectatorChat_=false;lobbyAutoPreparation_.clear();
     recentTogether_.configure({},{});recentSelection_.clear();
     media_.clear();mediaSending_=mediaUncertain_=false;
     if(link_)link_->endOnline();
@@ -554,9 +556,11 @@ QVariantList SocialController::hints() const {
     if(snapshot_.value("state")=="authorizing"){h("B","Cancel sign-in");return result;}
     if(snapshot_.value("state")=="signed-out"||snapshot_.isEmpty()){if(!owner_.isEmpty())h("A","Sign in");return result;}
     if(face_=="lobby") {
-        h("A",lobbyChatFocused_?"Message":lobbyDetailFocused_||lobbyRailFocused_?"Choose":"Open");h("B",!lobbyDetailFocused_&&!lobbyRailFocused_?"Categories":"Back");
+        if(lobbyChatFocused_&&lobbySpectatorChat_)h("↑↓","Read");else h("A",lobbyChatFocused_?"Message":lobbyDetailFocused_||lobbyRailFocused_?"Choose":"Open");
+        h("B",lobbyChatFocused_?"Room":lobbyDetailFocused_?"Catalogue":!lobbyRailFocused_?"Categories":"Back");
         if(!lobbyDetailFocused_) {if(lobbyRailFocused_)h("\u2191\u2193","Choose");else {h("\u2190\u2192","Room / Page");h("\u2191\u2193","Room");}}
-        h("Select",lobbyDetailFocused_&&lobbyRows().value(lobbyFocus()).toMap()["kind"]=="own"?"Options":"Filters");return result;
+        if(!lobbyChatFocused_||!lobbySpectatorChat_)h("Select",lobbyDetailFocused_&&lobbyRows().value(lobbyFocus()).toMap()["kind"]=="own"?"Options":"Filters");
+        if(lobbyChatVisible()) {h("R3",lobbyChatExpanded_?"Room":"Expand chat");if(lobbyChatFocused_)h("L3",lobbySpectatorChat_?"Players":"Spectators");}return result;
     }
     if(face_=="friends") {
         h("X","Search");
@@ -586,21 +590,25 @@ void SocialController::activate(int index) {
     emit changed();
 }
 void SocialController::compose() {
+    if(lobbyChatVisible()&&lobbySpectatorChat_)return;
     if(!conversation())return;
     selection_.stop();
     textPurpose_="message";textChannel_=snapshot_["channel"].toString();
     emit textRequested("Message - "+conversationName(),drafts_.value(textChannel_),2000);
 }
 void SocialController::sendDraft() {
+    if(lobbyChatVisible()&&lobbySpectatorChat_)return;
     if(!menu_.isEmpty()||snapshot_["state"]!="connected")return;
     selection_.stop();send();
 }
 void SocialController::attachPicture() {
+    if(lobbyChatVisible()&&lobbySpectatorChat_)return;
     if(!conversation()||!menu_.isEmpty()||snapshot_["state"]!="connected")return;
     selection_.stop();menuChannel_=snapshot_["channel"].toString();menuMode_="picture";
     menuCommands_={"picture"};selectMenu(0);
 }
 void SocialController::recordVoice() {
+    if(lobbyChatVisible()&&lobbySpectatorChat_)return;
     if(!conversation()||!menu_.isEmpty()||snapshot_["state"]!="connected")return;
     if(!snapshot_["voice"].toMap()["channel"].toString().isEmpty())return;
     selection_.stop();menuChannel_=snapshot_["channel"].toString();menuMode_="record";
@@ -614,6 +622,7 @@ void SocialController::call() {
     selection_.stop();media_.clear();emit commandRequested("voice-join",{{"channel",snapshot_["channel"]}});
 }
 void SocialController::selectMessage(int index) {
+    if(lobbyChatVisible()&&lobbySpectatorChat_){retainMessagePosition(index,false);return;}
     if(index<0||index>=messages().size()||!menu_.isEmpty())return;
     selection_.stop();messageFocus_=index;reading_=true;openMenu();
 }
@@ -872,6 +881,7 @@ void SocialController::collectionOptions() {
     emit changed();
 }
 void SocialController::emoji() {
+    if(lobbyChatVisible()&&lobbySpectatorChat_)return;
     if(!conversation()||!menu_.isEmpty())return;
     selection_.stop();menuChannel_=snapshot_["channel"].toString();menuMode_="emoji";menuTitle_="Emoji";menuDetail_.clear();menuFocus_=0;
     menu_={QString::fromUtf8("👍"),QString::fromUtf8("❤️"),QString::fromUtf8("😀"),QString::fromUtf8("🎮"),QString::fromUtf8("🎉"),"More emoji..."};

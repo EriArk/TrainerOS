@@ -6,10 +6,18 @@ Item {
     readonly property var account: social.account
     property bool active: false
     property bool compact: false
+    property bool embeddedRoom: false
+    property bool readOnlyChat: false
+    property bool filteredFeed: false
+    property bool streamChat: false
+    property var messageRows: social.messages
+    function sourceIndex(index) { const row=messageRows[index]; return row && row.sourceIndex !== undefined ? row.sourceIndex : index }
+    function visibleIndex(index) { for(let i=0;i<messageRows.length;i++)if(sourceIndex(i)===index)return i;return -1 }
+    function escaped(value) { return String(value || "").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/\n/g,"<br/>") }
     signal menuAnchored(var item)
     signal focusRequested()
     function anchorMenu(item) { menuAnchored(item) }
-    Rectangle { id: chatHeading; width: parent.width; height: 45; radius: 9; color: "#e6dbf0"
+    Rectangle { id: chatHeading; width: parent.width; height: root.embeddedRoom ? 0 : 45; visible: !root.embeddedRoom; radius: 9; color: "#e6dbf0"
         Rectangle { x: 0; y: 8; width: 28; height: 28; radius: 9; color: Theme.pink
             Text { renderType: typeof Text.CurveRendering === "number" ? Text.CurveRendering : Text.QtRendering; anchors.centerIn: parent; text: root.social.conversationName.substring(0,1).toUpperCase(); font.pixelSize: 17; color: Theme.ink }
             Image { anchors.fill: parent; source: root.social.conversationInfo.avatar || ""; sourceSize: Qt.size(56,56); asynchronous: true }
@@ -28,7 +36,7 @@ Item {
     Rectangle { id: activityStrip; y: chatHeading.height; width: parent.width; height: visible ? 25 : 0; radius: 5; color: "#deedcb"
         readonly property var party: root.social.gameParty
         readonly property var voice: root.account.voice || ({})
-        visible: !root.compact && (!!party.party || !!party.joining || !!voice.channel)
+        visible: !root.compact && !root.embeddedRoom && (!!party.party || !!party.joining || !!voice.channel)
         Text { renderType: typeof Text.CurveRendering === "number" ? Text.CurveRendering : Text.QtRendering; x: 8; anchors.verticalCenter: parent.verticalCenter; width: parent.width - 16; text: (activityStrip.party.party ? ((activityStrip.party.game || {}).label || "Game party") : activityStrip.party.joining ? "Join request sent" : "") + (activityStrip.voice.channel ? "  Call · " + (activityStrip.voice.name || "Connected") : ""); font.pixelSize: 11; color: Theme.ink; elide: Text.ElideRight; textFormat: Text.PlainText }
         MouseArea { anchors.fill: parent; onClicked: { root.anchorMenu(parent); root.social.together() } }
     }
@@ -38,16 +46,16 @@ Item {
     ListView {
         id: log; objectName: "social-message-log"
         anchors { top: connectionStatus.bottom; topMargin: 7; bottom: composer.top; bottomMargin: 8; left: parent.left; right: parent.right }
-        clip: true; spacing: 2; model: root.social.messages; currentIndex: root.social.messageIndex
+        clip: true; spacing: 2; model: root.messageRows; currentIndex: root.visibleIndex(root.social.messageIndex)
         onMovementEnded: {
             const first = indexAt(42, contentY + 8)
-            if(first >= 0) root.social.retainMessagePosition(first, atYEnd)
+            if(first >= 0) root.social.retainMessagePosition(root.sourceIndex(first), !root.filteredFeed && atYEnd)
             if(atYBeginning && root.account.historyMore) root.social.earlierMessages()
         }
         function restorePosition() {
             if (moving || dragging) return
             forceLayout()
-            if (currentIndex >= count - 1) positionViewAtEnd()
+            if (currentIndex < 0 || currentIndex >= count - 1) positionViewAtEnd()
             else positionViewAtIndex(currentIndex,ListView.Contain)
         }
         onCurrentIndexChanged: Qt.callLater(restorePosition)
@@ -55,7 +63,7 @@ Item {
         onHeightChanged: Qt.callLater(restorePosition)
         Timer {
             interval: 1000; repeat: true
-            running: root.visible && root.active && root.social.conversation && (log.atYEnd || log.contentHeight <= log.height) && root.social.surfaceAvailable
+            running: !root.filteredFeed && root.visible && root.active && root.social.conversation && (log.atYEnd || log.contentHeight <= log.height) && root.social.surfaceAvailable
             onTriggered: if (root.account.readTail) root.social.presented(root.account.channel, root.account.readTail)
         }
         header: Item { width: log.width; height: root.account.historyMore ? 25 : 0
@@ -66,20 +74,23 @@ Item {
             id: messageRow
             required property var modelData
             required property int index
-            readonly property var previous: index > 0 ? root.social.messages[index-1] : null
+            readonly property var previous: index > 0 ? root.messageRows[index-1] : null
             readonly property bool grouped: !!previous && !modelData.system && !previous.system && !!modelData.author && previous.author === modelData.author && !!modelData.timestamp && Math.abs(Date.parse(modelData.timestamp)-Date.parse(previous.timestamp)) < 300000
-            width: log.width; height: content.height + (grouped ? 2 : 12)
+            width: log.width; height: content.height + (root.streamChat ? 4 : grouped ? 2 : 12)
             Rectangle { anchors.fill: parent; radius: 5; color: root.social.reading && index === log.currentIndex ? "#fff0bd" : "transparent" }
-            MouseArea { anchors.fill: parent; onClicked: { root.focusRequested(); root.social.selectMessage(index) } onPressAndHold: { if (root.compact) return; root.social.selectMessage(index); root.anchorMenu(messageRow); root.social.options() } }
-            Rectangle { x: 2; y: 6; width: 28; height: 28; radius: 9; visible: !messageRow.grouped && !modelData.system; color: modelData.mine ? Theme.pink : Theme.blue
+            MouseArea { anchors.fill: parent; onClicked: { root.focusRequested(); root.social.selectMessage(root.sourceIndex(index)) } onPressAndHold: { if (root.compact || root.readOnlyChat) return; root.social.selectMessage(root.sourceIndex(index)); root.anchorMenu(messageRow); root.social.options() } }
+            Rectangle { x: 2; y: 6; width: 28; height: 28; radius: 9; visible: !root.streamChat && !messageRow.grouped && !modelData.system; color: modelData.mine ? Theme.pink : Theme.blue
                 Text { renderType: typeof Text.CurveRendering === "number" ? Text.CurveRendering : Text.QtRendering; anchors.centerIn: parent; text: modelData.name.substring(0,1).toUpperCase(); font.pixelSize: 16; color: Theme.ink; textFormat: Text.PlainText }
                 Image { anchors.fill: parent; source: modelData.avatar || ""; sourceSize: Qt.size(56,56); asynchronous: true }
-                MouseArea { anchors.fill: parent; enabled: !root.compact; onClicked: root.social.profile(modelData.author) }
+                MouseArea { anchors.fill: parent; enabled: !root.compact && !root.readOnlyChat; onClicked: root.social.profile(modelData.author) }
             }
-            Column { id: content; x: modelData.system ? 8 : 40; y: messageRow.grouped ? 0 : 5; width: parent.width - x - 8; spacing: 3
-                Text { renderType: typeof Text.CurveRendering === "number" ? Text.CurveRendering : Text.QtRendering; visible: !modelData.system && !messageRow.grouped; width: parent.width; text: modelData.name + (modelData.timestamp ? "   " + Qt.formatDateTime(new Date(modelData.timestamp), "ddd HH:mm") : ""); font.pixelSize: 12; font.bold: true; color: Theme.muted; elide: Text.ElideRight; textFormat: Text.PlainText
-                    MouseArea { anchors.fill: parent; enabled: !root.compact; onClicked: root.social.profile(modelData.author) } }
-                Text { renderType: typeof Text.CurveRendering === "number" ? Text.CurveRendering : Text.QtRendering; width: parent.width; visible: !!modelData.text || modelData.system; text: (modelData.text || (modelData.system ? "Conversation updated" : "")) + (modelData.edited ? " (edited)" : ""); font.pixelSize: modelData.system ? 12 : 15; color: modelData.system ? Theme.muted : Theme.ink; wrapMode: Text.Wrap; textFormat: Text.PlainText }
+            Column { id: content; x: root.streamChat ? 3 : modelData.system ? 8 : 40; y: root.streamChat ? 0 : messageRow.grouped ? 0 : 5; width: parent.width - x - 8; spacing: 3
+                Text { renderType: typeof Text.CurveRendering === "number" ? Text.CurveRendering : Text.QtRendering; visible: !root.streamChat && !modelData.system && !messageRow.grouped; width: parent.width; text: modelData.name + (modelData.timestamp ? "   " + Qt.formatDateTime(new Date(modelData.timestamp), "ddd HH:mm") : ""); font.pixelSize: 12; font.bold: true; color: Theme.muted; elide: Text.ElideRight; textFormat: Text.PlainText
+                    MouseArea { anchors.fill: parent; enabled: !root.compact && !root.readOnlyChat; onClicked: root.social.profile(modelData.author) } }
+                Text { renderType: typeof Text.CurveRendering === "number" ? Text.CurveRendering : Text.QtRendering; width: parent.width; visible: !!modelData.text || modelData.system
+                    text: root.streamChat ? '<b><font color="#5c7d79">'+root.escaped(modelData.name)+':</font></b> '+root.escaped(modelData.text)+(modelData.edited ? " (edited)" : "")
+                        : (modelData.text || (modelData.system ? "Conversation updated" : "")) + (modelData.edited ? " (edited)" : "")
+                    font.pixelSize: root.streamChat || modelData.system ? 12 : 15; color: modelData.system ? Theme.muted : Theme.ink; wrapMode: Text.Wrap; textFormat: root.streamChat ? Text.StyledText : Text.PlainText }
                 Text { renderType: typeof Text.CurveRendering === "number" ? Text.CurveRendering : Text.QtRendering; visible: !!modelData.callDetail; width: parent.width; text: modelData.callDetail || ""; font.pixelSize: 11; color: Theme.muted; wrapMode: Text.Wrap; textFormat: Text.PlainText }
                 Repeater { model: modelData.attachments || []
                     Rectangle { required property var modelData; width: content.width; height: 34; radius: 6; color: "#deedf3"
@@ -91,12 +102,12 @@ Item {
         }
     }
     Text { renderType: typeof Text.CurveRendering === "number" ? Text.CurveRendering : Text.QtRendering; anchors.centerIn: log; width: log.width - 40; visible: log.count === 0
-        text: root.account.historyBusy ? "Loading messages..." : "Say hello!"; horizontalAlignment: Text.AlignHCenter; wrapMode: Text.WordWrap; font.pixelSize: 18; color: Theme.muted }
+        text: root.account.historyBusy ? "Loading messages..." : root.readOnlyChat ? "No spectator messages yet" : "Say hello!"; horizontalAlignment: Text.AlignHCenter; wrapMode: Text.WordWrap; font.pixelSize: 18; color: Theme.muted }
     Rectangle { visible: !!root.account.historyPast; anchors { right: log.right; bottom: log.bottom; margins: 5 } width: 85; height: 28; radius: 8; color: "#e7ddf1"; border.color: "#bdacce"
         Text { renderType: typeof Text.CurveRendering === "number" ? Text.CurveRendering : Text.QtRendering; anchors.centerIn: parent; text: "↓ Latest"; color: Theme.ink; font.pixelSize: 12 }
         MouseArea { anchors.fill: parent; onClicked: root.social.latest() }
     }
-    Rectangle { id: composer; anchors { left: parent.left; right: parent.right; bottom: parent.bottom; bottomMargin: 9 } height: 40; radius: 9; color: Theme.paper; border.color: "#d1b8a0"
+    Rectangle { id: composer; visible: !root.readOnlyChat; anchors { left: parent.left; right: parent.right; bottom: parent.bottom; bottomMargin: 9 } height: visible ? 40 : 0; radius: 9; color: Theme.paper; border.color: "#d1b8a0"
         SocialIconButton { id: attach; visible: !root.compact; width: visible ? 32 : 0; x: 3; anchors.verticalCenter: parent.verticalCenter; tint: Theme.blue; icon: "plus"; label: "Attach a picture"; onClicked: { root.anchorMenu(this); root.social.attachPicture() } }
         Text { renderType: typeof Text.CurveRendering === "number" ? Text.CurveRendering : Text.QtRendering; anchors { left: attach.right; right: emoji.left; margins: 7; verticalCenter: parent.verticalCenter } text: root.social.draft || "Write a message..."; font.pixelSize: 14; color: root.social.draft ? Theme.ink : Theme.muted; elide: Text.ElideRight; textFormat: Text.PlainText
             MouseArea { anchors.fill: parent; anchors.topMargin: -10; anchors.bottomMargin: -10; onClicked: { root.focusRequested(); root.social.compose() } } }

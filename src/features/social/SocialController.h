@@ -73,6 +73,15 @@ class SocialController final : public QObject {
     Q_PROPERTY(QVariantMap lobbyDirectory READ lobbyDirectory NOTIFY changed)
     Q_PROPERTY(QVariantList lobbyRows READ lobbyRows NOTIFY changed)
     Q_PROPERTY(QVariantList lobbyActions READ lobbyActions NOTIFY changed)
+    Q_PROPERTY(QVariantList lobbyPlayers READ lobbyPlayers NOTIFY changed)
+    Q_PROPERTY(QVariantList lobbySpectators READ lobbySpectators NOTIFY changed)
+    Q_PROPERTY(QVariantList lobbyRoomActions READ lobbyRoomActions NOTIFY changed)
+    Q_PROPERTY(QVariantMap lobbyRoomGame READ lobbyRoomGame NOTIFY changed)
+    Q_PROPERTY(QString lobbyRoomFocus READ lobbyRoomFocus NOTIFY changed)
+    Q_PROPERTY(bool lobbyChatFocused READ lobbyChatFocused NOTIFY changed)
+    Q_PROPERTY(bool lobbyChatExpanded READ lobbyChatExpanded NOTIFY changed)
+    Q_PROPERTY(bool lobbySpectatorChat READ lobbySpectatorChat NOTIFY changed)
+    Q_PROPERTY(QVariantList lobbyRoomMessages READ lobbyRoomMessages NOTIFY changed)
     Q_PROPERTY(int lobbyFocus READ lobbyFocus NOTIFY changed)
     Q_PROPERTY(int lobbyPage READ lobbyPage NOTIFY changed)
     Q_PROPERTY(int lobbyPageCount READ lobbyPageCount NOTIFY changed)
@@ -96,6 +105,18 @@ public:
     QVariantMap lobbyDirectory() const {return snapshot_["lobbyDirectory"].toMap();}
     QVariantList lobbyRows() const;
     QVariantList lobbyActions() const;
+    QVariantList lobbyPlayers() const;
+    QVariantList lobbySpectators() const;
+    QVariantList lobbyRoomActions() const;
+    QVariantMap lobbyRoomGame() const;
+    QString lobbyRoomFocus() const;
+    bool lobbyChatFocused() const {return lobbyChatFocused_;}
+    bool lobbyChatExpanded() const {return lobbyChatExpanded_;}
+    bool lobbySpectatorChat() const {return lobbySpectatorChat_;}
+    QVariantList lobbyRoomMessages() const;
+    Q_INVOKABLE void toggleLobbySpectatorChat();
+    Q_INVOKABLE void activateLobbyRoom(QString key);
+    Q_INVOKABLE void expandLobbyChat();
     int lobbyFocus() const;
     int lobbyPage() const;
     bool lobbyRailFocused() const {return lobbyRailFocused_;}
@@ -285,6 +306,12 @@ private:
     void openLobbyChat();
     QString lobbyChatKey_,lobbyChatRoom_,lobbyChatChannel_,lobbyChatStatus_;
     bool lobbyChatBusy_=false,lobbyChatFocused_=false;
+    bool lobbyChatExpanded_=false;
+    bool lobbySpectatorChat_=false;
+    QString lobbyRoomFocus_="game",lobbyAutoPreparation_;
+    QVariantMap lobbyPerson(QVariantMap member) const;
+    void dispatchLobbyRoom(Action action);
+    void reconcileLobbyPreparation();
     LobbyCoordinator lobby_{this};
     LobbyReminders lobbyReminders_;
     QTimer lobbyReminderTimer_;

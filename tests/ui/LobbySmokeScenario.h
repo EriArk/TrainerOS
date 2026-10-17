@@ -22,6 +22,13 @@ public:
     void cancel(QString) override {}
     bool supportsLive(const QJsonObject&) const override {return true;}
 };
+class LobbyRoomSmokeRuntime final : public LobbyRuntimeService {
+public:
+    using LobbyRuntimeService::LobbyRuntimeService;
+    void prepare(QString,QJsonObject,Completion done) override {done(true,{});}
+    void launch(QString,QString,QJsonObject,Completion done) override {done(false,"UI fixture does not launch games");}
+    void cancel(QString) override {}
+};
 // Isolated provider state; exercises the actual QML and input, never an account.
 class LobbySmokeScenario {
 public:
@@ -92,7 +99,61 @@ public:
             case 13:
                 check(social->lobbyFocus()==1,"Down returns to remembered room");
                 press(ControllerInput::BackButton);window->resize(960,540);break;
-            case 14:capture("catalogue-controller-rail-960");break;
+            case 14:capture("catalogue-controller-rail-960");if(!qEnvironmentVariableIsSet("TRAINEROS_LOBBY_ROOM_SMOKE"))*step=99;break;
+            case 15: {
+                social->lobbyRuntime_.registerService("netplay",new LobbyRoomSmokeRuntime(window));
+                social->selectLobby(0);social->lobby_.setDetails("One more round",QDateTime::currentSecsSinceEpoch()+3600);
+                for(int i=2;i<=4;++i) {
+                    const auto id=QString::number(i),name=QStringList{"Ren","Luna With A Long Nickname","Nori"}[i-2];
+                    auto* guest=new LobbyCoordinator(window);guest->configure(id,name,true);
+                    QObject::connect(&social->lobby_,&LobbyCoordinator::outgoing,guest,[=](QString peer,QJsonObject p){if(peer==id)guest->receive("1","Mika",p);});
+                    QObject::connect(guest,&LobbyCoordinator::outgoing,social,[=](QString,QJsonObject p){social->lobby_.receive(id,name,p);});
+                    social->lobby_.invite(id);guest->answer(true);if(i==4)guest->spectate(true);
+                }
+                social->lobby_.selectGame({"fixture","Super Mario Kart","SNES","netplay",4,{}});
+                social->lobbyGames_={QVariantMap{{"id","fixture"},{"mode","netplay"},{"modeLabel","NetPlay"}}};
+                auto snapshot=social->snapshot_;snapshot["channel"]="300";snapshot["status"]="Connected";
+                snapshot["voice"]=QVariantMap{{"available",true},{"state","connected"},{"channel","300"},{"muted",true},{"speakers",QStringList{"2"}}};
+                snapshot["chats"]=QVariantList{QVariantMap{{"id","300"},{"name","One more round"},{"kind","groups"}}};
+                snapshot["messages"]=QVariantList{
+                    QVariantMap{{"id","301"},{"author","2"},{"name","Ren"},{"text","Anyone up for a few races?"}},
+                    QVariantMap{{"id","302"},{"author","3"},{"name","Luna"},{"text","I'm in! Let's start with Mushroom Cup."}},
+                    QVariantMap{{"id","303"},{"author","1"},{"name","Mika"},{"text","Perfect. Nori is watching this round."},{"mine",true}},
+                    QVariantMap{{"id","304"},{"author","4"},{"name","Nori"},{"text","That last corner!"}},
+                    QVariantMap{{"id","305"},{"author","4"},{"name","Nori"},{"text","Ren, watch out for the green shell 😂"}},
+                    QVariantMap{{"id","306"},{"author","4"},{"name","Nori"},{"text","<Not markup> & still a message"}}};
+                social->receive(0,snapshot);social->lobbyChatChannel_="300";social->lobbyChatStatus_.clear();social->selectLobby(0);
+                social->lobbyRoomFocus_="person:2";window->resize(1600,900);break;
+            }
+            case 16:
+                check(social->lobbyPlayers().size()==4&&social->lobbySpectators().size()==1,"Room shows verified seats and separate spectators");
+                check(social->lobbyPlayers().first().toMap()["prepared"].toBool(),"Preparation runs automatically; Ready remains explicit");
+                capture("room-filled");check(click("lobby-expand-chat"),"Touch expands shared chat");break;
+            case 17:
+                check(social->lobbyChatExpanded(),"Expanded chat uses the same conversation");capture("room-chat-expanded");
+                press(ControllerInput::BackButton);check(!social->lobbyChatExpanded()&&social->lobbyDetailFocused(),"B collapses chat without leaving room");
+                press(SDL_CONTROLLER_BUTTON_RIGHTSTICK);check(social->lobbyChatExpanded(),"R3 expands the chat through the shell");press(SDL_CONTROLLER_BUTTON_RIGHTSTICK);
+                press(ControllerInput::BackButton);window->resize(960,540);break;
+            case 18:
+                capture("room-handheld");press(SDL_CONTROLLER_BUTTON_DPAD_DOWN);capture("room-controls-focus");
+                window->resize(1920,1080);shell.settings()->cycleTheme(1);break;
+            case 19:
+                capture("room-wide-theme");social->lobby_.selectGame({"fixture-many","Sixteen-seat fixture","Test","netplay",16,{}});
+                social->lobbyRoomFocus_="seat:16";window->resize(960,540);break;
+            case 20:
+                check(social->lobbyPlayers().size()==16,"Runtime capacity is not fixed at four");capture("room-sixteen-seats");
+                check(click("lobby-room-menu"),"Room menu is touch accessible");break;
+            case 21:
+                capture("room-options");check(social->menuCommands_.contains("lobby:leave"),"Room exit is separate from B");social->closeMenu();
+                press(ControllerInput::BackButton);check(!social->lobbyDetailFocused()&&!social->lobbyState().isEmpty(),"B preserves the room while browsing");break;
+            case 22:
+                social->selectLobby(0);check(click("lobby-spectator-strip"),"Spectator strip switches the chat");break;
+            case 23:
+                check(social->lobbySpectatorChat()&&social->lobbyRoomMessages().size()==3,"Only spectator messages appear in stream chat");capture("room-spectator-chat");
+                press(ControllerInput::ConfirmButton);check(!shell.keyboard()->isOpen()&&social->menu_.isEmpty(),"Spectator chat has no reply or compose action");
+                press(SDL_CONTROLLER_BUTTON_LEFTSTICK);check(!social->lobbySpectatorChat(),"L3 returns to player chat through the shell");break;
+            case 24:
+                check(!social->lobbySpectatorChat()&&social->lobbyRoomMessages().size()==3,"Player chat excludes spectator messages");break;
             default:
                 timer->stop();completed=true;QFile report(directory+"/catalogue-check.txt");
                 if(report.open(QIODevice::WriteOnly))report.write((diagnostics.join('\n')+QString("\nqmlWarnings=%1\n").arg(warnings)).toUtf8());

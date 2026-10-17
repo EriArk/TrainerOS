@@ -6,6 +6,12 @@ Item {
     property string glyph: ""
     property color ink: Theme.ink
     readonly property var paths: ({
+        "game-controller": "M7 6 H17 Q20 6 21 10 L23 17 Q23 21 19 19 L16 16 H8 L5 19 Q1 21 1 17 L3 10 Q4 6 7 6 Z M7 9 V15 M4 12 H10 M16 10 V11 M19 13 V14",
+        "chat": "M5 3 H19 Q22 3 22 6 V15 Q22 18 19 18 H10 L5 22 V18 Q2 18 2 15 V6 Q2 3 5 3 Z M6 9 H18 M6 13 H14",
+        "expand": "M9 3 H3 V9 M3 3 L10 10 M15 21 H21 V15 M21 21 L14 14",
+        "collapse": "M3 3 L10 10 M4 10 H10 V4 M21 21 L14 14 M14 20 V14 H20",
+        "microphone": "M9 5 A3 3 0 0 1 15 5 V12 A3 3 0 0 1 9 12 Z M6 10 V12 Q6 18 12 18 Q18 18 18 12 V10 M12 18 V22 M8 22 H16",
+        "speaker": "M3 9 H7 L13 4 V20 L7 15 H3 Z M16 8 Q20 12 16 16 M19 5 Q25 12 19 19",
         "guide": "M3 4 Q8 2 12 5 Q16 2 21 4 V20 Q16 18 12 21 Q8 18 3 20 Z M12 5 V21",
         "party": "M8 3 A3 3 0 1 0 8 9 A3 3 0 1 0 8 3 M16 5 A3 3 0 1 0 16 11 A3 3 0 1 0 16 5 M2 21 V16 Q8 10 13 16 V21 M14 14 Q20 12 22 18 V21",
         "boxes": "M3 3 H21 V21 H3 Z M3 9 H21 M3 15 H21 M9 3 V21 M15 3 V21",

@@ -34,6 +34,67 @@ class SocialTests : public QObject {
         s.channel_=channel;s.channels_[channel]={{"id",channel},{"type",1}};
     }
 private slots:
+    void lobbyRoomUsesIdentitySeatsAndVerifiedVoice() {
+        SocialController s;QObject::disconnect(&s,nullptr,s.session_,nullptr);QObject::disconnect(s.session_,nullptr,&s,nullptr);
+        s.receive(0,{{"state","connected"},{"userId","1"},{"name","Mika"},{"profile",QVariantMap{{"avatar","self.png"}}},
+            {"friends",QVariantList{QVariantMap{{"id","2"},{"name","Ren"},{"avatar","ren.png"},{"type",1}}}}});
+        s.openLobbyForPeople();QCOMPARE(s.lobbyPlayers().size(),2);QCOMPARE(s.lobbyPlayers()[0].toMap()["seat"].toInt(),0);
+        LobbyCoordinator guest;guest.configure("2","Ren",true);
+        connect(&s.lobby_,&LobbyCoordinator::outgoing,&guest,[&](QString peer,QJsonObject p){if(peer=="2")guest.receive("1","Mika",p);});
+        connect(&guest,&LobbyCoordinator::outgoing,&s,[&](QString,QJsonObject p){s.lobby_.receive("2","Ren",p);});
+        QVERIFY(s.lobby_.invite("2"));guest.answer(true);
+        QVERIFY(s.lobby_.selectGame({"game","A real game","snes","netplay",3,{}}));
+        QCOMPARE(s.lobbyPlayers().size(),3);QCOMPARE(s.lobbyPlayers()[1].toMap()["avatar"].toString(),QString("ren.png"));
+        QVERIFY(s.lobbyPlayers()[2].toMap()["empty"].toBool());
+        s.lobbyChatChannel_="300";s.snapshot_["voice"]=QVariantMap{{"state","connected"},{"channel","999"},{"speakers",QStringList{"2"}}};
+        QVERIFY(!s.lobbyPlayers()[1].toMap()["speaking"].toBool());
+        auto voice=s.snapshot_["voice"].toMap();voice["channel"]="300";s.snapshot_["voice"]=voice;
+        QVERIFY(s.lobbyPlayers()[1].toMap()["speaking"].toBool());
+        guest.spectate(true);QCOMPARE(s.lobbySpectators().size(),1);QVERIFY(s.lobbyPlayers()[1].toMap()["empty"].toBool());
+        QCOMPARE(s.lobbySpectators()[0].toMap()["id"].toString(),QString("2"));
+        s.snapshot_["channel"]="300";s.snapshot_["messages"]=QVariantList{
+            QVariantMap{{"id","10"},{"author","1"},{"name","Mika"},{"text","Player message"}},
+            QVariantMap{{"id","11"},{"author","2"},{"name","Ren"},{"text","Spectator message"}}};
+        s.drafts_["300"]="Unsent player draft";
+        QCOMPARE(s.lobbyRoomMessages().size(),1);QCOMPARE(s.lobbyRoomMessages()[0].toMap()["id"].toString(),QString("10"));
+        s.dispatch(Action::ToggleFavorite);QVERIFY(s.lobbySpectatorChat());
+        QCOMPARE(s.lobbyRoomMessages().size(),1);QCOMPARE(s.lobbyRoomMessages()[0].toMap()["sourceIndex"].toInt(),1);
+        QSignalSpy writes(&s,&SocialController::textRequested),commands(&s,&SocialController::commandRequested);
+        s.compose();s.sendDraft();s.attachPicture();s.recordVoice();s.emoji();s.dispatch(Action::Secondary);s.dispatch(Action::Confirm);
+        QCOMPARE(writes.size(),0);QVERIFY(s.menu_.isEmpty());QCOMPARE(s.draft(),QString("Unsent player draft"));
+        for(const auto& command:commands)QVERIFY(command[0]!="send");
+        s.toggleLobbySpectatorChat();QVERIFY(!s.lobbySpectatorChat());QCOMPARE(s.draft(),QString("Unsent player draft"));
+        const auto room=s.lobbyState()["id"];QVERIFY(s.lobby_.selectGame({"other","Another game","gba","netplay",1,{}}));
+        QCOMPARE(s.lobbyPlayers().size(),1);QCOMPARE(s.lobbyState()["id"],room);
+    }
+    void lobbyRoomNavigationRetainsChatAndMembership() {
+        SocialController s;QObject::disconnect(&s,nullptr,s.session_,nullptr);QObject::disconnect(s.session_,nullptr,&s,nullptr);
+        s.receive(0,{{"state","connected"},{"userId","1"},{"name","Mika"}});s.openLobbyForPeople();
+        const auto room=s.lobbyState()["id"];s.lobbyChatChannel_="300";s.snapshot_["channel"]="300";s.drafts_["300"]="Keep my draft";
+        s.dispatch(Action::Down);QCOMPARE(s.lobbyRoomFocus(),QString("person:1"));
+        s.dispatch(Action::Right);QCOMPARE(s.lobbyRoomFocus(),QString("invite"));
+        s.dispatch(Action::Right);QVERIFY(s.lobbyChatFocused());
+        s.dispatch(Action::ChangeView);QVERIFY(s.lobbyChatExpanded());s.dispatch(Action::Back);QVERIFY(!s.lobbyChatExpanded());QVERIFY(s.lobbyChatFocused());
+        s.dispatch(Action::Back);QVERIFY(!s.lobbyChatFocused());QCOMPARE(s.lobbyRoomFocus(),QString("invite"));
+        s.dispatch(Action::Down);QCOMPARE(s.lobbyRoomFocus(),QString("action:call"));
+        s.dispatch(Action::Back);QVERIFY(!s.lobbyDetailFocused());QCOMPARE(s.lobbyState()["id"],room);
+        s.selectLobby(0);QCOMPARE(s.lobbyRoomFocus(),QString("action:call"));QCOMPARE(s.draft(),QString("Keep my draft"));
+        s.lobbyAction("room-menu");QVERIFY(s.menuCommands_.contains("lobby:leave"));
+    }
+    void lobbyAutomaticPreparationIsBoundedAndNeverInterruptsGame() {
+        class Runtime final : public LobbyRuntimeService { public: int attempts=0; void prepare(QString,QJsonObject,Completion done) override {++attempts;done(false,"Missing local game");}
+            void launch(QString,QString,QJsonObject,Completion done) override {done(false,"unused");} void cancel(QString) override {} } runtime;
+        SocialController s;QObject::disconnect(&s,nullptr,s.session_,nullptr);QObject::disconnect(s.session_,nullptr,&s,nullptr);
+        s.receive(0,{{"state","connected"},{"userId","1"},{"name","Mika"}});s.openLobbyForPeople();
+        s.lobbyRuntime_.registerService("netplay",&runtime);s.setGameActive(true);
+        QVERIFY(s.lobby_.selectGame({"game","Game","snes","netplay",2,{}}));s.reconcileLobbyPreparation();QCOMPARE(runtime.attempts,0);
+        s.setGameActive(false);s.reconcileLobbyPreparation();QCOMPARE(runtime.attempts,1);
+        s.reconcileLobbyPreparation();QCOMPARE(runtime.attempts,1);
+        s.activateLobbyRoom("action:prepare");QCOMPARE(runtime.attempts,2);
+        s.reconcileLobbyPreparation();QCOMPARE(runtime.attempts,2);
+        QVERIFY(s.lobby_.selectGame({"another","Another","snes","netplay",2,{}}));s.reconcileLobbyPreparation();QCOMPARE(runtime.attempts,3);
+        for(const auto& v:s.lobbyState()["members"].toList())QVERIFY(!v.toMap()["ready"].toBool());
+    }
     void lobbyCatalogueControllerTraversesRailGridAndCreate() {
         SocialController s;QObject::disconnect(&s,nullptr,s.session_,nullptr);QObject::disconnect(s.session_,nullptr,&s,nullptr);
         QVariantList rows;const auto now=QDateTime::currentSecsSinceEpoch();

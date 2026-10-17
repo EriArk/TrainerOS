@@ -35,6 +35,7 @@ add_library(trainer_core STATIC
     src/features/social/SocialStreams.cpp
     src/features/social/PlayerOverlayController.cpp
     src/features/social/SocialLobby.cpp
+    src/features/social/SocialLobbyRoom.cpp
     src/features/social/SocialRecent.cpp
     src/features/social/LobbySession.cpp
     src/features/social/LobbyCoordinator.cpp
@@ -418,6 +419,8 @@ qt_add_qml_module(traineros
         src/qml/ConversationPane.qml
         src/qml/SocialPage.qml
         src/qml/LobbyPane.qml
+        src/qml/LobbyRoom.qml
+        src/qml/LobbyAvatar.qml
         src/qml/LobbyCatalogue.qml
         src/qml/RecentTogetherPane.qml
         src/qml/SocialIconButton.qml

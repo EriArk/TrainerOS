@@ -39,6 +39,7 @@ public:
     QJsonObject state() const;
     QJsonObject invitation() const {return invitation_;}
     QJsonArray requests() const;
+    QStringList invitedPeers(qint64 now) const {return hosting()?session_.invitedPeers(now):QStringList{};}
     bool hosting() const;
     bool acknowledgeLaunch(const QString& ticket,bool success);
     bool finishGame(const QString& ticket);

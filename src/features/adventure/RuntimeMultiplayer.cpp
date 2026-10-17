@@ -336,7 +336,8 @@ void RuntimeMultiplayer::refresh(const RetroArchInstallation& installation,QStri
         if(content.isEmpty()||capacity<1||capacity>16||!multiplayerConnectionAllowed(profile,"online"))continue;
         const auto id=QString::fromLatin1(QCryptographicHash::hash((profile["id"].toString()+"/"+content).toUtf8(),QCryptographicHash::Sha256).toHex());
         lobbyGames.append(QVariantMap{{"key",record.adventure.id},{"id",id},{"title",profile["label"].toString()},
-            {"platform",record.adventure.platformId},{"mode",profile["id"].toString()},{"seats",qMin(4,capacity)},{"runtime",profile.toVariantMap()}});
+            {"platform",record.adventure.platformId},{"mode",profile["id"].toString()},{"modeLabel",multiplayerPresentation(profile).value("label",QString("Emulator multiplayer"))},
+            {"cover",library_.artwork(record.adventure.id).value("cover")},{"seats",qMin(4,capacity)},{"runtime",profile.toVariantMap()}});
         social_.lobbyRuntime()->registerService(profile["id"].toString(),this);
     }
     QVariantMap modes;

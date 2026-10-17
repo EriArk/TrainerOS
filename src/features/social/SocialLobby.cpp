@@ -93,6 +93,8 @@ bool SocialController::lobbyChatVisible() const {
 }
 void SocialController::focusLobbyChat() {
     if(!lobbyChatVisible())return;
+    const auto rows=lobbyRoomMessages();bool found=false;for(const auto& v:rows)if(v.toMap()["sourceIndex"].toInt()==messageFocus_)found=true;
+    if(!found&&!rows.isEmpty())messageFocus_=rows.last().toMap()["sourceIndex"].toInt();
     lobbyChatFocused_=true;reading_=true;emit changed();
 }
 void SocialController::openLobbyChat() {
@@ -106,7 +108,7 @@ void SocialController::syncLobbyChat() {
     if(room!=lobbyChatRoom_) {
         if(!lobbyChatRoom_.isEmpty())emit commandRequested("lobby-chat-cancel",{{"lobby",lobbyChatRoom_}});
         lobbyChatRoom_=room;lobbyChatKey_.clear();lobbyChatChannel_.clear();lobbyChatStatus_.clear();
-        lobbyChatBusy_=false;lobbyChatFocused_=false;
+        lobbyChatBusy_=false;lobbyChatFocused_=false;lobbyChatExpanded_=false;lobbySpectatorChat_=false;lobbyRoomFocus_="game";lobbyAutoPreparation_.clear();
     }
     if(room.isEmpty()||s["phase"]=="joining"||s["recovering"].toBool()||snapshot_["state"]!="connected"||lobbyChatBusy_)return;
     QStringList peers;for(const auto& m:s["members"].toArray())if(m.toObject()["id"]!=snapshot_["userId"].toString())peers.append(m.toObject()["id"].toString());
@@ -245,6 +247,13 @@ void SocialController::selectLobby(int index) {
 void SocialController::setLobbyGames(QVariantList games) {if(lobbyGames_==games)return;lobbyGames_=std::move(games);emit changed();}
 void SocialController::editLobbySearch() {textPurpose_="lobby-search";emit textRequested("Find a lobby",lobbySearch_,100);}
 void SocialController::lobbyAction(QString action) {
+    if(action=="room-menu"&&!lobby_.state().isEmpty()) {
+        menuMode_="lobby";menuTitle_="Room options";menuDetail_.clear();menuFocus_=0;menu_.clear();menuCommands_.clear();
+        for(const auto& v:lobbyActions()) {const auto a=v.toMap();const auto id=a["id"].toString();
+            if(!a["enabled"].toBool()||id=="prepare"||id=="ready"||id=="game")continue;
+            menu_.append(a["label"].toString());menuCommands_.append("lobby:"+id);}
+        menu_.append("Back");menuCommands_.append("cancel");emit changed();return;
+    }
     if(action=="leave") {lobby_.leave();lobbySelection_.clear();return;}
     if(snapshot_["state"]!="connected")return;
     if(action=="reminder") {
@@ -298,7 +307,7 @@ void SocialController::lobbyAction(QString action) {
     }
     if(action=="reconnect") {lobby_.reconnect();return;}
     if(action.startsWith("remove:")) {lobby_.remove(action.mid(7));return;}
-    if(action=="browse") {lobbyDetailFocused_=false;lobbyChatFocused_=false;emit changed();return;}
+    if(action=="browse") {lobbyDetailFocused_=false;lobbyChatFocused_=false;lobbyChatExpanded_=false;emit changed();return;}
     if(action=="chat-retry") {lobbyChatKey_.clear();syncLobbyChat();return;}
     if(action=="chat-people") {
         menuMode_="lobby";menuTitle_="Lobby people";menuDetail_="Fluxer groups require friendship and permission to add members.";
@@ -339,7 +348,7 @@ void SocialController::lobbyAction(QString action) {
     }
     if(action.startsWith("invite:")) {
         if(lobby_.invite(action.mid(7))) {toastTitle_="Lobby";toastText_="Sending invitation…";toastTimer_.start();emit presentationChanged();}
-        return;
+        emit changed();return;
     }
     if(action.startsWith("approve:")) {lobby_.approve(action.mid(8));return;}
     if(action.startsWith("seat:")) {
@@ -408,54 +417,9 @@ void SocialController::dispatchLobby(Action action) {
     if(!lobbyDetailFocused_||lobbyRows().value(lobbyFocus()).toMap()["kind"]!="own") {
         lobbyDetailFocused_=false;dispatchLobbyCatalogue(action);return;
     }
-    if(lobbyChatVisible()&&lobbyChatFocused_) {
-        if(action==Action::Back||action==Action::Left) {lobbyChatFocused_=false;reading_=false;}
-        else if(action==Action::Secondary)compose();
-        else if(action==Action::ToggleContinue)call();
-        else if(action==Action::ContextMenu||action==Action::LocalAction)contextRow();
-        else if(action==Action::Confirm) {if(messages().isEmpty())compose();else selectMessage(messageFocus_);}
-        else if(action==Action::Up||action==Action::Down) {
-            reading_=true;messageFocus_=qBound(0,messageFocus_+(action==Action::Down?1:-1),qMax(0,int(messages().size())-1));
-            if(!messages().isEmpty())retainMessagePosition(messageFocus_,messageFocus_==messages().size()-1);
-            if(messageFocus_==0&&action==Action::Up)earlierMessages();
-        }
-        emit changed();return;
-    }
-    if(lobbyChatVisible()&&action==Action::Secondary) {focusLobbyChat();compose();return;}
-    if(lobbyChatVisible()&&action==Action::ToggleContinue) {focusLobbyChat();call();return;}
-    if(lobbyDetailFocused_&&lobbyRows().value(lobbyFocus()).toMap()["kind"]=="own"&&(action==Action::ContextMenu||action==Action::LocalAction)) {
-        lobbyAction(lobby_.hosting()?"options":"chat-people");return;
-    }
-    if(action==Action::ContextMenu||action==Action::LocalAction) {
-        lobbyAction("filters");return;
-    }
-    else if(action==Action::Secondary)editLobbySearch();
-    else if(action==Action::ToggleContinue)lobbyAction("refresh");
-    else if(action==Action::Back) {
-        if(lobbyRows().value(lobbyFocus()).toMap()["kind"]=="invitation") {closeMenu();lobbyAction("later");}
-        else lobbyDetailFocused_=false;
-    }
-    else if(action==Action::Left) {
-        if(!lobbyDetailFocused_){turnLobbyPage(-1);return;}
-        if(lobbyDetailFocused_&&lobbyActionFocus_%2) --lobbyActionFocus_;
-        else lobbyDetailFocused_=false;
-    }
-    else if(action==Action::Right) {
-        if(!lobbyDetailFocused_) {turnLobbyPage(1);return;}
-        else if(lobbyActionFocus_%2==0&&lobbyActionFocus_+1<lobbyActions().size())++lobbyActionFocus_;
-        else if(lobbyChatVisible())focusLobbyChat();
-    }
-    else if(action==Action::Up||action==Action::Down) {
-        auto focus=lobbyDetailFocused_?lobbyActionFocus_:lobbyFocus();
-        const auto size=lobbyDetailFocused_?lobbyActions().size():lobbyRows().size();
-        focus=qBound(0,focus+(action==Action::Down?1:-1)*(lobbyDetailFocused_?2:1),qMax(0,int(size)-1));
-        if(lobbyDetailFocused_)lobbyActionFocus_=focus;else lobbySelection_=lobbyRows().value(focus).toMap()["selection"].toString();
-    } else if(action==Action::Confirm) {
-        if(lobbyDetailFocused_)lobbyAction(lobbyActions().value(lobbyActionFocus_).toMap()["id"].toString());
-        else selectLobby(lobbyFocus());
-    }
-    emit changed();
+    dispatchLobbyRoom(action);
 }
+
 void SocialController::publishLobby() {
     if(snapshot_["state"]!="connected")return;
     const auto s=lobby_.state();const bool publish=lobby_.hosting()&&s["access"]!="private";

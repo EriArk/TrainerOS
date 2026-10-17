@@ -83,7 +83,7 @@ QVariantList RemotePlayRuntime::choices(const QMap<QString,QJsonObject>& profile
         games_.insert(it.key(),it.value());
         rows.append(QVariantMap{{"key",it.key()+":remoteplay"},{"adventure",it.key()},{"id",identity(it.value())},
             {"title",record->adventure.title},{"platform",record->adventure.platformId},{"mode","remoteplay.v1"},
-            {"modeLabel","Remote Play"},{"seats",2},{"runtime",it.value().toVariantMap()}});
+            {"modeLabel","Remote Play"},{"cover",library_.artwork(it.key()).value("cover")},{"seats",2},{"runtime",it.value().toVariantMap()}});
     }
     return rows;
 }
