@@ -31,16 +31,14 @@ QVariantMap SocialController::lobbyPerson(QVariantMap member) const {
     if(avatar.isEmpty())avatar=directConversation(id)["avatar"].toString();
     const auto voice=snapshot_["voice"].toMap();
     member["avatar"]=blocked?QString():avatar;member["self"]=id==self;
-    member["host"]=id==lobby_.state()["owner"].toString();member["key"]="person:"+id;
+    member["host"]=id==viewedLobby().state()["owner"].toString();member["key"]="person:"+id;
     member["speaking"]=!blocked&&member["connected"].toBool()&&voice["state"]=="connected"
         &&voice["channel"].toString()==lobbyChatChannel_&&!lobbyChatChannel_.isEmpty()&&voice["speakers"].toStringList().contains(id);
-    member["status"]=!member["connected"].toBool()?"Reconnecting":member["ready"].toBool()?"Ready":member["spectator"].toBool()?"Spectator":
-        member["prepared"].toBool()?"Ready when you are":lobby_.state()["game"].toObject()["id"].toString().isEmpty()?"Together":
-        lobby_.state()["phase"]=="playing"?"Playing":id==self&&lobbyRuntime_.busy()?"Preparing…":"Not ready";
+    member["status"]=!member["connected"].toBool()?"Reconnecting":member["spectator"].toBool()?"Spectator":member["ready"].toBool()?"Ready":"Preparing";
     return member;
 }
 QVariantList SocialController::lobbyPlayers() const {
-    QVariantList result,unseated;const auto s=lobby_.state();const int seats=s["game"].toObject()["seats"].toInt();
+    QVariantList result,unseated;const auto s=viewedLobby().state();const int seats=s["game"].toObject()["seats"].toInt();
     for(int seat=1;seat<=seats;++seat)result.append(QVariantMap{{"key","seat:"+QString::number(seat)},{"seat",seat},{"empty",true},{"name","Invite"}});
     for(const auto& v:s["members"].toArray()) {
         auto member=lobbyPerson(v.toObject().toVariantMap());if(member["spectator"].toBool())continue;
@@ -48,26 +46,26 @@ QVariantList SocialController::lobbyPlayers() const {
     }
     std::stable_sort(unseated.begin(),unseated.end(),[](const QVariant& a,const QVariant& b){return a.toMap()["host"].toBool()&&!b.toMap()["host"].toBool();});
     result+=unseated;
-    for(const auto& id:lobby_.invitedPeers(QDateTime::currentSecsSinceEpoch())) {
+    for(const auto& id:viewedLobby().invitedPeers(QDateTime::currentSecsSinceEpoch())) {
         QVariantMap person{{"id",id},{"name","Invited friend"},{"connected",false}};
         for(const auto& v:snapshot_["friends"].toList())if(v.toMap()["id"]==id)person["name"]=v.toMap()["name"];
         person=lobbyPerson(person);person["key"]="invited:"+id;person["invited"]=true;person["status"]="Invited";result.append(person);
     }
-    if(!seats&&lobby_.hosting())result.append(QVariantMap{{"key","invite"},{"empty",true},{"name","Invite friends"}});
+    if(!seats&&viewedLobby().hosting())result.append(QVariantMap{{"key","invite"},{"empty",true},{"name","Invite friends"}});
     return result;
 }
 QVariantList SocialController::lobbySpectators() const {
-    QVariantList result;for(const auto& v:lobby_.state()["members"].toArray())if(v.toObject()["spectator"].toBool())result.append(lobbyPerson(v.toObject().toVariantMap()));return result;
+    QVariantList result;for(const auto& v:viewedLobby().state()["members"].toArray())if(v.toObject()["spectator"].toBool())result.append(lobbyPerson(v.toObject().toVariantMap()));return result;
 }
 QVariantMap SocialController::lobbyRoomGame() const {
-    auto game=lobby_.state()["game"].toObject().toVariantMap();
+    auto game=viewedLobby().state()["game"].toObject().toVariantMap();
     for(const auto& v:lobbyGames_) {const auto local=v.toMap();if(local["id"]==game["id"]&&local["mode"]==game["mode"]) {
         game["cover"]=local["cover"];game["modeLabel"]=local.value("modeLabel",QString("Emulator multiplayer"));break;
     }}
     if(!game.contains("modeLabel"))game["modeLabel"]=game["mode"]=="remoteplay.v1"?"Remote Play":"Emulator multiplayer";
-    QString status=lobbyRuntime_.status();
+    QString status=&viewedLobby()==lobby_.activeRoom()?lobbyRuntime_.status():QString("Preparing");
     if(status.isEmpty()&&!game["id"].toString().isEmpty()) {
-        const auto state=lobby_.state();
+        const auto state=viewedLobby().state();
         status=state["phase"]=="playing"?"Playing together":gameActive_?"Save your current game, then continue setup":
             lobbyRuntime_.available()?"Checking this game…":"Waiting for the players";
         for(const auto& v:state["members"].toArray()) {const auto m=v.toObject();if(m["id"]!=snapshot_["userId"].toString()||m["spectator"].toBool())continue;
@@ -81,14 +79,14 @@ QVariantMap SocialController::lobbyRoomGame() const {
 }
 QVariantList SocialController::lobbyRoomActions() const {
     QVariantList result;const auto add=[&](QString key,QString label,bool enabled=true){result.append(QVariantMap{{"key","action:"+key},{"command",key},{"label",label},{"enabled",enabled}});};
-    const auto state=lobby_.state();if(state.isEmpty())return result;
+    const auto state=viewedLobby().state();if(state.isEmpty())return result;
     const auto voice=snapshot_["voice"].toMap();
     if(!voice["channel"].toString().isEmpty()) {
         add("microphone",voice["muted"].toBool()?"Mic off":"Mic on");add("audio",voice["deaf"].toBool()?"Sound off":"Sound on");
     } else add("call","Join voice",!lobbyChatChannel_.isEmpty()&&voice["available"].toBool());
     for(const auto& v:lobbyActions()) {const auto action=v.toMap();const auto id=action["id"].toString();
-        if(id=="ready"||id=="join-live"||id=="request-play")add(id,action["label"].toString(),action["enabled"].toBool());
-        if(id=="prepare")add("prepare",gameActive_?"Continue setup":lobbyRuntime_.busy()?"Preparing…":!lobbyRuntime_.available()?"Unavailable":lobbyAutoPreparation_.isEmpty()?"Preparing…":"Retry setup",
+        if(id=="ready"||id=="join-live"||id=="request-play"||id=="spectate")add(id,action["label"].toString(),action["enabled"].toBool());
+        if(id=="prepare"&& &viewedLobby()==lobby_.activeRoom())add("prepare",gameActive_?"Continue setup":lobbyRuntime_.busy()?"Preparing…":!lobbyRuntime_.available()?"Unavailable":lobbyAutoPreparation_.isEmpty()?"Preparing…":"Retry setup",
             action["enabled"].toBool()&&(gameActive_||!lobbyAutoPreparation_.isEmpty()));
     }
     return result;
@@ -103,13 +101,13 @@ void SocialController::expandLobbyChat() {
     lobbyChatExpanded_=!lobbyChatExpanded_;lobbyChatFocused_=true;reading_=true;emit changed();
 }
 void SocialController::activateLobbyRoom(QString key) {
-    if(!lobbyDetailFocused_||lobby_.state().isEmpty())return;
+    if(!lobbyDetailFocused_||viewedLobby().state().isEmpty())return;
     bool found=key=="game";for(const auto& rows:{lobbyPlayers(),lobbyRoomActions()})for(const auto& v:rows)
         if(v.toMap()["key"]==key)found=true;
     if(!found)return;
     lobbyRoomFocus_=key;lobbyChatFocused_=false;emit changed();
-    if(key=="game"){if(lobby_.hosting())lobbyAction("game");return;}
-    if(key=="invite"){if(lobby_.hosting())lobbyAction("invite");return;}
+    if(key=="game"){if(viewedLobby().hosting())lobbyAction("game");return;}
+    if(key=="invite"){if(viewedLobby().hosting())lobbyAction("invite");return;}
     if(key.startsWith("invited:")){profile(key.mid(8));return;}
     if(key=="action:microphone"||key=="action:audio") {
         if(!snapshot_["voice"].toMap()["channel"].toString().isEmpty())emit commandRequested(key=="action:microphone"?"voice-mute":"voice-output",{});return;
@@ -120,13 +118,13 @@ void SocialController::activateLobbyRoom(QString key) {
         const auto id=key.mid(7);const bool self=id==snapshot_["userId"].toString();
         menuTitle_="Player";
         if(key.startsWith("seat:")) {
-            menuTitle_="P"+key.mid(5);if(lobby_.hosting())add("Invite friend","lobby:invite");
-            if(lobby_.state()["phase"]=="gathering")add("Take this controller","lobby:"+key);
+            menuTitle_="P"+key.mid(5);if(viewedLobby().hosting())add("Invite friend","lobby:invite");
+            if(viewedLobby().state()["phase"]=="gathering")add("Take this controller","lobby:"+key);
         } else {
-            for(const auto& v:lobby_.state()["members"].toArray())if(v.toObject()["id"]==id)menuTitle_=v.toObject()["name"].toString();
+            for(const auto& v:viewedLobby().state()["members"].toArray())if(v.toObject()["id"]==id)menuTitle_=v.toObject()["name"].toString();
             add("View profile","profile:"+id);
             if(self)for(const auto& v:lobbyActions()) {const auto action=v.toMap();if(action["enabled"].toBool()&&(action["id"]=="seat"||action["id"]=="spectate"))add(action["label"].toString(),"lobby:"+action["id"].toString());}
-            else if(lobby_.hosting())add("Remove from lobby","lobby:remove:"+id);
+            else if(viewedLobby().hosting())add("Remove from lobby","lobby:remove:"+id);
         }
         add("Back","cancel");emit changed();return;
     }
@@ -166,9 +164,19 @@ void SocialController::reconcileLobbyPreparation() {
     // One automatic attempt per actual runtime context. Never close, interrupt or
     // repeatedly prompt over an active game; explicit Continue setup uses the
     // existing protected save/exit consent. Failures require deliberate retry.
+    if(!readySwitch_.isEmpty()) {
+        auto* target=lobby_.room(readySwitch_);
+        if(!target||gameActive_||readySwitchExpires_<QDateTime::currentSecsSinceEpoch()||quint64(target->state()["generation"].toInteger())!=readySwitchGeneration_)readySwitch_.clear();
+        else if(lobby_.activateRoom(readySwitch_)) {
+            readyIntent_=readySwitch_;readyGeneration_=readySwitchGeneration_;readySwitch_.clear();lobbyAutoPreparation_.clear();
+        } else return;
+    }
     if(gameActive_||snapshot_["state"]!="connected"||!lobbyRuntime_.available()||lobbyRuntime_.busy())return;
     const auto s=lobby_.state();QJsonArray people;
-    for(const auto& v:s["members"].toArray()){const auto m=v.toObject();if(m["id"]==snapshot_["userId"].toString()&&m["prepared"].toBool())return;
+    if(!readyIntent_.isEmpty()&&(readyIntent_!=s["id"].toString()||readyGeneration_!=quint64(s["generation"].toInteger())))readyIntent_.clear();
+    for(const auto& v:s["members"].toArray()){const auto m=v.toObject();if(m["id"]==snapshot_["userId"].toString()&&m["prepared"].toBool()) {
+            if(readyIntent_==s["id"].toString()){readyIntent_.clear();lobby_.ready(true);}return;
+        }
         people.append(QJsonObject{{"id",m["id"]},{"seat",m["seat"]},{"connected",m["connected"]},{"spectator",m["spectator"]}});}
     const auto key=QString::fromUtf8(QJsonDocument(QJsonObject{{"room",s["id"]},{"generation",s["generation"]},{"members",people}}).toJson(QJsonDocument::Compact));
     if(key==lobbyAutoPreparation_)return;

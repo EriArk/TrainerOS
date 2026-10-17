@@ -57,7 +57,7 @@ class SocialController final : public QObject {
     Q_PROPERTY(bool runtimeSurface READ runtimeSurfaceOpen NOTIFY changed)
     Q_PROPERTY(QVariantList runtimeActions READ runtimeActions NOTIFY changed)
     Q_PROPERTY(bool surfaceAvailable READ surfaceAvailable WRITE setSurfaceAvailable NOTIFY presentationChanged)
-    Q_PROPERTY(bool conversationVisible READ conversationVisible WRITE setConversationVisible NOTIFY presentationChanged)
+    Q_PROPERTY(bool conversationVisible READ conversationVisible WRITE setConversationVisible NOTIFY conversationVisibilityChanged)
     Q_PROPERTY(bool gameActive READ gameActive WRITE setGameActive NOTIFY presentationChanged)
     Q_PROPERTY(QString toastTitle READ toastTitle NOTIFY presentationChanged)
     Q_PROPERTY(QString toastText READ toastText NOTIFY presentationChanged)
@@ -69,6 +69,10 @@ class SocialController final : public QObject {
     Q_PROPERTY(bool profileVisible READ profileVisible NOTIFY changed)
     Q_PROPERTY(bool emojiVisible READ emojiVisible NOTIFY changed)
     Q_PROPERTY(QVariantMap conversationInfo READ currentChat NOTIFY changed)
+    Q_PROPERTY(QVariantList myLobbies READ myLobbies NOTIFY changed)
+    Q_PROPERTY(bool myLobbiesOpen READ myLobbiesOpen NOTIFY changed)
+    Q_PROPERTY(int myLobbiesIndex READ myLobbiesIndex NOTIFY changed)
+    Q_PROPERTY(QVariantMap homeLobby READ homeLobby NOTIFY changed)
     Q_PROPERTY(QVariantMap lobbyState READ lobbyState NOTIFY changed)
     Q_PROPERTY(QVariantMap lobbyDirectory READ lobbyDirectory NOTIFY changed)
     Q_PROPERTY(QVariantList lobbyRows READ lobbyRows NOTIFY changed)
@@ -101,7 +105,19 @@ public:
     Q_INVOKABLE void streamsMenu();
     quint64 accountGeneration() const { return generation_; }
     explicit SocialController(QObject* parent = nullptr);
-    QVariantMap lobbyState() const {return lobby_.state().toVariantMap();}
+    LobbyRoomCoordinator& viewedLobby() const;
+    QVariantList myLobbies() const;
+    QVariantMap homeLobby() const;
+    bool myLobbiesOpen() const {return myLobbiesOpen_;}
+    int myLobbiesIndex() const {return myLobbiesIndex_;}
+    Q_INVOKABLE void showMyLobbies();
+    Q_INVOKABLE void closeMyLobbies();
+    Q_INVOKABLE void chooseMyLobby(QString id);
+    Q_INVOKABLE void createAnotherLobby();
+    void syncMyLobbies();
+    void requestLobbyReady();
+    void leaveViewedLobby(bool close=false);
+    QVariantMap lobbyState() const {return viewedLobby().state().toVariantMap();}
     QVariantMap lobbyDirectory() const {return snapshot_["lobbyDirectory"].toMap();}
     QVariantList lobbyRows() const;
     QVariantList lobbyActions() const;
@@ -271,6 +287,7 @@ public:
     void dismissNotificationAt(int index);
     void dismissNotifications();
 signals:
+    void conversationVisibilityChanged();
     void messageQueued(QString channel);
     void partyPacket(QString peer,QString name,QJsonObject packet);
     void partyFailed(QString peer);
@@ -312,6 +329,15 @@ private:
     QVariantMap lobbyPerson(QVariantMap member) const;
     void dispatchLobbyRoom(Action action);
     void reconcileLobbyPreparation();
+    QString viewedLobbyId_,readyIntent_,leavingLobby_,readySwitch_,myLobbyFocus_;
+    quint64 readyGeneration_=0,readySwitchGeneration_=0;
+    qint64 readySwitchExpires_=0;
+    QMap<QString,LobbyRoomCoordinator*> publishedRooms_;
+    QJsonArray lobbyContactRooms_;
+    QSet<QString> lobbyLeaving_,lobbyChatPending_;
+    QMap<QString,QString> lobbyChatKeys_,lobbyChatErrors_;
+    bool myLobbiesOpen_=false;
+    int myLobbiesIndex_=0;
     LobbyCoordinator lobby_{this};
     LobbyReminders lobbyReminders_;
     QTimer lobbyReminderTimer_;

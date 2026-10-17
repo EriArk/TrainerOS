@@ -45,6 +45,8 @@ private:
     bool active(const QString& peer) const;
     QString file_,self_,room_,host_,busy_,storageError_;
     QJsonObject records_;
+    QMap<QString,QSet<QString>> roomMembers_;
+    QMap<QString,QString> roomHosts_;
     QSet<QString> members_,held_;
     QHash<QString,qint64> next_;
     Request request_;

@@ -1,4 +1,4 @@
-#include "LobbyCoordinator.h"
+#include "LobbyRoomCoordinator.h"
 #include <QDateTime>
 #include <QDir>
 #include <QFile>
@@ -9,7 +9,7 @@
 #include <QUuid>
 
 namespace trainer {
-void LobbyCoordinator::setStorage(QString file) {
+void LobbyRoomCoordinator::setStorage(QString file) {
     if(file_==file)return;
     file_=std::move(file);storageError_.clear();
     if(file_.isEmpty()||self_.isEmpty())return;
@@ -23,6 +23,7 @@ void LobbyCoordinator::setStorage(QString file) {
     if(revision<0||revision>9007199254740990LL) {fail();return;}
     publicationRevision_=revision;
     const auto topic=record["publicationTopic"].toString();if(!topic.isEmpty()&&topic.size()<=32)publicationTopic_=topic;
+    providerMembers_.clear();for(const auto& v:record["providerMembers"].toArray())if(v.isString())providerMembers_.insert(v.toString());
     const auto s=record["state"].toObject();
     if(s.isEmpty())return;
     const auto host=s["owner"].toString();bool member=false;
@@ -51,7 +52,7 @@ void LobbyCoordinator::setStorage(QString file) {
     }
     loading_=false;save();emit changed();if(online_)reconnect();
 }
-void LobbyCoordinator::save() {
+void LobbyRoomCoordinator::save() {
     if(file_.isEmpty()||self_.isEmpty()||loading_||!storageError_.isEmpty())return;
     const auto dir=QFileInfo(file_).absolutePath();
     const QJsonObject snapshot=hosting()?session_.state():remote_;
@@ -62,25 +63,25 @@ void LobbyCoordinator::save() {
     }
     // Empty means an explicit leave/close. Never persist pending invitations or join requests.
     const auto bytes=QJsonDocument(QJsonObject{{"v",1},{"self",self_},{"state",snapshot},{"boots",boots},{"serials",serials},
-        {"publicationRevision",publicationRevision_},{"publicationTopic",publicationTopic_}}).toJson(QJsonDocument::Compact);
+        {"providerMembers",QJsonArray::fromStringList(providerMembers_.values())},{"publicationRevision",publicationRevision_},{"publicationTopic",publicationTopic_}}).toJson(QJsonDocument::Compact);
     QSaveFile output(file_);
     bool ok=!QFileInfo(file_).isSymLink()&&!QFileInfo(dir).isSymLink()&&QDir().mkpath(dir);
     if(ok) {QFile::setPermissions(dir,QFile::ReadOwner|QFile::WriteOwner|QFile::ExeOwner);ok=output.open(QIODevice::WriteOnly);}
     if(ok) {output.setPermissions(QFile::ReadOwner|QFile::WriteOwner);ok=output.write(bytes)==bytes.size()&&output.commit();}
     if(!ok) {storageError_="Couldn't save lobby recovery. Leave the lobby before restarting.";emit notice(storageError_);}
 }
-qint64 LobbyCoordinator::nextPublicationRevision() {
+qint64 LobbyRoomCoordinator::nextPublicationRevision() {
     if(!storageError_.isEmpty()||publicationRevision_>=9007199254740990LL)return 0;
     ++publicationRevision_;save();return storageError_.isEmpty()?publicationRevision_:0;
 }
-void LobbyCoordinator::reconnect() {
+void LobbyRoomCoordinator::reconnect() {
     if(!online_)return;
     if(hosting()) {broadcast();return;}
     if(host_.isEmpty())return;
     if(probe_.isEmpty())probe_=QUuid::createUuid().toString(QUuid::WithoutBraces);
     send(host_,restoring_||!joining_.isEmpty()?"join":"ping",{{"request",joiningRequest_},{"restore",restoring_},{"probe",probe_}});
 }
-bool LobbyCoordinator::remove(const QString& peer) {
+bool LobbyRoomCoordinator::remove(const QString& peer) {
     if(!hosting()||peer==self_)return false;
     // The removed player must receive an explicit outcome even though it no longer
     // belongs to the broadcast roster. Future restore requests are rejected.

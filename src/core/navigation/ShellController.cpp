@@ -342,7 +342,7 @@ bool ShellController::canEditWorld() const {
         && !drawerOpen_ && !libraryTools_.isOpen() && !worlds_.region().value("id").toString().isEmpty();
 }
 bool ShellController::localModalOpen() {
-    return collectionManager()->isOpen() || downloads_.isOpen() || scraper_.isOpen() || (socialActive() && !social_.menu().isEmpty()) || libraryTools_.isOpen() || trainer_.editing()
+    return social_.myLobbiesOpen() || collectionManager()->isOpen() || downloads_.isOpen() || scraper_.isOpen() || (socialActive() && !social_.menu().isEmpty()) || libraryTools_.isOpen() || trainer_.editing()
         || (adapterActive() && activeModule_ && activeModule_->modalOpen())
         || (page_==GameHubPage && hubFace_=="ra" && (hall_.editor()->isOpen() || hall_.account()->isOpen() || hall_.galleryMenuOpen() || hall_.route()=="achievement-detail"));
 }
@@ -459,6 +459,7 @@ void ShellController::activateDashboard(const QString& key) {
     if(page_!=HomePage || !pairedNavigationAvailable() || navigationLocked())return;
     const auto target=dashboard_.target(key);if(target.isEmpty())return;
     dashboard_.select(key);
+    if(target["type"]=="lobbies"){social_.showMyLobbies();return;}
     if(target["type"]=="play"){confirm();emit changed();return;}
     if(target["type"]=="screens") {
         openGameHubFace("overview");showOverview("screens");
@@ -1448,6 +1449,7 @@ void ShellController::openSocialNotification() {
     social_.openNotification();emit changed();
 }
 void ShellController::dispatch(Action action) {
+    if(social_.myLobbiesOpen()&&!keyboard_.isOpen()){social_.dispatch(action);return;}
     if(page_==GameHubPage && hubFace_=="lobby" && (action==Action::ToggleFavorite || action==Action::ChangeView)) {
         if(pairedNavigationAvailable() && !navigationLocked() && !localModalOpen())social_.dispatch(action);
         return;

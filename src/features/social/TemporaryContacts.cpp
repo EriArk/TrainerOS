@@ -18,7 +18,7 @@ bool temporary(QString phase) {return phase!="kept"&&phase!="exempt"&&phase!="bl
 }
 void TemporaryContacts::configure(QString file,QString self) {
     if(file_==file&&self_==self)return;
-    ++epoch_;++flight_;busy_.clear();records_={};members_.clear();held_.clear();next_.clear();room_.clear();host_.clear();online_=false;
+    ++epoch_;++flight_;busy_.clear();records_={};members_.clear();roomMembers_.clear();roomHosts_.clear();held_.clear();next_.clear();room_.clear();host_.clear();online_=false;
     file_=file;self_=self;storageError_.clear();now_=QDateTime::currentSecsSinceEpoch();nextCreate_=now_;
     if(file.isEmpty()||!id(self))return;
     QFile input(file);
@@ -56,16 +56,22 @@ bool TemporaryContacts::put(const QString& peer,QJsonObject record) {
     records_=next;emit changed();return true;
 }
 void TemporaryContacts::context(QJsonObject lobby,bool online) {
-    recovering_=lobby["recovering"].toBool();
-    online_=online;members_.clear();room_.clear();host_.clear();
-    if(!id(self_)||QUuid(lobby.value("id").toString()).isNull()||lobby.value("phase")=="joining")return;
-    for(const auto& v:lobby.value("members").toArray())if(id(v.toObject()["id"].toString()))members_.insert(v.toObject()["id"].toString());
-    if(!members_.contains(self_)||!members_.contains(lobby.value("owner").toString())) {members_.clear();return;}
-    room_=lobby.value("id").toString();host_=lobby.value("owner").toString();
+    recovering_=false;online_=online;members_.clear();room_.clear();host_.clear();roomMembers_.clear();roomHosts_.clear();
+    const auto rooms=lobby.contains("rooms")?lobby["rooms"].toArray():QJsonArray{lobby};
+    for(const auto& value:rooms) {
+        const auto r=value.toObject();const auto room=r["id"].toString(),host=r["owner"].toString();
+        recovering_=recovering_||r["recovering"].toBool();
+        if(!id(self_)||QUuid(room).isNull()||r["phase"]=="joining")continue;
+        QSet<QString> members;for(const auto& v:r["members"].toArray())if(id(v.toObject()["id"].toString()))members.insert(v.toObject()["id"].toString());
+        if(!members.contains(self_)||!members.contains(host))continue;
+        roomMembers_[room]=members;roomHosts_[room]=host;members_.unite(members);
+        if(room_.isEmpty()){room_=room;host_=host;}
+    }
 }
 bool TemporaryContacts::active(const QString& peer) const {
-    const auto r=records_.value(peer).toObject();return r.value("room")==room_&&members_.contains(peer)&&members_.contains(self_);
+    return members_.contains(peer)&&members_.contains(self_);
 }
+
 bool TemporaryContacts::managed(const QString& peer) const {
     const auto phase=records_.value(peer).toObject()["phase"].toString();
     return !phase.isEmpty()&&phase!="exempt"&&phase!="kept"&&phase!="done"&&phase!="gone";
@@ -118,7 +124,7 @@ void TemporaryContacts::receive(QString peer,const QJsonObject& packet) {
     if(QUuid(lease).isNull()||QUuid(room).isNull())return;
     auto r=records_.value(peer).toObject();
     const bool replace=r.value("phase")=="done"||(!active(peer)&&busy_!=peer&&!r.contains("type")&&r.value("phase")!="uncertain"&&r.value("phase")!="creating"&&r.value("phase")!="accepting");
-    if((r.isEmpty()||replace)&&op=="offer"&&peer==host_&&room==room_&&members_.contains(self_)&&members_.contains(peer)&&records_.size()<256) {
+    if((r.isEmpty()||replace)&&op=="offer"&&roomHosts_.value(room)==peer&&roomMembers_.value(room).contains(self_)&&roomMembers_.value(room).contains(peer)&&records_.size()<256) {
         put(peer,{{"lease",lease},{"room",room},{"host",false},{"phase","baseline"}});return;
     }
     if(r.isEmpty()||r.value("lease")!=lease||r.value("room")!=room)return;
@@ -220,7 +226,9 @@ void TemporaryContacts::tick(qint64 now) {
         if(phase=="deleting") {r["phase"]="cleanup";put(peer,r);}
         next_[peer]=now_+15;
     }
-    if(host_==self_)for(const auto& peer:members_)if(peer!=self_&&records_.size()<256) {
+    for(auto rooms=roomMembers_.cbegin();rooms!=roomMembers_.cend();++rooms)if(roomHosts_.value(rooms.key())==self_)
+    for(const auto& peer:rooms.value())if(peer!=self_&&records_.size()<256) {
+        const auto& room_=rooms.key();
         const auto r=records_.value(peer).toObject();const auto phase=r.value("phase").toString();
         const bool replace=r.value("room")!=room_&&(phase=="gone"||phase=="done"||((phase=="release"||phase=="blocked"||phase=="error")&&!r.contains("type")));
         if(r.isEmpty()||replace)put(peer,{{"room",room_},{"lease",QUuid::createUuid().toString(QUuid::WithoutBraces)},{"host",true},{"phase","baseline"}});

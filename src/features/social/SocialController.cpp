@@ -25,14 +25,15 @@ SocialController::SocialController(QObject* parent):QObject(parent),session_(new
     lobbyHeartbeat_.setInterval(60000);lobbyHeartbeat_.start();
     connect(&lobbyPublishTimer_,&QTimer::timeout,this,&SocialController::publishLobby);
     connect(&lobbyHeartbeat_,&QTimer::timeout,this,[this]{publishLobby();if(face_=="lobby")emit commandRequested("lobby-directory-refresh",{});});
-    connect(&lobby_,&LobbyCoordinator::changed,this,[this]{
+    connect(&lobby_,&LobbyCoordinator::roomsChanged,this,[this]{
+        if(myLobbiesOpen_){const auto rows=myLobbies();myLobbiesIndex_=rows.size();for(int i=0;i<rows.size();++i)if(rows[i].toMap()["id"]==myLobbyFocus_)myLobbiesIndex_=i;}
+        QTimer::singleShot(0,this,&SocialController::syncMyLobbies);
         syncLobbyReminder();
         lobbyPublishTimer_.start();
-        auto contactState=lobby_.state();if(lobby_.recoveryUncertain())contactState["recovering"]=true;
-        if(!owner_.isEmpty()||!lobby_.state().isEmpty()||!lobbyChatRoom_.isEmpty())
-            emit commandRequested("lobby-contact-context",{{"account",snapshot_["userId"]},{"lobby",contactState.toVariantMap()}});
+        QJsonArray contexts;for(auto* r:lobby_.rooms()){auto state=r->state();if(state["id"].toString().isEmpty())continue;if(r->recoveryUncertain())state["recovering"]=true;contexts.append(state);}
+        if(contexts!=lobbyContactRooms_){lobbyContactRooms_=contexts;emit commandRequested("lobby-contact-context",{{"account",snapshot_["userId"]},{"lobby",QJsonObject{{"rooms",contexts}}.toVariantMap()}});}
         syncLobbyChat();
-        recentTogether_.observe(lobby_.state(),QDateTime::currentSecsSinceEpoch());
+        recentTogether_.observe(viewedLobby().state(),QDateTime::currentSecsSinceEpoch());
         const auto invite=lobby_.invitation();const auto id=invite["lobby"].toString();
         if(!id.isEmpty()&&id!=presentedLobbyInvite_) {
             toastChannel_="lobby:"+id;toastTitle_=invite["name"].toString();toastText_="Invited you to a lobby";toastTimer_.start();
@@ -46,14 +47,15 @@ SocialController::SocialController(QObject* parent):QObject(parent),session_(new
     connect(session_,&FluxerSession::lobbyPacket,this,[this](quint64 generation,QString peer,QString name,QJsonObject packet){if(generation==generation_)lobby_.receive(peer,name,packet);});
     connect(session_,&FluxerSession::lobbyFailed,this,[this](quint64 generation,QString peer){if(generation==generation_)lobby_.deliveryFailed(peer);});
     connect(session_,&FluxerSession::lobbyChatFinished,this,[this](quint64 generation,QString room,QString channel,QString error){
-        if(generation!=generation_||room!=lobby_.state()["id"].toString())return;
-        lobbyChatBusy_=false;lobbyChatStatus_=error;
-        if(!channel.isEmpty()) {
-            lobbyChatChannel_=channel;
-            if(lobby_.hosting())lobby_.setConversation(channel);
-            openLobbyChat();
+        auto* target=lobby_.room(room);if(generation!=generation_||!target)return;
+        lobbyChatPending_.remove(room);lobbyChatErrors_[room]=error;
+        if(!channel.isEmpty()&&target->hosting())target->setConversation(channel);
+        if(room==viewedLobby().state()["id"].toString()) {
+            lobbyChatStatus_=error;lobbyChatBusy_=false;
+            if(!channel.isEmpty()){lobbyChatChannel_=channel;openLobbyChat();}
         }
-        syncLobbyChat();emit changed();
+        QTimer::singleShot(0,this,&SocialController::syncMyLobbies);
+        emit changed();
     });
     connect(session_,&FluxerSession::onlineEstablished,this,[this](quint64 generation,QString self,QString peer,QString name,QString activity,bool initiator){
         if(generation!=generation_)return;
@@ -73,7 +75,11 @@ SocialController::SocialController(QObject* parent):QObject(parent),session_(new
     connect(&stream_,&SocialStream::ended,this,[this]{emit commandRequested("voice-watch-stop",{});});
     connect(&stream_,&SocialStream::changed,this,&SocialController::changed);
     connect(session_,&FluxerSession::partyPacket,this,[this](quint64 g,QString peer,QString name,QJsonObject p){if(g==generation_)emit partyPacket(peer,name,p);});
-    connect(session_,&FluxerSession::partyFailed,this,[this](quint64 g,QString peer){if(g==generation_)emit partyFailed(peer);});
+    connect(session_,&FluxerSession::partyFailed,this,[this](quint64 g,QString peer){if(g==generation_){
+        if(peer.startsWith("company:")&&peer.count(':')==1)
+            for(auto* r:lobby_.rooms())if(r->state()["conversation"]==peer.mid(8))r->forgetMembership();
+        emit partyFailed(peer);
+    }});
     connect(session_,&FluxerSession::partyReset,this,[this](quint64 g){if(g==generation_){gameActivities_.clear();companyParties_.clear();partyFocus_=false;emit partyReset();}});
     connect(session_,&FluxerSession::runtimeProbeFailed,this,[this](quint64 generation,QString peer,QString message){
         if(generation==generation_)emit runtimeProbeFailed(peer,message);
@@ -103,6 +109,10 @@ SocialController::SocialController(QObject* parent):QObject(parent),session_(new
     draftSave_.setSingleShot(true);draftSave_.setInterval(700);connect(&draftSave_,&QTimer::timeout,this,&SocialController::saveDrafts);
     connect(session_,&FluxerSession::mutationFinished,this,[this](quint64 generation,QString operation,QString channel,QString id,bool success){
         if(generation!=generation_)return;
+        if(operation=="leave-group"&&!leavingLobby_.isEmpty()) {
+            auto* r=lobby_.room(leavingLobby_);
+            if(r&&r->state()["conversation"]==channel){if(success)r->forgetMembership();lobbyLeaving_.remove(leavingLobby_);leavingLobby_.clear();emit changed();}
+        }
         if(success&&(operation=="edit-message"||operation=="delete-message"))editDrafts_.remove(channel+"/"+id);
     });
     thread_.start();
@@ -115,8 +125,9 @@ SocialController::~SocialController() {
 void SocialController::setOwner(QString owner) {
     if(owner==owner_)return;
     streamAction("stop-watch");
-    lobby_.leave();publishLobby();lobby_.setStorage({});lobby_.configure({}, {},false);lobbySearch_.clear();lobbyTopic_.clear();lobbySelection_.clear();lobbyActionFocus_=0;
-    publishedLobby_.clear();lobbyPublicationVisible_=false;lobbyGames_.clear();
+    lobby_.setStorage({});lobby_.configure({}, {},false);lobbySearch_.clear();lobbyTopic_.clear();lobbySelection_.clear();lobbyActionFocus_=0;
+    viewedLobbyId_.clear();myLobbiesOpen_=false;readyIntent_.clear();lobbyLeaving_.clear();lobbyChatKeys_.clear();lobbyChatErrors_.clear();lobbyChatPending_.clear();
+    publishedLobby_.clear();publishedRooms_.clear();readySwitch_.clear();lobbyPublicationVisible_=false;lobbyGames_.clear();
     lobbyReminders_.configure({});pendingLobbyReminder_={};lobbyPlatform_.clear();lobbyMode_.clear();
     lobbyPublicationTopic_="other";
     lobbyLastRoom_.clear();lobbyRailFocused_=false;lobbyRailFocus_=1;
@@ -200,7 +211,7 @@ void SocialController::setSurfaceAvailable(bool available) {
 }
 void SocialController::setConversationVisible(bool visible) {
     if(conversationVisible_==visible)return;
-    conversationVisible_=visible;emit presentationChanged();
+    conversationVisible_=visible;emit conversationVisibilityChanged();
 }
 void SocialController::presented(QString channel,QString message) {
     if(!surfaceAvailable_||!conversationVisible_||contacts_||face_=="friends"||!menu_.isEmpty()
@@ -384,7 +395,7 @@ void SocialController::receive(quint64 generation,QVariantMap snapshot) {
     if(generation!=generation_)return;
     const auto relations=[](const QVariant& list){QStringList keys;for(const auto& v:list.toList()){const auto r=v.toMap();keys.append(r["id"].toString()+":"+r["type"].toString());}keys.sort();return keys;};
     const bool contactsChanged=relations(snapshot_["friends"])!=relations(snapshot["friends"]);
-    const auto roomChannel=lobby_.state()["conversation"].toString();
+    const auto roomChannel=viewedLobby().state()["conversation"].toString();
     const auto hasRoomChannel=[&](const QVariant& chats){if(roomChannel.isEmpty())return false;for(const auto& v:chats.toList())if(v.toMap()["id"]==roomChannel)return true;return false;};
     const bool conversationAdmitted=!hasRoomChannel(snapshot_["chats"])&&hasRoomChannel(snapshot["chats"]);
     const auto oldId=rows().value(focus_).toMap().value("id");
@@ -398,7 +409,7 @@ void SocialController::receive(quint64 generation,QVariantMap snapshot) {
     if(streamStatus!=oldVoice["streamStatus"].toString()&&(streamStatus.contains("unavailable")||streamStatus.startsWith("Couldn't"))) {
         toastTitle_="Game stream";toastText_=streamStatus;toastTimer_.start();emit presentationChanged();
     }
-    if(lobby_.hosting()&&(oldVoice["streams"]!=newVoice["streams"]||oldVoice["sharing"]!=newVoice["sharing"]
+    if(viewedLobby().hosting()&&(oldVoice["streams"]!=newVoice["streams"]||oldVoice["sharing"]!=newVoice["sharing"]
         ||oldVoice["channel"]!=newVoice["channel"]))lobbyPublishTimer_.start();
     if(stream_.active()&&((!oldVoice["watching"].toString().isEmpty()&&newVoice["watching"].toString().isEmpty())
         ||newVoice["channel"]!=oldVoice["channel"]||newVoice["state"].toString().isEmpty()))stream_.close();
@@ -406,7 +417,8 @@ void SocialController::receive(quint64 generation,QVariantMap snapshot) {
     if(contactsChanged||conversationAdmitted)lobbyChatKey_.clear();
     lobbyRuntime_.configure(snapshot_["userId"].toString(),snapshot_["state"]=="connected");
     lobby_.configure(snapshot_["userId"].toString(),snapshot_["name"].toString(),snapshot_["state"]=="connected");
-    if(contactsChanged||conversationAdmitted)syncLobbyChat();
+    if(contactsChanged||conversationAdmitted)lobbyChatKeys_.clear();
+    syncMyLobbies();syncLobbyChat();
     if(oldChannel!=snapshot_["channel"]){partyFocus_=false;partyIndex_=0;refreshPartyBrowse();}
     const auto audio=snapshot_["audio"].toMap();
     media_.setAudioDevices(audio["input"].toString(),audio["output"].toString(),audio.value("volume",100).toInt());
@@ -639,7 +651,7 @@ void SocialController::preserveText(QString text) {
 }
 void SocialController::applyText(QString text) {
     if(textPurpose_=="lobby-title"||textPurpose_=="lobby-time") {
-        const auto state=lobby_.state();auto title=state["title"].toString();if(title.isEmpty())title=snapshot_["name"].toString().left(65)+"'s lobby";auto time=state["startsAt"].toInteger();
+        const auto state=viewedLobby().state();auto title=state["title"].toString();if(title.isEmpty())title=snapshot_["name"].toString().left(65)+"'s lobby";auto time=state["startsAt"].toInteger();
         if(textPurpose_=="lobby-title")title=text.trimmed();
         else {
             const auto date=QDateTime::fromString(text.trimmed(),"yyyy-MM-dd HH:mm");
@@ -648,9 +660,9 @@ void SocialController::applyText(QString text) {
             }
             time=date.toSecsSinceEpoch();
         }
-        if(lobby_.setDetails(title,time)) {
+        if(viewedLobby().setDetails(title,time)) {
             if(textPurpose_=="lobby-time"&&!lobbyReminders_.contains(state["id"].toString()))
-                lobbyReminders_.accept(lobby_.state(),QDateTime::currentSecsSinceEpoch());
+                lobbyReminders_.accept(viewedLobby().state(),QDateTime::currentSecsSinceEpoch());
         } else {toastTitle_="Lobby";toastText_="Could not change these lobby details.";toastTimer_.start();emit presentationChanged();}
         textPurpose_.clear();emit changed();return;
     }
@@ -949,7 +961,7 @@ void SocialController::together() {
         add("Leave call","voice-leave");
     } else if(voice["available"].toBool()&&currentChat()["guild"].toString().isEmpty())add(currentChat()["call"].toBool()?"Join call":"Start call","voice-join");
     if(togetherAvailable())add("Activities","native-activities");
-    if(snapshot_["state"]=="connected")add(lobby_.state().isEmpty()?(runtimePeer().isEmpty()?"Create lobby":"Invite to a new lobby"):"My lobby","open-lobby");
+    if(snapshot_["state"]=="connected")add(viewedLobby().state().isEmpty()?(runtimePeer().isEmpty()?"Create lobby":"Invite to a new lobby"):"My lobby","open-lobby");
     if(menu_.isEmpty())menuDetail_="No shared activity is available in this conversation yet.";
     add("Back","cancel");emit changed();
 }
@@ -1219,6 +1231,12 @@ void SocialController::selectMenu(int index) {
     emit commandRequested(command,{{"id",menuSubject_},{"channel",menuChannel_}});menu_.clear();emit changed();
 }
 void SocialController::dispatch(Action action) {
+    if(myLobbiesOpen_) {
+        if(action==Action::Back)closeMyLobbies();
+        else if(action==Action::Up||action==Action::Down){myLobbiesIndex_=qBound(0,myLobbiesIndex_+(action==Action::Down?1:-1),int(myLobbies().size()));myLobbyFocus_=myLobbies().value(myLobbiesIndex_).toMap()["id"].toString();}
+        else if(action==Action::Confirm){const auto rows=myLobbies();if(myLobbiesIndex_<rows.size())chooseMyLobby(rows[myLobbiesIndex_].toMap()["id"].toString());else createAnotherLobby();}
+        emit changed();return;
+    }
     if(snapshot_["state"]=="restoring")return;
     if(stream_.active()&&menu_.isEmpty()) {
         if(action==Action::Back)streamAction("stop-watch");
@@ -1325,7 +1343,7 @@ void SocialController::bindDrafts(const QString& accountId) {
     syncLobbyReminder();
     recentTogether_.configure(QFileInfo(file).absolutePath()+"/recent-together.json",accountId);
     lobby_.setStorage(QFileInfo(file).absolutePath()+"/lobby.json");
-    lobbyPublicationTopic_=lobby_.publicationTopic();
+    lobbyPublicationTopic_=viewedLobby().publicationTopic();
     if(file==draftFile_)return;
     saveDrafts();drafts_.clear();draftFile_=file;
     QFile input(file);if(QFileInfo(file).isSymLink()||input.size()>1024*1024||!input.open(QIODevice::ReadOnly))return;

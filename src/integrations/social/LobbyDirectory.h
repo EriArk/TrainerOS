@@ -43,7 +43,7 @@ inline QJsonObject listing(const QJsonObject& message,qint64 now) {
     if(status=="choosing"&&(seats||available))return {};
     const int streams=value["streams"].toInt(0);if(streams<0||streams>32)return {};
     QJsonObject result{{"lobby",id},{"owner",owner},{"name",value["name"].toString().left(100)},
-        {"revision",value["revision"]},{"expires",value["expires"]},{"access",value["access"]},
+        {"revision",value["revision"]},{"listedAt",value["listedAt"]},{"expires",value["expires"]},{"access",value["access"]},
         {"status",status},{"seats",seats},{"available",available},{"streams",streams}};
     const auto starts=value["startsAt"].toInteger();const auto members=value["members"].toInt(seats-available);
     if(starts<0||starts>4102444800LL||members<0||members>32||value["title"].toString().size()>80)return {};

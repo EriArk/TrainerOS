@@ -132,7 +132,8 @@ void FluxerSession::loadLobbyDirectory(int channel,QString before) {
             if(row.isEmpty())continue;
             row["topic"]=lobbyDirectory::topics[channel]=="choosing"?QString("other"):lobbyDirectory::topics[channel];
             const auto id=row["lobby"].toString();
-            if(!lobbyDirectoryPending_.contains(id)||row["revision"].toInteger()>lobbyDirectoryPending_[id]["revision"].toInteger())lobbyDirectoryPending_[id]=row;
+            const auto previous=lobbyDirectoryPending_.value(id);
+            if(previous.isEmpty()||(previous["owner"]==row["owner"]?row["revision"].toInteger()>previous["revision"].toInteger():row["listedAt"].toInteger()>previous["listedAt"].toInteger()))lobbyDirectoryPending_[id]=row;
         }
         if(++lobbyDirectoryPages_>100||lobbyDirectoryPending_.size()>5000) {
             lobbyDirectoryBusy_=false;lobbyDirectoryPending_.clear();lobbyDirectoryStatus_="The directory is too large to load. Try again later.";publish();return;

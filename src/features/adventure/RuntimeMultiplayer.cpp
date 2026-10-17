@@ -72,10 +72,8 @@ RuntimeMultiplayer::RuntimeMultiplayer(LibraryRepository& lib,RetroArchAdapter& 
         if(!expected["lobby"].toString().isEmpty()) {
             const auto offer=party_.offer("online:"+peer);
             if(offer["lobby"]!=expected["lobby"]||!offer["joinable"].toBool()) {emit notice("The lobby changed. Open Together again.");return;}
-            if(!social_.lobbyState().isEmpty()) {
-                social_.openLobby();emit notice("Leave your current lobby before joining another one.");return;
-            }
-            if(social_.lobbyCoordinator()->join(peer.section(':',-1),expected["lobby"].toString(),true))social_.openLobby();
+            const auto room=expected["lobby"].toString();
+            if(social_.lobbyCoordinator()->room(room)||social_.lobbyCoordinator()->join(peer.section(':',-1),room,true))social_.chooseMyLobby(room);
             return;
         }
         const auto offered=party_.offer("online:"+peer);
@@ -131,7 +129,7 @@ RuntimeMultiplayer::RuntimeMultiplayer(LibraryRepository& lib,RetroArchAdapter& 
         social_.setCompanyParties(companies);
         for(const auto& v:social_.runtimeFriends()) {
             const auto peer=v.toMap()["id"].toString();auto offer=party_.offer("online:"+peer);
-            if(!offer.isEmpty())offer["joinable"]=offer["joinable"].toBool()&&(offer["lobby"].toString().isEmpty()?(!party_.active()&&!party_.state()["joining"].toBool()&&!lifecycle_.active()):social_.lobbyState().isEmpty());
+            if(!offer.isEmpty())offer["joinable"]=offer["joinable"].toBool()&&(offer["lobby"].toString().isEmpty()?(!party_.active()&&!party_.state()["joining"].toBool()&&!lifecycle_.active()):!social_.lobbyCoordinator()->room(offer["lobby"].toString()));
             social_.setGameActivity(peer,offer.toVariantMap());
         }
         if(socialSurface_&&social_.runtimeSurfaceOpen())show(socialPanel_);
@@ -561,7 +559,7 @@ bool RuntimeMultiplayer::action(const QString& id,bool fromSocial) {
         else beginTogether(lifecycle_.adventureId());
         return true;
     }
-    if(id=="multiplayer-party"&&!lobbyTicket_.isEmpty()) {social_.openLobby();return true;}
+    if(id=="multiplayer-party"&&!lobbyTicket_.isEmpty()) {social_.chooseMyLobby(social_.lobbyCoordinator()->state()["id"].toString());return true;}
     socialSurface_=fromSocial;
     if(id.startsWith("multiplayer-pass:")) {
         if(active_&&hotseat()&&handoff_.canPass()&&id.section(':',1,1)==party_.state()["party"].toString()&&

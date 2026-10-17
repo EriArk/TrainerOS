@@ -324,6 +324,7 @@ Window {
             function hint(button, label) { return {button:button, label:label} }
             readonly property var localActions: {
                 const h = hint
+                if (shell.social.myLobbiesOpen) return [h("\u2191\u2193","Choose"),h("A","Open"),h("B","Back")]
                 if (shell.social.online.open) return shell.social.online.incoming ? [h("A","Accept"),h("B","Decline")] : [h("B","Cancel")]
                 if (shell.moduleInvitation.open) return shell.moduleInvitation.incoming ? [h("A","Accept"),h("B","Decline")] : [h("B","Cancel")]
                 if (shell.homeMenuOpen) {
@@ -422,6 +423,7 @@ Window {
         DiagnosticsPanel { anchors.fill: screen; shell: shellController; visible: shell.service === "diagnostics" }
         ScrapePanel { anchors.fill: screen; shell: shellController; z: 3.1; visible: shell.scraper.open && !shell.keyboard.open }
         DownloadsPanel { anchors.fill: screen; flow: shell.downloads; z: 3.2; visible: shell.downloads.open }
+        MyLobbiesPopup { anchors.fill: screen; social: shell.social; z: 3.5 }
         CollectionsPanel { anchors.fill: screen; shell: shellController; z: 3; visible: shell.collectionManager.open }
         LibraryToolsPanel { anchors.fill: screen; shell: shellController; z: 3; visible: shell.libraryTools.open }
         Item {

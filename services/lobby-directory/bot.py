@@ -77,7 +77,7 @@ class API:
             page = self.call('GET', f'/v1/channels/{channel}/messages?limit=100' + ('&before='+before if before else ''))
             for message in page:
                 value = decode(message.get('content'))
-                if message.get('author', {}).get('id') == self.bot and value and value.get('lobby') == lobby:
+                if message.get('author', {}).get('id') == self.bot and value and value.get('listing', value.get('lobby')) == lobby:
                     if self.edit(channel, message['id'], content):
                         return message['id']
             if len(page) < 100:

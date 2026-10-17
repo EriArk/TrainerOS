@@ -66,7 +66,7 @@ Item {
         CapButton {
             anchors.right: parent.right; y: 3; width: Math.min(166,parent.width*.29); height: 34; claimsFocus: false; textSize: 13; tint: Theme.green
             objectName: "lobby-create"
-            label: root.social.lobbyState.id ? "My lobby  ›" : "+  Create lobby"
+            label: root.social.myLobbies.length ? "My Lobbies  ›" : "+  Create lobby"
             selected: root.takesFocus && !root.social.lobbyRailFocused && root.social.lobbyFocus===0
             onActivated: root.social.selectLobby(0)
         }

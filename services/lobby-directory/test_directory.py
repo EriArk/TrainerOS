@@ -14,7 +14,7 @@ class API:
 
     def ensure(self, channel, lobby, content):
         for (c, m), value in self.messages.items():
-            if c == channel and decode(value)['lobby'] == lobby:
+            if c == channel and decode(value).get('listing', decode(value)['lobby']) == lobby:
                 self.messages[c, m] = content
                 return m
         self.serial += 1
@@ -92,7 +92,24 @@ class Tests(unittest.TestCase):
         self.assertEqual(entry['owner'], '1')
         self.assertNotIn('library', entry)
         self.assertNotIn('endpoint', entry)
-        self.assertEqual(self.accept(lobby=str(uuid.uuid4())), 'already-listed')
+        self.assertEqual(self.accept(lobby=str(uuid.uuid4())), 'accepted')
+
+    def test_multiple_rooms_have_independent_organizer_listings(self):
+        room = str(uuid.uuid4())
+        first, second = str(uuid.uuid4()), str(uuid.uuid4())
+        self.assertEqual(self.accept(lobby=first, room=room), 'accepted')
+        self.assertEqual(self.accept('2', lobby=second, room=room), 'accepted')
+        self.assertEqual(self.accept('2', lobby=first, revision=2), 'forbidden')
+        self.directory.reconcile(self.api, 100)
+        rows = [decode(m) for m in self.api.messages.values()]
+        self.assertEqual({r['lobby'] for r in rows}, {room})
+        self.assertEqual({r['owner'] for r in rows}, {'1', '2'})
+        self.assertEqual(self.accept(lobby=first, op='withdraw', revision=2), 'withdrawn')
+        self.directory.reconcile(self.api, 101)
+        self.assertEqual(len(self.api.messages), 1)
+        for _ in range(32):
+            self.assertEqual(self.accept('3', lobby=str(uuid.uuid4())), 'accepted')
+        self.assertEqual(self.accept('3', lobby=str(uuid.uuid4())), 'too-many-listed')
 
     def test_close_is_permanent_even_out_of_order(self):
         self.assertEqual(self.accept(op='close', revision=5), 'closed')

@@ -34,6 +34,30 @@ class SocialTests : public QObject {
         s.channel_=channel;s.channels_[channel]={{"id",channel},{"type",1}};
     }
 private slots:
+    void myLobbiesBrowseIsIndependentAndHomeDisappearsAfterProviderLeave() {
+        SocialController s;QObject::disconnect(&s,nullptr,s.session_,nullptr);QObject::disconnect(s.session_,nullptr,&s,nullptr);
+        s.receive(0,{{"state","connected"},{"userId","1"},{"name","Mika"}});s.createAnotherLobby();
+        const auto first=s.lobbyState()["id"].toString();s.createAnotherLobby();const auto second=s.lobbyState()["id"].toString();
+        QVERIFY(first!=second);QCOMPARE(s.myLobbies().size(),2);QCOMPARE(s.homeLobby()["count"].toInt(),2);
+        QCOMPARE(s.lobby_.state()["id"].toString(),first); // browsing never switches runtime
+        s.showMyLobbies();s.dispatch(Action::Down);s.dispatch(Action::Confirm);
+        QVERIFY(!s.myLobbiesOpen());QCOMPARE(s.lobbyState()["id"].toString(),second);
+        QCOMPARE(s.lobby_.state()["id"].toString(),first);
+        s.lobby_.room(second)->setConversation("300");s.lobbyChatPending_.clear();
+        QSignalSpy commands(&s,&SocialController::commandRequested);s.lobbyAction("leave");
+        QCOMPARE(commands.last()[0].toString(),QString("leave-group"));QCOMPARE(s.myLobbies().size(),2);
+        s.lobby_.room(second)->forgetMembership();QCOMPARE(s.myLobbies().size(),1);
+        s.lobby_.room(first)->forgetMembership();QVERIFY(s.homeLobby().isEmpty());
+    }
+    void spectatorRoleIsADirectLeftPanelAction() {
+        SocialController s;QObject::disconnect(&s,nullptr,s.session_,nullptr);QObject::disconnect(s.session_,nullptr,&s,nullptr);
+        s.receive(0,{{"state","connected"},{"userId","1"},{"name","Mika"}});s.openLobbyForPeople();
+        bool visible=false;for(const auto& v:s.lobbyRoomActions())if(v.toMap()["command"]=="spectate")visible=v.toMap()["enabled"].toBool();QVERIFY(visible);
+        QCOMPARE(s.lobbyPlayers()[0].toMap()["status"].toString(),QString("Preparing"));
+        s.activateLobbyRoom("action:spectate");QCOMPARE(s.lobbySpectators().size(),1);
+        s.activateLobbyRoom("action:spectate");QCOMPARE(s.lobbySpectators().size(),0);
+    }
+
     void lobbyRoomUsesIdentitySeatsAndVerifiedVoice() {
         SocialController s;QObject::disconnect(&s,nullptr,s.session_,nullptr);QObject::disconnect(s.session_,nullptr,&s,nullptr);
         s.receive(0,{{"state","connected"},{"userId","1"},{"name","Mika"},{"profile",QVariantMap{{"avatar","self.png"}}},
@@ -46,7 +70,7 @@ private slots:
         QVERIFY(s.lobby_.selectGame({"game","A real game","snes","netplay",3,{}}));
         QCOMPARE(s.lobbyPlayers().size(),3);QCOMPARE(s.lobbyPlayers()[1].toMap()["avatar"].toString(),QString("ren.png"));
         QVERIFY(s.lobbyPlayers()[2].toMap()["empty"].toBool());
-        s.lobbyChatChannel_="300";s.snapshot_["voice"]=QVariantMap{{"state","connected"},{"channel","999"},{"speakers",QStringList{"2"}}};
+        s.lobby_.setConversation("300");s.lobbyChatChannel_="300";s.snapshot_["voice"]=QVariantMap{{"state","connected"},{"channel","999"},{"speakers",QStringList{"2"}}};
         QVERIFY(!s.lobbyPlayers()[1].toMap()["speaking"].toBool());
         auto voice=s.snapshot_["voice"].toMap();voice["channel"]="300";s.snapshot_["voice"]=voice;
         QVERIFY(s.lobbyPlayers()[1].toMap()["speaking"].toBool());
@@ -76,10 +100,10 @@ private slots:
         s.dispatch(Action::Right);QVERIFY(s.lobbyChatFocused());
         s.dispatch(Action::ChangeView);QVERIFY(s.lobbyChatExpanded());s.dispatch(Action::Back);QVERIFY(!s.lobbyChatExpanded());QVERIFY(s.lobbyChatFocused());
         s.dispatch(Action::Back);QVERIFY(!s.lobbyChatFocused());QCOMPARE(s.lobbyRoomFocus(),QString("invite"));
-        s.dispatch(Action::Down);QCOMPARE(s.lobbyRoomFocus(),QString("action:call"));
+        s.dispatch(Action::Down);QCOMPARE(s.lobbyRoomFocus(),QString("action:spectate"));
         s.dispatch(Action::Back);QVERIFY(!s.lobbyDetailFocused());QCOMPARE(s.lobbyState()["id"],room);
-        s.selectLobby(0);QCOMPARE(s.lobbyRoomFocus(),QString("action:call"));QCOMPARE(s.draft(),QString("Keep my draft"));
-        s.lobbyAction("room-menu");QVERIFY(s.menuCommands_.contains("lobby:leave"));
+        s.selectLobby(0);QCOMPARE(s.lobbyRoomFocus(),QString("action:spectate"));QCOMPARE(s.draft(),QString("Keep my draft"));
+        s.closeMyLobbies();s.lobbyAction("room-menu");QVERIFY(s.menuCommands_.contains("lobby:leave-confirm"));
     }
     void lobbyAutomaticPreparationIsBoundedAndNeverInterruptsGame() {
         class Runtime final : public LobbyRuntimeService { public: int attempts=0; void prepare(QString,QJsonObject,Completion done) override {++attempts;done(false,"Missing local game");}
@@ -468,7 +492,9 @@ private slots:
         QVariantMap args{{"lobby",room},{"host",true},{"peers",QStringList{remote}}};
         s.command("lobby-chat",args);s.command("lobby-chat",args);QCOMPARE(posts,1);QVERIFY(!result.last()[3].toString().isEmpty());
         status=403;args["host"]=false;args["channel"]="555";args["peers"]=QStringList{};
-        s.command("lobby-chat",args);QVERIFY(result.last()[2].toString().isEmpty());QVERIFY(!s.channels_.contains("555"));
+        QSignalSpy lost(&s,&FluxerSession::partyFailed);
+        s.command("lobby-chat",args);QVERIFY(result.last()[2].toString().isEmpty());QVERIFY(!s.channels_.contains("555"));QVERIFY(lost.isEmpty());
+        s.lobbyChatChannels_[room]="555";s.command("lobby-chat",args);QCOMPARE(lost.size(),1);
     }
     void lateLobbyConversationCannotCrossOwnerOrReplaceNewRoom() {
         FluxerSession s;Completion late;s.setTransport([&](auto,auto,auto,Completion done,QByteArray){late=done;});bind(s);s.relationships_[remote]={{"type",1}};s.relationships_["3"]={{"type",1}};
@@ -488,7 +514,7 @@ private slots:
         QSignalSpy commands(&c,&SocialController::commandRequested);c.focusLobbyChat();c.dispatch(Action::ToggleContinue);
         QCOMPARE(commands.last().first().toString(),"voice-join");commands.clear();
         c.lobbyAction("leave");for(const auto& command:commands)QVERIFY(!command.first().toString().startsWith("voice-"));
-        QVERIFY(!c.lobbyChatVisible());QCOMPARE(c.draft(),"same draft");
+        QVERIFY(c.lobbyChatVisible());c.lobby_.activeRoom()->forgetMembership();QVERIFY(!c.lobbyChatVisible());QCOMPARE(c.draft(),"same draft");
     }
     void lobbyCatalogueRefreshKeepsTheSelectedIdentity() {
         SocialController c;const auto expiry=QDateTime::currentSecsSinceEpoch()+100;
@@ -522,9 +548,9 @@ private slots:
         QVERIFY(c.menuDetail().contains("shared conversation"));c.selectMenu(0);c.publishLobby();
         QVERIFY(!publications().isEmpty());QCOMPARE(publications().last().toMap()["op"].toString(),"upsert");
         c.lobbyAction("access");c.selectMenu(0);c.lobbyAction("access");c.publishLobby();QCOMPARE(publications().last().toMap()["op"].toString(),"withdraw");
-        c.lobbyAction("access");c.selectMenu(0);c.publishLobby();QCOMPARE(publications().last().toMap()["lobby"].toString(),id);
+        c.lobbyAction("access");c.selectMenu(0);c.publishLobby();QCOMPARE(publications().last().toMap()["room"].toString(),id);
         QCOMPARE(publications().last().toMap()["op"].toString(),"upsert");
-        c.lobbyAction("leave");c.publishLobby();QCOMPARE(publications().last().toMap()["op"].toString(),"close");
+        c.lobbyChatPending_.clear();c.lobbyAction("leave");c.publishLobby();QCOMPARE(publications().last().toMap()["op"].toString(),"withdraw");
     }
     void lobbyDirectoryAggregatesChannelsAndRequiresBotAuthorship() {
         FluxerSession s;int requests=0;
@@ -1533,13 +1559,13 @@ private slots:
         c.receive(0,snapshot);
         c.dispatch(Action::Confirm);QVERIFY(c.reading());QVERIFY(text.isEmpty());
         c.dispatch(Action::Secondary);QCOMPARE(text.size(),1);QCOMPARE(c.textSubmitLabel(),"Send");
-        c.preserveText(QString::fromUtf8("Привет 😀"));QVERIFY(commands.isEmpty());
+        c.preserveText(QString::fromUtf8("Привет 😀"));QVERIFY2(commands.isEmpty(),qPrintable(commands.isEmpty()?QString():commands.first()[0].toString()));
         c.applyText(QString::fromUtf8("Привет 😀"));QCOMPARE(commands.size(),1);
         QCOMPARE(commands.last()[0].toString(),"send");
         QCOMPARE(commands.last()[1].toMap()["channel"].toString(),QString(channel));
         QCOMPARE(commands.last()[1].toMap()["text"].toString(),QString::fromUtf8("Привет 😀"));
         QVERIFY(c.draft().isEmpty());commands.clear();
-        c.dispatch(Action::ToggleContinue);QVERIFY(commands.isEmpty());QCOMPARE(c.menuTitle(),"Together");
+        c.dispatch(Action::ToggleContinue);QVERIFY2(commands.isEmpty(),qPrintable(commands.isEmpty()?QString():commands.first()[0].toString()));QCOMPARE(c.menuTitle(),"Together");
         c.selectMenu(c.menuCommands_.indexOf("native-activities"));QCOMPARE(commands.size(),1);
         QCOMPARE(commands.last()[0].toString(),"online-probe");QCOMPARE(c.menuTitle(),"Activities");
         c.dispatch(Action::Back);QVERIFY(c.menu().isEmpty());QCOMPARE(commands.size(),1);
@@ -1548,7 +1574,7 @@ private slots:
         c.receive(0,snapshot);QVERIFY(!c.togetherAvailable());c.together();QCOMPARE(commands.size(),1);
         // A channel change while editing keeps the original draft, never sends it to the new person.
         c.compose();snapshot["channel"]="another";c.receive(0,snapshot);commands.clear();
-        c.applyText("For the original friend");QVERIFY(commands.isEmpty());
+        c.applyText("For the original friend");QVERIFY2(commands.isEmpty(),qPrintable(commands.isEmpty()?QString():commands.first()[0].toString()));
         QCOMPARE(c.drafts_.value(channel),"For the original friend");
         snapshot["channel"]=channel;c.receive(0,snapshot);c.compose();
         const auto emojiDraft=QString::fromUtf8("😀").repeated(1001);
@@ -1908,7 +1934,7 @@ private slots:
         SocialController c;QSignalSpy commands(&c,&SocialController::commandRequested);
         c.receive(0,{{"state","connected"},{"channel",channel}});
         c.dispatch(Action::Right);QVERIFY(c.reading());c.dispatch(Action::Back);
-        QVERIFY(!c.reading());QVERIFY(c.conversation());QVERIFY(commands.isEmpty());
+        QVERIFY(!c.reading());QVERIFY(c.conversation());QVERIFY2(commands.isEmpty(),qPrintable(commands.isEmpty()?QString():commands.first()[0].toString()));
     }
     void automaticConversationPrefersLastChoiceThenRecent() {
         FluxerSession s;QStringList requests;s.setTransport([&](auto,auto path,auto,Completion done, QByteArray){requests<<path;done({200,QJsonDocument(QJsonArray{})});});bind(s);

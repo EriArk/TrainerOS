@@ -30,9 +30,9 @@ void FluxerSession::lobbyChatCommand(const QVariantMap& args) {
         lobbyChatBusy_.remove(lobby);emit lobbyChatFinished(generation_,lobby,{},error);
     };
     if(channel.isEmpty()) {
-        if(!host||peers.isEmpty()) {failed("Invite someone to start the conversation.");return;}
+        if(!host) {failed("Invite someone to start the conversation.");return;}
         QJsonArray recipients;for(const auto& peer:peers)if(relationships_.value(peer)["type"]==1)recipients.append(peer);
-        if(recipients.isEmpty()) {
+        if(!peers.isEmpty()&&recipients.isEmpty()) {
             const auto contacts=temporaryContacts_.state();
             const auto error=contacts["error"].toString();
             failed(error.isEmpty()?"Connecting lobby contacts. Check Recently together if a friendship needs attention.":error);return;
@@ -58,6 +58,9 @@ void FluxerSession::lobbyChatCommand(const QVariantMap& args) {
         if(!lobbyChatBusy_.contains(lobby))return;
         const auto c=reply.body.object();
         if(reply.status!=200||c["id"]!=channel||c["type"]!=3||!c["guild_id"].toString().isEmpty()) {
+            // A new guest can probe before the organizer's recipient-add completes.
+            // Only previously verified access can be revoked by this response.
+            if((reply.status==403||reply.status==404)&&lobbyChatChannels_.value(lobby)==channel)emit partyFailed(generation_,"company:"+channel);
             failed("Conversation unavailable. The host can check its members and retry.");return;
         }
         channels_[channel]=c;++channelRevision_;lobbyChatChannels_[lobby]=channel;

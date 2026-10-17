@@ -79,7 +79,7 @@ public:
             case 5:
                 capture("catalogue-empty");social->lobbyAction("clear-filters");window->resize(960,540);break;
             case 6:
-                capture("catalogue-960");social->selectLobby(0);break;
+                capture("catalogue-960");social->selectLobby(0);if(social->myLobbiesOpen())social->chooseMyLobby(social->lobbyState()["id"].toString());break;
             case 7:
                 check(social->lobbyState()["phase"]=="choosing","Create enters existing game-free room");
                 capture("catalogue-own-room");social->lobbyAction("browse");break;
@@ -102,7 +102,7 @@ public:
             case 14:capture("catalogue-controller-rail-960");if(!qEnvironmentVariableIsSet("TRAINEROS_LOBBY_ROOM_SMOKE"))*step=99;break;
             case 15: {
                 social->lobbyRuntime_.registerService("netplay",new LobbyRoomSmokeRuntime(window));
-                social->selectLobby(0);social->lobby_.setDetails("One more round",QDateTime::currentSecsSinceEpoch()+3600);
+                social->selectLobby(0);if(social->myLobbiesOpen())social->chooseMyLobby(social->lobbyState()["id"].toString());social->lobby_.setDetails("One more round",QDateTime::currentSecsSinceEpoch()+3600);
                 for(int i=2;i<=4;++i) {
                     const auto id=QString::number(i),name=QStringList{"Ren","Luna With A Long Nickname","Nori"}[i-2];
                     auto* guest=new LobbyCoordinator(window);guest->configure(id,name,true);
@@ -112,7 +112,7 @@ public:
                 }
                 social->lobby_.selectGame({"fixture","Super Mario Kart","SNES","netplay",4,{}});
                 social->lobbyGames_={QVariantMap{{"id","fixture"},{"mode","netplay"},{"modeLabel","NetPlay"}}};
-                auto snapshot=social->snapshot_;snapshot["channel"]="300";snapshot["status"]="Connected";
+                social->lobby_.setConversation("300");auto snapshot=social->snapshot_;snapshot["channel"]="300";snapshot["status"]="Connected";
                 snapshot["voice"]=QVariantMap{{"available",true},{"state","connected"},{"channel","300"},{"muted",true},{"speakers",QStringList{"2"}}};
                 snapshot["chats"]=QVariantList{QVariantMap{{"id","300"},{"name","One more round"},{"kind","groups"}}};
                 snapshot["messages"]=QVariantList{
@@ -122,7 +122,7 @@ public:
                     QVariantMap{{"id","304"},{"author","4"},{"name","Nori"},{"text","That last corner!"}},
                     QVariantMap{{"id","305"},{"author","4"},{"name","Nori"},{"text","Ren, watch out for the green shell 😂"}},
                     QVariantMap{{"id","306"},{"author","4"},{"name","Nori"},{"text","<Not markup> & still a message"}}};
-                social->receive(0,snapshot);social->lobbyChatChannel_="300";social->lobbyChatStatus_.clear();social->selectLobby(0);
+                social->receive(0,snapshot);social->lobbyChatChannel_="300";social->lobbyChatStatus_.clear();social->selectLobby(0);if(social->myLobbiesOpen())social->chooseMyLobby(social->lobbyState()["id"].toString());
                 social->lobbyRoomFocus_="person:2";window->resize(1600,900);break;
             }
             case 16:
@@ -144,16 +144,33 @@ public:
                 check(social->lobbyPlayers().size()==16,"Runtime capacity is not fixed at four");capture("room-sixteen-seats");
                 check(click("lobby-room-menu"),"Room menu is touch accessible");break;
             case 21:
-                capture("room-options");check(social->menuCommands_.contains("lobby:leave"),"Room exit is separate from B");social->closeMenu();
+                capture("room-options");check(social->menuCommands_.contains("lobby:leave-confirm"),"Room exit is separate from B");social->closeMenu();
                 press(ControllerInput::BackButton);check(!social->lobbyDetailFocused()&&!social->lobbyState().isEmpty(),"B preserves the room while browsing");break;
             case 22:
-                social->selectLobby(0);check(click("lobby-spectator-strip"),"Spectator strip switches the chat");break;
+                social->selectLobby(0);if(social->myLobbiesOpen())social->chooseMyLobby(social->lobbyState()["id"].toString());check(click("lobby-spectator-strip"),"Spectator strip switches the chat");break;
             case 23:
                 check(social->lobbySpectatorChat()&&social->lobbyRoomMessages().size()==3,"Only spectator messages appear in stream chat");capture("room-spectator-chat");
                 press(ControllerInput::ConfirmButton);check(!shell.keyboard()->isOpen()&&social->menu_.isEmpty(),"Spectator chat has no reply or compose action");
                 press(SDL_CONTROLLER_BUTTON_LEFTSTICK);check(!social->lobbySpectatorChat(),"L3 returns to player chat through the shell");break;
             case 24:
                 check(!social->lobbySpectatorChat()&&social->lobbyRoomMessages().size()==3,"Player chat excludes spectator messages");break;
+            case 25: {
+                const auto first=social->lobbyState()["id"].toString();
+                auto* room=social->lobby_.createRoom();check(room!=nullptr,"Second scheduled membership is created");
+                if(room){room->setDetails("Saturday kart club",QDateTime::currentSecsSinceEpoch()+7200);room->selectGame({"fixture-kart","Super Mario Kart","SNES","netplay",4,{}});}
+                check(social->lobby_.state()["id"].toString()==first,"Browsing retains the runtime room");
+                social->showMyLobbies();window->resize(960,540);break;
+            }
+            case 26:
+                check(social->myLobbies().size()==2,"My Lobbies includes both rooms");capture("my-lobbies-handheld");
+                press(SDL_CONTROLLER_BUTTON_DPAD_DOWN);press(ControllerInput::ConfirmButton);break;
+            case 27:
+                check(!social->myLobbiesOpen()&&social->lobbyState()["title"]=="Saturday kart club","Controller selects the scheduled room");
+                capture("scheduled-room");shell.goToPage(0);break;
+            case 28:
+                capture("home-my-lobbies");social->showMyLobbies();window->resize(1600,900);break;
+            case 29:
+                capture("my-lobbies-wide");press(ControllerInput::BackButton);check(shell.page()==0,"Closing My Lobbies preserves Home");break;
             default:
                 timer->stop();completed=true;QFile report(directory+"/catalogue-check.txt");
                 if(report.open(QIODevice::WriteOnly))report.write((diagnostics.join('\n')+QString("\nqmlWarnings=%1\n").arg(warnings)).toUtf8());
@@ -216,13 +233,13 @@ public:
             case 3:
                 check(social->lobbyState()["members"].toList().size()==2,"Accepted guest appears in lobby");
                 {
-                    auto snapshot=social->snapshot_;snapshot["channel"]="300";
+                    social->lobby_.setConversation("300");auto snapshot=social->snapshot_;snapshot["channel"]="300";
                     snapshot["voice"]=QVariantMap{{"available",true}};
                     snapshot["chats"]=QVariantList{QVariantMap{{"id","300"},{"name","Our people"},{"kind","groups"}}};
                     snapshot["messages"]=QVariantList{
                         QVariantMap{{"id","301"},{"author","2"},{"name","Guest"},{"text","What shall we play?"}},
                         QVariantMap{{"id","302"},{"author","1"},{"name","Host"},{"text","Let's pick a game together."},{"mine",true}}};
-                    social->receive(0,snapshot);social->lobbyChatChannel_="300";social->lobbyChatStatus_.clear();social->selectLobby(0);
+                    social->receive(0,snapshot);social->lobbyChatChannel_="300";social->lobbyChatStatus_.clear();social->selectLobby(0);if(social->myLobbiesOpen())social->chooseMyLobby(social->lobbyState()["id"].toString());
                     check(social->lobbyChatVisible(),"Lobby embeds existing conversation");
                 }
                 capture("lobby-choosing");

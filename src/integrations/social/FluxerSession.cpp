@@ -616,7 +616,7 @@ void FluxerSession::refreshChannels() {
         QStringList previousPrivate;
         for(auto it=channels_.begin();it!=channels_.end();) {if(it.value()["guild_id"].toString().isEmpty()){previousPrivate.append(it.key());it=channels_.erase(it);}else ++it;}
         for(const auto& v:r.body.array()) {auto o=v.toObject();auto id=o["id"].toString();if(idValid(id)&&channels_.size()<500)channels_[id]=o;}
-        for(const auto& id:previousPrivate)if(!channels_.contains(id)){historyCache_.remove(id);historyLru_.removeAll(id);callNotices_.remove(id);}
+        for(const auto& id:previousPrivate)if(!channels_.contains(id)){historyCache_.remove(id);historyLru_.removeAll(id);callNotices_.remove(id);emit partyFailed(generation_,"company:"+id);}
         if(!channel_.isEmpty()&&!channels_.contains(channel_)) {channel_.clear();messages_.clear();messageOrder_.clear();}
         for(auto it=channels_.cbegin();it!=channels_.cend();++it)updateUnread(it.key());
         channelsLoaded_=true;status_="Connected";ensureConversation();publish();

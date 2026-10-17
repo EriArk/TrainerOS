@@ -9,7 +9,7 @@ Item {
     property bool compact: false
     property color accent: Theme.blue
     signal activated()
-    readonly property real diameter: Math.min(width - 16, height - (small ? 30 : compact ? 42 : 49))
+    readonly property real diameter: Math.min(width - 16, height - (small ? 30 : compact ? 46 : 54))
     Accessible.role: Accessible.Button
     Accessible.name: (person.name || "Free place") + " · " + (person.status || "Invite")
     Accessible.onPressAction: activated()
@@ -27,8 +27,12 @@ Item {
         Rectangle { id: face; anchors.fill: parent; anchors.margins: 5; radius: width/2
             gradient: Gradient { GradientStop { position: 0; color: Qt.lighter(root.accent,1.16) } GradientStop { position: 1; color: root.accent } }
             opacity: root.person.empty ? .45 : 1
-            Text { anchors.centerIn: parent; text: root.person.empty ? "+" : (root.person.name || "?").substring(0,1).toUpperCase()
-                color: Theme.ink; font.family: Theme.displayFamily; font.pixelSize: parent.height * (root.person.empty ? .64 : .48) }
+            Text { anchors.centerIn: parent; visible: !root.person.empty; text: (root.person.name || "?").substring(0,1).toUpperCase()
+                color: Theme.ink; font.family: Theme.displayFamily; font.pixelSize: parent.height * .48 }
+            Item { anchors.centerIn: parent; width: parent.width * .36; height: width; visible: !!root.person.empty
+                Rectangle { anchors.centerIn: parent; width: parent.width; height: Math.max(3,parent.width*.13); radius: height/2; color: Theme.ink }
+                Rectangle { anchors.centerIn: parent; height: parent.height; width: Math.max(3,parent.height*.13); radius: width/2; color: Theme.ink }
+            }
             Image { id: photo; anchors.fill: parent; visible: false; asynchronous: true; source: root.person.avatar || ""
                 sourceSize: Qt.size(160,160); fillMode: Image.PreserveAspectCrop }
             Rectangle { id: mask; anchors.fill: parent; radius: width/2; visible: false; layer.enabled: true; color: "white" }
@@ -44,9 +48,9 @@ Item {
         }
     }
     Text { x: 1; y: circle.y+circle.height+(root.compact ? 7 : 10); width: parent.width-2; horizontalAlignment: Text.AlignHCenter
-        text: root.person.name || "Invite"; font.family: Theme.displayFamily; font.pixelSize: root.small ? 11 : root.compact ? 12 : 15; color: Theme.ink
+        text: root.person.name || "Invite"; font.family: Theme.displayFamily; font.pixelSize: root.small ? 11 : root.compact ? 15 : 19; color: Theme.ink
         elide: Text.ElideRight; textFormat: Text.PlainText }
-    Text { visible: !root.small; y: circle.y+circle.height+(root.compact ? 22 : 29); width: parent.width; horizontalAlignment: Text.AlignHCenter
+    Text { visible: !root.small; y: circle.y+circle.height+(root.compact ? 26 : 34); width: parent.width; horizontalAlignment: Text.AlignHCenter
         text: root.person.status || (root.person.seat ? "Free place" : "Invite friends"); font.pixelSize: root.compact ? 9 : 11; color: root.person.ready ? "#467747" : Theme.muted
         elide: Text.ElideRight; textFormat: Text.PlainText }
     MouseArea { anchors.fill: parent; onClicked: root.activated() }

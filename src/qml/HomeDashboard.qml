@@ -18,9 +18,20 @@ Item {
         x: root.gap; y: 12 * root.unit
         width: root.split - 2 * root.gap
         height: root.usableHeight - (root.generic ? 0 : awards.height + root.gap) - y
+        Item {
+            id: lobbyCard; objectName: "home-lobby-card"; width: parent.width; height: visible ? 54 : 0
+            visible: !!root.shell.social.homeLobby.id
+            Rectangle { x: 1; y: 3; width: parent.width-2; height: parent.height-4; radius: 10; color: Theme.chassisDark; opacity: .16 }
+            Rectangle { anchors.fill: parent; anchors.bottomMargin: 3; radius: 10; color: Qt.tint(Theme.paper,"#297eb9ad"); border.color: root.active && root.flow.focus==="lobbies"?Theme.focus:Theme.rim; border.width: root.active && root.flow.focus==="lobbies"?2:1 }
+            MenuGlyph { x: 9; anchors.verticalCenter: parent.verticalCenter; width: 25; height: 25; glyph: "game-controller" }
+            Text { x: 43; y: 7; width: parent.width-66; text: root.shell.social.homeLobby.title || ""; font.family: Theme.displayFamily; font.pixelSize: 16; color: Theme.ink; elide: Text.ElideRight; textFormat: Text.PlainText }
+            Text { x: 43; y: 30; width: parent.width-66; text: "My Lobbies · "+(root.shell.social.homeLobby.count || 0); font.pixelSize: 11; color: Theme.muted }
+            Text { anchors.right: parent.right; anchors.rightMargin: 8; anchors.verticalCenter: parent.verticalCenter; text: "›"; color: Theme.ink; font.pixelSize: 23 }
+            MouseArea { anchors.fill: parent; onClicked: root.shell.activateDashboard("lobbies") }
+        }
         ListView {
             id: chatRow; objectName: "home-people"
-            y: 6 * root.unit; width: parent.width; height: 80 * root.unit
+            y: lobbyCard.height + 6 * root.unit; width: parent.width; height: 80 * root.unit
             orientation: ListView.Horizontal; clip: true; spacing: 8 * root.unit
             model: root.flow.people
             currentIndex: { for(let i=0;i<model.length;i++)if(model[i].key===root.flow.focus)return i;return -1 }
@@ -49,7 +60,7 @@ Item {
         }
         Item {
             visible: root.flow.people.length === 0 && root.flow.activities.length === 0
-            x: 3*root.unit; y: 16*root.unit; width: parent.width; height: 92*root.unit
+            x: 3*root.unit; y: lobbyCard.height+16*root.unit; width: parent.width; height: 92*root.unit
             Rectangle {
                 x: 3; y: 9*root.unit; width: 67*root.unit; height: 55*root.unit; radius: 17*root.unit
                 color: "#b484a5"; rotation: -10; border.color: "#edd3d9"; border.width: 2
@@ -67,7 +78,7 @@ Item {
         }
         ListView {
             id: events; objectName: "home-activity"
-            y: root.flow.people.length ? chatRow.y + chatRow.height + 8 * root.unit : 12 * root.unit
+            y: root.flow.people.length ? chatRow.y + chatRow.height + 8 * root.unit : lobbyCard.height+12 * root.unit
             width: parent.width; height: Math.max(0, parent.height-y)
             clip: true; spacing: 9 * root.unit; model: root.flow.activities
             currentIndex: { for(let i=0;i<model.length;i++) if(model[i].key===root.flow.focus)return i;return -1 }

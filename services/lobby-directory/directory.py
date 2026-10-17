@@ -75,10 +75,10 @@ class Directory:
                         revision=excluded.revision,closed=excluded.closed,dirty=1,expires=excluded.expires''',
                         (lobby, author, revision, now, int(op == 'close')))
                 return 'closed' if op == 'close' else 'withdrawn'
-            active = self.db.execute('SELECT id FROM lobbies WHERE owner=? AND closed=0 AND expires>? AND id<>?',
+            active = self.db.execute('SELECT COUNT(*) AS count FROM lobbies WHERE owner=? AND closed=0 AND expires>? AND id<>?',
                                      (author, now, lobby)).fetchone()
-            if active:
-                return 'already-listed'
+            if active['count'] >= 32:
+                return 'too-many-listed'
             topic = command.get('topic', 'choosing')
             if topic not in self.channels:
                 return 'invalid'
@@ -96,8 +96,11 @@ class Directory:
                 return 'invalid'
             # Explicit allowlist: never reflect ROM paths, IPs, keys, libraries or
             # arbitrary embedded fields into a public community message.
-            payload = {'v': 1, 'lobby': lobby, 'owner': author, 'name': text(name, 100),
-                       'revision': revision, 'status': status, 'access': access,
+            room = command.get('room', lobby)
+            if str(uuid.UUID(room)) != room:
+                return 'invalid'
+            payload = {'v': 1, 'lobby': room, 'listing': lobby, 'owner': author, 'name': text(name, 100),
+                       'revision': revision, 'listedAt': now, 'status': status, 'access': access,
                        'seats': seats, 'available': available, 'streams': streams, 'expires': now + TTL}
             if command.get('title'):
                 payload['title'] = text(command['title'], 80)

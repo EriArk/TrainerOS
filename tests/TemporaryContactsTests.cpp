@@ -62,6 +62,15 @@ class TemporaryContactsTests final : public QObject {
         QString phase(bool owner) const {return (owner?host.records_["2"]:guest.records_["1"]).toObject()["phase"].toString();}
     };
 private slots:
+    void leavingOneRoomKeepsContactsNeededByAnotherRoom() {
+        Pair p;p.run();QCOMPARE(p.phase(true),"friend");
+        auto other=p.room;other["id"]=QUuid::createUuid().toString(QUuid::WithoutBraces);
+        p.host.context({{"rooms",QJsonArray{p.room,other}}},true);p.guest.context({{"rooms",QJsonArray{p.room,other}}},true);
+        p.host.context({{"rooms",QJsonArray{other}}},true);p.guest.context({{"rooms",QJsonArray{other}}},true);
+        p.run(40);QCOMPARE(p.deletes,0);QCOMPARE(p.posts,1);
+        p.leave();p.run(40);QCOMPARE(p.deletes,1);
+    }
+
     void recoveryDefersCleanupUntilMembershipIsResolved() {
         Pair p;p.run();QCOMPARE(p.phase(true),"friend");
         auto pending=p.room;pending["recovering"]=true;p.guest.context(pending,true);
