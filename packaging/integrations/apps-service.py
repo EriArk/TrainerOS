@@ -170,7 +170,9 @@ class Service:
         emit('catalogue', rows=list(rows.values()))
 
     def scan(self):
-        windows = self.windows.all()
+        # Unmanaged desktop windows cannot become an owned app by discovery.
+        # Launch captures its own before-set; restore_sessions scans at startup.
+        windows = self.windows.all() if self.sessions or self.pending else {}
         for app_id, session in list(self.sessions.items()):
             session['windows'] = {w: r for w, r in session['windows'].items()
                                   if w in windows and windows[w]['pid'] == r['pid'] and windows[w]['start'] == r['start']}

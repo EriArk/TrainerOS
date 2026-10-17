@@ -16,6 +16,19 @@ int main(int argc,char** argv){
     trainer::BrowserController browser;browser.configure(qEnvironmentVariable("PROBE_DATA"),"runtime-probe");browser.enter();
     QQmlApplicationEngine engine;engine.rootContext()->setContextProperty("browser",&browser);
     engine.rootContext()->setContextProperty("probeUrl",qEnvironmentVariable("PROBE_URL"));
+    if(qEnvironmentVariable("PROBE_MODE")=="lifecycle") {
+        engine.rootContext()->setContextProperty("Theme",QVariantMap{{"uiScale",1.0},{"paper","#fffdf5"}});
+        engine.rootContext()->setContextProperty("engineSource",QUrl::fromLocalFile(qEnvironmentVariable("PROBE_ENGINE")));
+        QObject::connect(&engine,&QQmlEngine::exit,&app,[&](int code){
+            QFile receipt(qEnvironmentVariable("PROBE_DATA")+"/lifecycle.json");
+            if(receipt.open(QIODevice::WriteOnly))receipt.write(QJsonDocument(QJsonObject{{"passed",code==0},{"exit",code}}).toJson());
+            app.exit(code);
+        });
+        engine.load(QUrl::fromLocalFile(qEnvironmentVariable("PROBE_SCENARIO")));
+        if(engine.rootObjects().isEmpty())return 2;
+        QTimer::singleShot(35000,&app,[&]{qCritical("LIFECYCLE_TIMEOUT");app.exit(3);});
+        return app.exec();
+    }
     engine.loadData(R"QML(import QtQuick
 import QtWebEngine
 Window {

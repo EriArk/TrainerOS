@@ -12,8 +12,10 @@ Item {
         if(!flow||!surface||reconciling)return
         reconciling=true
         const ids = flow.tabs.map(t => t.id)
-        for (const id in views) if (ids.indexOf(id)<0) { const old=views[id];delete views[id];old.destroy() }
-        for (const tab of flow.tabs) if (!views[tab.id]) views[tab.id]=page.createObject(engine,{tabId:tab.id,url:tab.url})
+        for (const id in views) if (ids.indexOf(id)<0) { const old=views[id];if(current===old)current=null;delete views[id];surface.forgetTab(id);old.destroy() }
+        // Restored tabs keep their identity/title/URL, but only start a renderer
+        // when visited. Already opened tabs retain DOM, history and downloads.
+        for (const tab of flow.tabs) if (tab.id===flow.selected && !views[tab.id]) views[tab.id]=page.createObject(engine,{tabId:tab.id,url:tab.url})
         if(current&&current.tabId!==flow.selected)surface.captureTab(current.tabId,current)
         current=views[flow.selected] || null
         for (const id in views) views[id].selected=(id===flow.selected)
@@ -38,6 +40,17 @@ Item {
             profile: engine.flow.profile
             backgroundColor: Theme.paper
             audioMuted: !engine.surface.mediaAllowed || !selected
+            readonly property bool foreground: selected && engine.surface.active
+            readonly property bool canFreeze: !foreground && recommendedState!==WebEngineView.LifecycleState.Active
+                && !engine.flow.downloads.some(job => job.state==="running" || job.state==="paused")
+            onCanFreezeChanged: {
+                if(canFreeze)freezeDelay.restart()
+                else {freezeDelay.stop();lifecycleState=WebEngineView.LifecycleState.Active}
+            }
+            Timer {
+                id: freezeDelay; interval: 15000
+                onTriggered: if(web.canFreeze)web.lifecycleState=WebEngineView.LifecycleState.Frozen
+            }
             settings.fullScreenSupportEnabled: true
             settings.playbackRequiresUserGesture: true
             settings.focusOnNavigationEnabled: false

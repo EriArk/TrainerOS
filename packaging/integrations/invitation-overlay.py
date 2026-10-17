@@ -125,7 +125,9 @@ def run(args):
     try:
         emit('ready')
         while guard.poll() is None and identity(args.shell) == start:
-            if select.select([sys.stdin.buffer],[],[],.01)[0]:
+            # Hidden surfaces have no pointer work. Commands/heartbeats wake the
+            # wait immediately; visible input retains its original 10 ms cadence.
+            if select.select([sys.stdin.buffer],[],[],.01 if visible else .25)[0]:
                 data = os.read(sys.stdin.fileno(),4096)
                 if not data:
                     return
@@ -155,9 +157,11 @@ def run(args):
                             game = next_game
                             try: game_start = identity(game) if game else ''
                             except OSError: game_start = ''
-            focused = v.active()
-            eligible = visible and (v.owns(focused,args.shell,start) or
-                bool(game and game_start and v.owns(focused,game,game_start)))
+            eligible = False
+            if visible:
+                focused = v.active()
+                eligible = (v.owns(focused,args.shell,start) or
+                    bool(game and game_start and v.owns(focused,game,game_start)))
             pointer.grab(eligible and bool(regions))
             for target, phase, px, py in pointer.poll(regions, eligible):
                 emit('pointer', target=target, phase=phase, x=px, y=py)

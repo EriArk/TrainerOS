@@ -1,3 +1,4 @@
+#include "core/PerformanceTrace.h"
 #include "RuntimeMultiplayer.h"
 #include "RuntimeIdentity.h"
 #include "integrations/adventure/retroarch/RetroArchHandheldLink.h"
@@ -27,11 +28,20 @@ QVariantMap row(QString id,QString label,QString detail={}){return {{"id",id},{"
 }
 RuntimeMultiplayer::~RuntimeMultiplayer() {
     QObject::disconnect(&social_,nullptr,this,nullptr);
+    // Service destruction can synchronously reconcile the lobby while our
+    // value members are already gone, before QObject disconnects this receiver.
+    QObject::disconnect(social_.lobbyCoordinator(),nullptr,this,nullptr);
+    QObject::disconnect(&process_,nullptr,this,nullptr);
+    QObject::disconnect(&lifecycle_,nullptr,this,nullptr);
+    QObject::disconnect(&lifecycle_.exitController(),nullptr,this,nullptr);
+    QObject::disconnect(&overlay_,nullptr,this,nullptr);
     // QObject's own disconnect runs after value members have been destroyed.
     // A network member's close signal must not redraw a menu using freed maps.
     active_=false;
     for(auto* child:findChildren<QObject*>())QObject::disconnect(child,nullptr,this,nullptr);
-    handoff_.stop();timer_.stop();invitationOpenTimer_.stop();scan_.cancel();
+    handoff_.stop();timer_.stop();invitationOpenTimer_.stop();scanPublish_.stop();
+    if(scanCancel_)scanCancel_->store(true);
+    scan_.cancel();
     nearby_.close();client_.stop();rmgLobby_.stop();stopLinkedTransfers();
 }
 RuntimeMultiplayer::RuntimeMultiplayer(LibraryRepository& lib,RetroArchAdapter& adapter,StandaloneAdapter& ppsspp,StandaloneAdapter& dolphinAdapter,SocialController& social,
@@ -168,13 +178,16 @@ RuntimeMultiplayer::RuntimeMultiplayer(LibraryRepository& lib,RetroArchAdapter& 
         if(!result.success){fail(result.message);return;}
         launchPending_=false;relaySent_=true;status_="Opening Nintendo 64 multiplayer...";
     });
+    scanPublish_.setSingleShot(true);scanPublish_.setInterval(100);
+    connect(&scanPublish_,&QTimer::timeout,this,[this]{refresh(installation_,trainer_,allowed_);});
     connect(&scan_,&QFutureWatcherBase::resultReadyAt,this,[this](int index){
         if(scan_.isCanceled())return;
         const auto result=scan_.resultAt(index);
         profiles_.insert(result.first,result.second);
-        refresh(installation_,trainer_,allowed_);
+        if(!scanPublish_.isActive())scanPublish_.start();
     });
     connect(&scan_,&QFutureWatcherBase::finished,this,[this]{
+        scanPublish_.stop();
         refresh(installation_,trainer_,allowed_);
     });
     connect(&social_,&SocialController::changed,this,[this]{
@@ -277,6 +290,7 @@ RuntimeMultiplayer::RuntimeMultiplayer(LibraryRepository& lib,RetroArchAdapter& 
     });timer_.setInterval(3000);
 }
 void RuntimeMultiplayer::refresh(const RetroArchInstallation& installation,QString trainer,bool allowed) {
+    PerformanceTrace::Scope perf("RuntimeMultiplayer::refresh");
     if(trainer_!=trainer)party_.reset();
     trainer_=std::move(trainer);allowed_=allowed;
     installation_=installation;
@@ -307,12 +321,13 @@ void RuntimeMultiplayer::refresh(const RetroArchInstallation& installation,QStri
     }
     const auto playing=process_.runtimeControls()["game"].toString();
     if(scan_.isRunning()&&!playing.isEmpty()&&playing!=scanPriority_&&capacities.contains(playing)&&!profiles_.contains(playing)) {
+        if(scanCancel_)scanCancel_->store(true);
         scan_.cancel();scanRevision_=0;
     }
     if(!revision)revision=1;
     // Library discovery can finish while an older disc scan is still running.
-    // Retire it at the next file boundary instead of hashing the obsolete list.
-    if(scan_.isRunning()&&scanRevision_!=revision)scan_.cancel();
+    // Retire it at the next cancellable read instead of hashing the obsolete list.
+    if(scan_.isRunning()&&scanRevision_!=revision) {if(scanCancel_)scanCancel_->store(true);scan_.cancel();}
     if(!scan_.isRunning() && (scanRevision_!=revision||!scanRevision_)) {
         scanRevision_=revision;scanPriority_=playing;
         profiles_.clear();
@@ -321,14 +336,14 @@ void RuntimeMultiplayer::refresh(const RetroArchInstallation& installation,QStri
             if((a.adventure.id==playing)!=(b.adventure.id==playing))return a.adventure.id==playing;
             return QFileInfo(a.contentPath).size()<QFileInfo(b.contentPath).size();
         });
-        // Publish each verified title immediately. A large disc image must not
-        // hide every already-checked cartridge until the entire scan finishes.
-        scan_.setFuture(QtConcurrent::run([ordered,installation,pspInstallation,dolphinInstallation,candidate,capacities](QPromise<ScannedGame>& promise){
-            std::atomic_bool cancel=false;
+        // Publish verified titles in small batches, without waiting for a large
+        // disc image or rebuilding the entire picker once per small cartridge.
+        scanCancel_=std::make_shared<std::atomic_bool>(false);
+        scan_.setFuture(QtConcurrent::run([ordered,installation,pspInstallation,dolphinInstallation,candidate,capacities,cancel=scanCancel_](QPromise<ScannedGame>& promise){
             retroarch::NetplayDigestCache digests;
             for(const auto& r:ordered)if(candidate(r)) {
-                if(promise.isCanceled())break;
-                const auto identity=runtimeIdentity(r,installation,pspInstallation,dolphinInstallation,cancel,capacities.value(r.adventure.id,2),&digests);
+                if(promise.isCanceled()||cancel->load())break;
+                const auto identity=runtimeIdentity(r,installation,pspInstallation,dolphinInstallation,*cancel,capacities.value(r.adventure.id,2),&digests);
                 if(!identity.isEmpty())promise.addResult(ScannedGame{r.adventure.id,identity});
             }
         }));

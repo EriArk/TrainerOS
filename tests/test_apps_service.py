@@ -27,6 +27,12 @@ def window(pid=90,start='100',transient=0,mapped=True):
 
 
 class Lifecycle(unittest.TestCase):
+    @patch.object(apps,'emit')
+    def test_idle_does_not_enumerate_unowned_desktop_windows(self,emit):
+        s=self.service();s.sessions={};s.current=''
+        with patch.object(s.windows,'all',side_effect=AssertionError('Unnecessary X11 scan')):
+            s.scan();s.scan()
+        emit.assert_called_once_with('state',current='',running=[],launching='')
     def service(self):
         s=apps.Service.__new__(apps.Service);s.windows=Windows();s.current='a';s.pending=None;s.last=None;s.lease=None
         s.sessions={'a':dict(windows={11:window()},owners={(90,'100')},row={'id':'a','name':'Test'})}

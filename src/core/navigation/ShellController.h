@@ -56,7 +56,7 @@ class ShellController final : public QObject {
     Q_PROPERTY(bool adapterMenuOpen READ adapterMenuOpen NOTIFY changed)
     Q_PROPERTY(int adapterMenuFocus READ adapterMenuFocus NOTIFY changed)
     Q_PROPERTY(bool quickAppsOpen READ quickAppsOpen NOTIFY changed)
-    Q_PROPERTY(QStringList primaryNames READ primaryNames NOTIFY changed)
+    Q_PROPERTY(QStringList primaryNames READ primaryNames CONSTANT)
     Q_PROPERTY(QString homeView READ homeView NOTIFY changed)
     Q_PROPERTY(QString experienceView READ experienceView NOTIFY changed)
     Q_PROPERTY(QVariantList gameHistory READ gameHistory NOTIFY changed)

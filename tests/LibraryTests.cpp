@@ -39,6 +39,23 @@ public:
 class LibraryTests final : public QObject {
     Q_OBJECT
 private slots:
+    void folderRevisionTracksStoreMetadataAndPresentation() {
+        QTemporaryDir dir;const auto root=dir.filePath("roms/gba");QVERIFY(QDir().mkpath(root));
+        fixtureFile(root+"/fixture.gba");
+        LocalStateStore store(dir.filePath("state"),nullptr,"user-library-v1");store.open();QTRY_VERIFY(store.ready());
+        BatoceraLibrary folders(store,dir.filePath("roms"));
+        auto before=folders.libraryRevision();QVERIFY(before.has_value());QCOMPARE(folders.libraryRevision(),before);
+        folders.rescan();QTRY_VERIFY(!folders.busy());QVERIFY(folders.libraryRevision()!=before);
+        const auto id=store.registrations().first().adventure.id;before=folders.libraryRevision();
+        bool done=false;folders.setFavoriteAsync(id,true,this,[&](QString error){QVERIFY2(error.isEmpty(),qPrintable(error));done=true;});
+        QTRY_VERIFY(done);QVERIFY(folders.artwork(id)["favorite"].toBool());QVERIFY(folders.libraryRevision()!=before);
+        before=folders.libraryRevision();folders.setDisplayPreferences({{"picture","cover"}});QVERIFY(folders.libraryRevision()!=before);
+        before=folders.libraryRevision();folders.setDisplayPreferences({{"picture","cover"}});QCOMPARE(folders.libraryRevision(),before);
+        fixtureFile(dir.filePath("second.gba"));auto record=candidate(dir.filePath("second.gba"));done=false;
+        store.saveAdventureAsync(record,this,[&](auto result){QVERIFY(result.success);done=true;});QTRY_VERIFY(done);
+        QVERIFY(folders.libraryRevision()!=before);before=folders.libraryRevision();
+        QVERIFY(folders.setRoot(dir.filePath("other")));QVERIFY(folders.libraryRevision()!=before);
+    }
     void vitaInstalledLinksAreGamesButNativeUserFilesAreNot() {
         QTemporaryDir dir;QVERIFY(QDir().mkpath(dir.filePath("psvita")));
         {QFile link(dir.filePath("psvita/Example.psvita"));QVERIFY(link.open(QIODevice::WriteOnly));link.write("QUAK00001\n");}

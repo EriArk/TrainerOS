@@ -34,6 +34,14 @@ class LobbyTests final : public QObject {
         QVERIFY(l.claimSeat(peer,seat,l.generation()));QVERIFY(l.prepared(peer,l.generation(),true));
     }
 private slots:
+    void ownershipObservationPreservesDisconnectedAndClosedRooms() {
+        LobbySession room;QVERIFY(!room.ownedBy("host"));QVERIFY(!room.ownedBy(""));
+        QVERIFY(room.create("host","Host","public"));QVERIFY(room.ownedBy("host"));QVERIFY(!room.ownedBy("guest"));
+        QVERIFY(room.connected("host",false));QVERIFY(room.ownedBy("host"));
+        QVERIFY(!room.setDetails("host","Cannot edit while disconnected",0));
+        QVERIFY(room.connected("host",true));QVERIFY(room.join("guest","Guest",100));
+        QVERIFY(room.close("host"));QVERIFY(!room.ownedBy("host"));QVERIFY(!room.ownedBy("guest"));
+    }
     void allReadyRequiresAnExplicitHostStart() {
         LobbySession room;QVERIFY(room.create("host","Host","public"));
         QVERIFY(room.selectGame("host",game()));QVERIFY(room.join("guest","Guest",100));

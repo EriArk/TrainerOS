@@ -7,6 +7,24 @@ using namespace trainer;
 class LinkPeerTests:public QObject {
     Q_OBJECT
 private slots:
+    void discoveryHeartbeatKeepsLivenessWithoutRepublishingIdenticalPeers() {
+        QUdpSocket reservation;QVERIFY(reservation.bind(QHostAddress::LocalHost,0));
+        const auto port=reservation.localPort();reservation.close();
+        LocalLinkPeer peer(nullptr,0,port,"perf-test");
+        peer.configure("11111111-1111-4111-8111-111111111111","Local");peer.setVisible(false);QVERIFY(peer.open());
+        QSignalSpy changes(&peer,&LocalLinkPeer::changed);QUdpSocket sender;
+        QJsonObject packet{{"perf-test",2},{"id","22222222-2222-4222-8222-222222222222"},{"name","Friend"}};
+        const auto send=[&]{const auto bytes=QJsonDocument(packet).toJson(QJsonDocument::Compact);QCOMPARE(sender.writeDatagram(bytes,QHostAddress::LocalHost,port),qint64(bytes.size()));};
+        send();QTRY_COMPARE(changes.size(),1);
+        const auto seen=peer.peers().first().toMap()["seen"].toLongLong();
+        QTest::qWait(25);send();
+        QTRY_VERIFY(peer.peers().first().toMap()["seen"].toLongLong()>seen);
+        QCOMPARE(changes.size(),1);
+        packet["name"]="Renamed";send();QTRY_COMPARE(changes.size(),2);
+        QCOMPARE(peer.peers().first().toMap()["name"].toString(),QString("Renamed"));
+        QTRY_VERIFY_WITH_TIMEOUT(peer.peers().isEmpty(),8500);
+        QCOMPARE(changes.size(),3);
+    }
     void runtimePartyKeepsThreeGuestSocketsIndependent() {
         QTcpServer reserve;QVERIFY(reserve.listen(QHostAddress::LocalHost,0));const auto port=reserve.serverPort();reserve.close();
         LocalLinkPeer host(nullptr,port,0,"party-test",true);host.configure("11111111-1111-4111-8111-111111111111","Host");QVERIFY(host.open());

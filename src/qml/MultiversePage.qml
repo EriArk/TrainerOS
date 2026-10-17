@@ -25,7 +25,7 @@ Item {
             cellWidth: width / 3; cellHeight: height/2; clip: true
             interactive: false; keyNavigationEnabled: false
             visible: root.model.route === "systems"
-            model: root.model.systems; currentIndex: root.model.focusIndex
+            model: visible ? root.model.systems : []; currentIndex: root.model.focusIndex
             function reveal() {
                 if (!visible || !root.takesFocus || !currentItem) return
                 positionViewAtIndex(currentIndex, GridView.Contain)
@@ -57,7 +57,7 @@ Item {
         LibraryGrid {
             anchors.fill: parent
             visible: root.model.route === "games" && root.model.viewStyle === "grid"
-            entries: root.model.games; selectionIndex: root.model.focusIndex
+            entries: visible ? root.model.games : []; selectionIndex: root.model.focusIndex
             takesFocus: root.takesFocus && visible
             onColumnsChanged: if (visible) root.model.gridColumns = columns
             onVisibleChanged: if (visible) root.model.gridColumns = columns
@@ -69,7 +69,7 @@ Item {
         LibraryShelves {
             anchors.fill: parent
             visible: root.model.route === "games" && root.model.viewStyle === "shelves"
-            entries: root.model.games; selectionIndex: root.model.focusIndex
+            entries: visible ? root.model.games : []; selectionIndex: root.model.focusIndex
             columns: root.model.shelfColumns; takesFocus: root.takesFocus && visible
             onFocusRequested: index => root.shell.focusLibraryGame(index)
             onActivated: index => root.shell.activate(index)
@@ -82,7 +82,7 @@ Item {
             viewStyle: root.model.viewStyle; listPageSize: root.model.listPageSize
             onFocusRequested: index => root.shell.focusLibraryGame(index)
             anchors.fill: parent; visible: root.model.route === "games" && (root.model.viewStyle === "wheel" || root.model.viewStyle === "list")
-            entries: root.model.games; entry: root.model.detail; selectionIndex: root.model.focusIndex
+            entries: visible ? root.model.games : []; entry: root.model.detail; selectionIndex: root.model.focusIndex
             takesFocus: root.takesFocus && visible
             previewsEnabled: root.shell.settings.videoPreviews && !root.shell.serviceOpen && !adventureLaunch.active && !sessionState.blocked
             filterText: root.model.filterLabel + (root.model.query ? " · " + root.model.query : "")

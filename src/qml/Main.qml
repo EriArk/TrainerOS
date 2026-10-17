@@ -382,7 +382,7 @@ Window {
             function hint(button, label) { return {button:button, label:label} }
             readonly property var localActions: {
                 const h = hint
-                if (shell.social.lobbyCreateOpen || shell.social.lobbyPicker.open || shell.social.lobbyPicker.voteOpen) return [h("↑↓","Choose"),h("A","Select"),h("B","Close")]
+                if (shell.social.lobbyCreateOpen || shell.social.lobbyPickerOpen || shell.social.lobbyVoteOpen) return [h("↑↓","Choose"),h("A","Select"),h("B","Close")]
                 if (shell.social.myLobbiesOpen) return [h("\u2191\u2193","Choose"),h("A","Open"),h("B","Back")]
                 if (shell.social.online.open) return shell.social.online.incoming ? [h("A","Accept"),h("B","Decline")] : [h("B","Cancel")]
                 if (shell.moduleInvitation.open) return shell.moduleInvitation.incoming ? [h("A","Accept"),h("B","Decline")] : [h("B","Cancel")]
@@ -476,23 +476,25 @@ Window {
                 Hint { button: "Start"; label: "System"; subtle: true; tint: Theme.yellow; interactive: true; onClicked: shell.pressButton("Start"); visible: !shell.moduleControlsBlocked && !shell.social.online.open }
             }
         }
-        LibraryPanel { anchors.fill: screen; shell: shellController; visible: shell.service === "library" }
-        TrainerSettingsPanel { anchors.fill: screen; shell: shellController; visible: shell.service === "trainer-settings" }
-        PlayerProfilePanel { anchors.fill: screen; anchors.margins: Theme.panelInset; anchors.topMargin: Theme.contentTopInset; shell: shellController; visible: shell.service === "profile" }
-        TrainerSetupPanel { anchors.fill: screen; shell: shellController; visible: shell.service === "trainer-setup" }
-        DevicePanel { anchors.fill: screen; shell: shellController; visible: shell.service === "device" }
-        DiagnosticsPanel { anchors.fill: screen; shell: shellController; visible: shell.service === "diagnostics" }
-        ScrapePanel { anchors.fill: screen; shell: shellController; z: 3.1; visible: shell.scraper.open && !shell.keyboard.open }
-        DownloadsPanel { anchors.fill: screen; flow: shell.downloads; z: 3.2; visible: shell.downloads.open }
+        Loader { anchors.fill: screen; active: shell.service === "library"; visible: active; sourceComponent: LibraryPanel { shell: shellController } }
+        Loader { anchors.fill: screen; active: shell.service === "trainer-settings"; visible: active; sourceComponent: TrainerSettingsPanel { shell: shellController } }
+        Loader { anchors.fill: screen; anchors.margins: Theme.panelInset; anchors.topMargin: Theme.contentTopInset; active: shell.service === "profile"; visible: active; sourceComponent: PlayerProfilePanel { shell: shellController } }
+        Loader { anchors.fill: screen; active: shell.service === "trainer-setup"; visible: active; sourceComponent: TrainerSetupPanel { shell: shellController } }
+        Loader { anchors.fill: screen; active: shell.service === "device"; visible: active; sourceComponent: DevicePanel { shell: shellController } }
+        Loader { anchors.fill: screen; active: shell.service === "diagnostics"; visible: active; sourceComponent: DiagnosticsPanel { shell: shellController } }
+        Loader { anchors.fill: screen; z: 3.1; active: shell.scraper.open && !shell.keyboard.open; visible: active; sourceComponent: ScrapePanel { shell: shellController } }
+        Loader { anchors.fill: screen; z: 3.2; active: shell.downloads.open; visible: active; sourceComponent: DownloadsPanel { flow: shell.downloads } }
         MyLobbiesPopup { anchors.fill: screen; social: shell.social; z: 3.5 }
         ChatFilePicker { anchors.fill: screen; files: shell.social.files; z: 4 }
         LobbyCreatePopup { anchors.fill: screen; social: shell.social; z: 3.6 }
-        LobbyGamePicker { anchors.fill: screen; social: shell.social; z: 3.7 }
-        LobbyVotePopup { anchors.fill: screen; social: shell.social; z: 3.7 }
-        CollectionsPanel { anchors.fill: screen; shell: shellController; z: 3; visible: shell.collectionManager.open }
-        LibraryToolsPanel { anchors.fill: screen; shell: shellController; z: 3; visible: shell.libraryTools.open }
+        Loader { anchors.fill: screen; z: 3.7; active: shell.social.lobbyPickerOpen; sourceComponent: LobbyGamePicker { social: shell.social } }
+        Loader { anchors.fill: screen; z: 3.7; active: shell.social.lobbyVoteOpen; sourceComponent: LobbyVotePopup { social: shell.social } }
+        Loader { anchors.fill: screen; z: 3; active: shell.collectionManager.open; visible: active; sourceComponent: CollectionsPanel { shell: shellController } }
+        Loader { anchors.fill: screen; z: 3; active: shell.libraryTools.open; visible: active; sourceComponent: LibraryToolsPanel { shell: shellController } }
         Item {
             id: settingsOverlay
+            property bool created: false
+            onVisibleChanged: if (visible) created = true
             objectName: "settings-overlay"
             width: parent.width; height: Theme.footerTop; z: 2.2
             visible: shell.service === "settings"
@@ -506,7 +508,7 @@ Window {
                 id: settingsSurface
                 objectName: "settings-surface"
                 x: 32; y: 52; width: parent.width-64; height: parent.height-66
-                SettingsPanel { anchors.fill: parent; shell: shellController }
+                Loader { anchors.fill: parent; active: settingsOverlay.created; sourceComponent: SettingsPanel { shell: shellController } }
             }
         }
         AccountProfilePanel { width: parent.width; height: Theme.footerTop; shell: shellController; z: 2.5 }
@@ -517,7 +519,7 @@ Window {
         }
         KeyboardPanel {
             anchors { left: screen.left; right: screen.right; top: screen.top; bottom: footer.top }
-            z: shell.social.lobbyCreateOpen || shell.social.lobbyPicker.open ? 3.9 : 3; shell: shellController
+            z: shell.social.lobbyCreateOpen || shell.social.lobbyPickerOpen ? 3.9 : 3; shell: shellController
         }
         SystemPanel {
             anchors { left: screen.left; right: parent.right; top: screen.top; bottom: footer.top }
@@ -534,10 +536,11 @@ Window {
             }
             Rectangle { anchors.fill: parent; color: "#88102324" }
             MouseArea { anchors.fill: parent; acceptedButtons: Qt.AllButtons; onWheel: wheel => wheel.accepted = true }
-            ShellOptions {
+            Loader {
                 anchors.centerIn: parent
                 width: parent.width * 0.92; height: parent.height * 0.90
-                shell: shellController
+                active: shell.homeMenuOpen
+                sourceComponent: ShellOptions { shell: shellController }
             }
         }
         Item {
@@ -567,7 +570,7 @@ Window {
             ChassisTopRim { }
             Text { x: 12; y: 0; width: Theme.brandWidth-24; height: Theme.brandHeight; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter; text: "TRAINER OS"; color: "#edf5e9"; font.family: Theme.brandFamily; font.pixelSize: 25; font.bold: true }
             FirstRunPanel { anchors.fill: parent; shell: shellController; flow: sessionState.firstRun; visible: sessionState.firstRunPage }
-            TrainerSetupPanel { entry: true; x: 0; y: 43; width: parent.width; height: parent.height-63; shell: shellController; visible: !sessionState.firstRunPage || sessionState.firstRun.stage === "trainer" }
+            Loader { x: 0; y: 43; width: parent.width; height: parent.height-63; active: parent.visible && (!sessionState.firstRunPage || sessionState.firstRun.stage === "trainer"); visible: active; sourceComponent: TrainerSetupPanel { entry: true; shell: shellController } }
             Text {
                 x: 48; y: parent.height-62; width: parent.width-96; height: 24
                 visible: sessionState.firstRunPage && sessionState.firstRun.stage === "trainer"

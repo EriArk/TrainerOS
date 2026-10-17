@@ -28,6 +28,7 @@ class BatoceraLibrary final : public QObject, public LibraryRepository {
 public:
     BatoceraLibrary(LibraryRepository& library, QString roms, QObject* parent = nullptr);
     ~BatoceraLibrary() override;
+    std::optional<quint64> libraryRevision() const override;
     QList<World> worlds() const override { return library_.worlds(); }
     QList<Adventure> adventures() const override { return library_.adventures(); }
     QList<ResumePoint> resumePoints() const override { return library_.resumePoints(); }
@@ -49,10 +50,10 @@ public:
     QVariantMap artwork(const QString& id) const override;
     void setFavoriteAsync(const QString&, bool, QObject*, std::function<void(QString)>) override;
     QVariantMap experienceIdentity(const QString& id) const override { return media_.value(id).value("experienceIdentity").toMap(); }
-    void setDisplayPreferences(const QJsonObject& preferences) {display_=preferences;emit changed();}
+    void setDisplayPreferences(const QJsonObject& preferences) {if(display_==preferences)return;display_=preferences;++revision_;emit changed();}
     void refreshContentAvailability() override;
     void rescan();
-    bool setRoot(const QString& root) { if(busy_)return false; roms_=root;media_.clear();lastScan_.invalidate();return true; }
+    bool setRoot(const QString& root) { if(busy_)return false; roms_=root;media_.clear();++revision_;lastScan_.invalidate();return true; }
     bool busy() const { return busy_; }
     QString root() const { return roms_; }
     bool writing() const { return writing_; }
@@ -77,6 +78,8 @@ private:
     FolderScan scan_;
     int index_ = 0, added_ = 0;
     QHash<QString,QVariantMap> media_;
+    mutable std::optional<quint64> observedRevision_;
+    mutable quint64 revision_=0;
     QJsonObject display_;
     QHash<QString,QVariantMap> nextMedia_;
 };

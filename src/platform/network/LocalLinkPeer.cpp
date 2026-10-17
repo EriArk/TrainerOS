@@ -19,7 +19,11 @@ LocalLinkPeer::LocalLinkPeer(QObject* parent,quint16 port,quint16 discoveryPort,
             if(socket_ || !localAddress(socket->peerAddress())){socket->abort();socket->deleteLater();}else {outgoing_=false;attach(socket);}}
     });
 }
-void LocalLinkPeer::configure(const QString& id,const QString& name){id_=id;name_=name.left(48);if(timer_.isActive())announce();}
+void LocalLinkPeer::configure(const QString& id,const QString& name){
+    const auto label=name.left(48);
+    if(id_==id && name_==label)return;
+    id_=id;name_=label;if(timer_.isActive())announce();
+}
 bool LocalLinkPeer::localAddress(const QHostAddress& address) const {
     if(address.isLoopback())return true;
     for(const auto& iface:QNetworkInterface::allInterfaces())for(const auto& entry:iface.addressEntries())
@@ -47,7 +51,7 @@ void LocalLinkPeer::announce() {
         if(address.ip().protocol()==QAbstractSocket::IPv4Protocol && !address.broadcast().isNull())discovery_.writeDatagram(packet,address.broadcast(),discoveryPort_);
 }
 void LocalLinkPeer::readDiscovery() {
-    int processed=0;
+    int processed=0;bool changed=false;
     while(discovery_.hasPendingDatagrams() && processed++<32) {
         const auto packet=discovery_.receiveDatagram(1025);if(packet.data().size()>1024 || !localAddress(packet.senderAddress()))continue;
         const auto j=QJsonDocument::fromJson(packet.data()).object();const auto id=j["id"].toString();
@@ -56,10 +60,15 @@ void LocalLinkPeer::readDiscovery() {
         auto addresses=peers_.value(id).value("addresses").toStringList();const auto address=packet.senderAddress().toString();
         if(!addresses.contains(address))addresses.append(address);while(addresses.size()>8)addresses.removeFirst();
         const auto bluetooth=j["bluetooth"].toString();
-        peers_[id]={{"id",id},{"name",j["name"].toString()},{"address",address},{"addresses",addresses},
-                    {"bluetooth",QUuid(bluetooth).isNull()?QString{}:bluetooth},{"seen",QDateTime::currentMSecsSinceEpoch()}};
-        emit changed();
+        auto previous=peers_.value(id);previous.remove("seen");
+        QVariantMap next{{"id",id},{"name",j["name"].toString()},{"address",address},{"addresses",addresses},
+                    {"bluetooth",QUuid(bluetooth).isNull()?QString{}:bluetooth}};
+        changed |= previous!=next;
+        next["seen"]=QDateTime::currentMSecsSinceEpoch();peers_[id]=std::move(next);
     }
+    // Keep liveness fresh without rebuilding every consumer on each heartbeat.
+    // A batch still publishes new peers, identity/address changes and removals.
+    if(changed)emit this->changed();
 }
 void LocalLinkPeer::connectPeer(int index) {
     const auto list=peers();if(socket_ || index<0 || index>=list.size())return;

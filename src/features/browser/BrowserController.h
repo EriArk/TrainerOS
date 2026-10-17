@@ -62,6 +62,6 @@ private:
     QVariantList tabs_,bookmarks_,history_;
     QString selected_,path_,owner_,textTarget_;
     QPointer<QObject> profile_,field_;
-    QTimer saveTimer_;
+    QTimer saveTimer_,downloadSaveTimer_;
 };
 }

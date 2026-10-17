@@ -20,7 +20,7 @@ public:
     void connectPeer(int index);
     void connectId(const QString& id,const QString& interface={});
     void connectBridge(quint16 port);
-    void setBluetoothDiscoveryId(const QString& id){bluetoothId_=id;if(timer_.isActive())announce();}
+    void setBluetoothDiscoveryId(const QString& id){if(bluetoothId_==id)return;bluetoothId_=id;if(timer_.isActive())announce();}
     bool outgoing() const{return outgoing_;}
     void setVisible(bool visible){advertising_=visible;}
     void send(const QJsonObject&);

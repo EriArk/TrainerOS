@@ -49,6 +49,8 @@ public:
     bool releaseLive(const QString& peer,const QString& ticket,const QString& token);
     QJsonObject state() const;
     QString id() const {return id_;}
+    // Ownership observation only; commands still use host() and its connection guard.
+    bool ownedBy(const QString& actor) const {return !actor.isEmpty()&&!id_.isEmpty()&&phase_!="closed"&&owner_==actor;}
     QStringList invitedPeers(qint64 now=0) const {QStringList peers;for(auto it=invites_.cbegin();it!=invites_.cend();++it)if(it.value()>now)peers.append(it.key());return peers;}
     quint64 generation() const {return generation_;}
 signals:

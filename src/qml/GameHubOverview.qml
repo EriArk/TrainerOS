@@ -3,8 +3,9 @@ import QtQuick
 Item {
     id: root
     required property var shell
-    readonly property var media: shell.storyMedia
-    readonly property var sessions: shell.storyHistory
+    readonly property var media: visible ? shell.storyMedia : []
+    readonly property var sessions: visible ? shell.storyHistory : []
+    readonly property var summaryData: visible ? shell.story : ({})
     readonly property var latest: sessions.length ? sessions[0] : ({})
     readonly property bool summary: shell.overviewFace === "summary"
     readonly property bool screens: shell.overviewFace === "screens"
@@ -48,9 +49,9 @@ Item {
             id: facts; x: picture.width+22; width: parent.width-x-18; spacing: 12
             Repeater {
                 model: [
-                    {label: "Recorded playtime", value: root.shell.story.recordedTime || "—", accent: Theme.blue},
-                    {label: "Games played", value: String(root.shell.story.gamesPlayed || 0), accent: Theme.green},
-                    {label: "Achievements", value: root.shell.story.achievementCount, note: root.shell.story.achievementNote, accent: Theme.pink}
+                    {label: "Recorded playtime", value: root.summaryData.recordedTime || "—", accent: Theme.blue},
+                    {label: "Games played", value: String(root.summaryData.gamesPlayed || 0), accent: Theme.green},
+                    {label: "Achievements", value: root.summaryData.achievementCount || "—", note: root.summaryData.achievementNote || "", accent: Theme.pink}
                 ]
                 Item {
                     required property var modelData

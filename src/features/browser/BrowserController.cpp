@@ -30,6 +30,8 @@ namespace trainer {
 BrowserController::BrowserController(QObject* parent):QObject(parent) {
     saveTimer_.setSingleShot(true);saveTimer_.setInterval(350);
     connect(&saveTimer_,&QTimer::timeout,this,&BrowserController::persist);
+    downloadSaveTimer_.setSingleShot(true);downloadSaveTimer_.setInterval(1000);
+    connect(&downloadSaveTimer_,&QTimer::timeout,this,&BrowserController::persistDownloads);
 }
 BrowserController::~BrowserController(){persist();persistDownloads();delete profile_;}
 bool BrowserController::available() const {
@@ -42,7 +44,7 @@ bool BrowserController::available() const {
 void BrowserController::configure(const QString& directory,const QString& owner) {
     const QString next=owner.isEmpty()?QString():directory+"/browser/"+QString::fromLatin1(QCryptographicHash::hash(owner.toUtf8(),QCryptographicHash::Sha256).toHex());
     if(next==path_)return;
-    persist();persistDownloads();saveTimer_.stop();emit profileChanging();
+    persist();persistDownloads();saveTimer_.stop();downloadSaveTimer_.stop();emit profileChanging();
     delete profile_;profile_=nullptr;field_=nullptr;tabs_.clear();bookmarks_.clear();history_.clear();jobs_.clear();selected_.clear();textTarget_.clear();path_=next;owner_=owner;
     if(!path_.isEmpty()) {
         QDir().mkpath(path_);QFile::setPermissions(path_,QFile::ReadOwner|QFile::WriteOwner|QFile::ExeOwner);
@@ -136,7 +138,7 @@ void BrowserController::acceptDownload(QObject* object){
     const auto original=name;int suffix=1;auto reserved=[&]{return QFile::exists(directory+"/"+name)||std::any_of(jobs_.begin(),jobs_.end(),[&](const Download& d){return d.path==directory+"/"+name;});};while(reserved())name=QFileInfo(original).completeBaseName()+" ("+QString::number(suffix++)+")"+(QFileInfo(original).suffix().isEmpty()?QString():"."+QFileInfo(original).suffix());
     request->setDownloadDirectory(directory);request->setDownloadFileName(name);
     Download d;d.id=QUuid::createUuid().toString(QUuid::WithoutBraces);d.name=name;d.path=directory+"/"+name;d.state="running";d.request=request;jobs_<<d;
-    const auto update=[this,request,id=d.id]{for(auto& job:jobs_)if(job.id==id){job.received=request->receivedBytes();job.total=request->totalBytes();job.paused=request->isPaused();switch(request->state()){case QWebEngineDownloadRequest::DownloadCompleted:job.state="done";break;case QWebEngineDownloadRequest::DownloadCancelled:job.state="cancelled";break;case QWebEngineDownloadRequest::DownloadInterrupted:job.state="error";job.error=request->interruptReasonString();break;default:job.state=job.paused?"paused":"running";break;}break;}persistDownloads();emit downloadsChanged();};
+    const auto update=[this,request,id=d.id]{bool stateChanged=false;for(auto& job:jobs_)if(job.id==id){const auto previous=job.state;job.received=request->receivedBytes();job.total=request->totalBytes();job.paused=request->isPaused();switch(request->state()){case QWebEngineDownloadRequest::DownloadCompleted:job.state="done";break;case QWebEngineDownloadRequest::DownloadCancelled:job.state="cancelled";break;case QWebEngineDownloadRequest::DownloadInterrupted:job.state="error";job.error=request->interruptReasonString();break;default:job.state=job.paused?"paused":"running";break;}stateChanged=previous!=job.state;break;}if(stateChanged){downloadSaveTimer_.stop();persistDownloads();}else if(!downloadSaveTimer_.isActive())downloadSaveTimer_.start();emit downloadsChanged();};
     connect(request,&QWebEngineDownloadRequest::receivedBytesChanged,this,update);connect(request,&QWebEngineDownloadRequest::totalBytesChanged,this,update);connect(request,&QWebEngineDownloadRequest::stateChanged,this,update);connect(request,&QWebEngineDownloadRequest::isPausedChanged,this,update);
     request->accept();update();
 #else

@@ -17,6 +17,8 @@
 #include "integrations/adventure/standalone/VitaNetplay.h"
 #include "platform/network/LocalLinkPeer.h"
 #include <QFutureWatcher>
+#include <memory>
+#include <atomic>
 #include <QNetworkAccessManager>
 
 namespace trainer {
@@ -145,6 +147,8 @@ private:
     bool partySession_=false,companyOverride_=false;
     using ScannedGame = QPair<QString,QJsonObject>;
     QFutureWatcher<ScannedGame> scan_{this};
+    std::shared_ptr<std::atomic_bool> scanCancel_;
+    QTimer scanPublish_{this};
     QNetworkAccessManager network_{this};QTimer timer_{this};
     QString trainer_,identity_,game_,status_,transportPeer_,lastRequest_,scanPriority_;
     QString lobbyProblem_;

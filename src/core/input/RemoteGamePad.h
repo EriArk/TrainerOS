@@ -29,6 +29,9 @@ inline std::string kernelGamePadName(int index) {
     return kernelName;
 }
 inline bool isRemoteGamePad(int index) {
+    // Only our Xbox-compatible remote ports need a kernel-name disambiguation.
+    // Avoid opening sysfs for every physical pad on every 16 ms input sample.
+    if(SDL_JoystickGetDeviceVendor(index)!=0x045e || SDL_JoystickGetDeviceProduct(index)!=0x02ea)return false;
     const char* name=SDL_JoystickNameForIndex(index);
     return remoteGamePadIdentity(name?name:"",SDL_JoystickGetDeviceVendor(index),SDL_JoystickGetDeviceProduct(index),kernelGamePadName(index));
 }

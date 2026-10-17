@@ -35,12 +35,20 @@ Item {
     function scrolled(dy) {if(popup||toolsFocused)return;chrome=dy<0}
     function navigate(url) {if(!page)return;error="";popup="";toolsFocused=false;page.url=url;reveal()}
     function openPopup(kind,rows) {
-        if(kind==="tabs"&&page){const id=flow.selected;page.grabToImage(function(result){thumbs[id]=result;thumbs=Object.assign({},thumbs)})}
+        if(kind==="tabs"&&page)captureTab(flow.selected,page)
         popupRows=rows||[];popupIndex=0;popup=kind;reveal()
     }
     function ask(title,message,callback,labels) {dismiss();questionTitle=title;question=message;answer=callback;openPopup("permission",[{title:labels?labels[0]:"Deny"},{title:labels?labels[1]:"Allow"}])}
     function dismiss() {if(answer){const callback=answer;answer=null;callback(false)}popup=""}
-    function captureTab(id,view){if(view)view.grabToImage(function(result){thumbs[id]=result;thumbs=Object.assign({},thumbs)})}
+    function captureTab(id,view){
+        if(!view || view.width<=0 || view.height<=0)return
+        // A tab tile needs a thumbnail, not a retained full-resolution GPU readback.
+        view.grabToImage(function(result){
+            if(!flow.tabs.some(tab => tab.id===id))return
+            thumbs[id]=result;thumbs=Object.assign({},thumbs)
+        },Qt.size(320,Math.max(1,Math.round(320*view.height/view.width))))
+    }
+    function forgetTab(id){delete thumbs[id];thumbs=Object.assign({},thumbs)}
     function queueFieldCheck(){fieldCheck.restart()}
     property var thumbs: ({})
     Timer {id:fieldCheck;interval:140;onTriggered:if(root.takesFocus&&!root.popup)root.flow.editPageField()}

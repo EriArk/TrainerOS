@@ -1,3 +1,4 @@
+#include "core/PerformanceTrace.h"
 #include "PlayerStory.h"
 #include "ExitImage.h"
 #include "PlayHistoryController.h"
@@ -8,6 +9,7 @@
 
 namespace trainer {
 QVariantMap PlayerStory::summary() const {
+    PerformanceTrace::Scope perf("PlayerStory::summary");
     const auto history=library_.playerHistory();
     const auto context=achievements_.context();
     QSet<QString> games,unlocks;
@@ -33,6 +35,7 @@ QVariantMap PlayerStory::summary() const {
         {"achievementNote",context.accountId.isEmpty()?"Connect RetroAchievements":known?"Confirmed in your library":"No confirmed records yet"}};
 }
 QVariantList PlayerStory::history() const {
+    PerformanceTrace::Scope perf("PlayerStory::history");
     QHash<QString,QString> titles;
     for(const auto& game:library_.adventures())titles.insert(game.id,game.title);
     QVariantList rows;

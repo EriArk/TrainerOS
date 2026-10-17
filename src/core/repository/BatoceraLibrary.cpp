@@ -328,6 +328,12 @@ BatoceraLibrary::BatoceraLibrary(LibraryRepository& library,QString roms,QObject
     deferredScan_.setSingleShot(true);
     connect(&deferredScan_,&QTimer::timeout,this,&BatoceraLibrary::rescan);
 }
+std::optional<quint64> BatoceraLibrary::libraryRevision() const {
+    const auto base=library_.libraryRevision();
+    if(!base)return {}; // Unknown providers still require uncached reads.
+    if(base!=observedRevision_){observedRevision_=base;++revision_;}
+    return revision_;
+}
 BatoceraLibrary::~BatoceraLibrary() {
     if(thread_) {thread_->requestInterruption();thread_->wait();delete thread_;}
 }
@@ -372,7 +378,7 @@ void BatoceraLibrary::setFavoriteAsync(const QString& id,bool favorite,QObject* 
         thread_->wait();delete thread_;thread_=nullptr;
         const auto current=library_.registration(id);
         if(result->isEmpty() && current && !current->removed && QFileInfo(current->contentPath).canonicalFilePath()==path)
-            media_[id]["favorite"]=favorite;
+            {media_[id]["favorite"]=favorite;++revision_;}
         busy_=false;writing_=false;emit busyChanged();emit writingChanged();
         if(result->isEmpty())emit changed();
         if(guard)done(*result);
@@ -498,6 +504,7 @@ void BatoceraLibrary::importNext() {
     }
     const bool mediaChanged=media_!=nextMedia_;
     media_=std::move(nextMedia_);
+    if(mediaChanged)++revision_;
     if(writing_) {writing_=false;emit writingChanged();}
     busy_=false;emit busyChanged();
     if(mediaChanged || added_)emit changed();

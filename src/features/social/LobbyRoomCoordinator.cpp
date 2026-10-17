@@ -35,7 +35,7 @@ LobbyRoomCoordinator::LobbyRoomCoordinator(QObject* parent):QObject(parent) {
     });
     connect(&session_,&LobbySession::launchRequested,this,&LobbyRoomCoordinator::launchRequested);
 }
-bool LobbyRoomCoordinator::hosting() const {return !self_.isEmpty()&&!session_.state()["id"].toString().isEmpty()&&session_.state()["phase"]!="closed"&&session_.state()["owner"]==self_;}
+bool LobbyRoomCoordinator::hosting() const {return session_.ownedBy(self_);}
 bool LobbyRoomCoordinator::runtimePeer(const QString& peer,const QString& ticket) const {
     const auto s=state();
     if(!online_||recoveryUncertain()||s["recovering"].toBool()||!s["connection"].toString().isEmpty()

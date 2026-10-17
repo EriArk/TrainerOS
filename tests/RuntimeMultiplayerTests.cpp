@@ -103,6 +103,16 @@ class RuntimeMultiplayerTests final : public QObject {
         QTRY_VERIFY(!f.lifecycle.active());
     }
 private slots:
+    void destructionCannotReenterFromExternalLobbySignals() {
+        Fixture f;
+        auto* runtime=new RuntimeMultiplayer(f.library,f.retro,f.psp,f.dolphin,f.social,f.process,f.lifecycle,f.view);
+        QSignalSpy changed(runtime,&RuntimeMultiplayer::changed);
+        // QObject emits destroyed after the derived class's value members have
+        // died. A registered service's removal can reconcile this external room.
+        connect(runtime,&QObject::destroyed,f.social.lobbyCoordinator(),[&]{emit f.social.lobbyCoordinator()->changed();});
+        delete runtime;
+        QCOMPARE(changed.size(),0);
+    }
     void lobbyImportChecksBeforeWritingAndInvalidatesLateReplies() {
         Fixture f;f.runtime.allowed_=true;
         const auto file=f.dir.filePath("fixture.nes"),core=f.dir.filePath("core"),exe=f.dir.filePath("runtime");

@@ -84,6 +84,8 @@ class SocialController final : public QObject {
     Q_PROPERTY(QVariantList lobbyPickerRows READ lobbyPickerRows NOTIFY changed)
     Q_PROPERTY(QVariantList lobbyPickerCategories READ lobbyPickerCategories NOTIFY changed)
     Q_PROPERTY(QVariantMap lobbyPicker READ lobbyPicker NOTIFY changed)
+    Q_PROPERTY(bool lobbyPickerOpen READ lobbyPickerOpen NOTIFY changed)
+    Q_PROPERTY(bool lobbyVoteOpen READ lobbyVoteOpen NOTIFY changed)
     Q_PROPERTY(int myLobbiesIndex READ myLobbiesIndex NOTIFY changed)
     Q_PROPERTY(QVariantMap homeLobby READ homeLobby NOTIFY changed)
     Q_PROPERTY(QVariantMap lobbyState READ lobbyState NOTIFY changed)
@@ -142,6 +144,8 @@ public:
     bool lobbyCreateOpen() const {return lobbyCreateOpen_;}
     QVariantMap lobbyDraft() const;
     QVariantMap lobbyPicker() const;
+    bool lobbyPickerOpen() const {return lobbyPickerOpen_;}
+    bool lobbyVoteOpen() const {return lobbyVoteOpen_ && !viewedLobby().state()["vote"].toObject().isEmpty();}
     QVariantList lobbyPickerRows() const;
     QVariantList lobbyPickerCategories() const;
     std::function<QVariantList()> lobbyCollections;

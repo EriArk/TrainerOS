@@ -1,3 +1,4 @@
+#include "core/PerformanceTrace.h"
 #include "SocialController.h"
 #include "integrations/social/FluxerSession.h"
 #include "core/experience/ExperienceProviders.h"
@@ -445,6 +446,7 @@ void SocialController::openNotification() {
     emit presentationChanged();emit changed();
 }
 void SocialController::receive(quint64 generation,QVariantMap snapshot) {
+    PerformanceTrace::Scope perf("SocialController::receive");
     if(generation!=generation_)return;
     const auto relations=[](const QVariant& list){QStringList keys;for(const auto& v:list.toList()){const auto r=v.toMap();keys.append(r["id"].toString()+":"+r["type"].toString());}keys.sort();return keys;};
     const bool contactsChanged=relations(snapshot_["friends"])!=relations(snapshot["friends"]);

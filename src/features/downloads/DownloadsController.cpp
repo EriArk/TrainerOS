@@ -2,6 +2,7 @@
 #include <algorithm>
 namespace trainer {
 void DownloadsController::publish(const QString& provider,const QVariantList& rows) {
+    if(sources_.value(provider)==rows)return;
     const auto previous=tasks().value(focusIndex()).toMap();
     sources_[provider]=rows;
     const auto list=tasks();

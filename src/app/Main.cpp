@@ -599,12 +599,30 @@ int main(int argc, char* argv[]) {
         });
         // Supported profiles must be usable in normal sessions, including owner testing.
         // Availability still follows exact runtime/content and current-session guards.
-        auto refreshMultiplayer=[&]{multiplayer.refresh(retroarchInstallation,shell.trainer()->profile()["name"].toString(),
-            personalLibrary&&!smoke&&!session.blocked()&&!(saveBackups&&saveBackups->busy())&&!pokemonModule(shell).party()->activities()->link()->active());};
+        // A focus move is not a library/runtime change. Keep permission changes
+        // immediate, but do not walk every installation and rebuild all lobby
+        // choices on each broad shell presentation notification.
+        auto multiplayerState=[&]{return QVariantMap{
+            {"trainer",shell.trainer()->profile()["name"]},
+            {"owner",shell.trainer()->profile()["id"]},
+            {"allowed",personalLibrary&&!smoke&&!session.blocked()&&!(saveBackups&&saveBackups->busy())&&!pokemonModule(shell).party()->activities()->link()->active()},
+            {"account",shell.social()->account()["state"]},
+            {"accountGeneration",qulonglong(shell.social()->accountGeneration())},
+            {"runtime",adventureProcess.runtimeControls()}};};
+        QVariantMap lastMultiplayerState;std::optional<quint64> lastMultiplayerRevision;
+        auto refreshMultiplayer=[&]{
+            lastMultiplayerState=multiplayerState();lastMultiplayerRevision=activeLibrary.libraryRevision();
+            multiplayer.refresh(retroarchInstallation,lastMultiplayerState["trainer"].toString(),lastMultiplayerState["allowed"].toBool());
+        };
+        auto refreshMultiplayerState=[&]{
+            const auto revision=activeLibrary.libraryRevision();
+            if(!revision || revision!=lastMultiplayerRevision || multiplayerState()!=lastMultiplayerState)refreshMultiplayer();
+        };
         QObject::connect(&folders,&BatoceraLibrary::scanFinished,&multiplayer,refreshMultiplayer);
-        QObject::connect(&session,&SessionState::changed,&multiplayer,refreshMultiplayer);
-        QObject::connect(shell.trainer(),&TrainerController::changed,&multiplayer,refreshMultiplayer);
-        QObject::connect(&shell,&ShellController::changed,&multiplayer,refreshMultiplayer);
+        QObject::connect(&session,&SessionState::changed,&multiplayer,refreshMultiplayerState);
+        QObject::connect(shell.trainer(),&TrainerController::changed,&multiplayer,refreshMultiplayerState);
+        QObject::connect(&shell,&ShellController::changed,&multiplayer,refreshMultiplayerState);
+        if(store)QObject::connect(store.get(),&LocalStateStore::libraryChanged,&multiplayer,refreshMultiplayer);
         refreshMultiplayer();
         auto gameNotifications=[&]{
             QVariantList rows;
@@ -853,6 +871,7 @@ int main(int argc, char* argv[]) {
                     progressSelection.clear(); gameProgress->invalidate();
                     qInfo() << "Emulator readiness refreshed at idle";
                     shell.refreshLibrary();
+                    refreshMultiplayer();
                 }
                 if (scanLibrary || changed) folders.refreshContentAvailability();
             };
@@ -868,6 +887,7 @@ int main(int argc, char* argv[]) {
             });
             emulatorPoll.setInterval(60000);
             QObject::connect(&emulatorPoll, &QTimer::timeout, emulatorRefresh.get(), [&] { emulatorRefresh->request(folders.root()); });
+            QObject::connect(&emulatorPoll, &QTimer::timeout, &multiplayer, refreshMultiplayer);
             emulatorPoll.start();
         }
         shell.scraper()->canStart = [&] {
