@@ -32,7 +32,60 @@ void SocialController::tickLobbyReminders() {
 void SocialController::turnLobbyPage(int delta) {
     const auto page=qBound(0,lobbyPage()+delta,lobbyPageCount()-1);
     const auto index=qMin(int(lobbyRows().size())-1,1+page*6);
-    lobbySelection_=lobbyRows().value(index).toMap()["selection"].toString();lobbyDetailFocused_=false;emit changed();
+    focusLobbyCard(index);lobbyDetailFocused_=false;emit changed();
+}
+int SocialController::rememberedLobbyRoom() const {
+    const auto rows=lobbyRows();
+    for(int i=1;i<rows.size();++i)if(rows[i].toMap()["selection"]==lobbyLastRoom_)return i;
+    return rows.size()>1?1:0;
+}
+int SocialController::lobbyPage() const {
+    return qMax(0,(lobbyFocus()>0?lobbyFocus():rememberedLobbyRoom())-1)/6;
+}
+void SocialController::focusLobbyCard(int index) {
+    const auto rows=lobbyRows();index=qBound(0,index,int(rows.size())-1);
+    lobbySelection_=rows[index].toMap()["selection"].toString();
+    if(index>0)lobbyLastRoom_=lobbySelection_;
+    lobbyRailFocused_=false;
+}
+void SocialController::activateLobbyRail(int index) {
+    const auto categories=QStringList{QString()}+lobbyDirectory::publicationTopics();
+    if(index<0||index>categories.size()+2)return;
+    lobbyRailFocus_=index;lobbyRailFocused_=true;
+    if(index==0)editLobbySearch();
+    else if(index<=categories.size()) {
+        lobbyAction("category:"+categories[index-1]);focusLobbyCard(rememberedLobbyRoom());
+    } else lobbyAction(index==categories.size()+1?"free":"filters");
+    emit changed();
+}
+void SocialController::dispatchLobbyCatalogue(Action action) {
+    const auto categories=QStringList{QString()}+lobbyDirectory::publicationTopics();
+    if(action==Action::ContextMenu||action==Action::LocalAction){lobbyAction("filters");return;}
+    if(lobbyRailFocused_) {
+        if(action==Action::Up||action==Action::Down)
+            lobbyRailFocus_=qBound(0,lobbyRailFocus_+(action==Action::Down?1:-1),int(categories.size())+2);
+        else if(action==Action::Confirm){activateLobbyRail(lobbyRailFocus_);return;}
+    } else if(action==Action::Back) {
+        lobbyRailFocused_=true;lobbyRailFocus_=qMax(0,int(categories.indexOf(lobbyTopic_)))+1;
+    } else if(action==Action::Confirm){selectLobby(lobbyFocus());return;}
+    else if(action==Action::Up||action==Action::Down||action==Action::Left||action==Action::Right) {
+        const int focus=lobbyFocus(),count=lobbyRows().size()-1;
+        if(focus==0) {if(action==Action::Down)focusLobbyCard(rememberedLobbyRoom());}
+        else {
+            const int slot=(focus-1)%6,row=slot/2,column=slot%2,page=(focus-1)/6;
+            if(action==Action::Up)focusLobbyCard(row==0?0:focus-2);
+            else if(action==Action::Down&&row<2&&focus+2<=count)focusLobbyCard(focus+2);
+            else if(action==Action::Left||action==Action::Right) {
+                const bool right=action==Action::Right;
+                if((right&&column==0&&focus<count)||(!right&&column==1))focusLobbyCard(focus+(right?1:-1));
+                else if((right&&column==1&&page+1<lobbyPageCount())||(!right&&column==0&&page>0)) {
+                    const int start=(page+(right?1:-1))*6+1;
+                    focusLobbyCard(qMin(count,start+row*2+(right?0:1)));
+                }
+            }
+        }
+    }
+    emit changed();
 }
 bool SocialController::lobbyChatVisible() const {
     return face_=="lobby"&&lobbyDetailFocused_&&lobbyRows().value(lobbyFocus()).toMap()["kind"]=="own"
@@ -179,7 +232,7 @@ QVariantList SocialController::lobbyActions() const {
 }
 void SocialController::selectLobby(int index) {
     if(index<0||index>=lobbyRows().size())return;
-    lobbySelection_=lobbyRows()[index].toMap()["selection"].toString();lobbyActionFocus_=0;lobbyDetailFocused_=true;lobbyChatFocused_=false;openLobbyChat();emit changed();
+    focusLobbyCard(index);lobbyActionFocus_=0;lobbyDetailFocused_=true;lobbyChatFocused_=false;openLobbyChat();emit changed();
     const auto row=lobbyRows()[index].toMap();
     if(row["kind"]=="own")return;
     if(row["kind"]=="create") {lobbyAction("create");return;}
@@ -352,6 +405,9 @@ void SocialController::lobbyAction(QString action) {
     emit changed();
 }
 void SocialController::dispatchLobby(Action action) {
+    if(!lobbyDetailFocused_||lobbyRows().value(lobbyFocus()).toMap()["kind"]!="own") {
+        lobbyDetailFocused_=false;dispatchLobbyCatalogue(action);return;
+    }
     if(lobbyChatVisible()&&lobbyChatFocused_) {
         if(action==Action::Back||action==Action::Left) {lobbyChatFocused_=false;reading_=false;}
         else if(action==Action::Secondary)compose();

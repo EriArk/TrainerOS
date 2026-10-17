@@ -34,6 +34,34 @@ class SocialTests : public QObject {
         s.channel_=channel;s.channels_[channel]={{"id",channel},{"type",1}};
     }
 private slots:
+    void lobbyCatalogueControllerTraversesRailGridAndCreate() {
+        SocialController s;QObject::disconnect(&s,nullptr,s.session_,nullptr);QObject::disconnect(s.session_,nullptr,&s,nullptr);
+        QVariantList rows;const auto now=QDateTime::currentSecsSinceEpoch();
+        for(int i=0;i<14;++i)rows.append(QVariantMap{{"lobby",QString::number(40+i)},{"owner",QString::number(40+i)},
+            {"title",QString("Room %1").arg(i)},{"expires",now+180},{"topic","racing"},{"status","choosing"},{"access","public"}});
+        s.receive(0,{{"state","connected"},{"userId","1"},{"lobbyDirectory",QVariantMap{{"rows",rows}}}});
+        s.face_="lobby";s.lobbyDetailFocused_=true; // A restored detail flag must not trap a game-free catalogue.
+        s.dispatch(Action::Back);QVERIFY(s.lobbyRailFocused());QCOMPARE(s.lobbyRailFocus(),1);
+        s.dispatch(Action::Down);QCOMPARE(s.lobbyRailFocus(),2);QVERIFY(s.lobbyTopic().isEmpty());
+        s.dispatch(Action::Confirm);QCOMPARE(s.lobbyTopic(),"racing");QVERIFY(!s.lobbyRailFocused());QCOMPARE(s.lobbyFocus(),1);
+        s.dispatch(Action::Right);QCOMPARE(s.lobbyFocus(),2);s.dispatch(Action::Down);QCOMPARE(s.lobbyFocus(),4);
+        s.dispatch(Action::Right);QCOMPARE(s.lobbyPage(),1);QCOMPARE(s.lobbyFocus(),9);
+        s.dispatch(Action::Left);QCOMPARE(s.lobbyFocus(),4);s.dispatch(Action::Up);QCOMPARE(s.lobbyFocus(),2);
+        s.dispatch(Action::Up);QCOMPARE(s.lobbyFocus(),0);s.dispatch(Action::Down);QCOMPARE(s.lobbyFocus(),2);
+        s.turnLobbyPage(1);s.dispatch(Action::Up);QCOMPARE(s.lobbyFocus(),0);QCOMPARE(s.lobbyPage(),1);
+        s.dispatch(Action::Down);QCOMPARE(s.lobbyFocus(),7);
+        const auto remembered=s.lobbySelection_;s.dispatch(Action::Back);QCOMPARE(s.lobbyRailFocus(),2);
+        s.dispatch(Action::Confirm);QCOMPARE(s.lobbySelection_,remembered);
+        // A refresh may reorder rows, but never changes the remembered room identity.
+        std::swap(rows[6],rows[8]);s.snapshot_["lobbyDirectory"]=QVariantMap{{"rows",rows}};
+        QCOMPARE(s.lobbyFocus(),9);s.dispatch(Action::Back);s.dispatch(Action::Confirm);QCOMPARE(s.lobbyFocus(),9);
+        s.activateLobbyRail(3);QCOMPARE(s.lobbyTopic(),"fighting");QCOMPARE(s.lobbyFocus(),0);QVERIFY(!s.lobbyRailFocused());
+        s.dispatch(Action::Down);QCOMPARE(s.lobbyFocus(),0);s.dispatch(Action::Back);QCOMPARE(s.lobbyRailFocus(),3);
+        // The sidebar exposes search and filters without needing a touch screen.
+        QSignalSpy text(&s,&SocialController::textRequested);s.activateLobbyRail(0);QCOMPARE(text.size(),1);
+        s.activateLobbyRail(8);QVERIFY(s.lobbyFreeOnly_);QVERIFY(s.lobbyRailFocused());
+        s.activateLobbyRail(9);QVERIFY(!s.menu_.isEmpty());
+    }
     void scheduledLobbyInvitationArmsLocallyOnlyAfterAcceptance() {
         QTemporaryDir dir;SocialController guest;
         QObject::disconnect(&guest,nullptr,guest.session_,nullptr);QObject::disconnect(guest.session_,nullptr,&guest,nullptr);
@@ -216,8 +244,9 @@ private slots:
         QVERIFY(host.selectGame({"game","Game","test","runtime.test",2,{{"content","private-digest"}}}));
         connect(&host,&LobbyCoordinator::outgoing,&c,[&](QString,QJsonObject p){if(p["kind"]=="invite")QVERIFY(!p["data"].toObject()["game"].toObject().contains("runtime"));c.lobby_.receive("1","Host",p);});
         QVERIFY(host.invite("2"));const auto offer=c.lobby_.invitation();QVERIFY(offer["expires"].toInteger()>QDateTime::currentSecsSinceEpoch()+250);
-        c.openLobby();c.selectLobby(1);QSignalSpy deferred(&c,&SocialController::lobbyDeferred);c.dispatchLobby(Action::Back);
+        c.openLobby();c.selectLobby(1);QSignalSpy deferred(&c,&SocialController::lobbyDeferred);c.dispatch(Action::Back);
         QCOMPARE(deferred.size(),1);QCOMPARE(c.lobby_.invitation(),offer);QVERIFY(c.lobby_.state().isEmpty());
+        c.dispatch(Action::Back);QVERIFY(c.lobbyRailFocused());QCOMPARE(deferred.size(),1);
         SocialController own;own.snapshot_={{"state","connected"},{"userId","1"},{"name","Host"}};own.lobby_.configure("1","Host",true);own.lobby_.create("public");
         own.lobby_.selectGame({"game","Game","test","runtime.test",2,{{"content","private-digest"}}});
         QSignalSpy commands(&own,&SocialController::commandRequested);own.publishLobby();

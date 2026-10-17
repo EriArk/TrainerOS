@@ -118,6 +118,7 @@ void SocialController::setOwner(QString owner) {
     publishedLobby_.clear();lobbyPublicationVisible_=false;lobbyGames_.clear();
     lobbyReminders_.configure({});pendingLobbyReminder_={};lobbyPlatform_.clear();lobbyMode_.clear();
     lobbyPublicationTopic_="other";
+    lobbyLastRoom_.clear();lobbyRailFocused_=false;lobbyRailFocus_=1;
     recentTogether_.configure({},{});recentSelection_.clear();
     media_.clear();mediaSending_=mediaUncertain_=false;
     if(link_)link_->endOnline();
@@ -553,8 +554,8 @@ QVariantList SocialController::hints() const {
     if(snapshot_.value("state")=="authorizing"){h("B","Cancel sign-in");return result;}
     if(snapshot_.value("state")=="signed-out"||snapshot_.isEmpty()){if(!owner_.isEmpty())h("A","Sign in");return result;}
     if(face_=="lobby") {
-        h("A",lobbyChatFocused_?"Message":lobbyDetailFocused_?"Choose":"Open");h("B","Back");
-        if(!lobbyDetailFocused_) {h("\u2190\u2192","Pages");h("\u2191\u2193","Room");}
+        h("A",lobbyChatFocused_?"Message":lobbyDetailFocused_||lobbyRailFocused_?"Choose":"Open");h("B",!lobbyDetailFocused_&&!lobbyRailFocused_?"Categories":"Back");
+        if(!lobbyDetailFocused_) {if(lobbyRailFocused_)h("\u2191\u2193","Choose");else {h("\u2190\u2192","Room / Page");h("\u2191\u2193","Room");}}
         h("Select",lobbyDetailFocused_&&lobbyRows().value(lobbyFocus()).toMap()["kind"]=="own"?"Options":"Filters");return result;
     }
     if(face_=="friends") {

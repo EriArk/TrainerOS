@@ -76,6 +76,8 @@ class SocialController final : public QObject {
     Q_PROPERTY(int lobbyFocus READ lobbyFocus NOTIFY changed)
     Q_PROPERTY(int lobbyPage READ lobbyPage NOTIFY changed)
     Q_PROPERTY(int lobbyPageCount READ lobbyPageCount NOTIFY changed)
+    Q_PROPERTY(bool lobbyRailFocused READ lobbyRailFocused NOTIFY changed)
+    Q_PROPERTY(int lobbyRailFocus READ lobbyRailFocus NOTIFY changed)
     Q_PROPERTY(int lobbyActionFocus READ lobbyActionFocus NOTIFY changed)
     Q_PROPERTY(bool lobbyDetailFocused READ lobbyDetailFocused NOTIFY changed)
     Q_PROPERTY(QString lobbySearch READ lobbySearch NOTIFY changed)
@@ -95,7 +97,10 @@ public:
     QVariantList lobbyRows() const;
     QVariantList lobbyActions() const;
     int lobbyFocus() const;
-    int lobbyPage() const {return qMax(0,lobbyFocus()-1)/6;}
+    int lobbyPage() const;
+    bool lobbyRailFocused() const {return lobbyRailFocused_;}
+    int lobbyRailFocus() const {return lobbyRailFocus_;}
+    Q_INVOKABLE void activateLobbyRail(int index);
     int lobbyPageCount() const {return qMax(1,(int(lobbyRows().size())-1+5)/6);}
     Q_INVOKABLE void turnLobbyPage(int delta);
     int lobbyActionFocus() const {return lobbyActionFocus_;}
@@ -291,6 +296,12 @@ private:
     QVariantList lobbyGames_;
     QString lobbySearch_,lobbyTopic_,publishedLobby_,presentedLobbyInvite_,lobbySelection_,lobbyPublicationTopic_="other";
     QString lobbyPlatform_,lobbyMode_;
+    QString lobbyLastRoom_;
+    bool lobbyRailFocused_=false;
+    int lobbyRailFocus_=1;
+    int rememberedLobbyRoom() const;
+    void focusLobbyCard(int index);
+    void dispatchLobbyCatalogue(Action action);
     int lobbyActionFocus_=0;
     bool lobbyFreeOnly_=false,lobbyDetailFocused_=false;
     bool lobbyPublicationVisible_=false;

@@ -19,8 +19,10 @@ Item {
         Text { text: "Find your people"; font.family: Theme.displayFamily; font.pixelSize: 19; color: Theme.ink }
         CapButton {
             y: 34; width: parent.width-10; height: 30; textSize: 12; claimsFocus: false; tint: Theme.blue
+            objectName: "lobby-search"
+            selected: root.takesFocus && root.social.lobbyRailFocused && root.social.lobbyRailFocus===0
             label: root.social.lobbySearch || "Search rooms…"
-            onActivated: root.social.lobbyAction("search")
+            onActivated: root.social.activateLobbyRail(0)
         }
         Column {
             y: 72; width: parent.width-9; spacing: 2
@@ -28,24 +30,31 @@ Item {
                 model: root.categories
                 delegate: Item {
                     required property string modelData; required property int index
+                    objectName: "lobby-category-"+index
+                    readonly property bool focused: root.takesFocus && root.social.lobbyRailFocused && root.social.lobbyRailFocus===index+1
                     width: rail.width-9; height: Math.max(16,Math.min(29,(rail.height-150)/root.categories.length))
                     Rectangle { anchors.fill: parent; radius: 8; color: root.accents[index]; opacity: root.social.lobbyTopic===modelData ? .30 : 0 }
+                    Rectangle { anchors.fill: parent; radius: 8; color: "transparent"; border.width: parent.focused ? 2 : 0; border.color: Theme.yellow }
                     Rectangle { x: 7; anchors.verticalCenter: parent.verticalCenter; width: 6; height: 6; radius: 3; color: root.accents[index]; border.color: Qt.darker(color,1.18) }
                     Text { x: 22; anchors.verticalCenter: parent.verticalCenter; width: parent.width-28; text: root.categoryNames[index]
                         font.family: Theme.displayFamily; font.pixelSize: parent.height<23 ? 11 : 13; color: Theme.ink; elide: Text.ElideRight }
-                    MouseArea { anchors.fill: parent; onClicked: root.social.lobbyAction("category:"+modelData) }
+                    MouseArea { anchors.fill: parent; onClicked: root.social.activateLobbyRail(index+1) }
                 }
             }
         }
         Rectangle { x: 4; y: parent.height-65; width: parent.width-20; height: 1; color: Theme.muted; opacity: .18 }
         Text {
             x: 5; y: parent.height-53; width: parent.width-14
+            objectName: "lobby-free-seats"
+            Rectangle { anchors.fill: parent; anchors.margins: -5; z: -1; radius: 6; color: "transparent"; border.color: Theme.yellow; border.width: root.takesFocus && root.social.lobbyRailFocused && root.social.lobbyRailFocus===root.categories.length+1 ? 2 : 0 }
             text: (root.social.lobbyFreeOnly ? "✓  " : "○  ")+"Free seats"; color: Theme.ink; font.pixelSize: 12
-            MouseArea { anchors.fill: parent; anchors.margins: -6; onClicked: root.social.lobbyAction("free") }
+            MouseArea { anchors.fill: parent; anchors.margins: -6; onClicked: root.social.activateLobbyRail(root.categories.length+1) }
         }
         Text {
+            objectName: "lobby-filters"
+            Rectangle { anchors.fill: parent; anchors.margins: -5; z: -1; radius: 6; color: "transparent"; border.color: Theme.yellow; border.width: root.takesFocus && root.social.lobbyRailFocused && root.social.lobbyRailFocus===root.categories.length+2 ? 2 : 0 }
             x: 5; y: parent.height-25; width: parent.width-14; text: "Filters  ·  Select  ›"; font.pixelSize: 12; color: Theme.muted
-            MouseArea { anchors.fill: parent; anchors.margins: -6; onClicked: root.social.lobbyAction("filters") }
+            MouseArea { anchors.fill: parent; anchors.margins: -6; onClicked: root.social.activateLobbyRail(root.categories.length+2) }
         }
     }
     Rectangle { x: rail.x+rail.width+3; y: 17; width: 1; height: parent.height-38; color: Theme.muted; opacity: .18 }
@@ -56,8 +65,9 @@ Item {
             color: Theme.muted; font.pixelSize: 11; elide: Text.ElideRight }
         CapButton {
             anchors.right: parent.right; y: 3; width: Math.min(166,parent.width*.29); height: 34; claimsFocus: false; textSize: 13; tint: Theme.green
+            objectName: "lobby-create"
             label: root.social.lobbyState.id ? "My lobby  ›" : "+  Create lobby"
-            selected: root.takesFocus && root.social.lobbyFocus===0
+            selected: root.takesFocus && !root.social.lobbyRailFocused && root.social.lobbyFocus===0
             onActivated: root.social.selectLobby(0)
         }
         Grid {
@@ -69,7 +79,7 @@ Item {
                     required property var modelData
                     required property int index
                     readonly property int rowIndex: root.social.lobbyPage*6+index+1
-                    readonly property bool focused: root.takesFocus && root.social.lobbyFocus===rowIndex
+                    readonly property bool focused: root.takesFocus && !root.social.lobbyRailFocused && root.social.lobbyFocus===rowIndex
                     readonly property color accent: root.accents[Math.max(0,root.categories.indexOf(modelData.topic || ""))]
                     readonly property var game: modelData.game || ({})
                     readonly property bool compact: height<86

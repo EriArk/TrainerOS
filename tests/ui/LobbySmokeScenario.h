@@ -58,6 +58,7 @@ public:
             }
             case 1:
                 capture("catalogue-page-1");check(social->lobbyPageCount()==3,"Fourteen rooms form three pages");
+                press(SDL_CONTROLLER_BUTTON_DPAD_RIGHT);check(social->lobbyFocus()==2,"Right selects the adjacent column");
                 press(SDL_CONTROLLER_BUTTON_DPAD_RIGHT);break;
             case 2:
                 capture("catalogue-page-2");check(social->lobbyPage()==1,"Right turns one page");
@@ -78,7 +79,20 @@ public:
             case 8:
                 capture("catalogue-return");check(!social->lobbyDetailFocused_,"Back returns to catalogue and retains room");
                 window->resize(1600,900);shell.settings()->cycleTheme(1);break;
-            case 9:capture("catalogue-second-theme");break;
+            case 9:capture("catalogue-second-theme");press(ControllerInput::BackButton);break;
+            case 10:
+                check(social->lobbyRailFocused(),"B moves to categories");capture("catalogue-controller-rail");
+                press(SDL_CONTROLLER_BUTTON_DPAD_DOWN);press(ControllerInput::ConfirmButton);break;
+            case 11:
+                check(!social->lobbyRailFocused()&&social->lobbyTopic()=="racing"&&social->lobbyFocus()>0,"A applies category and focuses a room");
+                capture("catalogue-controller-room");social->focusLobbyCard(1);press(SDL_CONTROLLER_BUTTON_DPAD_UP);break;
+            case 12:
+                check(social->lobbyFocus()==0,"Up from first row selects create/my lobby");capture("catalogue-controller-create");
+                press(SDL_CONTROLLER_BUTTON_DPAD_DOWN);break;
+            case 13:
+                check(social->lobbyFocus()==1,"Down returns to remembered room");
+                press(ControllerInput::BackButton);window->resize(960,540);break;
+            case 14:capture("catalogue-controller-rail-960");break;
             default:
                 timer->stop();completed=true;QFile report(directory+"/catalogue-check.txt");
                 if(report.open(QIODevice::WriteOnly))report.write((diagnostics.join('\n')+QString("\nqmlWarnings=%1\n").arg(warnings)).toUtf8());
