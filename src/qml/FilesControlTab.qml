@@ -7,7 +7,6 @@ Item {
     required property var flow
     property bool takesFocus: false
     property bool recessed: false
-    readonly property string outline: "M 0 36 Q 6 36 12 24 L 21 9 Q 26 1 36 1 H " + (width-8) + " Q " + width + " 1 " + width + " 9 V 36 Z"
     function point(px) {const p=buttons.mapFromItem(root,px,12);const i=Math.floor(p.x/(31+buttons.spacing));if(i>=0&&i<8)flow.focus("controls",i)}
     height: Theme.adventureTabHeight
     clip: true
@@ -15,16 +14,20 @@ Item {
     Item {
         y: root.drop; width: root.width; height: root.height
         Behavior on y { NumberAnimation { duration: Theme.motion(150); easing.type: Easing.InOutCubic } }
-        readonly property string outline: "M 0 36 Q 6 36 12 24 L 21 9 Q 26 1 36 1 H " + (width-8) + " Q " + width + " 1 " + width + " 9 V 36 Z"
-        Shape { anchors.fill: parent
+        // Keep the row's existing screen coordinates; fit only the chassis skin.
+        Shape {
+            id: panel
+            x: buttons.x - 28; width: buttons.width + 56; height: parent.height
+            readonly property string shoulder: "M 0 36 Q 6 36 12 24 L 21 9 Q 26 1 36 1 H " + (width-36)
+                + " Q " + (width-26) + " 1 " + (width-21) + " 9 L " + (width-12) + " 24 Q " + (width-6) + " 36 " + width + " 36"
             ShapePath { strokeColor: "transparent"; fillGradient: LinearGradient { x1: 0; y1: 0; x2: 0; y2: 36
                     GradientStop { position: 0; color: Qt.lighter(Theme.chassisTop,1.22) }
                     GradientStop { position: 1; color: Theme.chassis }
                 }
-                PathSvg { path: root.outline }
+                PathSvg { path: panel.shoulder + " Z" }
             }
             ShapePath { strokeColor: Theme.rim; strokeWidth: 1; fillColor: "transparent"
-                PathSvg { path: "M 21 9 Q 26 1 36 1 H " + (root.width-8) + " Q " + root.width + " 1 " + root.width + " 9" }
+                PathSvg { path: panel.shoulder }
             }
         }
         Row {
