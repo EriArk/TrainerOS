@@ -40,18 +40,19 @@ void SocialController::chooseMyLobby(QString id) {
 }
 void SocialController::requestLobbyReady() {
     auto& room=viewedLobby();const auto id=room.state()["id"].toString();
+    if(room.readyPending())return;
     if(&room!=lobby_.activeRoom()) {
         if(gameActive_||lobby_.state()["phase"]=="launching"||lobby_.state()["phase"]=="playing"){toastTitle_="Lobby";toastText_="Finish your current game before getting ready here.";toastTimer_.start();emit presentationChanged();return;}
         if(!lobby_.activateRoom(id)) {
-            menuMode_="lobby";menuTitle_="Switch ready room?";menuDetail_="Your other room will see you as Preparing.";
-            menu_={"Get ready here","Back"};menuCommands_={"lobby:ready-switch:"+id,"cancel"};menuFocus_=0;emit changed();return;
+            menuMode_="lobby";menuTitle_="Prepare this room?";menuDetail_="Your other room will see you as Preparing.";
+            menu_={"Prepare here","Back"};menuCommands_={"lobby:ready-switch:"+id,"cancel"};menuFocus_=0;emit changed();return;
         }
     }
     for(const auto& v:room.state()["members"].toArray())if(v.toObject()["id"]==snapshot_["userId"].toString()) {
-        const auto m=v.toObject();if(m["ready"].toBool()){readyIntent_.clear();room.ready(false);return;}
+        const auto m=v.toObject();if(m["ready"].toBool()){room.ready(false);return;}
         if(m["prepared"].toBool()){room.ready(true);return;}
     }
-    readyIntent_=id;readyGeneration_=quint64(room.state()["generation"].toInteger());lobbyAutoPreparation_.clear();reconcileLobbyPreparation();
+    lobbyAutoPreparation_.clear();reconcileLobbyPreparation();
 }
 void SocialController::leaveViewedLobby(bool close) {
     auto& room=viewedLobby();const auto s=room.state();const auto id=s["id"].toString(),channel=s["conversation"].toString();

@@ -115,6 +115,26 @@ private slots:
         s.selectLobby(0);QCOMPARE(s.lobbyRoomFocus(),QString("action:call"));QCOMPARE(s.draft(),QString("Keep my draft"));
         s.closeMyLobbies();s.lobbyAction("room-menu");QVERIFY(s.menuCommands_.contains("lobby:leave-confirm"));
     }
+    void lobbyReadyIsNeverQueuedBeforeVerification() {
+        class Runtime final : public LobbyRuntimeService { public: Completion pending;int launches=0;
+            void prepare(QString,QJsonObject,Completion done) override {pending=done;}
+            void launch(QString,QString,QJsonObject,Completion) override {++launches;}
+            void cancel(QString) override {} } runtime;
+        SocialController s;QObject::disconnect(&s,nullptr,s.session_,nullptr);QObject::disconnect(s.session_,nullptr,&s,nullptr);
+        s.receive(0,{{"state","connected"},{"userId","1"},{"name","Mika"}});s.openLobbyForPeople();s.submitLobbyDraft();
+        s.lobbyRuntime_.registerService("netplay",&runtime);
+        QVERIFY(s.lobby_.selectGame({"game","Game","snes","netplay",2,{}}));
+        s.reconcileLobbyPreparation();QVERIFY(bool(runtime.pending));
+        s.requestLobbyReady();runtime.pending(true,{});s.reconcileLobbyPreparation();
+        QCOMPARE(runtime.launches,0);QCOMPARE(s.lobbyState()["phase"].toString(),QString("gathering"));
+        s.requestLobbyReady();QCOMPARE(runtime.launches,0);QVERIFY(s.lobbyRoomGame()["canStart"].toBool());
+        s.requestLobbyReady();QVERIFY(!s.lobbyRoomGame()["canStart"].toBool());
+        s.activateLobbyRoom("start");QCOMPARE(runtime.launches,0);
+        s.requestLobbyReady();s.lobbyRoomFocus_="game";s.dispatch(Action::Right);
+        QCOMPARE(s.lobbyRoomFocus(),QString("start"));s.dispatch(Action::Confirm);
+        QCOMPARE(runtime.launches,1);QVERIFY(!s.lobbyRoomGame()["canStart"].toBool());
+        s.activateLobbyRoom("start");QCOMPARE(runtime.launches,1);
+    }
     void lobbyAutomaticPreparationIsBoundedAndNeverInterruptsGame() {
         class Runtime final : public LobbyRuntimeService { public: int attempts=0; void prepare(QString,QJsonObject,Completion done) override {++attempts;done(false,"Missing local game");}
             void launch(QString,QString,QJsonObject,Completion done) override {done(false,"unused");} void cancel(QString) override {} } runtime;

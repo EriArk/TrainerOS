@@ -35,6 +35,13 @@ class RuntimeMultiplayer final : public LobbyRuntimeService {
     Q_PROPERTY(QStringList onlineGames READ onlineGames NOTIFY availabilityChanged)
     Q_PROPERTY(QStringList nearbyGames READ nearbyGames NOTIFY availabilityChanged)
 public:
+    QString preparationProblem() const override {return lobbyProblem_;}
+    using ImportCheck=std::function<void(QJsonObject,QString)>;
+    void verifyImport(AdventureRegistration,QJsonObject,std::shared_ptr<std::atomic_bool>,ImportCheck);
+    bool opening() const;
+    QString openingGame() const {return game_;}
+    QString openingStage() const {return status_;}
+    void cancelOpening();
     RuntimeMultiplayer(LibraryRepository&, RetroArchAdapter&, StandaloneAdapter&, StandaloneAdapter&, SocialController&,
                        ProcessService&, AdventureLaunchController&, AdventureExitPresentation&);
     ~RuntimeMultiplayer() override;
@@ -140,6 +147,7 @@ private:
     QFutureWatcher<ScannedGame> scan_{this};
     QNetworkAccessManager network_{this};QTimer timer_{this};
     QString trainer_,identity_,game_,status_,transportPeer_,lastRequest_,scanPriority_;
+    QString lobbyProblem_;
     QJsonObject descriptor_;
     QMap<QString,QJsonObject> profiles_,games_;
     QVariantMap gameModes_;

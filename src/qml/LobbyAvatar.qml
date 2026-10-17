@@ -46,6 +46,11 @@ Item {
             color: root.person.ready ? Theme.green : Theme.yellow; border.width: 2; border.color: Theme.paper
             Text { anchors.centerIn: parent; text: root.person.ready ? "✓" : "★"; font.pixelSize: 13; color: Theme.ink }
         }
+        Rectangle { visible: !!root.person.technical && !root.person.ready && !root.small; x: 1; y: parent.height-20; width: 18; height: 18; radius: 9
+            color: root.person.technical==="attention" ? Theme.yellow : root.person.technical==="verified" ? Theme.green : Theme.blue
+            border.color: Theme.paper; border.width: 2
+            Text { anchors.centerIn: parent; text: root.person.technical==="attention" ? "!" : root.person.technical==="verified" ? "✓" : "…"; color: Theme.ink; font.pixelSize: 11 }
+        }
     }
     Text { x: 1; y: circle.y+circle.height+(root.compact ? 7 : 10); width: parent.width-2; horizontalAlignment: Text.AlignHCenter
         text: root.person.name || "Invite"; font.family: Theme.displayFamily; font.pixelSize: root.small ? 11 : root.compact ? 15 : 19; color: Theme.ink

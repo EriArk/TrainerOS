@@ -1,4 +1,7 @@
 #include "features/adventure/RuntimeMultiplayer.h"
+#include "features/adventure/LobbyImportController.h"
+#include "features/adventure/LaunchPresentation.h"
+#include "core/navigation/LaunchPreparation.h"
 #include "features/adventure/RemotePlayRuntime.h"
 #include "features/adventure/AdventureExitPresentation.h"
 #include "features/social/SocialController.h"
@@ -19,6 +22,10 @@ class RuntimeMultiplayerTests final : public QObject {
     struct Library final : LibraryRepository {
         std::function<void()> inspect;
         QList<AdventureRegistration> records;
+        int writes=0;
+        bool editable() const override {return true;}
+        void saveAdventureAsync(const AdventureRegistration& r,QObject*,std::function<void(LibraryWriteResult)> done) override {++writes;records.append(r);done({true,{}});}
+
         QList<AdventureRegistration> registrations() const override { return records; }
         QList<World> worlds() const override { return {}; }
         QList<Adventure> adventures() const override { return {}; }
@@ -96,6 +103,44 @@ class RuntimeMultiplayerTests final : public QObject {
         QTRY_VERIFY(!f.lifecycle.active());
     }
 private slots:
+    void lobbyImportChecksBeforeWritingAndInvalidatesLateReplies() {
+        Fixture f;f.runtime.allowed_=true;
+        const auto file=f.dir.filePath("fixture.nes"),core=f.dir.filePath("core"),exe=f.dir.filePath("runtime");
+        auto write=[](QString path,QByteArray bytes){QFile out(path);if(out.open(QIODevice::WriteOnly))out.write(bytes);};
+        write(file,"Content-free import fixture");write(core,"Core fixture");write(exe,"Runtime fixture");
+        RetroArchInstallation installation;installation.program=exe;installation.runtimeFile=exe;installation.cores={{"fceumm",core}};
+        f.runtime.installation_=installation;
+        RetroArchAdapter adapter(f.library,installation);
+        AdventureRegistration candidate;candidate.adventure.platformId="nes";candidate.adventure.adapterId="unconfigured";candidate.contentPath=file;adapter.prepareInstallation(candidate);
+        const std::atomic_bool cancelled=false;const auto profile=retroarch::netplayIdentity(candidate,installation,cancelled);QVERIFY(!profile.isEmpty());
+        const auto id=QString::fromLatin1(QCryptographicHash::hash((profile["id"].toString()+"/"+profile["content"].toString()).toUtf8(),QCryptographicHash::Sha256).toHex());
+        auto* room=f.social.lobbyCoordinator();room->configure("1","Host",true);QVERIFY(room->create());
+        QVERIFY(room->selectGame({id,"Fixture","nes",profile["id"].toString(),2,profile}));
+        LobbyImportController importer(f.library,adapter,nullptr,f.social,f.runtime);
+        const auto begin=[&]{importer.open_=true;importer.context_=importer.context();importer.error_.clear();};
+        begin();importer.select(file+".missing");QTRY_VERIFY(!importer.busy());QVERIFY(!importer.error().isEmpty());QCOMPARE(f.library.writes,0);
+        importer.cancel();write(f.dir.filePath("wrong.nes"),"A different content-free edition");
+        begin();importer.select(f.dir.filePath("wrong.nes"));QTRY_VERIFY(!importer.busy());QVERIFY(!importer.error().isEmpty());QCOMPARE(f.library.writes,0);
+        importer.cancel();begin();importer.select(file);importer.cancel();QTest::qWait(100);QCOMPARE(f.library.writes,0);
+        begin();importer.select(file);QVERIFY(room->setDetails("Changed title",0)); // A title alone does not change game identity.
+        auto other=profile;other["content"]="different";QVERIFY(room->selectGame({"different","Different","nes",profile["id"].toString(),2,other}));
+        QTest::qWait(100);QCOMPARE(f.library.writes,0);
+        importer.cancel();QVERIFY(room->selectGame({id,"Fixture","nes",profile["id"].toString(),2,profile}));
+        begin();importer.select(file);QTRY_VERIFY(!importer.busy());QCOMPARE(f.library.writes,1);QVERIFY(!importer.open());
+        QCOMPARE(f.library.records.first().contentPath,file);QCOMPARE(f.library.records.first().adventure.domain,QString("multiverse"));
+    }
+    void commonSplashCancelsBeforeCheckpointAndLeavesRunningGamesAlone() {
+        Fixture f;LaunchPreparation preparation(f.library,f.retro);
+        LaunchPresentation presentation(f.library,preparation,f.lifecycle,f.runtime,f.social,f.view);
+        QObject::disconnect(&f.lifecycle,&AdventureLaunchController::checkpointRequested,&f.lifecycle,nullptr);
+        QSignalSpy checkpoints(&f.lifecycle,&AdventureLaunchController::checkpointRequested);
+        QVERIFY(f.lifecycle.launch({"unused",{},{}},{},"missing"));QVERIFY(presentation.visible());
+        presentation.cancel();QVERIFY(!presentation.visible());
+        f.lifecycle.checkpointCompleted(checkpoints.first()[0].toULongLong(),{});QVERIFY(!f.process.active());
+        QObject::connect(&f.lifecycle,&AdventureLaunchController::checkpointRequested,&f.lifecycle,[&](quint64 token,const QJsonObject&){f.lifecycle.checkpointCompleted(token,{});});
+        QVERIFY(f.start());QTRY_COMPARE(f.lifecycle.state(),QString("running"));QVERIFY(!presentation.visible());
+        presentation.cancel();QVERIFY(f.process.active());finishOrdinary(f);
+    }
     void remoteGuestUsesSharedSaveBarrierWithoutRequiringLocalContent_data() {
         QTest::addColumn<bool>("saveFails");QTest::addColumn<bool>("live");
         QTest::newRow("settled")<<false<<false;QTest::newRow("save-error")<<true<<false;
@@ -147,7 +192,7 @@ private slots:
         connect(&a.runtime.party_,&GameParty::outgoing,&b.runtime,[&](QString,QJsonObject p){b.runtime.party_.receive("online:1","Host",p);});
         connect(&b.runtime.party_,&GameParty::outgoing,&a.runtime,[&](QString,QJsonObject p){a.runtime.party_.receive("online:2","Guest",p);});
         QVERIFY(h->create("public"));QVERIFY(h->selectGame({digest,"Game","nes",profile["id"].toString(),2,profile}));
-        QVERIFY(a.social.lobbyRuntime()->setLiveJoining(true));QVERIFY(a.social.lobbyRuntime()->prepare());QVERIFY(h->ready(true));
+        QVERIFY(a.social.lobbyRuntime()->setLiveJoining(true));QVERIFY(a.social.lobbyRuntime()->prepare());QVERIFY(h->ready(true));QVERIFY(h->start());
         QTRY_COMPARE(h->state()["phase"].toString(),"playing");const auto pid=a.process.processId();const auto ticket=h->state()["ticket"].toString();
         QVERIFY(g->join("1",h->state()["id"].toString()));QVERIFY(b.social.lobbyRuntime()->joinLive());
         QTRY_COMPARE(b.lifecycle.state(),"running");QCOMPARE(a.process.processId(),pid);QCOMPARE(a.runtime.descriptor_,profile);
@@ -239,18 +284,22 @@ private slots:
         QVERIFY(h->selectGame({digest,"Game","test","runtime.test",2,profile}));QVERIFY(h->seat(1));QVERIFY(g->seat(2));
         QVERIFY(a.social.lobbyRuntime()->prepare());QVERIFY(b.social.lobbyRuntime()->prepare());
         QVERIFY(h->ready(true));QVERIFY(!a.process.active());QVERIFY(!b.process.active());QVERIFY(g->ready(true));
+        QVERIFY(!a.process.active());QVERIFY(!b.process.active());QVERIFY(!g->start());QVERIFY(h->start());QVERIFY(!h->start());
         QTRY_VERIFY2_WITH_TIMEOUT(h->state()["phase"]=="playing",qPrintable(a.social.lobbyRuntime()->status()+" / "+b.social.lobbyRuntime()->status()+" / "+a.lifecycle.state()+" / "+b.lifecycle.state()),5000);
         QCOMPARE(g->state()["phase"].toString(),QString("playing"));
         QVERIFY(a.process.active());QVERIFY(b.process.active());QVERIFY(a.runtime.party_.pending().isEmpty());QVERIFY(b.runtime.party_.pending().isEmpty());
         finishOrdinary(a);finishOrdinary(b);QTRY_COMPARE(h->state()["phase"].toString(),QString("gathering"));
         QCOMPARE(h->state()["id"].toString(),room);QCOMPARE(g->state()["id"].toString(),room);QCOMPARE(h->state()["members"].toArray().size(),2);
-        QVERIFY(!h->ready(true));QVERIFY(!g->ready(true));
+        // Automatic preparation may already have finished again. It must never
+        // retain the previous explicit Ready or launch either child by itself.
+        for(auto* room:{h,g})for(const auto& member:room->state()["members"].toArray())QVERIFY(!member.toObject()["ready"].toBool());
+        QVERIFY(!a.process.active());QVERIFY(!b.process.active());
         auto next=profile;next["content"]="another-game";
         for(auto* f:{&a,&b}) {QVERIFY(QFile::remove(f->dir.filePath("control")));f->runtime.games_["local"]=next;}
         const auto nextId=QString::fromLatin1(QCryptographicHash::hash(QByteArray("runtime.test/another-game"),QCryptographicHash::Sha256).toHex());
         QVERIFY(h->selectGame({nextId,"Another game","test","runtime.test",2,next}));
         QVERIFY(a.social.lobbyRuntime()->prepare());QVERIFY(b.social.lobbyRuntime()->prepare());
-        QVERIFY(g->ready(true));QVERIFY(h->ready(true));QTRY_COMPARE(h->state()["phase"].toString(),QString("playing"));
+        QVERIFY(g->ready(true));QVERIFY(h->ready(true));QVERIFY(h->start());QTRY_COMPARE(h->state()["phase"].toString(),QString("playing"));
         QCOMPARE(startsA.size(),2);QCOMPARE(startsB.size(),2);QCOMPARE(g->state()["id"].toString(),room);
         finishOrdinary(a);finishOrdinary(b);
         QTRY_COMPARE(h->state()["phase"].toString(),QString("gathering"));

@@ -2,7 +2,9 @@
 
 namespace trainer {
 AdventureLaunchController::AdventureLaunchController(ProcessService& process, QObject* parent) : QObject(parent), process_(process) {
+    connect(&process_,&ProcessService::launchStageChanged,this,&AdventureLaunchController::changed);
     connect(&process_, &ProcessService::started, this, [this] {
+        if (state_ == "stopping") { process_.stop(); return; }
         started_ = true;
         // Only a confirmed local process start changes the selected Home game.
         // Preserve the prelaunch route/focus while retiring its old Home choice.
@@ -15,7 +17,6 @@ AdventureLaunchController::AdventureLaunchController(ProcessService& process, QO
         exit_.beginSession(process_.runtimeControls()["temporaryProgress"].toBool()
             ? AdventureSavePolicy::NoPersistentProgress : savePolicy_);
         if (!adventureId_.isEmpty()) emit adventureStarted(adventureId_);
-        if (state_ == "stopping") { process_.stop(); return; }
         state_ = "running"; emit changed(); emit suspendRequested();
     });
     connect(&process_, &ProcessService::finished, this, [this](int code, bool crashed, const QString& error) {

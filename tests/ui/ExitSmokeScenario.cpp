@@ -7,6 +7,7 @@
 #include <algorithm>
 #include <cmath>
 #include <memory>
+#include <QThread>
 
 using namespace trainer;
 namespace {
@@ -16,7 +17,7 @@ struct Scenario {
     quint64 capture = 0;
     QByteArray pid;
     QJsonObject context;
-    bool failed = false;
+    bool failed = false, launchCaptured = false;
 };
 }
 void startExitSmoke(QQuickWindow* shellWindow, ShellController& shell, AdventureLaunchController& launch,
@@ -90,11 +91,23 @@ void startExitSmoke(QQuickWindow* shellWindow, ShellController& shell, Adventure
                 "trainer_process_probe"
 #endif
             );
-            check(launch.launch({probe, {"controlled", state->files.filePath("command"), state->files.filePath("pid")}, {}}, initial), "Child launch accepted");
+            ProcessCommand command{probe,{"controlled",state->files.filePath("command"),state->files.filePath("pid")},{}};
+            command.prepare=[](ProcessCommand&,const std::atomic_bool& cancelled){for(int i=0;i<20&&!cancelled;++i)QThread::msleep(100);return QString();};
+            check(launch.launch(command,initial),"Child launch accepted");
             break;
         }
         case 1:
-            if (launch.state() == "starting") return;
+            if (launch.state() == "starting") {
+                if(!state->launchCaptured){state->launchCaptured=true;check(shellWindow->grabWindow().save(output+"/launch-preparing.png"),"Launch popup captured");}
+                if(qEnvironmentVariableIsSet("TRAINEROS_LAUNCH_SPLASH_SMOKE")) {
+                    input.setEnabled(true);input.poll();press(SDL_CONTROLLER_BUTTON_A);
+                    check(launch.state()=="stopping","B cancels the real pending launch");
+                    if(launch.preparing())launch.cancelOpening();
+                    check(shellWindow->grabWindow().save(output+"/launch-cancelling.png"),"Cancellation popup captured");
+                    state->stage=50;
+                }
+                return;
+            }
             check(launch.state() == "running", "Original process is running");
             state->pid = readPid(); check(!state->pid.isEmpty(), "Original PID recorded");
             exit.setAvailable(true); view.setGameTitle("A test Adventure");
@@ -106,6 +119,14 @@ void startExitSmoke(QQuickWindow* shellWindow, ShellController& shell, Adventure
             press(SDL_CONTROLLER_BUTTON_B);
             check(!view.visible() && launch.state() == "running" && readPid() == state->pid, "Continue preserves live process");
             check(view.requestMenu(), "Home reopens"); break;
+        case 50: {
+            if(launch.active())return;
+            check(readPid().isEmpty(),"Cancelled preparation never creates an emulator process");
+            check(state->returned==1&&window!=shellWindow&&shellWindow->isVisible(),"Returns once to the shell");
+            check(warnings==0,"No QML warnings");completed=true;timer->stop();
+            QFile report(output+"/launch-verification.txt");if(report.open(QIODevice::WriteOnly))report.write(((state->failed?QString("FAILED\n"):QString("PASSED\n"))+diagnostics.join('\n')).toUtf8());
+            QCoreApplication::exit(state->failed?1:0);return;
+        }
         case 21:
             check(view.ready(), "Fresh menu input");
             press(SDL_CONTROLLER_BUTTON_GUIDE);

@@ -186,6 +186,20 @@ public:
                 capture("create-vote-selection");social->submitLobbyDraft();check(social->myLobbies().size()==3,"Confirm creates exactly one room");social->lobbyAction("vote");break;
             case 35:
                 capture("game-vote");social->lobbyPickerAction("vote-close");break;
+            case 36:
+                check(social->lobby_.activateRoom(social->lobbyState()["id"].toString()),"The viewed room becomes the active runtime room");
+                social->lobby_.selectGame({"fixture","Super Mario Kart","SNES","netplay",4,{}});
+                social->reconcileLobbyPreparation();social->requestLobbyReady();
+                check(social->lobbyRoomGame()["canStart"].toBool(),"All ready exposes host Start without launching");
+                check(social->lobbyState()["phase"]=="gathering","Ready does not launch the game");
+                window->resize(960,540);break;
+            case 37:
+                capture("room-host-start-handheld");social->requestLobbyReady();
+                check(!social->lobbyRoomGame()["canStart"].toBool(),"Not ready removes Start");
+                social->requestLobbyReady();window->resize(1600,900);break;
+            case 38:
+                capture("room-host-start-wide");check(click("lobby-start"),"Touch activates the host Start button");
+                check(!social->lobbyRoomGame()["canStart"].toBool(),"Failed fixture launch returns without an enabled Start");break;
             default:
                 timer->stop();completed=true;QFile report(directory+"/catalogue-check.txt");
                 if(report.open(QIODevice::WriteOnly))report.write((diagnostics.join('\n')+QString("\nqmlWarnings=%1\n").arg(warnings)).toUtf8());

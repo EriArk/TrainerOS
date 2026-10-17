@@ -35,6 +35,9 @@ QVariantMap SocialController::lobbyPerson(QVariantMap member) const {
     member["speaking"]=!blocked&&member["connected"].toBool()&&voice["state"]=="connected"
         &&voice["channel"].toString()==lobbyChatChannel_&&!lobbyChatChannel_.isEmpty()&&voice["speakers"].toStringList().contains(id);
     member["status"]=!member["connected"].toBool()?"Reconnecting":member["spectator"].toBool()?"Spectator":member["ready"].toBool()?"Ready":"Preparing";
+    member["technical"]=member["prepared"].toBool()?"verified":QString();
+    if(id==self&& &viewedLobby()==lobby_.activeRoom()&&!member["spectator"].toBool())
+        member["technical"]=lobbyRuntime_.busy()?"checking":!lobbyRuntime_.problem().isEmpty()?"attention":member["technical"];
     return member;
 }
 QVariantList SocialController::lobbyPlayers() const {
@@ -59,6 +62,7 @@ QVariantList SocialController::lobbySpectators() const {
 }
 QVariantMap SocialController::lobbyRoomGame() const {
     auto game=viewedLobby().state()["game"].toObject().toVariantMap();
+    game["canStart"]=&viewedLobby()==lobby_.activeRoom()&&viewedLobby().canStart();
     for(const auto& v:lobbyGames_) {const auto local=v.toMap();if(local["id"]==game["id"]&&local["mode"]==game["mode"]) {
         game["cover"]=local["cover"];game["modeLabel"]=local.value("modeLabel",QString("Emulator multiplayer"));break;
     }}
@@ -75,10 +79,11 @@ QVariantMap SocialController::lobbyRoomGame() const {
         }
     }
     game["status"]=status;
+    game["canImport"]=&viewedLobby()==lobby_.activeRoom()&&lobbyRuntime_.problem()=="local-content"&&lobbyRuntime_.available();
     return game;
 }
 QVariantList SocialController::lobbyRoomActions() const {
-    QVariantList result;const auto add=[&](QString key,QString label,bool enabled=true){result.append(QVariantMap{{"key","action:"+key},{"command",key},{"label",label},{"enabled",enabled}});};
+    QVariantList result;const auto add=[&](QString key,QString label,bool enabled=true){result.append(QVariantMap{{"key","action:"+key},{"command",key},{"label",label},{"enabled",enabled},{"busy",key=="ready"&&viewedLobby().readyPending()}});};
     const auto state=viewedLobby().state();if(state.isEmpty())return result;
     const auto voice=snapshot_["voice"].toMap();
     if(!voice["channel"].toString().isEmpty()) {
@@ -92,6 +97,7 @@ QVariantList SocialController::lobbyRoomActions() const {
     return result;
 }
 QString SocialController::lobbyRoomFocus() const {
+    if(lobbyRoomFocus_=="start"&&lobbyRoomGame()["canStart"].toBool())return "start";
     if(lobbyRoomFocus_=="game")return lobbyRoomFocus_;
     for(const auto& rows:{lobbyPlayers(),lobbyRoomActions()})for(const auto& v:rows)if(v.toMap()["key"]==lobbyRoomFocus_)return lobbyRoomFocus_;
     return "game";
@@ -102,11 +108,12 @@ void SocialController::expandLobbyChat() {
 }
 void SocialController::activateLobbyRoom(QString key) {
     if(!lobbyDetailFocused_||viewedLobby().state().isEmpty())return;
-    bool found=key=="game";for(const auto& rows:{lobbyPlayers(),lobbyRoomActions()})for(const auto& v:rows)
+    bool found=key=="game"||(key=="start"&&lobbyRoomGame()["canStart"].toBool());for(const auto& rows:{lobbyPlayers(),lobbyRoomActions()})for(const auto& v:rows)
         if(v.toMap()["key"]==key)found=true;
     if(!found)return;
     lobbyRoomFocus_=key;lobbyChatFocused_=false;emit changed();
-    if(key=="game"){if(viewedLobby().hosting())lobbyAction("game");return;}
+    if(key=="start"){viewedLobby().start();return;}
+    if(key=="game"){if(lobbyRoomGame()["canImport"].toBool())emit lobbyImportRequested();else if(viewedLobby().hosting())lobbyAction("game");return;}
     if(key=="invite"){if(viewedLobby().hosting())lobbyAction("invite");return;}
     if(key.startsWith("invited:")){profile(key.mid(8));return;}
     if(key=="action:microphone"||key=="action:audio") {
@@ -123,6 +130,12 @@ void SocialController::activateLobbyRoom(QString key) {
         } else {
             for(const auto& v:viewedLobby().state()["members"].toArray())if(v.toObject()["id"]==id)menuTitle_=v.toObject()["name"].toString();
             add("View profile","profile:"+id);
+            if(self&& &viewedLobby()==lobby_.activeRoom()) {
+                menuDetail_=lobbyRuntime_.status();
+                if(lobbyRuntime_.problem()=="local-content")add("Import your game","lobby:import");
+                else if(lobbyRuntime_.available()&&!lobbyRuntime_.busy()&&!lobbyRuntime_.status().isEmpty())
+                    add("Retry setup","lobby:prepare");
+            }
             if(self)for(const auto& v:lobbyActions()) {const auto action=v.toMap();if(action["enabled"].toBool()&&(action["id"]=="seat"||action["id"]=="spectate"))add(action["label"].toString(),"lobby:"+action["id"].toString());}
             else if(viewedLobby().hosting())add("Remove from lobby","lobby:remove:"+id);
         }
@@ -152,7 +165,7 @@ void SocialController::dispatchLobbyRoom(Action action) {
     if(action==Action::ToggleContinue&&lobbyChatVisible()){focusLobbyChat();call();return;}
     if(action==Action::ContextMenu||action==Action::LocalAction){if(lobbyRoomFocus().startsWith("person:"))activateLobbyRoom(lobbyRoomFocus());else lobbyAction("room-menu");return;}
     if(action==Action::Confirm){activateLobbyRoom(lobbyRoomFocus());return;}
-    QList<QStringList> groups;groups.append(QStringList{"game"});
+    QList<QStringList> groups;groups.append(lobbyRoomGame()["canStart"].toBool()?QStringList{"game","start"}:QStringList{"game"});
     for(const auto& rows:{lobbyPlayers(),lobbyRoomActions()}) {QStringList keys;for(const auto& v:rows)keys.append(v.toMap()["key"].toString());if(!keys.isEmpty())groups.append(keys);}
     int group=0,index=0;for(int i=0;i<groups.size();++i)if(groups[i].contains(lobbyRoomFocus())){group=i;index=groups[i].indexOf(lobbyRoomFocus());break;}
     if(action==Action::Up||action==Action::Down){group=qBound(0,group+(action==Action::Down?1:-1),int(groups.size())-1);lobbyRoomFocus_=groups[group][qMin(index,int(groups[group].size())-1)];}
@@ -168,17 +181,16 @@ void SocialController::reconcileLobbyPreparation() {
         auto* target=lobby_.room(readySwitch_);
         if(!target||gameActive_||readySwitchExpires_<QDateTime::currentSecsSinceEpoch()||quint64(target->state()["generation"].toInteger())!=readySwitchGeneration_)readySwitch_.clear();
         else if(lobby_.activateRoom(readySwitch_)) {
-            readyIntent_=readySwitch_;readyGeneration_=readySwitchGeneration_;readySwitch_.clear();lobbyAutoPreparation_.clear();
+            readySwitch_.clear();lobbyAutoPreparation_.clear();
         } else return;
     }
     if(gameActive_||snapshot_["state"]!="connected"||!lobbyRuntime_.available()||lobbyRuntime_.busy())return;
     const auto s=lobby_.state();QJsonArray people;
-    if(!readyIntent_.isEmpty()&&(readyIntent_!=s["id"].toString()||readyGeneration_!=quint64(s["generation"].toInteger())))readyIntent_.clear();
     for(const auto& v:s["members"].toArray()){const auto m=v.toObject();if(m["id"]==snapshot_["userId"].toString()&&m["prepared"].toBool()) {
-            if(readyIntent_==s["id"].toString()){readyIntent_.clear();lobby_.ready(true);}return;
+            return;
         }
         people.append(QJsonObject{{"id",m["id"]},{"seat",m["seat"]},{"connected",m["connected"]},{"spectator",m["spectator"]}});}
-    const auto key=QString::fromUtf8(QJsonDocument(QJsonObject{{"room",s["id"]},{"generation",s["generation"]},{"members",people}}).toJson(QJsonDocument::Compact));
+    const auto key=QString::fromUtf8(QJsonDocument(QJsonObject{{"room",s["id"]},{"owner",s["owner"]},{"game",s["game"]},{"generation",s["generation"]},{"members",people}}).toJson(QJsonDocument::Compact));
     if(key==lobbyAutoPreparation_)return;
     lobbyAutoPreparation_=key;lobbyRuntime_.prepare();
 }

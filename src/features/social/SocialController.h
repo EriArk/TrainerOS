@@ -305,6 +305,7 @@ public:
     void dismissNotificationAt(int index);
     void dismissNotifications();
 signals:
+    void lobbyImportRequested();
     void conversationVisibilityChanged();
     void messageQueued(QString channel);
     void partyPacket(QString peer,QString name,QJsonObject packet);
@@ -347,8 +348,8 @@ private:
     QVariantMap lobbyPerson(QVariantMap member) const;
     void dispatchLobbyRoom(Action action);
     void reconcileLobbyPreparation();
-    QString viewedLobbyId_,readyIntent_,leavingLobby_,readySwitch_,myLobbyFocus_;
-    quint64 readyGeneration_=0,readySwitchGeneration_=0;
+    QString viewedLobbyId_,leavingLobby_,readySwitch_,myLobbyFocus_;
+    quint64 readySwitchGeneration_=0;
     qint64 readySwitchExpires_=0;
     QMap<QString,LobbyRoomCoordinator*> publishedRooms_;
     QJsonArray lobbyContactRooms_;

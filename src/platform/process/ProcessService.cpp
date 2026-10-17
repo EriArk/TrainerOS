@@ -38,6 +38,7 @@ bool ProcessService::start(const ProcessCommand& command) {
     if (command.prepare) {
         preparing_ = true;
         cancelled_ = std::make_shared<std::atomic_bool>(false);
+        launchStage_="Preparing game files and runtime…";emit launchStageChanged();
         QMetaObject::invokeMethod(worker_, [this, token, command, cancel = cancelled_]() mutable {
             auto prepared = command;
             const auto error = prepared.prepare(prepared, *cancel);
@@ -63,6 +64,8 @@ void ProcessService::execute(const ProcessCommand& command) {
     process_.setStandardOutputFile(inspectOutput_ || runtimeControls_.contains("netplay") || runtimeControls_.contains("achievements") ? QString() : QProcess::nullDevice());
     process_.setProgram(command.program); process_.setArguments(command.arguments);
     process_.setWorkingDirectory(command.workingDirectory);
+    launchStage_="Starting emulator…";emit launchStageChanged();
+    if(stopRequested_){complete(0,false,{});return;}
     process_.start(); // No shell, no interpolated command string, no blocking wait.
 }
 void ProcessService::drainOutput() {

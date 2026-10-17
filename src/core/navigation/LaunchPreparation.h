@@ -13,7 +13,11 @@ public:
         : QObject(parent), library_(library), adapter_(adapter) {}
     ~LaunchPreparation() override;
     bool busy() const { return busy_; }
+    bool cancelling() const { return cancelling_; }
+    QString adventureId() const { return adventureId_; }
+    QString stage() const { return cancelling_ ? "Cancelling…" : stage_; }
     void launch(const QString& id);
+    void cancel();
 signals:
     void changed();
     void libraryChanged();
@@ -24,5 +28,7 @@ private:
     AdventureAdapter& adapter_;
     QThread* worker_=nullptr;
     bool busy_=false;
+    bool cancelling_=false;
+    QString adventureId_,stage_;
 };
 }

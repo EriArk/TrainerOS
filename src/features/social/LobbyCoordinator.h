@@ -36,6 +36,7 @@ public:
     bool answerPlay(const QString& peer,const QString& answer) { return active_->answerPlay(peer,answer); }
     bool prepared(quint64 generation,bool value) { return active_->prepared(generation,value); }
     bool ready(bool value) { return active_->ready(value); }
+    bool start() { return active_->start(); }
     bool setAccess(QString access) { return active_->setAccess(access); }
     bool setDetails(QString title,qint64 startsAt) { return active_->setDetails(title,startsAt); }
     bool setConversation(QString channel) { return active_->setConversation(channel); }

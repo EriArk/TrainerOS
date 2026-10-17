@@ -6,6 +6,8 @@
 #include <utility>
 
 namespace trainer {
+bool RuntimeMultiplayer::opening() const {return active_&&!lifecycle_.active();}
+void RuntimeMultiplayer::cancelOpening() {if(opening())fail("Opening cancelled.");}
 bool RuntimeMultiplayer::supportsLive(const QJsonObject& game) const {
     // Reviewed ARM64 RetroArch shared-console builds. Never trust a peer's
     // capability flag or infer support for other cores from their platform.
@@ -30,6 +32,7 @@ bool RuntimeMultiplayer::admitLive(QString ticket,QString peer,QString operation
 }
 void RuntimeMultiplayer::releaseLive(QString peer,QString operation) {party_.releaseLobby("online:"+peer,operation);}
 void RuntimeMultiplayer::prepare(QString operation,QJsonObject context,Completion done) {
+    lobbyProblem_.clear();
     if(!allowed_||active_||party_.active()) {done(false,"Finish the current game party before preparing this lobby.");return;}
     if(context["self"]!=social_.account()["userId"].toString()) {done(false,"The account changed. Reopen the lobby.");return;}
     const auto wanted=context["game"].toObject();QString local;QJsonObject profile;
@@ -49,7 +52,8 @@ void RuntimeMultiplayer::prepare(QString operation,QJsonObject context,Completio
         }
     }
     const auto record=library_.registration(local);
-    if(!record||record->removed||!record->contentAvailable||!permitsMultiplayer(library_.artwork(local),profile)) {done(false,"This exact game and its multiplayer runtime must be installed locally.");return;}
+    if(!record||record->removed||!record->contentAvailable) {lobbyProblem_="local-content";done(false,"This game is missing or differs from the lobby's edition. Choose your local file to verify it.");return;}
+    if(!permitsMultiplayer(library_.artwork(local),profile)){done(false,"This local game's metadata excludes multiplayer.");return;}
     int players=0;QSet<int> seats;bool hostReady=false;
     const int capacity=qMin(4,(offered.isEmpty()?profile:offered)["players"].toInt(2));
     for(const auto& v:context["members"].toArray()) {

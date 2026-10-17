@@ -15,6 +15,12 @@ bool identifier(const QString& id) {
 }
 }
 LobbyRoomCoordinator::LobbyRoomCoordinator(QObject* parent):QObject(parent) {
+    readyDeadline_.setSingleShot(true);readyDeadline_.setInterval(45000);
+    connect(&readyDeadline_,&QTimer::timeout,this,[this]{
+        readyGeneration_=0;
+        send(host_,"ready",{{"value",false}});
+        emit notice("Ready confirmation timed out. Please try again.");emit changed();
+    });
     boot_=QUuid::createUuid().toString(QUuid::WithoutBraces);
     heartbeat_.setInterval(15000);connect(&heartbeat_,&QTimer::timeout,this,&LobbyRoomCoordinator::tick);heartbeat_.start();
     connect(this,&LobbyRoomCoordinator::changed,this,&LobbyRoomCoordinator::save);
@@ -67,6 +73,7 @@ QJsonArray LobbyRoomCoordinator::requests() const {
     return list;
 }
 void LobbyRoomCoordinator::clearRemote() {
+    readyDeadline_.stop();
     liveOperation_.clear();
     peerBoots_.remove(host_);peerSerials_.remove(host_);
     remote_={};host_.clear();joining_.clear();launchTicket_.clear();finishedTicket_.clear();preparedGeneration_=readyGeneration_=0;joinedAt_=hostSeen_=0;
@@ -83,7 +90,7 @@ void LobbyRoomCoordinator::configure(QString self,QString name,bool online) {
     }
     name_=name;const bool changed=online_!=online;online_=online;
     if(hosting()&&changed)session_.connected(self_,online_);
-    if(!online_) {preparedGeneration_=readyGeneration_=0;if(!host_.isEmpty())connection_="Reconnecting to communication…";}
+    if(!online_) {readyDeadline_.stop();preparedGeneration_=readyGeneration_=0;if(!host_.isEmpty())connection_="Reconnecting to communication…";}
     emit this->changed();
     if(changed&&online_)tick();
 }
@@ -179,7 +186,10 @@ bool LobbyRoomCoordinator::ready(bool value) {
     if(hosting())return session_.ready(self_,session_.generation(),value);
     const auto generation=quint64(remote_.value("generation").toInteger());
     if(!online_||remote_.isEmpty()||restoring_||!connection_.isEmpty()||!preparedGeneration_||preparedGeneration_!=generation)return false;
-    readyGeneration_=value?generation:0;send(host_,"ready",{{"value",value}});return true;
+    if(readyPending()&&readyTarget_==value)return false;
+    readyTarget_=value;readyRequestGeneration_=generation;readyDeadline_.start();
+    readyGeneration_=value?generation:0;emit changed();
+    send(host_,"ready",{{"value",value}});return true;
 }
 bool LobbyRoomCoordinator::recordLaunchResult(const QString& peer,const QString& ticket,bool success) {
     const auto s=session_.state();if(s["phase"]!="launching"||ticket.isEmpty()||s["ticket"]!=ticket)return false;
@@ -414,13 +424,15 @@ void LobbyRoomCoordinator::receive(QString peer,QString name,const QJsonObject& 
     }
     if(data["phase"]=="launching"&&mine["seat"].toInt()>0&&preparedGeneration_==generation&&readyGeneration_==generation
        &&!ticket.isEmpty()&&ticket!=launchTicket_) {launchTicket_=ticket;emit launchRequested(ticket,data);}
+    if(readyPending()&&(newBoot||generation!=readyRequestGeneration_||!mine["prepared"].toBool()
+       ||mine["ready"].toBool()==readyTarget_))readyDeadline_.stop();
     if(!mine["prepared"].toBool())preparedGeneration_=readyGeneration_=0;
-    if(!mine["ready"].toBool())readyGeneration_=0;
+    if(!mine["ready"].toBool()&&!readyPending())readyGeneration_=0;
     emit changed();
 }
 void LobbyRoomCoordinator::deliveryFailed(const QString& peer) {
     if(hosting()) {if(!session_.connected(peer,false))emit notice("Couldn't deliver the lobby invitation. Try again.");}
-    else if(peer==host_) {preparedGeneration_=readyGeneration_=0;connection_="Host unavailable. Reconnecting…";emit changed();}
+    else if(peer==host_) {readyDeadline_.stop();preparedGeneration_=readyGeneration_=0;connection_="Host unavailable. Reconnecting…";emit changed();}
 }
 void LobbyRoomCoordinator::tick() {
     for(auto it=retiredBoots_.begin();it!=retiredBoots_.end();)if(it.value()<=now())it=retiredBoots_.erase(it);else ++it;
@@ -473,6 +485,7 @@ void LobbyRoomCoordinator::reconcileProvider(QString channel,QString owner,QJson
         }
         if(previous!=ids)save();return;
     }
+    readyDeadline_.stop();
     QJsonArray members;
     for(const auto& v:s["members"].toArray())if(ids.contains(v.toObject()["id"].toString())) {
         auto m=v.toObject();m["ready"]=false;m["prepared"]=false;m["connected"]=false;members.append(m);

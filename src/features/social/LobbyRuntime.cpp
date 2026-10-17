@@ -63,7 +63,7 @@ QJsonObject LobbyRuntime::context() const {
             {"spectator",m["spectator"]},{"connected",m["connected"]}});
     }
     QJsonObject result{{"lobby",s["id"]},{"owner",s["owner"]},{"generation",s["generation"]},
-        {"game",s["game"]},{"members",members},{"self",self_}};
+        {"game",s["game"]},{"vote",s["vote"].toObject()["id"]},{"members",members},{"self",self_}};
     if(live_)result["liveAdmission"]=operation_;
     return result;
 }
@@ -97,6 +97,7 @@ bool LobbyRuntime::joinLive() {
     });return true;
 }
 bool LobbyRuntime::available() const {
+    if(!lobby_.state()["vote"].toObject().isEmpty())return false;
     const auto s=lobby_.state();if(playing_||!online_||s["recovering"].toBool()||!s["connection"].toString().isEmpty()||s["phase"]!="gathering"||!services_.value(s["game"].toObject()["mode"].toString()))return false;
     for(const auto& v:s["members"].toArray()) {
         const auto m=v.toObject();if(m["id"]==self_)return m["connected"].toBool()&&m["seat"].toInt()>0&&!m["spectator"].toBool();
@@ -104,6 +105,7 @@ bool LobbyRuntime::available() const {
     return false;
 }
 void LobbyRuntime::cancel() {
+    problem_.clear();problemContext_={};
     deadline_.stop();
     const auto operation=operation_;const auto service=activeService_;
     const bool abandoned=live_&&!playing_;
@@ -111,7 +113,16 @@ void LobbyRuntime::cancel() {
     if(service&&!operation.isEmpty())service->cancel(operation);
     if(abandoned)lobby_.cancelLive(operation);
 }
+void LobbyRuntime::cancelPending() {
+    if(playing_)return;
+    const auto ticket=ticket_;const auto generation=quint64(lobby_.state()["generation"].toInteger());
+    cancel();
+    if(!ticket.isEmpty())lobby_.acknowledgeLaunch(ticket,false);
+    else lobby_.prepared(generation,false);
+    status_="Opening cancelled. You can prepare again.";emit changed();
+}
 void LobbyRuntime::reconcile() {
+    if(!problemContext_.isEmpty()&&problemContext_!=context()){problem_.clear();problemContext_={};status_.clear();}
     const auto s=lobby_.state();
     if(live_&&ticket_.isEmpty()&&!s["liveJoining"].toBool()) {
         cancel();status_="The host paused new joins. You can keep watching.";emit changed();return;
@@ -138,7 +149,7 @@ bool LobbyRuntime::prepare() {
         guard->deadline_.stop();
         guard->busy_=false;guard->prepared_=ok;guard->status_=ok?QString("Ready when you are"):error.left(180);
         guard->lobby_.prepared(quint64(guard->preparedContext_["generation"].toInteger()),ok);
-        if(!ok) {guard->cancel();guard->status_=error.isEmpty()?QString("Couldn't prepare the game. Try again."):error.left(180);}
+        if(!ok) {const auto problem=guard->activeService_?guard->activeService_->preparationProblem():QString();const auto context=guard->context();guard->cancel();guard->problem_=problem;guard->problemContext_=context;guard->status_=error.isEmpty()?QString("Couldn't prepare the game. Try again."):error.left(180);}
         emit guard->changed();
     });return true;
 }

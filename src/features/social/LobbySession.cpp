@@ -161,18 +161,22 @@ bool LobbySession::ready(const QString& peer,quint64 generation,bool value) {
     if(!ballot_.isEmpty()||phase_!="gathering"||!host(owner_)||generation!=generation_||!members_.contains(peer))return false;
     auto& m=members_[peer];if(!m.connected||!m.seat||!m.prepared)return false;
     if(m.ready==value)return true;
-    m.ready=value;publish();tryLaunch();return true;
+    m.ready=value;publish();return true;
 }
-void LobbySession::tryLaunch() {
-    if(phase_!="gathering"||!host(owner_))return;
+bool LobbySession::canStart(const QString& actor) const {
+    if(!ballot_.isEmpty()||phase_!="gathering"||!host(actor)||game_.id.isEmpty())return false;
     int players=0;
     for(const auto& m:members_)if(!m.spectator) {
-        ++players;if(!m.seat||!m.connected||!m.prepared||!m.ready)return;
+        ++players;if(!m.seat||!m.connected||!m.prepared||!m.ready)return false;
     }
-    if(!players)return;
+    return players>0;
+}
+bool LobbySession::start(const QString& actor) {
+    if(!canStart(actor))return false;
     ticket_=QUuid::createUuid().toString(QUuid::WithoutBraces);phase_="launching";
     const auto ticket=ticket_;publish();
     if(phase_=="launching"&&ticket_==ticket)emit launchRequested(ticket,state());
+    return true;
 }
 bool LobbySession::connected(const QString& peer,bool value) {
     if(phase_=="closed"||!members_.contains(peer))return false;

@@ -118,6 +118,7 @@ class ShellController final : public QObject {
     Q_PROPERTY(trainer::TrainerSetupPresentation* trainerSetup READ trainerSetup CONSTANT)
     Q_PROPERTY(bool powerMenu READ powerMenu NOTIFY changed)
 public:
+    LaunchPreparation& launchPreparation() {return launchPreparation_;}
     enum Page { HomePage, GamesPage, GameHubPage, SocialPage, AppsPage };
     Q_ENUM(Page)
     ShellController(LibraryRepository&, TrainerRepository&, AdventureAdapter&, PlatformService&,

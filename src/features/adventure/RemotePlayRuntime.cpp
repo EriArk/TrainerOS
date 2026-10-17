@@ -120,6 +120,7 @@ void RemotePlayRuntime::releaseLive(QString peer,QString operation) {
     remotePeer_.clear();admission_.clear();disconnectMedia();connection_.stop();
 }
 void RemotePlayRuntime::prepare(QString operation,QJsonObject context,Completion done) {
+    problem_.clear();
     const auto game=context["game"].toObject();const auto profile=game["runtime"].toObject();
     const bool live=context.contains("liveAdmission");bool players=validPlayers(context);
     if(live) {
@@ -140,7 +141,8 @@ void RemotePlayRuntime::prepare(QString operation,QJsonObject context,Completion
     if(host_) {
         for(auto it=games_.cbegin();it!=games_.cend();++it)if(it.value()==profile){game_=it.key();break;}
         const auto record=library_.registration(game_);device_=ownerDevice?ownerDevice():QString();
-        if(!record||retroarch::remotePlayPortSettings({device_}).isEmpty()) {done(false,"Choose a supported game and a local controller for P1.");return;}
+        if(!record||record->removed||!record->contentAvailable){problem_="local-content";done(false,"The host game is missing. Choose your local file to verify it.");return;}
+        if(retroarch::remotePlayPortSettings({device_}).isEmpty()) {done(false,"Choose a supported game and a local controller for P1.");return;}
         revision_=record->revision;contentPath_=record->contentPath;
     } else game_="remoteplay:"+game["id"].toString(); // No ROM or guest save is opened.
     operation_=operation;

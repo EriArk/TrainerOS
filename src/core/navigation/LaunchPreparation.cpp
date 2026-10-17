@@ -4,8 +4,10 @@
 namespace trainer {
 LaunchPreparation::~LaunchPreparation() { if(worker_){worker_->wait();delete worker_;} }
 void LaunchPreparation::fail(const QString& error) {
-    busy_=false;emit changed();emit messageRequested(error);
+    const bool cancelled=cancelling_;busy_=false;cancelling_=false;stage_.clear();emit changed();
+    if(!cancelled&&!error.isEmpty())emit messageRequested(error);
 }
+void LaunchPreparation::cancel() {if(busy_&&!cancelling_){cancelling_=true;emit changed();}}
 void LaunchPreparation::launch(const QString& id) {
     if(busy_)return;
     const auto record=library_.registration(id);
@@ -13,19 +15,21 @@ void LaunchPreparation::launch(const QString& id) {
     auto prepared=*record;
     // Keep explicit/custom routes and all personal metadata intact.
     if(prepared.adventure.adapterId=="unconfigured")adapter_.prepareInstallation(prepared);
-    busy_=true;emit changed();
+    busy_=true;cancelling_=false;adventureId_=id;stage_="Checking game and emulator…";emit changed();
     if(worker_){worker_->wait();delete worker_;}
     worker_=QThread::create([this,record=*record,prepared] {
         const QFileInfo file(record.contentPath);
         const bool available=file.isAbsolute() && file.isFile() && file.isReadable() && file.size()>0;
         const auto issue=available?adapter_.verifyInstallation(prepared):QString("The game file is missing or unreadable. Reconnect its storage.");
         QMetaObject::invokeMethod(this,[this,record,prepared,issue] {
+            if(cancelling_){fail({});return;}
             const auto current=library_.registration(record.adventure.id);
             if(!current || current->removed || current->revision!=record.revision || current->contentPath!=record.contentPath){
                 fail("This game changed before it could open. Try again.");return;
             }
             if(!issue.isEmpty()){fail(issue);return;}
             const auto start=[this,prepared](const QString& error) {
+                if(cancelling_){fail({});return;}
                 if(!error.isEmpty()){fail(error);return;}
                 const auto current=library_.registration(prepared.adventure.id);
                 if(!current || current->removed || current->contentPath!=prepared.contentPath
@@ -43,11 +47,13 @@ void LaunchPreparation::launch(const QString& id) {
                 const auto result=adapter_.launch(current->adventure);
                 if(!result.inProgress && !result.message.isEmpty())emit messageRequested(result.message);
             };
-            if(prepared.adventure.adapterId!=current->adventure.adapterId || prepared.integrationConfig!=current->integrationConfig)
+            if(prepared.adventure.adapterId!=current->adventure.adapterId || prepared.integrationConfig!=current->integrationConfig) {
+                stage_="Applying verified launch settings…";emit changed();
                 library_.saveAdventureAsync(prepared,this,[this,start](const LibraryWriteResult& result){
                     if(result.success)emit libraryChanged();
                     start(result.success?QString():result.error);
                 });
+            }
             else start({});
         },Qt::QueuedConnection);
     });

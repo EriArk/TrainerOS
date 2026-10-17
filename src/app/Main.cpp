@@ -28,6 +28,8 @@
 #include "integrations/adventure/retroarch/RetroArchConfiguration.h"
 #include "core/navigation/AdventureLaunchController.h"
 #include "features/adventure/AdventureExitPresentation.h"
+#include "features/adventure/LaunchPresentation.h"
+#include "features/adventure/LobbyImportController.h"
 #include "integrations/adventure/retroarch/RetroArchAppearance.h"
 #include "platform/input/AdventureOverlayService.h"
 #include "platform/input/InvitationOverlayService.h"
@@ -559,6 +561,9 @@ int main(int argc, char* argv[]) {
         QString pendingNotification;
         if(saveBackups)saveBackups->operationGuard=[&]{return adventureLaunch.active()?QString("Exit the running game before changing saves."):QString();};
         RuntimeMultiplayer multiplayer(activeLibrary,retroarch,ppsspp,dolphin,*shell.social(),adventureProcess,adventureLaunch,exitPresentation);
+        LaunchPresentation launchPresentation(activeLibrary,shell.launchPreparation(),adventureLaunch,multiplayer,*shell.social(),exitPresentation);
+        LobbyImportController lobbyImport(activeLibrary,*selectedAdapter,&files,*shell.social(),multiplayer);
+        QObject::connect(&lobbyImport,&LobbyImportController::imported,&shell,[&]{shell.refreshLibrary();});
         RemotePlayRuntime remotePlay(activeLibrary,retroarch,*shell.social(),adventureProcess,adventureLaunch,multiplayer.gamePreparation());
         remotePlay.allowed=[&]{return personalLibrary&&!smoke&&!session.blocked()&&!(saveBackups&&saveBackups->busy())&&!pokemonModule(shell).party()->activities()->link()->active();};
         remotePlay.hostSupported=[&](const QJsonObject& profile){return multiplayer.supportsLive(profile);};
@@ -887,10 +892,12 @@ int main(int argc, char* argv[]) {
                                                          : QDir(reportBase).filePath("diagnostics"));
         shell.diagnostics()->configure(&input, &deviceReports);
         QObject::connect(&input, &ControllerInput::action, &session, [&](Action action) {
-            if(playerOverlay.chatOpen()){playerOverlay.dispatch(action);return;}
             // An exit prompt must never navigate the hidden shell. The platform
             // input provider feeds its own isolated snapshots to the presenter.
             if (adventureLaunch.exitController().phase() != AdventureExitController::Phase::Idle) return;
+            if(launchPresentation.visible()){if(action==Action::Back)launchPresentation.cancel();return;}
+            if(lobbyImport.open()){lobbyImport.dispatch(action);return;}
+            if(playerOverlay.chatOpen()){playerOverlay.dispatch(action);return;}
             if (adventureLaunch.active()) {
                 if (adventureLaunch.preparing() && action == Action::Back) adventureLaunch.cancel();
                 return;
@@ -950,6 +957,8 @@ int main(int argc, char* argv[]) {
         engine.rootContext()->setContextProperty("sessionState", &session);
         engine.rootContext()->setContextProperty("adventureLaunch", &adventureLaunch);
         engine.rootContext()->setContextProperty("adventureExitPresentation", &exitPresentation);
+        engine.rootContext()->setContextProperty("launchPresentation", &launchPresentation);
+        engine.rootContext()->setContextProperty("lobbyImport", &lobbyImport);
         engine.rootContext()->setContextProperty("runtimeMultiplayer", &multiplayer);
         engine.addImageProvider("desktop-app",new DesktopAppImages);
         engine.rootContext()->setContextProperty("appsOverlay", &appsOverlay);

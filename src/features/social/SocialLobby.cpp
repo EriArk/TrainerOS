@@ -220,7 +220,8 @@ QVariantList SocialController::lobbyActions() const {
             }
             add("seat","Controller: "+(mine["seat"].toInt()?"P"+QString::number(mine["seat"].toInt()):QString("Choose")),gathering);
             if(!mine["spectator"].toBool()) {
-                if(&viewedLobby()!=lobby_.activeRoom()||mine["prepared"].toBool())add("ready",mine["ready"].toBool()?"Not ready":"Ready",gathering);
+                if(viewedLobby().readyPending())add("ready","Confirming…",false);
+                else if(&viewedLobby()!=lobby_.activeRoom()||mine["prepared"].toBool())add("ready",mine["ready"].toBool()?"Not ready":(&viewedLobby()!=lobby_.activeRoom()?"Prepare here":"Ready"),gathering);
                 else add("prepare",lobbyRuntime_.busy()?"Preparing…":"Prepare game",gathering&&lobbyRuntime_.available()&&!lobbyRuntime_.busy());
             }
         }
@@ -242,7 +243,12 @@ void SocialController::selectLobby(int index) {
     for(const auto& v:lobbyActions()) {const auto a=v.toMap();if(a["enabled"].toBool()){menu_.append(a["label"].toString());menuCommands_.append("lobby:"+a["id"].toString());}}
     menu_.append("Back");menuCommands_.append("cancel");lobbyDetailFocused_=false;emit changed();
 }
-void SocialController::setLobbyGames(QVariantList games) {if(lobbyGames_==games)return;lobbyGames_=std::move(games);emit changed();}
+void SocialController::setLobbyGames(QVariantList games) {if(lobbyGames_==games)return;lobbyGames_=std::move(games);
+    if(lobbyRuntime_.problem()=="local-content") {
+        const auto game=lobby_.state()["game"].toObject();
+        for(const auto& v:lobbyGames_){const auto g=v.toMap();if(g["id"].toString()==game["id"].toString()&&g["mode"].toString()==game["mode"].toString()){lobbyAutoPreparation_.clear();break;}}
+    }
+    emit changed();}
 void SocialController::editLobbySearch() {textPurpose_="lobby-search";emit textRequested("Find a lobby",lobbySearch_,100);}
 void SocialController::lobbyAction(QString action) {
     if(action.startsWith("create-field:")){lobbyDraftAction(action.mid(13));return;}
@@ -393,6 +399,7 @@ void SocialController::lobbyAction(QString action) {
     }
     else if(action=="later") {lobbyDetailFocused_=false;emit lobbyDeferred();}
     else if(action=="leave") {viewedLobby().leave();lobbySelection_.clear();}
+    else if(action=="import"&& &viewedLobby()==lobby_.activeRoom()&&lobbyRuntime_.problem()=="local-content")emit lobbyImportRequested();
     else if(action=="prepare"&& &viewedLobby()==lobby_.activeRoom())lobbyRuntime_.prepare();
     else if(action=="join-live"&& &viewedLobby()==lobby_.activeRoom())lobbyRuntime_.joinLive();
     else if(action=="live-joining"&& &viewedLobby()==lobby_.activeRoom())lobbyRuntime_.setLiveJoining(!viewedLobby().state()["liveJoining"].toBool());

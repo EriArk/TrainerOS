@@ -14,6 +14,10 @@ find_package(OpenSSL 3 REQUIRED COMPONENTS Crypto)
 find_package(SDL2 2.0.14 REQUIRED CONFIG)
 
 add_library(trainer_core STATIC
+    src/features/adventure/LaunchPresentation.cpp
+    src/features/adventure/RuntimeIdentity.cpp
+    src/features/adventure/LobbyImportController.cpp
+    src/features/adventure/RuntimeImport.cpp
     src/integrations/adventure/retroarch/RetroArchAppearance.cpp
     src/integrations/adventure/retroarch/RetroArchRemotePlay.cpp
     src/integrations/adventure/retroarch/RetroArchBezels.cpp
@@ -398,6 +402,7 @@ qt_add_qml_module(traineros
         src/qml/ConnectionsPane.qml
         src/qml/StoragePanel.qml
         src/qml/LaunchPanel.qml
+        src/qml/LobbyImportPanel.qml
         src/qml/CollectionsPanel.qml
         src/qml/LibraryToolsPanel.qml
         src/qml/ScrapePanel.qml

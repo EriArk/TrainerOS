@@ -8,6 +8,7 @@ class SocialController;
 class RemotePlayRuntime final:public LobbyRuntimeService {
     Q_OBJECT
 public:
+    QString preparationProblem() const override {return problem_;}
     RemotePlayRuntime(LibraryRepository&,RetroArchAdapter&,SocialController&,ProcessService&,
                       AdventureLaunchController&,LobbyGamePreparation&,QObject* parent=nullptr);
     ~RemotePlayRuntime() override;
@@ -27,6 +28,7 @@ public:
 signals:
     void notice(QString);
 private:
+    QString problem_;
     friend class RuntimeMultiplayerTests;
     bool validPlayers(const QJsonObject&) const;
     bool hostUnchanged() const;

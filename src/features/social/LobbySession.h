@@ -36,6 +36,8 @@ public:
     bool claimSeat(const QString& peer,int seat,quint64 generation);
     bool prepared(const QString& peer,quint64 generation,bool value);
     bool ready(const QString& peer,quint64 generation,bool value);
+    bool canStart(const QString& actor) const;
+    bool start(const QString& actor);
     bool connected(const QString& peer,bool value);
     // Only the runtime coordinator acknowledges/finishes the pending launch.
     bool acknowledgeLaunch(const QString& ticket,bool success);
@@ -60,7 +62,6 @@ private:
     void resetReady();
     void invalidateLaunch();
     void publish();
-    void tryLaunch();
     QString id_,owner_,access_,phase_="closed",ticket_,conversation_;
     Game game_;
     QMap<QString,Member> members_;

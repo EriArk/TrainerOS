@@ -454,6 +454,9 @@ private slots:
         LaunchPreparation launch(store,router);int starts=0;
         ds.requestLaunch=[&](const ProcessCommand&,const QString&){++starts;return AdventureResult{true, {}, true};};
         QSignalSpy errors(&launch,&LaunchPreparation::messageRequested);
+        launch.launch(record.adventure.id);QVERIFY(launch.busy());launch.cancel();
+        QVERIFY(launch.cancelling());QTRY_VERIFY(!launch.busy());QCOMPARE(starts,0);QCOMPARE(errors.size(),0);
+        QCOMPARE(store.registration(record.adventure.id)->revision,1);
         launch.launch(record.adventure.id);QVERIFY(launch.busy());launch.launch(record.adventure.id);
         QTRY_VERIFY(!launch.busy());QCOMPARE(errors.size(),0);QCOMPARE(starts,1);
         QCOMPARE(store.registration(record.adventure.id)->adventure.adapterId,"melonds");

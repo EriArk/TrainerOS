@@ -19,7 +19,6 @@ Window {
         x: window.x; y: window.y
     }
     InvitationBadge {
-        invitation: runtimeMultiplayer
         bridge: invitationOverlay
         players: playerOverlay
         playing: adventureLaunch.active && !adventureLaunch.minimized
@@ -527,7 +526,8 @@ Window {
         }
         StoragePanel { anchors.fill: parent; visible: sessionState.blocked && !sessionState.entryGate && !sessionState.firstRunPage && !sessionState.access.active; stateController: sessionState }
         TrainerAccessPanel { anchors.fill: parent; access: sessionState.access; visible: sessionState.access.active }
-        LaunchPanel { anchors.fill: parent; visible: adventureLaunch.preparing; launch: adventureLaunch }
+        LobbyImportPanel { anchors.fill: parent; visible: lobbyImport.open; importer: lobbyImport }
+        LaunchPanel { anchors.fill: parent; visible: launchPresentation.state.visible; launch: launchPresentation }
     }
     readonly property var shell: shellController
 }

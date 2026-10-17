@@ -14,6 +14,7 @@ public:
     virtual void prepare(QString operation,QJsonObject context,Completion done)=0;
     virtual void launch(QString operation,QString ticket,QJsonObject context,Completion done)=0;
     virtual void cancel(QString operation)=0;
+    virtual QString preparationProblem() const {return {};}
     virtual bool supportsLive(const QJsonObject&) const {return false;}
     virtual bool admitLive(QString,QString,QString,int) {return false;}
     virtual void releaseLive(QString,QString) {}
@@ -27,7 +28,10 @@ public:
     void registerService(QString mode,LobbyRuntimeService* service);
     bool available() const;
     bool busy() const {return busy_;}
+    bool opening() const {return !ticket_.isEmpty()&&!playing_;}
+    void cancelPending();
     QString status() const {return status_;}
+    QString problem() const {return problem_;}
     bool prepare();
     bool finished(QString ticket);
     bool liveSupported() const;
@@ -47,7 +51,9 @@ private:
     QMap<QString,QPointer<LobbyRuntimeService>> services_;
     QPointer<LobbyRuntimeService> activeService_;
     QString self_,operation_,ticket_,status_;
+    QString problem_;
     QJsonObject preparedContext_;
+    QJsonObject problemContext_;
     QTimer deadline_{this};
     bool online_=false,busy_=false,prepared_=false,playing_=false,live_=false;
 };

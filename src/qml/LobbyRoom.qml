@@ -40,14 +40,19 @@ Item {
                 Image { anchors.fill: parent; anchors.margins: 3; source: root.game.cover || ""; asynchronous: true; fillMode: Image.PreserveAspectFit }
                 MenuGlyph { anchors.centerIn: parent; width: 29; height: 29; glyph: "game-controller"; visible: !root.game.cover }
             }
-            Column { x: cover.x+cover.width+14; y: root.compact ? 3 : root.game.id ? 5 : 11; width: parent.width-x-14; spacing: root.compact ? 1 : 2
+            Column { x: cover.x+cover.width+14; y: root.compact ? 3 : root.game.id ? 5 : 11; width: parent.width-x-(root.game.canStart ? 144 : 14); spacing: root.compact ? 1 : 2
                 Text { width: parent.width; text: root.game.title || "Choosing Together"; color: Theme.ink; font.family: Theme.displayFamily; font.pixelSize: root.compact ? 17 : 20; elide: Text.ElideRight; textFormat: Text.PlainText }
                 Text { width: parent.width; visible: !!root.game.id; text: (root.game.platform || "")+"  ·  "+root.game.modeLabel
                     color: Theme.muted; font.pixelSize: root.compact ? 9 : 11; elide: Text.ElideRight; textFormat: Text.PlainText }
-                Text { width: parent.width; text: root.game.id ? root.game.status : "Choose a game ›"
+                Text { width: parent.width; text: root.game.canImport ? "＋ Import your game  ›" : root.game.id ? root.game.status : "Choose a game ›"
                     color: Theme.muted; font.pixelSize: root.compact ? 9 : 10; elide: Text.ElideRight; textFormat: Text.PlainText }
             }
             MouseArea { anchors.fill: parent; onClicked: root.social.activateLobbyRoom("game") }
+            CapButton { objectName: "lobby-start"; visible: !!root.game.canStart
+                anchors.right: parent.right; anchors.rightMargin: 9; anchors.verticalCenter: parent.verticalCenter
+                width: 128; height: root.compact ? 40 : 48; label: "Start"; textSize: 23; centered: true
+                tint: Theme.yellow; selected: root.selected("start"); claimsFocus: false
+                onActivated: root.social.activateLobbyRoom("start") }
         }
         Text { id: time; y: showcase.y+showcase.height+4; width: parent.width; height: visible ? (root.compact ? 12 : 16) : 0
             visible: !!root.room.startsAt || !!root.room.connection
@@ -85,6 +90,13 @@ Item {
                     CapButton { anchors.fill: parent; textSize: 13; centered: true; claimsFocus: false; label: parent.voiceControl ? "" : modelData.label
                         tint: modelData.command==="ready" ? Theme.yellow : Theme.green; selected: root.selected(modelData.key)
                         onActivated: root.social.activateLobbyRoom(modelData.key) }
+                    Item { x: 8; anchors.verticalCenter: parent.verticalCenter; width: 14; height: 14; visible: !!modelData.busy
+                        RotationAnimator on rotation { from: 0; to: 360; duration: 1000; loops: Animation.Infinite; running: !!modelData.busy && !Theme.reducedMotion }
+                        Repeater { model: 8
+                            Rectangle { required property int index; width: 3; height: 3; radius: 2; color: Theme.ink; opacity: (index+1)/8
+                                x: 5 + 5*Math.cos(index*Math.PI/4); y: 5 + 5*Math.sin(index*Math.PI/4) }
+                        }
+                    }
                     MenuGlyph { anchors.centerIn: parent; width: 21; height: 21; visible: parent.voiceControl
                         glyph: modelData.command==="microphone" ? "microphone" : "speaker" }
                     Rectangle { visible: parent.voiceControl && modelData.label.indexOf("off")>=0; anchors.centerIn: parent; width: 27; height: 2; rotation: -45; color: "#9a444f" }

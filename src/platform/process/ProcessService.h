@@ -37,11 +37,13 @@ public:
     bool preparing() const { return active_ && preparing_; }
     bool stopRequested() const { return stopRequested_; }
     qint64 processId() const { return process_.processId(); }
+    QString launchStage() const { return launchStage_; }
     bool start(const ProcessCommand&);
     void stop();
     QVariantMap runtimeControls() const{return active_?runtimeControls_:QVariantMap{};}
     bool runtimeCommand(const QString& action,const QString& text={});
 signals:
+    void launchStageChanged();
     void runtimeOutput(QByteArray bytes);
     void started();
     void finished(int exitCode, bool crashed, const QString& error);
@@ -59,6 +61,7 @@ private:
     std::function<void(const ProcessOutcome&)> settled_;
     std::function<QString(const ProcessOutcome&)> finalize_;
     QString validationError_;
+    QString launchStage_;
     quint64 request_ = 0;
     bool preparing_ = false;
     bool active_ = false;

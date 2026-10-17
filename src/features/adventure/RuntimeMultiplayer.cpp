@@ -1,4 +1,5 @@
 #include "RuntimeMultiplayer.h"
+#include "RuntimeIdentity.h"
 #include "integrations/adventure/retroarch/RetroArchHandheldLink.h"
 #include "integrations/adventure/retroarch/PS2Netplay.h"
 #include "core/model/GamePlayers.h"
@@ -25,6 +26,7 @@ QString randomToken(){return QUuid::createUuid().toString(QUuid::Id128);}
 QVariantMap row(QString id,QString label,QString detail={}){return {{"id",id},{"label",label},{"detail",detail}};}
 }
 RuntimeMultiplayer::~RuntimeMultiplayer() {
+    QObject::disconnect(&social_,nullptr,this,nullptr);
     // QObject's own disconnect runs after value members have been destroyed.
     // A network member's close signal must not redraw a menu using freed maps.
     active_=false;
@@ -36,6 +38,13 @@ RuntimeMultiplayer::RuntimeMultiplayer(LibraryRepository& lib,RetroArchAdapter& 
     ProcessService& process,AdventureLaunchController& lifecycle,AdventureExitPresentation& overlay)
     :library_(lib),adapter_(adapter),social_(social),ppsspp_(ppsspp),dolphin_(dolphinAdapter),process_(process),lifecycle_(lifecycle),overlay_(overlay),preparation_(process,lifecycle,overlay,[&social]{return social.accountGeneration();},this) {
     setupHotseat();
+    // Register the reviewed integration families even when the guest has no ROM.
+    // This admits local verification only; exact runtime/content checks still gate play.
+    connect(&social_,&SocialController::changed,this,[this]{
+        const auto mode=social_.lobbyCoordinator()->state()["game"].toObject()["mode"].toString();
+        const QStringList prefixes{"runtime.retroarch.","runtime.handheld.","runtime.fceumm.","runtime.snes9x.","runtime.genesis.","runtime.ppsspp.","runtime.dolphin.","runtime.rmg.","runtime.flycast-dojo.","runtime.melonds.","runtime.azahar.","runtime.vita3k."};
+        for(const auto& prefix:prefixes)if(mode.startsWith(prefix)){social_.lobbyRuntime()->registerService(mode,this);break;}
+    });
     identity_=QSettings().value("runtimeMultiplayer/device").toString();
     if(QUuid(identity_).isNull()){identity_=QUuid::createUuid().toString(QUuid::WithoutBraces);QSettings().setValue("runtimeMultiplayer/device",identity_);}
     connect(&party_,&GameParty::outgoing,this,[this](QString peer,QJsonObject packet){
@@ -319,7 +328,7 @@ void RuntimeMultiplayer::refresh(const RetroArchInstallation& installation,QStri
             retroarch::NetplayDigestCache digests;
             for(const auto& r:ordered)if(candidate(r)) {
                 if(promise.isCanceled())break;
-                const auto identity=r.adventure.platformId=="ps2"?ps2::netplayIdentity(r,installation,cancel):r.adventure.platformId=="psvita"?vita::netplayIdentity(r,cancel):r.adventure.platformId=="n3ds"?azahar::netplayIdentity(r,cancel):r.adventure.platformId=="nds"?melonds::netplayIdentity(r,cancel):r.adventure.platformId=="dreamcast"?flycast::netplayIdentity(r,cancel):r.adventure.platformId=="n64"?rmg::netplayIdentity(r,cancel,capacities.value(r.adventure.id,2)):(r.adventure.platformId=="gc"||r.adventure.platformId=="wii")?dolphin::netplayIdentity(r,dolphinInstallation,cancel,capacities.value(r.adventure.id,2)):r.adventure.platformId=="psp"?ppsspp::netplayIdentity(r,pspInstallation,cancel):retroarch::netplayIdentity(r,installation,cancel,&digests,capacities.value(r.adventure.id,2));
+                const auto identity=runtimeIdentity(r,installation,pspInstallation,dolphinInstallation,cancel,capacities.value(r.adventure.id,2),&digests);
                 if(!identity.isEmpty())promise.addResult(ScannedGame{r.adventure.id,identity});
             }
         }));

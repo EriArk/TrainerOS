@@ -37,6 +37,9 @@ public:
     bool answerPlay(const QString& peer,const QString& answer);
     bool prepared(quint64 generation,bool value);
     bool ready(bool value);
+    bool canStart() const {return online_&&runtimeAllowed_&&hosting()&&session_.canStart(self_);}
+    bool start() {return canStart()&&session_.start(self_);}
+    bool readyPending() const {return readyDeadline_.isActive();}
     bool setAccess(QString access);
     bool setDetails(QString title,qint64 startsAt);
     bool setConversation(QString channel);
@@ -87,6 +90,9 @@ private:
     void receiveRuntimeSignal(const QString& peer,const QJsonObject& packet);
     LobbySession session_{this};
     QTimer heartbeat_{this};
+    QTimer readyDeadline_{this};
+    bool readyTarget_=false;
+    quint64 readyRequestGeneration_=0;
     QString self_,name_,host_,joining_,launchTicket_,finishedTicket_;
     QString boot_;
     QString file_,probe_,connection_,storageError_;

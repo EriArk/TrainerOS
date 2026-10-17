@@ -127,7 +127,7 @@ void SocialController::setOwner(QString owner) {
     streamAction("stop-watch");
     lobby_.setStorage({});lobby_.configure({}, {},false);lobbySearch_.clear();lobbyTopic_.clear();lobbySelection_.clear();lobbyActionFocus_=0;
     lobbyDraftReturn_=false;cancelLobbyDraft();
-    viewedLobbyId_.clear();myLobbiesOpen_=false;readyIntent_.clear();lobbyLeaving_.clear();lobbyChatKeys_.clear();lobbyChatErrors_.clear();lobbyChatPending_.clear();
+    viewedLobbyId_.clear();myLobbiesOpen_=false;lobbyLeaving_.clear();lobbyChatKeys_.clear();lobbyChatErrors_.clear();lobbyChatPending_.clear();
     publishedLobby_.clear();publishedRooms_.clear();readySwitch_.clear();lobbyPublicationVisible_=false;lobbyGames_.clear();
     lobbyReminders_.configure({});pendingLobbyReminder_={};lobbyPlatform_.clear();lobbyMode_.clear();
     lobbyPublicationTopic_="other";
