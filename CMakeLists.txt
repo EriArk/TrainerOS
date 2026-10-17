@@ -12,8 +12,10 @@ find_package(Qt6 6.4 REQUIRED COMPONENTS Core Gui Qml Quick Sql Network Xml Mult
 find_package(Qt6Keychain REQUIRED)
 find_package(OpenSSL 3 REQUIRED COMPONENTS Crypto)
 find_package(SDL2 2.0.14 REQUIRED CONFIG)
+find_package(Qt6 6.9 QUIET COMPONENTS WebEngineQuick)
 
 add_library(trainer_core STATIC
+    src/features/browser/BrowserController.cpp
     src/features/adventure/LaunchPresentation.cpp
     src/features/adventure/RuntimeIdentity.cpp
     src/features/adventure/LobbyImportController.cpp
@@ -290,6 +292,12 @@ add_library(trainer_core STATIC
     src/platform/PlatformService.h
 )
 target_include_directories(trainer_core PUBLIC src)
+target_link_libraries(trainer_core PUBLIC Qt6::Quick)
+if(TARGET Qt6::WebEngineQuick)
+    target_link_libraries(trainer_core PUBLIC Qt6::WebEngineQuick)
+    target_compile_definitions(trainer_core PUBLIC TRAINER_WEBENGINE=1)
+endif()
+file(GLOB browser_control_icons CONFIGURE_DEPENDS assets/icons/browser-controls/*.svg)
 file(GLOB badge_images CONFIGURE_DEPENDS assets/badges/*.png)
 qt_add_resources(trainer_core badge_assets PREFIX "/badges" BASE assets/badges
     FILES assets/badges/manifest.json ${badge_images})
@@ -351,6 +359,8 @@ qt_add_qml_module(traineros
     RESOURCE_PREFIX /
     SOURCES src/platform/media/GameStreamView.h src/platform/media/GameStreamView.cpp
     QML_FILES
+        src/qml/BrowserPane.qml
+        src/qml/BrowserEngine.qml
         src/qml/AdventureArtwork.qml
         src/qml/LibraryGameList.qml
         src/qml/LibraryGrid.qml
@@ -495,6 +505,13 @@ qt_add_qml_module(traineros
 )
 
 if(BUILD_TESTING)
+    qt_add_executable(trainer_browser_tests tests/BrowserTests.cpp)
+    target_link_libraries(trainer_browser_tests PRIVATE trainer_core Qt6::Test)
+    add_test(NAME browser COMMAND trainer_browser_tests)
+    if(TARGET Qt6::WebEngineQuick)
+        qt_add_executable(trainer_browser_probe tests/BrowserRuntimeProbe.cpp)
+        target_link_libraries(trainer_browser_probe PRIVATE trainer_core)
+    endif()
     qt_add_executable(trainer_emulator_refresh_tests tests/EmulatorRefreshTests.cpp)
     target_link_libraries(trainer_emulator_refresh_tests PRIVATE trainer_core Qt6::Test)
     add_test(NAME emulator_refresh COMMAND trainer_emulator_refresh_tests)
@@ -793,6 +810,7 @@ file(GLOB FILES_ICON_ASSETS CONFIGURE_DEPENDS assets/icons/files/*.svg)
 qt_add_resources(traineros files_icons PREFIX "/files-icons" BASE assets/icons/files FILES ${FILES_ICON_ASSETS})
 file(GLOB FILES_CONTROL_ASSETS CONFIGURE_DEPENDS assets/icons/files-controls/*.svg)
 qt_add_resources(traineros files_controls PREFIX "/files-controls" BASE assets/icons/files-controls FILES ${FILES_CONTROL_ASSETS})
+qt_add_resources(traineros browser_controls PREFIX "/browser-controls" BASE assets/icons/browser-controls FILES ${browser_control_icons})
 
 if(BUILD_TESTING)
     add_executable(trainer_files_tests tests/FilesServiceTest.cpp)

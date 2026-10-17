@@ -203,6 +203,9 @@ ShellController::ShellController(LibraryRepository& repo, TrainerRepository& pro
         trainerSettingsAction(index);
     });
     connect(&files_, &FilesController::changed, this, &ShellController::changed);
+    connect(&browser_, &BrowserController::textRequested, this, [this](QString title,QString text,int limit,bool secret){textTarget_=TextTarget::Browser;keyboard_.begin(title,text,limit,secret);});
+    connect(&browser_, &BrowserController::downloadsChanged, this, [this]{downloads_.publish("browser",browser_.downloads());});
+    connect(&downloads_, &DownloadsController::commandRequested, this, [this](QString provider,QString task,QString command){if(provider=="browser")browser_.controlDownload(task,command);});
     connect(&files_, &FilesController::textRequested, this, [this](QString title,QString text,int limit){textTarget_=TextTarget::Files;keyboard_.begin(title,text,limit);});
     connect(&files_, &FilesController::openRequested, &apps_, &AppsController::openFile);
     connect(files_.service(), &FilesService::changed, this, [this]{downloads_.publish("files",files_.service()->tasks());});
@@ -312,6 +315,7 @@ ShellController::ShellController(LibraryRepository& repo, TrainerRepository& pro
         else if (target == TextTarget::Network) network_.applyText(text);
         else if (target == TextTarget::Social) social_.applyText(text);
         else if (target == TextTarget::Files) files_.applyText(text);
+        else if (target == TextTarget::Browser) browser_.applyText(text);
         else if (target == TextTarget::Scraper) scraper_.applyText(text);
         else if (target == TextTarget::Communication) settings_.communication()->applyText(text);
     });
@@ -346,6 +350,7 @@ QString ShellController::currentAdventureId() const {
     return repository_.home().activeAdventureId;
 }
 bool ShellController::canHoldConfirm() const {
+    if(page_==AppsPage && appsFace_=="browser" && service_.isEmpty() && !keyboard_.isOpen() && !menuOpen_ && !homeMenuOpen_ && !quickAppsOpen_ && !drawerOpen_ && notice_.isEmpty())return true;
     if(page_==AppsPage && appsFace_=="files" && files_.view()["area"]=="files" && service_.isEmpty() && !files_.modal() && !files_.menuOpen() && !keyboard_.isOpen() && !menuOpen_ && !homeMenuOpen_ && !quickAppsOpen_ && !drawerOpen_ && notice_.isEmpty())return true;
     if(page_!=1 || !repository_.editable() || homeMenuOpen_ || menuOpen_ || !notice_.isEmpty() || !service_.isEmpty()
         || keyboard_.isOpen() || drawerOpen_ || libraryTools_.isOpen() || multiverse_.collectionManager()->isOpen())return false;
@@ -420,7 +425,7 @@ void ShellController::selectFace(int index) {
     else if(page_==SocialPage) {
         socialFace_=QStringList{"chats","communities","friends"}.value(index,"chats");
         social_.setFace(socialFace_);
-    } else if(page_==AppsPage){files_.leave();appsFace_=QStringList{"apps","crates","browser","files"}.value(index,"apps");if(appsFace_=="files")files_.enter();}
+    } else if(page_==AppsPage){files_.leave();appsFace_=QStringList{"apps","crates","browser","files"}.value(index,"apps");if(appsFace_=="files")files_.enter();else if(appsFace_=="browser")browser_.enter();}
     else if(page_==GamesPage && !collectionsRoot_) {
         const auto rows=gamesRootZone_=="platforms"?gamesPlatforms():gamesCollections();
         openGamesRootItem(gamesRootZone_,rows.value(index).toMap()["id"].toString());
@@ -1005,7 +1010,7 @@ void ShellController::goToPage(int page) {
     { PerformanceTrace::Scope phase("navigation.manager"); libraryManager_.close(); service_.clear(); }
     page_ = std::clamp(page, 0, int(primaryNames().size())-1); // No wrapping until physical-device testing.
     quickAppsOpen_=false;
-    if(page_==AppsPage){apps_.refresh();if(appsFace_=="files")files_.enter();}
+    if(page_==AppsPage){apps_.refresh();if(appsFace_=="files")files_.enter();else if(appsFace_=="browser")browser_.enter();}
     if(page_==SocialPage)social_.setFace(socialFace_);
     if(page_==1 && multiverseFace_)multiverse_.setCollection(worldCollection_);
     // Primary tabs resume their existing route and focus. Only explicit Back
@@ -1465,6 +1470,10 @@ void ShellController::openSocialNotification() {
     social_.openNotification();emit changed();
 }
 void ShellController::dispatch(Action action) {
+    if(page_==AppsPage && appsFace_=="browser" && service_.isEmpty() && !keyboard_.isOpen() && !menuOpen_ && !homeMenuOpen_ && !drawerOpen_ && !quickAppsOpen_ && notice_.isEmpty() && !localModalOpen()) {
+        if(action==Action::Up||action==Action::Down||action==Action::Left||action==Action::Right||action==Action::Confirm||action==Action::ContextMenu||action==Action::Back||action==Action::LocalAction||action==Action::ScrollUp||action==Action::ScrollDown){browser_.dispatch(action);return;}
+        if(action==Action::ChangeView||action==Action::ToggleFavorite)return;
+    }
     if(social_.files()->picker()->isOpen()){social_.files()->dispatch(action);return;}
     if((social_.myLobbiesOpen() || social_.lobbyCreateOpen() || social_.lobbyPicker()["open"].toBool() || social_.lobbyPicker()["voteOpen"].toBool())&&!keyboard_.isOpen()){social_.dispatch(action);return;}
     if(page_==GameHubPage && hubFace_=="lobby" && (action==Action::ToggleFavorite || action==Action::ChangeView)) {

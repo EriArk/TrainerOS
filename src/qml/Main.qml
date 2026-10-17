@@ -12,7 +12,9 @@ Window {
     color: Theme.chassisDark
     readonly property real uiScale: shell.settings.displayDensity(Screen.width, Screen.height,
         width, height, shell.settings.displayProfile, shell.settings.interfaceScale)
-    Binding { target: controllerInput; property: "pointerMode"; value: filesPane.takesFocus && !adventureLaunch.active && !sessionState.blocked }
+    Binding { target: controllerInput; property: "pointerMode"; value: (filesPane.takesFocus || browserPane.takesFocus) && (!adventureLaunch.active || adventureLaunch.minimized) && !sessionState.blocked }
+    Binding { target: controllerInput; property: "nativeKeyboard"; value: browserPane.takesFocus && !browserPane.popup && !browserPane.toolsFocused }
+    Binding { target: controllerInput; property: "browserMode"; value: browserPane.takesFocus }
     AppControlsWindow { flow: shell.apps; bridge: appsOverlay }
     AdventureExitWindow {
         presentation: adventureExitPresentation
@@ -218,7 +220,7 @@ Window {
             id: faceNavigation
             readonly property bool gameBrowser: shell.page === 1 && !shell.collectionsRoot
             objectName: "navigation-chassis"; x: 28; y: Theme.brandHeight + Theme.screenBevel + 5; spacing: 12; z: 2
-            visible: shell.faceNames.length > 0
+            visible: shell.faceNames.length > 0 && !browserPane.expanded
             FaceStep { objectName: "face-previous"; visible: shell.faceNames.length>1; enabled: shell.pairedNavigationAvailable; onActivated: shell.pressButton("L2") }
             Row {
                 visible: faceNavigation.gameBrowser
@@ -277,7 +279,7 @@ Window {
                 FilesPane { id: filesPane; anchors.fill: parent; flow: shell.files; applicationStatus: shell.apps.status; visible: !shell.serviceOpen && shell.primaryId === "apps" && shell.appsFace === "files"; takesFocus: visible && !shell.notice.length && !shell.drawerOpen && !shell.quickAppsOpen && !shell.keyboard.open && !shell.menuOpen && !shell.homeMenuOpen && !shell.files.view.menuOpen && !Object.keys(shell.files.dialog).length }
                 WorkspacePlaceholder {
                     anchors.fill: parent
-                    visible: (!shell.serviceOpen || shell.service === "settings" || shell.service === "account-profile") && shell.primaryId === "apps" && shell.appsFace !== "apps" && shell.appsFace !== "files"
+                    visible: (!shell.serviceOpen || shell.service === "settings" || shell.service === "account-profile") && shell.primaryId === "apps" && shell.appsFace === "crates"
                     title: shell.appsFace === "crates" ? "Crates" : shell.appsFace === "browser" ? "Browser" : "Files"
                     message: title + " is not available in this build."
                 }
@@ -287,8 +289,38 @@ Window {
                 MultiversePage { anchors.fill: parent; shell: shellController; visible: (!shell.serviceOpen || shell.service === "settings" || shell.service === "account-profile") && shell.page === 1 && !shell.collectionsRoot && shell.multiverseFace }
             }
         }
+        BrowserPane {
+            id: browserPane
+            flow: shell.browser
+            active: !shell.serviceOpen && shell.primaryId === "apps" && shell.appsFace === "browser"
+            mediaAllowed: active && window.active && (!adventureLaunch.active || adventureLaunch.minimized)
+            visible: active
+            takesFocus: active && !shell.notice.length && !shell.drawerOpen && !shell.quickAppsOpen && !shell.keyboard.open && !shell.menuOpen && !shell.homeMenuOpen && !shell.downloads.open && !sessionState.blocked && (!adventureLaunch.active || adventureLaunch.minimized)
+            x: expanded ? 0 : Theme.screenBounds.x + Theme.panelInset
+            y: expanded ? 0 : Theme.screenBounds.y + Theme.contentTopInset
+            width: expanded ? parent.width : Theme.screenBounds.width - 2*Theme.panelInset
+            height: expanded ? parent.height : Theme.screenBounds.y+Theme.screenBounds.height-Theme.panelInset-y
+            z: expanded ? 1.8 : .5
+            Behavior on x { NumberAnimation {duration:Theme.motion(180);easing.type:Easing.InOutCubic} }
+            Behavior on y { NumberAnimation {duration:Theme.motion(180);easing.type:Easing.InOutCubic} }
+            Behavior on width { NumberAnimation {duration:Theme.motion(180);easing.type:Easing.InOutCubic} }
+            Behavior on height { NumberAnimation {duration:Theme.motion(180);easing.type:Easing.InOutCubic} }
+        }
+        FilesControlTab {
+            id: browserTab
+            flow: browserPane.toolFlow
+            visible: browserPane.active
+            x: browserPane.expanded ? (parent.width-width)/2 : Theme.screenBounds.x + 2*Theme.adventureTabWidth - Theme.drawerHandleOverlap + 8
+            y: (browserPane.expanded ? parent.height : Theme.footerTop)-height
+            width: browserPane.expanded ? Math.min(430,parent.width-30) : Theme.screenBounds.x+Theme.screenBounds.width-x
+            z: browserPane.expanded ? 1.9 : 1
+            takesFocus: browserPane.takesFocus
+            recessed: !browserPane.takesFocus || shell.drawerOpen || shell.quickAppsOpen || (!!browserPane.popup && !browserPane.listPopover)
+            Behavior on x { NumberAnimation {duration:Theme.motion(180);easing.type:Easing.InOutCubic} }
+            Behavior on y { NumberAnimation {duration:Theme.motion(180);easing.type:Easing.InOutCubic} }
+        }
         MouseArea {
-            anchors.fill: parent; z: 1
+            anchors.fill: parent; z: browserPane.expanded ? 1.95 : 1
             enabled: (shell.drawerOpen || shell.quickAppsOpen) && !shell.apps.menu.length && !shell.menuOpen && !shell.keyboard.open && !shell.homeMenuOpen && !shell.notice.length
             onClicked: shell.closeDrawers()
         }
@@ -297,7 +329,7 @@ Window {
             x: Theme.screenBounds.x
             anchors.bottom: footer.top
             shell: shellController; z: 3
-            visible: !shell.serviceOpen
+            visible: !shell.serviceOpen && (!browserPane.expanded || shell.quickAppsOpen || shell.drawerOpen)
             handlesRecessed: shell.quickAppsOpen || shell.drawerOpen || panelVisible || drawer.panelVisible
             otherPanelVisible: drawer.panelVisible
         }
@@ -307,7 +339,7 @@ Window {
             x: Theme.screenBounds.x + (expandedWidth-width)/(expandedWidth-closedWidth)*(closedWidth-Theme.drawerHandleOverlap)
             anchors.bottom: footer.top; shell: shellController
             z: 2
-            visible: !shell.serviceOpen && (shell.chooseAdventureAvailable || shell.drawerOpen || panelVisible)
+            visible: !shell.serviceOpen && (shell.chooseAdventureAvailable || shell.drawerOpen || panelVisible) && (!browserPane.expanded || shell.quickAppsOpen || shell.drawerOpen)
             handlesRecessed: shell.quickAppsOpen || shell.drawerOpen || panelVisible || quickDrawer.panelVisible
             otherPanelVisible: quickDrawer.panelVisible
         }
@@ -408,6 +440,7 @@ Window {
                 if (experienceHints) return experienceHints
                 if (shell.page === 0) return [h("A",shell.homeGame.id ? (shell.liveGame.id === shell.homeGame.id ? "Return" : shell.home.actionHint) : "Collections"),h("Select","Game actions"),h("B","Back")]
                 if (shell.primaryId === "apps" && shell.appsFace === "files") return shell.files.view.menuOpen || Object.keys(shell.files.dialog).length ? [h("A","Select"),h("B","Close")] : [h("A","Open"),h("Hold A","Actions"),h("Select","Controls"),h("R3","View"),h("B","Back")]
+                if (shell.primaryId === "apps" && shell.appsFace === "browser") return browserPane.popup ? [h("A","Select"),h("B","Close")] : [h("A","Select"),h("Hold A","Actions"),h("Select","Controls"),h("B","Back")]
                 if (shell.primaryId === "apps") return shell.apps.menu.length ? [h("↑↓","Choose"),h("A","Select"),h("B","Back")] : [h("A","Open"),h("Select","Options"),h("X","Quick Apps"),h("Y","Recent games"),h("B","Home")]
                 if (shell.primaryId === "gamehub") return gameHubPage.hints(h)
                 if (shell.primaryId === "social") return shell.social.hints

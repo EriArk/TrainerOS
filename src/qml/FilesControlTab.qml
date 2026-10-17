@@ -61,7 +61,7 @@ Item {
                     Accessible.role: Accessible.Button; Accessible.name: modelData.label
                     Accessible.onPressAction: root.flow.command(modelData.id)
                     Rectangle { anchors.fill: parent; anchors.margins: 1; radius: 7; color: root.takesFocus && root.flow.view.area === "controls" && root.flow.view.controlIndex === index ? "#4476b3a4" : mouse.containsMouse ? "#2276b3a4" : "transparent"; border.width: root.takesFocus && root.flow.view.area === "controls" && root.flow.view.controlIndex === index ? 1 : 0; border.color: Theme.yellow }
-                    Image { anchors.centerIn: parent; width: 19; height: 19; sourceSize: Qt.size(38,38); source: "qrc:/files-controls/"+modelData.icon+".svg" }
+                    Image { anchors.centerIn: parent; width: 19; height: 19; sourceSize: Qt.size(38,38); source: modelData.source || "qrc:/files-controls/"+modelData.icon+".svg" }
                     MouseArea { id: mouse; anchors.fill: parent; hoverEnabled: true; onClicked: {root.flow.focus("controls",index);root.flow.command(modelData.id)} }
                     ToolTip.visible: mouse.containsMouse; ToolTip.delay: 600; ToolTip.text: modelData.label
                 }

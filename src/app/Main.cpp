@@ -1,4 +1,7 @@
 #include "adapters/pokemon/PokemonExperience.h"
+#ifdef TRAINER_WEBENGINE
+#include <QtWebEngineQuick/qtwebenginequickglobal.h>
+#endif
 #include "core/PerformanceTrace.h"
 #include "integrations/achievements/TrainerAchievementProvider.h"
 #include "features/adventure/RemotePlayRuntime.h"
@@ -168,6 +171,10 @@ private:
 };
 
 int main(int argc, char* argv[]) {
+    QCoreApplication::setAttribute(Qt::AA_ShareOpenGLContexts);
+#ifdef TRAINER_WEBENGINE
+    QtWebEngineQuick::initialize();
+#endif
     SDL_SetMainReady();
     SDL_SetHint(SDL_HINT_NO_SIGNAL_HANDLERS, "1");
     QGuiApplication app(argc, argv);
@@ -381,6 +388,7 @@ int main(int argc, char* argv[]) {
                 shell.collectionManager()->configure(stateDirectory,ready?store->ownerId():QString());
                 shell.apps()->configure(stateDirectory,ready?store->ownerId():QString());
                 shell.files()->configure(stateDirectory,ready?store->ownerId():QString());
+                shell.browser()->configure(stateDirectory,ready?store->ownerId():QString());
                 shell.album()->configure(stateDirectory,ready?store->ownerId():QString());
             });
             QObject::connect(store.get(), &LocalStateStore::accessNeeded, &shell, [&] {
@@ -389,6 +397,7 @@ int main(int argc, char* argv[]) {
                 shell.collectionManager()->configure(stateDirectory,{});
                 shell.apps()->configure(stateDirectory,{});
                 shell.files()->configure(stateDirectory,{});
+                shell.browser()->configure(stateDirectory,{});
                 shell.album()->configure(stateDirectory,{});
             });
         }

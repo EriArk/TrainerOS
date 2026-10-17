@@ -21,6 +21,8 @@ struct ControllerSample {
 class ControllerInput final : public QObject {
     Q_OBJECT
     Q_PROPERTY(bool pointerMode READ pointerMode WRITE setPointerMode)
+    Q_PROPERTY(bool nativeKeyboard MEMBER nativeKeyboard_)
+    Q_PROPERTY(bool browserMode MEMBER browserMode_)
     Q_PROPERTY(bool connected READ connected NOTIFY connectionChanged)
 public:
     // Switch-style shell: printed A at the right confirms; printed B below
@@ -53,11 +55,14 @@ signals:
     void connectionChanged();
     void sampled();
     void pointerMoved(qreal dx,qreal dy);
+    void pageScrolled(qreal dx,qreal dy);
     void observedAction(trainer::Action action, bool fromController);
 private:
     void deliver(Action action, bool fromController);
     std::optional<Action> direction(float x, float y, const std::array<bool, SDL_CONTROLLER_BUTTON_MAX>& buttons);
     bool pointerMode_=false;
+    bool nativeKeyboard_=false;
+    bool browserMode_=false;
     bool holdConfirmEnabled_ = false, confirmPending_ = false;
     qint64 confirmStarted_ = 0;
     bool initialized_ = false;

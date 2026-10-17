@@ -43,8 +43,8 @@ Item {
                 Rectangle {
                     x: 7; y: 6; width: 56; height: 53; radius: 5; color: "#f7f3e5"
                     Image { id: thumbnail; anchors.fill: parent; anchors.margins: 2; source: modelData.picture || ""; asynchronous: true; sourceSize: Qt.size(112,106); fillMode: Image.PreserveAspectFit }
-                    MenuGlyph { anchors.centerIn: parent; width: 30; height: 30; glyph: "file"; visible: modelData.provider==="chat-files" }
-                    PlatformBadge { anchors.centerIn: parent; scale: 0.7; label: modelData.platform || ""; shape: modelData.shape || "console"; visible: thumbnail.status!==Image.Ready && modelData.provider!=="chat-files" }
+                    MenuGlyph { anchors.centerIn: parent; width: 30; height: 30; glyph: "file"; visible: modelData.provider==="chat-files" || modelData.provider==="browser" }
+                    PlatformBadge { anchors.centerIn: parent; scale: 0.7; label: modelData.platform || ""; shape: modelData.shape || "console"; visible: thumbnail.status!==Image.Ready && modelData.provider!=="chat-files" && modelData.provider!=="browser" }
                 }
                 Text { x: 73; y: 7; width: parent.width-153; text: modelData.title; textFormat: Text.PlainText; elide: Text.ElideRight; color: Theme.ink; font.pixelSize: 16; font.bold: true }
                 PlatformBadge { visible: modelData.provider!=="chat-files"; x: parent.width-70; y: 2; scale: 0.72; transformOrigin: Item.TopLeft; label: modelData.platform || ""; shape: modelData.shape || "console" }

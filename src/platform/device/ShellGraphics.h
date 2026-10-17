@@ -33,6 +33,14 @@ inline void configureShellGraphics()
         // distance-field atlas without changing emulator or shell backends.
         QQuickWindow::setTextRenderType(QQuickWindow::CurveTextRendering);
         qInfo() << "TrainerOS shell text: curve rendering (Flip 2 glyph cache workaround)";
+#ifdef TRAINER_WEBENGINE
+        // Chromium's composited page tiles are corrupted on this device's
+        // Armada OpenGL route too. The actual normal/fullscreen browser and
+        // chassis were checked with Vulkan. Keep the override local to this
+        // shell; explicit Qt backend choices above still take precedence.
+        QQuickWindow::setGraphicsApi(QSGRendererInterface::Vulkan);
+        qInfo() << "TrainerOS shell graphics: Vulkan (Flip 2 browser composition)";
+#endif
         return;
     }
 #endif

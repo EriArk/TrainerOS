@@ -166,8 +166,12 @@ void ControllerInput::poll() {
     const auto current = direction(pointerMode_?0:x, pointerMode_?0:y, buttons);
     const auto now = clock_.elapsed();
     const auto scroll=sample_.axes[SDL_CONTROLLER_AXIS_RIGHTY]/32768.0f;
+    if(browserMode_) {
+        const auto horizontal=sample_.axes[SDL_CONTROLLER_AXIS_RIGHTX]/32768.0f;
+        if(std::abs(horizontal)>.2f||std::abs(scroll)>.2f)emit pageScrolled(std::abs(horizontal)>.2f?-horizontal*8:0,std::abs(scroll)>.2f?-scroll*8:0);
+    }
     if(std::abs(scroll)<StickRelease)nextScroll_=0;
-    else if(std::abs(scroll)>=StickEngage && now>=nextScroll_) {
+    else if(!browserMode_ && std::abs(scroll)>=StickEngage && now>=nextScroll_) {
         deliver(scroll>0?Action::ScrollDown:Action::ScrollUp,true);
         nextScroll_=now+100; // Bounded cadence, independent of D-pad focus/repeat.
     }
@@ -188,6 +192,7 @@ void ControllerInput::poll() {
 bool ControllerInput::eventFilter(QObject*, QEvent* event) {
     if (event->type() != QEvent::KeyPress) return false;
     const auto* key = static_cast<QKeyEvent*>(event);
+    if(nativeKeyboard_&&!textEntryEnabled_&&key->key()!=Qt::Key_F1&&key->key()!=Qt::Key_Escape)return false;
     if(textEntryEnabled_&&enabled_) {
         if(key->key()==Qt::Key_Backspace){emit textBackspace();return true;}
         if(key->key()==Qt::Key_Return||key->key()==Qt::Key_Enter){if(!key->isAutoRepeat())emit textSubmitted();return true;}
