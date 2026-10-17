@@ -117,5 +117,6 @@ private:
     QMap<QString,qint64> receivedInvites_;
     qint64 joinedAt_=0,hostSeen_=0;
     quint64 preparedGeneration_=0,readyGeneration_=0;
+    bool preparationAwaitingAck_=false;
 };
 }

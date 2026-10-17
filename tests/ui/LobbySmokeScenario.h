@@ -200,6 +200,30 @@ public:
             case 38:
                 capture("room-host-start-wide");check(click("lobby-start"),"Touch activates the host Start button");
                 check(!social->lobbyRoomGame()["canStart"].toBool(),"Failed fixture launch returns without an enabled Start");break;
+            case 39: {
+                social->viewedLobby().setConversation("300");
+                auto snapshot=social->snapshot_;snapshot["channel"]="300";
+                snapshot["messages"]=QVariantList{QVariantMap{{"id","800"},{"author","1"},{"name","Ren"},{"text","Here is the backup."},{"mine",true},
+                    {"attachments",QVariantList{QVariantMap{{"id","801"},{"filename","save-backup.zip"},{"size",240123}}}}}};
+                social->receive(0,snapshot);social->syncLobbyChat();
+                QFile file(directory+"/fixture-backup.txt");check(file.open(QIODevice::WriteOnly),"Create local file fixture");file.write("Lobby attachment fixture");file.close();
+                social->files()->picker()->selected(file.fileName());window->resize(960,540);break;
+            }
+            case 40:
+                check(social->files()->selected().size()==1,"File tray retains original filename and size");capture("room-files-handheld");
+                social->files()->picker()->begin(directory);break;
+            case 41:
+                check(social->files()->picker()->isOpen(),"Shared file picker opens over the room");capture("file-picker-handheld");
+                press(ControllerInput::BackButton);check(!social->files()->picker()->isOpen(),"Controller B closes the file picker");
+                social->files()->remove(0);social->lobbyChatTools();break;
+            case 42:
+                check(social->menuCommands_.contains("lobby-file"),"Controller menu can attach files");
+                check(!social->menuCommands_.contains("picture")&&!social->menuCommands_.contains("record"),"Lobby file menu excludes Social media actions");
+                capture("room-file-actions");social->closeMenu();
+                for(auto* room:social->lobby_.rooms())room->forgetMembership();shell.goToPage(0);break;
+            case 43:
+                check(social->myLobbies().isEmpty(),"Empty membership fixture");capture("home-create-lobby");
+                shell.activateDashboard("lobbies");check(social->lobbyCreateOpen(),"Home without rooms opens Create lobby");social->cancelLobbyDraft();break;
             default:
                 timer->stop();completed=true;QFile report(directory+"/catalogue-check.txt");
                 if(report.open(QIODevice::WriteOnly))report.write((diagnostics.join('\n')+QString("\nqmlWarnings=%1\n").arg(warnings)).toUtf8());

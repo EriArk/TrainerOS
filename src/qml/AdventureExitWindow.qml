@@ -105,10 +105,10 @@ Window {
             visible: window.presentation.menuOpen && !playerOverlay.chatOpen
             presentation: window.presentation
         }
-        PlayerChatPane {
+        QuickLobbyChat {
             anchors.right: parent.right; anchors.rightMargin: 28
             anchors.verticalCenter: parent.verticalCenter
-            width: Math.min(430, parent.width - 56); height: Math.min(340, parent.height - 64)
+            width: Math.min(370, parent.width - 56); height: Math.min(290, parent.height - 64)
             visible: playerOverlay.chatOpen && !shellController.keyboard.open
             controller: playerOverlay; social: shellController.social; presentation: window.presentation
         }

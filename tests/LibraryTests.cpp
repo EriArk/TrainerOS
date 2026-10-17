@@ -167,7 +167,7 @@ private slots:
         QVERIFY(!shell.libraryTools()->isOpen());QCOMPARE(shell.multiverse()->route(),"games");
         QVERIFY(!shell.canEditWorld());
         shell.dispatch(Action::NextPage);QCOMPARE(shell.page(),2);QVERIFY(!shell.libraryTools()->isOpen());
-        shell.goToPage(1);QVERIFY(shell.collectionsRoot());shell.activate(0);QCOMPARE(shell.multiverse()->route(),"games");
+        shell.goToPage(1);QVERIFY(!shell.collectionsRoot());QCOMPARE(shell.multiverse()->route(),"games");
         shell.dispatch(Action::ContextMenu);QVERIFY(shell.libraryTools()->isOpen());
         shell.dispatch(Action::SystemMenu);shell.dispatch(Action::Confirm);
         QCOMPARE(shell.service(),"settings");QVERIFY(!shell.libraryTools()->isOpen());
@@ -387,7 +387,7 @@ private slots:
             QCOMPARE(store.worlds().size(), 9); QVERIFY(store.adventures().isEmpty()); QVERIFY(store.navigation().isEmpty());
         }
         Connection connection(dir.path()); QSqlQuery q(connection.db);
-        QVERIFY(q.exec("PRAGMA user_version")); QVERIFY(q.next()); QCOMPARE(q.value(0).toInt(),14);
+        QVERIFY(q.exec("PRAGMA user_version")); QVERIFY(q.next()); QCOMPARE(q.value(0).toInt(),16);
         QVERIFY(q.exec("SELECT payload FROM shell_state WHERE scope='prototype-library-v1'")); QVERIFY(q.next()); QVERIFY(!q.value(0).toString().isEmpty());
     }
     void filePagingCancellationAndUnavailableDirectory() {

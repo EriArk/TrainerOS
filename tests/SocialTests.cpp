@@ -14,6 +14,7 @@
 #include "features/adventure/AdventureExitPresentation.h"
 #include <QJsonArray>
 #include <QFile>
+#include <QFileInfo>
 #include <QStandardPaths>
 #include <QUuid>
 #include <QTemporaryDir>
@@ -34,6 +35,39 @@ class SocialTests : public QObject {
         s.channel_=channel;s.channels_[channel]={{"id",channel},{"type",1}};
     }
 private slots:
+    void filesPreserveNamesAndSupportBeyondLegacyMediaLimit() {
+        FluxerSession worker;bind(worker);QTemporaryDir dir;QFile file(dir.filePath("backup.zip"));
+        QVERIFY(file.open(QIODevice::WriteOnly));QVERIFY(file.resize(20*1024*1024));file.close();const QFileInfo info(file);
+        QJsonObject payload;worker.setTransport([&](QByteArray method,QString path,QJsonObject body,Completion done,QByteArray){
+            QCOMPARE(method,QByteArray("POST"));QCOMPARE(path,QString("/v1/channels/")+channel+"/messages");payload=body;done({200,QJsonDocument(QJsonObject{{"id","123"},{"channel_id",channel}})});
+        });
+        QSignalSpy events(&worker,&FluxerSession::fileEvent);
+        worker.command("files-send",{{"channel",channel},{"nonce","stable-nonce"},{"text","Backup"},{"files",QVariantList{QVariantMap{{"path",info.filePath()},{"name",info.fileName()},{"size",info.size()},{"modified",info.lastModified().toMSecsSinceEpoch()}}}}});
+        QCOMPARE(payload["attachments"].toArray()[0].toObject()["filename"].toString(),QString("backup.zip"));
+        QCOMPARE(payload["nonce"].toString(),QString("stable-nonce"));QVERIFY(events.last()[1].toMap()["ok"].toBool());
+        QCOMPARE(info.size(),qint64(20*1024*1024));
+    }
+    void fileSelectionSurvivesChannelSwitchAndUnknownSendReusesNonce() {
+        ChatFiles files;QTemporaryDir dir;QFile file(dir.filePath("a.bin"));QVERIFY(file.open(QIODevice::WriteOnly));file.write("unchanged");file.close();
+        files.context("account","channel-a");files.picker()->selected(file.fileName());QCOMPARE(files.selected().size(),1);
+        files.context("account","channel-b");QVERIFY(files.selected().isEmpty());files.context("account","channel-a");QCOMPARE(files.selected().size(),1);
+        QSignalSpy requests(&files,&ChatFiles::request);QVERIFY(files.send("hello"));const auto nonce=requests.last()[1].toMap()["nonce"].toString();
+        files.receive({{"nonce",nonce},{"finished",true},{"uncertain",true},{"status","Unknown"}});
+        QVERIFY(files.send("hello"));QCOMPARE(requests.last()[1].toMap()["nonce"].toString(),nonce);
+        files.receive({{"nonce",nonce},{"finished",true},{"ok",true}});QVERIFY(files.selected().isEmpty());
+        files.picker()->selected(file.fileName());files.context("other-account","channel-a");QVERIFY(files.selected().isEmpty());
+    }
+    void fileDownloadRejectsUnrelatedUrlsAndMissingMessageAccess() {
+        FluxerSession worker;bind(worker);int status=200;QString url="https://example.com/attachments/secret";
+        worker.setTransport([&](QByteArray method,QString path,QJsonObject,Completion done,QByteArray){
+            QCOMPARE(method,QByteArray("GET"));QVERIFY(path.contains("/messages/"));done({status,QJsonDocument(QJsonObject{{"attachments",QJsonArray{QJsonObject{{"id","5"},{"filename","backup.zip"},{"size",4},{"url",url}}}}})});
+        });
+        worker.command("files-download",{{"channel",channel},{"message","4"},{"attachment","5"}});
+        QCOMPARE(worker.fileJobs_.value(QString(channel)+":4:5")["state"].toString(),QString("error"));QVERIFY(worker.fileReplies_.isEmpty());
+        status=403;worker.command("files-control",{{"id",QString(channel)+":4:5"},{"action","retry"}});
+        QCOMPARE(worker.fileJobs_.value(QString(channel)+":4:5")["state"].toString(),QString("error"));
+        worker.reset();QVERIFY(worker.fileJobs_.isEmpty());
+    }
     void myLobbiesBrowseIsIndependentAndHomeDisappearsAfterProviderLeave() {
         SocialController s;QObject::disconnect(&s,nullptr,s.session_,nullptr);QObject::disconnect(s.session_,nullptr,&s,nullptr);
         s.receive(0,{{"state","connected"},{"userId","1"},{"name","Mika"}});s.createAnotherLobby();s.submitLobbyDraft();
@@ -307,6 +341,12 @@ private slots:
         c.snapshot_={{"state","connected"},{"userId","1"},{"channel","old"},
             {"chats",QVariantList{QVariantMap{{"id","51"},{"kind","chats"},{"members",QVariantList{QVariantMap{{"id","2"}}}}}}}};
         c.gameParty_={{"party","session"},{"running",true},{"host",true},{"members",QVariantList{QVariantMap{{"name","Friend"},{"peer","online:2"},{"slot",2},{"ready",true}}}}};c.setGameActive(true);
+        disconnect(&c.lobby_,nullptr,&c.lobbyRuntime_,nullptr);
+        c.lobby_.configure("1","Host",true);QVERIFY(c.lobby_.create());
+        auto* room=c.lobby_.activeRoom();room->allowRuntime(true);QVERIFY(room->selectGame({"fixture","Fixture","nes","netplay",1}));
+        QVERIFY(room->setConversation("51"));QVERIFY(room->prepared(room->state()["generation"].toInteger(),true));QVERIFY(room->ready(true));
+        QString ticket;connect(room,&LobbyRoomCoordinator::launchRequested,room,[&](QString t,QJsonObject){ticket=t;});
+        QVERIFY(room->start());QVERIFY(room->acknowledgeLaunch(ticket,true));
         AdventureExitController exit;exit.beginSession(AdventureSavePolicy::ManualConfirm);exit.setAvailable(true);
         AdventureExitPresentation view(exit);TextEntryController keyboard;PlayerOverlayController hud(c,keyboard,view);hud.setGame(42);
         connect(&view,&AdventureExitPresentation::menuCaptureRequested,&view,[&](quint64 token){view.menuCaptureCompleted(token,{});});
@@ -322,9 +362,9 @@ private slots:
         QVERIFY(!keyboard.isOpen());QCOMPARE(c.draft(),QString("Keep this draft"));QVERIFY(hud.chatOpen());
         hud.dispatch(Action::Back);QVERIFY(!hud.chatOpen());QCOMPARE(dismissed.size(),1);QCOMPARE(exit.phase(),AdventureExitController::Phase::Idle);
         hud.openPlayer("2");QVERIFY(view.requestMenu());neutral();neutral();QVERIFY(hud.conversationReady());
-        hud.send();QVERIFY(!hud.chatOpen());QCOMPARE(dismissed.size(),2);QVERIFY(c.draft().isEmpty());
+        hud.send();QVERIFY(hud.chatOpen());QCOMPARE(dismissed.size(),1);QVERIFY(c.draft().isEmpty());
         QVERIFY(std::any_of(commands.begin(),commands.end(),[](const auto& row){return row[0]=="send"&&row[1].toMap()["channel"]=="51";}));
-        hud.openPlayer("2");QVERIFY(view.requestMenu());neutral();neutral();hud.compose();keyboard.insertText("Unsent");
+        hud.compose();keyboard.insertText("Unsent");
         hud.setGame(43);QVERIFY(!hud.chatOpen());QVERIFY(!keyboard.isOpen());QCOMPARE(c.draft(),QString("Unsent"));
         hud.openPlayer("2");QVERIFY(view.requestMenu());neutral();neutral();QVERIFY(hud.chatOpen());
         hud.compose();keyboard.insertText("Account-private text");++c.generation_;c.snapshot_["userId"]="other-account";c.drafts_.clear();emit c.changed();

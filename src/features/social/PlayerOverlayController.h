@@ -18,6 +18,10 @@ class PlayerOverlayController final : public QObject {
     Q_PROPERTY(bool chatOpen READ chatOpen NOTIFY changed)
     Q_PROPERTY(bool conversationReady READ conversationReady NOTIFY changed)
     Q_PROPERTY(QString name READ name NOTIFY changed)
+    Q_PROPERTY(QVariantMap voice READ voice NOTIFY changed)
+    Q_PROPERTY(QVariantList balloons READ balloons NOTIFY changed)
+    Q_PROPERTY(bool spectatorComments READ spectatorComments NOTIFY changed)
+    Q_PROPERTY(int unread READ unread NOTIFY changed)
 public:
     PlayerOverlayController(SocialController&,TextEntryController&,AdventureExitPresentation&,QObject* parent=nullptr);
     QVariantList players() const;
@@ -25,6 +29,15 @@ public:
     bool chatOpen() const {return open_;}
     bool conversationReady() const;
     QString name() const;
+    QVariantMap voice() const;
+    QVariantList balloons() const {return balloons_;}
+    bool spectatorComments() const {return spectators_;}
+    int unread() const;
+    Q_INVOKABLE void presented(QString message);
+    Q_INVOKABLE void setDisplay(QString display);
+    Q_INVOKABLE void voiceAction(QString action);
+    Q_INVOKABLE void mutePlayer(QString id);
+    Q_INVOKABLE void toggleSpectators();
     void setGame(qint64 pid);
     void dispatch(Action);
     Q_INVOKABLE void openPlayer(QString id);
@@ -48,7 +61,10 @@ private:
     AdventureExitPresentation& view_;
     qint64 game_=0,chatGame_=0;
     quint64 accountGeneration_=0;
-    QString account_,peer_,settingsKey_;
+    QString account_,peer_,settingsKey_,room_,channel_,observedRoom_,display_;
+    QVariantList balloons_;
+    QTimer balloonTimer_;
+    bool spectators_=true;
     QPointF position_{0,0};
     bool open_=false,pending_=false,pendingList_=false,syncing_=false;
     QTimer deadline_;

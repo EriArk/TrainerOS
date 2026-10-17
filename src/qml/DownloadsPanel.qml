@@ -43,16 +43,17 @@ Item {
                 Rectangle {
                     x: 7; y: 6; width: 56; height: 53; radius: 5; color: "#f7f3e5"
                     Image { id: thumbnail; anchors.fill: parent; anchors.margins: 2; source: modelData.picture || ""; asynchronous: true; sourceSize: Qt.size(112,106); fillMode: Image.PreserveAspectFit }
-                    PlatformBadge { anchors.centerIn: parent; scale: 0.7; label: modelData.platform || ""; shape: modelData.shape || "console"; visible: thumbnail.status!==Image.Ready }
+                    MenuGlyph { anchors.centerIn: parent; width: 30; height: 30; glyph: "file"; visible: modelData.provider==="chat-files" }
+                    PlatformBadge { anchors.centerIn: parent; scale: 0.7; label: modelData.platform || ""; shape: modelData.shape || "console"; visible: thumbnail.status!==Image.Ready && modelData.provider!=="chat-files" }
                 }
                 Text { x: 73; y: 7; width: parent.width-153; text: modelData.title; textFormat: Text.PlainText; elide: Text.ElideRight; color: Theme.ink; font.pixelSize: 16; font.bold: true }
-                PlatformBadge { x: parent.width-70; y: 2; scale: 0.72; transformOrigin: Item.TopLeft; label: modelData.platform || ""; shape: modelData.shape || "console" }
+                PlatformBadge { visible: modelData.provider!=="chat-files"; x: parent.width-70; y: 2; scale: 0.72; transformOrigin: Item.TopLeft; label: modelData.platform || ""; shape: modelData.shape || "console" }
                 Rectangle { x: 74; y: 38; width: 7; height: 7; radius: 4; color: modelData.state==="failed"?"#bd655f":modelData.state==="done"?"#559469":modelData.state==="running"?"#4e8fb5":modelData.state==="paused"||modelData.state==="attention"?"#bc923c":"#90a399" }
                 Text { x: 87; y: 31; width: parent.width-100; text: modelData.detail; textFormat: Text.PlainText; elide: Text.ElideRight; color: Theme.muted; font.pixelSize: 13 }
                 Rectangle { x: 74; y: 54; width: parent.width-88; height: 3; radius: 2; color: "#b8cbbf"
-                    Rectangle { height: parent.height; width: modelData.state==="done"?parent.width: modelData.state==="running"?parent.width*0.2:0; radius: 2; color: modelData.state==="done"?"#559469":"#4e8fb5"
-                        SequentialAnimation on opacity { running: modelData.state==="running"; loops: Animation.Infinite; NumberAnimation { to: 0.35; duration: 650 } NumberAnimation { to: 1; duration: 650 } }
-                        NumberAnimation on x { running: modelData.state==="running"; from: 0; to: parent.width-width; duration: 1700; loops: Animation.Infinite }
+                    Rectangle { height: parent.height; width: modelData.state==="done"?parent.width: modelData.state==="running"?parent.width*(modelData.progress !== undefined?modelData.progress:0.2):0; radius: 2; color: modelData.state==="done"?"#559469":"#4e8fb5"
+                        SequentialAnimation on opacity { running: modelData.state==="running" && modelData.progress === undefined; loops: Animation.Infinite; NumberAnimation { to: 0.35; duration: 650 } NumberAnimation { to: 1; duration: 650 } }
+                        NumberAnimation on x { running: modelData.state==="running" && modelData.progress === undefined; from: 0; to: parent.width-width; duration: 1700; loops: Animation.Infinite }
                     }
                 }
                 TapHandler { onTapped: root.flow.select(index) }
@@ -71,6 +72,6 @@ Item {
                 onActivated: root.flow.activate(index)
             }
         }
-        Text { x: 18; y: parent.height-27; width: parent.width-36; text: (root.flow.tasks[root.flow.focusIndex] ? root.flow.tasks[root.flow.focusIndex].source+" · " : "")+"Closing this window keeps the queue running."; color: Theme.muted; font.pixelSize: 13 }
+        Text { x: 18; y: parent.height-27; width: parent.width-36; text: (root.flow.tasks[root.flow.focusIndex] && root.flow.tasks[root.flow.focusIndex].source ? root.flow.tasks[root.flow.focusIndex].source+" · " : "")+"Closing this window keeps the queue running."; color: Theme.muted; font.pixelSize: 13 }
     }
 }

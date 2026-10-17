@@ -23,6 +23,8 @@ add_library(trainer_core STATIC
     src/integrations/adventure/retroarch/RetroArchBezels.cpp
     src/features/adventure/GameParty.cpp
     src/features/social/SocialMedia.cpp
+    src/features/social/ChatFiles.cpp
+    src/integrations/social/FluxerFiles.cpp
     src/features/social/SocialStream.cpp
     src/features/settings/CommunicationSettings.cpp
     src/integrations/social/OnlineLink.cpp
@@ -423,8 +425,10 @@ qt_add_qml_module(traineros
         src/qml/KeyboardPanel.qml
         src/adapters/pokemon/TrainerPage.qml
         src/qml/PlayerChatPane.qml
+        src/qml/QuickLobbyChat.qml
         src/qml/PlayerBubbles.qml
         src/qml/ConversationPane.qml
+        src/qml/ChatFilePicker.qml
         src/qml/SocialPage.qml
         src/qml/LobbyPane.qml
         src/qml/LobbyRoom.qml

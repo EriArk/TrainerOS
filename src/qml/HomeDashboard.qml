@@ -20,12 +20,12 @@ Item {
         height: root.usableHeight - (root.generic ? 0 : awards.height + root.gap) - y
         Item {
             id: lobbyCard; objectName: "home-lobby-card"; width: parent.width; height: visible ? 54 : 0
-            visible: !!root.shell.social.homeLobby.id
+            visible: true
             Rectangle { x: 1; y: 3; width: parent.width-2; height: parent.height-4; radius: 10; color: Theme.chassisDark; opacity: .16 }
             Rectangle { anchors.fill: parent; anchors.bottomMargin: 3; radius: 10; color: Qt.tint(Theme.paper,"#297eb9ad"); border.color: root.active && root.flow.focus==="lobbies"?Theme.focus:Theme.rim; border.width: root.active && root.flow.focus==="lobbies"?2:1 }
             MenuGlyph { x: 9; anchors.verticalCenter: parent.verticalCenter; width: 25; height: 25; glyph: "game-controller" }
-            Text { x: 43; y: 7; width: parent.width-66; text: root.shell.social.homeLobby.title || ""; font.family: Theme.displayFamily; font.pixelSize: 16; color: Theme.ink; elide: Text.ElideRight; textFormat: Text.PlainText }
-            Text { x: 43; y: 30; width: parent.width-66; text: "My Lobbies · "+(root.shell.social.homeLobby.count || 0); font.pixelSize: 11; color: Theme.muted }
+            Text { x: 43; y: 7; width: parent.width-66; text: root.shell.social.homeLobby.title || "Create lobby"; font.family: Theme.displayFamily; font.pixelSize: 16; color: Theme.ink; elide: Text.ElideRight; textFormat: Text.PlainText }
+            Text { x: 43; y: 30; width: parent.width-66; text: root.shell.social.homeLobby.id ? "My Lobbies · "+root.shell.social.homeLobby.count : "Get together and play"; font.pixelSize: 11; color: Theme.muted }
             Text { anchors.right: parent.right; anchors.rightMargin: 8; anchors.verticalCenter: parent.verticalCenter; text: "›"; color: Theme.ink; font.pixelSize: 23 }
             MouseArea { anchors.fill: parent; onClicked: root.shell.activateDashboard("lobbies") }
         }

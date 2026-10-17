@@ -45,7 +45,7 @@ Item {
         text: root.account.status || ""; color: "#80542a"; font.pixelSize: 11; elide: Text.ElideRight; textFormat: Text.PlainText }
     ListView {
         id: log; objectName: "social-message-log"
-        anchors { top: connectionStatus.bottom; topMargin: 7; bottom: composer.top; bottomMargin: 8; left: parent.left; right: parent.right }
+        anchors { top: connectionStatus.bottom; topMargin: 7; bottom: fileTray.top; bottomMargin: 8; left: parent.left; right: parent.right }
         clip: true; spacing: 2; model: root.messageRows; currentIndex: root.visibleIndex(root.social.messageIndex)
         onMovementEnded: {
             const first = indexAt(42, contentY + 8)
@@ -78,7 +78,7 @@ Item {
             readonly property bool grouped: !!previous && !modelData.system && !previous.system && !!modelData.author && previous.author === modelData.author && !!modelData.timestamp && Math.abs(Date.parse(modelData.timestamp)-Date.parse(previous.timestamp)) < 300000
             width: log.width; height: content.height + (root.streamChat ? 4 : grouped ? 2 : 12)
             Rectangle { anchors.fill: parent; radius: 5; color: root.social.reading && index === log.currentIndex ? "#fff0bd" : "transparent" }
-            MouseArea { anchors.fill: parent; onClicked: { root.focusRequested(); root.social.selectMessage(root.sourceIndex(index)) } onPressAndHold: { if (root.compact || root.readOnlyChat) return; root.social.selectMessage(root.sourceIndex(index)); root.anchorMenu(messageRow); root.social.options() } }
+            MouseArea { anchors.fill: parent; onClicked: { root.focusRequested(); root.social.selectMessage(root.sourceIndex(index)) } onPressAndHold: { if (root.compact || root.readOnlyChat) return; root.social.selectMessage(root.sourceIndex(index)); root.anchorMenu(messageRow); if(root.embeddedRoom)root.social.lobbyChatTools();else root.social.options() } }
             Rectangle { x: 2; y: 6; width: 28; height: 28; radius: 9; visible: !root.streamChat && !messageRow.grouped && !modelData.system; color: modelData.mine ? Theme.pink : Theme.blue
                 Text { renderType: typeof Text.CurveRendering === "number" ? Text.CurveRendering : Text.QtRendering; anchors.centerIn: parent; text: modelData.name.substring(0,1).toUpperCase(); font.pixelSize: 16; color: Theme.ink; textFormat: Text.PlainText }
                 Image { anchors.fill: parent; source: modelData.avatar || ""; sourceSize: Qt.size(56,56); asynchronous: true }
@@ -94,7 +94,8 @@ Item {
                 Text { renderType: typeof Text.CurveRendering === "number" ? Text.CurveRendering : Text.QtRendering; visible: !!modelData.callDetail; width: parent.width; text: modelData.callDetail || ""; font.pixelSize: 11; color: Theme.muted; wrapMode: Text.Wrap; textFormat: Text.PlainText }
                 Repeater { model: modelData.attachments || []
                     Rectangle { required property var modelData; width: content.width; height: 34; radius: 6; color: "#deedf3"
-                        Text { renderType: typeof Text.CurveRendering === "number" ? Text.CurveRendering : Text.QtRendering; anchors { fill: parent; margins: 8 } text: modelData.content_type && modelData.content_type.startsWith("audio/") ? "Voice message · " + (modelData.duration || 0) + " s" : "Picture"; font.pixelSize: 13; color: Theme.ink; textFormat: Text.PlainText }
+                        Text { anchors { fill: parent; margins: 8 } text: root.embeddedRoom ? "↓  "+(modelData.filename || "File")+" · "+root.fileSize(modelData.size) : modelData.content_type && modelData.content_type.startsWith("audio/") ? "Voice message · " + (modelData.duration || 0) + " s" : "Picture"; font.pixelSize: 13; color: Theme.ink; textFormat: Text.PlainText; elide: Text.ElideMiddle }
+                        MouseArea { anchors.fill: parent; enabled: root.embeddedRoom; onClicked: root.social.downloadFile(messageRow.modelData.id,parent.modelData.id) }
                     }
                 }
                 Text { renderType: typeof Text.CurveRendering === "number" ? Text.CurveRendering : Text.QtRendering; visible: !!modelData.delivery; width: parent.width; text: modelData.delivery || ""; font.pixelSize: 11; color: "#80542a"; wrapMode: Text.Wrap; textFormat: Text.PlainText }
@@ -107,13 +108,29 @@ Item {
         Text { renderType: typeof Text.CurveRendering === "number" ? Text.CurveRendering : Text.QtRendering; anchors.centerIn: parent; text: "↓ Latest"; color: Theme.ink; font.pixelSize: 12 }
         MouseArea { anchors.fill: parent; onClicked: root.social.latest() }
     }
+    function fileSize(value) { const n=Number(value || 0); return n>=1048576 ? (n/1048576).toFixed(1)+" MB" : n>=1024 ? (n/1024).toFixed(1)+" KB" : n+" B" }
+    Column { id: fileTray; anchors { left: parent.left; right: parent.right; bottom: composer.top; bottomMargin: 5 }
+        visible: root.embeddedRoom && !root.readOnlyChat; height: visible ? Math.min(95,fileList.contentHeight)+(fileStatus.visible?25:0) : 0
+        ListView { id: fileList; width: parent.width; height: Math.min(95,contentHeight); clip: true; spacing: 3
+            model: root.embeddedRoom ? root.social.files.selected : []
+            delegate: Rectangle { required property int index; required property var modelData; width: fileList.width; height: 29; radius: 6; color: Qt.tint(Theme.paper,"#227eb9ad")
+                Text { x: 8; anchors.verticalCenter: parent.verticalCenter; width: parent.width-39; text: modelData.name+" · "+root.fileSize(modelData.size); color: Theme.ink; font.pixelSize: 12; elide: Text.ElideMiddle; textFormat: Text.PlainText }
+                SocialIconButton { anchors.right: parent.right; width: 27; height: 27; icon: "x"; label: "Remove file"; enabled: !root.social.files.busy; onClicked: root.social.files.remove(index) }
+            }
+        }
+        Item { id: fileStatus; width: parent.width; height: visible?25:0; visible: root.embeddedRoom && !!root.social.files.status
+            Text { x: 3; width: parent.width-32; text: root.social.files.status; color: Theme.muted; font.pixelSize: 11; elide: Text.ElideRight; textFormat: Text.PlainText }
+            Rectangle { y: 19; width: (parent.width-32)*root.social.files.progress; height: 2; color: Theme.blue }
+            SocialIconButton { anchors.right: parent.right; width: 25; height: 25; icon: "x"; label: "Cancel transfer"; onClicked: root.social.files.cancel() }
+        }
+    }
     Rectangle { id: composer; visible: !root.readOnlyChat; anchors { left: parent.left; right: parent.right; bottom: parent.bottom; bottomMargin: 9 } height: visible ? 40 : 0; radius: 9; color: Theme.paper; border.color: "#d1b8a0"
-        SocialIconButton { id: attach; visible: !root.compact; width: visible ? 32 : 0; x: 3; anchors.verticalCenter: parent.verticalCenter; tint: Theme.blue; icon: "plus"; label: "Attach a picture"; onClicked: { root.anchorMenu(this); root.social.attachPicture() } }
+        SocialIconButton { id: attach; visible: !root.compact; width: visible ? 32 : 0; x: 3; anchors.verticalCenter: parent.verticalCenter; tint: Theme.blue; icon: "plus"; label: root.embeddedRoom?"Attach files":"Attach a picture"; enabled: !root.embeddedRoom||!root.social.files.busy; onClicked: { root.anchorMenu(this); if(root.embeddedRoom)root.social.attachFile();else root.social.attachPicture() } }
         Text { renderType: typeof Text.CurveRendering === "number" ? Text.CurveRendering : Text.QtRendering; anchors { left: attach.right; right: emoji.left; margins: 7; verticalCenter: parent.verticalCenter } text: root.social.draft || "Write a message..."; font.pixelSize: 14; color: root.social.draft ? Theme.ink : Theme.muted; elide: Text.ElideRight; textFormat: Text.PlainText
             MouseArea { anchors.fill: parent; anchors.topMargin: -10; anchors.bottomMargin: -10; onClicked: { root.focusRequested(); root.social.compose() } } }
         SocialIconButton { id: emoji; visible: !root.compact; width: visible ? 32 : 0; anchors { right: mic.left; verticalCenter: parent.verticalCenter } tint: Theme.yellow; icon: "smiley"; label: "Emoji"; onClicked: { root.anchorMenu(this); root.social.emoji() } }
-        SocialIconButton { id: mic; visible: !root.compact; width: visible ? 32 : 0; anchors { right: send.left; verticalCenter: parent.verticalCenter } tint: Theme.pink; icon: "microphone"; label: "Record voice message"; enabled: !root.account.voice || !root.account.voice.channel; onClicked: { root.anchorMenu(this); root.social.recordVoice() } }
+        SocialIconButton { id: mic; visible: !root.compact && !root.embeddedRoom; width: visible ? 32 : 0; anchors { right: send.left; verticalCenter: parent.verticalCenter } tint: Theme.pink; icon: "microphone"; label: "Record voice message"; enabled: !root.account.voice || !root.account.voice.channel; onClicked: { root.anchorMenu(this); root.social.recordVoice() } }
         SocialIconButton { id: send; objectName: "social-send"; anchors { right: parent.right; rightMargin: 3; verticalCenter: parent.verticalCenter } tint: Theme.green; icon: "paper-plane-right"; label: "Send"; highlighted: enabled
-            enabled: root.account.state === "connected" && root.social.draft.trim().length > 0; onClicked: root.social.sendDraft() }
+            enabled: root.account.state === "connected" && (!root.embeddedRoom || !root.social.files.busy) && (root.social.draft.trim().length > 0 || (root.embeddedRoom && root.social.files.selected.length>0)); onClicked: root.social.sendDraft() }
     }
 }

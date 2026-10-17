@@ -6,7 +6,10 @@ Item {
     property string glyph: ""
     property color ink: Theme.ink
     readonly property var paths: ({
+        "close": "M6 6 L18 18 M18 6 L6 18",
+        "send": "M3 3 L22 12 L3 21 L7 12 Z M7 12 H16",
         "game-controller": "M7 6 H17 Q20 6 21 10 L23 17 Q23 21 19 19 L16 16 H8 L5 19 Q1 21 1 17 L3 10 Q4 6 7 6 Z M7 9 V15 M4 12 H10 M16 10 V11 M19 13 V14",
+        "file": "M6 2 H14 L20 8 V22 H6 Z M14 2 V8 H20 M9 12 H17 M9 16 H17",
         "chat": "M5 3 H19 Q22 3 22 6 V15 Q22 18 19 18 H10 L5 22 V18 Q2 18 2 15 V6 Q2 3 5 3 Z M6 9 H18 M6 13 H14",
         "expand": "M9 3 H3 V9 M3 3 L10 10 M15 21 H21 V15 M21 21 L14 14",
         "collapse": "M3 3 L10 10 M4 10 H10 V4 M21 21 L14 14 M14 20 V14 H20",

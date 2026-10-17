@@ -1,3 +1,4 @@
+#include <QDesktopServices>
 #include <cmath>
 #include "core/model/GameFavorite.h"
 #include "core/PerformanceTrace.h"
@@ -118,11 +119,15 @@ ShellController::ShellController(LibraryRepository& repo, TrainerRepository& pro
     connect(&libraryTools_,&LibraryToolsController::collectionsRequested,this,[this](const QString& id){libraryTools_.close();collectionManager()->beginMembership(id);});
     libraryTools_.editGuard=[this]{return !liveGame_.isEmpty()?QString("Exit the running game before changing library files."):scraper_.busy()?QString("Finish or cancel downloads before changing library files or names."):QString();};
     connect(&downloads_,&DownloadsController::changed,this,&ShellController::changed);
+    connect(&social_,&SocialController::filesDownloadRequested,&downloads_,&DownloadsController::begin);
+    connect(social_.files(),&ChatFiles::changed,this,[this]{downloads_.publish("chat-files",social_.files()->downloads());});
+    connect(social_.files(),&ChatFiles::folderRequested,this,[](const QString& folder){QDesktopServices::openUrl(QUrl::fromLocalFile(folder));});
     connect(&scraper_,&ScrapeController::changed,this,[this]{downloads_.publish("screenscraper",scraper_.downloadTasks());});
     connect(&scraper_,&ScrapeController::jobStarted,this,[this]{scraper_.hide();downloads_.begin();});
     connect(&scraper_,&ScrapeController::systemSelectionClosed,this,[this]{menuOpen_=true;powerMenu_=false;menuFocus_=13;emit changed();});
     connect(&downloads_,&DownloadsController::commandRequested,this,[this](const QString& provider,const QString& task,const QString& command){
         if(provider=="screenscraper"){if(command=="open")downloads_.close();scraper_.downloadCommand(task,command);}
+        if(provider=="chat-files")social_.files()->control(task,command);
     });
     connect(&scraper_,&ScrapeController::changed,this,&ShellController::changed);
     connect(&scraper_,&ScrapeController::changed,&settings_,&SettingsController::changed);
@@ -344,7 +349,7 @@ bool ShellController::canEditWorld() const {
         && !drawerOpen_ && !libraryTools_.isOpen() && !worlds_.region().value("id").toString().isEmpty();
 }
 bool ShellController::localModalOpen() {
-    return (social_.myLobbiesOpen() || social_.lobbyCreateOpen() || social_.lobbyPicker()["open"].toBool() || social_.lobbyPicker()["voteOpen"].toBool()) || collectionManager()->isOpen() || downloads_.isOpen() || scraper_.isOpen() || (socialActive() && !social_.menu().isEmpty()) || libraryTools_.isOpen() || trainer_.editing()
+    return social_.files()->picker()->isOpen() || (social_.myLobbiesOpen() || social_.lobbyCreateOpen() || social_.lobbyPicker()["open"].toBool() || social_.lobbyPicker()["voteOpen"].toBool()) || collectionManager()->isOpen() || downloads_.isOpen() || scraper_.isOpen() || (socialActive() && !social_.menu().isEmpty()) || libraryTools_.isOpen() || trainer_.editing()
         || (adapterActive() && activeModule_ && activeModule_->modalOpen())
         || (page_==GameHubPage && hubFace_=="ra" && (hall_.editor()->isOpen() || hall_.account()->isOpen() || hall_.galleryMenuOpen() || hall_.route()=="achievement-detail"));
 }
@@ -461,7 +466,7 @@ void ShellController::activateDashboard(const QString& key) {
     if(page_!=HomePage || !pairedNavigationAvailable() || navigationLocked())return;
     const auto target=dashboard_.target(key);if(target.isEmpty())return;
     dashboard_.select(key);
-    if(target["type"]=="lobbies"){social_.showMyLobbies();return;}
+    if(target["type"]=="lobbies"){if(social_.account()["state"]!="connected")social_.openLobby();else if(social_.myLobbies().isEmpty())social_.createAnotherLobby();else social_.showMyLobbies();return;}
     if(target["type"]=="play"){confirm();emit changed();return;}
     if(target["type"]=="screens") {
         openGameHubFace("overview");showOverview("screens");
@@ -1363,14 +1368,12 @@ QVariantList ShellController::homeMenuActions() const {
     QVariantList rows{QVariantMap{{"id","home"},{"label","Home"}},QVariantMap{{"id","friends"},{"label","Friends"}},
         QVariantMap{{"id","chats"},{"label","Chats"}},QVariantMap{{"id","notifications"},{"label","Notifications · "+QString::number(notifications().size())}}};
     rows.append(QVariantMap{{"id","profile"},{"label","Your profile"},{"detail",trainer_.profile()["name"]}});
-    rows.append(QVariantMap{{"id","together"},{"label","Play together"}});
     rows.append(QVariantMap{{"id","lobby"},{"label",social_.lobbyState().isEmpty()?"Lobbies":"My lobby"}});
     if(!liveGame_.isEmpty()) {
         rows.prepend(QVariantMap{{"id","live-options"},{"label","Game Options"},{"detail",liveGame_.value("title")}});
         rows.prepend(QVariantMap{{"id","live-return"},{"label","Return to game"},{"detail","Still running · "+liveGame_.value("title").toString()}});
     }
     if(!voice["channel"].toString().isEmpty())rows.append(QVariantMap{{"id","call"},{"label","Voice call"},{"detail",voice["name"]}});
-    if(!social_.gameParty()["party"].toString().isEmpty()||social_.gameParty()["joining"].toBool())rows.append(QVariantMap{{"id","game-party"},{"label","Game party"},{"detail",social_.gameParty()["game"].toMap()["label"]}});
     const bool answering=homeMenuSelection_.startsWith("answer-call:");
     const bool declining=homeMenuSelection_.startsWith("decline-call:");
     rows.append(social_.incomingCallActions(answering?homeMenuSelection_.section(':',1):QString()));
@@ -1451,6 +1454,7 @@ void ShellController::openSocialNotification() {
     social_.openNotification();emit changed();
 }
 void ShellController::dispatch(Action action) {
+    if(social_.files()->picker()->isOpen()){social_.files()->dispatch(action);return;}
     if((social_.myLobbiesOpen() || social_.lobbyCreateOpen() || social_.lobbyPicker()["open"].toBool() || social_.lobbyPicker()["voteOpen"].toBool())&&!keyboard_.isOpen()){social_.dispatch(action);return;}
     if(page_==GameHubPage && hubFace_=="lobby" && (action==Action::ToggleFavorite || action==Action::ChangeView)) {
         if(pairedNavigationAvailable() && !navigationLocked() && !localModalOpen())social_.dispatch(action);

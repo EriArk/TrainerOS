@@ -593,6 +593,24 @@ private slots:
         guest.receive("1","Host",packet);QCOMPARE(launches.size(),0);
         QCOMPARE(guest.state()["phase"].toString(),"launching"); // Valid host snapshot still cannot supply local preparation/consent.
     }
+    void preparationSurvivesHostStateAlreadyInTransit() {
+        LobbyCoordinator host,guest;
+        host.configure("1","Host",true);guest.configure("2","Guest",true);
+        QList<QJsonObject> held;bool hold=false;
+        connect(&host,&LobbyCoordinator::outgoing,&guest,[&](QString,QJsonObject p){guest.receive("1","Host",p);});
+        connect(&guest,&LobbyCoordinator::outgoing,&host,[&](QString,QJsonObject p){if(hold)held.append(p);else host.receive("2","Guest",p);});
+        QVERIFY(host.create("public"));QVERIFY(guest.join("1",host.state()["id"].toString()));
+        QVERIFY(host.selectGame(game()));QVERIFY(host.seat(1));QVERIFY(guest.seat(2));
+        const auto generation=host.state()["generation"].toInteger();
+        hold=true;QVERIFY(guest.prepared(generation,true));
+        QVERIFY(host.prepared(generation,true)); // Snapshot still says guest is unprepared.
+        hold=false;for(const auto& packet:held)host.receive("2","Guest",packet);
+        QVERIFY(guest.ready(true));QVERIFY(host.ready(true));
+        QSignalSpy launches(&guest,&LobbyCoordinator::launchRequested);
+        QVERIFY(host.start());QCOMPARE(launches.size(),1);
+        guest.configure("2","Guest",false);guest.configure("2","Guest",true);
+        QVERIFY(!guest.ready(true)); // Reconnection still requires local preparation.
+    }
     void delayedReadyCannotOverrideNewerNotReady() {
         LobbyCoordinator host,guest;
         host.configure("1","Host",true);guest.configure("2","Guest",true);

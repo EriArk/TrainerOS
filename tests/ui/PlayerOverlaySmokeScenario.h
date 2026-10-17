@@ -41,20 +41,26 @@ public:
                 QVariantList players;for(int seat=1;seat<=4;++seat)players.append(QVariantMap{{"peer",seat==1?QString():"online:"+QString::number(seat)},{"slot",seat},{"name",QStringList{"Eri","Luna","Kai","Mira"}[seat-1]},{"ready",true}});
                 social->receive(0,{{"state","connected"},{"status","Connected"},{"userId","1"},{"channel","old"},
                     {"chats",QVariantList{QVariantMap{{"id","51"},{"name","Luna"},{"kind","chats"},{"avatar",QUrl::fromLocalFile(avatarPath).toString()},{"unread",3},{"members",QVariantList{QVariantMap{{"id","2"}}}}}}}});
+                QObject::disconnect(&social->lobby_,nullptr,&social->lobbyRuntime_,nullptr);
+                social->lobby_.configure("1","Eri",true);social->lobby_.create();
+                auto* room=social->lobby_.activeRoom();room->allowRuntime(true);room->selectGame({"fixture","Fixture","nes","netplay",1});
+                room->setConversation("51");room->prepared(room->state()["generation"].toInteger(),true);room->ready(true);
+                QString ticket;QObject::connect(room,&LobbyRoomCoordinator::launchRequested,room,[&](QString t,QJsonObject){ticket=t;},Qt::SingleShotConnection);
+                room->start();room->acknowledgeLaunch(ticket,true);
                 social->setGameParty({{"party","fixture"},{"running",true},{"host",true},{"members",players}});social->setGameActive(true);hud.setGame(42);hud.setPosition({0,0});
                 badge->setProperty("playing",true);badge->resize(960,540);exit.beginSession(AdventureSavePolicy::ManualConfirm);exit.setAvailable(true);break;
             }
             case 1: {
                 check(badge->isVisible(),"Passive player bubbles appear during the fixture game");
                 check(badge->flags().testFlag(Qt::WindowDoesNotAcceptFocus),"Passive window cannot take keyboard focus");
-                check(hud.players().size()==4&&hud.players()[1].toMap()["unread"].toInt()==3,"Four controller seats and provider unread are projected");
+                check(hud.players().size()==4&&hud.unread()==3,"Four controller seats and provider unread are projected");
                 auto* avatar=find(badge->contentItem(),"player-avatar-2");check(avatar&&avatar->property("status").toInt()==1,"Provider avatar image is loaded for the matching player");
                 auto* bubbles=find(badge->contentItem(),"player-bubbles");check(bubbles,"Player component exists");
                 if(bubbles) {
                     const auto pointer=[badge](QEvent::Type type,QPointF point,Qt::MouseButton button,Qt::MouseButtons buttons){
                         QMouseEvent event(type,point,badge->mapToGlobal(point.toPoint()),button,buttons,Qt::NoModifier);QCoreApplication::sendEvent(badge,&event);
                     };
-                    pointer(QEvent::MouseButtonPress,{80,30},Qt::LeftButton,Qt::LeftButton);
+                    pointer(QEvent::MouseButtonPress,{24,40},Qt::LeftButton,Qt::LeftButton);
                     pointer(QEvent::MouseMove,{460,410},Qt::NoButton,Qt::LeftButton);
                     pointer(QEvent::MouseButtonRelease,{460,410},Qt::LeftButton,Qt::NoButton);
                 }
@@ -63,7 +69,7 @@ public:
             case 2:
                 check(view.menuOpen()&&!badge->isVisible(),"Passive HUD is excluded while the game overlay is open");neutral();break;
             case 3:
-                neutral();check(hud.chatOpen()&&!hud.conversationReady(),"Mini chat waits for the selected DM instead of revealing the previous chat");
+                neutral();check(hud.chatOpen()&&!hud.conversationReady(),"Mini chat waits for the selected room instead of revealing the previous chat");
                 {auto snapshot=social->snapshot_;snapshot["channel"]="51";snapshot["messages"]=QVariantList{
                     QVariantMap{{"id","61"},{"author","2"},{"name","Luna"},{"text","Ready for the next round?"}},
                     QVariantMap{{"id","62"},{"author","1"},{"name","Eri"},{"text","One moment — saving my game."},{"mine",true}}};social->receive(0,snapshot);}break;
@@ -78,14 +84,14 @@ public:
                     QCoreApplication::sendEvent(overlay,&down);QCoreApplication::sendEvent(overlay,&up);
                 } else check(false,"Keyboard has a pointer Back target");break;
             case 6:
-                check(!shell.keyboard()->isOpen()&&social->draft()=="See you in a moment","Back preserves the shared DM draft");hud.dispatch(Action::Back);break;
+                check(!shell.keyboard()->isOpen()&&social->draft()=="See you in a moment","Back preserves the shared room draft");hud.dispatch(Action::Back);break;
             case 7:
                 check(!hud.chatOpen()&&!view.visible()&&badge->isVisible(),"Back restores the passive surface without ending the game session");
                 hud.openPlayer("2");break;
             case 8: neutral();break;
             case 9: neutral();hud.send();break;
             case 10:
-                check(!hud.chatOpen()&&social->draft().isEmpty(),"Sending queues the existing Social message and returns to play");
+                check(hud.chatOpen()&&social->draft().isEmpty(),"Send keeps the room Quick Chat open");hud.close();
                 hud.setPosition({1,1});badge->resize(540,540);break;
             case 11: {
                 auto* bubbles=find(badge->contentItem(),"player-bubbles");const auto regionValue=bubbles?bubbles->property("regions"):QVariant();const auto regions=regionValue.metaType()==QMetaType::fromType<QJSValue>()?regionValue.value<QJSValue>().toVariant().toList():regionValue.toList();

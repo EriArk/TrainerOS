@@ -7,6 +7,7 @@
 #include <QTimer>
 #include <QSet>
 #include <QProcess>
+#include <QPointer>
 #include <functional>
 #include "OnlineLink.h"
 #include "LobbyWire.h"
@@ -34,6 +35,8 @@ public slots:
     void command(QString operation, QVariantMap arguments = {});
     void stop();
 signals:
+    void ordinaryMessage(quint64 generation,QVariantMap message);
+    void fileEvent(quint64 generation,QVariantMap event);
     void snapshot(quint64 generation, QVariantMap state);
     void sendFailed(quint64 generation, QString channel, QString text);
     void mutationFinished(quint64 generation, QString operation, QString channel, QString id, bool success);
@@ -51,6 +54,15 @@ signals:
     void lobbyChatFinished(quint64 generation,QString lobby,QString channel,QString error);
     void runtimeProbeFailed(quint64 generation, QString peer, QString message);
 private:
+    void fileCommand(QString operation,const QVariantMap& args);
+    void sendFiles(const QVariantMap& args);
+    void downloadFile(QString task);
+    void publishFiles();
+    void resetFiles();
+    QPointer<QNetworkReply> fileUpload_;
+    QHash<QString,QVariantMap> fileJobs_;
+    QHash<QString,QPointer<QNetworkReply>> fileReplies_;
+    QString fileStoreKey_;
     friend class SocialTests;
     TemporaryContacts temporaryContacts_{this};
     QTimer contactTimer_{this};
@@ -109,6 +121,7 @@ private:
     QByteArray voiceGrantIdentity_;
     bool voiceReplacing_ = false;
     bool voiceMuted_=true,voiceDeaf_=false;
+    QSet<QString> voiceLocalMuted_;
     QJsonObject profile_,userSettings_;
     quint64 profileReadRevision_=0;
     void refreshProfile();

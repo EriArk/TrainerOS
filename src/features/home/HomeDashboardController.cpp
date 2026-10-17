@@ -58,10 +58,10 @@ QVariantList HomeDashboardController::achievements() const {
 QList<QStringList> HomeDashboardController::zones() const {
     QList<QStringList> result;for(const auto& rows:{people(),activities(),achievements()}) {
         QStringList keys;for(const auto& row:rows)keys.append(row.toMap()["key"].toString());result.append(keys);
-    }if(!social_.homeLobby().isEmpty())result[0].prepend("lobbies");return result;
+    }result[0].prepend("lobbies");return result;
 }
 QVariantMap HomeDashboardController::target(const QString& key) const {
-    if(key=="lobbies"&&!social_.homeLobby().isEmpty())return {{"type","lobbies"},{"key",key}};
+    if(key=="lobbies")return {{"type","lobbies"},{"key",key}};
     if(key=="play" || key=="screens")return {{"type",key},{"key",key}};
     for(const auto& rows:{people(),activities(),achievements()})for(const auto& row:rows)if(row.toMap()["key"]==key)return row.toMap();
     return {}; // An expired focused item never becomes a new row at its old index.
@@ -70,7 +70,7 @@ void HomeDashboardController::select(const QString& key) {if(!target(key).isEmpt
 void HomeDashboardController::move(Action action) {
     const auto groups=zones();int zone=-1,index=-1;
     if(focus_=="lobbies"&&action==Action::Down&&!people().isEmpty()){select(people().first().toMap()["key"].toString());return;}
-    if(focus_.startsWith("person:")&&action==Action::Up&&!social_.homeLobby().isEmpty()){select("lobbies");return;}
+    if(focus_.startsWith("person:")&&action==Action::Up){select("lobbies");return;}
     for(int i=0;i<groups.size();++i)if(groups[i].contains(focus_)){zone=i;index=groups[i].indexOf(focus_);break;}
     if(action==Action::PreviousFace || action==Action::NextFace) {
         // Three Home blocks; trophies and Screens belong to the game context.

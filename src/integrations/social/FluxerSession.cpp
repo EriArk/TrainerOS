@@ -86,7 +86,7 @@ FluxerSession::FluxerSession(QObject* parent) : QObject(parent) {
             const auto type=event["event"].toString();
             if(type=="connected"||type=="reconnected"){
                 voiceState_="connected";voiceStatus_=voiceMuted_?"Connected · Microphone off":"Connected · Microphone on";voiceDeadline_.stop();
-                voiceWrite({{"op","mute"},{"value",voiceMuted_}});voiceWrite({{"op","deaf"},{"value",voiceDeaf_}});voiceStateUpdate();
+                voiceWrite({{"op","local-mute"},{"accounts",QJsonArray::fromStringList(QStringList(voiceLocalMuted_.begin(),voiceLocalMuted_.end()))}});voiceWrite({{"op","mute"},{"value",voiceMuted_}});voiceWrite({{"op","deaf"},{"value",voiceDeaf_}});voiceStateUpdate();
             }
             else if(type=="reconnecting"){voiceState_="reconnecting";voiceSpeakers_.clear();voiceStatus_="Reconnecting audio...";voiceDeadline_.start(45000);}
             else if(type=="participants")voicePresence(event);
@@ -210,9 +210,9 @@ void FluxerSession::reset() {
     ++reviewRevision_;reviewBusy_=false;reviewIdentity_.clear();reviewRows_.clear();ownReview_.clear();
     leaveVoice();calls_.clear();callNotices_.clear();voiceStatus_.clear();
     ++epoch_;
-    attachmentBusy_=false;attachmentReply_=nullptr;notificationSound_=true;
+    resetFiles();attachmentBusy_=false;attachmentReply_=nullptr;notificationSound_=true;
     profile_={};userSettings_={};++profileReadRevision_;profileStatus_.clear();profileBusy_=false;person_={};++personRevision_;
-    voiceInput_.clear();voiceOutput_.clear();voiceVolume_=100;
+    voiceInput_.clear();voiceOutput_.clear();voiceVolume_=100;voiceLocalMuted_.clear();
     ++onlineSendRevision_;onlineSendTimer_.stop();onlineQueue_.clear();onlineSending_=false;online_.bind({},{});
     delete proof_; proof_=nullptr;
     readThrough_.clear();quietThrough_.clear();readRevision_.clear();muted_.clear();mentions_.clear();
@@ -363,6 +363,7 @@ void FluxerSession::publish() {
             {"summary",voiceName.isEmpty()?voiceStatus_:voiceName+" · "+voiceStatus_},
             {"state",voiceState_},{"status",voiceStatus_},{"muted",voiceMuted_},{"deaf",voiceDeaf_},{"participants",voiceParticipants_},
             {"speakers",QStringList(voiceSpeakers_.begin(),voiceSpeakers_.end())},
+            {"localMuted",QStringList(voiceLocalMuted_.begin(),voiceLocalMuted_.end())},
             {"streams",voiceStreams_},{"sharing",voiceSharing_},{"sharePending",voiceSharePending_},
             {"watching",voiceWatching_},{"streamStatus",streamStatus_},{"captureAvailable",streamAvailable()}}},
         {"communityOnly",communityOnly_},{"communityChecking",communityChecking_},{"communityStatus",communityStatus_},
@@ -575,7 +576,8 @@ void FluxerSession::authenticated() {
             doNotDisturb_=settings.value(navigationKey_+"dnd",false).toBool();privatePreviews_=settings.value(navigationKey_+"private",true).toBool();muted_=settings.value(navigationKey_+"muted").toStringList();notificationSound_=settings.value(navigationKey_+"sound",true).toBool();}
         loadHistoryCache();
         if(!transport_){QSettings settings;voiceInput_=settings.value(navigationKey_+"voiceInput").toString();voiceOutput_=settings.value(navigationKey_+"voiceOutput").toString();voiceVolume_=qBound(0,settings.value(navigationKey_+"voiceVolume",100).toInt(),100);}
-        state_="connected";status_="Connected";if(!remembered_)credential(true);refresh();openGateway();publish();lobbyDirectoryCommand("lobby-directory-ensure",{});
+        if(!transport_){for(const auto& id:QSettings().value(navigationKey_+"localMuted").toStringList())if(idValid(id)&&id!=self_)voiceLocalMuted_.insert(id);}
+        state_="connected";status_="Connected";if(!remembered_)credential(true);refresh();openGateway();publish();fileCommand("files-sync",{});lobbyDirectoryCommand("lobby-directory-ensure",{});
     });
 }
 void FluxerSession::refresh() {
@@ -923,6 +925,12 @@ void FluxerSession::voiceCommand(QString operation,const QVariantMap& args) {
         return;
     }
     if(voiceState_!="connected"&&voiceState_!="reconnecting")return;
+    if(operation=="voice-local-mute"){
+        const auto id=args["id"].toString();if(!voicePeople_.contains(id)||id==self_)return;
+        if(voiceLocalMuted_.contains(id))voiceLocalMuted_.remove(id);else voiceLocalMuted_.insert(id);
+        if(!transport_&&!navigationKey_.isEmpty())QSettings().setValue(navigationKey_+"localMuted",QStringList(voiceLocalMuted_.begin(),voiceLocalMuted_.end()));
+        voiceWrite({{"op","local-mute"},{"accounts",QJsonArray::fromStringList(QStringList(voiceLocalMuted_.begin(),voiceLocalMuted_.end()))}});publish();return;
+    }
     if(operation=="voice-mute") {voiceMuted_=!voiceMuted_;if(voiceMuted_)voiceSpeakers_.remove(self_);voiceWrite({{"op","mute"},{"value",voiceMuted_}});}
     else if(operation=="voice-output") {voiceDeaf_=!voiceDeaf_;voiceWrite({{"op","deaf"},{"value",voiceDeaf_}});}
     else if(operation=="voice-ring") {request("POST","/v1/channels/"+voiceChannel_+"/call/ring",{},[this](Reply r){if(r.status!=204)voiceStatus_="Could not ring this conversation";publish();});return;}
@@ -1086,6 +1094,7 @@ void FluxerSession::sendAttachment(const QVariantMap& args) {
     });
 }
 void FluxerSession::command(QString operation, QVariantMap args) {
+    if(operation.startsWith("files-")){fileCommand(operation,args);return;}
     if(operation=="profile-refresh"){refreshProfile();return;}
     if(operation=="profile-read"){readProfile(args["id"].toString(),args["request"].toString());return;}
     if(operation=="profile-update"){profileCommand(args);return;}
@@ -1708,6 +1717,12 @@ void FluxerSession::gatewayEvent(const QJsonObject& event) {
                 bool mentioned=d["mention_everyone"].toBool();
                 for(const auto& user:d["mentions"].toArray())if(user.toObject()["id"]==self_)mentioned=true;
                 if(fresh&&mentioned&&author["id"]!=self_)++mentions_[channel];
+                if(fresh&&!privatePreviews_&&!notificationsSuppressed()&&!muted_.contains(channel)
+                    &&transportEnvelope(d["content"].toString()).isEmpty()&&author["id"]!=self_
+                    &&relationships_.value(author["id"].toString())["type"].toInt()!=2&&!author["bot"].toBool()
+                    &&d["webhook_id"].toString().isEmpty()&&d["type"].toInt()==0&&!d["content"].toString().trimmed().isEmpty())
+                    emit ordinaryMessage(generation_,{{"id",id},{"channel",channel},{"author",author["id"].toString()},
+                        {"name",label(author)},{"text",d["content"].toString().left(180)}});
                 if(fresh&&transportEnvelope(d["content"].toString()).isEmpty()&&author["id"]!=self_&&relationships_.value(author["id"].toString())["type"].toInt()!=2
                     &&!muted_.contains(channel)&&!notificationsSuppressed())
                     emit incomingMessage(generation_,channel,privatePreviews_?(mentioned?QString("New mention"):QString("New message")):label(author),

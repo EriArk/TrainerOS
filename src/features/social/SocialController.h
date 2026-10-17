@@ -8,6 +8,7 @@
 #include <QHash>
 #include <QTimer>
 #include "SocialMedia.h"
+#include "ChatFiles.h"
 #include "SocialStream.h"
 #include "LobbyCoordinator.h"
 #include "LobbyReminders.h"
@@ -56,13 +57,14 @@ class SocialController final : public QObject {
     Q_PROPERTY(bool canCreateGroup READ canCreateGroup NOTIFY changed)
     Q_PROPERTY(bool runtimeSurface READ runtimeSurfaceOpen NOTIFY changed)
     Q_PROPERTY(QVariantList runtimeActions READ runtimeActions NOTIFY changed)
-    Q_PROPERTY(bool surfaceAvailable READ surfaceAvailable WRITE setSurfaceAvailable NOTIFY presentationChanged)
+    Q_PROPERTY(bool surfaceAvailable READ surfaceAvailable WRITE setSurfaceAvailable NOTIFY surfaceAvailabilityChanged)
     Q_PROPERTY(bool conversationVisible READ conversationVisible WRITE setConversationVisible NOTIFY conversationVisibilityChanged)
     Q_PROPERTY(bool gameActive READ gameActive WRITE setGameActive NOTIFY presentationChanged)
     Q_PROPERTY(QString toastTitle READ toastTitle NOTIFY presentationChanged)
     Q_PROPERTY(QString toastText READ toastText NOTIFY presentationChanged)
     Q_PROPERTY(QVariantMap online READ online NOTIFY changed)
     Q_PROPERTY(trainer::SocialMedia* media READ media CONSTANT)
+    Q_PROPERTY(trainer::ChatFiles* files READ files CONSTANT)
     Q_PROPERTY(trainer::SocialStream* stream READ stream CONSTANT)
     Q_PROPERTY(bool mediaPreview READ mediaPreview NOTIFY changed)
     Q_PROPERTY(QVariantMap person READ person NOTIFY changed)
@@ -104,6 +106,10 @@ class SocialController final : public QObject {
     Q_PROPERTY(QString lobbyTopic READ lobbyTopic NOTIFY changed)
     Q_PROPERTY(bool lobbyFreeOnly READ lobbyFreeOnly NOTIFY changed)
 public:
+    ChatFiles* files(){return &files_;}
+    Q_INVOKABLE void attachFile();
+    Q_INVOKABLE void lobbyChatTools();
+    Q_INVOKABLE void downloadFile(QString message,QString attachment);
     SocialStream* stream() {return &stream_;}
     void setGameProcess(qint64 pid);
     Q_INVOKABLE void streamAction(QString action);
@@ -206,6 +212,12 @@ public:
     void closeMenu();
     QVariantMap account() const;
     QVariantList activePlayers() const;
+    QVariantMap gameChat() const;
+    bool acquireGameChat(const QString& room);
+    void releaseGameChat();
+    void sendGameChat(const QString& room,const QString& channel);
+    void composeGameChat(const QString& room,const QString& channel);
+    void presentedGameChat(const QString& room,const QString& channel,const QString& message);
     QVariantMap directConversation(const QString& peer) const;
     bool openDirectConversation(const QString& peer);
     void releaseDirectConversation(const QString& peer);
@@ -305,7 +317,9 @@ public:
     void dismissNotificationAt(int index);
     void dismissNotifications();
 signals:
+    void gameMessage(QVariantMap message);
     void lobbyImportRequested();
+    void filesDownloadRequested();
     void conversationVisibilityChanged();
     void messageQueued(QString channel);
     void partyPacket(QString peer,QString name,QJsonObject packet);
@@ -327,12 +341,15 @@ signals:
     void runtimeEnded();
     void changed();
     void presentationChanged();
+    void surfaceAvailabilityChanged();
     void textRequested(QString title, QString initial, int limit);
     void commandRequested(QString operation, QVariantMap args);
     void ownerRequested(QString owner, quint64 generation);
     void backgroundNotification(QString title,QString text);
     void reviewsChanged(QString identity,QVariantMap state);
 private:
+    QString previousGameChatChannel_,gamePreviewChannel_;
+    ChatFiles files_{this};
     void dispatchRecent(Action action);
     RecentTogether recentTogether_;
     QString recentSelection_;

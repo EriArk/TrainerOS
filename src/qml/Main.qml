@@ -424,6 +424,7 @@ Window {
         ScrapePanel { anchors.fill: screen; shell: shellController; z: 3.1; visible: shell.scraper.open && !shell.keyboard.open }
         DownloadsPanel { anchors.fill: screen; flow: shell.downloads; z: 3.2; visible: shell.downloads.open }
         MyLobbiesPopup { anchors.fill: screen; social: shell.social; z: 3.5 }
+        ChatFilePicker { anchors.fill: screen; files: shell.social.files; z: 4 }
         LobbyCreatePopup { anchors.fill: screen; social: shell.social; z: 3.6 }
         LobbyGamePicker { anchors.fill: screen; social: shell.social; z: 3.7 }
         LobbyVotePopup { anchors.fill: screen; social: shell.social; z: 3.7 }

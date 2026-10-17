@@ -12,7 +12,7 @@ import os
 import signal
 import sys
 from livekit import rtc
-from voice_presence import presence
+from voice_presence import presence, account
 from fluxer_streams import ScreenStreams
 
 
@@ -44,6 +44,7 @@ async def main():
     outputs = set()
     muted = True
     deaf = False
+    local_muted = set()
     closing = asyncio.Event()
     active_speakers = set()
     playback = {}
@@ -72,14 +73,14 @@ async def main():
         # Never substitute the speaker monitor for a missing microphone.
         return name if query.returncode == 0 and name and not name.endswith('.monitor') else None
 
-    async def play(remote_track):
+    async def play(remote_track, identity):
         process = None
         recovering = False
         revision = output_revision
         stream = rtc.AudioStream(remote_track, sample_rate=48000, num_channels=1, capacity=10)
         try:
             async for event in stream:
-                if deaf: continue
+                if deaf or account(identity) in local_muted: continue
                 try:
                     if process and revision != output_revision:
                         outputs.discard(process)
@@ -116,7 +117,7 @@ async def main():
     @room.on('track_subscribed')
     def subscribed(remote_track, publication, participant):
         if remote_track.kind == rtc.TrackKind.KIND_AUDIO:
-            task = asyncio.create_task(play(remote_track)); streams.add(task)
+            task = asyncio.create_task(play(remote_track, participant.identity)); streams.add(task)
             playback[publication.sid] = task
             task.add_done_callback(streams.discard)
         elif publication.source == rtc.TrackSource.SOURCE_SCREENSHARE:
@@ -222,6 +223,9 @@ async def main():
                 screens.blocked = set(command.get('accounts', [])); screens.catalogue()
             if command['op'] == 'mute':
                 await set_muted(bool(command['value']))
+            if command['op'] == 'local-mute':
+                local_muted.clear(); local_muted.update(str(p) for p in command.get('accounts', []) if str(p).isdigit())
+                emit('local-muted', accounts=sorted(local_muted))
             if command['op'] == 'deaf': deaf=bool(command['value'])
             if command['op'] == 'audio-settings':
                 next_input = str(command.get('input', ''))

@@ -150,8 +150,8 @@ void SocialController::dispatchLobbyRoom(Action action) {
         else if(action==Action::ChangeView)expandLobbyChat();
         else if(action==Action::Secondary&&!lobbySpectatorChat_)compose();
         else if(action==Action::ToggleContinue)call();
-        else if((action==Action::ContextMenu||action==Action::LocalAction)&&!lobbySpectatorChat_)contextRow();
-        else if(action==Action::Confirm&&!lobbySpectatorChat_){if(lobbyRoomMessages().isEmpty())compose();else selectMessage(messageFocus_);}
+        else if(action==Action::ContextMenu||action==Action::LocalAction)lobbyChatTools();
+        else if(action==Action::Confirm&&!lobbySpectatorChat_){if(lobbyRoomMessages().isEmpty())compose();else lobbyChatTools();}
         else if(action==Action::Up||action==Action::Down){
             const auto rows=lobbyRoomMessages();int index=-1;for(int i=0;i<rows.size();++i)if(rows[i].toMap()["sourceIndex"].toInt()==messageFocus_)index=i;
             if(!rows.isEmpty()){index=qBound(0,index+(action==Action::Down?1:-1),int(rows.size())-1);retainMessagePosition(rows[index].toMap()["sourceIndex"].toInt(),false);}

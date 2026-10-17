@@ -179,7 +179,8 @@ bool LobbyRoomCoordinator::prepared(quint64 generation,bool value) {
     if(value&&!runtimeAllowed_)return false;
     if(hosting())return session_.prepared(self_,generation,value);
     if(!online_||remote_.isEmpty()||restoring_||!connection_.isEmpty()||remote_.value("generation").toInteger()!=qint64(generation))return false;
-    preparedGeneration_=value?generation:0;readyGeneration_=0;send(host_,"prepared",{{"value",value}});return true;
+    preparedGeneration_=value?generation:0;preparationAwaitingAck_=value;
+    readyGeneration_=0;send(host_,"prepared",{{"value",value}});return true;
 }
 bool LobbyRoomCoordinator::ready(bool value) {
     if(value&&!runtimeAllowed_)return false;
@@ -426,7 +427,11 @@ void LobbyRoomCoordinator::receive(QString peer,QString name,const QJsonObject& 
        &&!ticket.isEmpty()&&ticket!=launchTicket_) {launchTicket_=ticket;emit launchRequested(ticket,data);}
     if(readyPending()&&(newBoot||generation!=readyRequestGeneration_||!mine["prepared"].toBool()
        ||mine["ready"].toBool()==readyTarget_))readyDeadline_.stop();
-    if(!mine["prepared"].toBool())preparedGeneration_=readyGeneration_=0;
+    // A host snapshot already in transit may precede our preparation request.
+    // Keep the local proof until its acknowledgement, without allowing a remote
+    // prepared flag to create local proof after reconnect/generation changes.
+    if(mine["prepared"].toBool())preparationAwaitingAck_=false;
+    else if(!preparationAwaitingAck_)preparedGeneration_=readyGeneration_=0;
     if(!mine["ready"].toBool()&&!readyPending())readyGeneration_=0;
     emit changed();
 }

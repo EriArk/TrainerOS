@@ -72,6 +72,21 @@ SocialController::SocialController(QObject* parent):QObject(parent),session_(new
     connect(this,&SocialController::ownerRequested,session_,&FluxerSession::setOwner);
     connect(this,&SocialController::commandRequested,session_,&FluxerSession::command);
     connect(session_,&FluxerSession::snapshot,this,&SocialController::receive);
+    connect(session_,&FluxerSession::ordinaryMessage,this,[this](quint64 g,QVariantMap event){
+        if(g!=generation_)return;const auto context=gameChat();
+        if(context.isEmpty()||event["channel"]!=context["channel"])return;
+        for(const auto& v:context["members"].toList()){const auto member=v.toMap();
+            if(member["id"]!=event["author"]||!member["connected"].toBool())continue;
+            event["room"]=context["room"];event["spectator"]=member["spectator"];gamePreviewChannel_=event["channel"].toString();emit gameMessage(event);return;
+        }
+    });
+    connect(&files_,&ChatFiles::request,this,&SocialController::commandRequested);
+    connect(&files_,&ChatFiles::changed,this,&SocialController::changed);
+    connect(session_,&FluxerSession::fileEvent,this,[this](quint64 g,QVariantMap event){if(g==generation_)files_.receive(event);});
+    connect(&files_,&ChatFiles::sent,this,[this](const QString& channel,const QString& text){
+        if(drafts_.value(channel)==text){drafts_.remove(channel);saveDrafts();}emit changed();
+    });
+    connect(this,&SocialController::changed,this,[this]{files_.context(owner_+":"+snapshot_["userId"].toString(),snapshot_["channel"].toString());});
     connect(&stream_,&SocialStream::ended,this,[this]{emit commandRequested("voice-watch-stop",{});});
     connect(&stream_,&SocialStream::changed,this,&SocialController::changed);
     connect(session_,&FluxerSession::partyPacket,this,[this](quint64 g,QString peer,QString name,QJsonObject p){if(g==generation_)emit partyPacket(peer,name,p);});
@@ -95,6 +110,7 @@ SocialController::SocialController(QObject* parent):QObject(parent),session_(new
     toastTimer_.setSingleShot(true);toastTimer_.setInterval(4500);
     connect(&toastTimer_,&QTimer::timeout,this,[this]{toastTitle_.clear();toastText_.clear();emit presentationChanged();});
     connect(session_,&FluxerSession::incomingMessage,this,[this](quint64 generation,QString channel,QString name,QString text){
+        if(generation==generation_&&gameActive_&&gamePreviewChannel_==channel){gamePreviewChannel_.clear();return;}
         if(generation!=generation_||(!surfaceAvailable_&&!gameActive_)||(!menu_.isEmpty()&&!gameActive_)
             ||(!gameActive_&&conversationVisible_&&!contacts_&&face_!="friends"&&snapshot_["channel"]==channel))return;
         toastChannel_=channel;toastTitle_=std::move(name);toastText_=std::move(text);toastTimer_.start();emit presentationChanged();
@@ -207,8 +223,13 @@ void SocialController::saveNotifications() {
 void SocialController::setSurfaceAvailable(bool available) {
     if(surfaceAvailable_==available)return;
     surfaceAvailable_=available;
-    if(!available){toastTimer_.stop();toastTitle_.clear();toastText_.clear();if(media_.state()=="recording"){closeMenu();}}
-    emit presentationChanged();
+    emit surfaceAvailabilityChanged();
+    if(!available){
+        const bool hadToast=!toastTitle_.isEmpty()||!toastText_.isEmpty();
+        toastTimer_.stop();toastTitle_.clear();toastText_.clear();
+        if(media_.state()=="recording")closeMenu();
+        if(hadToast)emit presentationChanged();
+    }
 }
 void SocialController::setConversationVisible(bool visible) {
     if(conversationVisible_==visible)return;
@@ -612,7 +633,30 @@ void SocialController::compose() {
 void SocialController::sendDraft() {
     if(lobbyChatVisible()&&lobbySpectatorChat_)return;
     if(!menu_.isEmpty()||snapshot_["state"]!="connected")return;
-    selection_.stop();send();
+    selection_.stop();
+    if(lobbyChatVisible()&&!files_.selected().isEmpty()){files_.send(draft());return;}
+    send();
+}
+void SocialController::lobbyChatTools(){
+    if(!lobbyChatVisible())return;
+    menu_.clear();menuCommands_.clear();menuMode_="lobby-files";menuTitle_="Lobby chat";menuDetail_.clear();menuFocus_=0;
+    menuChannel_=snapshot_["channel"].toString();
+    if(!lobbySpectatorChat_){
+        menu_={"Write","Emoji","Attach files","Send"};menuCommands_={"lobby-write","lobby-emoji","lobby-file","lobby-send"};
+        const auto files=files_.selected();for(int i=0;i<files.size();++i){menu_.append("Remove "+files[i].toMap()["name"].toString());menuCommands_.append("lobby-file-remove:"+QString::number(i));}
+        if(files_.busy()){menu_.append("Cancel transfer");menuCommands_.append("lobby-file-cancel");}
+    }
+    const auto message=messages().value(messageFocus_).toMap();
+    for(const auto& a:message["attachments"].toList()){const auto f=a.toMap();menu_.append("Download "+f["filename"].toString());menuCommands_.append("lobby-file-download:"+message["id"].toString()+":"+f["id"].toString());}
+    menu_.append("Close");menuCommands_.append("cancel");emit changed();
+}
+void SocialController::attachFile(){if(lobbyChatVisible()&&!lobbySpectatorChat_&&snapshot_["state"]=="connected")files_.choose();}
+void SocialController::downloadFile(QString message,QString attachment){
+    if(!lobbyChatVisible()||snapshot_["state"]!="connected")return;
+    const auto task=snapshot_["channel"].toString()+":"+message+":"+attachment;
+    for(const auto& v:files_.downloads())if(v.toMap()["id"]==task&&v.toMap()["state"]=="done"){files_.control(task,"open");return;}
+    emit filesDownloadRequested();
+    emit commandRequested("files-download",{{"channel",snapshot_["channel"]},{"message",message},{"attachment",attachment}});
 }
 void SocialController::attachPicture() {
     if(lobbyChatVisible()&&lobbySpectatorChat_)return;
@@ -686,7 +730,11 @@ void SocialController::applyText(QString text) {
         preserveText(text);emit commandRequested(textPurpose_,{{"channel",textChannel_},{"id",textId_},{"text",text}});
     } else if(textPurpose_=="message") {
         preserveText(text);
-        if(textChannel_==snapshot_["channel"].toString())send();
+        if(textChannel_==snapshot_["channel"].toString()){
+            if(directConversationLease_.startsWith("lobby:"))sendGameChat(directConversationLease_.mid(6),textChannel_);
+            else if(lobbyChatVisible())sendDraft();
+            else send();
+        }
     } else preserveText(text);
     textPurpose_.clear();textChannel_.clear();emit changed();
 }
@@ -1098,6 +1146,18 @@ void SocialController::confirmAction(QString title,QString operation,QString id)
 void SocialController::selectMenu(int index) {
     if(index<0||index>=menuCommands_.size()||snapshot_["mutationBusy"].toBool())return;
     const auto command=menuCommands_[index];
+    if(command.startsWith("lobby-file")||command=="lobby-write"||command=="lobby-send"||command=="lobby-emoji"){
+        const bool valid=menuChannel_==snapshot_["channel"]&&lobbyChatVisible();closeMenu();if(!valid)return;
+        if(command=="lobby-file")attachFile();
+        else if(command=="lobby-write")compose();
+        else if(command=="lobby-send")sendDraft();
+        else if(command=="lobby-emoji")emoji();
+        else if(command=="lobby-file-cancel")files_.cancel();
+        else if(command.startsWith("lobby-file-remove:"))files_.remove(command.section(':',1).toInt());
+        else if(command.startsWith("lobby-file-download:"))downloadFile(command.section(':',1,1),command.section(':',2));
+        return;
+    }
+
     if(command=="game-streams"){streamsMenu();return;}
     if(command.startsWith("stream:")){closeMenu();streamAction(command.mid(7));return;}
     if(command=="recent-forget") {closeMenu();recentAction("forget");return;}
