@@ -761,7 +761,7 @@ void ShellController::restoreNavigation(const QJsonObject& state) {
     if(!QStringList{"chats","messages","groups","communities","friends","discover","lobby","recent"}.contains(socialFace_))socialFace_="chats";
     if(socialFace_=="messages")socialFace_="chats";
     if(socialFace_=="discover")socialFace_="friends";
-    if(target=="social" && socialFace_=="lobby"){target="gamehub";hubFace_="lobby";socialFace_="chats";}
+    if(socialFace_=="lobby"){if(target=="social")target="gamehub";hubFace_="lobby";socialFace_="chats";}
     const bool legacyGroups=socialFace_=="groups";
     // Provider still owns conversation IDs/drafts. Group presentation migration
     // does not create a second message store or discard its selected channel.

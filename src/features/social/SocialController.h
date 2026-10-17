@@ -10,6 +10,7 @@
 #include "SocialMedia.h"
 #include "SocialStream.h"
 #include "LobbyCoordinator.h"
+#include "LobbyReminders.h"
 #include "LobbyRuntime.h"
 #include "RecentTogether.h"
 #include <QJsonArray>
@@ -73,9 +74,13 @@ class SocialController final : public QObject {
     Q_PROPERTY(QVariantList lobbyRows READ lobbyRows NOTIFY changed)
     Q_PROPERTY(QVariantList lobbyActions READ lobbyActions NOTIFY changed)
     Q_PROPERTY(int lobbyFocus READ lobbyFocus NOTIFY changed)
+    Q_PROPERTY(int lobbyPage READ lobbyPage NOTIFY changed)
+    Q_PROPERTY(int lobbyPageCount READ lobbyPageCount NOTIFY changed)
     Q_PROPERTY(int lobbyActionFocus READ lobbyActionFocus NOTIFY changed)
     Q_PROPERTY(bool lobbyDetailFocused READ lobbyDetailFocused NOTIFY changed)
     Q_PROPERTY(QString lobbySearch READ lobbySearch NOTIFY changed)
+    Q_PROPERTY(QString lobbyPlatform READ lobbyPlatform NOTIFY changed)
+    Q_PROPERTY(QString lobbyMode READ lobbyMode NOTIFY changed)
     Q_PROPERTY(QString lobbyTopic READ lobbyTopic NOTIFY changed)
     Q_PROPERTY(bool lobbyFreeOnly READ lobbyFreeOnly NOTIFY changed)
 public:
@@ -90,9 +95,14 @@ public:
     QVariantList lobbyRows() const;
     QVariantList lobbyActions() const;
     int lobbyFocus() const;
+    int lobbyPage() const {return qMax(0,lobbyFocus()-1)/6;}
+    int lobbyPageCount() const {return qMax(1,(int(lobbyRows().size())-1+5)/6);}
+    Q_INVOKABLE void turnLobbyPage(int delta);
     int lobbyActionFocus() const {return lobbyActionFocus_;}
     bool lobbyDetailFocused() const {return lobbyDetailFocused_;}
     QString lobbySearch() const {return lobbySearch_;}
+    QString lobbyPlatform() const {return lobbyPlatform_;}
+    QString lobbyMode() const {return lobbyMode_;}
     QString lobbyTopic() const {return lobbyTopic_;}
     bool lobbyFreeOnly() const {return lobbyFreeOnly_;}
     Q_INVOKABLE void selectLobby(int index);
@@ -271,10 +281,16 @@ private:
     QString lobbyChatKey_,lobbyChatRoom_,lobbyChatChannel_,lobbyChatStatus_;
     bool lobbyChatBusy_=false,lobbyChatFocused_=false;
     LobbyCoordinator lobby_{this};
+    LobbyReminders lobbyReminders_;
+    QTimer lobbyReminderTimer_;
+    QJsonObject pendingLobbyReminder_;
+    void syncLobbyReminder();
+    void tickLobbyReminders();
     LobbyRuntime lobbyRuntime_{lobby_,this};
     QTimer lobbyPublishTimer_{this},lobbyHeartbeat_{this};
     QVariantList lobbyGames_;
     QString lobbySearch_,lobbyTopic_,publishedLobby_,presentedLobbyInvite_,lobbySelection_,lobbyPublicationTopic_="other";
+    QString lobbyPlatform_,lobbyMode_;
     int lobbyActionFocus_=0;
     bool lobbyFreeOnly_=false,lobbyDetailFocused_=false;
     bool lobbyPublicationVisible_=false;

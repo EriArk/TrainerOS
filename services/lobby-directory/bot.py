@@ -175,7 +175,7 @@ def run(config, state_path):
                                     stamp = 0
                                 now = int(time.time())
                                 if abs(now-stamp) <= 120 and api.authorized(author['id'], data['channel_id']):
-                                    result = directory.accept(author['id'], author.get('global_name') or author.get('username'), command, now)
+                                    result = directory.accept(author['id'], author.get('global_name') or author.get('username'), command, now, author.get('avatar'))
                                     LOG.info('Directory update: %s', result)
                         # Persist command state before acknowledging this Dispatch.
                         sequence = event.get('s', sequence)

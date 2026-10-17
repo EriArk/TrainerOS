@@ -72,13 +72,22 @@ void FluxerSession::lobbyDirectoryCommand(const QString& operation,const QVarian
         lobbyDirectoryBusy_=true;lobbyDirectoryStatus_="Refreshing lobbies…";lobbyDirectoryPending_.clear();
         ++lobbyDirectoryRevision_;lobbyDirectoryPages_=0;publish();loadLobbyDirectory(0,{});return;
     }
-    if(operation=="lobby-directory-join") {
+    if(operation=="lobby-directory-ensure"||operation=="lobby-directory-join") {
+        if(operation=="lobby-directory-ensure"&&(lobbyMembershipReady_||lobbyMembershipRetry_.isActive()))return;
         if(lobbyDirectoryBusy_)return;
+        lobbyMembershipRetry_.stop();
+        if(guilds_.contains(lobbyDirectory::guild)){lobbyMembershipReady_=true;lobbyDirectoryNeedsJoin_=false;lobbyDirectoryCommand("lobby-directory-refresh",{});return;}
         lobbyDirectoryBusy_=true;lobbyDirectoryStatus_="Joining TrainerOS community…";publish();
         request("POST","/v1/invites/"+lobbyDirectory::invite,{},[this](Reply reply) {
             lobbyDirectoryBusy_=false;
-            if(reply.status>=200&&reply.status<300) {lobbyDirectoryNeedsJoin_=false;lobbyDirectoryCommand("lobby-directory-refresh",{});}
-            else {lobbyDirectoryStatus_="Couldn't join the community. Try again.";publish();}
+            if(reply.status>=200&&reply.status<300) {lobbyMembershipReady_=true;lobbyDirectoryNeedsJoin_=false;lobbyDirectoryCommand("lobby-directory-refresh",{});}
+            else {
+                const bool retry=reply.status==0||reply.status==429||reply.status>=500;
+                lobbyDirectoryNeedsJoin_=true;
+                lobbyDirectoryStatus_=retry?"Connecting to the lobby community. We'll retry automatically.":"The lobby community is unavailable for this account.";
+                if(retry)lobbyMembershipRetry_.start(qMax(30000,qMin(reply.retrySeconds,3600)*1000));
+                publish();
+            }
         });return;
     }
     if(operation=="lobby-directory-publish") {
@@ -104,7 +113,7 @@ void FluxerSession::lobbyDirectoryCommand(const QString& operation,const QVarian
 void FluxerSession::loadLobbyDirectory(int channel,QString before) {
     if(channel>=lobbyDirectory::channels.size()) {
         lobbyDirectoryRows_=lobbyDirectoryPending_;lobbyDirectoryPending_.clear();lobbyDirectoryBusy_=false;
-        lobbyDirectoryNeedsJoin_=false;lobbyDirectoryStatus_=lobbyDirectoryRows_.isEmpty()?"No open lobbies yet.":QString();publish();return;
+        lobbyMembershipReady_=true;lobbyMembershipRetry_.stop();lobbyDirectoryNeedsJoin_=false;lobbyDirectoryStatus_=lobbyDirectoryRows_.isEmpty()?"No open lobbies yet.":QString();publish();return;
     }
     const auto revision=lobbyDirectoryRevision_;
     const auto path="/v1/channels/"+lobbyDirectory::channels[channel]+"/messages?limit=100"+(before.isEmpty()?QString():"&before="+before);
@@ -112,14 +121,16 @@ void FluxerSession::loadLobbyDirectory(int channel,QString before) {
         if(revision!=lobbyDirectoryRevision_)return;
         if(reply.status!=200||!reply.body.isArray()) {
             lobbyDirectoryBusy_=false;lobbyDirectoryNeedsJoin_=reply.status==403||reply.status==404;
-            lobbyDirectoryStatus_=lobbyDirectoryNeedsJoin_?"Join the TrainerOS community to browse public lobbies.":"Couldn't refresh lobbies. Try again.";
-            lobbyDirectoryPending_.clear();publish();return;
+            lobbyDirectoryStatus_=lobbyDirectoryNeedsJoin_?"The lobby community is unavailable for this account.":"Couldn't refresh lobbies. Try again.";
+            lobbyDirectoryPending_.clear();publish();
+            if(lobbyDirectoryNeedsJoin_&&!lobbyMembershipReady_)lobbyDirectoryCommand("lobby-directory-ensure",{});
+            return;
         }
         const auto messages=reply.body.array();
         for(const auto& message:messages) {
             auto row=lobbyDirectory::listing(message.toObject(),QDateTime::currentSecsSinceEpoch());
             if(row.isEmpty())continue;
-            row["topic"]=lobbyDirectory::topics[channel];
+            row["topic"]=lobbyDirectory::topics[channel]=="choosing"?QString("other"):lobbyDirectory::topics[channel];
             const auto id=row["lobby"].toString();
             if(!lobbyDirectoryPending_.contains(id)||row["revision"].toInteger()>lobbyDirectoryPending_[id]["revision"].toInteger())lobbyDirectoryPending_[id]=row;
         }

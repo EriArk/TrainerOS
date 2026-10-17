@@ -418,6 +418,7 @@ qt_add_qml_module(traineros
         src/qml/ConversationPane.qml
         src/qml/SocialPage.qml
         src/qml/LobbyPane.qml
+        src/qml/LobbyCatalogue.qml
         src/qml/RecentTogetherPane.qml
         src/qml/SocialIconButton.qml
         src/qml/TrainerEmblem.qml

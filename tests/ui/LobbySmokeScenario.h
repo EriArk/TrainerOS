@@ -25,8 +25,70 @@ public:
 // Isolated provider state; exercises the actual QML and input, never an account.
 class LobbySmokeScenario {
 public:
+    static void catalogue(QQuickWindow* window,ShellController& shell,ControllerInput& input,SDL_Joystick* joystick,QString directory,bool& completed,int& warnings,QStringList& diagnostics) {
+        auto* social=shell.social();
+        QObject::disconnect(social->session_,nullptr,social,nullptr);QObject::disconnect(social,nullptr,social->session_,nullptr);
+        auto step=std::make_shared<int>(0);auto failed=std::make_shared<bool>(false);auto* timer=new QTimer(window);timer->setInterval(450);
+        const auto check=[failed,&diagnostics](bool ok,QString text){diagnostics.append((ok?"PASS ":"FAIL ")+text);if(!ok)*failed=true;};
+        const auto capture=[=](QString name){check(window->grabWindow().save(directory+"/"+name+".png"),name);};
+        const auto press=[&input,joystick](SDL_GameControllerButton key){SDL_JoystickSetVirtualButton(joystick,key,1);input.poll();SDL_JoystickSetVirtualButton(joystick,key,0);input.poll();};
+        const auto click=[window](QString name) {
+            const std::function<QQuickItem*(QQuickItem*)> find=[&](QQuickItem* item)->QQuickItem* {if(item->objectName()==name)return item;for(auto* child:item->childItems())if(auto* found=find(child))return found;return nullptr;};
+            auto* item=find(window->contentItem());if(!item)return false;
+            const auto point=item->mapToScene(QPointF(item->width()/2,item->height()/2));const auto global=window->mapToGlobal(point.toPoint());
+            QMouseEvent down(QEvent::MouseButtonPress,point,global,Qt::LeftButton,Qt::LeftButton,Qt::NoModifier),up(QEvent::MouseButtonRelease,point,global,Qt::LeftButton,Qt::NoButton,Qt::NoModifier);
+            QCoreApplication::sendEvent(window,&down);QCoreApplication::sendEvent(window,&up);return true;
+        };
+        QObject::connect(timer,&QTimer::timeout,window,[=,&shell,&completed,&warnings,&diagnostics] {
+            switch((*step)++) {
+            case 0: {
+                QVariantList rows;const auto now=QDateTime::currentSecsSinceEpoch();
+                const QStringList hosts{"Mira","Ren","Alex","Nori","Sol","Jules"};
+                const QStringList titles{"After-school arcade","A little friendly rivalry","Choose our next adventure","Saturday kart club","One more round","Co-op & good company"};
+                const QStringList games{"Super Mario Kart","Street Fighter II","","Mario Kart: Super Circuit","Bomberman","Secret of Mana"};
+                for(int i=0;i<14;++i)rows.append(QVariantMap{{"lobby",QUuid::createUuid().toString(QUuid::WithoutBraces)},
+                    {"owner",QString::number(40+i)},{"name",hosts[i%6]},{"title",titles[i%6]},{"expires",now+180},
+                    {"topic",QStringList{"racing","competitive","party-games","racing","other","adventure"}[i%6]},
+                    {"status",i%6==2?"choosing":"gathering"},{"access",i%3==0?"approval":"public"},
+                    {"seats",i%6==2?0:4},{"available",i%6==2?0:i%4},{"members",4-i%4},{"startsAt",i%3?0:now+7200},
+                    {"game",QVariantMap{{"title",games[i%6]},{"platform","SNES"},{"mode","netplay"}}}});
+                social->receive(0,{{"state","connected"},{"userId","1"},{"name","Host"},{"lobbyDirectory",QVariantMap{{"rows",rows}}}});
+                shell.goToPage(2);social->setFace("lobby");emit social->lobbyRequested();social->lobbyAction("browse");
+                social->turnLobbyPage(-1);window->resize(1600,900);break;
+            }
+            case 1:
+                capture("catalogue-page-1");check(social->lobbyPageCount()==3,"Fourteen rooms form three pages");
+                press(SDL_CONTROLLER_BUTTON_DPAD_RIGHT);break;
+            case 2:
+                capture("catalogue-page-2");check(social->lobbyPage()==1,"Right turns one page");
+                check(click("lobby-card-0"),"Touch selects the visible card");break;
+            case 3:
+                capture("catalogue-join");check(!social->menu_.isEmpty(),"Room opens existing join consent");
+                social->closeMenu();social->lobbyAction("browse");social->lobbyAction("category:party-games");break;
+            case 4:
+                capture("catalogue-category");check(social->lobbyRows().size()==3,"Category filters room cards");
+                social->lobbyAction("category:missing");break;
+            case 5:
+                capture("catalogue-empty");social->lobbyAction("clear-filters");window->resize(960,540);break;
+            case 6:
+                capture("catalogue-960");social->selectLobby(0);break;
+            case 7:
+                check(social->lobbyState()["phase"]=="choosing","Create enters existing game-free room");
+                capture("catalogue-own-room");social->lobbyAction("browse");break;
+            case 8:
+                capture("catalogue-return");check(!social->lobbyDetailFocused_,"Back returns to catalogue and retains room");
+                window->resize(1600,900);shell.settings()->cycleTheme(1);break;
+            case 9:capture("catalogue-second-theme");break;
+            default:
+                timer->stop();completed=true;QFile report(directory+"/catalogue-check.txt");
+                if(report.open(QIODevice::WriteOnly))report.write((diagnostics.join('\n')+QString("\nqmlWarnings=%1\n").arg(warnings)).toUtf8());
+                QCoreApplication::exit(*failed||warnings?4:0);
+            }
+        });timer->start();
+    }
     static void start(QQuickWindow* window,ShellController& shell,ControllerInput& input,SDL_Joystick* joystick,
                       QString directory,bool& completed,int& warnings,QStringList& diagnostics) {
+        if(qEnvironmentVariableIsSet("TRAINEROS_LOBBY_CATALOGUE_SMOKE")){catalogue(window,shell,input,joystick,directory,completed,warnings,diagnostics);return;}
         auto* social=shell.social();
         QObject::disconnect(social->session_,nullptr,social,nullptr);
         QObject::disconnect(social,nullptr,social->session_,nullptr);

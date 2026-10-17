@@ -49,7 +49,7 @@ FocusScope {
     Component.onCompleted: if (takesFocus) forceActiveFocus()
     PageHeader {
         id: heading
-        visible: !root.connected || root.faceIndex >= 2
+        visible: root.faceIndex !== 3 && (!root.connected || root.faceIndex >= 2)
         height: visible ? implicitHeight : 0
         title: [root.social.contacts ? "Friends" : "Messages", "Communities", "Discover", "Lobby", "Recently together"][root.faceIndex]
         subtitle: root.connected ? (root.account.name || "") + " · " + (root.faceIndex === 1 && root.account.communityStatus ? root.account.communityStatus : root.account.status || "") : "A little closer, wherever you are."

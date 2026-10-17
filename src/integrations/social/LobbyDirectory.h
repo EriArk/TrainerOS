@@ -3,14 +3,21 @@
 #include <QJsonObject>
 #include <QStringList>
 #include <QUuid>
+#include <QRegularExpression>
 
 namespace trainer::lobbyDirectory {
 // Public provider identities. Credentials are held only by the server service.
 inline const QString guild="1559529715193098242";
 inline const QString bot="1559529748697190400";
 inline const QString invite="kOYY3hzY";
-inline const QStringList channels{"1559529986233212933","1559529993002819588","1559530000271540224","1559530002591002624","1559530004931416064"};
-inline const QStringList topics{"choosing","racing","fighting","adventure","other"};
+inline const QStringList channels{"1559529986233212933","1559529993002819588","1559530000271540224","1559530002591002624","1559530004931416064","1560946247710285824","1560946247076945921"};
+inline const QStringList topics{"choosing","racing","fighting","adventure","other","party-games","competitive"};
+// Read the old choosing channel for compatibility; it is no longer a category.
+inline QStringList publicationTopics() {auto result=topics;result.removeAll("choosing");result.removeAll("other");result.append("other");return result;}
+inline QString topicName(const QString& topic) {
+    const QStringList names{"Choosing together","Racing","Fighting","Adventure","Other games","Party Games","Competitive"};
+    const auto index=topics.indexOf(topic);return index<0?QString():names[index];
+}
 inline QString prefix() {return "TrainerOS lobby directory\n```json\n";}
 inline QString encode(const QJsonObject& object) {
     const auto value=prefix()+QString::fromUtf8(QJsonDocument(object).toJson(QJsonDocument::Compact))+"\n```";
@@ -38,6 +45,11 @@ inline QJsonObject listing(const QJsonObject& message,qint64 now) {
     QJsonObject result{{"lobby",id},{"owner",owner},{"name",value["name"].toString().left(100)},
         {"revision",value["revision"]},{"expires",value["expires"]},{"access",value["access"]},
         {"status",status},{"seats",seats},{"available",available},{"streams",streams}};
+    const auto starts=value["startsAt"].toInteger();const auto members=value["members"].toInt(seats-available);
+    if(starts<0||starts>4102444800LL||members<0||members>32||value["title"].toString().size()>80)return {};
+    result["title"]=value["title"].toString();result["startsAt"]=starts;result["members"]=members;
+    const auto avatar=value["avatar"].toString();
+    if(QRegularExpression("^(?:a_)?[0-9a-f]{32}$").match(avatar).hasMatch())result["avatar"]=avatar;
     if(status!="choosing") {
         const auto game=value["game"].toObject();QJsonObject clean;
         for(const auto& key:QStringList{"id","title","platform","mode"}) {

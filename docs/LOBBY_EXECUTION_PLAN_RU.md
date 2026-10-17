@@ -2,20 +2,22 @@
 
 ## Lobby v2 — действующий план 16 октября 2026
 
-Следовать SOCIAL-16 → LOBBY-16 в [ROADMAP](ROADMAP.md#current-execution-queue)
+Следовать LOBBY-16 → SOCIAL-16 в [ROADMAP](ROADMAP.md#current-execution-queue)
 после CORE/Home/Games. [Контракт](UX_CONTRACT_20261016_RU.md) и #179–187/#208–216
 заменяют Social Lobby, прежние кругляши и ручной Prepare. Старые L01–L08 ниже —
 реализация/доказательства для переиспользования, не новая независимая очередь.
 
 LOBBY-16 переносит комнату в GameHub, сохраняя game-free identity/чат/участников;
-добавляет согласованные Online/Local, game picker/vote, auto-prep/Ready, недостающий
+добавляет согласованные Online, game picker/vote, auto-prep/Ready, недостающий
 ROM через существующий picker, единый HUD/QuickChat и spectator opt-out. Подключает
 уже работающие runtime в полный цикл игры/Home/Games/DM/group/community →
 приглашение → сворачивание/возврат → безопасный consent/выход своей игры →
 подготовка → Ready → запуск → Home/HUD → exit/rejoin → та же комната.
 Текущая игра не закрывается при одном лишь просмотре приглашения.
 
-Offline Local не требует Fluxer; Online сохраняет серверный допуск. Native online
+Offline Local не требует Fluxer, но отложен владельцем 17 октября до завершения
+мультиплеера через Fluxer. Текущий поэкранный шаг — [LOBBY-57](LOBBY57_CATALOGUE.md).
+Online сохраняет серверный допуск. Native online
 уже запущенной нужной игры и adapter-specific semantic Link имеют свои настоящие
 возможности, не общий принудительный relaunch. Multiplayer не ставится на паузу.
 Shared-host Remote Play/Iris и другие недоставленные механизмы — MP-16 с точными

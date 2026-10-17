@@ -20,6 +20,7 @@ public:
     // A validated account-local checkpoint restores membership, never a launch.
     bool restore(const QJsonObject& state);
     bool setAccess(const QString& actor,QString access);
+    bool setDetails(const QString& actor,QString title,qint64 startsAt);
     bool setConversation(const QString& actor,QString channel);
     bool invite(const QString& actor,QString peer,qint64 expiresAt);
     bool join(QString peer,QString name,qint64 now);
@@ -63,5 +64,7 @@ private:
     QMap<QString,qint64> invites_;
     quint64 revision_=0,generation_=0;
     bool liveJoining_=false;
+    QString title_;
+    qint64 startsAt_=0;
 };
 }

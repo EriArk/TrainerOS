@@ -46,7 +46,7 @@ class Directory:
             channel TEXT NOT NULL, message TEXT NOT NULL, PRIMARY KEY(channel,message))''')
         self.db.commit()
 
-    def accept(self, author, name, command, now):
+    def accept(self, author, name, command, now, avatar=None):
         """author/name come from Fluxer, never the command's claimed owner."""
         if not re.fullmatch(r'[0-9]{1,20}', author):
             return 'invalid'
@@ -99,6 +99,16 @@ class Directory:
             payload = {'v': 1, 'lobby': lobby, 'owner': author, 'name': text(name, 100),
                        'revision': revision, 'status': status, 'access': access,
                        'seats': seats, 'available': available, 'streams': streams, 'expires': now + TTL}
+            if command.get('title'):
+                payload['title'] = text(command['title'], 80)
+            starts = command.get('startsAt', 0)
+            members = command.get('members', seats - available)
+            if type(starts) is not int or not 0 <= starts <= 4102444800 or type(members) is not int or not 0 <= members <= 32:
+                return 'invalid'
+            payload.update(startsAt=starts, members=members)
+            # Avatar is provider-authoritative, never supplied by a host command.
+            if isinstance(avatar, str) and re.fullmatch(r'(?:a_)?[0-9a-f]{32}', avatar):
+                payload['avatar'] = avatar
             if status != 'choosing':
                 game = command['game']
                 payload['game'] = {key: text(game[key], limit) for key, limit in

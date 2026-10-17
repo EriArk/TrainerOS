@@ -470,6 +470,9 @@ private slots:
         QCOMPARE(shell.primaryNames(),QStringList({"Home","Games","GameHub","Social","Apps"}));
         shell.openGameHubFace("lobby");
         QCOMPARE(shell.primaryId(),"gamehub");QCOMPARE(shell.hubFace(),"lobby");
+        shell.restoreNavigation({{"version",3},{"page","home"},{"socialFace","lobby"}});
+        QCOMPARE(shell.primaryId(),"home");QCOMPARE(shell.hubFace(),"lobby");
+        shell.goToSection("social");QCOMPARE(shell.socialSurface(),"chats");
         QCOMPARE(shell.faceNames(),QStringList({"My Story","RetroAchievements","Lobby"}));
         shell.dispatch(Action::NextFace);QCOMPARE(shell.hubFace(),"overview");
         shell.goToSection("apps");QCOMPARE(shell.faceNames(),QStringList({"Apps","Crates","Browser","Files"}));

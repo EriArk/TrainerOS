@@ -32,6 +32,7 @@ public:
     bool prepared(quint64 generation,bool value);
     bool ready(bool value);
     bool setAccess(QString access);
+    bool setDetails(QString title,qint64 startsAt);
     bool setConversation(QString channel);
     void receive(QString peer,QString name,const QJsonObject& packet);
     void deliveryFailed(const QString& peer);
@@ -60,6 +61,7 @@ signals:
     void liveReleased(QString peer,QString operation);
     void runtimeSignal(QString peer,QString ticket,QString connection,QJsonObject payload);
     void notice(QString message);
+    void membershipEnded(QString room);
 private:
     friend class LobbyTests;
     void sendInvitation(const QString& peer);

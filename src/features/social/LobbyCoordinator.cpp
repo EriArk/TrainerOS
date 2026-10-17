@@ -112,7 +112,11 @@ bool LobbyCoordinator::invite(const QString& peer) {
 void LobbyCoordinator::sendInvitation(const QString& peer) {
     const auto pending=pendingInvites_.value(peer);if(pending.isEmpty()||pending["until"].toInteger()<=now())return;
     auto game=session_.state()["game"].toObject();game.remove("runtime");
-    send(peer,"invite",{{"name",name_},{"game",game},{"answerUntil",pending["until"]},{"offer",pending["offer"]}});
+    const auto state=session_.state();
+    send(peer,"invite",{{"name",name_},{"game",game},{"title",state["title"]},{"startsAt",state["startsAt"]},{"answerUntil",pending["until"]},{"offer",pending["offer"]}});
+}
+bool LobbyCoordinator::setDetails(QString title,qint64 startsAt) {
+    return hosting()&&session_.setDetails(self_,std::move(title),startsAt);
 }
 bool LobbyCoordinator::join(const QString& host,const QString& lobby,bool request) {
     if(!online_||hosting()||!host_.isEmpty()||!identifier(host)||host==self_||QUuid(lobby).isNull())return false;
@@ -127,6 +131,8 @@ bool LobbyCoordinator::approve(const QString& peer) {
     const auto name=requests_.take(peer);seen_[peer]=now();return session_.approve(self_,peer,name);
 }
 void LobbyCoordinator::leave() {
+    const auto departing=state()["id"].toString();
+    if(!departing.isEmpty())emit membershipEnded(departing);
     if(hosting()) {
         const auto snapshot=session_.state();
         for(const auto& value:snapshot["members"].toArray())if(value.toObject()["id"]!=self_)send(value.toObject()["id"].toString(),"closed");
@@ -225,6 +231,7 @@ void LobbyCoordinator::rejectLive(QString peer,QString operation) {
     send(peer,"live-rejected",{{"operation",operation}});
 }
 bool LobbyCoordinator::validState(const QJsonObject& s,const QString& host) {
+    if(s["title"].toString().size()>80||s["startsAt"].toInteger()<0||s["startsAt"].toInteger()>4102444800LL)return false;
     if(!identifier(host)||!QStringList{"private","public","approval"}.contains(s["access"].toString()))return false;
     if(!s["conversation"].toString().isEmpty()&&!identifier(s["conversation"].toString()))return false;
     if(s["owner"]!=host||s["revision"].toInteger()<1||s["generation"].toInteger()<1)return false;
@@ -260,7 +267,8 @@ void LobbyCoordinator::receive(QString peer,QString name,const QJsonObject& p) {
             peerBoots_[peer]=boot;peerSerials_[peer]=serial;
             if(receivedInvites_.size()>=128)return;
             receivedInvites_[key]=answerUntil;
-            invitation_={{"host",peer},{"boot",boot},{"name",name.left(100)},{"lobby",id},{"expires",answerUntil},{"game",data["game"]}};emit changed();
+            invitation_={{"host",peer},{"boot",boot},{"name",name.left(100)},{"lobby",id},{"expires",answerUntil},{"game",data["game"]},
+                {"title",data["title"].toString().left(80)},{"startsAt",qBound(0LL,data["startsAt"].toInteger(),4102444800LL)}};emit changed();
             send(peer,"invite-received",{{"offer",offer}},{},id);
         }
         return;
@@ -365,7 +373,7 @@ void LobbyCoordinator::receive(QString peer,QString name,const QJsonObject& p) {
         return;
     }
     if(kind=="problem") {peerSerials_[peer]=serial;emit notice(data["message"].toString().left(160));return;}
-    if(kind=="closed"||kind=="rejected"||kind=="removed") {clearRemote();emit notice(kind=="closed"?"The lobby was closed.":kind=="removed"?"You are no longer in this lobby.":"The lobby couldn't accept your request.");emit changed();return;}
+    if(kind=="closed"||kind=="rejected"||kind=="removed") {emit membershipEnded(id);clearRemote();emit notice(kind=="closed"?"The lobby was closed.":kind=="removed"?"You are no longer in this lobby.":"The lobby couldn't accept your request.");emit changed();return;}
     if(kind!="state"||data["id"]!=id||!validState(data,peer))return;
     if(newBoot) {retiredBoots_[peer+"/"+peerBoots_[peer]]=now()+180;preparedGeneration_=readyGeneration_=0;launchTicket_.clear();finishedTicket_.clear();}
     peerBoots_[peer]=boot;peerSerials_[peer]=serial;
@@ -374,7 +382,7 @@ void LobbyCoordinator::receive(QString peer,QString name,const QJsonObject& p) {
     const bool recovered=newBoot||restoring_||!connection_.isEmpty();restoring_=false;connection_.clear();if(confirmed)probe_.clear();
     if(!recovered&&data["revision"]==remote_["revision"])return;
     QJsonObject mine;for(const auto& v:data["members"].toArray())if(v.toObject()["id"]==self_)mine=v.toObject();
-    if(mine.isEmpty()) {clearRemote();emit notice("You left the lobby.");emit changed();return;}
+    if(mine.isEmpty()) {emit membershipEnded(id);clearRemote();emit notice("You left the lobby.");emit changed();return;}
     if(data["generation"]!=remote_["generation"])preparedGeneration_=readyGeneration_=0;
     remote_=data;joining_.clear();joinedAt_=0;
     if(data["ticket"]!=finishedTicket_||data["phase"]!="playing")finishedTicket_.clear();

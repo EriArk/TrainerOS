@@ -1,6 +1,7 @@
 #include "LobbySession.h"
 #include <QJsonArray>
 #include <QUuid>
+#include <QDateTime>
 
 namespace trainer {
 LobbySession::LobbySession(QObject* parent):QObject(parent) {}
@@ -28,6 +29,7 @@ bool LobbySession::create(QString owner,QString name,QString access) {
     if(phase_!="closed"||owner.isEmpty()||owner.size()>128||name.trimmed().isEmpty()||name.size()>100
        ||(access!="private"&&access!="public"&&access!="approval"))return false;
     id_=QUuid::createUuid().toString(QUuid::WithoutBraces);owner_=owner;access_=access;liveJoining_=false;
+    title_=name.trimmed()+"'s lobby";title_=title_.left(80);startsAt_=0;
     members_.clear();invites_.clear();game_={};ticket_.clear();conversation_.clear();revision_=0;++generation_;
     members_.insert(owner,{name.trimmed()});phase_="choosing";publish();return true;
 }
@@ -36,10 +38,20 @@ bool LobbySession::setAccess(const QString& actor,QString access) {
     if(access_==access)return true;
     access_=access;publish();return true;
 }
+bool LobbySession::setDetails(const QString& actor,QString title,qint64 startsAt) {
+    title=title.trimmed();
+    if(!host(actor)||!editable()||title.isEmpty()||title.size()>80||startsAt<0)return false;
+    for(const auto c:title)if(c.category()==QChar::Other_Control)return false;
+    const auto now=QDateTime::currentSecsSinceEpoch();
+    if(startsAt!=startsAt_&&startsAt&&(startsAt<=now||startsAt>now+366*86400LL))return false;
+    if(title_==title&&startsAt_==startsAt)return true;
+    title_=title;startsAt_=startsAt;publish();return true;
+}
 bool LobbySession::restore(const QJsonObject& s) {
     if(phase_!="closed")return false;
     liveJoining_=false;
     id_=s["id"].toString();owner_=s["owner"].toString();access_=s["access"].toString();
+    title_=s["title"].toString();startsAt_=s["startsAt"].toInteger();
     conversation_=s["conversation"].toString();ticket_.clear();invites_.clear();members_.clear();
     const auto g=s["game"].toObject();
     game_={g["id"].toString(),g["title"].toString(),g["platform"].toString(),g["mode"].toString(),g["seats"].toInt(),g["runtime"].toObject()};
@@ -194,7 +206,7 @@ QJsonObject LobbySession::state() const {
         const auto& m=it.value();members.append(QJsonObject{{"id",it.key()},{"name",m.name},{"seat",m.seat},
             {"prepared",m.prepared},{"ready",m.ready},{"connected",m.connected},{"spectator",m.spectator},{"admission",m.admission}});
     }
-    return {{"id",id_},{"owner",owner_},{"access",access_},{"phase",phase_},{"revision",qint64(revision_)},
+    return {{"id",id_},{"owner",owner_},{"title",title_},{"startsAt",startsAt_},{"access",access_},{"phase",phase_},{"revision",qint64(revision_)},
         {"generation",qint64(generation_)},{"members",members},{"ticket",ticket_},{"conversation",conversation_},{"liveJoining",liveJoining_},
         {"game",QJsonObject{{"id",game_.id},{"title",game_.title},{"platform",game_.platform},{"mode",game_.mode},{"seats",game_.seats},{"runtime",game_.runtime}}}};
 }

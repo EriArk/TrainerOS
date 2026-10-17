@@ -68,6 +68,8 @@ private:
     QHash<QString,QJsonObject> lobbyDirectoryRows_,lobbyDirectoryPending_;
     QString lobbyDirectoryStatus_,lobbyBotChannel_;
     bool lobbyDirectoryBusy_=false,lobbyDirectoryNeedsJoin_=false;
+    bool lobbyMembershipReady_=false;
+    QTimer lobbyMembershipRetry_{this};
     quint64 lobbyDirectoryRevision_=0;
     int lobbyDirectoryPages_=0;
     void sendLobby(QString peer,QJsonObject packet);

@@ -49,6 +49,28 @@ class Tests(unittest.TestCase):
         self.directory.db.close()
         self.tmp.cleanup()
 
+    def test_schedule_and_provider_avatar_projection(self):
+        command = dict(self.command, title='Friday racing', startsAt=2000, members=3, avatar='forged')
+        avatar = 'a_' + 'a'*32
+        self.assertEqual(self.directory.accept('123', 'Host', command, 100, avatar), 'accepted')
+        self.directory.reconcile(self.api, 100)
+        listing = decode(next(iter(self.api.messages.values())))
+        self.assertEqual((listing['title'], listing['startsAt'], listing['members'], listing['avatar']), ('Friday racing', 2000, 3, avatar))
+        for value in (-1, True, '2000', 4102444801):
+            self.assertEqual(self.directory.accept('123', 'Host', dict(command, revision=2, startsAt=value), 101), 'invalid')
+
+    def test_host_category_routes_without_game_and_moves_same_room(self):
+        self.channels.update({'party-games': '30', 'competitive': '40'})
+        for revision, topic in enumerate(('party-games', 'competitive'), 1):
+            command = dict(self.command, revision=revision, topic=topic)
+            self.assertEqual(self.directory.accept('123', 'Host', command, 100), 'accepted')
+            self.directory.reconcile(self.api, 100)
+            self.directory.reconcile(self.api, 101)  # Finish the durable old-channel deletion.
+            self.assertEqual(len(self.api.messages), 1)
+            (channel, _), content = next(iter(self.api.messages.items()))
+            self.assertEqual(channel, self.channels[topic])
+            self.assertEqual(decode(content)['lobby'], command['lobby'])
+
     def test_live_stream_count_is_bounded_and_projected_without_media_credentials(self):
         command = dict(self.command, streams=2, endpoint='private', token='private')
         self.assertEqual(self.directory.accept('123', 'Host', command, 100), 'accepted')

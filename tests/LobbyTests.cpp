@@ -34,6 +34,17 @@ class LobbyTests final : public QObject {
         QVERIFY(l.claimSeat(peer,seat,l.generation()));QVERIFY(l.prepared(peer,l.generation(),true));
     }
 private slots:
+    void gatheringDetailsAreHostOwnedAndNeverLaunch() {
+        LobbySession room;QSignalSpy launches(&room,&LobbySession::launchRequested);
+        QVERIFY(room.create("1","Host","public"));QVERIFY(room.join("2","Guest",QDateTime::currentSecsSinceEpoch()));
+        const auto at=QDateTime::currentSecsSinceEpoch()+7200;
+        QVERIFY(!room.setDetails("2","Changed",at));QVERIFY(!room.setDetails("1","",at));
+        QVERIFY(!room.setDetails("1","Friday",1));QVERIFY(room.setDetails("1","Friday racing",at));
+        QCOMPARE(room.state()["startsAt"].toInteger(),at);QCOMPARE(room.state()["title"].toString(),QString("Friday racing"));
+        QCOMPARE(launches.size(),0);LobbySession restored;QVERIFY(restored.restore(room.state()));
+        QCOMPARE(restored.state()["startsAt"].toInteger(),at);QCOMPARE(restored.state()["title"],room.state()["title"]);
+        QVERIFY(room.setDetails("1","Friday racing",0));QCOMPARE(room.state()["startsAt"].toInteger(),0);
+    }
     void runtimeSignalingBindsPeerTicketGenerationAndKeepsSecretsOutOfState() {
         LobbyCoordinator host,guest;host.configure("1","Host",true);guest.configure("2","Guest",true);
         QJsonObject captured;

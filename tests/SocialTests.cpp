@@ -34,6 +34,60 @@ class SocialTests : public QObject {
         s.channel_=channel;s.channels_[channel]={{"id",channel},{"type",1}};
     }
 private slots:
+    void scheduledLobbyInvitationArmsLocallyOnlyAfterAcceptance() {
+        QTemporaryDir dir;SocialController guest;
+        QObject::disconnect(&guest,nullptr,guest.session_,nullptr);QObject::disconnect(guest.session_,nullptr,&guest,nullptr);
+        guest.owner_="test-owner";guest.snapshot_={{"state","connected"},{"userId","2"},{"name","Guest"},{"doNotDisturb",true},{"notificationSound",false}};
+        guest.lobby_.configure("2","Guest",true);QVERIFY(guest.lobbyReminders_.configure(dir.filePath("reminders.json")));
+        LobbyCoordinator host;host.configure("1","Host",true);QVERIFY(host.create());
+        const auto now=QDateTime::currentSecsSinceEpoch();QVERIFY(host.setDetails("Friday friends",now+7200));
+        connect(&host,&LobbyCoordinator::outgoing,&guest,[&](QString,QJsonObject p){guest.lobby_.receive("1","Host",p);});
+        connect(&guest.lobby_,&LobbyCoordinator::outgoing,&host,[&](QString,QJsonObject p){host.receive("2","Guest",p);});
+        QVERIFY(host.invite("2"));const auto id=host.state()["id"].toString();
+        QVERIFY(!guest.lobbyReminders_.contains(id));guest.selectLobby(1);
+        QVERIFY(guest.menuDetail_.contains("15 minutes"));guest.lobbyAction("accept");QVERIFY(guest.lobbyReminders_.contains(id));
+        QVERIFY(host.setDetails("Friday friends",now+60));
+        QSignalSpy outbound(&guest.lobby_,&LobbyCoordinator::outgoing);guest.tickLobbyReminders();
+        QCOMPARE(outbound.size(),0);QCOMPARE(guest.activityNotifications_.size(),1);QVERIFY(guest.activityNotifications_.first().toMap()["lobbyReminder"].toBool());
+        guest.tickLobbyReminders();QCOMPARE(guest.activityNotifications_.size(),1);
+        QVERIFY(host.setDetails("Friday friends",now+7200));host.leave();QVERIFY(!guest.lobbyReminders_.contains(id));
+        guest.owner_.clear(); // Keep this isolated test out of account persistence teardown.
+    }
+    void lobbyReminderConsentPersistenceRescheduleResumeAndIsolation() {
+        QTemporaryDir dir;LobbyReminders reminders;
+        const auto file=dir.filePath("account-a.json");QVERIFY(reminders.configure(file));
+        QJsonObject room{{"id",QUuid::createUuid().toString(QUuid::WithoutBraces)},{"owner","42"},{"title","Friday racing"},{"startsAt",10000}};
+        QVERIFY(reminders.observe(room));QVERIFY(reminders.due(9200).isEmpty()); // Presence is not consent.
+        QVERIFY(reminders.accept(room,8000));QVERIFY(reminders.due(9099).isEmpty());
+        LobbyReminders restarted;QVERIFY(restarted.configure(file));
+        QCOMPARE(restarted.due(9400).size(),1);QVERIFY(restarted.due(9401).isEmpty()); // Resume once.
+        LobbyReminders again;QVERIFY(again.configure(file));QVERIFY(again.due(9402).isEmpty());
+        auto spoof=room;spoof["owner"]="99";spoof["startsAt"]=12000;QVERIFY(again.observe(spoof));
+        room["startsAt"]=12000;QVERIFY(again.observe(room));QVERIFY(again.due(11099).isEmpty());QCOMPARE(again.due(11100).size(),1);
+        room["startsAt"]=14000;QVERIFY(again.observe(room));QVERIFY(again.due(14000).isEmpty()); // No stale alarm.
+        room["startsAt"]=16000;QVERIFY(again.accept(room,14001));
+        QVERIFY(again.configure(dir.filePath("account-b.json")));QVERIFY(again.due(15100).isEmpty());
+        QVERIFY(again.configure(file));QVERIFY(again.contains(room["id"].toString()));
+        room["startsAt"]=0;QVERIFY(again.observe(room));QVERIFY(again.due(15100).isEmpty());
+        QVERIFY(!again.accept(room,14000));
+        LobbyReminders unavailable;QVERIFY(!unavailable.accept(QJsonObject{{"id",room["id"]},{"owner","42"},{"title","Room"},{"startsAt",20000}},14000));
+    }
+    void lobbyCataloguePagesFiltersAndScheduleConsent() {
+        SocialController s;QObject::disconnect(&s,nullptr,s.session_,nullptr);QObject::disconnect(s.session_,nullptr,&s,nullptr);
+        QVariantList rows;const auto now=QDateTime::currentSecsSinceEpoch();
+        for(int i=0;i<14;++i)rows.append(QVariantMap{{"lobby",QUuid::createUuid().toString(QUuid::WithoutBraces)},{"owner",QString::number(40+i)},
+            {"title",QString("Room %1").arg(i)},{"name","Host"},{"expires",now+180},{"topic",i%2?"racing":"adventure"},
+            {"seats",4},{"available",i==0?0:3},{"streams",i==0?1:0},{"status","gathering"},{"access","public"},
+            {"game",QVariantMap{{"title","Shared game"},{"platform","snes"},{"mode","netplay"}}}});
+        s.receive(0,{{"state","connected"},{"userId","1"},{"name","Host"},{"lobbyDirectory",QVariantMap{{"rows",rows}}}});
+        QCOMPARE(s.lobbyPageCount(),3);s.turnLobbyPage(1);QCOMPARE(s.lobbyPage(),1);QCOMPARE(s.lobbyFocus(),7);
+        s.turnLobbyPage(10);QCOMPARE(s.lobbyPage(),2);s.turnLobbyPage(1);QCOMPARE(s.lobbyPage(),2);
+        s.lobbyAction("category:racing");QCOMPARE(s.lobbyPage(),0);QCOMPARE(s.lobbyRows().size(),8);
+        s.lobbyAction("clear-filters");s.lobbyAction("free");QCOMPARE(s.lobbyRows().size(),14); // Stream != free player seat.
+        s.lobbyAction("platform:gba");QCOMPARE(s.lobbyRows().size(),1);
+        s.lobbyAction("clear-filters");s.textPurpose_="lobby-search";s.applyText("Room 13");QCOMPARE(s.lobbyRows().size(),2);
+        s.lobbyAction("clear-filters");s.selectLobby(0);QCOMPARE(s.lobbyState()["phase"].toString(),QString("choosing"));
+    }
 
     void streamFramesAreBoundedAndExitClearsTheVideoSink() {
         SocialStream stream;QVideoSink sink;stream.setVideoSink(&sink);
@@ -395,18 +449,71 @@ private slots:
                 {"author",QJsonObject{{"id",author}}},{"content",lobbyDirectory::encode(entry)}}})});
         });
         bind(s);s.command("lobby-directory-refresh");
-        QCOMPARE(requests,5);const auto state=s.lobbyDirectoryState();
+        QCOMPARE(requests,lobbyDirectory::channels.size());const auto state=s.lobbyDirectoryState();
         QVERIFY(!state["busy"].toBool());QCOMPARE(state["rows"].toList().size(),1);
         QCOMPARE(state["rows"].toList().first().toMap()["lobby"].toString(),lobby);
     }
-    void lobbyDirectoryDoesNotSilentlyJoinCommunity() {
+    void lobbyDirectoryAutomaticallyJoinsCommunityOnce() {
         FluxerSession s;int posts=0;
         s.setTransport([&](QByteArray method,QString path,QJsonObject,Completion done,QByteArray) {
             if(method=="POST")++posts;
-            done({path.contains("/messages?")?403:200,QJsonDocument(QJsonObject{})});
+            if(path.contains("/messages?"))done({posts?200:403,QJsonDocument(QJsonArray{})});
+            else done({200,QJsonDocument(QJsonObject{})});
         });
         bind(s);s.command("lobby-directory-refresh");
-        QVERIFY(s.lobbyDirectoryState()["needsJoin"].toBool());QCOMPARE(posts,0);
+        QVERIFY(!s.lobbyDirectoryState()["needsJoin"].toBool());QCOMPARE(posts,1);
+        s.command("lobby-directory-ensure");s.command("lobby-directory-refresh");QCOMPARE(posts,1);
+    }
+    void lobbyCommunityMembershipStartsAfterSignInWithoutOpeningLobby() {
+        FluxerSession s;int joins=0;
+        s.setTransport([&](QByteArray method,QString path,QJsonObject,Completion done,QByteArray) {
+            if(path=="/v1/users/@me")done({200,QJsonDocument(QJsonObject{{"id","1501314428688998181"},{"username","Host"}})});
+            else if(method=="POST"&&path.startsWith("/v1/invites/")){++joins;done({200,QJsonDocument(QJsonObject{})});}
+            else done({200,QJsonDocument(QJsonArray{})});
+        });
+        bind(s);s.authenticated();QCOMPARE(joins,1);QVERIFY(s.lobbyMembershipReady_);
+        s.authenticated();QCOMPARE(joins,1);
+    }
+    void lobbyCommunityExistingMembershipAndRetryIsolation() {
+        FluxerSession s;int posts=0;
+        s.setTransport([&](QByteArray method,QString,QJsonObject,Completion done,QByteArray) {
+            if(method=="POST"){++posts;done({429,QJsonDocument(QJsonObject{}),120});}
+            else done({200,QJsonDocument(QJsonArray{})});
+        });
+        bind(s);s.guilds_[lobbyDirectory::guild]={{"id",lobbyDirectory::guild}};
+        s.command("lobby-directory-ensure");QCOMPARE(posts,0);QVERIFY(s.lobbyMembershipReady_);
+        s.lobbyMembershipReady_=false;s.guilds_.clear();s.command("lobby-directory-ensure");
+        QCOMPARE(posts,1);QVERIFY(s.lobbyMembershipRetry_.isActive());QCOMPARE(s.lobbyMembershipRetry_.interval(),120000);
+        s.command("lobby-directory-ensure");QCOMPARE(posts,1);
+        s.setOwner("trainer-b",2);QVERIFY(!s.lobbyMembershipRetry_.isActive());QVERIFY(!s.lobbyMembershipReady_);
+    }
+    void lobbyCommunityJoinFailureDoesNotLoopOrCrossAccount() {
+        FluxerSession s;Completion pending;int posts=0;
+        s.setTransport([&](QByteArray method,QString,QJsonObject,Completion done,QByteArray) {
+            if(method=="POST"){++posts;pending=done;}else done({403,QJsonDocument(QJsonObject{})});
+        });
+        bind(s);s.command("lobby-directory-ensure");QCOMPARE(posts,1);
+        pending({403,QJsonDocument(QJsonObject{})});QCOMPARE(posts,1);QVERIFY(!s.lobbyMembershipRetry_.isActive());
+        s.command("lobby-directory-ensure");QCOMPARE(posts,2);s.setOwner("trainer-b",2);
+        pending({200,QJsonDocument(QJsonObject{})});QVERIFY(!s.lobbyMembershipReady_);QVERIFY(!s.lobbyDirectoryBusy_);
+    }
+    void lobbyPublicationCategoryIsChosenByHostWithoutAGame() {
+        SocialController c;QObject::disconnect(&c,nullptr,c.session_,nullptr);
+        c.snapshot_={{"state","connected"},{"userId","1"},{"name","Host"}};
+        c.lobby_.configure("1","Host",true);QVERIFY(c.lobby_.create("public"));
+        QSignalSpy commands(&c,&SocialController::commandRequested);
+        for(const auto& topic:QStringList{"party-games","competitive"}) {
+            c.lobbyAction("publish-topic:"+topic);c.publishLobby();
+            QCOMPARE(c.lobby_.publicationTopic(),topic);
+            QCOMPARE(commands.last()[1].toMap()["topic"].toString(),topic);
+            QCOMPARE(commands.last()[1].toMap()["status"].toString(),"choosing");
+        }
+        c.lobby_.selectGame({"game","Game","test","runtime.test",2,{{"content","private"}}});c.publishLobby();
+        QCOMPARE(commands.last()[1].toMap()["topic"].toString(),"competitive");
+        c.lobbyAction("publish-topic:unknown");QCOMPARE(c.lobby_.publicationTopic(),"competitive");
+        c.lobbyAction("publish-topic:choosing");QCOMPARE(c.lobby_.publicationTopic(),"competitive");
+        QVERIFY(!lobbyDirectory::publicationTopics().contains("choosing"));
+        QCOMPARE(lobbyDirectory::publicationTopics().last(),"other");
     }
     void lobbyDirectoryLateReplyCannotCrossTrainerChange() {
         FluxerSession s;Completion pending;

@@ -55,6 +55,8 @@ bool newer(const QString& a, const QString& b) {
 }
 }
 FluxerSession::FluxerSession(QObject* parent) : QObject(parent) {
+    lobbyMembershipRetry_.setSingleShot(true);
+    connect(&lobbyMembershipRetry_,&QTimer::timeout,this,[this]{lobbyDirectoryCommand("lobby-directory-ensure",{});});
     temporaryContacts_.setRequest([this](QByteArray method,QString path,QJsonObject body,TemporaryContacts::Completion done){
         request(method,path,body,[done](Reply r){done({r.status,r.body,r.retrySeconds});});
     });
@@ -196,6 +198,7 @@ void FluxerSession::sendParty(QString peer,QString content) {
 }
 FluxerSession::~FluxerSession() { reset(); }
 void FluxerSession::reset() {
+    lobbyMembershipRetry_.stop();lobbyMembershipReady_=false;
     contactTimer_.stop();contactLobby_={};contactContextKnown_=false;contactGamePeers_.clear();temporaryContacts_.configure({},{});
     lobbySendTimer_.stop();lobbySending_=false;lobbyDeliveries_.clear();lobbyWire_.clear();
     ++lobbyDirectoryRevision_;lobbyChatChannels_.clear();lobbyChatBusy_.clear();lobbyChatUncertain_.clear();
@@ -572,7 +575,7 @@ void FluxerSession::authenticated() {
             doNotDisturb_=settings.value(navigationKey_+"dnd",false).toBool();privatePreviews_=settings.value(navigationKey_+"private",true).toBool();muted_=settings.value(navigationKey_+"muted").toStringList();notificationSound_=settings.value(navigationKey_+"sound",true).toBool();}
         loadHistoryCache();
         if(!transport_){QSettings settings;voiceInput_=settings.value(navigationKey_+"voiceInput").toString();voiceOutput_=settings.value(navigationKey_+"voiceOutput").toString();voiceVolume_=qBound(0,settings.value(navigationKey_+"voiceVolume",100).toInt(),100);}
-        state_="connected";status_="Connected";if(!remembered_)credential(true);refresh();openGateway();publish();
+        state_="connected";status_="Connected";if(!remembered_)credential(true);refresh();openGateway();publish();lobbyDirectoryCommand("lobby-directory-ensure",{});
     });
 }
 void FluxerSession::refresh() {
