@@ -162,7 +162,8 @@ void ControllerInput::poll() {
         if (pressed && !triggers_[i]) deliver(i == 0 ? Action::PreviousFace : Action::NextFace, true);
         triggers_[i] = pressed;
     }
-    const auto current = direction(x, y, buttons);
+    if(pointerMode_ && (std::abs(x)>.2f || std::abs(y)>.2f))emit pointerMoved(std::abs(x)>.2f?x*7:0,std::abs(y)>.2f?y*7:0);
+    const auto current = direction(pointerMode_?0:x, pointerMode_?0:y, buttons);
     const auto now = clock_.elapsed();
     const auto scroll=sample_.axes[SDL_CONTROLLER_AXIS_RIGHTY]/32768.0f;
     if(std::abs(scroll)<StickRelease)nextScroll_=0;

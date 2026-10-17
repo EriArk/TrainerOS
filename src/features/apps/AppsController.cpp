@@ -139,6 +139,11 @@ void AppsController::normalize(const QString& preferredRailId){
     for(int i=0;!preferredRailId.isEmpty()&&i<items.size();++i)if(items[i].toMap()["id"].toString()==preferredRailId){railFocus_=i;break;}
     railFocus_=std::clamp(railFocus_,0,std::max(0,int(items.size())-1));if(items.isEmpty())railFocused_=false;
 }
+void AppsController::openFile(const QString& url) {
+    if(!ready_ || !launching_.isEmpty())return;
+    if(launchGuard){const auto error=launchGuard();if(!error.isEmpty()){status_=error;emit changed();return;}}
+    status_.clear();emit commandRequested({{"command","open-file"},{"url",url}});emit changed();
+}
 void AppsController::refresh(){
     if(process_.state()==QProcess::NotRunning&&!helper_.isEmpty()){start(python_,helper_);return;}
     emit commandRequested({{"command","refresh"}});

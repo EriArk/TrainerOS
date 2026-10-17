@@ -1,6 +1,8 @@
 # TrainerOS Roadmap
 
-**Сейчас: SOCIAL-67 — согласованный Discover и выход/удаление комьюнити.**
+**17 октября — FILES-68 установлен на Odin/Flip.** По выбору владельца Social временно отложен; после оценки Files следующий блок — Browser. Файловые операции libfm-qt, общий Downloads, Papirus, верхние breadcrumbs и нижнее ушко доставлены. #229 сохраняет физическую и расширенную приёмку. [Проверки и границы](FILES68_IMPLEMENTATION.md).
+
+**Предыдущий блок: SOCIAL-67 — Discover и выход/удаление комьюнити.**
 Управление SOCIAL-66 принято владельцем. Приняты People/Communities, реальные
 напарники, native TrainerOS discovery, preview/Join и штатные leave/delete с
 проверкой Fluxer. [Точный план и доказательства](SOCIAL67_DISCOVER.md).

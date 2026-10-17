@@ -1,0 +1,62 @@
+{
+  "repository": "PapirusDevelopmentTeam/papirus-icon-theme",
+  "revision": "bf539287ef5dc18529424a02cccee76175920a6f",
+  "icons": {
+    "folder": {
+      "source": "Papirus/48x48/places/folder-yellow.svg",
+      "resolved": "Papirus/48x48/places/folder-yellow.svg"
+    },
+    "home": {
+      "source": "Papirus/48x48/places/user-home.svg",
+      "resolved": "Papirus/48x48/places/user-blue-home.svg"
+    },
+    "downloads": {
+      "source": "Papirus/48x48/places/folder-yellow-download.svg",
+      "resolved": "Papirus/48x48/places/folder-yellow-download.svg"
+    },
+    "pictures": {
+      "source": "Papirus/48x48/places/folder-yellow-pictures.svg",
+      "resolved": "Papirus/48x48/places/folder-yellow-pictures.svg"
+    },
+    "documents": {
+      "source": "Papirus/48x48/places/folder-yellow-documents.svg",
+      "resolved": "Papirus/48x48/places/folder-yellow-documents.svg"
+    },
+    "trash": {
+      "source": "Papirus/48x48/places/user-trash.svg",
+      "resolved": "Papirus/48x48/places/user-trash.svg"
+    },
+    "drive": {
+      "source": "Papirus/48x48/devices/drive-harddisk.svg",
+      "resolved": "Papirus/48x48/devices/drive-harddisk.svg"
+    },
+    "file": {
+      "source": "Papirus/48x48/mimetypes/text-x-generic.svg",
+      "resolved": "Papirus/48x48/mimetypes/text-x-generic.svg"
+    },
+    "image": {
+      "source": "Papirus/48x48/mimetypes/image-x-generic.svg",
+      "resolved": "Papirus/48x48/mimetypes/image-x-generic.svg"
+    },
+    "audio": {
+      "source": "Papirus/48x48/mimetypes/audio-x-generic.svg",
+      "resolved": "Papirus/48x48/mimetypes/audio-x-generic.svg"
+    },
+    "video": {
+      "source": "Papirus/48x48/mimetypes/video-x-generic.svg",
+      "resolved": "Papirus/48x48/mimetypes/video-x-generic.svg"
+    },
+    "archive": {
+      "source": "Papirus/48x48/mimetypes/package-x-generic.svg",
+      "resolved": "Papirus/48x48/apps/ark.svg"
+    },
+    "pdf": {
+      "source": "Papirus/48x48/mimetypes/application-pdf.svg",
+      "resolved": "Papirus/48x48/mimetypes/application-pdf.svg"
+    },
+    "network": {
+      "source": "Papirus/48x48/devices/network-wired.svg",
+      "resolved": "Papirus/48x48/devices/network-wired.svg"
+    }
+  }
+}

@@ -20,6 +20,7 @@
 #include "features/library/ScrapeController.h"
 #include "features/downloads/DownloadsController.h"
 #include "features/apps/AppsController.h"
+#include "features/files/FilesController.h"
 #include "features/settings/SettingsController.h"
 #include "features/device/DeviceController.h"
 #include "features/device/NetworkController.h"
@@ -38,6 +39,7 @@ class ShellController final : public QObject {
     Q_PROPERTY(trainer::DownloadsController* downloads READ downloads CONSTANT)
     Q_PROPERTY(bool canHoldConfirm READ canHoldConfirm NOTIFY changed)
     Q_PROPERTY(bool canEditWorld READ canEditWorld NOTIFY changed)
+    Q_PROPERTY(trainer::FilesController* files READ files CONSTANT)
     Q_PROPERTY(trainer::AppsController* apps READ apps CONSTANT)
     Q_PROPERTY(int page READ page NOTIFY changed)
     Q_PROPERTY(QString primaryId READ primaryId NOTIFY changed)
@@ -171,6 +173,7 @@ public:
     LibraryManagementController* libraryManager() { return &libraryManager_; }
     LibraryToolsController* libraryTools() {return &libraryTools_;}
     ScrapeController* scraper() {return &scraper_;}
+    FilesController* files(){return &files_;}
     AppsController* apps(){return &apps_;}
     DownloadsController* downloads() {return &downloads_;}
     bool canHoldConfirm() const;
@@ -335,6 +338,7 @@ private:
     LibraryToolsController libraryTools_;
     ScrapeController scraper_;
     AppsController apps_;
+    FilesController files_;
     DownloadsController downloads_;
     SettingsController settings_;
     DeviceController device_;
@@ -348,7 +352,7 @@ private:
     bool achievementPhotoReturn_=false;
     QJsonObject achievementPhotoNavigation_;
     QString service_;
-    enum class TextTarget { None, TrainerName, WorldsSearch, MultiverseSearch, Library, LibraryTools, Collections, Archive, Module, AchievementAccount, SetupName, Network, Social, Communication, Scraper };
+    enum class TextTarget { None, TrainerName, WorldsSearch, MultiverseSearch, Library, LibraryTools, Collections, Archive, Module, AchievementAccount, SetupName, Network, Social, Communication, Scraper, Files };
     TextTarget textTarget_ = TextTarget::None;
     QList<ContinueEntry> points_;
     QList<ContinueEntry> favorites_;

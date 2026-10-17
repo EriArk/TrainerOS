@@ -293,8 +293,28 @@ public:
             }
         });timer->start();
     }
+    static void files68(QQuickWindow* window,ShellController& shell,QString directory,bool& completed,int& warnings,QStringList& diagnostics) {
+        auto step=std::make_shared<int>(0);auto* timer=new QTimer(window);timer->setInterval(700);
+        const auto capture=[=](QString name){window->grabWindow().save(directory+"/"+name+".png");};
+        const auto folder=directory+"/Files preview";QDir().mkpath(folder+"/Adventures");QDir().mkpath(folder+"/Documents");QDir().mkpath(folder+"/Music");QDir().mkpath(folder+"/Screenshots");
+        for(const auto& name:QStringList{"Welcome.txt","Trainer notes.pdf","Music.ogg","Backup.zip","Journey.mp4"}){QFile f(folder+"/"+name);if(f.open(QIODevice::WriteOnly))f.write("Preview fixture");}
+        QObject::connect(timer,&QTimer::timeout,window,[=,&shell,&completed,&warnings,&diagnostics]{
+            switch((*step)++) {
+            case 0:window->resize(1600,900);shell.goToPage(ShellController::AppsPage);shell.selectFace(3);shell.files()->navigate(QUrl::fromLocalFile(folder).toString());break;
+            case 1:capture("files-grid-wide");shell.files()->command("view");break;
+            case 2:capture("files-list-wide");shell.files()->context(0);break;
+            case 3:capture("files-context");shell.files()->dispatch(Action::Back);window->resize(960,540);shell.files()->command("view");break;
+            case 4:capture("files-grid-small");shell.files()->context(0);shell.files()->command("delete");break;
+            case 5:capture("files-confirm");shell.files()->answer(0);shell.toggleQuickApps();break;
+            case 6:capture("files-quick-apps");shell.toggleQuickApps();shell.selectFace(0);shell.selectFace(3);break;
+            case 7:capture("files-return");break;
+            default:timer->stop();completed=true;QFile report(directory+"/files68-check.txt");if(report.open(QIODevice::WriteOnly))report.write((diagnostics.join('\n')+QString("\nqmlWarnings=%1\n").arg(warnings)).toUtf8());QCoreApplication::exit(warnings?4:0);
+            }
+        });timer->start();
+    }
     static void start(QQuickWindow* window,ShellController& shell,ControllerInput& input,SDL_Joystick* joystick,
                       QString directory,bool& completed,int& warnings,QStringList& diagnostics) {
+        if(qEnvironmentVariableIsSet("TRAINEROS_FILES68_SMOKE")){files68(window,shell,directory,completed,warnings,diagnostics);return;}
         if(qEnvironmentVariableIsSet("TRAINEROS_SOCIAL67_SMOKE")){social67(window,shell,directory,completed,warnings,diagnostics);return;}
         if(qEnvironmentVariableIsSet("TRAINEROS_SOCIAL65_SMOKE")){social65(window,shell,directory,completed,warnings,diagnostics);return;}
         if(qEnvironmentVariableIsSet("TRAINEROS_LOBBY_CATALOGUE_SMOKE")){catalogue(window,shell,input,joystick,directory,completed,warnings,diagnostics);return;}

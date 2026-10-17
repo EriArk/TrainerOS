@@ -230,8 +230,23 @@ class Service:
             self.heartbeat = time.monotonic()
             if self.lease: self.lease.ping()
         elif op == 'refresh': self.apps = catalogue(self.Gio); self.publish()
-        elif op == 'launch' and not self.pending:
-            if app_id in self.sessions: self.activate(app_id); return
+        elif op in ('launch', 'open-file') and not self.pending:
+            uris = []
+            if op == 'open-file':
+                from urllib.parse import urlsplit
+                uri = message.get('url', '')
+                parsed = urlsplit(uri)
+                if parsed.scheme not in ('file', 'smb', 'sftp', 'ftp', 'dav', 'davs') or parsed.password:
+                    raise ValueError('Unsupported file location.')
+                content_type, uncertain = self.Gio.content_type_guess(parsed.path, None)
+                # A desktop entry is a document here, never an instruction to execute.
+                if content_type == 'application/x-desktop': content_type = 'text/plain'
+                handler = self.Gio.AppInfo.get_default_for_type(content_type, parsed.scheme != 'file')
+                if handler is None: raise ValueError('No installed application can open this file type.')
+                app_id = handler.get_id()
+                if app_id not in self.apps: self.apps = catalogue(self.Gio)
+                uris = [uri]
+            elif app_id in self.sessions: self.activate(app_id); return
             if app_id not in self.apps: raise ValueError('This application is no longer installed.')
             self.acquire()
             app = self.apps[app_id][0]
@@ -247,7 +262,7 @@ class Service:
                 try: pids.append((pid, identity(pid)))
                 except OSError: pass
             try:
-                app.launch_uris_as_manager([], context, self.GLib.SpawnFlags.SEARCH_PATH,
+                app.launch_uris_as_manager(uris, context, self.GLib.SpawnFlags.SEARCH_PATH,
                                            None, None, started, None)
             except Exception:
                 self.release(); raise

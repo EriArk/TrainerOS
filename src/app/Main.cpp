@@ -380,6 +380,7 @@ int main(int argc, char* argv[]) {
                 shell.keyboard()->configure(stateDirectory,ready ? store->ownerId() : QString());
                 shell.collectionManager()->configure(stateDirectory,ready?store->ownerId():QString());
                 shell.apps()->configure(stateDirectory,ready?store->ownerId():QString());
+                shell.files()->configure(stateDirectory,ready?store->ownerId():QString());
                 shell.album()->configure(stateDirectory,ready?store->ownerId():QString());
             });
             QObject::connect(store.get(), &LocalStateStore::accessNeeded, &shell, [&] {
@@ -387,6 +388,7 @@ int main(int argc, char* argv[]) {
                 shell.keyboard()->configure(stateDirectory,{});
                 shell.collectionManager()->configure(stateDirectory,{});
                 shell.apps()->configure(stateDirectory,{});
+                shell.files()->configure(stateDirectory,{});
                 shell.album()->configure(stateDirectory,{});
             });
         }

@@ -12,6 +12,7 @@ Window {
     color: Theme.chassisDark
     readonly property real uiScale: shell.settings.displayDensity(Screen.width, Screen.height,
         width, height, shell.settings.displayProfile, shell.settings.interfaceScale)
+    Binding { target: controllerInput; property: "pointerMode"; value: filesPane.takesFocus && !adventureLaunch.active && !sessionState.blocked }
     AppControlsWindow { flow: shell.apps; bridge: appsOverlay }
     AdventureExitWindow {
         presentation: adventureExitPresentation
@@ -273,9 +274,10 @@ Window {
                 HomeDashboard { id: experienceHost; anchors.fill: parent; shell: shellController; visible: (!shell.serviceOpen || shell.service === "settings" || shell.service === "account-profile") && shell.primaryId === "home" }
                 GameHubPage { id: gameHubPage; anchors.fill: parent; shell: shellController; visible: (!shell.serviceOpen || shell.service === "settings" || shell.service === "account-profile") && shell.primaryId === "gamehub" }
                 AppsPage { anchors.fill: parent; flow: shell.apps; active: shell.primaryId === "apps" && shell.appsFace === "apps"; visible: (!shell.serviceOpen || shell.service === "settings" || shell.service === "account-profile") && active }
+                FilesPane { id: filesPane; anchors.fill: parent; flow: shell.files; applicationStatus: shell.apps.status; visible: !shell.serviceOpen && shell.primaryId === "apps" && shell.appsFace === "files"; takesFocus: visible && !shell.notice.length && !shell.drawerOpen && !shell.quickAppsOpen && !shell.keyboard.open && !shell.menuOpen && !shell.homeMenuOpen && !shell.files.view.menuOpen && !Object.keys(shell.files.dialog).length }
                 WorkspacePlaceholder {
                     anchors.fill: parent
-                    visible: (!shell.serviceOpen || shell.service === "settings" || shell.service === "account-profile") && shell.primaryId === "apps" && shell.appsFace !== "apps"
+                    visible: (!shell.serviceOpen || shell.service === "settings" || shell.service === "account-profile") && shell.primaryId === "apps" && shell.appsFace !== "apps" && shell.appsFace !== "files"
                     title: shell.appsFace === "crates" ? "Crates" : shell.appsFace === "browser" ? "Browser" : "Files"
                     message: title + " is not available in this build."
                 }
@@ -308,6 +310,31 @@ Window {
             visible: !shell.serviceOpen && (shell.chooseAdventureAvailable || shell.drawerOpen || panelVisible)
             handlesRecessed: shell.quickAppsOpen || shell.drawerOpen || panelVisible || quickDrawer.panelVisible
             otherPanelVisible: quickDrawer.panelVisible
+        }
+        FilesControlTab {
+            id: filesTab
+            x: Theme.screenBounds.x + 2*Theme.adventureTabWidth - Theme.drawerHandleOverlap + 8
+            width: Theme.screenBounds.x + Theme.screenBounds.width - x
+            anchors.bottom: footer.top; flow: shell.files; z: 1
+            visible: !shell.serviceOpen && shell.primaryId === "apps" && shell.appsFace === "files"
+            takesFocus: filesPane.takesFocus
+            recessed: shell.drawerOpen || shell.quickAppsOpen || drawer.panelVisible || quickDrawer.panelVisible
+        }
+        FilesPopup { anchors.fill: parent; z: 7; flow: shell.files }
+        Item {
+            id: filesPointer; z: 6; width: 14; height: 18; visible: pointerTimer.running && filesPane.takesFocus
+            x: 500; y: 260
+            Shape { anchors.fill: parent; ShapePath { strokeColor: Theme.paper; strokeWidth: 1; fillColor: Theme.ink; PathSvg { path: "M 1 1 L 1 16 L 5 12 L 8 18 L 11 16 L 8 10 L 14 10 Z" } } }
+            Timer { id: pointerTimer; interval: 2500 }
+            Connections { target: controllerInput; function onPointerMoved(dx,dy) {
+                if(!filesPane.takesFocus)return
+                filesPointer.x=Math.max(Theme.screenBounds.x+3,Math.min(Theme.screenBounds.x+Theme.screenBounds.width-12,filesPointer.x+dx))
+                filesPointer.y=Math.max(Theme.screenBounds.y+Theme.contentTopInset,Math.min(Theme.footerTop-12,filesPointer.y+dy))
+                pointerTimer.restart()
+                const point=filesPane.mapFromItem(filesPointer.parent,filesPointer.x,filesPointer.y)
+                if(filesPointer.y >= Theme.footerTop-filesTab.height && filesPointer.x>=filesTab.x) filesTab.point(filesPointer.x-filesTab.x)
+                else filesPane.point(point.x,point.y)
+            } }
         }
         Item {
             id: footer
@@ -380,6 +407,7 @@ Window {
                 const experienceHints = experienceHost.hints(h)
                 if (experienceHints) return experienceHints
                 if (shell.page === 0) return [h("A",shell.homeGame.id ? (shell.liveGame.id === shell.homeGame.id ? "Return" : shell.home.actionHint) : "Collections"),h("Select","Game actions"),h("B","Back")]
+                if (shell.primaryId === "apps" && shell.appsFace === "files") return shell.files.view.menuOpen || Object.keys(shell.files.dialog).length ? [h("A","Select"),h("B","Close")] : [h("A","Open"),h("Hold A","Actions"),h("Select","Controls"),h("R3","View"),h("B","Back")]
                 if (shell.primaryId === "apps") return shell.apps.menu.length ? [h("↑↓","Choose"),h("A","Select"),h("B","Back")] : [h("A","Open"),h("Select","Options"),h("X","Quick Apps"),h("Y","Recent games"),h("B","Home")]
                 if (shell.primaryId === "gamehub") return gameHubPage.hints(h)
                 if (shell.primaryId === "social") return shell.social.hints

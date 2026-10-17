@@ -76,6 +76,8 @@ add_library(trainer_core STATIC
     src/features/home/HomeDashboardController.cpp
     src/features/home/ScreensController.cpp
     src/features/home/PlayerStory.cpp
+    src/features/files/FilesController.cpp
+    src/platform/files/FilesService.cpp
     src/features/apps/AppsController.cpp
     src/features/downloads/DownloadsController.cpp
     src/core/repository/BatoceraLibrary.cpp
@@ -297,6 +299,17 @@ qt_add_resources(trainer_core pokedex_reference PREFIX "/pokedex" BASE data FILE
 qt_add_resources(trainer_core emerald_reference PREFIX "/progress" BASE data FILES data/emerald-reference.json)
 qt_add_resources(trainer_core emerald_shops PREFIX "/progress" BASE data FILES data/emerald-shops.json)
 target_link_libraries(trainer_core PUBLIC Qt6Keychain::Qt6Keychain Qt6::WebSockets Qt6::Core Qt6::Gui Qt6::Sql Qt6::Network Qt6::Xml Qt6::Multimedia Qt6::Concurrent SDL2::SDL2 OpenSSL::Crypto)
+if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+    find_package(Qt6 REQUIRED COMPONENTS Widgets)
+    find_package(PkgConfig REQUIRED)
+    pkg_check_modules(FILES_GIO REQUIRED IMPORTED_TARGET gio-2.0)
+    find_library(FILES_FM_QT_LIBRARY NAMES fm-qt6 REQUIRED)
+    target_link_libraries(trainer_core PUBLIC ${FILES_FM_QT_LIBRARY} Qt6::Widgets PkgConfig::FILES_GIO)
+    set_source_files_properties(src/platform/files/FilesService.cpp PROPERTIES COMPILE_DEFINITIONS QT_NO_KEYWORDS)
+    target_compile_definitions(trainer_core PRIVATE TRAINER_WITH_LIBFM=1)
+    target_compile_options(trainer_core PRIVATE -fPIC)
+endif()
+
 target_compile_definitions(trainer_core PUBLIC SDL_MAIN_HANDLED)
 if(TRAINER_BUILD_PRACTICE_PROBE)
     qt_add_executable(trainer_practice_probe tools/ProbeEmeraldPractice.cpp)
@@ -350,6 +363,10 @@ qt_add_qml_module(traineros
         src/qml/GamePreview.qml
         src/qml/GameVideoPreview.qml
         src/qml/TrainerAccessPanel.qml
+        src/qml/FilesPane.qml
+        src/qml/FilesIcon.qml
+        src/qml/FilesControlTab.qml
+        src/qml/FilesPopup.qml
         src/qml/AppsPage.qml
     src/qml/AppsMenu.qml
         src/qml/AppsDock.qml
@@ -771,3 +788,19 @@ if(UNIX AND NOT APPLE)
             DESTINATION "${CMAKE_INSTALL_DATADIR}/applications")
 endif()
 # Session installation intentionally waits for validation on the ArmadaOS device.
+
+file(GLOB FILES_ICON_ASSETS CONFIGURE_DEPENDS assets/icons/files/*.svg)
+qt_add_resources(traineros files_icons PREFIX "/files-icons" BASE assets/icons/files FILES ${FILES_ICON_ASSETS})
+file(GLOB FILES_CONTROL_ASSETS CONFIGURE_DEPENDS assets/icons/files-controls/*.svg)
+qt_add_resources(traineros files_controls PREFIX "/files-controls" BASE assets/icons/files-controls FILES ${FILES_CONTROL_ASSETS})
+
+if(BUILD_TESTING)
+    add_executable(trainer_files_tests tests/FilesServiceTest.cpp)
+    target_link_libraries(trainer_files_tests PRIVATE trainer_core Qt6::Test)
+    add_test(NAME trainer_files_tests COMMAND trainer_files_tests)
+endif()
+
+if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+    set_property(TARGET traineros APPEND PROPERTY BUILD_RPATH "$ORIGIN/../lib/traineros-files")
+    set_property(TARGET traineros APPEND PROPERTY INSTALL_RPATH "$ORIGIN/../lib/traineros-files")
+endif()

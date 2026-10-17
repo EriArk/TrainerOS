@@ -70,3 +70,7 @@ Social uses unmodified **Phosphor Icons** regular SVGs under MIT, pinned to
 [assets/icons/phosphor/LICENSE](assets/icons/phosphor/LICENSE) and embedded in
 the application resources. Fluxer uses the same icon family. Its React application
 code is not bundled; the native client uses the provider's documented HTTP API.
+
+## Files: libfm-qt and Papirus (17 October 2026)
+
+Files uses the system libfm-qt 2.4 library (PCManFM-Qt, LGPL-2.1-or-later), without modifying its file operation implementation. Runtime dependencies retain their upstream licenses. Source: https://github.com/lxqt/libfm-qt. Selected Papirus SVG icons are GPL-3.0; exact source revision, license and authors are preserved in `assets/icons/files/`. Files controls reuse the existing Phosphor MIT / original TrainerOS icon notices in `assets/icons/files-controls/README.md`.

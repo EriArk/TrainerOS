@@ -20,6 +20,7 @@ struct ControllerSample {
 };
 class ControllerInput final : public QObject {
     Q_OBJECT
+    Q_PROPERTY(bool pointerMode READ pointerMode WRITE setPointerMode)
     Q_PROPERTY(bool connected READ connected NOTIFY connectionChanged)
 public:
     // Switch-style shell: printed A at the right confirms; printed B below
@@ -36,6 +37,8 @@ public:
     QString kernelDeviceName() const;
     void setEnabled(bool enabled);
     void setHoldConfirmEnabled(bool enabled);
+    bool pointerMode() const{return pointerMode_;}
+    void setPointerMode(bool enabled){pointerMode_=enabled;}
     void setTextEntryEnabled(bool enabled) { textEntryEnabled_=enabled; }
     void requireNeutral();
     void poll();
@@ -49,10 +52,12 @@ signals:
     void textSubmitted();
     void connectionChanged();
     void sampled();
+    void pointerMoved(qreal dx,qreal dy);
     void observedAction(trainer::Action action, bool fromController);
 private:
     void deliver(Action action, bool fromController);
     std::optional<Action> direction(float x, float y, const std::array<bool, SDL_CONTROLLER_BUTTON_MAX>& buttons);
+    bool pointerMode_=false;
     bool holdConfirmEnabled_ = false, confirmPending_ = false;
     qint64 confirmStarted_ = 0;
     bool initialized_ = false;

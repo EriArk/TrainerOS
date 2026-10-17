@@ -1,0 +1,1 @@
+Interface controls reuse the adjacent Phosphor family and its MIT license. Existing TrainerOS arrow-left and magnifying-glass outlines retain GPL-3.0-or-later. Foreground colors were adapted for the TrainerOS chassis; shapes are unchanged. See ../phosphor/README.md and ../phosphor/LICENSE.

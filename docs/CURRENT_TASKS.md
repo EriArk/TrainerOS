@@ -1,8 +1,10 @@
 # Current tasks
 
+**17 октября — FILES-68 установлен на Odin/Flip.** По выбору владельца Social временно отложен; сначала встроенный Files, затем Browser. Места слева, тонкие breadcrumbs сверху, управление в нижнем ушке с промежутком после Y; libfm-qt и Papirus. ARM: 13 проверок прошли; UI на обоих устройствах просмотрен, Copy/Paste/Keep both проверены на Odin. Физическая приёмка и сложные сценарии накопителей остаются открытыми. [Результат и границы](FILES68_IMPLEMENTATION.md).
+
 <a id="active-screen-checklist"></a>
 
-## Сейчас: Social — согласованный Discover и выход/удаление комьюнити
+## Предыдущий блок: Social — Discover и выход/удаление комьюнити
 
 Владелец принял управление SOCIAL-66 и согласовал [SOCIAL-67](SOCIAL67_DISCOVER.md):
 People/Communities, native discovery, Recently Together после реальной игры,

@@ -202,6 +202,15 @@ ShellController::ShellController(LibraryRepository& repo, TrainerRepository& pro
     connect(&settings_, &SettingsController::trainerRequested, this, [this](int index) {
         trainerSettingsAction(index);
     });
+    connect(&files_, &FilesController::changed, this, &ShellController::changed);
+    connect(&files_, &FilesController::textRequested, this, [this](QString title,QString text,int limit){textTarget_=TextTarget::Files;keyboard_.begin(title,text,limit);});
+    connect(&files_, &FilesController::openRequested, &apps_, &AppsController::openFile);
+    connect(files_.service(), &FilesService::changed, this, [this]{downloads_.publish("files",files_.service()->tasks());});
+    connect(&downloads_, &DownloadsController::commandRequested, this, [this](QString provider,QString task,QString command){
+        if(provider!="files")return;
+        if(command=="cancel"||command=="cancel-all")files_.service()->cancel(task);
+        if(command=="resolve"){downloads_.close();goToPage(AppsPage);selectFace(3);}
+    });
     connect(&apps_, &AppsController::changed, this, &ShellController::changed);
     connect(&apps_, &AppsController::foregroundRequested, this, [this]{
         if(quickAppsOpen_){quickAppsOpen_=false;apps_.leave();emit changed();}
@@ -302,6 +311,7 @@ ShellController::ShellController(LibraryRepository& repo, TrainerRepository& pro
         else if(target==TextTarget::Module){if(textModule_ && textModule_==activeModule_ && textGeneration_==experience_.generation())textModule_->applyText(text);textModule_=nullptr;}
         else if (target == TextTarget::Network) network_.applyText(text);
         else if (target == TextTarget::Social) social_.applyText(text);
+        else if (target == TextTarget::Files) files_.applyText(text);
         else if (target == TextTarget::Scraper) scraper_.applyText(text);
         else if (target == TextTarget::Communication) settings_.communication()->applyText(text);
     });
@@ -336,6 +346,7 @@ QString ShellController::currentAdventureId() const {
     return repository_.home().activeAdventureId;
 }
 bool ShellController::canHoldConfirm() const {
+    if(page_==AppsPage && appsFace_=="files" && files_.view()["area"]=="files" && service_.isEmpty() && !files_.modal() && !files_.menuOpen() && !keyboard_.isOpen() && !menuOpen_ && !homeMenuOpen_ && !quickAppsOpen_ && !drawerOpen_ && notice_.isEmpty())return true;
     if(page_!=1 || !repository_.editable() || homeMenuOpen_ || menuOpen_ || !notice_.isEmpty() || !service_.isEmpty()
         || keyboard_.isOpen() || drawerOpen_ || libraryTools_.isOpen() || multiverse_.collectionManager()->isOpen())return false;
     if(collectionsRoot_)return false;
@@ -349,7 +360,7 @@ bool ShellController::canEditWorld() const {
         && !drawerOpen_ && !libraryTools_.isOpen() && !worlds_.region().value("id").toString().isEmpty();
 }
 bool ShellController::localModalOpen() {
-    return social_.files()->picker()->isOpen() || (social_.myLobbiesOpen() || social_.lobbyCreateOpen() || social_.lobbyPicker()["open"].toBool() || social_.lobbyPicker()["voteOpen"].toBool()) || collectionManager()->isOpen() || downloads_.isOpen() || scraper_.isOpen() || (socialActive() && !social_.menu().isEmpty()) || libraryTools_.isOpen() || trainer_.editing()
+    return files_.modal() || social_.files()->picker()->isOpen() || (social_.myLobbiesOpen() || social_.lobbyCreateOpen() || social_.lobbyPicker()["open"].toBool() || social_.lobbyPicker()["voteOpen"].toBool()) || collectionManager()->isOpen() || downloads_.isOpen() || scraper_.isOpen() || (socialActive() && !social_.menu().isEmpty()) || libraryTools_.isOpen() || trainer_.editing()
         || (adapterActive() && activeModule_ && activeModule_->modalOpen())
         || (page_==GameHubPage && hubFace_=="ra" && (hall_.editor()->isOpen() || hall_.account()->isOpen() || hall_.galleryMenuOpen() || hall_.route()=="achievement-detail"));
 }
@@ -409,7 +420,7 @@ void ShellController::selectFace(int index) {
     else if(page_==SocialPage) {
         socialFace_=QStringList{"chats","communities","friends"}.value(index,"chats");
         social_.setFace(socialFace_);
-    } else if(page_==AppsPage)appsFace_=QStringList{"apps","crates","browser","files"}.value(index,"apps");
+    } else if(page_==AppsPage){files_.leave();appsFace_=QStringList{"apps","crates","browser","files"}.value(index,"apps");if(appsFace_=="files")files_.enter();}
     else if(page_==GamesPage && !collectionsRoot_) {
         const auto rows=gamesRootZone_=="platforms"?gamesPlatforms():gamesCollections();
         openGamesRootItem(gamesRootZone_,rows.value(index).toMap()["id"].toString());
@@ -985,7 +996,7 @@ void ShellController::goToPage(int page) {
     { PerformanceTrace::Scope phase("navigation.keyboard"); if(textTarget_==TextTarget::Social)social_.preserveText(keyboard_.text()); keyboard_.cancel(); }
     if(textModule_){textModule_->cancelText();textModule_=nullptr;}
     textTarget_ = TextTarget::None;
-    apps_.leave(true);
+    apps_.leave(true);files_.leave();
     social_.closeMenu();
     { PerformanceTrace::Scope phase("navigation.archive"); hall_.editor()->cancel(); }
     { PerformanceTrace::Scope phase("navigation.account"); hall_.account()->close(); }
@@ -994,7 +1005,7 @@ void ShellController::goToPage(int page) {
     { PerformanceTrace::Scope phase("navigation.manager"); libraryManager_.close(); service_.clear(); }
     page_ = std::clamp(page, 0, int(primaryNames().size())-1); // No wrapping until physical-device testing.
     quickAppsOpen_=false;
-    if(page_==AppsPage)apps_.refresh();
+    if(page_==AppsPage){apps_.refresh();if(appsFace_=="files")files_.enter();}
     if(page_==SocialPage)social_.setFace(socialFace_);
     if(page_==1 && multiverseFace_)multiverse_.setCollection(worldCollection_);
     // Primary tabs resume their existing route and focus. Only explicit Back
@@ -1485,11 +1496,13 @@ void ShellController::dispatch(Action action) {
                 && pairedNavigationAvailable() && !navigationLocked()
                 && !social_.online()["open"].toBool() && !moduleInvitation()["open"].toBool())
             emit multiverse_.scrollRequested(action==Action::ScrollDown?1:-1);
+        else if(page_==AppsPage && appsFace_=="files" && !keyboard_.isOpen() && !menuOpen_ && !homeMenuOpen_ && !files_.modal() && !drawerOpen_ && !quickAppsOpen_)files_.dispatch(action);
         return;
     }
     if(keyboard_.isOpen()&&!menuOpen_&&!homeMenuOpen_&&notice_.isEmpty()&&!downloads_.isOpen()&&!social_.online()["open"].toBool()
        &&(action==Action::PreviousFace||action==Action::NextFace)){keyboard_.dispatch(action);return;}
     if(downloads_.isOpen()){downloads_.dispatch(action);return;}
+    if(files_.modal()){files_.dispatch(action);return;}
     if(scraper_.isOpen()&&action==Action::SystemMenu&&!keyboard_.isOpen()){menuFocus_=scraper_.selectingSystems()?13:12;scraper_.hide();menuOpen_=true;emit changed();return;}
     if(social_.online()["open"].toBool()) {
         if(action==Action::Confirm)social_.answerOnline(true);
@@ -1534,6 +1547,11 @@ void ShellController::dispatch(Action action) {
         if(keyboard_.isOpen())keyboard_.dispatch(action);
         else settings_.communication()->dispatch(action);
         return;
+    }
+    if(page_==AppsPage && appsFace_=="files" && !keyboard_.isOpen() && !menuOpen_ && !homeMenuOpen_ && notice_.isEmpty() && !quickAppsOpen_ && !drawerOpen_) {
+        if(files_.menuOpen() && action!=Action::PreviousPage && action!=Action::NextPage && action!=Action::PreviousFace && action!=Action::NextFace && action!=Action::Secondary && action!=Action::ToggleContinue && action!=Action::SystemMenu && action!=Action::Home){files_.dispatch(action);return;}
+        if(action==Action::LocalAction || action==Action::ContextMenu){files_.dispatch(action);return;}
+        if(action==Action::Secondary || action==Action::ToggleContinue)files_.leave();
     }
     if(!keyboard_.isOpen() && !menuOpen_ && !homeMenuOpen_ && !apps_.menu().isEmpty()) {
         if(action==Action::Secondary || action==Action::ToggleContinue)apps_.menuAction(3);
@@ -1678,7 +1696,7 @@ void ShellController::dispatch(Action action) {
             return;
         }
         if(dispatchGameHub(action))return;
-        if (page_ == AppsPage) { if(appsFace_=="apps")apps_.dispatch(action);else if(action==Action::Back)selectFace(0); return; }
+        if (page_ == AppsPage) { if(appsFace_=="apps")apps_.dispatch(action);else if(appsFace_=="files")files_.dispatch(action);else if(action==Action::Back)selectFace(0); return; }
         if (page_ == SocialPage) { social_.dispatch(action); return; }
     }
     if (menuOpen_ && !powerMenu_ && notice_.isEmpty() && action == Action::Secondary) {

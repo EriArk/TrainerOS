@@ -1,5 +1,7 @@
 # AGENTS.md — TrainerOS
 
+**Owner Files layout, 17 October 2026:** Social is temporarily paused; deliver embedded Files before Browser. Keep places/volumes left, thin translucent breadcrumbs above, and compact controls BELOW in an X-style chassis-grown tab between Y and the right wall. Leave a small clear gap after Y. Use attractive coherent folder/file icons; preserve current Quick Apps geometry. See docs/FILES68_IMPLEMENTATION.md.
+
 **17 октября — SOCIAL-67 согласован:** владелец принял управление SOCIAL-66.
 Discover: People / Communities, общий ввод ссылок/кодов, лента Recently Together
 после реальной совместной игры, три карточки TrainerOS-комьюнити в ряд,

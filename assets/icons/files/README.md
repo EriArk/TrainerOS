@@ -1,0 +1,1 @@
+Papirus selected SVG icons, GPL-3.0. Original files, no artwork edits; symbolic links resolved to SVG content. Source revision and each source path are recorded in SOURCE.json. Full upstream LICENSE and AUTHORS are included. Only this bounded set is bundled, not the full system icon theme.
