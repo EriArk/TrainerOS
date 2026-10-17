@@ -77,16 +77,21 @@ void MultiversePresentation::refresh() {
     emit libraryChanged(); emit gamesChanged(); emit changed();
 }
 
-bool MultiversePresentation::belongs(const Game& game) const {
-    if(collection_=="multiverse")return true;
-    if(collection_.startsWith("auto:") || collection_.startsWith("user:")) {
+bool MultiversePresentation::belongsToCollection(const QString& id,const QString& collection) const {
+    for(const auto& game:entries_)if(game.id==id)return belongs(game,collection);
+    return false;
+}
+bool MultiversePresentation::belongs(const Game& game) const {return belongs(game,collection_);}
+bool MultiversePresentation::belongs(const Game& game,const QString& collection) const {
+    if(collection=="multiverse")return true;
+    if(collection.startsWith("auto:") || collection.startsWith("user:")) {
         if(!collections_ || !repository_)return false;
         const auto record=repository_->registration(game.id);
-        if(record)return collections_->contains(collection_,record->adventure);
-        for(const auto& a:repository_->adventures())if(a.id==game.id)return collections_->contains(collection_,a);
+        if(record)return collections_->contains(collection,record->adventure);
+        for(const auto& a:repository_->adventures())if(a.id==game.id)return collections_->contains(collection,a);
         return false;
     }
-    return (game.series.isEmpty()?seriesForTitle(game.title):game.series)==collection_;
+    return (game.series.isEmpty()?seriesForTitle(game.title):game.series)==collection;
 }
 QString MultiversePresentation::collectionName() const {
     if(collection_=="multiverse")return "All games";

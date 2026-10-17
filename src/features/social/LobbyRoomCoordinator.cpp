@@ -119,9 +119,9 @@ void LobbyRoomCoordinator::sendInvitation(const QString& peer) {
 bool LobbyRoomCoordinator::setDetails(QString title,qint64 startsAt) {
     return hosting()&&session_.setDetails(self_,std::move(title),startsAt);
 }
-bool LobbyRoomCoordinator::join(const QString& host,const QString& lobby,bool request) {
+bool LobbyRoomCoordinator::join(const QString& host,const QString& lobby,bool request,bool watch) {
     if(!online_||hosting()||!host_.isEmpty()||!identifier(host)||host==self_||QUuid(lobby).isNull())return false;
-    host_=host;joining_=lobby;joiningRequest_=request;joinedAt_=hostSeen_=now();reconnect();emit changed();return true;
+    host_=host;joining_=lobby;joiningRequest_=request;joiningWatch_=watch;joinedAt_=hostSeen_=now();reconnect();emit changed();return true;
 }
 void LobbyRoomCoordinator::answer(bool accept) {
     const auto offer=invitation_;invitation_={};emit changed();
@@ -129,7 +129,7 @@ void LobbyRoomCoordinator::answer(bool accept) {
 }
 bool LobbyRoomCoordinator::approve(const QString& peer) {
     if(!hosting()||!requests_.contains(peer))return false;
-    const auto name=requests_.take(peer);seen_[peer]=now();return session_.approve(self_,peer,name);
+    const auto name=requests_.take(peer);seen_[peer]=now();return session_.approve(self_,peer,name,watchRequests_.remove(peer));
 }
 void LobbyRoomCoordinator::leave() {
     const auto departing=state()["id"].toString();
@@ -234,6 +234,9 @@ bool LobbyRoomCoordinator::admitLive(QString peer,QString operation,int seat) {
 void LobbyRoomCoordinator::rejectLive(QString peer,QString operation) {
     send(peer,"live-rejected",{{"operation",operation}});
 }
+bool LobbyRoomCoordinator::proposeVote(const QJsonArray& choices){return hosting()&&session_.proposeVote(self_,choices);}
+bool LobbyRoomCoordinator::vote(QString id,int choice){if(hosting())return session_.vote(self_,id,choice);if(!online_||restoring_||remote_.value("vote").toObject()["id"]!=id)return false;send(host_,"vote",{{"id",id},{"choice",choice}});return true;}
+bool LobbyRoomCoordinator::confirmVote(QString id,int choice){return hosting()&&session_.confirmVote(self_,id,choice);}
 bool LobbyRoomCoordinator::validState(const QJsonObject& s,const QString& host) {
     if(s["title"].toString().size()>80||s["startsAt"].toInteger()<0||s["startsAt"].toInteger()>4102444800LL)return false;
     if(!identifier(host)||!QStringList{"private","public","approval"}.contains(s["access"].toString()))return false;
@@ -251,6 +254,17 @@ bool LobbyRoomCoordinator::validState(const QJsonObject& s,const QString& host) 
         const auto m=value.toObject();const auto id=m["id"].toString();const auto seat=m["seat"].toInt(-1);
         if(!identifier(id)||identities.contains(id)||m["name"].toString().trimmed().isEmpty()||m["name"].toString().size()>100||seat<0||seat>capacity||(seat&&seats.contains(seat)))return false;
         identities.insert(id);if(seat)seats.insert(seat);
+    }
+    const auto ballot=s["vote"].toObject();
+    if(!ballot.isEmpty()) {
+        if(QUuid(ballot["id"].toString()).isNull())return false;
+        const auto choices=ballot["choices"].toArray();if(choices.size()<2||choices.size()>4)return false;
+        QSet<QString> options;
+        for(const auto& v:choices){const auto g=v.toObject();const auto id=g["id"].toString(),mode=g["mode"].toString();
+            if(id.isEmpty()||id.size()>128||mode.isEmpty()||mode.size()>64||g["title"].toString().trimmed().isEmpty()||g["title"].toString().size()>160||g["platform"].toString().isEmpty()||g["platform"].toString().size()>32||g["seats"].toInt()<1||g["seats"].toInt()>16||options.contains(id+"/"+mode))return false;
+            options.insert(id+"/"+mode);
+        }
+        const auto votes=ballot["votes"].toObject();for(auto it=votes.begin();it!=votes.end();++it)if(!identities.contains(it.key())||!it.value().isDouble()||it.value().toInt(-1)<0||it.value().toInt()>=choices.size())return false;
     }
     return identities.contains(host);
 }
@@ -299,7 +313,7 @@ void LobbyRoomCoordinator::receive(QString peer,QString name,const QJsonObject& 
             // Bind before join emits state, so a synchronous prepared reply is
             // authenticated against this incarnation as well.
             peerBoots_[peer]=boot;peerSerials_[peer]=serial;
-            if(session_.join(peer,name.left(100),now())) {
+            if(session_.join(peer,name.left(100),now(),data["watch"].toBool())) {
                 if(!previous.isEmpty()&&previous!=boot) {
                     retiredBoots_[peer+"/"+previous]=now()+180;session_.connected(peer,false);session_.connected(peer,true);
                 }
@@ -308,7 +322,7 @@ void LobbyRoomCoordinator::receive(QString peer,QString name,const QJsonObject& 
             else if((session_.state()["access"]=="approval"||data["request"].toBool())&&requests_.size()<32
                     &&(session_.state()["phase"]=="choosing"||session_.state()["phase"]=="gathering"||session_.state()["phase"]=="playing")) {
                 if(!previous.isEmpty()&&previous!=boot)retiredBoots_[peer+"/"+previous]=now()+180;
-                peerBoots_[peer]=boot;peerSerials_[peer]=serial;requests_[peer]=name.left(100);seen_[peer]=now();emit changed();
+                peerBoots_[peer]=boot;peerSerials_[peer]=serial;requests_[peer]=name.left(100);if(data["watch"].toBool())watchRequests_.insert(peer);else watchRequests_.remove(peer);seen_[peer]=now();emit changed();
             }
             else {peerBoots_[peer]=previous;peerSerials_[peer]=previousSerial;send(peer,"rejected",{},probe);}
             return;
@@ -326,6 +340,7 @@ void LobbyRoomCoordinator::receive(QString peer,QString name,const QJsonObject& 
             }
             return;
         }
+        if(kind=="vote"&&p["generation"]==session_.state()["generation"]){session_.vote(peer,data["id"].toString(),data["choice"].toInt(-1));return;}
         if(kind=="ping") {session_.connected(peer,true);send(peer,"state",session_.state(),probe);return;}
         if(kind=="live-request"&&p["generation"]==session_.state()["generation"]&&data["ticket"]==session_.state()["ticket"]&&!QUuid(data["operation"].toString()).isNull()) {
             const auto operation=data["operation"].toString();const int seat=session_.liveSeat(peer);

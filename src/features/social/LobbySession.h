@@ -23,12 +23,15 @@ public:
     bool setDetails(const QString& actor,QString title,qint64 startsAt);
     bool setConversation(const QString& actor,QString channel);
     bool invite(const QString& actor,QString peer,qint64 expiresAt);
-    bool join(QString peer,QString name,qint64 now);
-    bool approve(const QString& actor,const QString& peer,QString name);
+    bool join(QString peer,QString name,qint64 now,bool watch=false);
+    bool approve(const QString& actor,const QString& peer,QString name,bool watch=false);
     bool leave(const QString& peer);
     bool remove(const QString& actor,const QString& peer);
     bool close(const QString& actor);
     bool selectGame(const QString& actor,const Game& game);
+    bool proposeVote(const QString& actor,const QJsonArray& choices);
+    bool vote(const QString& actor,QString id,int choice);
+    bool confirmVote(const QString& actor,QString id,int choice);
     bool spectate(const QString& peer,bool value,quint64 generation);
     bool claimSeat(const QString& peer,int seat,quint64 generation);
     bool prepared(const QString& peer,quint64 generation,bool value);
@@ -66,5 +69,6 @@ private:
     bool liveJoining_=false;
     QString title_;
     qint64 startsAt_=0;
+    QJsonObject ballot_;
 };
 }

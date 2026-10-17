@@ -64,9 +64,9 @@ bool LobbyCoordinator::activateRoom(const QString& id) {
     for(const auto& v:s["members"].toArray())if(v.toObject()["id"]==self_&&v.toObject()["ready"].toBool())return false;
     active_->allowRuntime(false);active_=r;r->allowRuntime(true);saveIndex();emit changed();emit roomsChanged();return true;
 }
-bool LobbyCoordinator::join(const QString& host,const QString& id,bool request) {
+bool LobbyCoordinator::join(const QString& host,const QString& id,bool request,bool watch) {
     auto* r=room(id);if(!r){if(rooms_.size()>=150)return false;r=active_->state().isEmpty()?active_:appendRoom();}
-    const bool ok=r->join(host,id,request);if(ok&&active_->state().isEmpty())activateRoom(id);return ok;
+    const bool ok=r->join(host,id,request,watch);if(ok&&active_->state().isEmpty())activateRoom(id);return ok;
 }
 QJsonObject LobbyCoordinator::invitation() const {
     for(auto* r:rooms_)if(!r->invitation().isEmpty())return r->invitation();return {};

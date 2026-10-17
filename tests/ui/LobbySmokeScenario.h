@@ -81,6 +81,7 @@ public:
             case 6:
                 capture("catalogue-960");social->selectLobby(0);if(social->myLobbiesOpen())social->chooseMyLobby(social->lobbyState()["id"].toString());break;
             case 7:
+                if(social->lobbyCreateOpen())social->submitLobbyDraft();
                 check(social->lobbyState()["phase"]=="choosing","Create enters existing game-free room");
                 capture("catalogue-own-room");social->lobbyAction("browse");break;
             case 8:
@@ -102,7 +103,7 @@ public:
             case 14:capture("catalogue-controller-rail-960");if(!qEnvironmentVariableIsSet("TRAINEROS_LOBBY_ROOM_SMOKE"))*step=99;break;
             case 15: {
                 social->lobbyRuntime_.registerService("netplay",new LobbyRoomSmokeRuntime(window));
-                social->selectLobby(0);if(social->myLobbiesOpen())social->chooseMyLobby(social->lobbyState()["id"].toString());social->lobby_.setDetails("One more round",QDateTime::currentSecsSinceEpoch()+3600);
+                social->selectLobby(0);if(social->myLobbiesOpen())social->chooseMyLobby(social->lobbyState()["id"].toString());if(social->lobbyCreateOpen())social->submitLobbyDraft();social->lobby_.setDetails("One more round",QDateTime::currentSecsSinceEpoch()+3600);
                 for(int i=2;i<=4;++i) {
                     const auto id=QString::number(i),name=QStringList{"Ren","Luna With A Long Nickname","Nori"}[i-2];
                     auto* guest=new LobbyCoordinator(window);guest->configure(id,name,true);
@@ -171,6 +172,20 @@ public:
                 capture("home-my-lobbies");social->showMyLobbies();window->resize(1600,900);break;
             case 29:
                 capture("my-lobbies-wide");press(ControllerInput::BackButton);check(shell.page()==0,"Closing My Lobbies preserves Home");break;
+            case 30:
+                social->createAnotherLobby();window->resize(960,540);break;
+            case 31:
+                check(social->lobbyCreateOpen(),"Creation opens a form, not a room");check(social->myLobbies().size()==2,"Opening the form does not create membership");capture("create-handheld");
+                social->lobbyDraftAction("category:party-games");social->lobbyDraftAction("access:approval");window->resize(1600,900);break;
+            case 32:
+                capture("create-wide");social->cancelLobbyDraft();social->createAnotherLobby();check(social->lobbyDraft()["access"]=="private","Closing discards all entered fields");
+                social->setLobbyGames({QVariantMap{{"key","kart"},{"id","kart-id"},{"title","Super Mario Kart"},{"platform","snes"},{"mode","netplay"},{"modeLabel","NetPlay"},{"seats",2}},QVariantMap{{"key","bomber"},{"id","bomber-id"},{"title","Bomberman"},{"platform","nes"},{"mode","netplay"},{"modeLabel","NetPlay"},{"seats",2}}});social->openLobbyPicker();break;
+            case 33:
+                capture("game-picker");social->lobbyPickerAction("pick:kart");social->lobbyPickerAction("pick:bomber");press(SDL_CONTROLLER_BUTTON_X);check(!social->lobbyPicker()["open"].toBool(),"Y applies the picker selection through controller routing");break;
+            case 34:
+                capture("create-vote-selection");social->submitLobbyDraft();check(social->myLobbies().size()==3,"Confirm creates exactly one room");social->lobbyAction("vote");break;
+            case 35:
+                capture("game-vote");social->lobbyPickerAction("vote-close");break;
             default:
                 timer->stop();completed=true;QFile report(directory+"/catalogue-check.txt");
                 if(report.open(QIODevice::WriteOnly))report.write((diagnostics.join('\n')+QString("\nqmlWarnings=%1\n").arg(warnings)).toUtf8());

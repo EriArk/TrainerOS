@@ -37,6 +37,7 @@ add_library(trainer_core STATIC
     src/features/social/SocialLobby.cpp
     src/features/social/SocialLobbyRoom.cpp
     src/features/social/SocialMyLobbies.cpp
+    src/features/social/SocialLobbyCreation.cpp
     src/features/social/SocialRecent.cpp
     src/features/social/LobbySession.cpp
     src/features/social/LobbyCoordinator.cpp
@@ -423,6 +424,9 @@ qt_add_qml_module(traineros
         src/qml/LobbyPane.qml
         src/qml/LobbyRoom.qml
         src/qml/MyLobbiesPopup.qml
+        src/qml/LobbyCreatePopup.qml
+        src/qml/LobbyGamePicker.qml
+        src/qml/LobbyVotePopup.qml
         src/qml/LobbyAvatar.qml
         src/qml/LobbyCatalogue.qml
         src/qml/RecentTogetherPane.qml

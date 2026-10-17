@@ -9,6 +9,9 @@ namespace trainer {
 class LobbyRoomCoordinator final : public QObject {
     Q_OBJECT
 public:
+    bool proposeVote(const QJsonArray& choices);
+    bool vote(QString id,int choice);
+    bool confirmVote(QString id,int choice);
     void allowRuntime(bool enabled);
     void reconcileProvider(QString channel,QString owner,QJsonArray members);
     void forgetMembership();
@@ -23,7 +26,7 @@ public:
     void setPublicationTopic(QString topic) {publicationTopic_=std::move(topic);save();}
     bool create(QString access="private");
     bool invite(const QString& peer);
-    bool join(const QString& host,const QString& lobby,bool request=false);
+    bool join(const QString& host,const QString& lobby,bool request=false,bool watch=false);
     void answer(bool accept);
     bool approve(const QString& peer);
     void leave();
@@ -97,7 +100,8 @@ private:
     bool online_=false;
     bool runtimeAllowed_=true;
     QSet<QString> providerMembers_;
-    bool joiningRequest_=false;
+    bool joiningRequest_=false,joiningWatch_=false;
+    QSet<QString> watchRequests_;
     QJsonObject remote_,invitation_;
     QMap<QString,QString> requests_;
     QMap<QString,QString> playRequests_;

@@ -119,7 +119,7 @@ void SocialController::openLobbyForPeople(QString peer,QString conversation) {
     QVariantMap chat;
     if(!conversation.isEmpty())for(const auto& v:snapshot_["chats"].toList())if(v.toMap()["id"]==conversation) {chat=v.toMap();break;}
     if(!conversation.isEmpty()&&chat.isEmpty())return;
-    if(viewedLobby().state().isEmpty()&&!viewedLobby().create())return;
+    if(viewedLobby().state().isEmpty()){if(!lobbyCreateOpen_)createAnotherLobby();lobbyDraftPeer_=peer;lobbyDraftConversation_=conversation;return;}
     if(viewedLobby().hosting()) {
         if(chat["kind"]=="groups") {
             if(viewedLobby().state()["conversation"].toString().isEmpty())viewedLobby().setConversation(conversation);
@@ -138,7 +138,10 @@ void SocialController::openLobbyForGame(const QString& key) {
         toastTitle_="Play together";toastText_="This game's multiplayer runtime is not available yet.";
         toastTimer_.start();emit presentationChanged();return;
     }
-    if(viewedLobby().state().isEmpty())viewedLobby().create();
+    if(viewedLobby().state().isEmpty()) {
+        createAnotherLobby();int modes=0;for(const auto& v:lobbyGames_)if(v.toMap().value("adventure",v.toMap()["key"]).toString()==key)++modes;
+        if(modes==1)lobbyChoices_={selected};else {openLobbyPicker();lobbyPickerSearch_=selected["title"].toString();emit changed();}return;
+    }
     openLobby();
     if(!viewedLobby().hosting())return;
     const auto current=viewedLobby().state()["game"].toObject();
@@ -193,7 +196,7 @@ QVariantList SocialController::lobbyActions() const {
     if(kind=="create")add("create","Create lobby");
     else if(kind=="community")add("community","Join community");
     else if(kind=="invitation") {add("accept","Join lobby");add("later","Keep for later");add("decline","Decline");}
-    else if(kind=="public")add("join",row["access"]=="approval"?"Request to join":"Join lobby",!lobby_.room(row["lobby"].toString()));
+    else if(kind=="public"){add("join",row["access"]=="approval"?"Request to join":"Join lobby",!lobby_.room(row["lobby"].toString()));add("watch","Watch",!lobby_.room(row["lobby"].toString()));}
     else if(kind=="own") {
         const auto s=viewedLobby().state();const auto game=s["game"].toObject();const auto members=s["members"].toArray();
         QJsonObject mine;for(const auto& member:members)if(member.toObject()["id"]==snapshot_["userId"].toString())mine=member.toObject();
@@ -208,7 +211,8 @@ QVariantList SocialController::lobbyActions() const {
             const auto voice=snapshot_["voice"].toMap();
             add("call",voice["channel"].toString().isEmpty()?"Join lobby call":"Call & streams");
         }
-        add("spectate",mine["spectator"].toBool()?"Join as player":"Be a spectator",gathering);
+        if(mine["spectator"].toBool()&&!viewedLobby().hosting())add("spectate","Join as player",gathering);
+        if(!s["vote"].toObject().isEmpty())add("vote","Vote for a game",gathering&&!mine["spectator"].toBool());
         if(!game["id"].toString().isEmpty()) {
             if(mine["spectator"].toBool()&&!viewedLobby().hosting()) {
                 if(&viewedLobby()==lobby_.activeRoom()&&lobbyRuntime_.liveAvailable())add("join-live","Join game now");
@@ -241,6 +245,17 @@ void SocialController::selectLobby(int index) {
 void SocialController::setLobbyGames(QVariantList games) {if(lobbyGames_==games)return;lobbyGames_=std::move(games);emit changed();}
 void SocialController::editLobbySearch() {textPurpose_="lobby-search";emit textRequested("Find a lobby",lobbySearch_,100);}
 void SocialController::lobbyAction(QString action) {
+    if(action.startsWith("create-field:")){lobbyDraftAction(action.mid(13));return;}
+    if(action=="game"){openLobbyPicker();return;}
+    if(action=="vote") {if(!viewedLobby().state()["vote"].toObject()["id"].toString().isEmpty()){lobbyVoteOpen_=true;lobbyVoteFocus_=0;emit changed();}return;}
+    if(action.startsWith("ballot:")||action.startsWith("winner:")) {
+        const auto id=action.section(':',1,1);const int choice=action.section(':',2).toInt();
+        if(action.startsWith("ballot:")){if(viewedLobby().vote(id,choice))lobbyVoteFocus_=choice;}
+        else {const auto ballot=viewedLobby().state()["vote"].toObject();if(ballot["id"]!=id||choice<0||choice>=ballot["choices"].toArray().size())return;const auto g=ballot["choices"].toArray()[choice].toObject();
+            for(const auto& v:lobbyGames_){const auto local=v.toMap();if(local["id"].toString()==g["id"].toString()&&local["mode"].toString()==g["mode"].toString()&&QJsonObject::fromVariantMap(local["runtime"].toMap())==g["runtime"].toObject()){if(viewedLobby().confirmVote(id,choice))lobbyVoteOpen_=false;break;}}}
+        emit changed();return;
+    }
+
     if(action=="room-menu"&&!viewedLobby().state().isEmpty()) {
         menuMode_="lobby";menuTitle_="Room options";menuDetail_.clear();menuFocus_=0;menu_.clear();menuCommands_.clear();
         for(const auto& v:lobbyActions()) {const auto a=v.toMap();const auto id=a["id"].toString();
@@ -252,7 +267,7 @@ void SocialController::lobbyAction(QString action) {
     if(action=="close"){leaveViewedLobby(true);return;}
     if(action=="leave-confirm"||action=="close-confirm") {
         menuMode_="lobby";menuTitle_=action=="leave-confirm"?"Leave this lobby?":"Close this lobby for everyone?";
-        menuDetail_=action=="leave-confirm"?"Other rooms stay joined. An organizer who leaves passes the room to a remaining member.":"Game participation ends for everyone. The Fluxer conversation history is kept.";
+        menuDetail_=action=="leave-confirm"?"No other players: the lobby closes. Otherwise, ownership passes to a player.":"Game participation ends for everyone. The Fluxer conversation history is kept.";
         menu_={"Back",action=="leave-confirm"?"Leave lobby":"Close lobby"};menuCommands_={"cancel","lobby:"+action.section('-',0,0)};menuFocus_=0;emit changed();return;
     }
     if(action.startsWith("ready-switch:")) {
@@ -300,7 +315,7 @@ void SocialController::lobbyAction(QString action) {
     }
     if(action=="spectate") {
         for(const auto& v:viewedLobby().state()["members"].toArray())if(v.toObject()["id"]==snapshot_["userId"].toString())
-            viewedLobby().spectate(!v.toObject()["spectator"].toBool());
+            if(v.toObject()["spectator"].toBool()&&!viewedLobby().hosting())viewedLobby().spectate(false);
         return;
     }
     if(action=="request-play"){viewedLobby().requestPlay();return;}
@@ -381,9 +396,9 @@ void SocialController::lobbyAction(QString action) {
     else if(action=="prepare"&& &viewedLobby()==lobby_.activeRoom())lobbyRuntime_.prepare();
     else if(action=="join-live"&& &viewedLobby()==lobby_.activeRoom())lobbyRuntime_.joinLive();
     else if(action=="live-joining"&& &viewedLobby()==lobby_.activeRoom())lobbyRuntime_.setLiveJoining(!viewedLobby().state()["liveJoining"].toBool());
-    else if(action=="join") {const auto row=lobbyRows().value(lobbyFocus()).toMap();
+    else if(action=="join"||action=="watch") {const auto row=lobbyRows().value(lobbyFocus()).toMap();
         pendingLobbyReminder_={{"id",row["lobby"].toString()},{"owner",row["owner"].toString()},{"startsAt",row["startsAt"].toLongLong()}};
-        if(!lobby_.join(row["owner"].toString(),row["lobby"].toString()))pendingLobbyReminder_={};else viewedLobbyId_=row["lobby"].toString();
+        if(!lobby_.join(row["owner"].toString(),row["lobby"].toString(),false,action=="watch"))pendingLobbyReminder_={};else viewedLobbyId_=row["lobby"].toString();
         lobbySelection_.clear();lobbyDetailFocused_=true;}
     else if(action=="ready") {
         requestLobbyReady();

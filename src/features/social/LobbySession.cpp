@@ -2,6 +2,7 @@
 #include <QJsonArray>
 #include <QUuid>
 #include <QDateTime>
+#include <QSet>
 
 namespace trainer {
 LobbySession::LobbySession(QObject* parent):QObject(parent) {}
@@ -30,7 +31,7 @@ bool LobbySession::create(QString owner,QString name,QString access) {
        ||(access!="private"&&access!="public"&&access!="approval"))return false;
     id_=QUuid::createUuid().toString(QUuid::WithoutBraces);owner_=owner;access_=access;liveJoining_=false;
     title_=name.trimmed()+"'s lobby";title_=title_.left(80);startsAt_=0;
-    members_.clear();invites_.clear();game_={};ticket_.clear();conversation_.clear();revision_=0;++generation_;
+    ballot_={};members_.clear();invites_.clear();game_={};ticket_.clear();conversation_.clear();revision_=0;++generation_;
     members_.insert(owner,{name.trimmed()});phase_="choosing";publish();return true;
 }
 bool LobbySession::setAccess(const QString& actor,QString access) {
@@ -49,7 +50,7 @@ bool LobbySession::setDetails(const QString& actor,QString title,qint64 startsAt
 }
 bool LobbySession::restore(const QJsonObject& s) {
     if(phase_!="closed")return false;
-    liveJoining_=false;
+    ballot_={};liveJoining_=false;
     id_=s["id"].toString();owner_=s["owner"].toString();access_=s["access"].toString();
     title_=s["title"].toString();startsAt_=s["startsAt"].toInteger();
     conversation_=s["conversation"].toString();ticket_.clear();invites_.clear();members_.clear();
@@ -73,20 +74,20 @@ bool LobbySession::invite(const QString& actor,QString peer,qint64 expiresAt) {
     if(!host(actor)||peer.isEmpty()||peer.size()>128||members_.contains(peer)||expiresAt<=0||invites_.size()>=64)return false;
     invites_.insert(peer,expiresAt);return true;
 }
-bool LobbySession::join(QString peer,QString name,qint64 now) {
+bool LobbySession::join(QString peer,QString name,qint64 now,bool watch) {
     if(!host(owner_)||peer.isEmpty()||peer.size()>128||name.trimmed().isEmpty()||name.size()>100||now<=0)return false;
     if(members_.contains(peer))return connected(peer,true);
     if(!editable()&&phase_!="playing")return false;
     const bool invited=invites_.contains(peer)&&invites_.value(peer)>now;
     if(members_.size()>=32||(access_!="public"&&!invited))return false;
-    const bool spectator=phase_=="playing"||(!game_.id.isEmpty()&&!freeSeat());
+    const bool spectator=watch||phase_=="playing"||(!game_.id.isEmpty()&&!freeSeat());
     invites_.remove(peer);members_.insert(peer,{name.trimmed(),spectator?0:freeSeat(),false,false,true,spectator});
     if(!spectator)resetReady();publish();return true;
 }
-bool LobbySession::approve(const QString& actor,const QString& peer,QString name) {
+bool LobbySession::approve(const QString& actor,const QString& peer,QString name,bool watch) {
     if(!host(actor)||(!editable()&&phase_!="playing")||peer.isEmpty()||peer.size()>128||name.trimmed().isEmpty()||name.size()>100||members_.size()>=32)return false;
     if(members_.contains(peer))return false;
-    const bool spectator=phase_=="playing"||(!game_.id.isEmpty()&&!freeSeat());
+    const bool spectator=watch||phase_=="playing"||(!game_.id.isEmpty()&&!freeSeat());
     invites_.remove(peer);members_.insert(peer,{name.trimmed(),spectator?0:freeSeat(),false,false,true,spectator});
     if(!spectator)resetReady();publish();return true;
 }
@@ -96,7 +97,7 @@ bool LobbySession::leave(const QString& peer) {
         phase_="closed";ticket_.clear();members_.clear();invites_.clear();publish();return true;
     }
     const bool spectator=members_.value(peer).spectator;
-    members_.remove(peer);if(!spectator)invalidateLaunch();publish();return true;
+    members_.remove(peer);if(!ballot_.isEmpty()){auto votes=ballot_["votes"].toObject();votes.remove(peer);ballot_["votes"]=votes;}if(!spectator)invalidateLaunch();publish();return true;
 }
 bool LobbySession::remove(const QString& actor,const QString& peer) {
     return host(actor)&&peer!=owner_&&leave(peer);
@@ -106,7 +107,7 @@ bool LobbySession::selectGame(const QString& actor,const Game& game) {
     if(!host(actor)||!editable()||game.id.isEmpty()||game.id.size()>128||game.title.trimmed().isEmpty()
        ||game.title.size()>160||game.platform.isEmpty()||game.platform.size()>32||game.mode.isEmpty()
        ||game.mode.size()>64||game.seats<1||game.seats>16)return false;
-    game_=game;++generation_;ticket_.clear();phase_="gathering";liveJoining_=false;
+    ballot_={};game_=game;++generation_;ticket_.clear();phase_="gathering";liveJoining_=false;
     // Seat assignment is per game. The existing runtime families use the
     // organizer's console as P1; other players may change their free port.
     for(auto& m:members_) {m.seat=0;m.prepared=false;m.ready=false;m.admission.clear();}
@@ -124,8 +125,28 @@ bool LobbySession::claimSeat(const QString& peer,int seat,quint64 generation) {
     auto& m=members_[peer];if(m.seat==seat)return true;
     m.seat=seat;m.spectator=false;m.prepared=false;resetReady();publish();return true;
 }
+bool LobbySession::proposeVote(const QString& actor,const QJsonArray& choices) {
+    if(!host(actor)||!editable()||choices.size()<2||choices.size()>4)return false;
+    QSet<QString> identities;QJsonArray clean;
+    for(const auto& v:choices){const auto g=v.toObject();const auto id=g["id"].toString(),mode=g["mode"].toString();
+        if(id.isEmpty()||id.size()>128||mode.isEmpty()||mode.size()>64||g["title"].toString().trimmed().isEmpty()||g["title"].toString().size()>160||g["platform"].toString().isEmpty()||g["platform"].toString().size()>32||g["seats"].toInt()<1||g["seats"].toInt()>16||identities.contains(id+"/"+mode))return false;
+        identities.insert(id+"/"+mode);clean.append(QJsonObject{{"id",id},{"mode",mode},{"title",g["title"]},{"platform",g["platform"]},{"seats",g["seats"]},{"runtime",g["runtime"]},{"modeLabel",g["modeLabel"]}});
+    }
+    resetReady();ballot_={{"id",QUuid::createUuid().toString(QUuid::WithoutBraces)},{"choices",clean},{"votes",QJsonObject{}}};publish();return true;
+}
+bool LobbySession::vote(const QString& actor,QString id,int choice) {
+    if(!editable()||!members_.contains(actor)||!members_[actor].connected||members_[actor].spectator||ballot_.value("id")!=id||id.isEmpty()||choice<0||choice>=ballot_.value("choices").toArray().size())return false;
+    auto votes=ballot_["votes"].toObject();votes[actor]=choice;ballot_["votes"]=votes;publish();return true;
+}
+bool LobbySession::confirmVote(const QString& actor,QString id,int choice) {
+    if(!host(actor)||!editable()||id.isEmpty()||ballot_.value("id")!=id||choice<0||choice>=ballot_.value("choices").toArray().size())return false;
+    int counts[4]={0,0,0,0};for(const auto& v:ballot_["votes"].toObject())if(v.toInt(-1)>=0&&v.toInt()<4)++counts[v.toInt()];
+    for(const auto count:counts)if(count>counts[choice])return false;
+    const auto g=ballot_.value("choices").toArray()[choice].toObject();
+    return selectGame(actor,{g["id"].toString(),g["title"].toString(),g["platform"].toString(),g["mode"].toString(),g["seats"].toInt(),g["runtime"].toObject()});
+}
 bool LobbySession::spectate(const QString& peer,bool value,quint64 generation) {
-    if(!editable()||!host(owner_)||generation!=generation_||!members_.contains(peer)
+    if((peer==owner_&&value)||!editable()||!host(owner_)||generation!=generation_||!members_.contains(peer)
        ||!members_.value(peer).connected)return false;
     auto& m=members_[peer];if(m.spectator==value)return true;
     m.spectator=value;m.seat=0;m.prepared=false;resetReady();publish();return true;
@@ -137,7 +158,7 @@ bool LobbySession::prepared(const QString& peer,quint64 generation,bool value) {
     m.prepared=value;m.ready=false;publish();return true;
 }
 bool LobbySession::ready(const QString& peer,quint64 generation,bool value) {
-    if(phase_!="gathering"||!host(owner_)||generation!=generation_||!members_.contains(peer))return false;
+    if(!ballot_.isEmpty()||phase_!="gathering"||!host(owner_)||generation!=generation_||!members_.contains(peer))return false;
     auto& m=members_[peer];if(!m.connected||!m.seat||!m.prepared)return false;
     if(m.ready==value)return true;
     m.ready=value;publish();tryLaunch();return true;
@@ -207,7 +228,7 @@ QJsonObject LobbySession::state() const {
             {"prepared",m.prepared},{"ready",m.ready},{"connected",m.connected},{"spectator",m.spectator},{"admission",m.admission}});
     }
     return {{"id",id_},{"owner",owner_},{"title",title_},{"startsAt",startsAt_},{"access",access_},{"phase",phase_},{"revision",qint64(revision_)},
-        {"generation",qint64(generation_)},{"members",members},{"ticket",ticket_},{"conversation",conversation_},{"liveJoining",liveJoining_},
+        {"vote",ballot_},{"generation",qint64(generation_)},{"members",members},{"ticket",ticket_},{"conversation",conversation_},{"liveJoining",liveJoining_},
         {"game",QJsonObject{{"id",game_.id},{"title",game_.title},{"platform",game_.platform},{"mode",game_.mode},{"seats",game_.seats},{"runtime",game_.runtime}}}};
 }
 }

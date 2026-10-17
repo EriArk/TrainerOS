@@ -85,7 +85,7 @@ QVariantList SocialController::lobbyRoomActions() const {
         add("microphone",voice["muted"].toBool()?"Mic off":"Mic on");add("audio",voice["deaf"].toBool()?"Sound off":"Sound on");
     } else add("call","Join voice",!lobbyChatChannel_.isEmpty()&&voice["available"].toBool());
     for(const auto& v:lobbyActions()) {const auto action=v.toMap();const auto id=action["id"].toString();
-        if(id=="ready"||id=="join-live"||id=="request-play"||id=="spectate")add(id,action["label"].toString(),action["enabled"].toBool());
+        if(id=="vote"||id=="ready"||id=="join-live"||id=="request-play"||id=="spectate")add(id,action["label"].toString(),action["enabled"].toBool());
         if(id=="prepare"&& &viewedLobby()==lobby_.activeRoom())add("prepare",gameActive_?"Continue setup":lobbyRuntime_.busy()?"Preparing…":!lobbyRuntime_.available()?"Unavailable":lobbyAutoPreparation_.isEmpty()?"Preparing…":"Retry setup",
             action["enabled"].toBool()&&(gameActive_||!lobbyAutoPreparation_.isEmpty()));
     }

@@ -1320,6 +1320,23 @@ bool FluxerSession::mutate(const QString& operation,const QVariantMap& args) {
     if(mutationBusy_)return true;
     const auto channel=args["channel"].toString(),id=args["id"].toString();
     const auto c=channels_.value(channel);QByteArray method;QString path;QJsonObject body;
+    // Fluxer otherwise chooses a random remaining recipient, including viewers.
+    // Transfer to an eligible player first; never leave after a failed transfer.
+    const auto successor=args["successor"].toString();
+    if(operation=="leave-group"&&!successor.isEmpty()) {
+        bool member=false;for(const auto& v:c["recipients"].toArray())if(v.toObject()["id"]==successor)member=true;
+        if(!idValid(channel)||!idValid(successor)||successor==self_||c["type"].toInt()!=3||c["owner_id"]!=self_||!member) {
+            emit mutationFinished(generation_,operation,channel,id,false);return true;
+        }
+        mutationBusy_=true;publish();
+        verifiedRequest("PATCH","/v1/channels/"+channel,{{"owner_id",successor}},[this,operation,channel,id,args,successor](Reply r){
+            mutationBusy_=false;
+            if(r.status<200||r.status>=300||r.body.object()["owner_id"]!=successor) {
+                emit mutationFinished(generation_,operation,channel,id,false);fail(r,"Could not transfer the lobby. You are still in the room.");return;
+            }
+            channels_[channel]=r.body.object();auto next=args;next.remove("successor");mutate(operation,next);
+        });return true;
+    }
     const bool message=operation.endsWith("message");
     if(message) {
         const auto m=messages_.value(id);const auto type=m["type"].toInt();

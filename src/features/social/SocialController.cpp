@@ -111,7 +111,7 @@ SocialController::SocialController(QObject* parent):QObject(parent),session_(new
         if(generation!=generation_)return;
         if(operation=="leave-group"&&!leavingLobby_.isEmpty()) {
             auto* r=lobby_.room(leavingLobby_);
-            if(r&&r->state()["conversation"]==channel){if(success)r->forgetMembership();lobbyLeaving_.remove(leavingLobby_);leavingLobby_.clear();emit changed();}
+            if(r&&r->state()["conversation"]==channel){if(success){if(lobbyCloseOnLeave_.contains(leavingLobby_)&&r->hosting())r->leave();r->forgetMembership();}lobbyCloseOnLeave_.remove(leavingLobby_);lobbyLeaving_.remove(leavingLobby_);leavingLobby_.clear();emit changed();}
         }
         if(success&&(operation=="edit-message"||operation=="delete-message"))editDrafts_.remove(channel+"/"+id);
     });
@@ -126,6 +126,7 @@ void SocialController::setOwner(QString owner) {
     if(owner==owner_)return;
     streamAction("stop-watch");
     lobby_.setStorage({});lobby_.configure({}, {},false);lobbySearch_.clear();lobbyTopic_.clear();lobbySelection_.clear();lobbyActionFocus_=0;
+    lobbyDraftReturn_=false;cancelLobbyDraft();
     viewedLobbyId_.clear();myLobbiesOpen_=false;readyIntent_.clear();lobbyLeaving_.clear();lobbyChatKeys_.clear();lobbyChatErrors_.clear();lobbyChatPending_.clear();
     publishedLobby_.clear();publishedRooms_.clear();readySwitch_.clear();lobbyPublicationVisible_=false;lobbyGames_.clear();
     lobbyReminders_.configure({});pendingLobbyReminder_={};lobbyPlatform_.clear();lobbyMode_.clear();
@@ -650,6 +651,17 @@ void SocialController::preserveText(QString text) {
     else if(textPurpose_=="edit-message")editDrafts_[textChannel_+"/"+textId_]=text;
 }
 void SocialController::applyText(QString text) {
+    if(textPurpose_.startsWith("lobby-draft-")||textPurpose_=="lobby-picker-search") {
+        if(textPurpose_=="lobby-picker-search") {lobbyPickerSearch_=text.trimmed();lobbyPickerFocus_=0;}
+        else if(lobbyCreateOpen_&&lobbyDraftAccount_==snapshot_["userId"].toString()) {
+            if(textPurpose_=="lobby-draft-name")lobbyDraft_["title"]=text.trimmed().left(80);
+            else {const auto date=QDateTime::fromString(text.trimmed(),"yyyy-MM-dd HH:mm");
+                if(date.isValid()&&date>QDateTime::currentDateTime()&&date<QDateTime::currentDateTime().addDays(366)) {lobbyDraft_["startsAt"]=date.toSecsSinceEpoch();lobbyCreationError_.clear();}
+                else lobbyCreationError_="Choose a future date within the next year.";
+            }
+        }
+        textPurpose_.clear();emit changed();return;
+    }
     if(textPurpose_=="lobby-title"||textPurpose_=="lobby-time") {
         const auto state=viewedLobby().state();auto title=state["title"].toString();if(title.isEmpty())title=snapshot_["name"].toString().left(65)+"'s lobby";auto time=state["startsAt"].toInteger();
         if(textPurpose_=="lobby-title")title=text.trimmed();
@@ -1231,6 +1243,7 @@ void SocialController::selectMenu(int index) {
     emit commandRequested(command,{{"id",menuSubject_},{"channel",menuChannel_}});menu_.clear();emit changed();
 }
 void SocialController::dispatch(Action action) {
+    if((lobbyCreateOpen_||lobbyPickerOpen_||lobbyVoteOpen_)&&menu_.isEmpty()){dispatchLobbyCreation(action);return;}
     if(myLobbiesOpen_) {
         if(action==Action::Back)closeMyLobbies();
         else if(action==Action::Up||action==Action::Down){

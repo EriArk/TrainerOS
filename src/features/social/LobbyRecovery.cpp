@@ -79,7 +79,7 @@ void LobbyRoomCoordinator::reconnect() {
     if(hosting()) {broadcast();return;}
     if(host_.isEmpty())return;
     if(probe_.isEmpty())probe_=QUuid::createUuid().toString(QUuid::WithoutBraces);
-    send(host_,restoring_||!joining_.isEmpty()?"join":"ping",{{"request",joiningRequest_},{"restore",restoring_},{"probe",probe_}});
+    send(host_,restoring_||!joining_.isEmpty()?"join":"ping",{{"watch",joiningWatch_},{"request",joiningRequest_},{"restore",restoring_},{"probe",probe_}});
 }
 bool LobbyRoomCoordinator::remove(const QString& peer) {
     if(!hosting()||peer==self_)return false;

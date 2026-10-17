@@ -36,8 +36,8 @@ class SocialTests : public QObject {
 private slots:
     void myLobbiesBrowseIsIndependentAndHomeDisappearsAfterProviderLeave() {
         SocialController s;QObject::disconnect(&s,nullptr,s.session_,nullptr);QObject::disconnect(s.session_,nullptr,&s,nullptr);
-        s.receive(0,{{"state","connected"},{"userId","1"},{"name","Mika"}});s.createAnotherLobby();
-        const auto first=s.lobbyState()["id"].toString();s.createAnotherLobby();const auto second=s.lobbyState()["id"].toString();
+        s.receive(0,{{"state","connected"},{"userId","1"},{"name","Mika"}});s.createAnotherLobby();s.submitLobbyDraft();
+        const auto first=s.lobbyState()["id"].toString();s.createAnotherLobby();s.submitLobbyDraft();const auto second=s.lobbyState()["id"].toString();
         QVERIFY(first!=second);QCOMPARE(s.myLobbies().size(),2);QCOMPARE(s.homeLobby()["count"].toInt(),2);
         QCOMPARE(s.lobby_.state()["id"].toString(),first); // browsing never switches runtime
         s.showMyLobbies();s.dispatch(Action::Down);s.dispatch(Action::Confirm);
@@ -49,20 +49,30 @@ private slots:
         s.lobby_.room(second)->forgetMembership();QCOMPARE(s.myLobbies().size(),1);
         s.lobby_.room(first)->forgetMembership();QVERIFY(s.homeLobby().isEmpty());
     }
-    void spectatorRoleIsADirectLeftPanelAction() {
+    void playersCannotBecomeSpectatorsFromTheRoom() {
         SocialController s;QObject::disconnect(&s,nullptr,s.session_,nullptr);QObject::disconnect(s.session_,nullptr,&s,nullptr);
-        s.receive(0,{{"state","connected"},{"userId","1"},{"name","Mika"}});s.openLobbyForPeople();
-        bool visible=false;for(const auto& v:s.lobbyRoomActions())if(v.toMap()["command"]=="spectate")visible=v.toMap()["enabled"].toBool();QVERIFY(visible);
-        QCOMPARE(s.lobbyPlayers()[0].toMap()["status"].toString(),QString("Preparing"));
-        s.activateLobbyRoom("action:spectate");QCOMPARE(s.lobbySpectators().size(),1);
-        s.activateLobbyRoom("action:spectate");QCOMPARE(s.lobbySpectators().size(),0);
+        s.receive(0,{{"state","connected"},{"userId","1"},{"name","Mika"}});s.createAnotherLobby();s.submitLobbyDraft();
+        for(const auto& v:s.lobbyRoomActions())QVERIFY(v.toMap()["command"]!="spectate");
+        s.lobbyAction("spectate");QCOMPARE(s.lobbySpectators().size(),0);
     }
-
+    void creationIsTransientAndValidatesBeforeAnyRoomExists() {
+        SocialController s;QObject::disconnect(&s,nullptr,s.session_,nullptr);QObject::disconnect(s.session_,nullptr,&s,nullptr);
+        s.receive(0,{{"state","connected"},{"userId","1"},{"name","Mika"}});
+        QSignalSpy commands(&s,&SocialController::commandRequested);
+        s.createAnotherLobby();QVERIFY(s.myLobbies().isEmpty());
+        s.lobbyDraft_["title"]="Discard me";s.cancelLobbyDraft();s.createAnotherLobby();
+        QCOMPARE(s.lobbyDraft()["title"].toString(),QString("Mika's lobby"));QVERIFY(s.myLobbies().isEmpty());
+        s.lobbyDraft_["title"]="";s.submitLobbyDraft();QVERIFY(s.myLobbies().isEmpty());QVERIFY(!s.lobbyDraft()["error"].toString().isEmpty());
+        s.lobbyDraft_["title"]="Friday games";s.lobbyDraftAction("category:party-games");s.lobbyDraftAction("access:approval");s.lobbyDraft_["startsAt"]=QDateTime::currentSecsSinceEpoch()+3600;
+        s.submitLobbyDraft();QVERIFY(!s.lobbyCreateOpen());QCOMPARE(s.myLobbies().size(),1);QCOMPARE(s.lobbyState()["title"].toString(),QString("Friday games"));
+        QCOMPARE(s.lobbyState()["access"].toString(),QString("approval"));QCOMPARE(s.viewedLobby().publicationTopic(),QString("party-games"));
+        s.createAnotherLobby();s.lobbyChoices_={QVariantMap{{"key","removed"},{"title","Gone"}}};s.submitLobbyDraft();QCOMPARE(s.myLobbies().size(),1);QVERIFY(s.lobbyCreateOpen());
+    }
     void lobbyRoomUsesIdentitySeatsAndVerifiedVoice() {
         SocialController s;QObject::disconnect(&s,nullptr,s.session_,nullptr);QObject::disconnect(s.session_,nullptr,&s,nullptr);
         s.receive(0,{{"state","connected"},{"userId","1"},{"name","Mika"},{"profile",QVariantMap{{"avatar","self.png"}}},
             {"friends",QVariantList{QVariantMap{{"id","2"},{"name","Ren"},{"avatar","ren.png"},{"type",1}}}}});
-        s.openLobbyForPeople();QCOMPARE(s.lobbyPlayers().size(),2);QCOMPARE(s.lobbyPlayers()[0].toMap()["seat"].toInt(),0);
+        s.openLobbyForPeople();if(s.lobbyCreateOpen())s.submitLobbyDraft();QCOMPARE(s.lobbyPlayers().size(),2);QCOMPARE(s.lobbyPlayers()[0].toMap()["seat"].toInt(),0);
         LobbyCoordinator guest;guest.configure("2","Ren",true);
         connect(&s.lobby_,&LobbyCoordinator::outgoing,&guest,[&](QString peer,QJsonObject p){if(peer=="2")guest.receive("1","Mika",p);});
         connect(&guest,&LobbyCoordinator::outgoing,&s,[&](QString,QJsonObject p){s.lobby_.receive("2","Ren",p);});
@@ -93,23 +103,23 @@ private slots:
     }
     void lobbyRoomNavigationRetainsChatAndMembership() {
         SocialController s;QObject::disconnect(&s,nullptr,s.session_,nullptr);QObject::disconnect(s.session_,nullptr,&s,nullptr);
-        s.receive(0,{{"state","connected"},{"userId","1"},{"name","Mika"}});s.openLobbyForPeople();
+        s.receive(0,{{"state","connected"},{"userId","1"},{"name","Mika"}});s.openLobbyForPeople();if(s.lobbyCreateOpen())s.submitLobbyDraft();
         const auto room=s.lobbyState()["id"];s.lobbyChatChannel_="300";s.snapshot_["channel"]="300";s.drafts_["300"]="Keep my draft";
         s.dispatch(Action::Down);QCOMPARE(s.lobbyRoomFocus(),QString("person:1"));
         s.dispatch(Action::Right);QCOMPARE(s.lobbyRoomFocus(),QString("invite"));
         s.dispatch(Action::Right);QVERIFY(s.lobbyChatFocused());
         s.dispatch(Action::ChangeView);QVERIFY(s.lobbyChatExpanded());s.dispatch(Action::Back);QVERIFY(!s.lobbyChatExpanded());QVERIFY(s.lobbyChatFocused());
         s.dispatch(Action::Back);QVERIFY(!s.lobbyChatFocused());QCOMPARE(s.lobbyRoomFocus(),QString("invite"));
-        s.dispatch(Action::Down);QCOMPARE(s.lobbyRoomFocus(),QString("action:spectate"));
+        s.dispatch(Action::Down);QCOMPARE(s.lobbyRoomFocus(),QString("action:call"));
         s.dispatch(Action::Back);QVERIFY(!s.lobbyDetailFocused());QCOMPARE(s.lobbyState()["id"],room);
-        s.selectLobby(0);QCOMPARE(s.lobbyRoomFocus(),QString("action:spectate"));QCOMPARE(s.draft(),QString("Keep my draft"));
+        s.selectLobby(0);QCOMPARE(s.lobbyRoomFocus(),QString("action:call"));QCOMPARE(s.draft(),QString("Keep my draft"));
         s.closeMyLobbies();s.lobbyAction("room-menu");QVERIFY(s.menuCommands_.contains("lobby:leave-confirm"));
     }
     void lobbyAutomaticPreparationIsBoundedAndNeverInterruptsGame() {
         class Runtime final : public LobbyRuntimeService { public: int attempts=0; void prepare(QString,QJsonObject,Completion done) override {++attempts;done(false,"Missing local game");}
             void launch(QString,QString,QJsonObject,Completion done) override {done(false,"unused");} void cancel(QString) override {} } runtime;
         SocialController s;QObject::disconnect(&s,nullptr,s.session_,nullptr);QObject::disconnect(s.session_,nullptr,&s,nullptr);
-        s.receive(0,{{"state","connected"},{"userId","1"},{"name","Mika"}});s.openLobbyForPeople();
+        s.receive(0,{{"state","connected"},{"userId","1"},{"name","Mika"}});s.openLobbyForPeople();if(s.lobbyCreateOpen())s.submitLobbyDraft();
         s.lobbyRuntime_.registerService("netplay",&runtime);s.setGameActive(true);
         QVERIFY(s.lobby_.selectGame({"game","Game","snes","netplay",2,{}}));s.reconcileLobbyPreparation();QCOMPARE(runtime.attempts,0);
         s.setGameActive(false);s.reconcileLobbyPreparation();QCOMPARE(runtime.attempts,1);
@@ -199,7 +209,7 @@ private slots:
         s.lobbyAction("clear-filters");s.lobbyAction("free");QCOMPARE(s.lobbyRows().size(),14); // Stream != free player seat.
         s.lobbyAction("platform:gba");QCOMPARE(s.lobbyRows().size(),1);
         s.lobbyAction("clear-filters");s.textPurpose_="lobby-search";s.applyText("Room 13");QCOMPARE(s.lobbyRows().size(),2);
-        s.lobbyAction("clear-filters");s.selectLobby(0);QCOMPARE(s.lobbyState()["phase"].toString(),QString("choosing"));
+        s.lobbyAction("clear-filters");s.selectLobby(0);s.submitLobbyDraft();QCOMPARE(s.lobbyState()["phase"].toString(),QString("choosing"));
     }
 
     void streamFramesAreBoundedAndExitClearsTheVideoSink() {
@@ -315,7 +325,7 @@ private slots:
         SocialController c;c.snapshot_={{"state","connected"},{"userId","1"},{"name","Host"},
             {"chats",QVariantList{group}}};
         c.lobby_.configure("1","Host",true);QSignalSpy packets(&c.lobby_,&LobbyCoordinator::outgoing);
-        c.openLobbyForPeople("2");QVERIFY(c.lobby_.state()["game"].toObject()["id"].toString().isEmpty());
+        c.openLobbyForPeople("2");c.submitLobbyDraft();QVERIFY(c.lobby_.state()["game"].toObject()["id"].toString().isEmpty());
         QCOMPARE(c.face(),QString("lobby"));QCOMPARE(packets.last()[0].toString(),QString("2"));
         const auto room=c.lobby_.state()["id"].toString();packets.clear();c.openLobbyForPeople({},"50");
         QCOMPARE(c.lobby_.state()["id"].toString(),room);QCOMPARE(c.lobby_.state()["conversation"].toString(),QString("50"));
@@ -453,7 +463,7 @@ private slots:
         SocialController c;c.receive(0,{{"state","connected"},{"userId","1"},{"name","Host"}});
         c.setLobbyGames({QVariantMap{{"key","a"},{"id","a"},{"title","First"},{"platform","nes"},{"mode","netplay"},{"seats",2}},
             QVariantMap{{"key","b"},{"id","b"},{"title","Second"},{"platform","nes"},{"mode","netplay"},{"seats",2}}});
-        c.openLobbyForGame("a");const auto room=c.lobby_.state()["id"].toString();
+        c.openLobbyForGame("a");c.submitLobbyDraft();const auto room=c.lobby_.state()["id"].toString();
         QCOMPARE(c.lobby_.state()["game"].toObject()["id"].toString(),"a");
         c.openLobbyForGame("b");QCOMPARE(c.lobby_.state()["id"].toString(),room);QCOMPARE(c.lobby_.state()["game"].toObject()["id"].toString(),"a");
         QVERIFY(c.menuCommands_.contains("lobby:game:b"));c.selectMenu(1);
@@ -464,10 +474,9 @@ private slots:
         SocialController c;c.receive(0,{{"state","connected"},{"userId","1"},{"name","Host"}});
         c.setLobbyGames({QVariantMap{{"key","a"},{"id","native"},{"title","Game"},{"platform","nes"},{"mode","netplay"},{"seats",2}},
             QVariantMap{{"key","a:remoteplay"},{"adventure","a"},{"id","remote"},{"title","Game"},{"platform","nes"},{"mode","remoteplay.v1"},{"modeLabel","Remote Play"},{"seats",2}}});
-        c.openLobbyForGame("a");const auto room=c.lobby_.state()["id"].toString();
-        QVERIFY(c.lobby_.state()["game"].toObject()["id"].toString().isEmpty());QCOMPARE(c.menuTitle_,"How to play");
-        QCOMPARE(c.menuCommands_,QStringList({"lobby:game:a","lobby:game:a:remoteplay"}));c.selectMenu(1);
-        QCOMPARE(c.lobby_.state()["game"].toObject()["mode"].toString(),"remoteplay.v1");
+        c.openLobbyForGame("a");QVERIFY(c.lobbyPicker()["open"].toBool());QVERIFY(c.lobby_.state().isEmpty());
+        c.lobbyPickerAction("pick:a:remoteplay");c.lobbyPickerAction("apply");c.submitLobbyDraft();const auto room=c.lobby_.state()["id"].toString();
+        QCOMPARE(c.lobby_.state()["game"].toObject()["id"].toString(),QString("remote"));
         c.openLobbyForGame("a");QCOMPARE(c.lobby_.state()["id"].toString(),room);QCOMPARE(c.lobby_.state()["game"].toObject()["id"].toString(),"remote");
     }
     void lobbyConversationCreatesOnceAndAddsMembersWithoutTouchingVoice() {
@@ -540,7 +549,7 @@ private slots:
     void lobbyVisibilityCanWithdrawAndRepublishSameIdentity() {
         SocialController c;c.receive(0,{{"state","connected"},{"userId","1"},{"name","Host"}});c.setFace("lobby");
         QSignalSpy commands(&c,&SocialController::commandRequested);
-        c.lobbyAction("create");const auto id=c.lobbyState()["id"].toString();QVERIFY(!id.isEmpty());
+        c.lobbyAction("create");c.submitLobbyDraft();const auto id=c.lobbyState()["id"].toString();QVERIFY(!id.isEmpty());
         c.publishLobby();
         auto publications=[&]{QVariantList rows;for(const auto& command:commands)if(command[0]=="lobby-directory-publish")rows.append(command[1]);return rows;};
         QVERIFY(publications().isEmpty());c.lobbyAction("access");c.publishLobby();
@@ -1750,6 +1759,29 @@ private slots:
         message["content"]="after";done({200,QJsonDocument(message)});QVERIFY(!s.messages_.contains(id));
         s.mergeMessage(message);s.command("delete-message",{{"channel",channel},{"id",id}});
         QCOMPARE(method,QByteArray("DELETE"));done({204,{}});QVERIFY(!s.messages_.contains(id));
+    }
+    void organizerLeavesOnlyAfterProviderTransfersToTheChosenPlayer() {
+        FluxerSession s;bind(s);const QString group="1501314428688998199";Completion done;QStringList methods;QJsonObject body;
+        s.channels_[group]={{"id",group},{"type",3},{"owner_id",s.self_},{"recipients",QJsonArray{QJsonObject{{"id",remote}}}}};
+        s.setTransport([&](auto method,auto,auto data,Completion cb,QByteArray){methods.append(QString::fromUtf8(method));body=data;done=cb;});
+        s.command("leave-group",{{"channel",group},{"successor",remote}});QCOMPARE(methods,QStringList{"PATCH"});QCOMPARE(body["owner_id"].toString(),QString(remote));
+        auto finish=done;finish({403,{}});QCOMPARE(methods.size(),1);QVERIFY(s.channels_.contains(group));
+        s.command("leave-group",{{"channel",group},{"successor",remote}});auto updated=s.channels_[group];updated["owner_id"]=remote;
+        finish=done;finish({200,QJsonDocument(updated)});QCOMPARE(methods.last(),QString("DELETE"));QVERIFY(s.channels_.contains(group));
+        finish=done;finish({204,{}});QVERIFY(!s.channels_.contains(group));
+    }
+    void leaveWithOnlyViewersClosesInsteadOfTransferringToThem() {
+        SocialController s;QObject::disconnect(&s,nullptr,s.session_,nullptr);QObject::disconnect(s.session_,nullptr,&s,nullptr);
+        s.receive(0,{{"state","connected"},{"userId","1"},{"name","Mika"}});s.createAnotherLobby();s.submitLobbyDraft();
+        LobbyCoordinator viewer;viewer.configure("2","Ren",true);
+        connect(&s.lobby_,&LobbyCoordinator::outgoing,&viewer,[&](QString peer,QJsonObject p){if(peer=="2")viewer.receive("1","Mika",p);});
+        connect(&viewer,&LobbyCoordinator::outgoing,&s,[&](QString,QJsonObject p){s.lobby_.receive("2","Ren",p);});
+        s.lobby_.setAccess("public");const auto room=s.lobbyState()["id"].toString();QVERIFY(viewer.join("1",room,false,true));
+        QCOMPARE(s.lobbySpectators().size(),1);s.lobby_.setConversation("300");s.lobbyChatPending_.clear();
+        QSignalSpy commands(&s,&SocialController::commandRequested);s.leaveViewedLobby();
+        QVERIFY(s.lobbyCloseOnLeave_.contains(room));QVERIFY(commands.last()[1].toMap()["successor"].toString().isEmpty());
+        QVERIFY(!s.myLobbies().isEmpty()); // Wait for provider success before closing.
+        s.lobby_.leave();QVERIFY(viewer.state().isEmpty());
     }
     void groupCreationAndMembershipUseProviderContract() {
         FluxerSession s;Completion done;QByteArray method;QString path;QJsonObject body;int calls=0;

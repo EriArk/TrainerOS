@@ -71,6 +71,11 @@ class SocialController final : public QObject {
     Q_PROPERTY(QVariantMap conversationInfo READ currentChat NOTIFY changed)
     Q_PROPERTY(QVariantList myLobbies READ myLobbies NOTIFY changed)
     Q_PROPERTY(bool myLobbiesOpen READ myLobbiesOpen NOTIFY changed)
+    Q_PROPERTY(bool lobbyCreateOpen READ lobbyCreateOpen NOTIFY changed)
+    Q_PROPERTY(QVariantMap lobbyDraft READ lobbyDraft NOTIFY changed)
+    Q_PROPERTY(QVariantList lobbyPickerRows READ lobbyPickerRows NOTIFY changed)
+    Q_PROPERTY(QVariantList lobbyPickerCategories READ lobbyPickerCategories NOTIFY changed)
+    Q_PROPERTY(QVariantMap lobbyPicker READ lobbyPicker NOTIFY changed)
     Q_PROPERTY(int myLobbiesIndex READ myLobbiesIndex NOTIFY changed)
     Q_PROPERTY(QVariantMap homeLobby READ homeLobby NOTIFY changed)
     Q_PROPERTY(QVariantMap lobbyState READ lobbyState NOTIFY changed)
@@ -114,6 +119,19 @@ public:
     Q_INVOKABLE void closeMyLobbies();
     Q_INVOKABLE void chooseMyLobby(QString id);
     Q_INVOKABLE void createAnotherLobby();
+    bool lobbyCreateOpen() const {return lobbyCreateOpen_;}
+    QVariantMap lobbyDraft() const;
+    QVariantMap lobbyPicker() const;
+    QVariantList lobbyPickerRows() const;
+    QVariantList lobbyPickerCategories() const;
+    std::function<QVariantList()> lobbyCollections;
+    std::function<bool(QString,QString)> lobbyCollectionContains;
+    Q_INVOKABLE void lobbyDraftAction(QString action);
+    Q_INVOKABLE void submitLobbyDraft();
+    Q_INVOKABLE void cancelLobbyDraft();
+    Q_INVOKABLE void openLobbyPicker();
+    Q_INVOKABLE void lobbyPickerAction(QString action);
+    void dispatchLobbyCreation(Action action);
     void syncMyLobbies();
     void requestLobbyReady();
     void leaveViewedLobby(bool close=false);
@@ -335,8 +353,18 @@ private:
     QMap<QString,LobbyRoomCoordinator*> publishedRooms_;
     QJsonArray lobbyContactRooms_;
     QSet<QString> lobbyLeaving_,lobbyChatPending_;
+    QSet<QString> lobbyCloseOnLeave_;
     QMap<QString,QString> lobbyChatKeys_,lobbyChatErrors_;
     bool myLobbiesOpen_=false;
+    bool lobbyVoteOpen_=false;
+    int lobbyVoteFocus_=0;
+    bool lobbyCreateOpen_=false,lobbyPickerOpen_=false,lobbyDraftReturn_=false;
+    QVariantMap lobbyDraft_;
+    QVariantList lobbyChoices_;
+    QString lobbyDraftAccount_,lobbyDraftPeer_,lobbyDraftConversation_,lobbyPickerRoom_,lobbyPickerCategory_,lobbyPickerSearch_,lobbyCreationError_;
+    quint64 lobbyPickerGeneration_=0;
+    int lobbyDraftFocus_=0,lobbyPickerFocus_=0,lobbyPickerRail_=0;
+    bool lobbyPickerRailFocused_=true;
     int myLobbiesIndex_=0;
     LobbyCoordinator lobby_{this};
     LobbyReminders lobbyReminders_;

@@ -68,6 +68,8 @@ ShellController::ShellController(LibraryRepository& repo, TrainerRepository& pro
       libraryManager_(repo, nullptr, this), libraryTools_(repo,this), scraper_(repo,this), settings_(this), device_(this), diagnostics_(this), dashboard_(repo,achievements,social_,this), story_(repo,achievements) {
 
     connect(&dashboard_,&HomeDashboardController::changed,this,&ShellController::changed);
+    social_.lobbyCollections=[this]{return gamesCollections();};
+    social_.lobbyCollectionContains=[this](QString collection,QString game){return multiverse_.belongsToCollection(game,collection);};
     modules_=factory({repo,trainer_,hall_,archive,profiles});
     Q_ASSERT(!modules_.empty());
     for(auto& owned:modules_) {
@@ -342,7 +344,7 @@ bool ShellController::canEditWorld() const {
         && !drawerOpen_ && !libraryTools_.isOpen() && !worlds_.region().value("id").toString().isEmpty();
 }
 bool ShellController::localModalOpen() {
-    return social_.myLobbiesOpen() || collectionManager()->isOpen() || downloads_.isOpen() || scraper_.isOpen() || (socialActive() && !social_.menu().isEmpty()) || libraryTools_.isOpen() || trainer_.editing()
+    return (social_.myLobbiesOpen() || social_.lobbyCreateOpen() || social_.lobbyPicker()["open"].toBool() || social_.lobbyPicker()["voteOpen"].toBool()) || collectionManager()->isOpen() || downloads_.isOpen() || scraper_.isOpen() || (socialActive() && !social_.menu().isEmpty()) || libraryTools_.isOpen() || trainer_.editing()
         || (adapterActive() && activeModule_ && activeModule_->modalOpen())
         || (page_==GameHubPage && hubFace_=="ra" && (hall_.editor()->isOpen() || hall_.account()->isOpen() || hall_.galleryMenuOpen() || hall_.route()=="achievement-detail"));
 }
@@ -1449,7 +1451,7 @@ void ShellController::openSocialNotification() {
     social_.openNotification();emit changed();
 }
 void ShellController::dispatch(Action action) {
-    if(social_.myLobbiesOpen()&&!keyboard_.isOpen()){social_.dispatch(action);return;}
+    if((social_.myLobbiesOpen() || social_.lobbyCreateOpen() || social_.lobbyPicker()["open"].toBool() || social_.lobbyPicker()["voteOpen"].toBool())&&!keyboard_.isOpen()){social_.dispatch(action);return;}
     if(page_==GameHubPage && hubFace_=="lobby" && (action==Action::ToggleFavorite || action==Action::ChangeView)) {
         if(pairedNavigationAvailable() && !navigationLocked() && !localModalOpen())social_.dispatch(action);
         return;

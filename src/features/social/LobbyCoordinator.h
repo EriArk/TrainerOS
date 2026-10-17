@@ -25,7 +25,7 @@ public:
     void setPublicationTopic(QString topic) { active_->setPublicationTopic(topic); }
     bool create(QString access="private");
     bool invite(const QString& peer) { return active_->invite(peer); }
-    bool join(const QString& host,const QString& lobby,bool request=false);
+    bool join(const QString& host,const QString& lobby,bool request=false,bool watch=false);
     void answer(bool accept);
     bool approve(const QString& peer) { return active_->approve(peer); }
     void leave() { active_->leave(); }

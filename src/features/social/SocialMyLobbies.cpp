@@ -38,9 +38,6 @@ void SocialController::chooseMyLobby(QString id) {
     auto* r=lobby_.room(id);if(!r||r->state().isEmpty())return;
     viewedLobbyId_=id;myLobbiesOpen_=false;lobbyRoomFocus_="game";openLobby();syncLobbyChat();emit changed();
 }
-void SocialController::createAnotherLobby() {
-    if(auto* r=lobby_.createRoom()){viewedLobbyId_=r->state()["id"].toString();myLobbiesOpen_=false;openLobby();syncMyLobbies();}
-}
 void SocialController::requestLobbyReady() {
     auto& room=viewedLobby();const auto id=room.state()["id"].toString();
     if(&room!=lobby_.activeRoom()) {
@@ -66,9 +63,15 @@ void SocialController::leaveViewedLobby(bool close) {
         // Closing game participation is separate from deleting social history.
         room.leave();emit changed();return;
     }
-    if(channel.isEmpty()) {room.forgetMembership();emit changed();return;}
+    QString successor;
+    for(const auto& v:s["members"].toArray()) {
+        const auto m=v.toObject();
+        if(m["id"]!=snapshot_["userId"].toString()&&!m["spectator"].toBool()) {successor=m["id"].toString();break;}
+    }
+    if(channel.isEmpty()) {if(room.hosting()&&successor.isEmpty())room.leave();else room.forgetMembership();emit changed();return;}
+    if(room.hosting()&&successor.isEmpty())lobbyCloseOnLeave_.insert(id);
     lobbyLeaving_.insert(id);leavingLobby_=id;
-    emit commandRequested("leave-group",{{"channel",channel}});emit changed();
+    emit commandRequested("leave-group",{{"channel",channel},{"successor",room.hosting()?successor:QString()}});emit changed();
 }
 void SocialController::syncMyLobbies() {
     if(snapshot_["state"]!="connected")return;

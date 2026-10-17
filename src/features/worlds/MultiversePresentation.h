@@ -40,6 +40,7 @@ public:
     GameCollections* collectionManager() const { return collections_; }
     QVariantMap game(const QString& id) const;
     QVariantList collections() const;
+    bool belongsToCollection(const QString& game,const QString& collection) const;
     void setCollection(const QString&);
 
     int listPageSize() const { return 7; }
@@ -91,6 +92,7 @@ private:
     QVariantMap present(const Game&) const;
     QList<Game> filtered() const;
     bool belongs(const Game&) const;
+    bool belongs(const Game&,const QString&) const;
     bool sample_;
     QString route_ = "systems", system_ = "gb", selected_;
     int systemFocus_ = 0;

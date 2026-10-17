@@ -324,6 +324,7 @@ Window {
             function hint(button, label) { return {button:button, label:label} }
             readonly property var localActions: {
                 const h = hint
+                if (shell.social.lobbyCreateOpen || shell.social.lobbyPicker.open || shell.social.lobbyPicker.voteOpen) return [h("↑↓","Choose"),h("A","Select"),h("B","Close")]
                 if (shell.social.myLobbiesOpen) return [h("\u2191\u2193","Choose"),h("A","Open"),h("B","Back")]
                 if (shell.social.online.open) return shell.social.online.incoming ? [h("A","Accept"),h("B","Decline")] : [h("B","Cancel")]
                 if (shell.moduleInvitation.open) return shell.moduleInvitation.incoming ? [h("A","Accept"),h("B","Decline")] : [h("B","Cancel")]
@@ -424,6 +425,9 @@ Window {
         ScrapePanel { anchors.fill: screen; shell: shellController; z: 3.1; visible: shell.scraper.open && !shell.keyboard.open }
         DownloadsPanel { anchors.fill: screen; flow: shell.downloads; z: 3.2; visible: shell.downloads.open }
         MyLobbiesPopup { anchors.fill: screen; social: shell.social; z: 3.5 }
+        LobbyCreatePopup { anchors.fill: screen; social: shell.social; z: 3.6 }
+        LobbyGamePicker { anchors.fill: screen; social: shell.social; z: 3.7 }
+        LobbyVotePopup { anchors.fill: screen; social: shell.social; z: 3.7 }
         CollectionsPanel { anchors.fill: screen; shell: shellController; z: 3; visible: shell.collectionManager.open }
         LibraryToolsPanel { anchors.fill: screen; shell: shellController; z: 3; visible: shell.libraryTools.open }
         Item {
@@ -452,7 +456,7 @@ Window {
         }
         KeyboardPanel {
             anchors { left: screen.left; right: screen.right; top: screen.top; bottom: footer.top }
-            z: 3; shell: shellController
+            z: shell.social.lobbyCreateOpen || shell.social.lobbyPicker.open ? 3.9 : 3; shell: shellController
         }
         SystemPanel {
             anchors { left: screen.left; right: parent.right; top: screen.top; bottom: footer.top }

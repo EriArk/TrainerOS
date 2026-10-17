@@ -34,6 +34,19 @@ class LobbyTests final : public QObject {
         QVERIFY(l.claimSeat(peer,seat,l.generation()));QVERIFY(l.prepared(peer,l.generation(),true));
     }
 private slots:
+    void explicitWatchAdmissionAndGameVotes() {
+        LobbySession l;QVERIFY(l.create("1","Host","public"));
+        QVERIFY(l.join("2","Player",1));QVERIFY(l.join("3","Viewer",1,true));
+        QVERIFY(!l.spectate("1",true,l.generation()));
+        auto choices=QJsonArray{QJsonObject{{"id","a"},{"title","Game A"},{"platform","nes"},{"mode","netplay"},{"seats",2}},QJsonObject{{"id","b"},{"title","Game B"},{"platform","snes"},{"mode","netplay"},{"seats",2}}};
+        QVERIFY(l.proposeVote("1",choices));const auto id=l.state()["vote"].toObject()["id"].toString();
+        QVERIFY(!l.vote("3",id,0));QVERIFY(!l.vote("unknown",id,0));QVERIFY(!l.vote("2","stale",0));QVERIFY(l.vote("2",id,1));
+        QVERIFY(!l.confirmVote("2",id,1));QVERIFY(!l.confirmVote("1",id,0));QVERIFY(l.state()["game"].toObject()["id"].toString().isEmpty());
+        QVERIFY(l.confirmVote("1",id,1));QCOMPARE(l.state()["game"].toObject()["id"].toString(),QString("b"));QVERIFY(!l.confirmVote("1",id,1));
+        QVERIFY(l.proposeVote("1",choices));QVERIFY(l.vote("2",l.state()["vote"].toObject()["id"].toString(),0));QVERIFY(l.leave("2"));QVERIFY(l.state()["vote"].toObject()["votes"].toObject().isEmpty());
+        QVERIFY(!l.proposeVote("1",QJsonArray{choices[0],choices[0]}));
+    }
+
     void idleRuntimeQueriesNeverCreateAPhantomRoom() {
         LobbyCoordinator c;c.configure("1","Mika",true);
         QVERIFY(c.state().isEmpty());
