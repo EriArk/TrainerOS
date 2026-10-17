@@ -231,8 +231,40 @@ public:
             }
         });timer->start();
     }
+    static void social65(QQuickWindow* window,ShellController& shell,QString directory,bool& completed,int& warnings,QStringList& diagnostics) {
+        auto* social=shell.social();QObject::disconnect(social->session_,nullptr,social,nullptr);QObject::disconnect(social,nullptr,social->session_,nullptr);
+        auto step=std::make_shared<int>(0);auto failed=std::make_shared<bool>(false);auto* timer=new QTimer(window);timer->setInterval(600);
+        const auto check=[failed,&diagnostics](bool ok,QString text){diagnostics.append((ok?"PASS ":"FAIL ")+text);if(!ok)*failed=true;};
+        const auto capture=[=](QString name){check(window->grabWindow().save(directory+"/"+name+".png"),name);};
+        QObject::connect(timer,&QTimer::timeout,window,[=,&shell,&completed,&warnings,&diagnostics]{
+            switch((*step)++) {
+            case 0: {
+                QVariantList people,chats,messages;
+                const QStringList names{"Mika","Ren","Sofia Moonlight","Alex","Nori","Jules"};
+                for(int i=0;i<names.size();++i){const auto id=QString::number(i+2);people.append(QVariantMap{{"id",id},{"name",names[i]},{"type",i==3?3:i==4?4:1}});
+                    if(i<3)chats.append(QVariantMap{{"id","dm"+id},{"name",names[i]},{"kind","chats"},{"detail",i?"See you this evening!":"That was a great round."},{"members",QVariantList{QVariantMap{{"id",id}}}}});}
+                chats.append(QVariantMap{{"id","group"},{"name","Weekend crew"},{"kind","groups"},{"detail","Up for a game?"},{"owner","1"}});
+                chats.append(QVariantMap{{"id","text"},{"name","general"},{"guild","guild"},{"kind","community-channel"}});
+                for(int i=0;i<6;++i)messages.append(QVariantMap{{"id",QString::number(100+i)},{"author",i%2?"1":"2"},{"name",i%2?"You":"Mika"},{"mine",bool(i%2)},{"text",QStringList{"Hey! Ready for another adventure?","Absolutely. Which game are we playing?","Let's pick something together this evening.","Sounds good! I'll bring the snacks.","Perfect. See you at eight!","See you there!"}[i]},{"timestamp",QString("2026-10-17T18:%1:00Z").arg(i,2,10,QChar('0'))}});
+                social->receive(0,{{"state","connected"},{"userId","1"},{"name","Ren"},{"channel","dm2"},{"friends",people},{"chats",chats},{"messages",messages},
+                    {"communities",QVariantList{QVariantMap{{"id","guild"},{"name","TrainerOS Club"},{"kind","community"}}}}});
+                shell.goToPage(ShellController::SocialPage);social->setFace("chats");window->resize(1600,900);break;
+            }
+            case 1:capture("social-messages");social->contextRow(0);break;
+            case 2:check(social->menu().size()<=2,"Basic person context");capture("social-person-menu");social->closeMenu();shell.dispatch(Action::ChangeView);break;
+            case 3:check(social->menuMode_=="compose-tools","R3 opens composer controls without changing library view");capture("social-composer");social->closeMenu();shell.dispatch(Action::NextFace);social->snapshot_["channel"]="group";social->snapshot_["messages"]=QVariantList{};emit social->changed();break;
+            case 4:check(social->face_=="communities"&&social->rows().size()==2,"Groups and communities share second face");capture("social-communities");social->activate(1);social->snapshot_["channel"]="text";emit social->changed();break;
+            case 5:check(social->communityOpen()&&social->rows().size()==1,"Community replaces left list with channels");capture("social-channels");social->dispatch(Action::Back);break;
+            case 6:check(!social->communityOpen(),"B returns to groups and communities");shell.dispatch(Action::PreviousFace);social->snapshot_["channel"]="dm2";social->snapshot_["messages"]=QVariantList{};emit social->changed();window->resize(960,540);break;
+            case 7:capture("social-empty-handheld");social->profile("5");break;
+            case 8:check(social->menu().contains("Accept friend request"),"Request actions remain in profile");capture("social-request");social->closeMenu();break;
+            default:timer->stop();completed=true;QFile report(directory+"/social-check.txt");if(report.open(QIODevice::WriteOnly))report.write((diagnostics.join('\n')+QString("\nqmlWarnings=%1\n").arg(warnings)).toUtf8());QCoreApplication::exit(*failed||warnings?4:0);
+            }
+        });timer->start();
+    }
     static void start(QQuickWindow* window,ShellController& shell,ControllerInput& input,SDL_Joystick* joystick,
                       QString directory,bool& completed,int& warnings,QStringList& diagnostics) {
+        if(qEnvironmentVariableIsSet("TRAINEROS_SOCIAL65_SMOKE")){social65(window,shell,directory,completed,warnings,diagnostics);return;}
         if(qEnvironmentVariableIsSet("TRAINEROS_LOBBY_CATALOGUE_SMOKE")){catalogue(window,shell,input,joystick,directory,completed,warnings,diagnostics);return;}
         auto* social=shell.social();
         QObject::disconnect(social->session_,nullptr,social,nullptr);

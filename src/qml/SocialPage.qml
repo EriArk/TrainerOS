@@ -100,58 +100,79 @@ FocusScope {
         id: conversationPage
         visible: root.connected && root.faceIndex < 2
         anchors { top: heading.bottom; bottom: parent.bottom; left: parent.left; right: parent.right }
-        Rectangle { anchors.fill: parent; color: "#fffbf0" }
-        Rectangle { width: people.width + 20; height: parent.height; color: "#f4e4de" }
-        Rectangle { x: people.width + 20; width: 1; height: parent.height; color: "#d8beb7" }
-        Text { renderType: typeof Text.CurveRendering === "number" ? Text.CurveRendering : Text.QtRendering; x: 16; y: 12; width: people.width - 72
-            text: root.faceIndex === 1 ? "Communities" : root.social.contacts ? "Friends" : "Messages"
-            font.family: Theme.displayFamily; font.pixelSize: 19; color: Theme.ink; elide: Text.ElideRight }
-        SocialIconButton { x: people.width - 56; y: 5; tint: Theme.blue; icon: "users"; label: root.social.contacts ? "Messages" : "Friends and requests"
-            visible: root.faceIndex === 0; onClicked: root.social.showFriends() }
-        SocialIconButton { x: people.width - 22; y: 5; tint: Theme.yellow; icon: "plus"; label: "Create and manage"
-            onClicked: { root.anchorMenu(this); root.social.collectionOptions() } }
-        ListView {
-            id: people
-            x: 8; y: 45; width: parent.width * 0.28; height: parent.height - y - 45
-            clip: true; spacing: 3; model: root.social.rows; currentIndex: root.social.focusIndex
-            onCurrentIndexChanged: positionViewAtIndex(currentIndex, ListView.Contain)
-            delegate: Rectangle {
-                required property var modelData
-                required property int index
-                width: people.width; height: 49; radius: 8
-                color: index === people.currentIndex ? "#fff0b8" : mouse.containsMouse ? "#faeee7" : "transparent"
-                border.width: index === people.currentIndex && !root.social.reading && !root.social.menu.length ? 1 : 0
-                border.color: "#c5a253"
-                MouseArea { id: mouse; anchors.fill: parent; hoverEnabled: true; onClicked: root.social.activate(index) }
-                Rectangle { x: 7; y: 9; width: 30; height: 30; radius: 10; color: modelData.kind === "groups" ? Theme.tabColors[4] : Theme.blue
-                    Image { id: avatarImage; anchors.fill: parent; anchors.margins: 1; source: root.visible ? (modelData.avatar || "") : ""; sourceSize: Qt.size(60,60); asynchronous: true; fillMode: Image.PreserveAspectFit; visible: status === Image.Ready }
-                    Text { renderType: typeof Text.CurveRendering === "number" ? Text.CurveRendering : Text.QtRendering; visible: avatarImage.status !== Image.Ready; anchors.centerIn: parent; text: modelData.name.substring(0,1).toUpperCase(); color: Theme.ink; font.family: Theme.displayFamily; font.pixelSize: 18; textFormat: Text.PlainText }
-                }
-                Column { x: 46; y: 7; width: parent.width - x - 32; spacing: 3
-                    Text { renderType: typeof Text.CurveRendering === "number" ? Text.CurveRendering : Text.QtRendering; width: parent.width; text: modelData.name; color: Theme.ink; font.pixelSize: 14; font.bold: !!modelData.unread; elide: Text.ElideRight; textFormat: Text.PlainText }
-                    Text { renderType: typeof Text.CurveRendering === "number" ? Text.CurveRendering : Text.QtRendering; width: parent.width; text: (modelData.kind === "groups" ? "Group · " : "") + (modelData.detail || ""); color: Theme.muted; font.pixelSize: 11; elide: Text.ElideRight; textFormat: Text.PlainText }
-                }
-                SocialIconButton { anchors { right: parent.right; verticalCenter: parent.verticalCenter } width: 30; icon: "dots-three"; label: "Options for " + modelData.name
-                    onClicked: { root.anchorMenu(this); root.social.contextRow(index) } }
+        Rectangle { anchors.fill: parent; color: Theme.paper }
+        Canvas {
+            anchors.fill: parent; opacity: 0.055
+            property color patternColor: Theme.chassis
+            onPatternColorChanged: requestPaint()
+            onWidthChanged: requestPaint()
+            onHeightChanged: requestPaint()
+            onPaint: {
+                const c=getContext("2d"); c.reset();c.strokeStyle=patternColor;c.lineWidth=1.2
+                for(let r=60;r<width;r+=38){c.beginPath();c.arc(width*.81,height*.69,r,0,Math.PI*2);c.stroke()}
             }
         }
-        Rectangle { x: 8; y: parent.height - 41; width: people.width; height: 1; color: "#d8beb7" }
-        SocialIconButton { x: 8; y: parent.height - 37; tint: Theme.tabColors[4]; icon: "user"; label: "My profile"; onClicked: root.social.profile() }
-        Text { renderType: typeof Text.CurveRendering === "number" ? Text.CurveRendering : Text.QtRendering; x: 44; y: parent.height - 34; width: people.width - 70; text: root.account.name || ""; font.pixelSize: 12; color: Theme.ink; elide: Text.ElideRight; textFormat: Text.PlainText
-            MouseArea { anchors.fill: parent; onClicked: root.social.profile() } }
-        Text { renderType: typeof Text.CurveRendering === "number" ? Text.CurveRendering : Text.QtRendering; x: 44; y: parent.height - 18; text: "Powered by Fluxer"; font.pixelSize: 9; color: Theme.muted }
-        Text { renderType: typeof Text.CurveRendering === "number" ? Text.CurveRendering : Text.QtRendering; x: people.x + 8; y: 90; width: people.width - 16; visible: !people.count
-            text: root.faceIndex === 1 ? "Your communities will appear here." : "Your conversations will appear here."
+        Rectangle { x: people.x + people.width + 12; y: 12; width: 1; height: parent.height-28; color: Theme.chassis; opacity: .18 }
+        SocialIconButton {
+            x: 12; y: 6; visible: root.faceIndex===1 && root.social.communityOpen
+            icon: "arrow-left"; label: "Back to communities"; onClicked: root.social.communityBack()
+        }
+        Text { x: root.faceIndex===1 && root.social.communityOpen ? 49 : 20; y: 12; width: people.width-x-16
+            text: root.faceIndex===1 ? root.social.communityTitle : "Messages"
+            font.family: Theme.displayFamily; font.pixelSize: 20; color: Theme.ink; elide: Text.ElideRight
+            MouseArea { anchors.fill: parent; enabled: root.social.communityOpen; onClicked: {root.anchorMenu(parent);root.social.communityInfo()} }
+        }
+        SocialIconButton {
+            x: people.x+people.width-30; y: 6; tint: Theme.blue
+            highlighted: root.social.focusIndex<0 && !root.social.reading
+            icon: root.faceIndex===0 ? "magnifying-glass" : root.social.communityOpen ? "info" : "plus"
+            label: root.faceIndex===0 ? "Find a person" : root.social.communityOpen ? "Community info" : "Create"
+            onClicked: {root.anchorMenu(this);if(root.faceIndex===0)root.social.filterPeople();else if(root.social.communityOpen)root.social.communityInfo();else root.social.collectionOptions()}
+        }
+        ListView {
+            id: people; objectName: "social-people"
+            x: 12; y: 51; width: parent.width*.29; height: parent.height-y-29
+            clip: true; spacing: 2; model: root.social.rows; currentIndex: root.social.focusIndex
+            onCurrentIndexChanged: positionViewAtIndex(currentIndex,ListView.Contain)
+            section.property: "section"
+            section.delegate: Item {
+                required property string section; width: people.width; height: section ? 25 : 0
+                Text { x: 9; anchors.verticalCenter: parent.verticalCenter; text: section; font.pixelSize: 11; font.bold: true; color: Theme.muted; font.letterSpacing: .7 }
+            }
+            delegate: Item {
+                required property var modelData; required property int index
+                width: people.width; height: 59
+                Rectangle { anchors.fill: parent; anchors.margins: 2; radius: 10
+                    color: index===people.currentIndex ? Qt.rgba(Theme.rim.r,Theme.rim.g,Theme.rim.b,.16) : mouse.containsMouse ? "#0c193f3b" : "transparent"
+                    border.width: index===people.currentIndex && !root.social.reading && !root.social.menu.length ? 1 : 0
+                    border.color: Qt.rgba(Theme.chassis.r,Theme.chassis.g,Theme.chassis.b,.45)
+                }
+                Rectangle { x: 57; y: parent.height-1; width: parent.width-x-12; height: 1; color: Theme.chassis; opacity: .1 }
+                MouseArea { id: mouse; anchors.fill: parent; hoverEnabled: true; onClicked: root.social.activate(index) }
+                AccountAvatar { x: 8; y: 9; width: 37; name: modelData.name; source: root.visible ? modelData.avatar || "" : ""; presence: modelData.presence || ""
+                    MouseArea { anchors.fill: parent; enabled: modelData.kind==="person"; onClicked: root.social.profile(modelData.id) }
+                }
+                Column { x: 57; y: 11; width: parent.width-x-29; spacing: 4
+                    Text { width: parent.width; text: (modelData.pinned ? "· " : "")+modelData.name; color: Theme.ink; font.pixelSize: 15; font.bold: !!modelData.unread; elide: Text.ElideRight; textFormat: Text.PlainText }
+                    Text { width: parent.width; text: modelData.marker || modelData.detail || (modelData.kind==="person" ? "Say hello" : ""); color: Theme.muted; font.pixelSize: 11; elide: Text.ElideRight; textFormat: Text.PlainText }
+                }
+                SocialIconButton { anchors { right: parent.right; verticalCenter: parent.verticalCenter } width: 28; icon: "dots-three"; label: "Options for "+modelData.name
+                    onClicked: {root.anchorMenu(this);root.social.contextRow(index)} }
+            }
+        }
+        Text { anchors.right: parent.right; anchors.rightMargin: 20; y: parent.height-12; text: "Powered by Fluxer"; font.pixelSize: 9; color: Theme.muted; opacity: .65 }
+        Text { x: people.x+8; y: 99; width: people.width-16; visible: !people.count
+            text: root.faceIndex===1 ? root.social.communityOpen ? "No text channels available." : "Your groups and communities will appear here." : root.social.peopleFilter ? "No matching people" : "Friends and people you talk to will appear here."
             wrapMode: Text.WordWrap; horizontalAlignment: Text.AlignHCenter; color: Theme.muted; font.pixelSize: 14 }
         ConversationPane {
-            anchors { left: people.right; leftMargin: 26; right: parent.right; rightMargin: 12; top: parent.top; bottom: parent.bottom }
+            anchors { left: people.right; leftMargin: 29; right: parent.right; rightMargin: 20; top: parent.top; topMargin: 6; bottom: parent.bottom; bottomMargin: 4 }
             visible: root.social.conversation
             social: root.social; active: root.connected && root.faceIndex < 2
             onMenuAnchored: item => root.anchorMenu(item)
         }
         Column { visible: !root.social.conversation; x: people.width + 50; width: parent.width - x - 30; anchors.verticalCenter: parent.verticalCenter; spacing: 12
-            Text { renderType: typeof Text.CurveRendering === "number" ? Text.CurveRendering : Text.QtRendering; width: parent.width; text: root.faceIndex === 1 ? "A place for your people" : "No conversations yet"; font.family: Theme.displayFamily; font.pixelSize: 25; color: Theme.ink; horizontalAlignment: Text.AlignHCenter }
-            Text { renderType: typeof Text.CurveRendering === "number" ? Text.CurveRendering : Text.QtRendering; width: parent.width; text: "Find friends in Discover, or use + to create a group."; font.pixelSize: 15; color: Theme.muted; horizontalAlignment: Text.AlignHCenter; wrapMode: Text.WordWrap }
+            Text { renderType: typeof Text.CurveRendering === "number" ? Text.CurveRendering : Text.QtRendering; width: parent.width; text: root.faceIndex === 1 ? "A place for your people" : "A little closer"; font.family: Theme.displayFamily; font.pixelSize: 25; color: Theme.ink; horizontalAlignment: Text.AlignHCenter }
+            Text { renderType: typeof Text.CurveRendering === "number" ? Text.CurveRendering : Text.QtRendering; width: parent.width; text: root.account.status && root.account.status!=="Connected" ? root.account.status : root.faceIndex===1 ? "Choose a group or community to join the conversation." : "Choose someone on the left, or find new friends in Discover."; font.pixelSize: 15; color: Theme.muted; horizontalAlignment: Text.AlignHCenter; wrapMode: Text.WordWrap }
         }
     }
     Item {
@@ -238,12 +259,10 @@ FocusScope {
                         Column { width: parent.width - 58; spacing: 4
                             Text { renderType: typeof Text.CurveRendering === "number" ? Text.CurveRendering : Text.QtRendering; width: parent.width; text: root.social.person.name || ""; color: Theme.ink; font.pixelSize: 18; elide: Text.ElideRight; textFormat: Text.PlainText }
                             Text { renderType: typeof Text.CurveRendering === "number" ? Text.CurveRendering : Text.QtRendering; width: parent.width; text: root.social.person.tag || ""; color: Theme.muted; font.pixelSize: 12; elide: Text.ElideRight; textFormat: Text.PlainText }
-                            Text { renderType: typeof Text.CurveRendering === "number" ? Text.CurveRendering : Text.QtRendering; visible: !!text; text: root.social.person.pronouns || ""; color: Theme.muted; font.pixelSize: 11; textFormat: Text.PlainText }
                         }
                     }
                     Text { renderType: typeof Text.CurveRendering === "number" ? Text.CurveRendering : Text.QtRendering; visible: !!text; width: parent.width; text: root.social.person.bio || ""; color: Theme.ink; font.pixelSize: 13; wrapMode: Text.Wrap; maximumLineCount: 5; elide: Text.ElideRight; textFormat: Text.PlainText }
                     Text { renderType: typeof Text.CurveRendering === "number" ? Text.CurveRendering : Text.QtRendering; visible: !!text; width: parent.width; text: root.social.person.status || ""; color: Theme.muted; font.pixelSize: 12; wrapMode: Text.Wrap; textFormat: Text.PlainText }
-                    Text { renderType: typeof Text.CurveRendering === "number" ? Text.CurveRendering : Text.QtRendering; visible: !!root.social.person.loaded; width: parent.width; text: (root.social.person.mutualFriends || 0) + " mutual friends · " + (root.social.person.mutualCommunities || 0) + " mutual communities"; color: Theme.muted; font.pixelSize: 11; wrapMode: Text.Wrap }
                 }
                 CapButton { visible: root.social.canCreateGroup; width: parent.width; height: visible ? 40 : 0; label: "Create group"; tint: Theme.yellow; claimsFocus: false; onActivated: root.social.createSelectedGroup() }
                 Image { visible: root.social.mediaPreview && root.social.media.picture.toString().length > 0; width: parent.width; height: visible ? 165 : 0; source: visible ? root.social.media.picture : ""; sourceSize: Qt.size(740,330); fillMode: Image.PreserveAspectFit; asynchronous: true }

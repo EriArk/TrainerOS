@@ -22,6 +22,9 @@ class NativeActivityProvider;
 class SocialController final : public QObject {
     Q_OBJECT
     Q_PROPERTY(bool contacts READ contacts NOTIFY changed)
+    Q_PROPERTY(QString peopleFilter READ peopleFilter NOTIFY changed)
+    Q_PROPERTY(QString communityTitle READ communityTitle NOTIFY changed)
+    Q_PROPERTY(bool communityOpen READ communityOpen NOTIFY changed)
     Q_PROPERTY(QString searchKind READ searchKind NOTIFY changed)
     Q_PROPERTY(QString query READ query NOTIFY changed)
     Q_PROPERTY(int searchFocus READ searchFocus NOTIFY changed)
@@ -106,6 +109,14 @@ class SocialController final : public QObject {
     Q_PROPERTY(QString lobbyTopic READ lobbyTopic NOTIFY changed)
     Q_PROPERTY(bool lobbyFreeOnly READ lobbyFreeOnly NOTIFY changed)
 public:
+    QString peopleFilter() const {return peopleFilter_;}
+    QString communityTitle() const;
+    bool communityOpen() const {return !communityId_.isEmpty();}
+    Q_INVOKABLE void filterPeople();
+    Q_INVOKABLE void communityBack();
+    Q_INVOKABLE void communityInfo();
+    Q_INVOKABLE void composerTools();
+
     ChatFiles* files(){return &files_;}
     Q_INVOKABLE void attachFile();
     Q_INVOKABLE void lobbyChatTools();
@@ -227,7 +238,7 @@ public:
     bool openQuickConversation(const QString& id);
     QVariantList messages() const { return snapshot_.value("messages").toList(); }
     QVariantList hints() const;
-    QString draft() const { return drafts_.value(snapshot_.value("channel").toString()); }
+    QString draft() const { return drafts_.value(snapshot_["channel"].toString()); }
     QString conversationName() const;
     bool conversation() const { return !snapshot_.value("channel").toString().isEmpty(); }
     int focusIndex() const {return focus_;}
@@ -348,6 +359,13 @@ signals:
     void backgroundNotification(QString title,QString text);
     void reviewsChanged(QString identity,QVariantMap state);
 private:
+    QString peopleFilter_,communityId_,socialSettingsKey_;
+    QStringList pinnedPeople_,pinnedGroups_,pinnedCommunities_;
+    QHash<QString,QVariantMap> faceRoutes_;
+    void saveSocialPreferences();
+    void restoreSocialPreferences();
+    QVariantList peopleRows() const;
+    QVariantList communityRows() const;
     QString previousGameChatChannel_,gamePreviewChannel_;
     ChatFiles files_{this};
     void dispatchRecent(Action action);
@@ -418,7 +436,7 @@ private:
     void receive(quint64 generation, QVariantMap snapshot);
     void openMenu();
     void nativeActivities();
-    void groupDetails();
+    void groupDetails(int index = -1);
     QVariantList runtimeActions_;
     QVariantMap runtimeInvitation_;
     void openPeople(QString mode);

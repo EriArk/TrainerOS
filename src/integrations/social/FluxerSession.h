@@ -193,6 +193,7 @@ private:
     QString channelKind(const QJsonObject& channel) const;
     QString face_ = "chats", navigationKey_;
     QHash<QString,QString> preferred_;
+    QString requestedDm_;
     bool channelsLoaded_ = false, friendsLoaded_ = false, openingDm_ = false, openingGuild_ = false;
     QVariantList searchResults_;
     QString searchMode_ = "communities", searchText_, searchStatus_;

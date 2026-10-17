@@ -37,6 +37,7 @@ add_library(trainer_core STATIC
     src/integrations/social/AltchaProof.cpp
     src/platform/storage/EncryptedCredentials.cpp
     src/features/social/SocialController.cpp
+    src/features/social/SocialNavigation.cpp
     src/features/social/SocialPlayers.cpp
     src/features/social/SocialStreams.cpp
     src/features/social/PlayerOverlayController.cpp

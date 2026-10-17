@@ -1460,6 +1460,10 @@ void ShellController::dispatch(Action action) {
         if(pairedNavigationAvailable() && !navigationLocked() && !localModalOpen())social_.dispatch(action);
         return;
     }
+    if(page_==SocialPage && !keyboard_.isOpen() && (action==Action::ToggleFavorite || action==Action::ChangeView)) {
+        if(pairedNavigationAvailable() && !navigationLocked() && !localModalOpen())social_.dispatch(action);
+        return;
+    }
     if(action==Action::ToggleFavorite) {
         if(page_==GameHubPage && hubFace_=="overview" && overviewFace_=="screens") {
             if(pairedNavigationAvailable() && !navigationLocked() && !album_.filtering())album_.toggleFavorite();

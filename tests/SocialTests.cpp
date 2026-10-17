@@ -35,6 +35,59 @@ class SocialTests : public QObject {
         s.channel_=channel;s.channels_[channel]={{"id",channel},{"type",1}};
     }
 private slots:
+    void peopleAreIdentitiesIncludingRequestsWithoutMixingGroups() {
+        SocialController s;QObject::disconnect(&s,nullptr,s.session_,nullptr);
+        s.snapshot_={{"state","connected"},{"userId","self"},{"friends",QVariantList{
+            QVariantMap{{"id","friend"},{"name","Mika"},{"type",1}},QVariantMap{{"id","incoming"},{"name","Ren"},{"type",3}},
+            QVariantMap{{"id","outgoing"},{"name","Sol"},{"type",4}},QVariantMap{{"id","blocked"},{"name","Blocked"},{"type",2}}}},
+            {"chats",QVariantList{QVariantMap{{"id","dm"},{"name","Mika"},{"kind","chats"},{"members",QVariantList{QVariantMap{{"id","friend"}}}}},
+                QVariantMap{{"id","service-dm"},{"name","Directory"},{"service",true},{"kind","chats"},{"members",QVariantList{QVariantMap{{"id","service"}}}}},
+                QVariantMap{{"id","stranger-dm"},{"name","Alex"},{"kind","chats"},{"members",QVariantList{QVariantMap{{"id","stranger"}}}}},
+                QVariantMap{{"id","group"},{"name","Weekend"},{"kind","groups"}},
+                QVariantMap{{"id","blocked-dm"},{"name","Blocked"},{"kind","chats"},{"members",QVariantList{QVariantMap{{"id","blocked"}}}}}}}};
+        QCOMPARE(s.rows().size(),4);
+        for(const auto& v:s.rows()){const auto row=v.toMap();QVERIFY(!row["id"].toString().isEmpty());QVERIFY(!row["name"].toString().isEmpty());}
+        QSignalSpy commands(&s,&SocialController::commandRequested);
+        int request=-1;for(int i=0;i<s.rows().size();++i)if(s.rows()[i].toMap()["id"]=="incoming")request=i;
+        QVERIFY(request>=0);s.activate(request);QCOMPARE(commands.last()[0].toString(),QString("dm"));
+        for(const auto& cmd:commands)QVERIFY(cmd[0]!="accept");
+        s.contextRow(request);QCOMPARE(s.menu(),QStringList{"Pin"});s.selectMenu(0);QCOMPARE(s.rows().first().toMap()["id"].toString(),QString("incoming"));
+        s.filterPeople();s.applyText("Mik");QCOMPARE(s.rows().size(),1);QCOMPARE(s.rows().first().toMap()["channel"].toString(),QString("dm"));
+    }
+    void communityDrilldownReplacesListAndMenusStayBasic() {
+        SocialController s;QObject::disconnect(&s,nullptr,s.session_,nullptr);s.face_="communities";
+        s.snapshot_={{"state","connected"},{"userId","self"},{"channel","group"},{"chats",QVariantList{
+            QVariantMap{{"id","group"},{"name","Weekend"},{"kind","groups"},{"owner","self"}},
+            QVariantMap{{"id","text"},{"name","general"},{"guild","guild"},{"kind","community-channel"}}}},
+            {"communities",QVariantList{QVariantMap{{"id","guild"},{"name","Good company"},{"kind","community"}}}}};
+        QCOMPARE(s.rows().size(),2);s.contextRow(0);QCOMPARE(s.menu(),(QStringList{"Pin","Mute conversation"}));s.closeMenu();
+        s.activate(1);QVERIFY(s.communityOpen());QCOMPARE(s.rows().size(),1);QCOMPARE(s.rows().first().toMap()["id"].toString(),QString("text"));
+        s.communityBack();QVERIFY(!s.communityOpen());QCOMPARE(s.rows().size(),2);QCOMPARE(s.focusIndex(),1);
+        s.conversationProfile();QVERIFY(s.menu().contains("Members"));QVERIFY(s.menu().contains("Leave group"));QVERIFY(!s.menu().contains("Who can join my games"));
+    }
+    void conversationSelectionNeverCreatesAnUnrequestedDm() {
+        FluxerSession s;bind(s);s.channels_.clear();s.channel_.clear();s.channelsLoaded_=s.friendsLoaded_=true;
+        s.relationships_[remote]={{"type",1},{"user",QJsonObject{{"id",remote},{"username","Ren"}}}};
+        int requests=0;s.setTransport([&](QByteArray,QString,QJsonObject,Completion done,QByteArray){++requests;done({403,{}});});
+        s.ensureConversation();QCOMPARE(requests,0);QVERIFY(s.channel_.isEmpty());
+        s.relationships_[remote]["type"]=3;s.command("dm",{{"id",remote}});QCOMPARE(requests,1);QCOMPARE(s.relationships_[remote]["type"].toInt(),3);
+    }
+    void lateDmCreationCannotReplaceTheConversationChosenAfterIt() {
+        FluxerSession s;bind(s);Completion created;
+        s.relationships_[remote]={{"type",1},{"user",QJsonObject{{"id",remote},{"username","Ren"}}}};
+        s.setTransport([&](QByteArray method,QString,QJsonObject,Completion done,QByteArray){if(method=="POST")created=done;else done({200,QJsonDocument(QJsonArray{})});});
+        s.command("dm",{{"id",remote}});QVERIFY(s.channel_.isEmpty());QVERIFY(bool(created));
+        s.command("open",{{"id",channel}});QCOMPARE(s.channel_,QString(channel));
+        created({200,QJsonDocument(QJsonObject{{"id","1501314428688998199"},{"type",1},{"recipients",QJsonArray{QJsonObject{{"id",remote}}}}})});
+        QCOMPARE(s.channel_,QString(channel));QVERIFY(s.channels_.contains("1501314428688998199"));
+    }
+    void pinsAreScopedToTrainerAndCommunicationAccount() {
+        SocialController s;QObject::disconnect(&s,nullptr,s.session_,nullptr);s.owner_=QUuid::createUuid().toString();s.snapshot_["userId"]="one";
+        s.restoreSocialPreferences();const auto key=s.socialSettingsKey_;s.pinnedPeople_={"friend"};s.saveSocialPreferences();
+        s.snapshot_["userId"]="two";s.restoreSocialPreferences();QVERIFY(s.pinnedPeople_.isEmpty());
+        s.snapshot_["userId"]="one";s.restoreSocialPreferences();QCOMPARE(s.pinnedPeople_,QStringList{"friend"});QSettings().remove(key);
+    }
+
     void filesPreserveNamesAndSupportBeyondLegacyMediaLimit() {
         FluxerSession worker;bind(worker);QTemporaryDir dir;QFile file(dir.filePath("backup.zip"));
         QVERIFY(file.open(QIODevice::WriteOnly));QVERIFY(file.resize(20*1024*1024));file.close();const QFileInfo info(file);
@@ -745,18 +798,15 @@ private slots:
         c.snapshot_={{"state","connected"},{"userId","self"},{"channel",channel},{"chats",QVariantList{
             QVariantMap{{"id",channel},{"kind","chats"},{"name","Open chat"}},
             QVariantMap{{"id",other},{"kind","groups"},{"name","Other group"},{"owner","self"},{"members",QVariantList{QVariantMap{{"id",remote},{"username","Friend"}}}}}}}};
-        c.contextRow(1);QCOMPARE(c.menuTitle(),QString("Other group"));
-        QSignalSpy runtime(&c,&SocialController::runtimeAction);
-        const auto together=c.menuCommands_.indexOf("runtime:together-company:"+other);QVERIFY(together>=0);
-        c.selectMenu(together);QCOMPARE(runtime.size(),1);QCOMPARE(runtime.last()[0].toString(),"together-company:"+other);
-        c.contextRow(1);
+        c.face_="communities";c.contextRow(0);QCOMPARE(c.menuTitle(),QString("Other group"));
+        QVERIFY(!c.menuCommands_.contains("runtime:together-company:"+other));c.closeMenu();c.groupDetails(0);
         c.selectMenu(c.menuCommands_.indexOf("rename-group"));QSignalSpy text(&c,&SocialController::textRequested);
         c.applyText("Renamed");QCOMPARE(commands.last()[1].toMap()["channel"].toString(),other);
-        c.closeMenu();c.contextRow(1);c.selectMenu(c.menuCommands_.indexOf("remove-member"));
+        c.closeMenu();c.groupDetails(0);c.selectMenu(c.menuCommands_.indexOf("remove-member"));
         QCOMPARE(c.menuChannel_,other);c.selectMenu(0);c.selectMenu(1);
         QCOMPARE(commands.last()[0].toString(),QString("remove-member"));QCOMPARE(commands.last()[1].toMap()["channel"].toString(),other);
         QCOMPARE(commands.last()[1].toMap()["id"].toString(),QString(remote));
-        c.closeMenu();c.contextRow(1);c.selectMenu(c.menuCommands_.indexOf("members"));c.selectMenu(1);
+        c.closeMenu();c.groupDetails(0);c.selectMenu(c.menuCommands_.indexOf("members"));c.selectMenu(1);
         QVERIFY(c.profileVisible());QCOMPARE(commands.last()[0].toString(),QString("profile-read"));QCOMPARE(commands.last()[1].toMap()["id"].toString(),QString(remote));
         QVERIFY(!c.person().contains("bio"));
     }
@@ -785,9 +835,9 @@ private slots:
         QVERIFY(c.draft().startsWith("Draft "));QVERIFY(c.draft().size()>6);QVERIFY(commands.isEmpty());
         c.sendDraft();QCOMPARE(commands.count(),1);QCOMPARE(commands[0][0].toString(),QString("send"));
         QCOMPARE(commands[0][1].toMap()["channel"].toString(),QString(channel));
-        c.closeMenu();c.collectionOptions();QVERIFY(c.menuCommands_.contains("create-group"));QVERIFY(c.menuCommands_.contains("profile:self"));
+        c.closeMenu();c.setFace("communities");c.collectionOptions();QVERIFY(c.menuCommands_.contains("create-group"));QVERIFY(!c.menuCommands_.contains("profile:self"));
         c.closeMenu();c.snapshot_["chats"]=QVariantList{QVariantMap{{"id",channel},{"kind","chats"}}};
-        c.dispatch(Action::ContextMenu);c.selectMenu(c.menuCommands_.indexOf("message-tools"));
+        c.composerTools();
         QVERIFY(c.menuCommands_.contains("picture"));QVERIFY(c.menuCommands_.contains("record"));
         c.selectMenu(c.menuCommands_.indexOf("emoji-picker"));QVERIFY(c.emojiVisible());
         c.dispatch(Action::Right);QCOMPARE(c.menuIndex(),1);c.dispatch(Action::Down);QCOMPARE(c.menuIndex(),5);c.dispatch(Action::Up);QCOMPARE(c.menuIndex(),0);
@@ -813,7 +863,7 @@ private slots:
         c.sendDraft();QCOMPARE(commands.count(),1);
         c.call();QCOMPARE(commands.last()[0].toString(),QString("voice-join"));
         commands.clear();c.snapshot_["voice"]=QVariantMap{{"channel","other-call"},{"available",true},{"muted",true}};
-        c.call();QVERIFY(commands.isEmpty());QCOMPARE(c.menuTitle(),QString("Together"));
+        c.call();QVERIFY(commands.isEmpty());QCOMPARE(c.menuTitle(),QString("Call"));QCOMPARE(c.menu().size(),3);QVERIFY(!c.menuCommands_.contains("open-lobby"));
         c.closeMenu();c.snapshot_["messages"]=QVariantList{QVariantMap{{"id","older"}},QVariantMap{{"id","newer"}}};
         c.retainMessagePosition(0,false);QCOMPARE(commands.last()[1].toMap()["id"].toString(),QString("older"));QVERIFY(c.reading());
     }
@@ -850,7 +900,7 @@ private slots:
         SocialController c;c.owner_="company-"+QUuid::createUuid().toString();c.face_="groups";c.runtimeAvailable_=true;
         c.snapshot_={{"state","connected"},{"userId","self"},{"channel",channel},{"chats",QVariantList{QVariantMap{{"id",channel},{"kind","groups"},{"name","Our group"},{"members",QVariantList{QVariantMap{{"id",remote},{"username","Friend"}}}}}}}};
         c.setCompanyParties({QVariantMap{{"company",channel},{"peer","company:group:a"},{"joinable",true}},QVariantMap{{"company",channel},{"peer","company:group:b"},{"joinable",true}}});
-        QSignalSpy join(&c,&SocialController::partyJoin);c.dispatch(Action::ToggleContinue);
+        QSignalSpy join(&c,&SocialController::partyJoin);c.together();
         QCOMPARE(c.menuTitle(),QString("Together"));
         c.selectMenu(c.menuCommands_.indexOf("company-party:company:group:b"));
         QCOMPARE(join.count(),1);QCOMPARE(join[0][0].toString(),QString("company:group:b"));QVERIFY(c.menu().isEmpty());
@@ -884,15 +934,15 @@ private slots:
         s.channels_[remote]={{"id",remote},{"type",3},{"last_message_id","200"}};
         s.preferred_["groups"]=remote;s.channel_.clear();s.voiceChannel_=channel;s.voiceMuted_=true;
         s.command("face",{{"face","groups"}});QVERIFY(s.channel_.isEmpty());
-        s.channelsLoaded_=true;s.ensureConversation();QCOMPARE(s.channel_,QString(remote));QCOMPARE(s.face_,QString("chats"));
+        s.channelsLoaded_=true;s.ensureConversation();QCOMPARE(s.channel_,QString(remote));QCOMPARE(s.face_,QString("communities"));
         QCOMPARE(s.voiceChannel_,QString(channel));QVERIFY(s.voiceMuted_);
-        s.command("face",{{"face","friends"}});s.command("face",{{"face","chats"}});QCOMPARE(s.channel_,QString(remote));
+        s.command("face",{{"face","friends"}});s.command("face",{{"face","communities"}});QCOMPARE(s.channel_,QString(remote));
     }
     void togetherNeverSendsDraftAndHistoryDoesNotChangeButtonMeaning() {
         SocialController c;QSignalSpy commands(&c,&SocialController::commandRequested),text(&c,&SocialController::textRequested);
         c.snapshot_={{"state","connected"},{"channel",channel},{"historyPast",true}};
         c.drafts_[channel]="Keep my draft";c.reading_=true;
-        c.dispatch(Action::ToggleContinue);QCOMPARE(c.menuTitle(),QString("Together"));QVERIFY(commands.isEmpty());QCOMPARE(c.draft(),QString("Keep my draft"));
+        c.together();QCOMPARE(c.menuTitle(),QString("Together"));QVERIFY(commands.isEmpty());QCOMPARE(c.draft(),QString("Keep my draft"));
         c.dispatch(Action::Back);c.dispatch(Action::Secondary);QCOMPARE(text.count(),1);QVERIFY(commands.isEmpty());
         c.latest();QCOMPARE(commands.last()[0].toString(),QString("latest"));QVERIFY(c.reading());
     }
@@ -933,7 +983,7 @@ private slots:
     void partyOfferUsesStableTogetherEntryAndExplicitJoin() {
         SocialController c;c.receive(0,{{"state","connected"},{"channel",channel},{"chats",QVariantList{QVariantMap{{"id",channel},{"kind","chats"},{"friend",true},{"members",QVariantList{QVariantMap{{"id",remote}}}}}}}});
         c.setGameActivity(remote,{{"joinable",true},{"free",1},{"game",QVariantMap{{"label","A game"}}}});
-        QSignalSpy joined(&c,&SocialController::partyJoin);c.dispatch(Action::ToggleContinue);
+        QSignalSpy joined(&c,&SocialController::partyJoin);c.together();
         QVERIFY(joined.isEmpty());QCOMPARE(c.menuTitle(),QString("Together"));c.selectMenu(c.menuCommands_.indexOf("party-join"));
         QCOMPARE(joined.count(),1);QCOMPARE(joined.first()[0].toString(),QString(remote));QVERIFY(c.menu().isEmpty());
         c.setGameActivity(remote,{});c.joinGame();QCOMPARE(joined.count(),1);
@@ -949,7 +999,7 @@ private slots:
         QCOMPARE(joined.first()[1].toJsonObject()["game"].toObject(),QJsonObject::fromVariantMap(game));
         c.together();auto changed=game;changed["content"]="second";offer["game"]=changed;c.setGameActivity(remote,offer);
         c.selectMenu(c.menuCommands_.indexOf("party-join"));QCOMPARE(joined.count(),1);QCOMPARE(c.menuTitle(),QString("Game changed"));
-        c.closeMenu();c.contextRow(-1);QVERIFY(c.menuDetail().contains("Temporary save copies"));QVERIFY(c.fullMenuDetail());
+        c.closeMenu();c.contextRow(-1);QVERIFY(!c.menuCommands_.contains("join-peer:"+QString(remote)));
         offer["party"]="replacement-party";c.setGameActivity(remote,offer);
         c.selectMenu(c.menuCommands_.indexOf("join-peer:"+QString(remote)));QCOMPARE(joined.count(),1);
     }
@@ -974,7 +1024,7 @@ private slots:
         c.selectMenu(c.menuCommands_.indexOf("company-party:company:group:a"));QCOMPARE(joined.count(),1);
         c.joinCompanyParty(0);QCOMPARE(joined.count(),1);QCOMPARE(c.menuTitle(),QString("Join game"));
         c.selectMenu(c.menuCommands_.indexOf("join-reviewed"));QCOMPARE(joined.count(),2);
-        c.contextRow(-1);QVERIFY(c.menuDetail().contains("Temporary save copies"));QVERIFY(c.fullMenuDetail());
+        c.contextRow(-1);QVERIFY(!c.menuCommands_.contains("context-party:company:group:a"));
         ++c.generation_;c.selectMenu(c.menuCommands_.indexOf("context-party:company:group:a"));QCOMPARE(joined.count(),2);
     }
     void runtimeInvitationUsesDmContractAndReusesConversation() {
@@ -1194,7 +1244,7 @@ private slots:
         QCOMPARE(notices.first()[1].toString(),"request:"+QString(remote));
         SocialController c;c.toastChannel_=notices.first()[1].toString();
         c.receive(0,{{"state","connected"},{"userId","self"},{"friends",QVariantList{QVariantMap{{"id",remote},{"type",3},{"name","Friend"}}}}});
-        QCOMPARE(c.notificationFace(),QString("chats"));c.openNotification();QVERIFY(c.contacts());
+        QCOMPARE(c.notificationFace(),QString("chats"));c.openNotification();QVERIFY(!c.contacts());
         s.relationships_.clear();s.doNotDisturb_=true;s.gatewayEvent(event);QCOMPARE(notices.size(),1);
     }
     void unavailableCallRetainsProviderEntryUntilRecovery() {
@@ -1563,10 +1613,10 @@ private slots:
             QVariantMap{{"id","muted"},{"kind","chats"},{"unread",1},{"muted",true}},
             QVariantMap{{"id","read"},{"kind","chats"},{"unread",0}}}}};
         c.receive(0,state);QCOMPARE(c.notifications().size(),2);
-        QCOMPARE(c.notificationFaceAt(1),"chats");c.openNotificationAt(1);
+        QCOMPARE(c.notificationFaceAt(1),"communities");c.openNotificationAt(1);
         QCOMPARE(commands.last()[0].toString(),"conversation");
         QCOMPARE(commands.last()[1].toMap()["id"].toString(),QString(channel));
-        commands.clear();c.openNotificationAt(0);QVERIFY(c.contacts());
+        commands.clear();c.openNotificationAt(0);QVERIFY(!c.contacts());
         QCOMPARE(c.rows().value(c.focusIndex()).toMap()["id"].toString(),"request");
         for(const auto& command:commands)QVERIFY(command[0].toString()!="accept");
         state["chats"]=QVariantList{};c.receive(0,state);QCOMPARE(c.notifications().size(),1);
@@ -1606,13 +1656,13 @@ private slots:
         SocialController c;QSignalSpy commands(&c,&SocialController::commandRequested);
         c.receive(0,{{"state","connected"},{"channel",channel},{"chats",QVariantList{QVariantMap{
             {"id",remote},{"kind","groups"},{"unread",1}}}}});
-        c.toastChannel_=remote;QCOMPARE(c.notificationFace(),"chats");c.openNotification();
+        c.toastChannel_=remote;QCOMPARE(c.notificationFace(),"communities");c.openNotification();
         QCOMPARE(commands.last()[0].toString(),"conversation");QCOMPARE(commands.last()[1].toMap()["id"].toString(),QString(remote));
         QVERIFY(c.notificationFace().isEmpty());
         c.toastChannel_=remote;c.setOwner("different-owner");QVERIFY(c.notificationFace().isEmpty());
         FluxerSession s;bind(s);QString path;s.setTransport([&](auto,auto p,auto,auto,auto){path=p;});
         s.channels_[remote]={{"id",remote},{"type",3}};s.command("conversation",{{"id",remote}});
-        QCOMPARE(s.channel_,QString(remote));QCOMPARE(s.face_,"chats");QVERIFY(path.contains(remote));
+        QCOMPARE(s.channel_,QString(remote));QCOMPARE(s.face_,"communities");QVERIFY(path.contains(remote));
     }
     void singleMessageAnchorSurvivesPrependingHistory() {
         SocialController c;c.receive(0,{{"channel",channel},{"messages",QVariantList{QVariantMap{{"id","100"}}}}});
@@ -1624,7 +1674,7 @@ private slots:
         SocialController c;QSignalSpy commands(&c,&SocialController::commandRequested);
         QSignalSpy text(&c,&SocialController::textRequested);
         QVariantMap snapshot{{"state","connected"},{"channel",channel},
-            {"chats",QVariantList{QVariantMap{{"id",channel},{"name","Friend"},{"kind","chats"},{"friend",true}}}}};
+            {"chats",QVariantList{QVariantMap{{"id",channel},{"name","Friend"},{"kind","chats"},{"members",QVariantList{QVariantMap{{"id",remote}}}},{"friend",true}}}}};
         c.receive(0,snapshot);
         c.dispatch(Action::Confirm);QVERIFY(c.reading());QVERIFY(text.isEmpty());
         c.dispatch(Action::Secondary);QCOMPARE(text.size(),1);QCOMPARE(c.textSubmitLabel(),"Send");
@@ -1634,7 +1684,7 @@ private slots:
         QCOMPARE(commands.last()[1].toMap()["channel"].toString(),QString(channel));
         QCOMPARE(commands.last()[1].toMap()["text"].toString(),QString::fromUtf8("Привет 😀"));
         QVERIFY(c.draft().isEmpty());commands.clear();
-        c.dispatch(Action::ToggleContinue);QVERIFY2(commands.isEmpty(),qPrintable(commands.isEmpty()?QString():commands.first()[0].toString()));QCOMPARE(c.menuTitle(),"Together");
+        c.together();QVERIFY2(commands.isEmpty(),qPrintable(commands.isEmpty()?QString():commands.first()[0].toString()));QCOMPARE(c.menuTitle(),"Together");
         c.selectMenu(c.menuCommands_.indexOf("native-activities"));QCOMPARE(commands.size(),1);
         QCOMPARE(commands.last()[0].toString(),"online-probe");QCOMPARE(c.menuTitle(),"Activities");
         c.dispatch(Action::Back);QVERIFY(c.menu().isEmpty());QCOMPARE(commands.size(),1);
@@ -1748,7 +1798,7 @@ private slots:
         c.receive(0,{{"state","connected"}});c.setFace("communities");c.dispatch(Action::Secondary);
         QCOMPARE(text.size(),1);QVERIFY(c.menu().isEmpty());c.applyText("Our place");
         QCOMPARE(commands.last()[0].toString(),QString("create-community"));
-        c.dispatch(Action::LocalAction);c.selectMenu(c.menuCommands_.indexOf("community-filter"));QCOMPARE(commands.last()[0].toString(),QString("community-filter"));
+        c.dispatch(Action::LocalAction);QVERIFY(!c.menuCommands_.contains("community-filter"));QVERIFY(c.menuCommands_.contains("create-group"));
         FluxerSession s;bind(s);QString path;s.setTransport([&](auto,QString p,auto,Completion done,auto){path=p;done({200,QJsonDocument(QJsonObject{{"guilds",QJsonArray{}},{"total",0}})});});
         s.search("traineros","");QVERIFY(path.contains("tag=traineros-v1"));QVERIFY(!path.contains("query="));
         QVERIFY(s.searchStatus_.contains("Private communities"));
@@ -1845,14 +1895,14 @@ private slots:
     }
     void groupCreationAndMembershipUseProviderContract() {
         FluxerSession s;Completion done;QByteArray method;QString path;QJsonObject body;int calls=0;
-        s.setTransport([&](auto m,auto p,auto b,Completion cb, QByteArray){if(m=="GET"){cb({200,QJsonDocument(QJsonArray{})});return;}++calls;method=m;path=p;body=b;done=cb;});bind(s);
+        s.setTransport([&](auto m,auto p,auto b,Completion cb, QByteArray){if(m=="GET"){cb({200,QJsonDocument(QJsonArray{})});return;}++calls;method=m;path=p;body=b;done=cb;});bind(s);s.face_="communities";
         s.command("create-group",{{"recipients",QStringList{remote,remote}}});QCOMPARE(calls,0);
         s.command("create-group",{{"recipients",QStringList{remote}}});QCOMPARE(calls,1);
         QCOMPARE(method,QByteArray("POST"));QCOMPARE(path,QString("/v1/users/@me/channels"));
         QCOMPARE(body,(QJsonObject{{"recipients",QJsonArray{remote}}}));
         const QString group="1501314428688998199";
         QJsonObject groupData{{"id",group},{"type",3},{"owner_id",remote},{"name","Friends"}};
-        done({200,QJsonDocument(groupData)});QVERIFY(s.channels_.contains(group));
+        done({200,QJsonDocument(groupData)});QVERIFY(s.channels_.contains(group));QCOMPARE(s.channel_,group);
         s.command("remove-member",{{"channel",group},{"id",remote}});QCOMPARE(calls,1);
         s.command("rename-group",{{"channel",group},{"text","Play together"}});QCOMPARE(calls,2);
         QCOMPARE(method,QByteArray("PATCH"));QCOMPARE(body,(QJsonObject{{"name","Play together"}}));
@@ -2008,8 +2058,8 @@ private slots:
         SocialController c; // Synthetic snapshots only; no owner means no network/credential access.
         c.receive(0,{{"state","connected"},{"channel",channel},{"friends",QVariantList{QVariantMap{{"id",remote},{"name","Friend"},{"type",1}}}},
             {"chats",QVariantList{QVariantMap{{"id",channel},{"name","Friend"},{"kind","chats"}},QVariantMap{{"id","3"},{"name","Group"},{"kind","groups"}}}}});
-        QCOMPARE(c.rows().size(),2);c.compose();c.preserveText("Draft <b>plain text</b>");
-        c.setFace("groups");QCOMPARE(c.rows().size(),2);QCOMPARE(c.face_,QString("chats"));QCOMPARE(c.draft(),QString("Draft <b>plain text</b>"));
+        QCOMPARE(c.rows().size(),1);c.compose();c.preserveText("Draft <b>plain text</b>");
+        c.setFace("groups");QCOMPARE(c.rows().size(),1);QCOMPARE(c.face_,QString("communities"));QCOMPARE(c.draft(),QString("Draft <b>plain text</b>"));
         c.receive(99,{{"channel","wrong-owner"}});QCOMPARE(c.draft(),QString("Draft <b>plain text</b>"));
         c.setOwner("other");QVERIFY(c.draft().isEmpty());QVERIFY(c.rows().isEmpty());
     }
@@ -2020,7 +2070,7 @@ private slots:
         QCOMPARE(commands.last().first().toString(),QString("search"));
         QCOMPARE(commands.last()[1].toMap()["text"].toString(),QString("new community"));
         QVERIFY(c.rows().isEmpty());
-        c.showContacts();QCOMPARE(c.rows().size(),1);QVERIFY(c.contacts());
+        c.showContacts();QCOMPARE(c.rows().size(),1);QVERIFY(!c.contacts());
     }
     void backNeverClosesTheSelectedConversation() {
         SocialController c;QSignalSpy commands(&c,&SocialController::commandRequested);
@@ -2033,7 +2083,7 @@ private slots:
         s.channelsLoaded_=true;s.channels_[channel]["last_message_id"]="100";
         s.channels_[remote]={{"id",remote},{"type",1},{"last_message_id","200"}};
         s.channel_.clear();s.ensureConversation();QCOMPARE(s.channel_,QString(remote));
-        s.openConversation(channel);s.command("face",{{"face","groups"}});QCOMPARE(s.channel_,QString(channel));
+        s.openConversation(channel);s.command("face",{{"face","groups"}});QVERIFY(s.channel_.isEmpty());
         s.command("face",{{"face","chats"}});QCOMPARE(s.channel_,QString(channel));
         auto count=requests.size();s.ensureConversation();QCOMPARE(requests.size(),count);
         s.setOwner("b",2);QVERIFY(s.preferred_.isEmpty());
