@@ -1233,7 +1233,13 @@ void SocialController::selectMenu(int index) {
 void SocialController::dispatch(Action action) {
     if(myLobbiesOpen_) {
         if(action==Action::Back)closeMyLobbies();
-        else if(action==Action::Up||action==Action::Down){myLobbiesIndex_=qBound(0,myLobbiesIndex_+(action==Action::Down?1:-1),int(myLobbies().size()));myLobbyFocus_=myLobbies().value(myLobbiesIndex_).toMap()["id"].toString();}
+        else if(action==Action::Up||action==Action::Down){
+            const int count=myLobbies().size();
+            if(action==Action::Up&&myLobbiesIndex_==0)myLobbiesIndex_=count;
+            else if(action==Action::Down&&myLobbiesIndex_==count)myLobbiesIndex_=0;
+            else if(myLobbiesIndex_<count)myLobbiesIndex_=qBound(0,myLobbiesIndex_+(action==Action::Down?1:-1),count-1);
+            myLobbyFocus_=myLobbies().value(myLobbiesIndex_).toMap()["id"].toString();
+        }
         else if(action==Action::Confirm){const auto rows=myLobbies();if(myLobbiesIndex_<rows.size())chooseMyLobby(rows[myLobbiesIndex_].toMap()["id"].toString());else createAnotherLobby();}
         emit changed();return;
     }

@@ -34,6 +34,17 @@ class LobbyTests final : public QObject {
         QVERIFY(l.claimSeat(peer,seat,l.generation()));QVERIFY(l.prepared(peer,l.generation(),true));
     }
 private slots:
+    void idleRuntimeQueriesNeverCreateAPhantomRoom() {
+        LobbyCoordinator c;c.configure("1","Mika",true);
+        QVERIFY(c.state().isEmpty());
+        QVERIFY(!c.ready(false));
+        QVERIFY(!c.requestPlay());
+        QVERIFY(!c.requestLive("00000000-0000-4000-8000-000000000001"));
+        QVERIFY(!c.finishGame("stale-ticket"));
+        QVERIFY(c.state().isEmpty());
+        auto* room=c.createRoom();QVERIFY(room);
+        QCOMPARE(c.rooms().size(),1);
+    }
     void multipleMembershipsKeepOneRuntimeAndRecoverIndependently() {
         QTemporaryDir dir;const auto file=dir.filePath("rooms.json");QString first,second;
         {
