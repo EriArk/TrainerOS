@@ -4,6 +4,8 @@
 #include <QFile>
 #include <QImage>
 #include <QTimer>
+#include <QQmlComponent>
+#include <QQmlEngine>
 #include <memory>
 
 using namespace trainer;
@@ -292,6 +294,28 @@ void startAchievementGallerySmoke(QQuickWindow* window, ShellController& shell, 
         case 12:capture("gallery-4x3");press(a);break;
         case 13:capture("popup-4x3");window->resize(1920,1080);break;
         case 14:capture("popup-1080");press(b);break;
+        case 15: {
+            auto* engine=qmlEngine(window);check(engine,"QML engine");
+            if(!engine)break;
+            QQmlComponent fixture(engine);
+            fixture.setData("import QtQml\nQtObject { property var current: ({title: 'A new chapter', points: 10, mode: 'Standard', icon: ''}); function setPresentable(value) {} }",QUrl());
+            auto* model=fixture.create();check(model,"celebration fixture");if(!model)break;model->setParent(window);
+            for(auto* w:QGuiApplication::topLevelWindows())if(w->objectName()=="achievement-celebration-window") {
+                w->setProperty("celebration",QVariant::fromValue(model));w->setProperty("permitted",true);
+                w->resize(1280,720);
+            }
+            break;
+        }
+        case 16: {
+            bool found=false;
+            for(auto* w:QGuiApplication::topLevelWindows())if(w->objectName()=="achievement-celebration-window") {
+                auto* overlay=qobject_cast<QQuickWindow*>(w);found=overlay && overlay->isVisible();
+                if(overlay)check(overlay->grabWindow().save(directory+"/celebration-fixture.png"),"celebration capture");
+                check(w->flags().testFlag(Qt::WindowTransparentForInput) && w->flags().testFlag(Qt::WindowDoesNotAcceptFocus),"passive celebration");
+                w->setProperty("permitted",false);
+            }
+            check(found,"celebration window");break;
+        }
         default:
             check(warnings==0,"QML warnings");completed=true;timer->stop();
             QFile report(directory+"/verification.txt");if(report.open(QIODevice::WriteOnly))report.write(((*failed?QString("FAILED\n"):QString("PASSED\n"))+diagnostics.join('\n')).toUtf8());

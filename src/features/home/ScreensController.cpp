@@ -71,6 +71,14 @@ void ScreensController::showFilters() {
     const auto list=filters();for(int i=0;i<list.size();++i)if(list[i].toMap()["id"].toString()==filter_)filterFocus_=i;
     emit changed();
 }
+bool ScreensController::showCapture(const QString& id) {
+    for(const auto& value:source_) {
+        const auto row=value.toMap();if(row["id"].toString()!=id)continue;
+        selected_=id;filter_="game:"+row["adventure"].toString();filtering_=false;
+        favoritesView_=row.contains("favorite")?row["favorite"].toBool():favorites_.contains(id);rebuild();return true;
+    }
+    return false;
+}
 void ScreensController::chooseFilter(int index) {
     const auto list=filters();if(index<0 || index>=list.size())return;
     filter_=list[index].toMap()["id"].toString();filtering_=false;index_=0;rebuild();

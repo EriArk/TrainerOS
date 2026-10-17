@@ -6,6 +6,7 @@
 #include "core/repository/PlayHistoryRepository.h"
 #include "SqlitePlayHistory.h"
 #include "TrainerPin.h"
+#include "core/model/AchievementMoment.h"
 #include "SqliteHallOfFame.h"
 #include "SqlitePokedexJournal.h"
 #include <QJsonObject>
@@ -74,6 +75,8 @@ public:
     std::optional<QVariantList> screenMedia() const override { return screens_; }
     void setScreenFavoriteAsync(const QString&,bool,QObject*,std::function<void(QString)>) override;
     QImage screenImage(const QString& identity) const;
+    QVariantList achievementMoments() const;
+    void saveAchievementMomentAsync(const AchievementMoment&,QObject*,std::function<void(bool,QString)>);
     std::optional<AdventureRegistration> registration(const QString&) const override;
     QList<AdventureRegistration> registrations() const override { return registrations_; }
     void editLibraryAsync(const LibraryEdit&, QObject*, std::function<void(QString)>) override;
@@ -94,6 +97,7 @@ signals:
     void libraryChanged();
     void preferencesChanged();
 private:
+    QVariantList achievementMoments_;
     void accessWrite(std::function<QString(SqliteWorker&)>, std::function<void(QString)>);
     void write(std::function<QString(SqliteWorker&)>, std::function<void(QString)>);
     QThread thread_;

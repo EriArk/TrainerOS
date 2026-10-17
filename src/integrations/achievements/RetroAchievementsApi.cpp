@@ -17,6 +17,8 @@
 namespace trainer {
 namespace {
 constexpr qsizetype MaxResponse = 2 * 1024 * 1024;
+// rcheevos rc_client: reserved server-warning achievements are not game goals.
+constexpr qulonglong WarningAchievementId = 101000001;
 bool identifier(const QString& id) { static const QRegularExpression re("^[1-9][0-9]{0,9}$"); return re.match(id).hasMatch(); }
 QString badgeName(const QJsonValue& value) {
     static const QRegularExpression re("^[0-9]{1,10}$");
@@ -140,8 +142,10 @@ std::optional<LinkedAchievementSet> fetchAchievements(const AchievementAccount& 
     for (const auto& item : achievements) {
         const auto definition = item.toObject(); if (definition["Flags"].toInt(-1) != 3) continue;
         const auto id = number(definition["ID"]), title = definition["Title"].toString(), description = definition["Description"].toString();
+        if(id.toULongLong()>=WarningAchievementId)continue;
         if (id.isEmpty() || ids.contains(id) || !text(title, 256) || !text(description, 4096)) return result;
-        ids.insert(id); checked.append({id, title, description, badgeName(definition["BadgeName"])});
+        const int points=definition["Points"].toInt(-1);
+        ids.insert(id); checked.append({id, title, description, badgeName(definition["BadgeName"]),points>=0&&points<=1000?points:-1});
     }
     auto standardQuery = query(account, "unlocks", gameId); standardQuery.insert("h", "0");
     auto hardcoreQuery = query(account, "unlocks", gameId); hardcoreQuery.insert("h", "1");
@@ -164,7 +168,7 @@ QJsonObject achievementCache(const LinkedAchievementSet& value) {
     for (const auto& definition : value.snapshot.definitions) {
         auto found = std::find_if(value.snapshot.unlocks.cbegin(), value.snapshot.unlocks.cend(), [&](const auto& unlock) { return unlock.achievementId == definition.id; });
         if (found == value.snapshot.unlocks.cend() || !found->unlocked) return {};
-        entries.append(QJsonObject{{"id", definition.id}, {"title", definition.title}, {"description", definition.description}, {"badge", definition.badgeName},
+        entries.append(QJsonObject{{"id", definition.id}, {"title", definition.title}, {"description", definition.description}, {"badge", definition.badgeName},{"points",definition.points},
             {"earned", *found->unlocked}, {"hardcore", found->mode == AchievementMode::Hardcore}});
     }
     return {{"version", 1}, {"account", value.snapshot.context.accountId}, {"game", value.set.gameId},
@@ -184,10 +188,12 @@ std::optional<LinkedAchievementSet> readAchievementCache(const QJsonObject& obje
     QSet<QString> seen;
     for (const auto& entry : object["entries"].toArray()) {
         const auto value = entry.toObject(); const auto key = value["id"].toString();
+        if(key.toULongLong()>=WarningAchievementId)continue;
         if (!identifier(key) || seen.contains(key) || !text(value["title"].toString(), 256)
             || !text(value["description"].toString(), 4096) || !value["earned"].isBool() || !value["hardcore"].isBool()
             || (value["hardcore"].toBool() && !value["earned"].toBool())) return {};
-        seen.insert(key); result.snapshot.definitions.append({key, value["title"].toString(), value["description"].toString(), badgeName(value["badge"])});
+        const int points=value["points"].toInt(-1);
+        seen.insert(key); result.snapshot.definitions.append({key, value["title"].toString(), value["description"].toString(), badgeName(value["badge"]),points>=0&&points<=1000?points:-1});
         result.snapshot.unlocks.append({key, value["earned"].toBool(), value["earned"].toBool()
             ? std::optional(value["hardcore"].toBool() ? AchievementMode::Hardcore : AchievementMode::Standard) : std::nullopt, {}});
     }

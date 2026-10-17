@@ -76,14 +76,18 @@ public:
     Q_INVOKABLE void closeGalleryMenu();
     Q_INVOKABLE void chooseGalleryOption(int);
     Q_INVOKABLE void focusAchievement(int);
+    void setMoments(const QVariantList& moments) { moments_=moments;emit changed(); }
+    Q_INVOKABLE void openMoment();
     QJsonObject navigationState() const;
     void restoreNavigation(const QJsonObject&);
 signals:
+    void momentRequested(const QString& capture);
     void detailScrollRequested(int delta);
     void changed();
     void rowsChanged();
     void messageRequested(const QString& message);
 private:
+    QVariantList moments_;
     struct Row { QString id; QString title; QString subtitle; };
     QList<Row> currentRows() const;
     AchievementSet selectedSet() const;

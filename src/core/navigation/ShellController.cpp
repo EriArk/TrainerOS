@@ -97,6 +97,11 @@ ShellController::ShellController(LibraryRepository& repo, TrainerRepository& pro
     connect(this,&ShellController::changed,this,&ShellController::syncExperience);
     connect(&album_,&ScreensController::changed,this,&ShellController::changed);
     album_.setRepository(&repository_);
+    connect(&hall_,&HallOfFameController::momentRequested,this,[this](const QString& id){
+        if(!album_.showCapture(id))return;
+        achievementPhotoNavigation_=hall_.navigationState();
+        setHubFace("overview");showOverview("screens");achievementPhotoReturn_=true;emit changed();
+    });
     connect(&social_,&SocialController::presentationChanged,this,&ShellController::changed,Qt::QueuedConnection);
     settings_.setScraper(&scraper_);
     connect(&libraryTools_,&LibraryToolsController::browserActionRequested,this,&ShellController::libraryAction);
@@ -1531,8 +1536,12 @@ void ShellController::dispatch(Action action) {
         quickAppsOpen_=false;apps_.leave();
     }
     if(!menuOpen_ && !keyboard_.isOpen() && !localModalOpen() && !serviceOpen() && notice_.isEmpty() && action==Action::LocalAction) {openContext();return;}
+    if(achievementPhotoReturn_ && action==Action::Back && page_==GameHubPage && hubFace_=="overview" && overviewFace_=="screens"
+       && !album_.filtering() && !homeMenuOpen_ && !menuOpen_ && !serviceOpen() && notice_.isEmpty()) {
+        achievementPhotoReturn_=false;setHubFace("ra");hall_.restoreNavigation(achievementPhotoNavigation_);emit changed();return;
+    }
     if(dashboardReturn_ && page_==GameHubPage && hubFace_=="ra" && hall_.route()=="achievement-detail"
-       && (action==Action::Back || action==Action::Confirm) && !homeMenuOpen_ && !menuOpen_
+       && (action==Action::Back || (action==Action::Confirm && hall_.detail()["capture"].toString().isEmpty())) && !homeMenuOpen_ && !menuOpen_
        && !keyboard_.isOpen() && !serviceOpen() && notice_.isEmpty()) {
         hall_.dispatch(Action::Back); goToPage(HomePage); return;
     }

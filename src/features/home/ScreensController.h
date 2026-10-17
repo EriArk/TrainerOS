@@ -28,6 +28,7 @@ public:
     void setMedia(const QVariantList& media);
     void dispatch(Action action);
     void forGame(const QString& id);
+    bool showCapture(const QString& id);
     QVariantList items() const {return items_;}
     QVariantList filters() const;
     QVariantMap current() const;

@@ -81,7 +81,7 @@ Item {
         }
         Text {
             y: 21; width: parent.width; horizontalAlignment: Text.AlignHCenter
-            text: (root.current.day || "")+"  \u00b7  "+(root.current.clock || "")+"  \u00b7  Exit"
+            text: (root.current.day || "")+"  \u00b7  "+(root.current.clock || "")+"  \u00b7  "+(root.current.kind === "achievement" ? "Achievement" : "Exit")
             font.pixelSize: 10; color: Theme.muted
         }
     }

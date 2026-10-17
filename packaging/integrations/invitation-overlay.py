@@ -158,7 +158,7 @@ def run(args):
             focused = v.active()
             eligible = visible and (v.owns(focused,args.shell,start) or
                 bool(game and game_start and v.owns(focused,game,game_start)))
-            pointer.grab(eligible)
+            pointer.grab(eligible and bool(regions))
             for target, phase, px, py in pointer.poll(regions, eligible):
                 emit('pointer', target=target, phase=phase, x=px, y=py)
     finally:

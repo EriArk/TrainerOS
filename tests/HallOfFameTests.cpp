@@ -55,6 +55,21 @@ void achievements(HallOfFameController& hall, int index = 0) {
 class HallOfFameTests : public QObject {
     Q_OBJECT
 private slots:
+    void achievementPhotoUsesExactAccountSetGameAndReturnsToSameCard() {
+        MutableArchive archive;GalleryProvider provider;HallOfFameController hall(archive,provider);
+        hall.setCurrentAdventure("current");hall.showCurrentAchievements();hall.focusAchievement(3);hall.dispatch(Action::Confirm);
+        QCOMPARE(hall.route(),"achievement-detail");
+        QVariantMap moment{{"account","one"},{"set","set"},{"achievement","3"},{"adventure","current"},
+            {"source","image://screens/owner/moment"},{"capture","moment"},{"expired",false}};
+        auto other=moment;other["account"]="someone-else";hall.setMoments({other});QVERIFY(hall.detail()["capture"].toString().isEmpty());
+        other=moment;other["adventure"]="other-game";hall.setMoments({other});QVERIFY(hall.detail()["capture"].toString().isEmpty());
+        hall.setMoments({moment});QCOMPARE(hall.detail()["capture"].toString(),"moment");
+        QSignalSpy open(&hall,&HallOfFameController::momentRequested);hall.dispatch(Action::Confirm);QCOMPARE(open.size(),1);
+        QCOMPARE(hall.route(),"achievement-detail");QCOMPARE(hall.rowIndex(),3);
+        moment["capture"]="";moment["source"]="";moment["expired"]=true;hall.setMoments({moment});
+        QVERIFY(hall.detail()["expired"].toBool());hall.openMoment();QCOMPARE(open.size(),1);
+        hall.dispatch(Action::Back);QCOMPARE(hall.route(),"achievements");QCOMPARE(hall.rowIndex(),3);
+    }
     void achievementPopupUsesVerifiedFieldsAndTrapsUnrelatedActions() {
         MutableArchive archive; GalleryProvider provider; HallOfFameController hall(archive,provider);
         hall.setCurrentAdventure("current"); hall.showCurrentAchievements(); hall.activate(0);

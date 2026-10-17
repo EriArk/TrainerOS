@@ -2,6 +2,7 @@
 #include "RetroAchievementsApi.h"
 #include "core/repository/LibraryRepository.h"
 #include <QThread>
+#include <QSet>
 
 namespace trainer {
 class RetroAchievementsProvider final : public AchievementProvider {
@@ -16,6 +17,8 @@ public:
     void refresh(const QString&) override;
     void refreshAll() override;
     void refreshAdventure(const QString&,bool notify = false) override;
+    void observeRuntimeGame(const QString&,const QString&,const QString&) override;
+    void acknowledgeLive(const QString& set,const QString& id) override {liveAcknowledged_.insert(set+":"+id);}
     bool canManageAccount() const override { return true; }
     bool accountBusy() const override { return busy_; }
     QString accountMessage() const override { return message_; }
@@ -23,6 +26,9 @@ public:
     void disconnectAccount() override;
     bool disconnectForRemoval();
 private:
+    struct RuntimeIdentity {QString hash,game;int revision; qint64 size,modified;};
+    QHash<QString,RuntimeIdentity> runtimeIdentities_;
+    QSet<QString> liveAcknowledged_;
     void loadCache();
     void sync(const QString& setId,const QString& adventureId = {},bool notify = false);
     void publish(LinkedAchievementSet,bool notify = false);

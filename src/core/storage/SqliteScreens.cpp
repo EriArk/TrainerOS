@@ -35,13 +35,13 @@ QString migrateScreens(QSqlDatabase& db) {
     if(!error.isEmpty())db.rollback();
     return error;
 }
-QString appendScreen(QSqlDatabase& db,const ExitMedia& media,const QString& title,bool favorite) {
+QString appendScreen(QSqlDatabase& db,const ExitMedia& media,const QString& title,bool favorite,const QString& kind) {
     const auto frame=decoded(media.jpeg);
     if(frame.isNull() || media.sessionId.isEmpty() || !media.capturedAt.isValid())return failure();
     QSqlQuery q(db);
     q.prepare("INSERT INTO screens VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?) ON CONFLICT(trainer_id,id) DO NOTHING");
     for(const auto& v:QVariantList{media.trainerId,media.sessionId,media.adventureId,title,media.domain,media.registrationRevision,media.buildSha256,
-        media.capturedAt.toUTC().toString(Qt::ISODateWithMs),"exit",frame.width(),frame.height(),media.jpeg,digest(media.jpeg),favorite?1:0})q.addBindValue(v);
+        media.capturedAt.toUTC().toString(Qt::ISODateWithMs),kind,frame.width(),frame.height(),media.jpeg,digest(media.jpeg),favorite?1:0})q.addBindValue(v);
     return q.exec()?QString():failure();
 }
 QString pruneScreens(QSqlDatabase& db,const QString& owner) {
@@ -93,14 +93,14 @@ QString starScreen(QSqlDatabase& db,const QString& owner,const QString& id,bool 
 }
 QVariantList readScreens(QSqlDatabase& db,const QString& owner) {
     QVariantList rows;QSqlQuery q(db);
-    q.prepare("SELECT id,adventure_id,title,captured_at,width,height,favorite FROM screens WHERE trainer_id=? ORDER BY captured_at DESC,id DESC");q.addBindValue(owner);
+    q.prepare("SELECT id,adventure_id,title,captured_at,width,height,favorite,kind FROM screens WHERE trainer_id=? ORDER BY captured_at DESC,id DESC");q.addBindValue(owner);
     if(!q.exec())return rows;
     while(q.next()) {
         const auto at=QDateTime::fromString(q.value(3).toString(),Qt::ISODateWithMs);if(!at.isValid())continue;
         rows.append(QVariantMap{{"id",q.value(0)},{"adventure",q.value(1)},{"game",q.value(2)},
             {"capturedAt",at},{"day",at.toLocalTime().toString("dd MMM yyyy")},{"clock",at.toLocalTime().toString("HH:mm")},
-            {"ratio",q.value(4).toDouble()/qMax(1,q.value(5).toInt())},{"favorite",q.value(6).toBool()},
-            {"source","image://screens/"+owner+"/"+q.value(0).toString()},{"caption",q.value(2).toString()+" · Exit · "+at.toLocalTime().toString("dd MMM yyyy · HH:mm")}});
+            {"ratio",q.value(4).toDouble()/qMax(1,q.value(5).toInt())},{"favorite",q.value(6).toBool()},{"kind",q.value(7)},
+            {"source","image://screens/"+owner+"/"+q.value(0).toString()},{"caption",q.value(2).toString()+(q.value(7)=="achievement"?" · Achievement · ":" · Exit · ")+at.toLocalTime().toString("dd MMM yyyy · HH:mm")}});
     }
     return rows;
 }

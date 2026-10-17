@@ -21,6 +21,8 @@ public:
     AchievementSnapshot snapshot(const QString& id) const override {return provider_?provider_->snapshot(id):AchievementSnapshot{context(),id,AchievementState::Disconnected,{},{},{}};}
     void refresh(const QString& id) override {if(provider_)provider_->refresh(id);}
     void refreshAdventure(const QString& id,bool notify=false) override {if(provider_)provider_->refreshAdventure(id,notify);}
+    void observeRuntimeGame(const QString& id,const QString& hash,const QString& game) override {if(provider_)provider_->observeRuntimeGame(id,hash,game);}
+    void acknowledgeLive(const QString& set,const QString& id) override {if(provider_)provider_->acknowledgeLive(set,id);}
     void refreshAll() override {if(provider_)provider_->refreshAll();}
     bool canManageAccount() const override {return bool(provider_);}
     bool accountBusy() const override {return provider_&&provider_->accountBusy();}

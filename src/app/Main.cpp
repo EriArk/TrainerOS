@@ -4,6 +4,7 @@
 #include "features/adventure/RemotePlayRuntime.h"
 #include "features/adventure/RuntimeMultiplayer.h"
 #include "integrations/achievements/RetroArchAchievementSession.h"
+#include "features/halloffame/AchievementCelebration.h"
 #include "platform/emulation/EmulatorDiscovery.h"
 #include "platform/emulation/EmulatorRefresh.h"
 #include <atomic>
@@ -519,6 +520,20 @@ int main(int argc, char* argv[]) {
         InvitationOverlayService appsOverlay(platform.dedicatedSession(),"/var/opt/traineros/integrations/invitation-overlay.py");
         QObject::connect(shell.apps(),&AppsController::changed,&appsOverlay,[&]{appsOverlay.setGame(shell.apps()->processId());});
         InvitationOverlayService invitationOverlay(platform.dedicatedSession(),"/var/opt/traineros/integrations/invitation-overlay.py");
+        InvitationOverlayService achievementOverlay(platform.dedicatedSession(),"/var/opt/traineros/integrations/invitation-overlay.py");
+        AchievementCelebration achievementCelebration(store.get(),realAchievements?static_cast<AchievementProvider&>(*realAchievements):shellAchievements);
+        QObject::connect(&achievementCelebration,&AchievementCelebration::notice,&shell,&ShellController::showNotice);
+        QObject::connect(&adventureProcess,&ProcessService::runtimeOutput,&achievementCelebration,&AchievementCelebration::feed);
+        QObject::connect(&adventureProcess,&ProcessService::started,&achievementCelebration,[&]{
+            achievementOverlay.setGame(adventureProcess.processId());
+            achievementCelebration.begin(adventureLaunch.adventureId(),adventureProcess.processId(),adventureProcess.runtimeControls()["achievements"].toMap());
+        });
+        QObject::connect(&adventureProcess,&ProcessService::finished,&achievementCelebration,[&]{achievementCelebration.finish();achievementOverlay.setGame(0);});
+        if(store) {
+            const auto updateMoments=[&]{shell.hall()->setMoments(store->achievementMoments());};
+            QObject::connect(store.get(),&LocalStateStore::opened,&achievementCelebration,[updateMoments](bool){updateMoments();});
+            QObject::connect(store.get(),&LocalStateStore::libraryChanged,&achievementCelebration,updateMoments);
+        }
         QObject::connect(&adventureProcess,&ProcessService::started,&invitationOverlay,[&]{invitationOverlay.setGame(adventureProcess.processId());});
         QObject::connect(&adventureProcess,&ProcessService::finished,&invitationOverlay,[&]{invitationOverlay.setGame(0);});
         QObject::connect(&adventureProcess,&ProcessService::started,shell.social(),[&]{shell.social()->setGameProcess(adventureProcess.processId());});
@@ -939,6 +954,8 @@ int main(int argc, char* argv[]) {
         engine.addImageProvider("desktop-app",new DesktopAppImages);
         engine.rootContext()->setContextProperty("appsOverlay", &appsOverlay);
         engine.rootContext()->setContextProperty("invitationOverlay", &invitationOverlay);
+        engine.rootContext()->setContextProperty("achievementOverlay", &achievementOverlay);
+        engine.rootContext()->setContextProperty("achievementCelebration", &achievementCelebration);
         engine.rootContext()->setContextProperty("playerOverlay", &playerOverlay);
         engine.rootContext()->setContextProperty("powerStatus", &powerStatus);
         engine.load(QUrl("qrc:/TrainerOS/Main.qml"));
@@ -1023,7 +1040,7 @@ int main(int argc, char* argv[]) {
                 };
                 retroarch.requestLaunch = [&, requestAdventure](const ProcessCommand& command, const QString& id) {
                     auto launch = command;
-                    useRetroArchAchievementAccount(launch, realAchievements->launchAccount());
+                    useRetroArchAchievementAccount(launch, realAchievements->launchAccount(),achievementOverlay.ready());
                     return requestAdventure(launch, id);
                 };
                 melonDs.requestLaunch = requestAdventure;

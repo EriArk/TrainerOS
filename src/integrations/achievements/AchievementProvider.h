@@ -25,6 +25,7 @@ struct AchievementDefinition {
     QString title;
     QString description;
     QString badgeName; // Optional provider artwork identity; never an unlock signal.
+    int points = -1;
 };
 struct AchievementUnlock {
     QString achievementId;
@@ -51,6 +52,8 @@ public:
     virtual void refresh(const QString& setId) = 0;
     virtual void refreshAll() { for (const auto& set : sets()) refresh(set.id); }
     virtual void refreshAdventure(const QString&, bool = false) { refreshAll(); }
+    virtual void observeRuntimeGame(const QString&,const QString&,const QString&) {}
+    virtual void acknowledgeLive(const QString&,const QString&) {}
     virtual bool canManageAccount() const { return false; }
     virtual bool accountBusy() const { return false; }
     virtual QString accountMessage() const { return {}; }

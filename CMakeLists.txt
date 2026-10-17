@@ -83,6 +83,7 @@ add_library(trainer_core STATIC
     src/integrations/achievements/TrainerAchievementProvider.h
     src/core/storage/SqliteExitMedia.cpp
     src/core/storage/SqliteScreens.cpp
+    src/core/storage/SqliteAchievementMoments.cpp
     src/platform/input/AdventureOverlayService.h
     src/platform/input/AdventureOverlayService.cpp
     src/platform/input/InvitationOverlayService.h
@@ -110,6 +111,9 @@ add_library(trainer_core STATIC
     src/integrations/achievements/RetroAchievementsApi.h
     src/integrations/achievements/RetroAchievementsApi.cpp
     src/integrations/achievements/RetroArchAchievementSession.cpp
+    src/integrations/achievements/RetroArchAchievementEvents.cpp
+    src/features/halloffame/AchievementCelebration.cpp
+    src/features/halloffame/AchievementCelebration.h
     src/integrations/achievements/RetroArchAchievementSession.h
     src/integrations/achievements/RetroAchievementsProvider.h
     src/integrations/achievements/RetroAchievementsProvider.cpp
@@ -380,6 +384,7 @@ qt_add_qml_module(traineros
         src/qml/HallOfFamePage.qml
         src/qml/AchievementGallery.qml
         src/qml/AchievementPopup.qml
+        src/qml/AchievementCelebrationWindow.qml
         src/qml/JourneyPanel.qml
         src/qml/ArchiveEditorPanel.qml
         src/qml/AchievementAccountPanel.qml

@@ -6,6 +6,7 @@
 #include <QSaveFile>
 #include <QSet>
 #include <QElapsedTimer>
+#include <QRegularExpression>
 #include <algorithm>
 
 namespace trainer {
@@ -69,7 +70,7 @@ void RetroAchievementsProvider::login(const QString& username, const QString& pa
             else if (!writeAchievementAccount(QDir(directory_).filePath("integrations/retroachievements-account.json"), account))
                 message_ = "Signed in, but the account could not be saved. Please try again.";
             else {
-                account_ = account; records_.clear(); pendingRefresh_ = true; loadCache();
+                account_ = account; records_.clear(); runtimeIdentities_.clear(); liveAcknowledged_.clear(); pendingRefresh_ = true; loadCache();
             }
             emit snapshotChanged({});
         }, Qt::QueuedConnection);
@@ -81,7 +82,7 @@ void RetroAchievementsProvider::disconnectAccount() {
     if (QFileInfo::exists(filename) && !QFile::remove(filename)) {
         message_ = "The saved sign-in could not be removed. Try again."; emit snapshotChanged({}); return;
     }
-    account_ = {}; records_.clear(); pendingRefresh_ = false; pendingAdventure_.clear();pendingNotify_=false;
+    account_ = {}; records_.clear(); runtimeIdentities_.clear();liveAcknowledged_.clear(); pendingRefresh_ = false; pendingAdventure_.clear();pendingNotify_=false;
     message_ = "Signed out. Your local archive remains available."; emit snapshotChanged({});
 }
 bool RetroAchievementsProvider::disconnectForRemoval() {
@@ -90,6 +91,14 @@ bool RetroAchievementsProvider::disconnectForRemoval() {
     return !QFileInfo::exists(QDir(directory_).filePath("integrations/retroachievements-account.json"));
 }
 void RetroAchievementsProvider::refresh(const QString& id) { sync(id); }
+void RetroAchievementsProvider::observeRuntimeGame(const QString& id,const QString& hash,const QString& game) {
+    static const QRegularExpression md5("^[0-9a-f]{32}$"),number("^[1-9][0-9]{0,9}$");
+    const auto record=library_.registration(id);
+    if(!account_.valid()||!record||record->removed||!md5.match(hash).hasMatch()||!number.match(game).hasMatch())return;
+    QFileInfo file(record->contentPath);if(!file.isFile())return;
+    runtimeIdentities_[id]={hash,game,record->revision,file.size(),file.lastModified().toMSecsSinceEpoch()};
+    refreshAdventure(id);
+}
 void RetroAchievementsProvider::refreshAll() { if (busy_) { pendingRefresh_ = true; return; } sync({}); }
 void RetroAchievementsProvider::refreshAdventure(const QString& id,bool notify) {
     if(id.isEmpty())return;
@@ -106,6 +115,7 @@ void RetroAchievementsProvider::publish(LinkedAchievementSet value,bool notify) 
         const auto& previous=records_[value.set.id];
         if(previous.contentHash==value.contentHash && previous.snapshot.context==value.snapshot.context)
             for(const auto& unlock:value.snapshot.unlocks)if(unlock.unlocked==true) {
+                if(liveAcknowledged_.contains(value.set.id+":"+unlock.achievementId))continue;
                 const auto old=std::find_if(previous.snapshot.unlocks.cbegin(),previous.snapshot.unlocks.cend(),[&](const auto& u){return u.achievementId==unlock.achievementId;});
                 if(old==previous.snapshot.unlocks.cend()||old->unlocked!=false)continue;
                 for(const auto& definition:value.snapshot.definitions)if(definition.id==unlock.achievementId)earned.append(definition.title);
@@ -120,7 +130,7 @@ void RetroAchievementsProvider::sync(const QString& setId,const QString& adventu
     const auto append = [&](const QString& id) {
         if (used.contains(id) || candidates.size() >= 8) return;
         const auto record = library_.registration(id);
-        if (!record || record->adventure.collectionOnly || !QStringList{"gb", "gbc", "gba", "pokemini"}.contains(record->adventure.platformId)) return;
+        if (!record || record->adventure.collectionOnly || (!runtimeIdentities_.contains(id) && !QStringList{"gb", "gbc", "gba", "pokemini"}.contains(record->adventure.platformId))) return;
         used.insert(id); candidates.append(*record);
     };
     if(!adventureId.isEmpty()) append(adventureId);
@@ -136,16 +146,24 @@ void RetroAchievementsProvider::sync(const QString& setId,const QString& adventu
             || (adventureId.isEmpty() && (setId.isEmpty() || record.set.id == setId)))
             record.snapshot.state = AchievementState::Loading;
     emit snapshotChanged({});
-    const auto account = account_; const auto folder = cacheDirectory(); const auto worlds = library_.worlds();
-    QMetaObject::invokeMethod(worker_, [this, candidates, account, folder, worlds, notify] {
+    const auto account = account_; const auto folder = cacheDirectory(); const auto worlds = library_.worlds();const auto identities=runtimeIdentities_;
+    QMetaObject::invokeMethod(worker_, [this, candidates, account, folder, worlds, notify,identities] {
         int matched = 0, saved = 0; QSet<QString> processed; QElapsedTimer elapsed; elapsed.start();
         for (const auto& candidate : candidates) {
             if (cancelled_->load() || elapsed.elapsed() > 90000) break;
-            const auto hash = achievementContentHash(candidate, *cancelled_); if (hash.isEmpty() || processed.contains(hash)) continue;
+            QString hash;
+            const auto runtime=identities.constFind(candidate.adventure.id);
+            if(runtime!=identities.cend()) {
+                QFileInfo file(candidate.contentPath);
+                if(candidate.revision!=runtime->revision||file.size()!=runtime->size||file.lastModified().toMSecsSinceEpoch()!=runtime->modified)continue;
+                hash=runtime->hash;
+            } else hash=achievementContentHash(candidate, *cancelled_);
+            if (hash.isEmpty() || processed.contains(hash)) continue;
             processed.insert(hash); QString world;
             for (const auto& item : worlds) if (item.id == candidate.adventure.worldId) { world = item.name; break; }
             auto value = fetchAchievements(account, candidate, world, hash, transport_);
             if (!value) continue;
+            if(runtime!=identities.cend() && value->set.gameId!=runtime->game)continue;
             ++matched;bool persisted=false;
             if (value->snapshot.state == AchievementState::Ready && QDir().mkpath(folder)) {
                 const auto data = QJsonDocument(achievementCache(*value)).toJson(QJsonDocument::Compact);

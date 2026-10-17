@@ -43,6 +43,7 @@ class ShellController final : public QObject {
     Q_PROPERTY(QString primaryId READ primaryId NOTIFY changed)
     Q_PROPERTY(QString hubFace READ hubFace NOTIFY changed)
     Q_PROPERTY(QString overviewFace READ overviewFace NOTIFY changed)
+    Q_PROPERTY(bool achievementPhotoReturn READ achievementPhotoReturn NOTIFY changed)
     Q_PROPERTY(QString appsFace READ appsFace NOTIFY changed)
     Q_PROPERTY(QString socialSurface READ socialSurface NOTIFY changed)
     Q_PROPERTY(bool adapterActive READ adapterActive NOTIFY changed)
@@ -185,6 +186,7 @@ public:
     void configureProgress(GameProgressProvider* provider);
     void refreshLibrary();
     QString achievementToast() const {return achievementToast_;}
+    bool achievementPhotoReturn() const {return achievementPhotoReturn_;}
     void showAchievements(const QString& title,const QStringList& names);
     void showNotice(const QString& message) { mode_.clear(); notice_ = message; emit changed(); }
     bool modeConfirmation() const { return !mode_.isEmpty(); }
@@ -342,6 +344,8 @@ private:
     PlayerStory story_;
     ScreensController album_;
     bool dashboardReturn_=false;
+    bool achievementPhotoReturn_=false;
+    QJsonObject achievementPhotoNavigation_;
     QString service_;
     enum class TextTarget { None, TrainerName, WorldsSearch, MultiverseSearch, Library, LibraryTools, Collections, Archive, Module, AchievementAccount, SetupName, Network, Social, Communication, Scraper };
     TextTarget textTarget_ = TextTarget::None;

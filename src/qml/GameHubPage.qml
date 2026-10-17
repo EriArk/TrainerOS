@@ -10,13 +10,13 @@ Item {
             if(shell.adapterMenuOpen) return [h("↑↓","Screens"),h("A","Open"),h("B","My Story")]
             return adapterPresenter.hints(h) || [h("A","Open"),h("Select","Actions"),h("B","Screens")]
         }
-        if(shell.hubFace === "ra") return shell.hall.route === "achievement-detail" ? [h("A","Close"),h("B","Gallery")] : shell.hall.galleryMenuOpen
+        if(shell.hubFace === "ra") return shell.hall.route === "achievement-detail" ? [h("A",shell.hall.detail.capture ? "View moment" : "Close"),h("B","Gallery")] : shell.hall.galleryMenuOpen
             ? [h("↑↓","Options"),h("A","Choose"),h("B","Gallery")]
             : [h("A","Open"),h("Select","Options"),h("B","Back")]
         if(shell.overviewFace === "timeline") return [h("←→","Timeline"),h("B","My Story")]
         if(shell.overviewFace === "screens") {
             if(shell.album.filtering) return [h("↑↓","Filters"),h("A","Choose"),h("B","Album")]
-            return [h("←→","Film"),h("L3","Star"),h("R3",shell.album.favoritesView ? "Recent" : "Favorites"),h("Select","Filter"),h("B","My Story")]
+            return [h("←→","Film"),h("L3","Star"),h("R3",shell.album.favoritesView ? "Recent" : "Favorites"),h("Select","Filter"),h("B",shell.achievementPhotoReturn ? "Achievement" : "My Story")]
         }
         return [h("A","Open"),h("B","Home")]
     }

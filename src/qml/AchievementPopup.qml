@@ -53,18 +53,24 @@ Item {
                 color: Qt.tint(Theme.paper,Qt.alpha(Theme.rim,.18))
                 // No exit photo or unrelated game art may masquerade as an award capture.
                 Item {
+                    visible: !root.detail.moment
                     anchors.centerIn: parent; width: 46; height: 33; opacity: .45
                     Rectangle { x: 8; y: -4; width: 14; height: 6; radius: 2; color: Theme.muted }
                     Rectangle { anchors.fill: parent; radius: 6; color: "transparent"; border.width: 2; border.color: Theme.muted }
                     Rectangle { anchors.centerIn: parent; width: 18; height: 18; radius: 9; color: "transparent"; border.width: 2; border.color: Theme.muted }
                     Rectangle { x: 36; y: 7; width: 3; height: 3; radius: 1.5; color: Theme.muted }
                 }
+                Image {
+                    anchors.fill: parent;source: root.visible ? root.detail.moment || "" : ""
+                    asynchronous: true;fillMode: Image.PreserveAspectFit
+                }
             }
             Text {
                 anchors.bottom: parent.bottom; anchors.bottomMargin: 7; width: parent.width
-                text: "No captured moment"; horizontalAlignment: Text.AlignHCenter
+                text: root.detail.moment ? "A · View moment" : root.detail.expired ? "Photo left the recent buffer" : "No captured moment"; horizontalAlignment: Text.AlignHCenter
                 color: Theme.muted; font.pixelSize: 11
             }
+            MouseArea { anchors.fill: parent; enabled: !!root.detail.moment; onClicked: root.shell.hall.openMoment() }
         }
         Item {
             id: info
@@ -98,7 +104,7 @@ Item {
                     width: parent.width; text: root.earned ? "✓  Earned" : root.unknown ? "?  Unconfirmed" : "Not earned yet"
                     wrapMode: Text.WordWrap; font.family: Theme.displayFamily; font.pixelSize: 16; color: Theme.ink
                 }
-                Text { width: parent.width; visible: text.length>0; text: root.detail.mode || ""; color: Theme.muted; font.pixelSize: 12 }
+                Text { width: parent.width; visible: text.length>0; text: (root.detail.mode || "") + (root.detail.points >= 0 ? " · " + root.detail.points + " pts" : ""); color: Theme.muted; font.pixelSize: 12 }
                 Text { width: parent.width; visible: text.length>0; text: root.detail.earnedDate || ""; wrapMode: Text.WordWrap; color: Theme.muted; font.pixelSize: 11 }
             }
             Rectangle { y: medal.height+12; width: parent.width; height: 1; color: Qt.alpha(Theme.rim,.4) }

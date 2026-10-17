@@ -221,6 +221,15 @@ QVariantMap HallOfFameController::detail() const {
             + (unlock.unlocked.has_value() && !*unlock.unlocked ? "_lock.png" : ".png");
         result["mode"] = unlock.unlocked.value_or(false) && unlock.mode ? modeLabel(unlock.mode) : QString();
         result["earnedDate"] = unlock.unlocked.value_or(false) && unlock.earnedAt.isValid() ? dateLabel(unlock.earnedAt) : QString();
+        result["points"] = definition.points;
+        for(const auto& value:moments_) {
+            const auto m=value.toMap();
+            if(m["account"].toString().compare(provider_.context().accountId,Qt::CaseInsensitive)!=0
+               || m["set"].toString()!=set.id || m["achievement"].toString()!=definition.id
+               || m["adventure"].toString()!=set.adventureId)continue;
+            result["moment"]=m["source"];result["capture"]=m["capture"];result["expired"]=m["expired"];
+            result["capturedAt"]=dateLabel(m["capturedAt"].toDateTime());break;
+        }
         result["time"] = unlock.unlocked.value_or(false) ? "Earned: " + dateLabel(unlock.earnedAt) : "Unlock date unavailable";
     }
     return result;
@@ -518,7 +527,8 @@ void HallOfFameController::dispatch(Action action) {
     if (galleryMode_ && !isArchive()) {
         if (route_ == "achievement-detail") {
             // The detail is a single modal card, not the legacy action workspace.
-            if (action == Action::Back || action == Action::Confirm) { back(); emit changed(); }
+            if (action == Action::Confirm && !detail()["capture"].toString().isEmpty())openMoment();
+            else if (action == Action::Back || action == Action::Confirm) { back(); emit changed(); }
             else if (action == Action::Up || action == Action::Down) emit detailScrollRequested(action == Action::Down ? 45 : -45);
             return;
         }
@@ -583,5 +593,9 @@ void HallOfFameController::beginMemory(bool edit) {
     if (!isArchive() || !editable()) return;
     if (!edit) { editor_.begin(); return; }
     for (const auto& entry : archive_) if (entry.id == archiveId_) { editor_.begin(entry); return; }
+}
+void HallOfFameController::openMoment() {
+    if(route_!="achievement-detail")return;
+    const auto capture=detail()["capture"].toString();if(!capture.isEmpty())emit momentRequested(capture);
 }
 }

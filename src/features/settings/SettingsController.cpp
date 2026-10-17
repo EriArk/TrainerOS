@@ -18,6 +18,12 @@ double SettingsController::displayDensity(double sw, double sh, double ww, doubl
     return trainer::displayDensity(sw, sh, ww, wh, profile, percent);
 }
 void SettingsController::adjustDisplay(int row, int direction) {
+    if(!saving_ && category_==1 && row==1 && direction) {
+        QSettings settings;const int volume=std::clamp(settings.value("achievements/volume",65).toInt(),0,100);
+        settings.setValue("achievements/volume",std::clamp(volume+(direction<0?-5:5),0,100));settings.sync();
+        error_=settings.status()==QSettings::NoError?QString():QString("Could not save sound settings");
+        emit changed();return;
+    }
     if (saving_ || category_ != 0 || (row != 3 && row != 4) || !direction) return;
     pane_ = true; row_ = row;
     QSettings settings;
@@ -71,7 +77,8 @@ QVariantList SettingsController::controls() const {
     };
     switch(category_) {
     case 0: return {row("Shell color","theme",theme()),row("Reduced motion","toggle",reducedMotion()?"On":"Off"),row("Brightness","brightness",""),row("Display profile","stepper",displayProfile()=="auto"?"Auto · system density":displayProfile()=="tv"?"TV · larger controls":"Handheld"),row("Interface size","stepper",QString::number(interfaceScale())+"%"),row("Reset interface size","action","Restore 100%")};
-    case 1: return {row("Volume","volume",""),row("Interface sounds","unavailable","Sound packs are not available yet"),row("Background music","unavailable","Music playback is not available yet")};
+    case 1: { const int volume=std::clamp(QSettings().value("achievements/volume",65).toInt(),0,100);
+        return {row("Volume","volume",""),row("Achievement jingle","stepper",volume?QString::number(volume)+"%":"Off"),row("Background music","unavailable","Music playback is not available yet")}; }
     case 2: return {row("Video previews","toggle",videoPreviews()?"On · silent playback":"Off"),row("Adventure pictures","status","Clean exit pictures on Home and in Choose Adventure"),row("Field Guide illustrations","status","Illustrations and animated companions")};
     case 3: return {row("Charger vibration","unavailable","Patterns have not been verified on this handheld"),row("Device lighting","unavailable","Lighting support has not been verified")};
     case 4: return {row("Your profile","action","Name and emblem"),row("RetroAchievements","action","Manage your account"), trainersAvailable_ ? row("Trainers","action","Choose a player or create a Trainer") : row("Separate Trainers & PIN","unavailable","Not available yet"),row("Trainer PIN",trainersAvailable_?"action":"unavailable","Set, change or remove your PIN"),row("Family code",trainersAvailable_?"action":"unavailable","A parent can reset forgotten PINs")};
@@ -115,6 +122,7 @@ void SettingsController::activateRow(int index) {
     else if(category_==0 && (row_==3 || row_==4)) { adjustDisplay(row_,1); return; }
     else if(category_==0 && row_==5) resetDisplayScale();
     else if(category_==1 && row_==0) emit quickAdjustment(0,Action::Confirm);
+    else if(category_==1 && row_==1) {adjustDisplay(1,1);return;}
     else if(category_==2 && row_==0) activate(3);
     else if(category_==4) emit trainerRequested(row_);
     else if(category_==5) emit deviceRequested(row_);
@@ -166,6 +174,7 @@ void SettingsController::dispatch(Action action) {
         else if(category_==0 && row_==2) emit quickAdjustment(1,action);
         else if(category_==0 && (row_==3 || row_==4)) adjustDisplay(row_,action==Action::Left?-1:1);
         else if(category_==1 && row_==0) emit quickAdjustment(0,action);
+        else if(category_==1 && row_==1) adjustDisplay(1,action==Action::Left?-1:1);
         else if(category_==2 && row_==0 && videoPreviews()!=(action==Action::Right)) activate(3);
         else if(category_==9 && readOnlySaves()!=(action==Action::Right)) activateRow(0);
 

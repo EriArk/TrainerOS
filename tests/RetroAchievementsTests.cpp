@@ -2,6 +2,13 @@
 #include "integrations/achievements/TrainerAchievementProvider.h"
 #include "integrations/achievements/RetroArchAchievementSession.h"
 #include "features/halloffame/AchievementAccountController.h"
+#include "features/halloffame/AchievementCelebration.h"
+#include "core/storage/SqliteAchievementMoments.h"
+#include "core/storage/SqliteScreens.h"
+#include <QSqlQuery>
+#include <QBuffer>
+#include <QSettings>
+#include <QScopeGuard>
 #include <QtTest>
 #include <QTemporaryDir>
 #include <QFile>
@@ -44,6 +51,120 @@ public:
 class RetroAchievementsTests : public QObject {
     Q_OBJECT
 private slots:
+    void serverWarningsAreNotAwardsOrProgressEvenInOldCache() {
+        const auto value=fetchAchievements(account,registration("unused"),"",QString(32,'a'),[](const auto& q){
+            auto reply=response(q);
+            if(q.value("r")=="patch") {
+                auto p=reply.body["PatchData"].toObject();auto list=p["Achievements"].toArray();
+                list.append(QJsonObject{{"ID",101000001},{"Flags",3},{"Title","Warning"},{"Description","Server diagnostic"}});
+                p["Achievements"]=list;reply.body["PatchData"]=p;
+            }
+            return reply;
+        });
+        QVERIFY(value);QCOMPARE(value->snapshot.definitions.size(),3);
+        auto cache=achievementCache(*value);auto entries=cache["entries"].toArray();
+        entries.append(QJsonObject{{"id","101000001"},{"title","Warning"},{"description","Server diagnostic"},{"earned",true},{"hardcore",false}});
+        cache["entries"]=entries;const auto loaded=readAchievementCache(cache,value->snapshot.context);
+        QVERIFY(loaded);QCOMPARE(loaded->snapshot.definitions.size(),3);QCOMPARE(loaded->snapshot.unlocks.size(),3);
+    }
+    void nativeEventsAreBoundedAndNeverReadHistoricalOrUnscopedText() {
+        RetroArchAchievementEvents parser;
+        QVERIFY(parser.feed("Awarding achievement 101: fake\n[INFO] ordinary core: Awarding achievement 101: fake\n").isEmpty());
+        const QByteArray lines="[INFO] [RCHEEVOS] Identified game: 42 \"Title\" (aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa)\n"
+            "[INFO] [RCHEEVOS] Game 42 loaded, hardcore disabled\n"
+            "[INFO] [RCHEEVOS] Captured screenshot for achievement 101\n"
+            "[INFO] [RCHEEVOS] Awarding achievement 101: First goal\n";
+        QList<RuntimeAchievementEvent> events;
+        for(char c:lines)events+=parser.feed(QByteArray(1,c));
+        QCOMPARE(events.size(),4);QCOMPARE(events[0].game,"42");QCOMPARE(events[0].hash,QString(32,'a'));
+        QCOMPARE(events[1].mode,"Standard");QCOMPARE(events[2].kind,RuntimeAchievementEvent::Captured);
+        QCOMPARE(events[3].title,"First goal");
+        QCOMPARE(parser.feed("[INFO] [RCHEEVOS] Hardcore disabled\n").first().kind,RuntimeAchievementEvent::ModeChanged);
+        QVERIFY(parser.feed("[INFO] [RCHEEVOS] Game 42 completed\n").isEmpty());
+        QVERIFY(parser.feed(QByteArray(20000,'x')+"[INFO] [RCHEEVOS] Awarding achievement 101: fake\n").isEmpty());
+        QCOMPARE(parser.feed("[INFO] [RCHEEVOS] Unloading game 42\n").first().kind,RuntimeAchievementEvent::Invalidated);
+        parser.feed("[INFO] [RCHEEVOS] Awarding achievement 10");parser.clear();QVERIFY(parser.feed("1: old\n").isEmpty());
+    }
+    void momentsMigratePhotosDeduplicateAndRetainAwardsAfterPruning() {
+        const auto connection=QUuid::createUuid().toString();
+        {
+            auto db=QSqlDatabase::addDatabase("QSQLITE",connection);db.setDatabaseName(":memory:");QVERIFY(db.open());
+            QSqlQuery q(db);QVERIFY(q.exec("PRAGMA foreign_keys=ON"));
+            QVERIFY(q.exec("CREATE TABLE trainer_profile(id TEXT PRIMARY KEY)"));QVERIFY(q.exec("INSERT INTO trainer_profile VALUES('one'),('two')"));
+            QVERIFY(q.exec("CREATE TABLE adventures(id TEXT PRIMARY KEY,title TEXT,revision INTEGER)"));QVERIFY(q.exec("INSERT INTO adventures VALUES('game','A game',1)"));
+            QVERIFY(migrateScreens(db).isEmpty());
+            QImage frame(160,144,QImage::Format_RGB32);frame.fill(Qt::darkGreen);
+            QByteArray jpeg;QBuffer buffer(&jpeg);buffer.open(QIODevice::WriteOnly);QVERIFY(frame.save(&buffer,"JPEG"));
+            const auto now=QDateTime::currentDateTimeUtc();
+            QVERIFY(appendScreen(db,{"original","one","multiverse","game",1,"original",now,jpeg},"A game",true).isEmpty());
+            const auto before=readScreens(db,"one");QVERIFY(migrateAchievementMoments(db).isEmpty());QCOMPARE(readScreens(db,"one"),before);
+            AchievementMoment m{"one","Example","42","101","Standard","game","session",QString(32,'a'),"Award","123",now,now,frame};
+            bool inserted=false;QVERIFY(appendAchievementMoment(db,"one",m,inserted).isEmpty());QVERIFY(inserted);
+            const auto photo=readAchievementMoments(db,"one").first().toMap()["capture"].toString();QVERIFY(!photo.isEmpty());
+            m.session="another-session";m.account="EXAMPLE";QVERIFY(appendAchievementMoment(db,"one",m,inserted).isEmpty());QVERIFY(!inserted);
+            QCOMPARE(readScreens(db,"one").size(),2);
+            QVERIFY(!appendAchievementMoment(db,"two",m,inserted).isEmpty());QVERIFY(readAchievementMoments(db,"two").isEmpty());
+            m.mode="Hardcore";QVERIFY(appendAchievementMoment(db,"one",m,inserted).isEmpty());QVERIFY(inserted);
+            for(int i=0;i<101;++i)QVERIFY(appendScreen(db,{"later-"+QString::number(i),"one","multiverse","game",1,"build",now.addSecs(i+1),jpeg},"A game").isEmpty());
+            QVERIFY(pruneScreens(db,"one").isEmpty());QCOMPARE(readScreens(db,"one").size(),101);
+            const auto moments=readAchievementMoments(db,"one");QCOMPARE(moments.size(),2);
+            for(const auto& v:moments){QVERIFY(v.toMap()["expired"].toBool());QVERIFY(v.toMap()["source"].toString().isEmpty());}
+            QVERIFY(appendAchievementMoment(db,"one",m,inserted).isEmpty());QVERIFY(!inserted); // No replacement photo on replay.
+            QVERIFY(q.exec("SELECT jpeg FROM screens WHERE id='original'"));QVERIFY(q.next());QCOMPARE(q.value(0).toByteArray(),jpeg);q.finish();
+            QVERIFY(q.exec("PRAGMA foreign_key_check"));QVERIFY(!q.next());q.finish();
+            QVERIFY(q.exec("DELETE FROM trainer_profile WHERE id='one'"));QVERIFY(readAchievementMoments(db,"one").isEmpty());
+        }
+        QSqlDatabase::removeDatabase(connection);
+    }
+    void runtimeHashEnablesOtherPlatformsWithoutFilenameOrRawHashGuessing() {
+        QTemporaryDir dir;RecentLibrary library;const auto path=dir.filePath("original.nes");write(path,"Content-free fixture");
+        library.value=registration(path);library.value.adventure.platformId="nes";
+        QVERIFY(writeAchievementAccount(dir.filePath("integrations/retroachievements-account.json"),account));
+        RetroAchievementsProvider provider(library,dir.path(),response);QTRY_VERIFY(!provider.accountBusy());QVERIFY(provider.sets().isEmpty());
+        provider.observeRuntimeGame(library.value.adventure.id,QString(32,'a'),"43");QTRY_VERIFY(!provider.accountBusy());QVERIFY(provider.sets().isEmpty());
+        provider.observeRuntimeGame(library.value.adventure.id,QString(32,'a'),"42");QTRY_VERIFY(!provider.accountBusy());QCOMPARE(provider.sets().size(),1);
+        QCOMPARE(provider.sets().first().adventureId,library.value.adventure.id);
+    }
+    void liveCaptureIsBoundToSessionAndHistoricalRefreshDoesNotCapture() {
+        QSettings settings;const auto previousVolume=settings.value("achievements/volume");
+        settings.setValue("achievements/volume",0);
+        const auto restoreVolume=qScopeGuard([&]{if(previousVolume.isValid())settings.setValue("achievements/volume",previousVolume);else settings.remove("achievements/volume");});
+        QTemporaryDir dir;LocalStateStore store(dir.path());store.open();QTRY_VERIFY(store.ready());
+        bool done=false;store.saveAsync({"owner","Fixture","compass",{},QDateTime::currentDateTimeUtc()},this,[&](auto r){QVERIFY(r.success);done=true;});QTRY_VERIFY(done);
+        const auto path=dir.filePath("original.gba");write(path,"Content-free fixture");auto record=registration(path);
+        record.adventure.worldId.clear();record.adventure.domain="multiverse";done=false;
+        store.saveAdventureAsync(record,this,[&](auto r){QVERIFY2(r.success,qPrintable(r.error));done=true;});QTRY_VERIFY(done);
+        QVERIFY(writeAchievementAccount(dir.filePath("integrations/retroachievements-account.json"),account));
+        RetroAchievementsProvider provider(store,dir.path(),response);QTRY_VERIFY(!provider.accountBusy());
+        AchievementCelebration live(&store,provider);
+        QSignalSpy notices(&live,&AchievementCelebration::notice);
+        const QVariantMap controls{{"directory",dir.path()},{"account",account.username},{"session","fresh"}};
+        const QByteArray identity="[INFO] [RCHEEVOS] Hardcore disabled\n[INFO] [RCHEEVOS] Identified game: 42 (aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa)\n[INFO] [RCHEEVOS] Game 42 loaded, hardcore disabled\n";
+        const QByteArray award="[INFO] [RCHEEVOS] Captured screenshot for achievement 103\n[INFO] [RCHEEVOS] Awarding achievement 103: Goal\n";
+        QImage frame(160,144,QImage::Format_RGB32);frame.fill(Qt::darkBlue);QVERIFY(frame.save(dir.filePath("original-cheevo-103.png")));
+        live.begin(record.adventure.id,123,controls);live.feed(identity);QTRY_VERIFY(!provider.accountBusy());
+        QVERIFY(store.achievementMoments().isEmpty()); // Definitions and old unlocks never capture.
+        live.feed(award);QTRY_VERIFY(!store.achievementMoments().isEmpty() || !notices.isEmpty());
+        QVERIFY2(notices.isEmpty(),notices.isEmpty()?"":qPrintable(notices.first().first().toString()));
+        QCOMPARE(store.achievementMoments().size(),1);
+        QCOMPARE(store.screenMedia()->size(),1);QVERIFY(!store.achievementMoments().first().toMap()["source"].toString().isEmpty());
+        QVERIFY(live.current().isEmpty());live.setPresentable(true);QCOMPARE(live.current()["id"].toString(),"103");
+        QVERIFY(live.current()["played"].toBool());live.setPresentable(false);QVERIFY(live.current().isEmpty());
+        live.setPresentable(true);QCOMPARE(live.current()["id"].toString(),"103");
+        live.feed(award);QTest::qWait(100);QCOMPARE(store.achievementMoments().size(),1);
+        live.end();live.begin(record.adventure.id,124,controls);live.feed(identity+award);QTest::qWait(150);QCOMPARE(store.achievementMoments().size(),1);
+        live.end();live.begin(record.adventure.id,125,controls);live.feed(identity);
+        live.feed("[INFO] [RCHEEVOS] Awarding achievement 102: Late\n[INFO] [RCHEEVOS] Captured screenshot for achievement 102\n");
+        live.end();QTest::qWait(1400);QCOMPARE(store.achievementMoments().size(),1); // Late callback cannot attach to next session.
+        live.begin(record.adventure.id,126,controls);live.feed(identity);live.feed("[INFO] [RCHEEVOS] Game 42 loaded, hardcore disabled, spectating\n");live.feed(award);
+        QTest::qWait(50);QCOMPARE(store.achievementMoments().size(),1);
+        live.begin(record.adventure.id,127,controls);live.feed(identity);
+        live.feed("[INFO] [RCHEEVOS] Awarding achievement 102: No photo\n[INFO] [RCHEEVOS] Failed to capture screenshot for achievement 102\n");
+        QTRY_COMPARE(store.achievementMoments().size(),2);QCOMPARE(store.screenMedia()->size(),1);
+        bool missing=false;for(const auto& v:store.achievementMoments())if(v.toMap()["achievement"]=="102")missing=v.toMap()["source"].toString().isEmpty()&&!v.toMap()["expired"].toBool();
+        QVERIFY(missing); // Honest absence, never an exit screenshot replacement.
+        const auto pcm=AchievementCelebration::jinglePcm();QCOMPARE(pcm.size(),37440);QVERIFY(pcm.count(char(0))<pcm.size()/2);
+    }
     void launchAccountIsTrainerScopedAndClearedOnSignOut() {
         QTemporaryDir first, second; RecentLibrary library;
         QVERIFY(writeAchievementAccount(first.filePath("integrations/retroachievements-account.json"), account));

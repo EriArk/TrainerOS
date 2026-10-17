@@ -4,6 +4,7 @@
 #include "LibraryFileMove.h"
 #include "SqliteExitMedia.h"
 #include "SqliteScreens.h"
+#include "SqliteAchievementMoments.h"
 #include "SqliteOwnership.h"
 #include <QDir>
 #include <QTimer>
@@ -22,9 +23,10 @@
 
 namespace trainer {
 namespace {
-constexpr int SchemaVersion = 15;
+constexpr int SchemaVersion = 16;
 QString failedWrite() { return "Couldn't save changes. Check free space or storage access, then try again."; }
 struct LoadedState {
+    QVariantList achievementMoments;
     QString error;
     QString ownerId, accountOwner;
     bool gated=false, familyProtected=false;
@@ -223,6 +225,8 @@ public:
             if(openError.isEmpty() && query.value(0).toInt()<14){query.finish();openError=migrateChampions(db);}
             if(openError.isEmpty() && (!query.exec("PRAGMA user_version") || !query.next()))openError=failedWrite();
             if(openError.isEmpty() && query.value(0).toInt()<15){query.finish();openError=migrateScreens(db);}
+            if(openError.isEmpty() && (!query.exec("PRAGMA user_version") || !query.next()))openError=failedWrite();
+            if(openError.isEmpty() && query.value(0).toInt()<16){query.finish();openError=migrateAchievementMoments(db);}
             if (openError.isEmpty()) {
                 ownerId_ = localOwner(db);
                 if (ownerId_.isEmpty()) openError = "Your Trainer ownership needs recovery. Existing data has been kept.";
@@ -304,6 +308,7 @@ public:
         state.exitMedia = readExitMedia(db, ownerId_);
         if(const auto error=seedScreens(db,ownerId_,directory,state.exitMedia);!error.isEmpty())return fail(error);
         state.screens=readScreens(db,ownerId_);
+        state.achievementMoments=readAchievementMoments(db,ownerId_);
         return state;
     }
     QString keepChampions(const QList<ChampionRecord>& records,QList<ChampionRecord>& snapshot) {
@@ -473,6 +478,10 @@ public:
         if(error.isEmpty())snapshot=readScreens(db,ownerId_);
         return error;
     }
+    QString achievementMoment(const AchievementMoment& moment,bool& inserted,QVariantList& moments,QVariantList& screens) {
+        const auto error=appendAchievementMoment(db,ownerId_,moment,inserted);
+        if(error.isEmpty()){moments=readAchievementMoments(db,ownerId_);screens=readScreens(db,ownerId_);}return error;
+    }
     QString playSession(const PlaySession& value, const std::optional<ExitMediaSource>& source,
                         const std::optional<ExitCapture>& capture, PlayHistorySnapshot& snapshot,
                         QList<ExitMedia>& media, QVariantList& screens, QString& warning) {
@@ -547,7 +556,7 @@ void LocalStateStore::open() {
                 ownerId_ = state.ownerId; accountOwner_ = state.accountOwner; profiles_ = state.profiles; profile_ = state.profile; favorites_ = state.favorites; navigation_ = state.navigation;
                 worlds_ = state.library.worlds; registrations_ = state.library.registrations; preferences_ = state.library.preferences;
                 ++libraryRevision_;
-                history_ = state.history; archive_ = state.archive; champions_=state.champions; journal_ = state.journal; exitMedia_ = state.exitMedia; screens_=state.screens;
+                history_ = state.history; archive_ = state.archive; champions_=state.champions; journal_ = state.journal; exitMedia_ = state.exitMedia; screens_=state.screens; achievementMoments_=state.achievementMoments;
             }
             emit opened(ready_);
         }, Qt::QueuedConnection);
@@ -797,6 +806,20 @@ QImage LocalStateStore::screenImage(const QString& identity) const {
     const auto owner=identity.section('/',0,0),id=identity.section('/',1);
     if(!ready_ || !profile_ || owner!=profile_->id || id.isEmpty())return {};
     return readScreenImage(QDir(directory_).filePath("traineros.sqlite3"),owner,id);
+}
+QVariantList LocalStateStore::achievementMoments() const {
+    QSet<QString> captures;for(const auto& v:screens_)captures.insert(v.toMap()["id"].toString());
+    auto result=achievementMoments_;
+    for(auto& v:result){auto row=v.toMap();if(!row["capture"].toString().isEmpty()&&!captures.contains(row["capture"].toString())){row["source"]="";row["capture"]="";row["expired"]=true;}v=row;}
+    return result;
+}
+void LocalStateStore::saveAchievementMomentAsync(const AchievementMoment& value,QObject* context,std::function<void(bool,QString)> done) {
+    auto inserted=std::make_shared<bool>(false);auto moments=std::make_shared<QVariantList>();auto screens=std::make_shared<QVariantList>();
+    write([value,inserted,moments,screens](SqliteWorker& w){return w.achievementMoment(value,*inserted,*moments,*screens);},
+        [this,inserted,moments,screens,guard=QPointer<QObject>(context),done](const QString& error){
+            if(error.isEmpty()){achievementMoments_=*moments;screens_=*screens;emit libraryChanged();}
+            if(guard)done(*inserted,error);
+        });
 }
 QImage LocalStateStore::exitImage(const QString& sessionId) const {
     for (const auto& media : exitMedia_) if (media.sessionId == sessionId) {

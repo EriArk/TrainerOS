@@ -33,7 +33,8 @@ Item {
             Text {
                 anchors.right: parent.right; anchors.rightMargin: 10; y: 32; width: 210
                 horizontalAlignment: Text.AlignRight; textFormat: Text.PlainText; elide: Text.ElideRight
-                text: root.summary.unknown > 0 ? root.summary.unknown + " not yet confirmed" : root.summary.account || "Connect an RA account"
+                text: root.summary.unknown > 0 ? root.summary.unknown + " not yet confirmed"
+                    : root.summary.total > 0 ? (root.summary.total-root.summary.earned) + " remaining" : root.summary.account || "Connect an RA account"
                 color: Theme.muted; font.pixelSize: 11
             }
             Rectangle {
