@@ -378,6 +378,7 @@ qt_add_qml_module(traineros
         src/qml/BadgeTray.qml
         src/qml/AdventureButton.qml
         src/qml/HallOfFamePage.qml
+        src/qml/AchievementGallery.qml
         src/qml/JourneyPanel.qml
         src/qml/ArchiveEditorPanel.qml
         src/qml/AchievementAccountPanel.qml
@@ -691,6 +692,8 @@ if(BUILD_TESTING)
     add_test(NAME pokedex_qml_smoke COMMAND traineros --pokedex-smoke-test --screenshot-dir "${CMAKE_CURRENT_BINARY_DIR}/screenshots/pokedex")
     add_test(NAME artwork_qml_smoke COMMAND traineros --art-smoke-test --screenshot-dir "${CMAKE_CURRENT_BINARY_DIR}/screenshots/artwork")
     add_test(NAME hall_qml_smoke COMMAND traineros --hall-smoke-test --screenshot-dir "${CMAKE_CURRENT_BINARY_DIR}/screenshots/hall")
+    add_test(NAME achievement_gallery_qml_smoke COMMAND traineros --achievement-gallery-smoke-test --screenshot-dir "${CMAKE_CURRENT_BINARY_DIR}/screenshots/achievement-gallery")
+    set_tests_properties(achievement_gallery_qml_smoke PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software" TIMEOUT 40)
     qt_add_resources(traineros experience_fixture PREFIX "/TrainerOS" FILES tests/fixtures/adapters/CounterExperience.qml)
     add_test(NAME experience_qml_smoke COMMAND traineros --experience-smoke-test --screenshot-dir "${CMAKE_CURRENT_BINARY_DIR}/screenshots/experience")
     add_test(NAME diagnostics_qml_smoke COMMAND traineros --diagnostics-smoke-test --screenshot-dir "${CMAKE_CURRENT_BINARY_DIR}/screenshots/diagnostics")

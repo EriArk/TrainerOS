@@ -28,8 +28,18 @@ AchievementSnapshot MockAchievementProvider::sample(const QString& setId) const 
             {"long-way", false, {}, {}}, {"new-chapter", {}, {}, {}},
             {"lasting-memory", true, AchievementMode::Standard, {}}};
     }
+    if (galleryPreview_) for (int i=5;i<127;++i) {
+        const auto id=QString("gallery-fixture-%1").arg(i);
+        result.definitions.append({id,QStringList{"Beyond the horizon", "A quiet discovery", "The long way home", "Together through the storm", "A new beginning", "Every little step counts"}.value(i%6),"Isolated gallery layout fixture; not a real achievement.",{}});
+        if(context_.accountId=="sample-trainer")result.unlocks.append({id,i%3==2?std::optional<bool>{}:std::optional<bool>{i%3==0},AchievementMode::Standard,{}});
+    }
     result.fetchedAt = QDateTime::fromString("2026-09-01T20:00:00Z", Qt::ISODate);
     return result;
+}
+void MockAchievementProvider::enableGalleryPreview() {
+    galleryPreview_=true;
+    for(const auto& set:sets())snapshots_.insert(set.id,sample(set.id));
+    emit snapshotChanged({});
 }
 AchievementSnapshot MockAchievementProvider::snapshot(const QString& setId) const {
     return snapshots_.value(setId, {context_, setId, AchievementState::Disconnected, {}, {}, {}});

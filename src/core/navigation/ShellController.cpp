@@ -339,7 +339,7 @@ bool ShellController::canEditWorld() const {
 bool ShellController::localModalOpen() {
     return collectionManager()->isOpen() || downloads_.isOpen() || scraper_.isOpen() || (socialActive() && !social_.menu().isEmpty()) || libraryTools_.isOpen() || trainer_.editing()
         || (adapterActive() && activeModule_ && activeModule_->modalOpen())
-        || (page_==GameHubPage && hubFace_=="ra" && (hall_.editor()->isOpen() || hall_.account()->isOpen()));
+        || (page_==GameHubPage && hubFace_=="ra" && (hall_.editor()->isOpen() || hall_.account()->isOpen() || hall_.galleryMenuOpen()));
 }
 bool ShellController::chooseAdventureAvailable() {
     return !homeMenuOpen_ && (!adapterActive() || !activeModule_ || activeModule_->recentsAllowed())
@@ -381,7 +381,7 @@ void ShellController::setHubFace(const QString& requested) {
         showExperienceScreen(experience_.screen());
         if(switching && activeModule_)activeModule_->restoreNavigation(experience_.navigation()["module"].toObject());
     }
-    else if(face=="ra")hall_.showFace(2);
+    else if(face=="ra")hall_.showCurrentAchievements();
     else if(face=="lobby")social_.setFace("lobby");
     emit changed();
 }
@@ -557,6 +557,7 @@ void ShellController::syncExperience() {
             hall_.setCurrentAdventure(currentAdventureId());hall_.restoreNavigation(restored["hall"].toObject());
         }
         if(adapterActive())showExperienceScreen(experience_.screen());
+        else if(hubFace_=="ra")hall_.showCurrentAchievements();
     }
     syncingExperience_=false;
 }

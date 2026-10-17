@@ -202,6 +202,7 @@ int main(int argc, char* argv[]) {
     parser.addOption({"pokedex-smoke-test", "Verify Pokédex filters, search and records through SDL input, then exit."});
     parser.addOption({"art-smoke-test", "Exercise private artwork bootstrap on the complete offline reference, then exit."});
     parser.addOption({"hall-smoke-test", "Verify Hall of Fame archive and achievement states through SDL input, then exit."});
+    parser.addOption({"achievement-gallery-smoke-test", "Verify the current-game RA gallery with isolated fixtures."});
     parser.addOption({"diagnostics-smoke-test", "Verify controller/display checks and a local report through SDL input, then exit."});
     parser.addOption({"persistence-smoke-test", "Verify persistent controller flows in a test data directory.", "phase"});
 #endif
@@ -227,7 +228,7 @@ int main(int argc, char* argv[]) {
     worldsSmoke = parser.isSet("worlds-smoke-test");
     pokedexSmoke = parser.isSet("pokedex-smoke-test");
     artSmoke = parser.isSet("art-smoke-test");
-    hallSmoke = parser.isSet("hall-smoke-test");
+    hallSmoke = parser.isSet("hall-smoke-test") || parser.isSet("achievement-gallery-smoke-test");
     diagnosticsSmoke = parser.isSet("diagnostics-smoke-test");
     persistencePhase = parser.value("persistence-smoke-test");
     if (parser.isSet("persistence-smoke-test") && (!QStringList{"seed", "verify", "error", "library-seed", "library-verify", "library-final", "library-launch", "library-home", "library-home-reopen", "library-center", "collection"}.contains(persistencePhase)
@@ -1135,7 +1136,8 @@ int main(int argc, char* argv[]) {
                     startPersistenceSmoke(window, shell, session, input, joystick, persistencePhase, screenshotDir,
                                           smokeCompleted, qmlWarnings, diagnostics);
                 } else if (hallSmoke) {
-                    startHallSmoke(window, shell, input, shellArchive, shellAchievements, joystick, screenshotDir,
+                    if(parser.isSet("achievement-gallery-smoke-test")) startAchievementGallerySmoke(window,shell,input,shellAchievements,joystick,screenshotDir,smokeCompleted,qmlWarnings,diagnostics);
+                    else startHallSmoke(window, shell, input, shellArchive, shellAchievements, joystick, screenshotDir,
                                    smokeCompleted, qmlWarnings, diagnostics);
                 } else if (artSmoke) {
                     startArtworkSmoke(window, shell, input, joystick, screenshotDir, smokeCompleted, qmlWarnings, diagnostics);

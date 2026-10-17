@@ -27,6 +27,26 @@ public:
     }
     void refresh(const QString&) override {}
 };
+class GalleryProvider : public AchievementProvider {
+public:
+    AchievementContext owner{"test", "one"};
+    QList<AchievementSet> games{{"set", "game", "current", "Gallery game", "", true}};
+    AchievementSnapshot data{owner, "set", AchievementState::Ready, {}, {}, {}};
+    GalleryProvider() {
+        for(int i=0;i<127;++i) {
+            const auto id=QString::number(i);
+            data.definitions.append({id, QString("Goal %1 with a long readable title").arg(i), "Description", "12345"});
+            data.unlocks.append({id, i%3==2 ? std::optional<bool>{} : std::optional<bool>{i%3==0},
+                i%3==0 ? std::optional<AchievementMode>{AchievementMode::Hardcore} : std::optional<AchievementMode>{},
+                QDateTime::fromSecsSinceEpoch(10000+i)});
+        }
+    }
+    AchievementContext context() const override { return owner; }
+    QList<AchievementSet> sets() const override { return games; }
+    AchievementSnapshot snapshot(const QString&) const override { return data; }
+    void refresh(const QString&) override {}
+    void publish() { emit snapshotChanged("set"); }
+};
 void achievements(HallOfFameController& hall, int index = 0) {
     hall.switchFace();
     hall.activate(index);
@@ -35,6 +55,65 @@ void achievements(HallOfFameController& hall, int index = 0) {
 class HallOfFameTests : public QObject {
     Q_OBJECT
 private slots:
+    void universalGallerySurvivesCurrentGameAndAdapterNavigationRestoration() {
+        MockLibraryRepository library; MockTrainerRepository profiles; MockAdventureAdapter adapter;
+        DevelopmentPlatformService platform; MockPokedexRepository dex; MockHallOfFameRepository archive;
+        MockAchievementProvider provider;
+        ShellController shell(library,profiles,adapter,platform,builtinExperiences(dex,dex),archive,provider);
+        shell.openGameHubFace("ra"); shell.activate(1);
+        QCOMPARE(shell.hall()->route(),"achievement-detail");
+        shell.setLiveGame({{"id","crystal-demo"}});
+        QCOMPARE(shell.hubFace(),"ra"); QCOMPARE(shell.hall()->route(),"achievements");
+        QCOMPARE(shell.hall()->rows().size(),3);
+        shell.setLiveGame({{"id","emerald-demo"}});
+        QCOMPARE(shell.hall()->gallery()["title"].toString(),"Pokémon Emerald");
+        QVERIFY(!shell.hall()->isArchive()); QVERIFY(!shell.hall()->rows().isEmpty());
+        shell.setLiveGame({});
+        shell.dispatch(Action::ToggleContinue); QVERIFY(shell.drawerOpen());
+        for(const auto& row:shell.drawerGames())if(row.toMap()["title"]=="Pokémon Crystal") {
+            shell.selectDrawerGame(row.toMap()["id"].toString()); break;
+        }
+        QVERIFY(!shell.drawerOpen()); QCOMPARE(shell.currentAdventureId(),"crystal-demo");
+        QCOMPARE(shell.hall()->route(),"achievements"); QCOMPARE(shell.hall()->rows().size(),3);
+    }
+    void currentGameGalleryIdentityFilteringAndGridNavigation() {
+        MutableArchive archive; GalleryProvider provider; HallOfFameController hall(archive,provider);
+        hall.setCurrentAdventure("current"); hall.showCurrentAchievements();
+        QCOMPARE(hall.route(),"achievements"); QCOMPARE(hall.rows().size(),127);
+        QCOMPARE(hall.gallery()["earned"].toInt(),43); QCOMPARE(hall.gallery()["unknown"].toInt(),42);
+        QVERIFY(!hall.gallery()["complete"].toBool());
+        hall.dispatch(Action::Down); QCOMPARE(hall.rowIndex(),6);
+        hall.dispatch(Action::Right); QCOMPARE(hall.rowIndex(),7);
+        hall.activate(7); QCOMPARE(hall.route(),"achievement-detail");
+        const auto id=hall.navigationState()["achievements"].toObject()["set"].toString();
+        std::reverse(provider.data.definitions.begin(),provider.data.definitions.end()); provider.publish();
+        QCOMPARE(hall.route(),"achievement-detail"); QCOMPARE(hall.navigationState()["achievements"].toObject()["set"],id);
+        hall.dispatch(Action::Back); QCOMPARE(hall.rowIndex(),119);
+        hall.openGalleryMenu(); hall.chooseGalleryOption(2);
+        QCOMPARE(hall.rows().size(),42);
+        for(const auto& row:hall.rows()) {
+            QCOMPARE(row.toMap()["earnedState"].toString(),"locked");
+            QVERIFY(row.toMap()["icon"].toString().endsWith("_lock.png"));
+        }
+        hall.openGalleryMenu(); hall.chooseGalleryOption(6);
+        QVERIFY(hall.navigationState()["achievements"].toObject()["set"]==id);
+        hall.openGalleryMenu(); hall.chooseGalleryOption(0);
+        hall.focusAchievement(126); hall.dispatch(Action::Down); QCOMPARE(hall.rowIndex(),126);
+        hall.activate(126); const auto saved=hall.navigationState();
+        HallOfFameController restored(archive,provider); restored.setCurrentAdventure("current"); restored.restoreNavigation(saved);
+        QCOMPARE(restored.route(),"achievement-detail"); QCOMPARE(restored.detail()["title"],hall.detail()["title"]);
+        provider.data.state=AchievementState::Offline; provider.publish();
+        QCOMPARE(hall.rows().size(),127); QVERIFY(hall.status().contains("Offline"));
+        provider.owner.accountId="two"; provider.publish();
+        QCOMPARE(hall.route(),"achievements"); QVERIFY(hall.rows().isEmpty());
+        provider.data.context=provider.owner; provider.data.unlocks.clear(); provider.publish();
+        QCOMPARE(hall.rows().size(),127); QCOMPARE(hall.gallery()["unknown"].toInt(),127);
+        hall.activate(0); hall.setCurrentAdventure("unmatched");
+        QCOMPARE(hall.route(),"achievements"); QVERIFY(hall.rows().isEmpty());
+        QVERIFY(hall.gallery()["title"].toString().isEmpty());
+        hall.setCurrentAdventure("current"); provider.games.append({"duplicate","game","current","Ambiguous","",true}); provider.publish();
+        QVERIFY(hall.rows().isEmpty()); // Never fall through to another set or first ambiguous match.
+    }
     void realChampionsPersistDeduplicateAndRemainSeparateFromLiveProgress() {
         QTemporaryDir dir;LocalStateStore store(dir.path());store.open();QTRY_VERIFY(store.ready());
         MockAchievementProvider provider;HallOfFameController hall(store,provider);hall.setCurrentAdventure("emerald");
@@ -189,8 +268,8 @@ private slots:
         const auto choice = shell.currentAdventureId();
         QVERIFY(shell.pairedNavigationAvailable());
         shell.openGameHubFace("ra");
-        QCOMPARE(shell.hall()->route(), "sets");
-        shell.activate(0); shell.activate(1);
+        QCOMPARE(shell.hall()->route(), "achievements");
+        shell.activate(1);
         shell.dispatch(Action::ToggleContinue);
         QVERIFY(shell.drawerOpen()); QVERIFY(!shell.pairedNavigationAvailable());
         shell.dispatch(Action::PreviousFace);
@@ -237,7 +316,7 @@ private slots:
         QVERIFY(editor->saving());
         shell.dispatch(Action::PreviousPage); shell.dispatch(Action::NextPage);
         shell.openGameHubFace("ra");
-        shell.activate(0); shell.activate(1);
+        shell.activate(1);
         const auto achievement = shell.hall()->detail()["title"];
         QTRY_VERIFY(!editor->saving());
         QCOMPARE(shell.hall()->route(), "achievement-detail");
@@ -363,7 +442,7 @@ private slots:
         MockAchievementProvider provider;
         ShellController shell(library, profiles, adapter, platform,builtinExperiences( dex, dex), archive, provider);
         const auto home = shell.home();
-        shell.openGameHubFace("ra");shell.hall()->activate(0);shell.activate(1);
+        shell.openGameHubFace("ra");shell.activate(1);
         shell.dispatch(Action::SystemMenu); shell.dispatch(Action::Back);
         QCOMPARE(shell.hall()->route(), "achievement-detail");
         shell.dispatch(Action::PreviousPage); shell.dispatch(Action::NextPage);
@@ -374,7 +453,7 @@ private slots:
         QCOMPARE(shell.home(), home);
         QCOMPARE(archive.loadArchive().entries.size(), 4);
         shell.dispatch(Action::Back); shell.dispatch(Action::Back); shell.dispatch(Action::Back);
-        QCOMPARE(shell.page(), 2); QCOMPARE(shell.hall()->route(), "sets");
+        QCOMPARE(shell.page(), 2); QCOMPARE(shell.hall()->route(), "achievements");
     }
 };
 QTEST_GUILESS_MAIN(HallOfFameTests)

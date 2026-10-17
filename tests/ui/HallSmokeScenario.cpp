@@ -242,3 +242,50 @@ void startHallSmoke(QQuickWindow* window, ShellController& shell, ControllerInpu
     });
     timer->start();
 }
+
+void startAchievementGallerySmoke(QQuickWindow* window, ShellController& shell, ControllerInput& input,
+    MockAchievementProvider& provider, SDL_Joystick* joystick, const QString& directory,
+    bool& completed, int& warnings, QStringList& diagnostics) {
+    auto stage=std::make_shared<int>(0); auto failed=std::make_shared<bool>(false);
+    auto timer=new QTimer(window);timer->setInterval(450);
+    QObject::connect(timer,&QTimer::timeout,window,[=,&shell,&input,&provider,&completed,&warnings,&diagnostics] {
+        auto check=[&](bool ok,const char* reason){if(!ok){*failed=true;diagnostics.append(QString("Gallery %1: %2").arg(*stage).arg(reason));}};
+        auto capture=[&](const QString& name){check(window->grabWindow().save(directory+"/"+name+".png"),"capture");};
+        auto press=[&](SDL_GameControllerButton b,int count=1){for(int i=0;i<count;++i){SDL_JoystickSetVirtualButton(joystick,b,1);input.poll();SDL_JoystickSetVirtualButton(joystick,b,0);input.poll();}};
+        constexpr auto a=SDL_CONTROLLER_BUTTON_B,b=SDL_CONTROLLER_BUTTON_A;
+        auto* hall=shell.hall();
+        auto* grid=window->findChild<QQuickItem*>("achievement-grid");
+        switch((*stage)++) {
+        case 0: provider.enableGalleryPreview();shell.openGameHubFace("ra");break;
+        case 1:
+            check(hall->route()=="achievements" && hall->rows().size()==127,"current game gallery");
+            check(grid && qAbs(grid->width()/grid->property("cellWidth").toDouble()-6)<.01,"six columns");
+            check(grid && qAbs(grid->height()/grid->property("cellHeight").toDouble()-2)<.01,"two rows");
+            capture("gallery");press(SDL_CONTROLLER_BUTTON_DPAD_DOWN,3);press(SDL_CONTROLLER_BUTTON_DPAD_RIGHT);break;
+        case 2:
+            check(hall->rowIndex()==19,"2D controller navigation");check(grid && grid->property("contentY").toDouble()>0,"scroll follows focus");
+            capture("scrolled");press(a);break;
+        case 3: check(hall->route()=="achievement-detail","detail opens");press(b);break;
+        case 4:
+            check(hall->rowIndex()==19 && hall->route()=="achievements","back restores card");
+            press(SDL_CONTROLLER_BUTTON_BACK);break;
+        case 5:
+            check(hall->galleryMenuOpen(),"Select options");capture("options");
+            shell.dispatch(Action::NextFace);check(shell.hubFace()=="ra","options trap face navigation");
+            press(SDL_CONTROLLER_BUTTON_DPAD_DOWN);press(a);break;
+        case 6:
+            check(!hall->galleryMenuOpen() && hall->gallery()["filter"]=="Earned","earned filter");
+            capture("earned");provider.setState("emerald-sample",AchievementState::Offline);break;
+        case 7:check(hall->status().contains("Offline") && !hall->rows().isEmpty(),"offline cache");capture("offline");provider.setAccount({});break;
+        case 8:check(hall->rows().isEmpty(),"disconnected account isolation");capture("disconnected");window->resize(1280,720);break;
+        case 9:provider.setAccount("sample-trainer");provider.refresh("emerald-sample");break;
+        case 10:capture("gallery-720");window->resize(1920,1080);break;
+        case 11:capture("gallery-1080");window->resize(1024,768);break;
+        case 12:capture("gallery-4x3");break;
+        default:
+            check(warnings==0,"QML warnings");completed=true;timer->stop();
+            QFile report(directory+"/verification.txt");if(report.open(QIODevice::WriteOnly))report.write(((*failed?QString("FAILED\n"):QString("PASSED\n"))+diagnostics.join('\n')).toUtf8());
+            QGuiApplication::exit(*failed?1:0);
+        }
+    });timer->start();
+}

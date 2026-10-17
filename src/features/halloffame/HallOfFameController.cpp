@@ -108,7 +108,7 @@ AchievementSet HallOfFameController::selectedSet() const {
 AchievementSnapshot HallOfFameController::checkedSnapshot(const AchievementSet& set) const {
     const auto context = provider_.context();
     AchievementSnapshot unavailable{context, set.id, AchievementState::Disconnected, {}, {}, {}};
-    if (!set.supported) { unavailable.state = AchievementState::Unsupported; return unavailable; }
+    if (set.id.isEmpty() || !set.supported) { unavailable.state = AchievementState::Unsupported; return unavailable; }
     if (context.accountId.isEmpty()) return unavailable;
     const auto snapshot = provider_.snapshot(set.id);
     if (snapshot.context != context || snapshot.setId != set.id) {
@@ -140,19 +140,38 @@ QList<HallOfFameController::Row> HallOfFameController::currentRows() const {
         for (const auto& set : provider_.sets()) result.append({set.id, set.title, set.world + " · " + snapshotStatus(checkedSnapshot(set))});
     } else {
         const auto snapshot = currentSnapshot();
-        for (const auto& definition : snapshot.definitions)
-            result.append({definition.id, definition.title, unlockLabel(unlockFor(snapshot, definition.id))});
+        for (const auto& definition : snapshot.definitions) {
+            const auto unlock = unlockFor(snapshot, definition.id);
+            if (galleryMode_ && ((galleryFilter_ == 1 && !unlock.unlocked.value_or(false))
+                || (galleryFilter_ == 2 && (!unlock.unlocked || *unlock.unlocked))
+                || (galleryFilter_ == 3 && unlock.unlocked))) continue;
+            result.append({definition.id, definition.title, unlockLabel(unlock)});
+        }
+        if (galleryMode_ && gallerySort_) std::stable_sort(result.begin(), result.end(), [&](const Row& a, const Row& b) {
+            if (gallerySort_ == 1) return QString::localeAwareCompare(a.title, b.title) < 0;
+            const auto ua = unlockFor(snapshot, a.id), ub = unlockFor(snapshot, b.id);
+            const auto da = ua.unlocked.value_or(false) ? ua.earnedAt : QDateTime();
+            const auto db = ub.unlocked.value_or(false) ? ub.earnedAt : QDateTime();
+            if (da.isValid() != db.isValid()) return da.isValid();
+            return da > db;
+        });
     }
     return result;
 }
 QVariantList HallOfFameController::rows() const {
     QVariantList result;
+    const auto snapshot = isArchive() ? AchievementSnapshot{} : currentSnapshot();
     for (const auto& row : currentRows()) {
         QVariantMap item{{"id", row.id}, {"title", row.title}, {"subtitle", row.subtitle}};
         if (!isArchive() && route_ != "sets") {
-            const auto unlock = unlockFor(currentSnapshot(), row.id);
+            const auto unlock = unlockFor(snapshot, row.id);
             item["tint"] = !unlock.unlocked ? "#d9cfdf" : *unlock.unlocked ? "#f5d886" : "#c8d3d0";
             item["earnedState"] = !unlock.unlocked ? "unknown" : *unlock.unlocked ? "earned" : "locked";
+            item["mode"] = unlock.unlocked.value_or(false) && unlock.mode ? modeLabel(unlock.mode) : QString();
+            QString badge;
+            for (const auto& definition : snapshot.definitions) if (definition.id == row.id) { badge = definition.badgeName; break; }
+            item["icon"] = badge.isEmpty() ? QString() : "https://media.retroachievements.org/Badge/" + badge
+                + (unlock.unlocked.has_value() && !*unlock.unlocked ? "_lock.png" : ".png");
         }
         result.append(item);
     }
@@ -163,7 +182,7 @@ int HallOfFameController::rowIndex() const {
     for (int i = 0; i < rows.size(); ++i) if (rows[i].id == selectedRowId()) return i;
     return 0;
 }
-int HallOfFameController::focusIndex() const { return account_.isOpen() ? account_.focusIndex() : zone_ == "actions" ? actionFocus_ : rowIndex(); }
+int HallOfFameController::focusIndex() const { return account_.isOpen() ? account_.focusIndex() : galleryMenuOpen_ ? galleryMenuFocus_ : zone_ == "actions" ? actionFocus_ : rowIndex(); }
 QVariantMap HallOfFameController::detail() const {
     if (isArchive()) {
         for (const auto& entry : archive_) if (entry.id == archiveId_) {
@@ -253,12 +272,26 @@ void HallOfFameController::setCurrentAdventure(const QString& id) {
 }
 void HallOfFameController::reconcile() {
     const auto sets = provider_.sets();
-    if(preferCurrent_)for(const auto& set:sets)if(set.adventureId==currentAdventure_){
+    if (galleryMode_) {
+        QStringList matches;
+        for (const auto& set : sets) if (!currentAdventure_.isEmpty() && set.adventureId == currentAdventure_) matches.append(set.id);
+        const QString match = matches.size() == 1 ? matches.first() : QString();
+        const bool accountChanged = galleryContext_ != provider_.context();
+        if (setId_ != match || accountChanged || preferCurrent_) {
+            setId_ = match; galleryContext_ = provider_.context(); galleryMenuOpen_ = false;
+            if (accountChanged) achievementIds_.clear();
+            achievementView_ = {"achievements", "list"};
+            if (!isArchive()) { route_ = "achievements"; zone_ = "list"; actionFocus_ = 0; }
+        }
+        preferCurrent_ = false;
+        if (!isArchive() && route_ == "sets") { route_ = "achievements"; zone_ = "list"; }
+    }
+    if(!galleryMode_ && preferCurrent_)for(const auto& set:sets)if(set.adventureId==currentAdventure_){
         setId_=set.id;preferCurrent_=false;achievementView_={"sets","list"};
         if(!isArchive()){route_="sets";zone_="list";actionFocus_=0;}break;
     }
     const bool exists = std::any_of(sets.begin(), sets.end(), [&](const auto& set) { return set.id == setId_; });
-    if (!exists) {
+    if (!exists && !galleryMode_) {
         setId_ = sets.isEmpty() ? QString() : sets.first().id;
         achievementView_ = {"sets", "list"};
         if (!isArchive()) { route_ = "sets"; zone_ = "list"; actionFocus_ = 0; }
@@ -270,6 +303,7 @@ void HallOfFameController::reconcile() {
         if (isDetail()) { route_ = isArchive() ? "archive-list" : "achievements"; zone_ = rows.isEmpty() ? "actions" : "list"; }
     }
     if (rows.isEmpty() && zone_ == "list") zone_ = "actions";
+    if (galleryMode_ && route_ == "achievements" && !rows.isEmpty()) zone_ = "list";
     normalizeActions();
     emit rowsChanged(); emit changed();
 }
@@ -306,6 +340,67 @@ void HallOfFameController::showFace(int index) {
     const auto view=*views[index];
     route_=view.route;zone_=view.zone;actionFocus_=view.action;reconcile();
 }
+void HallOfFameController::showCurrentAchievements() {
+    if (!galleryMode_) {
+        galleryMode_ = true; galleryContext_ = provider_.context(); preferCurrent_ = true;
+    }
+    showFace(2);
+    reconcile();
+}
+QVariantMap HallOfFameController::gallery() const {
+    const auto snapshot = currentSnapshot();
+    int earned = 0, unknown = 0;
+    for (const auto& definition : snapshot.definitions) {
+        const auto unlock = unlockFor(snapshot, definition.id);
+        if (!unlock.unlocked) ++unknown;
+        else if (*unlock.unlocked) ++earned;
+    }
+    const int total = snapshot.definitions.size();
+    QString empty;
+    if (provider_.context().accountId.isEmpty()) empty = "Connect your RetroAchievements account to see your collection.";
+    else if (setId_.isEmpty() || !selectedSet().supported) empty = "No supported achievement set is confirmed for this game.";
+    else if (!total) empty = snapshotStatus(snapshot);
+    else empty = "No achievements match this filter. Try All.";
+    return {{"title", selectedSet().title}, {"account", provider_.context().accountId},
+        {"status", provider_.context().accountId.isEmpty() ? QString("No account connected") : snapshotStatus(snapshot)}, {"earned", earned}, {"total", total}, {"unknown", unknown},
+        {"complete", total > 0 && unknown == 0}, {"empty", empty},
+        {"filter", QStringList{"All achievements", "Earned", "Locked", "Unknown"}.value(galleryFilter_)},
+        {"sort", QStringList{"Set order", "Title", "Recently earned"}.value(gallerySort_)}};
+}
+QVariantList HallOfFameController::galleryOptions() const {
+    QVariantList options;
+    const auto snapshot = currentSnapshot();
+    const bool hasDates = std::any_of(snapshot.unlocks.cbegin(), snapshot.unlocks.cend(), [](const auto& u) {
+        return u.unlocked.value_or(false) && u.earnedAt.isValid();
+    });
+    const QStringList labels{"All achievements", "Earned", "Locked", "Unknown", "Set order", "Title", "Recently earned", "Refresh records", "RA account"};
+    for (int i = 0; i < labels.size(); ++i)
+        options.append(QVariantMap{{"label", i == 6 && !hasDates ? QString("Recently earned · no dates") : labels[i]},
+            {"enabled", i != 6 || hasDates}, {"checked", i < 4 ? i == galleryFilter_ : i < 7 && i-4 == gallerySort_}});
+    return options;
+}
+void HallOfFameController::openGalleryMenu() {
+    if (!galleryMode_ || isArchive() || account_.isOpen()) return;
+    galleryMenuOpen_ = true; galleryMenuFocus_ = galleryFilter_; emit changed();
+}
+void HallOfFameController::closeGalleryMenu() { galleryMenuOpen_ = false; emit changed(); }
+void HallOfFameController::chooseGalleryOption(int index) {
+    if (!galleryMenuOpen_ || index < 0 || index > 8) return;
+    if (!galleryOptions()[index].toMap()["enabled"].toBool()) return;
+    galleryMenuOpen_ = false;
+    if (index < 4) galleryFilter_ = index;
+    else if (index < 7) gallerySort_ = index-4;
+    else if (index == 7) {
+        if (!currentAdventure_.isEmpty()) provider_.refreshAdventure(currentAdventure_);
+    } else account_.begin();
+    reconcile();
+}
+void HallOfFameController::focusAchievement(int index) {
+    if (!galleryMode_ || route_ != "achievements" || galleryMenuOpen_ || account_.isOpen()) return;
+    const auto values = currentRows();
+    if (index < 0 || index >= values.size()) return;
+    zone_ = "list"; selectRow(values[index].id); emit changed();
+}
 QJsonObject HallOfFameController::navigationState() const {
     QJsonObject selected;
     for (auto i = achievementIds_.cbegin(); i != achievementIds_.cend(); ++i) selected.insert(i.key(), i.value());
@@ -313,13 +408,23 @@ QJsonObject HallOfFameController::navigationState() const {
         return QJsonObject{{"route", view.route}, {"zone", view.zone}, {"action", view.action}};
     };
     const FaceView current{route_, zone_, actionFocus_};
-    return {{"champion",championId_}, {"archive", archiveId_}, {"set", setId_}, {"achievements", selected}, {"route", route_},
+    return {{"gallery",galleryMode_}, {"galleryFilter",galleryFilter_}, {"gallerySort",gallerySort_},
+            {"galleryProvider",galleryContext_.providerId}, {"galleryAccount",galleryContext_.accountId},
+            {"champion",championId_}, {"archive", archiveId_}, {"set", setId_}, {"achievements", selected}, {"route", route_},
             {"zone", zone_}, {"action", actionFocus_},
             {"journeyView", encode(overview() ? current : journeyView_)},
             {"archiveView", encode(isArchive() && !overview() ? current : archiveView_)},
             {"achievementView", encode(isArchive() ? achievementView_ : current)}};
 }
 void HallOfFameController::restoreNavigation(const QJsonObject& state) {
+    galleryMode_ = galleryMode_ || state["gallery"].toBool();
+    if (state["gallery"].toBool()) {
+        galleryContext_ = {state["galleryProvider"].toString(), state["galleryAccount"].toString()};
+        preferCurrent_ = false; // The saved set is still validated against the current game's identity below.
+    }
+    galleryFilter_ = std::clamp(state["galleryFilter"].toInt(), 0, 3);
+    gallerySort_ = std::clamp(state["gallerySort"].toInt(), 0, 2);
+    galleryMenuOpen_ = false;
     championId_=state["champion"].toString();
     archiveId_ = state["archive"].toString(); setId_ = state["set"].toString();
     achievementIds_.clear();
@@ -360,7 +465,7 @@ void HallOfFameController::back() {
     if (route_ == "archive-champions") { showJourney(); return; }
     if (route_ == "archive-detail") route_ = "archive-list";
     else if (route_ == "achievement-detail") route_ = "achievements";
-    else if (route_ == "achievements") route_ = "sets";
+    else if (route_ == "achievements" && !galleryMode_) route_ = "sets";
     else return;
     zone_ = currentRows().isEmpty() ? "actions" : "list";
     actionFocus_ = 0;
@@ -368,6 +473,8 @@ void HallOfFameController::back() {
 }
 void HallOfFameController::activate(int index) {
     if (account_.isOpen()) { account_.activate(index); return; }
+    if (galleryMenuOpen_) { chooseGalleryOption(index); return; }
+    if (galleryMode_ && route_ == "achievements" && currentRows().isEmpty()) { openGalleryMenu(); return; }
     if (overview()) {
         if(route_!="archive-journey")showJourney();
         else {route_="archive-champions";zone_="actions";emit changed();}
@@ -404,6 +511,27 @@ void HallOfFameController::activateControl(const QString& zone, int index) {
 void HallOfFameController::dispatch(Action action) {
     if (account_.isOpen()) { account_.dispatch(action); return; }
     if (editor_.isOpen()) { editor_.dispatch(action); return; }
+    if (galleryMode_ && !isArchive()) {
+        if (galleryMenuOpen_) {
+            if (action == Action::Up || action == Action::Down) {
+                galleryMenuFocus_ = std::clamp(galleryMenuFocus_ + (action == Action::Up ? -1 : 1), 0, 8);
+                if (!galleryOptions()[galleryMenuFocus_].toMap()["enabled"].toBool())
+                    galleryMenuFocus_ += action == Action::Up ? -1 : 1;
+            }
+            else if (action == Action::Confirm) { chooseGalleryOption(galleryMenuFocus_); return; }
+            else if (action == Action::Back || action == Action::ToggleContinue) galleryMenuOpen_ = false;
+            emit changed(); return;
+        }
+        if (action == Action::ToggleContinue) { openGalleryMenu(); return; }
+        if (route_ == "achievements" && (action == Action::Left || action == Action::Right || action == Action::Up || action == Action::Down)) {
+            const auto rows = currentRows();
+            if (!rows.isEmpty()) {
+                const int delta = action == Action::Left ? -1 : action == Action::Right ? 1 : action == Action::Up ? -6 : 6;
+                focusAchievement(std::clamp(rowIndex()+delta, 0, int(rows.size())-1));
+            }
+            return;
+        }
+    }
     if (overview()) {
         if(route_!="archive-journey" && (action==Action::Left || action==Action::Right)) {
             const auto records=championRecords();if(records.isEmpty())return;

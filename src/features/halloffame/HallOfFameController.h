@@ -26,6 +26,10 @@ class HallOfFameController final : public QObject {
     Q_PROPERTY(QVariantList actions READ actions NOTIFY changed)
     Q_PROPERTY(QString status READ status NOTIFY changed)
     Q_PROPERTY(QString emptyMessage READ emptyMessage NOTIFY changed)
+    Q_PROPERTY(QVariantMap gallery READ gallery NOTIFY changed)
+    Q_PROPERTY(bool galleryMenuOpen READ galleryMenuOpen NOTIFY changed)
+    Q_PROPERTY(QVariantList galleryOptions READ galleryOptions NOTIFY changed)
+    Q_PROPERTY(int galleryMenuFocus READ galleryMenuFocus NOTIFY changed)
     Q_PROPERTY(trainer::ArchiveEditor* editor READ editor CONSTANT)
     Q_PROPERTY(trainer::AchievementAccountController* account READ account CONSTANT)
     Q_PROPERTY(bool editable READ editable CONSTANT)
@@ -63,6 +67,15 @@ public:
     int faceIndex() const {return overview()?0:isArchive()?1:2;}
     void cycleFace(int delta);
     void showFace(int index);
+    void showCurrentAchievements();
+    QVariantMap gallery() const;
+    QVariantList galleryOptions() const;
+    bool galleryMenuOpen() const { return galleryMenuOpen_; }
+    int galleryMenuFocus() const { return galleryMenuFocus_; }
+    Q_INVOKABLE void openGalleryMenu();
+    Q_INVOKABLE void closeGalleryMenu();
+    Q_INVOKABLE void chooseGalleryOption(int);
+    Q_INVOKABLE void focusAchievement(int);
     QJsonObject navigationState() const;
     void restoreNavigation(const QJsonObject&);
 signals:
@@ -99,6 +112,9 @@ private:
     QString archiveError_;
     QString archiveId_, setId_, currentAdventure_;
     bool preferCurrent_ = false;
+    bool galleryMode_ = false, galleryMenuOpen_ = false;
+    int galleryMenuFocus_ = 0, galleryFilter_ = 0, gallerySort_ = 0;
+    AchievementContext galleryContext_;
     QHash<QString, QString> achievementIds_;
     QString route_ = "archive-list", zone_ = "list";
     int actionFocus_ = 0;

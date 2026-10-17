@@ -10,7 +10,9 @@ Item {
             if(shell.adapterMenuOpen) return [h("↑↓","Screens"),h("A","Open"),h("B","My Story")]
             return adapterPresenter.hints(h) || [h("A","Open"),h("Select","Actions"),h("B","Screens")]
         }
-        if(shell.hubFace === "ra") return [h("A","Open"),h("Select","Refresh"),h("B","Back")]
+        if(shell.hubFace === "ra") return shell.hall.galleryMenuOpen
+            ? [h("↑↓","Options"),h("A","Choose"),h("B","Gallery")]
+            : [h("A","Open"),h("Select","Options"),h("B","Back")]
         if(shell.overviewFace === "timeline") return [h("←→","Timeline"),h("B","My Story")]
         if(shell.overviewFace === "screens") {
             if(shell.album.filtering) return [h("↑↓","Filters"),h("A","Choose"),h("B","Album")]
@@ -21,7 +23,7 @@ Item {
     readonly property bool available: visible && !shell.serviceOpen && !shell.menuOpen
         && !shell.drawerOpen && !shell.quickAppsOpen && !shell.keyboard.open && !shell.notice.length
     GameHubOverview { anchors.fill: parent; anchors.margins: 10; shell: root.shell; visible: root.shell.hubFace === "overview" }
-    HallOfFamePage { anchors.fill: parent; shell: root.shell; visible: root.shell.hubFace === "ra" }
+    AchievementGallery { anchors.fill: parent; anchors.margins: 10; shell: root.shell; visible: root.shell.hubFace === "ra" }
     SocialPage { anchors.fill: parent; shell: root.shell; visible: root.shell.hubFace === "lobby" }
     Item {
         anchors.fill: parent; visible: root.shell.adapterActive

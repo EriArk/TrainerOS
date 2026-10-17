@@ -73,6 +73,7 @@ public:
     void holdRequests(bool hold) { hold_ = hold; }
     void finishRefresh(const QString& setId);
     void enableAccountPreview() { accountPreview_ = true; }
+    void enableGalleryPreview();
     bool canManageAccount() const override { return accountPreview_; }
     QString accountMessage() const override { return "Sample account controls. Credentials are never submitted in this preview."; }
 private:
@@ -84,6 +85,7 @@ private:
     int generation_ = 0;
     bool hold_ = false;
     bool accountPreview_ = false;
+    bool galleryPreview_ = false;
 };
 // Normal application startup must never claim sample achievements or an account.
 class DisconnectedAchievementProvider final : public AchievementProvider {
