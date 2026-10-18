@@ -172,7 +172,7 @@ The point is not to remove Linux. The point is that you should not have to use a
 
 The first public beta is planned as an **installer over existing ArmadaOS**. It should prepare the environment automatically, identify whether the OS is on microSD or internal storage, show responsive progress and preserve personal data. A simple launcher and minimal steps are the target; a finished public installer is not available yet.
 
-Images and other host installers remain later work. Current priorities include the complete ordinary-launch catalogue (PS3/Switch deferred), locked compatible emulator configurations, recoverable installation and the named outstanding user/network checks. Your ROMs, firmware, saves and personal media remain yours.
+Images and other host installers remain later work. Current priorities include the complete ordinary-launch catalogue (including PS3/Switch homebrew checks on Odin), locked compatible emulator configurations, recoverable installation and the named outstanding user/network checks. Your ROMs, firmware, saves and personal media remain yours.
 
 What already exists is deliberately kept separate from what is merely planned. TrainerOS may know that a game launches without claiming it understands the save. It may know that a game has four players without claiming four real TrainerOS users have completed a session. Unsupported things stay unsupported instead of becoming optimistic buttons.
 

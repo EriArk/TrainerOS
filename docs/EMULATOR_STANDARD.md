@@ -105,8 +105,8 @@ migration. Do not silently launch an incompatible fallback when a friend joins.
 | MAME | RetroArch + MAME | Retain for content outside the selected FBNeo set. Do not run every arcade ROM through both or silently substitute ROM-set requirements. |
 | Remaining classic computers/consoles and fantasy systems | RetroArch + existing registered core | Exact mapping below covers all other catalogue IDs. Keep empty folders hidden; core availability and playable speed remain separate. |
 | Wii U | Cemu, conditional device tier | Odin ARM64 package digest matches Armada-selected upstream-derived build aa20e2f86; Flip version remains to align. Native online prerequisites absent on both; no paired gameplay or TrainerOS profile. [Audit](emulators/cemu.md). |
-| Switch | Deferred by owner | Outside the current launch/multiplayer milestone. Earlier runtime candidates are not installation authority. |
-| PS3 | Deferred by owner | Preserve existing user files; no current implementation or compatibility claim. |
+| Switch | Eden candidate; homebrew launch on Odin | Owner added ordinary launch on 18 October. 2048 v1.1.0 prepared; runtime integration and device checks pending. Multiplayer remains deferred. |
+| PS3 | RPCS3 candidate; homebrew launch on Odin | Owner added ordinary launch on 18 October. Ping Pong v1.0.0 prepared; preserve existing user files. Runtime integration and device checks pending; multiplayer deferred. |
 | Vita (`psvita`) | Vita3K, conditional device tier | Separate pinned ARM64 bundle and `.psvita` installed-title launcher on Flip/Odin. Ordinary invitations, native browser and paired gameplay passed for one exact homebrew LAN profile. Own accounts/data retained; commercial AdHoc/PSN and wider compatibility remain open. [Evidence](emulators/vita3k.md). |
 
 The conditional tier is part of the common policy, not a random emulator bundle

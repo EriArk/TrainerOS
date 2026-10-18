@@ -27,8 +27,10 @@
   and unknown-device fallback; do not claim that all devices have passed #77.
 - Ordinary A launch prepares an approved route automatically, not an editor.
   Keep emulator paths, core setup and commands out of ordinary player flows.
-- Current launch scope is all 106 catalogue IDs with PS3/Switch deferred: 104
-  active. Reuse launcher mechanisms in batches, then test oldest first. See
+- Current launch scope is all 106 catalogue IDs. Owner added PS3/Switch on
+  18 October: test those two on Odin using small homebrew, without claiming
+  commercial-game compatibility or reopening their multiplayer scope.
+  Reuse launcher mechanisms in batches, then test oldest first. See
   [platform register](docs/LAUNCH80_PLATFORM_REGISTER.md); installed cores are not
   proof of launch, performance, input or multiplayer compatibility.
 - Multiplayer must reuse existing emulator networking. Pin runtime/core/build,
