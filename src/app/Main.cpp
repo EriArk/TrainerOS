@@ -348,13 +348,15 @@ int main(int argc, char* argv[]) {
         StandaloneAdapter dolphin("dolphin", activeLibrary, standaloneInstallation("dolphin"));
         StandaloneAdapter ppsspp("ppsspp", activeLibrary, standaloneInstallation("ppsspp"));
         StandaloneAdapter armsx2("armsx2", activeLibrary, standaloneInstallation("armsx2"));
+        StandaloneAdapter cemu("cemu", activeLibrary, standaloneInstallation("cemu"));
+        StandaloneAdapter duckstation("duckstation", activeLibrary, standaloneInstallation("duckstation"));
         struct SaveRuntimes { RetroArchInstallation retroarch; StandaloneInstallation melonds; };
         auto saveRuntimes = std::make_shared<std::atomic<std::shared_ptr<const SaveRuntimes>>>(
             std::make_shared<const SaveRuntimes>(SaveRuntimes{retroarchInstallation, melonDsInstallation}));
         CratesAdventureAdapter cratesRuntime;
         cratesRuntime.root=QDir(stateDirectory).filePath("crates");
         cratesRuntime.helper="/var/opt/traineros/crates/launch.py";
-        AdapterRouter adapters({&cratesRuntime,&ppsspp, &armsx2, &melonDs, &dolphin, &azahar, &vita3k, &retroarch});
+        AdapterRouter adapters({&cratesRuntime,&ppsspp, &armsx2, &cemu, &duckstation, &melonDs, &dolphin, &azahar, &vita3k, &retroarch});
         if (personalLibrary && !smoke) selectedAdapter = &adapters;
 #ifdef TRAINEROS_UI_TESTS
         ProbeAdventureAdapter probeAdapter;
@@ -928,6 +930,8 @@ int main(int argc, char* argv[]) {
                 changed |= dolphin.updateInstallation(standalone("dolphin"));
                 changed |= ppsspp.updateInstallation(standalone("ppsspp"));
                 changed |= armsx2.updateInstallation(standalone("armsx2"));
+                changed |= cemu.updateInstallation(standalone("cemu"));
+                changed |= duckstation.updateInstallation(standalone("duckstation"));
                 if (changed) {
                     retroarchInstallation = next;
                     saveRuntimes->store(std::make_shared<const SaveRuntimes>(SaveRuntimes{next, ds}));
@@ -1152,6 +1156,8 @@ int main(int argc, char* argv[]) {
                 dolphin.requestLaunch = requestAdventure;
                 ppsspp.requestLaunch = requestAdventure;
                 armsx2.requestLaunch = requestAdventure;
+                cemu.requestLaunch = requestAdventure;
+                duckstation.requestLaunch = requestAdventure;
                 cratesRuntime.requestLaunch = requestAdventure;
                 cratesRuntime.ownerId=[&]{return store->ownerId();};
                 auto* packages=shell.crates()->installer();

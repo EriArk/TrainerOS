@@ -16,6 +16,8 @@ struct Route { QString id, app, binary; QStringList names, platforms; };
 const QList<Route> routes{
     {"ppsspp", "org.ppsspp.PPSSPP", "PPSSPPSDL", {"PPSSPPSDL", "ppsspp"}, {"psp"}},
     {"armsx2", {}, "ARMSX2", {"ARMSX2", "armsx2"}, {"ps2"}},
+    {"cemu", "info.cemu.Cemu", "Cemu", {"Cemu", "cemu"}, {"wiiu"}},
+    {"duckstation", "org.duckstation.DuckStation", "duckstation-qt", {"duckstation-qt", "DuckStation", "duckstation"}, {"psx"}},
     {"melonds", "net.kuribo64.melonDS", "melonDS", {"melonDS"}, {"nds"}},
     {"azahar", "org.azahar_emu.Azahar", "azahar", {"azahar"}, {"n3ds"}},
     {"vita3k", {}, "vita3k", {"vita3k"}, {"psvita"}},
@@ -132,6 +134,10 @@ EmulatorEnvironment installedEmulators(const QString& stateDirectory, const QStr
     for (const auto& route : routes) {
         const auto appImage = QDir(env.home).filePath("Applications/" + route.binary + ".AppImage");
         if (!env.executables.contains(route.names.first()) && executable(appImage)) env.executables.insert(route.names.first(), appImage);
+        if(route.id=="duckstation" && !env.executables.contains(route.names.first())) {
+            const auto image=QDir(env.home).filePath("Applications/DuckStation.AppImage");
+            if(executable(image))env.executables.insert(route.names.first(),image);
+        }
     }
     const bool sdlReady = readController && SDL_InitSubSystem(SDL_INIT_GAMECONTROLLER) == 0;
     if (sdlReady && SDL_NumJoysticks() > 0 && SDL_IsGameController(0)) {
@@ -202,12 +208,12 @@ EmulatorDiscovery prepareEmulators(const EmulatorEnvironment& env) {
             const auto manifest=readProfile(QFileInfo(launcher).dir().filePath("../manifest.json"));
             if(manifest["protocol"]!=1||manifest["source"]!="46602447c7f84d53790b44e1869ab5105178bf16"||manifest["settings"]!="native-lan-two-owned-v1")continue;
         }
-        if ((route.id == "melonds" || route.id == "dolphin" || route.id == "azahar" || route.id == "vita3k") && executable(env.executables.value("python3"))) {
+        if ((route.id == "melonds" || route.id == "dolphin" || route.id == "azahar" || route.id == "vita3k" || route.id == "cemu" || route.id == "duckstation") && executable(env.executables.value("python3"))) {
             const QStringList helpers{QDir(env.home).filePath(".local/libexec/traineros/controller-bridge.py"),
                 "/var/opt/traineros/integrations/controller-bridge.py"};
             for (const auto& helper : helpers) if (QFileInfo(helper).isFile()) {
                 QJsonArray wrapped{helper};
-                if (route.id == "melonds" || route.id == "azahar" || route.id == "vita3k") wrapped.append("--pointer");
+                if (route.id == "melonds" || route.id == "azahar" || route.id == "vita3k" || route.id == "cemu") wrapped.append("--pointer");
                 wrapped.append("--"); wrapped.append(program);
                 for (const auto& value : arguments) wrapped.append(value);
                 arguments = wrapped; program = env.executables.value("python3"); break;

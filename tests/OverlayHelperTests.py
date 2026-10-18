@@ -22,6 +22,19 @@ PNG = base64.b64decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQI
 
 
 class OverlayHelperTests(unittest.TestCase):
+    def test_standalone_launch_flags_do_not_admit_plain_desktop_windows(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory);process=root/'42';process.mkdir()
+            for name, args in (('Cemu',b'Cemu\0-f\0-g\0game.wua\0'),
+                               ('duckstation-qt',b'duckstation-qt\0-batch\0-fullscreen\0--\0game.chd\0')):
+                target=process/'exe'
+                if target.is_symlink():target.unlink()
+                target.symlink_to('/app/bin/'+name)
+                (process/'cmdline').write_bytes(args)
+                self.assertTrue(supported_emulator_process(42,root))
+                (process/'cmdline').write_bytes(name.encode()+b'\0')
+                self.assertFalse(supported_emulator_process(42,root))
+
     def test_pad_read_grant_survives_late_inputplumber_acl_reset(self):
         spec = importlib.util.spec_from_file_location('pad_grant', ROOT / 'grant-input-read.py')
         hook = importlib.util.module_from_spec(spec); spec.loader.exec_module(hook)

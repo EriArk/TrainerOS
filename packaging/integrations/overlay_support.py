@@ -63,6 +63,13 @@ def supported_emulator_process(pid, proc=Path('/proc')):
         if executable == 'traineros-webgame':
             env = (proc / str(pid) / 'environ').read_bytes().split(b'\0')
             return b'TRAINEROS_CRATES_GAME=1' in env
+        if executable in ('Cemu', 'cemu', 'duckstation-qt'):
+            # The surrounding X11 ownership check still requires this launch's
+            # exact process tree. Plain desktop emulator windows are excluded.
+            args = (proc / str(pid) / 'cmdline').read_bytes().split(b'\0')
+            if executable == 'duckstation-qt':
+                return b'-batch' in args and b'-fullscreen' in args
+            return b'-f' in args and b'-g' in args
         if executable == 'dolphin-emu':
             # Only our batch launch suppresses Dolphin's second desktop prompt.
             args = (proc / str(pid) / 'cmdline').read_bytes().split(b'\0')

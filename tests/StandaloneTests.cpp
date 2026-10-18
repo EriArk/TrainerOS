@@ -39,6 +39,33 @@ class StandaloneTests final : public QObject {
         QFile file(path); QVERIFY(file.open(QIODevice::WriteOnly)); QCOMPARE(file.write(data), data.size());
     }
 private slots:
+    void standaloneAlternativesNeverRebindExistingCoreSaves() {
+        MockLibraryRepository library;
+        StandaloneAdapter cemu("cemu",library,{probe(),probe(),{},{"wiiu"}});
+        StandaloneAdapter ps2("armsx2",library,{probe(),probe(),{},{"ps2"}});
+        StandaloneAdapter ps1("duckstation",library,{probe(),probe(),{},{"psx"}});
+        AdapterRouter router({&cemu,&ps2,&ps1});
+        for(const auto& platform:QStringList{"wiiu","ps2","psx"}) {
+            const auto core=platform=="wiiu"?QString("cemu"):platform=="ps2"?QString("armsx2"):QString("pcsx_rearmed");
+            AdventureRegistration r;r.adventure.platformId=platform;r.adventure.adapterId="retroarch";
+            r.contentPath=platform=="wiiu"?"/roms/game.wua":"/roms/game.chd";r.integrationConfig={{"core",core}};r.revision=12;
+            router.prepareInstallation(r);QCOMPARE(r.adventure.adapterId,"retroarch");QCOMPARE(r.integrationConfig["core"].toString(),core);QCOMPARE(r.revision,12);
+            r.adventure.adapterId="unconfigured";r.integrationConfig={};router.prepareInstallation(r);
+            QCOMPARE(r.adventure.adapterId,platform=="wiiu"?QString("cemu"):platform=="ps2"?QString("armsx2"):QString("duckstation"));
+        }
+    }
+    void cemuAndDuckstationDiscoveryPreservesExistingPreferences() {
+        QTemporaryDir dir;EmulatorEnvironment env;env.home=dir.path();env.configHome=dir.filePath("config");
+        env.stateDirectory=dir.filePath("state");env.executables={{"Cemu",probe()},{"DuckStation",probe()}};
+        const auto found=prepareEmulators(env);
+        for(const auto& id:QStringList{"cemu","duckstation"}) {
+            const auto installed=StandaloneInstallation::fromJson(found.profiles[id],id);
+            QCOMPARE(installed.program,probe());QVERIFY(!installed.platforms.isEmpty());
+        }
+        env.executables.clear();const auto again=prepareEmulators(env);
+        QCOMPARE(again.profiles["cemu"],found.profiles["cemu"]);
+        QCOMPARE(again.profiles["duckstation"],found.profiles["duckstation"]);
+    }
     void azaharPreparationKeepsEachPlayersOwnStorageAndSettings() {
 #ifdef Q_OS_WIN
         QSKIP("Native Linux bundle paths; covered on the ARM64 build.");
@@ -541,6 +568,8 @@ private slots:
         QTest::newRow("DS") << QString("melonds") << QString("nds") << QString("nds");
         QTest::newRow("PSP") << QString("ppsspp") << QString("psp") << QString("cso");
         QTest::newRow("PS2") << QString("armsx2") << QString("ps2") << QString("chd");
+        QTest::newRow("WiiU") << QString("cemu") << QString("wiiu") << QString("wua");
+        QTest::newRow("PS1") << QString("duckstation") << QString("psx") << QString("chd");
         QTest::newRow("GameCube") << QString("dolphin") << QString("gc") << QString("iso");
         QTest::newRow("Wii") << QString("dolphin") << QString("wii") << QString("wad");
     }
@@ -587,6 +616,8 @@ private slots:
             : adapterId == "azahar" ? QJsonArray{"-f", record.contentPath}
             : adapterId == "ppsspp" ? QJsonArray{"--fullscreen", "--pause-menu-exit", record.contentPath}
             : adapterId == "armsx2" ? QJsonArray{"-batch", "-fullscreen", "--", record.contentPath}
+            : adapterId == "cemu" ? QJsonArray{"-f", "-g", record.contentPath}
+            : adapterId == "duckstation" ? QJsonArray{"-batch", "-fullscreen", "--", record.contentPath}
             : QJsonArray{"-b", "-C", "Dolphin.Display.Fullscreen=True", "-C", "Dolphin.Interface.ConfirmStop=False", "-e", record.contentPath};
         QCOMPARE(QJsonDocument::fromJson(output.readAll()).array(), arguments); output.close();
         QVERIFY(QFile::remove(receipt)); QVERIFY(QFile::rename(record.contentPath, record.contentPath + ".moved"));

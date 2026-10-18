@@ -1,5 +1,22 @@
 # Cemu: Wii U online-service boundary
 
+## Ordinary launch integration — 18 October 2026
+
+LAUNCH-80 adds Cemu to the existing standalone adapter and discovery, using
+the upstream `-f -g CONTENT` interface for WUD/WUX/WUA/RPX. Existing explicit
+profiles and game bindings take priority; there is no MLC/save migration or
+emulator patch. Native/AppImage and Flatpak discovery reuse the shared code.
+The existing controller bridge and process-owned Home/exit path are reused.
+The actual standalone launch/return/close cycle remains to be checked after
+ARM delivery; this does not enable multiplayer. Installed Cemu Libretro is
+also real and is not treated as a broken binding.
+
+For updates, recheck these CLI flags against the selected upstream package,
+run the standalone launch/discovery regressions, then check one real launch
+and graceful exit with its existing MLC. Rollback restores the previous
+TrainerOS binary/helpers; retain user integration profiles and MLC unchanged.
+Current evidence and deployment limits: [LAUNCH-80](../LAUNCH80_LAUNCHER_AUDIT.md).
+
 ## Device and source audit — 12 October 2026
 
 Wii U remains in scope; no TrainerOS multiplayer profile is enabled by this audit.
