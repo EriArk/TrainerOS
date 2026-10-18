@@ -6,6 +6,19 @@ Item {
     property string glyph: ""
     property color ink: Theme.ink
     readonly property var paths: ({
+        "chevron": "M8 4 L16 12 L8 20",
+        "settings": "M9 2 H15 V5 L18 7 L21 6 L23 11 L20 13 V16 L22 18 L18 22 L15 20 H12 L10 22 L5 19 L6 16 L4 13 L1 12 L3 7 H6 L9 5 Z M8 12 A4 4 0 1 0 16 12 A4 4 0 1 0 8 12",
+        "power": "M12 2 V11 M6 5 A9 9 0 1 0 18 5",
+        "desktop": "M2 3 H22 V17 H2 Z M8 22 H16 M12 17 V22",
+        "sun": "M8 12 A4 4 0 1 0 16 12 A4 4 0 1 0 8 12 M12 1 V4 M12 20 V23 M1 12 H4 M20 12 H23 M4 4 L6 6 M18 18 L20 20 M4 20 L6 18 M18 6 L20 4",
+        "wifi": "M2 8 Q12 -1 22 8 M5 12 Q12 5 19 12 M8 16 Q12 12 16 16 M11 20 H13",
+        "bluetooth": "M12 1 L19 7 L5 18 M12 23 L19 17 L5 6 M12 1 V23",
+        "airplane": "M10 2 L14 2 L15 9 L23 14 V17 L15 14 V20 L18 22 H6 L9 20 V14 L1 17 V14 L9 9 Z",
+        "download": "M12 2 V16 M6 10 L12 16 L18 10 M3 18 V22 H21 V18",
+        "battery": "M2 6 H20 V18 H2 Z M22 10 V14 M5 9 H14 V15 H5 Z",
+        "clock": "M2 12 A10 10 0 1 0 22 12 A10 10 0 1 0 2 12 M12 5 V12 L17 15",
+        "storage": "M5 2 H19 V22 H5 Z M8 5 H16 M8 17 H10 M8 12 H16",
+        "pictures": "M2 5 H19 V22 H2 Z M6 5 V1 H23 V18 H19 M5 18 L9 12 L12 16 L15 13 L18 18",
         "close": "M6 6 L18 18 M18 6 L6 18",
         "send": "M3 3 L22 12 L3 21 L7 12 Z M7 12 H16",
         "game-controller": "M7 6 H17 Q20 6 21 10 L23 17 Q23 21 19 19 L16 16 H8 L5 19 Q1 21 1 17 L3 10 Q4 6 7 6 Z M7 9 V15 M4 12 H10 M16 10 V11 M19 13 V14",

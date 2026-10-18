@@ -805,6 +805,7 @@ void SocialController::applyText(QString text) {
         preserveText(text);
         if(textChannel_==snapshot_["channel"].toString()){
             if(directConversationLease_.startsWith("lobby:"))sendGameChat(directConversationLease_.mid(6),textChannel_);
+            else if(directConversationLease_.startsWith("notification:"))sendNotificationChat(textChannel_);
             else if(lobbyChatVisible())sendDraft();
             else send();
         }

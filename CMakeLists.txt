@@ -159,6 +159,7 @@ add_library(trainer_core STATIC
     src/features/device/NetworkController.cpp
     src/platform/device/VolumeKeys.cpp
     src/features/device/DeviceController.h
+    src/features/device/ControlsDashboard.cpp
     src/features/device/DeviceController.cpp
     src/platform/ArmadaPlatformService.h
     src/platform/ArmadaPlatformService.cpp
@@ -435,6 +436,8 @@ qt_add_qml_module(traineros
         src/qml/PlayerProfilePanel.qml
         src/qml/ShellOptions.qml
         src/qml/GameOptions.qml
+        src/qml/GameActivity.qml
+        src/qml/ActivityRow.qml
         src/qml/PassiveNotice.qml
         src/qml/LeagueBadge.qml
         src/qml/BadgeTray.qml
@@ -450,6 +453,8 @@ qt_add_qml_module(traineros
         src/qml/AchievementAccountPanel.qml
         src/qml/ControllerList.qml
         src/qml/ContinueDrawer.qml src/qml/ChassisDrawer.qml src/qml/QuickAppsDrawer.qml
+        src/qml/ControlsPanel.qml
+        src/qml/ControlWidget.qml
         src/qml/SystemPanel.qml
         src/qml/ConnectionsPane.qml
         src/qml/StoragePanel.qml
@@ -525,6 +530,10 @@ qt_add_qml_module(traineros
 )
 
 if(BUILD_TESTING)
+    qt_add_executable(trainer_controls_tests tests/ControlsDashboardTests.cpp src/features/device/ControlsDashboard.cpp)
+    target_include_directories(trainer_controls_tests PRIVATE src)
+    target_link_libraries(trainer_controls_tests PRIVATE Qt6::Core Qt6::Test)
+    add_test(NAME controls_dashboard COMMAND trainer_controls_tests)
     qt_add_executable(trainer_browser_tests tests/BrowserTests.cpp)
     target_link_libraries(trainer_browser_tests PRIVATE trainer_core Qt6::Test)
     add_test(NAME browser COMMAND trainer_browser_tests)

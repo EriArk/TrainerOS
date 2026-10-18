@@ -102,9 +102,12 @@ Window {
             objectName: "game-home-menu"
             anchors.centerIn: parent
             width: parent.width * .92; height: parent.height * .86
-            visible: window.presentation.menuOpen && !playerOverlay.chatOpen
+            visible: window.presentation.menuOpen && !playerOverlay.chatOpen && !shellController.gameControlsOpen
             presentation: window.presentation
+            shell: shellController
         }
+        ControlsPanel { anchors.centerIn: parent; width: parent.width*.94; height: parent.height*.92; shell: shellController; visible: window.presentation.menuOpen && shellController.gameControlsOpen; enabled: window.presentation.ready }
+        DownloadsPanel { anchors.fill: parent; flow: shellController.downloads; visible: shellController.gameControlsOpen && shellController.downloads.open; enabled: window.presentation.ready }
         QuickLobbyChat {
             anchors.right: parent.right; anchors.rightMargin: 28
             anchors.verticalCenter: parent.verticalCenter
@@ -113,7 +116,7 @@ Window {
             controller: playerOverlay; social: shellController.social; presentation: window.presentation
         }
         KeyboardPanel { anchors.fill: parent; shell: shellController; takesFocus: window.presentation.ready; onBackRequested: playerOverlay.back(); visible: playerOverlay.chatOpen && shellController.keyboard.open; enabled: window.presentation.ready }
-        Row { anchors.horizontalCenter: parent.horizontalCenter; anchors.bottom: parent.bottom; anchors.bottomMargin: 14; spacing: 26; visible: window.presentation.menuOpen && !playerOverlay.chatOpen
+        Row { anchors.horizontalCenter: parent.horizontalCenter; anchors.bottom: parent.bottom; anchors.bottomMargin: 14; spacing: 26; visible: window.presentation.menuOpen && !playerOverlay.chatOpen && !shellController.gameControlsOpen
             Hint { button: "↑↓"; label: "Choose"; tint: Theme.blue }
             Hint { button: "A"; label: "Select"; tint: Theme.yellow; visible: window.presentation.menuCanSelect }
             Hint { button: "B"; label: window.presentation.panel.length ? "Back" : "Continue"; tint: Theme.blue }

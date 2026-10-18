@@ -45,6 +45,7 @@ public:
     int settingsFocus() const {return settingsFocus_;}
     void begin(const QString& game={},const QString& world={});
     void beginSystems();
+    void beginMissing();
     bool selectingSystems() const {return scope_==4 && !active_ && !finished_;}
     QVariantList systemRows() const;
     int selectedGameCount() const;
@@ -90,7 +91,8 @@ private:
     LibraryRepository& library_;
     QString directory_,credentialsPath_,status_,phase_,gameId_,worldId_,textTarget_;
     scraper::Credentials credentials_;
-    scraper::Preferences preferences_;
+    scraper::Preferences preferences_, jobPreferences_;
+    bool missingOnly_=false;
     QJsonObject display_;
     scraper::Transport transport_=scraper::httpsTransport();
     scraper::Delay delay_;

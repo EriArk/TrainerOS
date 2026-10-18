@@ -393,7 +393,7 @@ Window {
                 }
                 if (shell.notice.length) return [h("A", shell.modeConfirmation ? "Continue" : "OK"), h("B","Cancel")]
                 if (shell.downloads.open) return [h("↑↓","Choose"),h("←→","Actions"),h("A","Select"),h("B","Close")]
-                if (shell.menuOpen) return shell.powerMenu ? [h("A","Select"),h("B","Back")] : [h("X","Quick controls"),h("←→",shell.focusIndex>=9 ? "Choose" : "Adjust"),h("A",shell.focusIndex>=9 && shell.focusIndex<=11 ? "Toggle" : "Select"),h("B","Close")]
+                if (shell.menuOpen) return shell.powerMenu ? [h("A","Select"),h("B","Back")] : [] // Controls owns its contextual hints.
                 if (shell.keyboard.open) return [h("X","Case"),h("Y",shell.keyboard.nextLayout),h("A","Type"),h("Select",shell.keyboard.submitLabel),h("B",shell.keyboard.submitLabel === "Send" ? "Keep draft" : "Cancel")]
                 if (shell.scraper.open) return shell.scraper.selectingSystems ? [h("↑↓","Systems"),h("←→","Actions"),h("A","Select"),h("B","Back")] : [h("A","Select"),h("B",shell.scraper.busy&&!shell.scraper.choosingMatch?"Stop":"Back")]
                 if (shell.libraryTools.open) {

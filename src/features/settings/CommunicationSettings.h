@@ -41,6 +41,7 @@ signals:
     void changed();
     void meterChanged();
     void backRequested();
+    void trainerSwitchRequested();
     void textRequested(QString title,QString initial,int limit);
 private:
     friend class SocialTests;

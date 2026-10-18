@@ -1,8 +1,39 @@
 #include "SocialController.h"
 #include <algorithm>
 #include <QJsonArray>
+#include <utility>
 
 namespace trainer {
+bool SocialController::notificationChatValid(const QString& channel) const {
+    if(channel.isEmpty() || snapshot_["state"]!="connected" || directConversationLease_!="notification:"+channel)return false;
+    for(const auto& v:snapshot_["chats"].toList())if(v.toMap()["id"]==channel && !v.toMap()["socialHidden"].toBool())return true;
+    return false;
+}
+bool SocialController::acquireNotificationChat(const QString& channel) {
+    if(!directConversationLease_.isEmpty() || snapshot_["state"]!="connected")return false;
+    bool admitted=false;
+    for(const auto& v:notifications()){const auto r=v.toMap();if(r["id"]==channel && !r["request"].toBool() && !r["activity"].toBool() && !r["ringing"].toBool() && (r["kind"]=="chats"||r["kind"]=="groups"||!r["guild"].toString().isEmpty()))admitted=true;}
+    if(!admitted)return false;
+    previousGameChatChannel_=snapshot_["channel"].toString();directConversationLease_="notification:"+channel;
+    if(!notificationChatValid(channel)){directConversationLease_.clear();previousGameChatChannel_.clear();return false;}
+    selection_.stop();closeMenu();emit commandRequested("conversation",{{"id",channel}});return true;
+}
+void SocialController::releaseNotificationChat(){
+    if(!directConversationLease_.startsWith("notification:"))return;
+    directConversationLease_.clear();const auto previous=std::exchange(previousGameChatChannel_,QString());
+    if(!previous.isEmpty())emit commandRequested("conversation",{{"id",previous}});
+}
+void SocialController::composeNotificationChat(const QString& channel){
+    if(!notificationChatValid(channel)||snapshot_["channel"]!=channel)return;
+    textPurpose_="message";textChannel_=channel;emit textRequested("Reply",drafts_.value(channel),2000);
+}
+void SocialController::sendNotificationChat(const QString& channel){
+    if(notificationChatValid(channel)&&snapshot_["channel"]==channel)send();
+}
+void SocialController::presentedNotificationChat(const QString& channel,const QString& message){
+    if(!notificationChatValid(channel)||snapshot_["channel"]!=channel||snapshot_["historyBusy"].toBool()||snapshot_["readTail"]!=message)return;
+    emit commandRequested("read",{{"channel",channel},{"message",message}});
+}
 QVariantMap SocialController::gameChat() const {
     const auto s=lobby_.state();
     if(!gameActive_||s["phase"]!="playing"||s["conversation"].toString().isEmpty()||snapshot_["state"]!="connected")return {};

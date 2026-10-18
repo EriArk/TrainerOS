@@ -156,7 +156,7 @@ void ScrapeController::checkAccount(bool startJob) {
         emit changed();return;
     }
     if(!startJob&&!writeCredentials(credentialsPath_,credentials_)){status_="Could not store this account privately.";emit changed();return;}
-    cancel_=std::make_shared<std::atomic_bool>(false);client_=std::make_shared<Client>(credentials_,transport_,delay_);client_->setPreferences(preferences_);
+    cancel_=std::make_shared<std::atomic_bool>(false);client_=std::make_shared<Client>(credentials_,transport_,delay_);client_->setPreferences(startJob?jobPreferences_:preferences_);
     const auto client=client_;const auto cancel=cancel_;phase_="Checking connection";
     run([client,cancel]{auto r=client->account(cancel);Outcome o;o.status=r.status;o.quota=r.quota;return o;},[this,startJob](Outcome o){
         if(startJob&&handleCancellation())return;
@@ -181,6 +181,7 @@ QList<ScrapeController::Item> ScrapeController::items() const {
         const auto root=library_.storageRootFor(r.adventure.id);const auto path=QFileInfo(r.contentPath).canonicalFilePath();
         if(root.isEmpty()||path.isEmpty()||!path.startsWith(root+'/'))continue;
         const auto folder=QDir(root).relativeFilePath(path).section('/',0,0);
+        if(missingOnly_ && scraper::systemId(romPlatformId(folder))<=0)continue;
         if(scope_==4&&!selectedSystems_.contains(romPlatformId(folder)))continue;
         const auto system=QFileInfo(QDir(root).filePath(folder)).canonicalFilePath();
         if(system.isEmpty()||!path.startsWith(system+'/'))continue;
@@ -190,11 +191,15 @@ QList<ScrapeController::Item> ScrapeController::items() const {
 }
 void ScrapeController::begin(const QString& game,const QString& world) {
     if(busy())return;
-    open_=true;finished_=false;gameId_=game;worldId_=world;scope_=game.isEmpty()?2:0;focus_=0;status_.clear();results_.clear();emit changed();
+    missingOnly_=false;open_=true;finished_=false;gameId_=game;worldId_=world;scope_=game.isEmpty()?2:0;focus_=0;status_.clear();results_.clear();emit changed();
+}
+void ScrapeController::beginMissing() {
+    if(busy())return;
+    gameId_.clear();worldId_.clear();scope_=2;open_=false;finished_=false;missingOnly_=true;start();
 }
 void ScrapeController::beginSystems() {
     if(busy())return;
-    gameId_.clear();worldId_.clear();scope_=2;
+    missingOnly_=false;gameId_.clear();worldId_.clear();scope_=2;
     QMap<QString,int> counts;
     for(const auto& item:items())++counts[item.platform];
     systems_.clear();selectedSystems_.clear();
@@ -297,6 +302,7 @@ void ScrapeController::activate(int i) {
 }
 void ScrapeController::start(bool retry) {
     if(busy())return;
+    if(!retry){jobPreferences_=preferences_;if(missingOnly_)jobPreferences_.refresh=false;}
     if(directory_.isEmpty()||(canStart&&!canStart())){status_="Wait for the current game or library operation to finish.";emit changed();return;}
     if(!preferences_.metadata&&preferences_.mediaTags().isEmpty()){status_="Choose what to download in Settings > ScreenScraper first.";emit changed();return;}
     queue_=retry?failures_:items();failures_.clear();results_.clear();done_=failed_=skipped_=index_=0;wrote_=paused_=choosing_=finished_=false;active_=true;focus_=0;
@@ -339,7 +345,7 @@ void ScrapeController::next() {
     }
     if(!systemId(item.platform)){complete("This system has no ScreenScraper catalogue.",true);return;}
     phase_="Identifying game";status_.clear();
-    const auto client=client_;const auto cancel=cancel_;const auto prefs=preferences_;const auto directory=directory_;
+    const auto client=client_;const auto cancel=cancel_;const auto prefs=jobPreferences_;const auto directory=directory_;
     run([item,client,cancel,prefs,directory]{
         Outcome o;o.file=fingerprint(item.path,cancel);
         if(!o.file.valid()){o.error="Could not read a stable game file.";return o;}
@@ -379,7 +385,7 @@ void ScrapeController::found(Outcome o) {
 }
 void ScrapeController::apply(const Game& game) {
     phase_=pending_.cached?"Applying cached artwork":"Downloading selected artwork";
-    const auto item=queue_[index_];const auto client=client_;const auto cancel=cancel_;const auto prefs=preferences_;auto pending=pending_;
+    const auto item=queue_[index_];const auto client=client_;const auto cancel=cancel_;const auto prefs=jobPreferences_;auto pending=pending_;
     run([item,client,cancel,prefs,pending,game]() mutable {
         Outcome o=pending;o.games={game};auto g=game;auto local=o.cachedId==g.id?o.local:QMap<QString,QString>{};const auto existing=localFields(item.root,item.path);
         const auto cache=[&](bool complete){

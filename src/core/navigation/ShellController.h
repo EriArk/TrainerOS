@@ -25,6 +25,7 @@
 #include "features/browser/BrowserController.h"
 #include "features/settings/SettingsController.h"
 #include "features/device/DeviceController.h"
+#include "features/device/ControlsDashboard.h"
 #include "features/device/NetworkController.h"
 #include "features/diagnostics/DiagnosticsController.h"
 #include "integrations/adventure/AdventureAdapter.h"
@@ -93,6 +94,8 @@ class ShellController final : public QObject {
     Q_PROPERTY(bool multiverseHome READ multiverseHome NOTIFY changed)
     Q_PROPERTY(trainer::MultiversePresentation* multiverse READ multiverse CONSTANT)
     Q_PROPERTY(QString currentAdventureId READ currentAdventureId NOTIFY changed)
+    Q_PROPERTY(trainer::ControlsDashboard* controls READ controls CONSTANT)
+    Q_PROPERTY(bool gameControlsOpen READ gameControlsOpen NOTIFY changed)
     Q_PROPERTY(bool menuOpen READ menuOpen NOTIFY changed)
     Q_PROPERTY(bool homeMenuOpen READ homeMenuOpen NOTIFY changed)
     Q_PROPERTY(int homeMenuFocus READ homeMenuFocus NOTIFY changed)
@@ -185,6 +188,12 @@ public:
     bool canHoldConfirm() const;
     bool canEditWorld() const;
     SettingsController* settings() { return &settings_; }
+    ControlsDashboard* controls(){return &controls_;}
+    bool gameControlsOpen() const{return gameControlsOpen_;}
+    void setGameControlsOpen(bool value);
+    void dispatchGameControls(Action action);
+    Q_INVOKABLE void systemAction(const QString& id);
+    Q_INVOKABLE void closeControls();
     DeviceController* device() { return &device_; }
     NetworkController* network() { return &network_; }
     DiagnosticsController* diagnostics() { return &diagnostics_; }
@@ -283,6 +292,8 @@ public:
     Q_INVOKABLE void goToTrainerFace(const QString& face);
     Q_INVOKABLE void activate(int index, const QString& area = {});
 signals:
+    void gameControlsClosed(bool resumeGame);
+    void gameSystemRequested(QString id);
     void drawerSourceChanged();
     void liveGameRequested(bool options);
     void togetherRequested(QString game);
@@ -350,6 +361,8 @@ private:
     BrowserController browser_;
     DownloadsController downloads_;
     SettingsController settings_;
+    ControlsDashboard controls_;
+    bool gameControlsOpen_=false;
     DeviceController device_;
     NetworkController network_;
     DiagnosticsController diagnostics_;

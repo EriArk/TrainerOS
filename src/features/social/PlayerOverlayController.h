@@ -38,7 +38,8 @@ public:
     Q_INVOKABLE void voiceAction(QString action);
     Q_INVOKABLE void mutePlayer(QString id);
     Q_INVOKABLE void toggleSpectators();
-    void setGame(qint64 pid);
+    void setGame(qint64 pid, bool party = true);
+    bool openNotification(const QString& channel);
     void dispatch(Action);
     Q_INVOKABLE void openPlayer(QString id);
     Q_INVOKABLE void close();
@@ -66,6 +67,8 @@ private:
     QTimer balloonTimer_;
     bool spectators_=true;
     QPointF position_{0,0};
+    bool notification_=false, partyGame_=false;
+    QString notificationTitle_;
     bool open_=false,pending_=false,pendingList_=false,syncing_=false;
     QTimer deadline_;
 };

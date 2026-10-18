@@ -10,9 +10,11 @@ Item {
         anchors.leftMargin: -Theme.screenBounds.x
         color: "#70102927"
     }
-    // This module grows directly out of the right chassis edge.
+    ControlsPanel { anchors.centerIn: parent; width: parent.width-24; height: parent.height-12; shell: root.shell; visible: root.shell.menuOpen && !root.shell.powerMenu && !root.shell.notice.length }
+    // Existing guarded confirmations keep their own surface.
     Rectangle {
         anchors { top: parent.top; right: parent.right; bottom: parent.bottom }
+        visible: root.shell.powerMenu || root.shell.notice.length > 0
         width: root.shell.notice.length > 0 || root.shell.powerMenu ? 376 : 420; color: Theme.chassis
         Panel {
             anchors.fill: parent; anchors.margins: 8
@@ -24,65 +26,14 @@ Item {
                 x: 9; y: root.shell.powerMenu ? 65 : 48; width: parent.width - 18; height: parent.height - y - 9
                 color: "#d1e0d6"
                 visible: root.shell.notice.length === 0
-                Row {
-                    x: 14; y: 8; spacing: 6; visible: !root.shell.powerMenu
-                    Repeater { model: root.shell.device.radios
-                        CapButton {
-                            required property int index; required property var modelData
-                            objectName: "menu-"+(index+9); width: (parent.parent.width-40)/3; height: 42; textSize: 13
-                            label: modelData.title; detail: modelData.detail
-                            tint: modelData.level===1 ? Theme.green : Theme.blue
-                            selected: root.shell.menuOpen && !root.shell.notice.length && root.shell.focusIndex===index+9
-                            onActivated: root.shell.activate(index+9)
+                Column { x: 18; y: 25; width: parent.width-36; spacing: 13
+                    Repeater { model: root.shell.powerMenu ? root.shell.menuItems : []
+                        CapButton { required property int index; required property string modelData
+                            objectName: "menu-"+index; width: parent.width; height: 43; textSize: 18
+                            label: modelData; warning: index<2; tint: index<2?Theme.pink:Theme.green
+                            selected: root.shell.focusIndex===index; onActivated: root.shell.activate(index)
                         }
                     }
-                }
-                Column {
-                    x: 14; y: 58; width: parent.width-28; spacing: 4; visible: !root.shell.powerMenu
-                    Repeater { model: 2
-                        SettingControl {
-                            required property int index
-                            objectName: "menu-"+(index+7); width: parent.width; height: 40; compact: true
-                            title: index===0 ? "Volume" : index===1 ? "Brightness" : "Shell color"
-                            kind: index===0 ? "volume" : index===1 ? "brightness" : "theme"
-                            level: index<2 ? root.shell.device.rows[index].level : -1
-                            muted: index===0 && root.shell.device.rows[0].muted
-                            selected: root.shell.menuOpen && !root.shell.notice.length && root.shell.focusIndex===index+7
-                            onActivated: root.shell.activate(index+7)
-                            onLevelRequested: value => root.shell.device.setQuickLevel(index,value)
-                        }
-                    }
-                }
-                Row {
-                    x: 14; y: 152; spacing: 8; width: parent.width-28; visible: !root.shell.powerMenu
-                    Repeater { model: [12,13]
-                        CapButton {
-                            required property int modelData
-                            objectName: "menu-"+modelData; width: (parent.width-8)/2; height: 42; textSize: 14
-                            label: root.shell.menuItems[modelData] || ""; tint: modelData===13?Theme.yellow:Theme.blue
-                            detail: modelData===12?root.shell.downloads.summary:"Choose systems"
-                            selected: root.shell.menuOpen && !root.shell.notice.length && root.shell.focusIndex===modelData
-                            onActivated: root.shell.activate(modelData)
-                        }
-                    }
-                }
-                Repeater {
-                    model: root.shell.powerMenu ? root.shell.menuItems : [0,2,4,5,6].map(i => root.shell.menuItems[i])
-                    CapButton {
-                        required property int index; required property string modelData
-                        readonly property int actionIndex: root.shell.powerMenu ? index : [0,2,4,5,6][index]
-                        objectName: "menu-"+actionIndex; x: 14; y: root.shell.powerMenu ? 32+index*45 : 203+index*29
-                        width: parent.width-28; height: root.shell.powerMenu?30:26; textSize: 14
-                        label: actionIndex===12?modelData+" · "+root.shell.downloads.summary:modelData; warning: root.shell.powerMenu && index<2
-                        tint: root.shell.powerMenu && index<2 ? Theme.pink : Theme.green
-                        selected: root.shell.menuOpen && !root.shell.notice.length && root.shell.focusIndex===actionIndex
-                        onActivated: root.shell.activate(actionIndex)
-                    }
-                }
-                Text {
-                    x: 18; y: parent.height - 24; width: parent.width - 36; height: 33
-                    text: root.shell.device.error || root.shell.settings.error; visible: !root.shell.powerMenu
-                    color: "#853b24"; font.pixelSize: 12; wrapMode: Text.WordWrap
                 }
             }
 

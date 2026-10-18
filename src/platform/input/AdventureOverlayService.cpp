@@ -135,7 +135,8 @@ void AdventureOverlayService::receive() {
         else if (event == "input") {
             view_.updateInput(message["epoch"].toString().toULongLong(), {message["connected"].toBool(),
                 message["neutral"].toBool(), message["confirm"].toBool(), message["back"].toBool(),
-                message["home"].toBool(), message["up"].toBool(), message["down"].toBool()});
+                message["home"].toBool(), message["up"].toBool(), message["down"].toBool(),
+                message["left"].toBool(),message["right"].toBool(),message["start"].toBool()});
             if(view_.contentInput()&&view_.ready()&&message["epoch"].toString().toULongLong()==view_.inputGeneration())shellInput(message);
         } else if (event == "captured" || event == "previewed") {
             qCInfo(overlayLog).nospace() << event << " ok=" << message["ok"].toBool()

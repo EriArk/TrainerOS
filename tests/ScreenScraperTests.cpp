@@ -225,9 +225,17 @@ private slots:
         flow.dispatchSettings(Action::Right);
         QCOMPARE(flow.settingsRows()[4].toMap()["detail"].toString(),"ru (English fallback)");
     }
+    void oneClickMissingPreservesReplacementPreference() {
+        QTemporaryDir dir;ScrapeLibrary library;library.root=dir.filePath("roms");library.add("one");put(library.records.last().contentPath,"123456789");
+        ScrapeController flow(library);flow.configure(dir.filePath("state"));flow.activateSetting(11);
+        const auto before=flow.settingsRows()[11];
+        flow.beginMissing();QVERIFY(!flow.isOpen());QCOMPARE(flow.settingsRows()[11],before);
+        QVERIFY(!flow.downloadTasks().isEmpty()); // Missing credentials are represented by the ordinary queue.
+    }
     void allCataloguePlatformsHaveAnExplicitServiceBoundary() {
         QCOMPARE(systemId("msx"),113);QCOMPARE(systemId("msx2"),116);QCOMPARE(systemId("msx2+"),117);QCOMPARE(systemId("msxturbor"),118);
-        const QStringList unavailable{"c128","enterprise","systemsp","videopacplus"};
+        // Vita entered the library catalogue after the original scraper matrix; no service mapping is registered.
+        const QStringList unavailable{"c128","enterprise","systemsp","videopacplus","psvita"};
         for(const auto& platform:romPlatforms())QVERIFY2(systemId(platform.id)>0||unavailable.contains(platform.id),qPrintable(platform.id));
     }
     void languageRegionAndDownloadPreferences() {

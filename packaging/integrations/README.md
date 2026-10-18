@@ -61,6 +61,11 @@ and a launched emulator, not only the environment file's presence.
 `grant-input-read.py ACCOUNT` is the only root hook. It waits up to ten seconds
 for InputPlumber's hidden **Retroid Pocket Gamepad** source, checks its kernel
 identity and grants only that account read access through its open descriptor.
+It then verifies two seconds of stable device identity/ACL within that same
+bounded startup wait. InputPlumber can hide the source a second time while
+applying its initial target profile; a changed node/ACL is revalidated and
+regranted before the quiet interval restarts. This is a startup hook, not a
+persistent polling service. The allowlist also includes AYN Odin2 Gamepad.
 It grants no general input-group membership and no write access. Run it after
 InputPlumber initialization, for example in a reviewed service drop-in:
 

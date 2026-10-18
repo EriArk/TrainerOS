@@ -3,9 +3,15 @@ import QtQuick
 Panel {
     id: root
     required property var presentation
-    patterned: false
+    required property var shell
+    readonly property string selection: (presentation.menuActions[presentation.menuFocus] || {}).id || ""
+    readonly property var leftActions: presentation.menuActions.filter(a => a.column === "game")
+    readonly property var rightActions: presentation.menuActions.filter(a => a.column !== "game" && a.id !== "continue" && a.id !== "exit" && a.id !== "minimize")
+    patterned: true
+    GameActivity { anchors.fill: parent; visible: !root.presentation.panel.length; presentation: root.presentation; shell: root.shell }
     MountedPanel {
         id: artwork
+        visible: root.presentation.panel.length > 0
         x: 18; y: 18; width: parent.width * (Theme.television ? .38 : .48); height: parent.height - 36
         color: Theme.chassisDark
         Image {
@@ -17,14 +23,15 @@ Panel {
         Text { id: title; x: 20; anchors.bottom: parent.bottom; anchors.bottomMargin: 20; width: parent.width - 40
             text: root.presentation.gameTitle; color: "#fff2d9"; font.family: Theme.displayFamily; font.pixelSize: 29; wrapMode: Text.WordWrap }
     }
-    Text { id: heading; x: artwork.x + artwork.width + 24; y: 23; width: parent.width - x - 24
+    Text { id: heading; visible: root.presentation.panel.length > 0; x: artwork.x + artwork.width + 24; y: 23; width: parent.width - x - 24
         text: root.presentation.panel.length ? root.presentation.menuCaption : "Game Options"
         color: Theme.ink; font.family: Theme.displayFamily; font.pixelSize: 25; wrapMode: Text.WordWrap }
-    Text { id: status; x: heading.x; y: heading.y + heading.height + 9; width: heading.width
+    Text { id: status; visible: root.presentation.panel.length > 0; x: heading.x; y: heading.y + heading.height + 9; width: heading.width
         text: root.presentation.ready ? "The game is still running" : "Release the controls"
         color: Theme.muted; font.pixelSize: 15 }
     ListView {
         id: actions
+        visible: root.presentation.panel.length > 0
         x: heading.x; y: status.y + status.height + 16; width: heading.width; height: parent.height - y - 18
         clip: true; spacing: 8; model: root.presentation.menuActions; currentIndex: root.presentation.menuFocus
         onCurrentIndexChanged: positionViewAtIndex(currentIndex, ListView.Contain)
@@ -33,12 +40,13 @@ Panel {
             required property var modelData
             width: actions.width; height: button.height + (modelData.id === "exit" ? 14 : 0)
             Rectangle { visible: modelData.id === "exit"; width: parent.width; height: 1; color: "#8b9b8d" }
+            Image { visible: !!modelData.icon; width: 52; height: 52; y: 2; source: modelData.icon || ""; sourceSize: Qt.size(104,104); fillMode: Image.PreserveAspectFit; asynchronous: true }
             CapButton {
-                id: button; y: modelData.id === "exit" ? 14 : 0; width: parent.width; height: Theme.television ? 66 : modelData.detail ? 57 : 43
+                id: button; x: modelData.icon ? 62 : 0; y: modelData.id === "exit" ? 14 : 0; width: parent.width-x; height: Theme.television ? 66 : modelData.detail ? 57 : 43
                 label: modelData.label; detail: modelData.detail || ""; textSize: Theme.television ? 22 : 18
                 tint: modelData.id === "exit" ? Theme.pink : modelData.id === "continue" ? Theme.green : Theme.blue
                 selected: actions.currentIndex === index
-                enabled: root.presentation.ready && modelData.readOnly !== true
+                enabled: root.presentation.ready && (modelData.readOnly !== true || root.presentation.panel === "achievements")
                 onActivated: root.presentation.activateAction(modelData.id)
             }
         }

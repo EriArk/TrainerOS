@@ -19,6 +19,8 @@ def grant(account):
     if os.geteuid() != 0 or uid < 1000:
         raise RuntimeError('Root and a regular target account are required')
     deadline = time.monotonic() + 10
+    settled = None
+    stable_since = 0
     while time.monotonic() < deadline:
         for item in Path('/sys/class/input').glob('event*'):
             try:
@@ -41,10 +43,20 @@ def grant(account):
                     fcntl.ioctl(source.fileno(), 0x80804506, name, True)
                     if bytes(name).split(b'\0')[0].decode() != expected_name:
                         raise RuntimeError('Unexpected physical controller')
+                    # InputPlumber can hide/recreate the source again while applying
+                    # its startup target profile. Verify the resulting ACL survives
+                    # a quiet interval instead of returning on the first grant.
+                    stamp = (info.st_dev, info.st_ino, info.st_rdev, info.st_ctime_ns)
+                    if settled == stamp:
+                        if time.monotonic() - stable_since >= 2:
+                            return True
+                        continue
                     subprocess.run(['/usr/bin/setfacl', '-m', f'u:{uid}:r--', '--',
                                     f'/proc/self/fd/{source.fileno()}'],
                                    pass_fds=(source.fileno(),), check=True, timeout=2)
-                    return True
+                    info = os.fstat(source.fileno())
+                    settled = (info.st_dev, info.st_ino, info.st_rdev, info.st_ctime_ns)
+                    stable_since = time.monotonic()
             except FileNotFoundError:
                 continue
         time.sleep(.1)

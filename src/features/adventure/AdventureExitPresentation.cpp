@@ -46,7 +46,7 @@ void AdventureExitPresentation::setPanel(QString panel,QString caption,QVariantL
         if(selectionLost){menuFocus_=panelActions_.size();panelActions_.append(QVariantMap{{"id",selected},{"label","No longer available"},{"readOnly",true}});resetInput();}
     }
     menuFocus_=qBound(0,menuFocus_,qMax(0,int(menuActions().size())-1));
-    if(!selectionLost&&menuActions().value(menuFocus_).toMap()["readOnly"].toBool())
+    if(panel_!="achievements"&&!selectionLost&&menuActions().value(menuFocus_).toMap()["readOnly"].toBool())
         for(int i=0;i<panelActions_.size();++i)if(!panelActions_[i].toMap()["readOnly"].toBool()){menuFocus_=i;break;}
     if(!same)resetInput();emit changed();
 }
@@ -74,7 +74,7 @@ void AdventureExitPresentation::setExtraActions(QVariantList actions) {
 void AdventureExitPresentation::resetInput() {
     ++generation_;
     ready_ = previousConfirm_ = previousBack_ = false;
-    previousHome_ = previousUp_ = previousDown_ = false;
+    previousHome_ = previousUp_ = previousDown_ = previousLeft_ = previousRight_ = previousStart_ = false;
 }
 bool AdventureExitPresentation::requestMenu() {
     if (!exit_.available() || phase_ != Phase::Idle || menuOpen_ || menuPending_) return false;
@@ -136,10 +136,14 @@ void AdventureExitPresentation::updateInput(quint64 generation, const ExitInputS
     if (generation != generation_ || (!confirming() && !menuOpen_) || !isolated_ || !focused_) return;
     if (!input.connected) { resetInput(); emit changed(); return; }
     if (!ready_) {
-        if (input.allReleased && !input.confirm && !input.back && !input.home && !input.up && !input.down) { ready_ = true; emit changed(); }
+        if (input.allReleased && !input.confirm && !input.back && !input.home && !input.up && !input.down && !input.left && !input.right && !input.start) { ready_ = true; emit changed(); }
         return;
     }
     if(contentInput_)return; // The same focused lease now serves an explicit content surface.
+    const bool start=input.start&&!previousStart_;previousStart_=input.start;
+    if(start&&menuOpen_){emit menuActionRequested("controls");return;}
+    const bool left=input.left&&!previousLeft_,right=input.right&&!previousRight_;
+    previousLeft_=input.left;previousRight_=input.right;
     const bool back = input.back && !previousBack_;
     const bool confirm = input.confirm && !previousConfirm_;
     const bool home = input.home && !previousHome_;
@@ -151,10 +155,30 @@ void AdventureExitPresentation::updateInput(quint64 generation, const ExitInputS
     else if (back || home) cancel();
     else if (menuOpen_) {
         // Direction and A together never move onto and activate Exit at once.
-        if (up || down) {
-            const auto rows=menuActions();const int direction=up?-1:1;
-            for(int i=menuFocus_+direction;i>=0&&i<rows.size();i+=direction)
-                if(!rows[i].toMap()["readOnly"].toBool()){menuFocus_=i;break;}
+        if (up || down || left || right) {
+            const auto rows=menuActions();
+            QList<int> game,updates;
+            if(panel_.isEmpty())for(int i=0;i<rows.size();++i){const auto r=rows[i].toMap();if(r["readOnly"].toBool())continue;
+                const auto id=r["id"].toString();(id=="continue"||id=="minimize"||id=="exit"||r["column"]=="game"?game:updates).append(i);}
+            if(panel_.isEmpty()) {
+                const bool inGame=game.contains(menuFocus_);const auto& list=inGame?game:updates;
+                const auto id=rows.value(menuFocus_).toMap()["id"].toString();
+                int minimize=-1;for(int i:game)if(rows[i].toMap()["id"]=="minimize")minimize=i;
+                if(right && id=="continue" && minimize>=0)menuFocus_=minimize;
+                else if(left && id=="minimize")menuFocus_=game.first();
+                else if(left && !inGame && !game.isEmpty())menuFocus_=game.first();
+                else if(right && inGame && !updates.isEmpty())menuFocus_=updates.first();
+                else if(up||down){
+                    int at=list.indexOf(menuFocus_)+(up?-1:1);
+                    if(inGame && minimize>=0 && at>=0 && at<game.size() && game[at]==minimize)at+=up?-1:1;
+                    if(inGame && up && id=="minimize")at=-1;
+                    if(at>=0&&at<list.size())menuFocus_=list[at];
+                }
+            } else {
+                const int direction=up||left?-1:1;
+                for(int i=menuFocus_+direction;i>=0&&i<rows.size();i+=direction)
+                    if(panel_=="achievements"||!rows[i].toMap()["readOnly"].toBool()){menuFocus_=i;break;}
+            }
             emit changed();
         }
         else if (confirm && !input.back && !input.home) activateMenu(menuFocus_);

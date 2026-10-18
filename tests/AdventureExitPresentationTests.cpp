@@ -5,6 +5,29 @@ using namespace trainer;
 class AdventureExitPresentationTests final : public QObject {
     Q_OBJECT
 private slots:
+    void gameActivityDirectionsFollowVisibleColumns() {
+        AdventureExitController exit;AdventureExitPresentation view(exit);exit.beginSession(AdventureSavePolicy::ManualConfirm);exit.setAvailable(true);
+        view.setExtraActions({QVariantMap{{"id","minimize"}},QVariantMap{{"id","display"},{"column","game"}},QVariantMap{{"id","notifications"}}});
+        QVERIFY(view.requestMenu());view.menuCaptureCompleted(1,{});view.setInputIsolated(true);view.setWindowFocused(true);
+        auto move=[&](bool right,bool down){view.updateInput(view.inputGeneration(),{true,true});ExitInputSnapshot input{true,false};input.right=right;input.down=down;view.updateInput(view.inputGeneration(),input);};
+        move(true,false);QCOMPARE(view.menuActions()[view.menuFocus()].toMap()["id"].toString(),QString("minimize"));
+        move(false,true);QCOMPARE(view.menuActions()[view.menuFocus()].toMap()["id"].toString(),QString("display"));
+        move(true,false);QCOMPARE(view.menuActions()[view.menuFocus()].toMap()["id"].toString(),QString("notifications"));
+    }
+    void startUsesReadyMenuAndContentGetsItsOwnNeutralGate() {
+        AdventureExitController exit;AdventureExitPresentation view(exit);
+        exit.beginSession(AdventureSavePolicy::ManualConfirm);exit.setAvailable(true);
+        QSignalSpy actions(&view,&AdventureExitPresentation::menuActionRequested);
+        QVERIFY(view.requestMenu());view.menuCaptureCompleted(1,{});view.setInputIsolated(true);view.setWindowFocused(true);
+        ExitInputSnapshot start{true,false};start.start=true;
+        view.updateInput(view.inputGeneration(),start);QVERIFY(actions.isEmpty());
+        view.updateInput(view.inputGeneration(),{true,true});view.updateInput(view.inputGeneration(),start);
+        QCOMPARE(actions.size(),1);QCOMPARE(actions[0][0].toString(),QString("controls"));
+        const auto old=view.inputGeneration();view.setContentInput(true);QVERIFY(!view.ready());
+        view.updateInput(old,{true,true});QVERIFY(!view.ready());
+        view.updateInput(view.inputGeneration(),{true,true});QVERIFY(view.ready());
+        view.setContentInput(false);QVERIFY(view.menuOpen());QVERIFY(!view.ready());
+    }
     void dismissingAbsentMenuNeverReleasesAnExitAttempt() {
         // RuntimeMultiplayer::fail dismisses its menu when a peer leaves.
         // A concurrent explicit Exit owns a separate capture/input lease.
@@ -102,8 +125,7 @@ private slots:
         QVERIFY(view.requestMenu());view.menuCaptureCompleted(preview.last()[0].toULongLong(),{});
         view.setInputIsolated(true);view.setWindowFocused(true);
         auto neutral=[&]{view.updateInput(view.inputGeneration(),{true,true});};
-        auto down=[&]{neutral();view.updateInput(view.inputGeneration(),{true,false,false,false,false,false,true});};
-        down();QCOMPARE(view.menuFocus(),1);
+        neutral();ExitInputSnapshot right{true,false};right.right=true;view.updateInput(view.inputGeneration(),right);QCOMPARE(view.menuFocus(),1);
         view.setExtraActions({answer,notifications});QCOMPARE(view.menuFocus(),2);
         neutral();view.activateMenu(view.menuFocus());QCOMPARE(requested.last()[0].toString(),QString("notifications"));
         neutral();view.updateInput(view.inputGeneration(),{true,false,false,false,false,true,false});QCOMPARE(view.menuFocus(),1);

@@ -22,6 +22,37 @@ PNG = base64.b64decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQI
 
 
 class OverlayHelperTests(unittest.TestCase):
+    def test_pad_read_grant_survives_late_inputplumber_acl_reset(self):
+        spec = importlib.util.spec_from_file_location('pad_grant', ROOT / 'grant-input-read.py')
+        hook = importlib.util.module_from_spec(spec); spec.loader.exec_module(hook)
+        from types import SimpleNamespace
+        from unittest.mock import MagicMock
+        clock = [0.0]; reset = [False]; stamp = [1]; mode = [0]
+        item = MagicMock(); item.name = 'event6'
+        item.__truediv__.side_effect = lambda key: Mock(read_text=Mock(return_value='Retroid Pocket Gamepad' if key=='device/name' else '13:70'))
+        sysfs = MagicMock(); sysfs.glob.return_value = [item]
+        nodes = Path('/dev/input')
+        def paths(value): return sysfs if value == '/sys/class/input' else nodes
+        source = MagicMock(); source.__enter__.return_value.fileno.return_value = 77
+        def stat(_): return SimpleNamespace(st_mode=0o020000|mode[0],st_uid=0,st_dev=2,st_ino=3,st_rdev=os.makedev(13,70),st_ctime_ns=stamp[0])
+        def sleep(dt):
+            clock[0] += dt
+            if clock[0] >= .4 and not reset[0]:
+                reset[0]=True;stamp[0]+=1;mode[0]=0
+        def acl(*args,**kwargs): stamp[0]+=1;mode[0]=0o040
+        def ioctl(fd, code, data, *args):
+            value=b'Retroid Pocket Gamepad';data[:len(value)]=value
+        with patch.object(hook,'Path',side_effect=paths), patch.object(hook.pwd,'getpwnam',return_value=SimpleNamespace(pw_uid=1000)), \
+             patch.object(hook.os,'geteuid',return_value=0), patch.object(hook.os,'open',return_value=77), \
+             patch.object(hook.os,'fdopen',return_value=source), patch.object(hook.os,'fstat',side_effect=stat), \
+             patch.object(hook.fcntl,'ioctl',side_effect=ioctl), patch.object(hook.subprocess,'run',side_effect=acl) as grant, \
+             patch.object(hook.time,'monotonic',side_effect=lambda:clock[0]), patch.object(hook.time,'sleep',side_effect=sleep):
+            self.assertTrue(hook.grant('test'))
+            self.assertEqual(grant.call_count,2)
+            self.assertGreaterEqual(clock[0],2.4)
+            self.assertIn('u:1000:r--',grant.call_args.args[0])
+            self.assertEqual(grant.call_args.kwargs['pass_fds'],(77,))
+
     def test_badge_replays_outside_taps_but_consumes_inside_press_and_release(self):
         view = Mock(); view.display = 99; view.root = 42
         pointer = invitation_overlay.Pointer(view)

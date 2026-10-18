@@ -33,7 +33,7 @@ Rectangle {
         elide: Text.ElideRight; textFormat: Text.PlainText
         color: "#e4ece6"; font.family: Theme.displayFamily; font.pixelSize: 20
     }
-    ChatButton { anchors.right: parent.right; anchors.rightMargin: 8; y: 8; glyph: "close"; label: "Return to game"; onClicked: root.controller.close() }
+    ChatButton { anchors.right: parent.right; anchors.rightMargin: 8; y: 8; glyph: "close"; label: "Close chat"; onClicked: root.controller.close() }
     Rectangle { x: 18; y: 48; width: parent.width-36; height: 1; color: "#284e6769" }
 
     ListView {
@@ -59,7 +59,7 @@ Rectangle {
                 }
                 Text {
                     id: body; x: 11; y: author.y+author.height+3; width: parent.width-22
-                    text: modelData.text || (modelData.attachments && modelData.attachments.length ? "File · available in Lobby" : "")
+                    text: modelData.text || (modelData.attachments && modelData.attachments.length ? "File · open in conversation" : "")
                     font.pixelSize: 14; wrapMode: Text.Wrap; color: "#e1e8e4"; textFormat: Text.PlainText
                 }
             }
@@ -70,7 +70,7 @@ Rectangle {
             onTriggered: if(root.social.account.readTail)root.controller.presented(root.social.account.readTail)
         }
     }
-    Text { anchors.centerIn: parent; visible: !root.controller.conversationReady; text: "Opening room chat…"; color: "#a5b7b5"; font.pixelSize: 14 }
+    Text { anchors.centerIn: parent; visible: !root.controller.conversationReady; text: "Opening conversation…"; color: "#a5b7b5"; font.pixelSize: 14 }
     Rectangle {
         id: composer
         x: 14; anchors.bottom: parent.bottom; anchors.bottomMargin: 14

@@ -1253,7 +1253,7 @@ private slots:
         social.receive(0,state);QSignalSpy commands(&social,&SocialController::commandRequested);
         QSignalSpy text(&flow,&CommunicationSettings::textRequested);QSignalSpy back(&flow,&CommunicationSettings::backRequested);
         flow.beginProfile();QCOMPARE(commands.last()[0].toString(),QString("profile-refresh"));QVERIFY(!flow.refresh_.isActive());
-        QCOMPARE(flow.rows().size(),6);QVERIFY(flow.rows()[1].toMap()["selected"].toBool());
+        QCOMPARE(flow.rows().size(),7);QVERIFY(flow.rows()[1].toMap()["selected"].toBool());
         flow.activate(3);QCOMPARE(commands.last()[1].toMap()["value"].toString(),QString("invisible"));
         flow.activate(4);QCOMPARE(text.last()[1].toString(),QString("Playing"));flow.applyText("New status");
         QCOMPARE(commands.last()[1].toMap()["field"].toString(),QString("custom_status"));
@@ -1450,12 +1450,10 @@ private slots:
         QCOMPARE(shell.homeMenuActions()[shell.homeMenuFocus()].toMap()["id"].toString(),decline);
         QVERIFY(!shell.homeMenuActions()[shell.homeMenuFocus()].toMap()["enabled"].toBool());
         shell.dispatch(Action::Confirm);QVERIFY(shell.homeMenuOpen());QVERIFY(commands.isEmpty());
-        // Explicit navigation, rather than a provider update, selects Home.
-        const auto count=shell.homeMenuActions().size();for(int i=0;i<count;++i)shell.dispatch(Action::Up);
-        QCOMPARE(shell.homeMenuActions()[shell.homeMenuFocus()].toMap()["id"].toString(),QString("home"));
-        // A later ring must not resurrect the old selection or steal focus.
+        // No generic Home shortcut remains. Explicit navigation leaves the stale action for the inbox.
+        shell.dispatch(Action::Up);QVERIFY(shell.notificationsOpen());
         chat["ringing"]=true;state["chats"]=QVariantList{chat};social->receive(0,state);
-        QCOMPARE(shell.homeMenuFocus(),0);QVERIFY(commands.isEmpty());
+        QVERIFY(shell.notificationsOpen());QVERIFY(commands.isEmpty());
     }
     void expiredRingKeepsJoinUntilCallEndsWithoutRedirectingConfirm() {
         MockLibraryRepository library;MockTrainerRepository trainers;MockAdventureAdapter adapter;
@@ -1485,6 +1483,35 @@ private slots:
         shell.dispatch(Action::Back);QVERIFY(!shell.homeMenuOpen());
         shell.dispatch(Action::Home);QCOMPARE(shell.homeMenuFocus(),0);
     }
+    void soloNotificationReplyKeepsGameHomeAndRejectsAReplacedProcess() {
+        SocialController c;disconnect(c.session_,nullptr,&c,nullptr);disconnect(&c,nullptr,c.session_,nullptr);
+        c.receive(0,{{"state","connected"},{"userId","self"},{"channel",remote},
+            {"chats",QVariantList{QVariantMap{{"id",channel},{"name","Friend"},{"kind","chats"},{"unread",1}}}}});
+        AdventureExitController exit;exit.beginSession(AdventureSavePolicy::ManualConfirm);exit.setAvailable(true);
+        AdventureExitPresentation view(exit);TextEntryController keyboard;PlayerOverlayController hud(c,keyboard,view);
+        connect(&view,&AdventureExitPresentation::menuCaptureRequested,&view,[&](quint64 token){view.menuCaptureCompleted(token,{});});
+        hud.setGame(42,false);QVERIFY(hud.players().isEmpty());QVERIFY(view.requestMenu());
+        view.setInputIsolated(true);view.setWindowFocused(true);view.updateInput(view.inputGeneration(),{true,true});
+        QVERIFY(view.ready());QVERIFY(hud.openNotification(channel));QVERIFY(hud.chatOpen());
+        c.snapshot_["channel"]=channel;emit c.changed();QVERIFY(hud.conversationReady());
+        view.updateInput(view.inputGeneration(),{true,true});hud.dispatch(Action::Back);
+        QVERIFY(!hud.chatOpen());QVERIFY(view.menuOpen());QVERIFY(!c.notificationChatValid(channel));
+        view.updateInput(view.inputGeneration(),{true,true});QVERIFY(hud.openNotification(channel));
+        hud.setGame(43,false);QVERIFY(!hud.chatOpen());QVERIFY(!c.notificationChatValid(channel));
+    }
+    void notificationReplyLeaseBindsKnownChannelAndRestoresPrevious() {
+        SocialController c;QSignalSpy commands(&c,&SocialController::commandRequested);
+        QVariantMap chat{{"id",channel},{"name","Friend"},{"kind","chats"},{"unread",1}};
+        QVariantMap state{{"state","connected"},{"userId","self"},{"channel",remote},{"chats",QVariantList{chat}}};
+        c.receive(0,state);QVERIFY(!c.acquireNotificationChat("unknown"));QVERIFY(c.acquireNotificationChat(channel));
+        QVERIFY(c.notificationChatValid(channel));QVERIFY(!c.acquireNotificationChat(channel));
+        commands.clear();c.sendNotificationChat(channel);QVERIFY(commands.isEmpty());
+        state["channel"]=channel;c.receive(0,state);c.composeNotificationChat(channel);c.applyText("hello");
+        QCOMPARE(commands.last()[0].toString(),QString("send"));QCOMPARE(commands.last()[1].toMap()["channel"].toString(),QString(channel));
+        c.releaseNotificationChat();QCOMPARE(commands.last()[0].toString(),QString("conversation"));QCOMPARE(commands.last()[1].toMap()["id"].toString(),QString(remote));
+        QVERIFY(!c.notificationChatValid(channel));
+        chat["socialHidden"]=true;state["chats"]=QVariantList{chat};c.receive(0,state);QVERIFY(!c.acquireNotificationChat(channel));
+    }
     void callNotificationRequiresExplicitAnswerAndDeclineKeepsOrigin() {
         MockLibraryRepository library;MockTrainerRepository trainers;MockAdventureAdapter adapter;
         DevelopmentPlatformService platform;MockPokedexRepository dex;MockHallOfFameRepository hall;MockAchievementProvider achievements;
@@ -1493,7 +1520,7 @@ private slots:
         shell.goToPage(3);const auto origin=shell.navigationState();
         social->receive(0,{{"state","connected"},{"userId","self"},{"voice",QVariantMap{{"available",true}}},
             {"chats",QVariantList{QVariantMap{{"id",channel},{"name","Friend"},{"kind","chats"},{"ringing",true}}}}});
-        shell.dispatch(Action::Home);shell.activateHomeMenu(3);QVERIFY(shell.notificationsOpen());
+        shell.dispatch(Action::Home);shell.dispatch(Action::Right);QVERIFY(shell.notificationsOpen());
         QVERIFY(social->notifications().first().toMap()["answerable"].toBool());
         commands.clear();shell.activateNotification(0);QVERIFY(shell.homeMenuOpen());QVERIFY(!shell.notificationsOpen());
         QCOMPARE(shell.navigationState(),origin);QVERIFY(commands.isEmpty());

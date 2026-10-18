@@ -236,6 +236,12 @@ public:
     QVariantMap account() const;
     QVariantList activePlayers() const;
     QVariantMap gameChat() const;
+    bool acquireNotificationChat(const QString& channel);
+    bool notificationChatValid(const QString& channel) const;
+    void releaseNotificationChat();
+    void composeNotificationChat(const QString& channel);
+    void sendNotificationChat(const QString& channel);
+    void presentedNotificationChat(const QString& channel,const QString& message);
     bool acquireGameChat(const QString& room);
     void releaseGameChat();
     void sendGameChat(const QString& room,const QString& channel);

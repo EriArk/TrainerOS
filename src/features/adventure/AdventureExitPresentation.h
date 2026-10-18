@@ -13,6 +13,7 @@ struct ExitInputSnapshot {
     bool home = false;
     bool up = false;
     bool down = false;
+    bool left = false, right = false, start = false;
 };
 
 // Presentation only: owns neither game processes nor the platform input lease.
@@ -90,6 +91,7 @@ private:
     bool contentInput_=false;
     bool menuOpen_ = false, menuPending_ = false;
     bool previousHome_ = false, previousUp_ = false, previousDown_ = false;
+    bool previousLeft_=false,previousRight_=false,previousStart_=false;
     int menuFocus_ = 0;
     QString gameTitle_;
     QString panel_,caption_,backAction_;

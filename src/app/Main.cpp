@@ -562,9 +562,9 @@ int main(int argc, char* argv[]) {
         std::unique_ptr<AdventureOverlayService> adventureOverlay;
         PlayerOverlayController playerOverlay(*shell.social(),*shell.keyboard(),exitPresentation);
         QObject::connect(&adventureProcess,&ProcessService::started,&playerOverlay,[&]{
-            // A party gathering while a solo game is still open is not yet
-            // that game's roster. Bind the HUD only at the party's launch.
-            playerOverlay.setGame(shell.social()->gameParty()["running"].toBool()?adventureProcess.processId():0);
+            // Replies bind to every owned game; a gathering lobby must not
+            // expose its roster over an unrelated solo game.
+            playerOverlay.setGame(adventureProcess.processId(),shell.social()->gameParty()["running"].toBool());
         });
         QObject::connect(&adventureProcess,&ProcessService::finished,&playerOverlay,[&]{playerOverlay.setGame(0);});
         QObject::connect(&playerOverlay,&PlayerOverlayController::optionsRequested,&shell,[&]{if(adventureOverlay)adventureOverlay->openOptions();});
@@ -577,7 +577,17 @@ int main(int argc, char* argv[]) {
             if(adventureLaunch.active()&&adventureOverlay)adventureOverlay->returnToGame();
             else shell.goToPage(0);
         });
-        QString pendingNotification;
+        QString pendingNotification, pendingSystemAction;
+        QObject::connect(&adventureProcess,&ProcessService::finished,&shell,[&]{pendingSystemAction.clear();});
+        QObject::connect(&shell,&ShellController::gameControlsClosed,&exitPresentation,[&](bool resume){
+            exitPresentation.setContentInput(false);if(resume)exitPresentation.dismissMenu();
+        });
+        QObject::connect(&exitPresentation,&AdventureExitPresentation::menuDismissed,&shell,[&]{shell.setGameControlsOpen(false);});
+        QObject::connect(&shell,&ShellController::gameSystemRequested,&exitPresentation,[&](QString id){
+            pendingSystemAction=id;
+            exitPresentation.setContentInput(false);
+            if(adventureOverlay)adventureOverlay->minimize();
+        });
         if(saveBackups)saveBackups->operationGuard=[&]{return adventureLaunch.active()?QString("Exit the running game before changing saves."):QString();};
         RuntimeMultiplayer multiplayer(activeLibrary,retroarch,ppsspp,dolphin,*shell.social(),adventureProcess,adventureLaunch,exitPresentation);
         LaunchPresentation launchPresentation(activeLibrary,shell.launchPreparation(),adventureLaunch,multiplayer,*shell.social(),exitPresentation);
@@ -644,17 +654,47 @@ int main(int argc, char* argv[]) {
             rows.append(QVariantMap{{"id","back"},{"label","Back"}});
             exitPresentation.setPanel("notifications",empty?"You're all caught up!":"Your updates",rows);
         };
+        auto gameAchievementRows=[&] {
+            QVariantList rows;
+            auto& provider=realAchievements?static_cast<AchievementProvider&>(*realAchievements):static_cast<AchievementProvider&>(shellAchievements);
+            for(const auto& set:provider.sets()) {
+                if(set.adventureId!=adventureLaunch.adventureId() || !set.supported)continue;
+                const auto snapshot=provider.snapshot(set.id);
+                if(snapshot.context!=provider.context() || snapshot.setId!=set.id)continue;
+                for(const auto& definition:snapshot.definitions) {
+                    std::optional<bool> earned;
+                    for(const auto& unlock:snapshot.unlocks)if(unlock.achievementId==definition.id)earned=unlock.unlocked;
+                    rows.append(QVariantMap{{"id","achievement:"+set.id+":"+definition.id},{"label",definition.title},
+                        {"detail",definition.description},{"readOnly",true},{"earned",earned.value_or(false)},
+                        {"status",!earned.has_value()?"Not recorded":*earned?"Earned":""},
+                        {"icon",definition.badgeName.isEmpty()?QString():"https://media.retroachievements.org/Badge/"+definition.badgeName+(earned==false?"_lock.png":".png")}});
+                }
+            }
+            return rows;
+        };
         auto gameMenuActions=[&]{
-            QVariantList actions{QVariantMap{{"id","notifications"},{"label","Notifications · "+QString::number(shell.notifications().size())}}};
-            if(!playerOverlay.players().isEmpty())actions.append(QVariantMap{{"id","players"},{"label","Players"}});
-            actions.prepend(QVariantMap{{"id","minimize"},{"label","Minimize"},
-                {"detail",adventureOverlay && adventureOverlay->canMinimize()?"Browse TrainerOS · game keeps running":"Safe input handoff is unavailable"},
-                {"readOnly",!(adventureOverlay && adventureOverlay->canMinimize())}});
-            actions=multiplayer.gameMenuActions()+actions;
-            if(adventureProcess.runtimeControls()["kind"]=="retroarch")actions.append(QVariantMap{{"id","display"},{"label","Screen & graphics"}});
-            if(!shell.social()->account()["voice"].toMap()["channel"].toString().isEmpty())actions.append(QVariantMap{{"id","call"},{"label","Voice call"},{"detail",shell.social()->account()["voice"].toMap()["name"]}});
-            actions=shell.social()->incomingCallActions()+actions;
-            actions.append(shell.liveExperienceActions(adventureLaunch.adventureId(),liveExperienceSession()));
+            QVariantList actions{QVariantMap{{"id","minimize"},{"label","Minimize"},
+                {"readOnly",!(adventureOverlay && adventureOverlay->canMinimize())}}};
+            if(adventureProcess.runtimeControls()["kind"]=="retroarch")actions.append(QVariantMap{{"id","display"},{"label","Game settings"},{"column","game"}});
+            const auto achievements=gameAchievementRows();
+            if(!achievements.isEmpty()) {
+                int earned=0;for(const auto& row:achievements)if(row.toMap()["earned"].toBool())++earned;
+                actions.append(QVariantMap{{"id","achievements"},{"label",QString("Achievements  ·  %1 / %2").arg(earned).arg(achievements.size())},{"column","game"}});
+            }
+            auto experienceActions=shell.liveExperienceActions(adventureLaunch.adventureId(),liveExperienceSession());
+            for(auto& v:experienceActions){auto row=v.toMap();row["column"]="game";v=row;}actions.append(experienceActions);
+            const auto lobby=shell.social()->homeLobby();
+            if(!lobby["id"].toString().isEmpty())actions.append(QVariantMap{{"id","current-lobby"},{"label","Current lobby"},{"detail",lobby["title"]},{"readOnly",!(adventureOverlay && adventureOverlay->canMinimize())}});
+            if(!playerOverlay.players().isEmpty())actions.append(QVariantMap{{"id","players"},{"label","Players & chat"}});
+            const auto voice=shell.social()->account()["voice"].toMap();
+            if(!voice["channel"].toString().isEmpty())actions.append(QVariantMap{{"id","call"},{"label","Voice call"},{"detail",voice["name"]}});
+            actions.append(shell.social()->incomingCallActions());
+            for(const auto& value:shell.notifications()) {
+                const auto row=value.toMap();
+                actions.append(QVariantMap{{"id","notice:"+row["id"].toString()},{"label",row["name"]},{"detail",row["detail"]},
+                    {"readOnly",!(adventureOverlay && adventureOverlay->canMinimize())}});
+            }
+            actions.append(QVariantMap{{"id","controls"},{"label","Controls"},{"detail","Start · volume, brightness and more"}});
             exitPresentation.setExtraActions(actions);
             if(exitPresentation.menuOpen()&&exitPresentation.panel()=="notifications")gameNotifications();
             if(exitPresentation.menuOpen()&&exitPresentation.panel()=="call") {
@@ -675,10 +715,14 @@ int main(int argc, char* argv[]) {
         // Other notifications retain the inbox route. The invitation badge is
         // hidden during both preview and explicit-exit capture barriers.
         QObject::connect(&exitPresentation,&AdventureExitPresentation::menuActionRequested,&exitPresentation,[&](const QString& action){
+            if(action=="achievements"){auto rows=gameAchievementRows();rows.append(QVariantMap{{"id","back"},{"label","Back"}});exitPresentation.setPanel("achievements","Achievements",rows);return;}
+            if(action=="controls"){exitPresentation.setContentInput(true);shell.setGameControlsOpen(true);return;}
             if(playerOverlay.menuAction(action))return;
             if(shell.invokeLiveExperienceAction(action,adventureLaunch.adventureId(),liveExperienceSession()))return;
+            if(action=="current-lobby"){pendingSystemAction="current-lobby";if(adventureOverlay)adventureOverlay->minimize();return;}
             if(action=="minimize"){if(adventureOverlay)adventureOverlay->minimize();return;}
             if(action.startsWith("notice:")) {
+                if(playerOverlay.openNotification(action.mid(7)))return;
                 pendingNotification=action.mid(7);if(adventureOverlay)adventureOverlay->minimize();return;
             }
             const auto back=QVariantMap{{"id","back"},{"label","Back"}};
@@ -1154,11 +1198,12 @@ int main(int argc, char* argv[]) {
                     QObject::connect(adventureOverlay.get(),&AdventureOverlayService::gameRequested,window,[&,window]{
                         adventureLaunch.updateReturnContext(shell.navigationState());window->hide();
                     });
-                    QObject::connect(adventureOverlay.get(),&AdventureOverlayService::contentAction,&playerOverlay,&PlayerOverlayController::dispatch);
+                    QObject::connect(adventureOverlay.get(),&AdventureOverlayService::contentAction,&shell,[&](Action action){if(shell.gameControlsOpen())shell.dispatchGameControls(action);else playerOverlay.dispatch(action);});
+                    QObject::connect(adventureOverlay.get(),&AdventureOverlayService::shellRequested,&shell,[&]{if(!pendingSystemAction.isEmpty()){const auto id=std::exchange(pendingSystemAction,QString());if(id=="current-lobby")shell.openGameHubFace("lobby");else shell.systemAction(id);}});
                     QObject::connect(adventureOverlay.get(),&AdventureOverlayService::shellAction,&session,[&](Action action){
                         if(adventureLaunch.minimized())session.dispatch(action);
                     });
-                    QObject::connect(adventureOverlay.get(),&AdventureOverlayService::handoffFailed,&shell,[&](QString message){pendingNotification.clear();shell.showNotice(message);});
+                    QObject::connect(adventureOverlay.get(),&AdventureOverlayService::handoffFailed,&shell,[&](QString message){pendingNotification.clear();pendingSystemAction.clear();shell.showNotice(message);});
                     QObject::connect(&shell,&ShellController::liveGameRequested,adventureOverlay.get(),[&](bool options){
                         if(shell.runtimeChangeBlocked())return;
                         adventureOverlay->returnToGame(options);

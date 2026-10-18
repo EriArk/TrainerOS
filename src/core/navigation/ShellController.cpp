@@ -236,10 +236,11 @@ ShellController::ShellController(LibraryRepository& repo, TrainerRepository& pro
     connect(&settings_, &SettingsController::deviceRequested, this, [this](int index) { device_.activate(index + 2); emit changed(); });
     connect(&settings_, &SettingsController::controllerRequested, this, [this] { service_ = "diagnostics"; diagnostics_.begin(); emit changed(); });
     connect(&device_, &DeviceController::changed, this, &ShellController::changed);
-    connect(this, &ShellController::changed, this, [this] { device_.setMonitoring(onboardingConnections_ || menuOpen_ || service_ == "device" || service_ == "settings"); });
+    connect(this, &ShellController::changed, this, [this] { device_.setMonitoring(onboardingConnections_ || menuOpen_ || gameControlsOpen_ || service_ == "device" || service_ == "settings"); });
     connect(&device_, &DeviceController::closeRequested, this, [this] { service_ = "settings"; emit changed(); });
     connect(&device_, &DeviceController::messageRequested, this, &ShellController::showNotice);
     connect(&device_, &DeviceController::powerRequested, this, [this](const QString& mode) {
+        if(!liveGame_.isEmpty()){showNotice("Save and exit the running game before leaving this system session.");return;}
         if(scraper_.busy()){showNotice("Finish or cancel downloads before leaving this system session.");return;}
         mode_ = mode;
         notice_ = mode == "reboot" ? "Restart your handheld? Your Trainer data will be saved first."
@@ -273,6 +274,17 @@ ShellController::ShellController(LibraryRepository& repo, TrainerRepository& pro
     connect(&settings_, &SettingsController::messageRequested, this, [this](const QString& message) {
         if (service_ != "settings" || menuOpen_) { notice_ = message; emit changed(); }
     });
+    connect(settings_.communication(),&CommunicationSettings::trainerSwitchRequested,this,[this]{
+        if(!liveGame_.isEmpty() || scraper_.busy()){showNotice("Finish the current game and downloads before switching Trainer.");return;}
+        settings_.communication()->leave();if(trainerSetup_.live())emit trainersRequested();else openTrainers();
+    });
+    connect(&controls_,&ControlsDashboard::actionRequested,this,&ShellController::systemAction);
+    connect(&controls_,&ControlsDashboard::adjustRequested,this,[this](const QString& id,int delta){
+        const int index=id=="volume"?0:1;
+        const int value=device_.rows().value(index).toMap().value("level",-1).toInt();
+        if(value>=0)device_.setQuickLevel(index,value+delta);
+    });
+    connect(&controls_,&ControlsDashboard::closeRequested,this,&ShellController::closeControls);
     connect(&settings_, &SettingsController::closeRequested, this, [this] { service_.clear(); menuOpen_ = false; if(optionsReturn_){optionsReturn_=false;homeMenuOpen_=true;}emit changed(); });
     connect(&hall_, &HallOfFameController::changed, this, &ShellController::changed);
     connect(&hall_, &HallOfFameController::messageRequested, this, [this](const QString& message) {
@@ -982,6 +994,38 @@ QVariantList ShellController::continueRows(const QList<ContinueEntry>& entries, 
     }
     return result;
 }
+void ShellController::closeControls() {
+    downloads_.close();controls_.leave();
+    if(gameControlsOpen_){gameControlsOpen_=false;emit changed();emit gameControlsClosed(false);return;}
+    menuOpen_=powerMenu_=false;
+    if(optionsReturn_){optionsReturn_=false;homeMenuOpen_=true;}
+    emit changed();
+}
+void ShellController::setGameControlsOpen(bool value){
+    if(gameControlsOpen_==value)return;gameControlsOpen_=value;device_.setMonitoring(value || menuOpen_);
+    if(value){controls_.setOwner(trainer_.profile()["id"].toString());controls_.begin();}
+    else controls_.leave();emit changed();
+}
+void ShellController::dispatchGameControls(Action action){
+    if(!gameControlsOpen_)return;
+    if(action==Action::Home){downloads_.close();setGameControlsOpen(false);emit gameControlsClosed(true);return;}
+    if(downloads_.isOpen()){downloads_.dispatch(action);return;}
+    if(action==Action::SystemMenu)closeControls();else controls_.dispatch(action);
+}
+void ShellController::systemAction(const QString& id){
+    if(id=="volume"){device_.adjustQuick(0,Action::Confirm);return;}
+    if(id=="wifi"||id=="bluetooth"||id=="airplane"){
+        device_.adjustQuick(id=="wifi"?2:id=="bluetooth"?3:4,Action::Confirm);return;
+    }
+    if(id=="clock"||id=="battery"||id=="storage")return;
+    if(id=="downloads"){downloads_.begin();return;}
+    if(gameControlsOpen_){setGameControlsOpen(false);emit gameSystemRequested(id);return;}
+    if(id=="scraper"){scraper_.beginMissing();downloads_.begin();return;}
+    if((id=="desktop"||id=="steam")&&!liveGame_.isEmpty()){showNotice("Save and exit the running game before switching environments.");return;}
+    const QMap<QString,int> actions{{"settings",0},{"power",6},{"desktop",4},{"steam",5}};
+    if(!actions.contains(id))return;
+    menuOpen_=true;menuFocus_=actions[id];activate(menuFocus_);emit changed();
+}
 QStringList ShellController::menuItems() const {
     if (powerMenu_) {
         QStringList items{"Power off", "Restart", "Cancel"};
@@ -1395,10 +1439,8 @@ QVariantList ShellController::homeMenuActions() const {
             QVariantMap{{"id","voice-leave"},{"label","Leave call"}}};
         rows.append(QVariantMap{{"id","back"},{"label","Back"}});return rows;
     }
-    QVariantList rows{QVariantMap{{"id","home"},{"label","Home"}},QVariantMap{{"id","friends"},{"label","Friends"}},
-        QVariantMap{{"id","chats"},{"label","Chats"}},QVariantMap{{"id","notifications"},{"label","Notifications · "+QString::number(notifications().size())}}};
-    rows.append(QVariantMap{{"id","profile"},{"label","Your profile"},{"detail",trainer_.profile()["name"]}});
-    rows.append(QVariantMap{{"id","lobby"},{"label",social_.lobbyState().isEmpty()?"Lobbies":"My lobby"}});
+    QVariantList rows;
+    if(!social_.homeLobby()["id"].toString().isEmpty())rows.append(QVariantMap{{"id","lobby"},{"label","My lobby"}});
     if(!liveGame_.isEmpty()) {
         rows.prepend(QVariantMap{{"id","live-options"},{"label","Game Options"},{"detail",liveGame_.value("title")}});
         rows.prepend(QVariantMap{{"id","live-return"},{"label","Return to game"},{"detail","Still running · "+liveGame_.value("title").toString()}});
@@ -1435,7 +1477,7 @@ void ShellController::activateHomeMenu(int index) {
         if(social_.answerCall(id.section(':',1),accept,true)&&accept)closeHomeMenu();
         emit changed();return;
     }
-    if(homeCallOpen_){if(id=="back"){homeCallOpen_=false;homeMenuSelection_="home";}else social_.controlCall(id);emit changed();return;}
+    if(homeCallOpen_){if(id=="back"){homeCallOpen_=false;homeMenuSelection_="call";}else social_.controlCall(id);emit changed();return;}
     if(id=="call"){homeCallOpen_=true;homeMenuSelection_="voice-mute";emit changed();return;}
     if(id=="notifications"){notificationsOpen_=true;notificationFocus_=0;notificationSelection_=notifications().value(0).toMap()["id"].toString();emit changed();return;}
     if(id=="chats"&&!social_.notificationFace().isEmpty()){openSocialNotification();return;}
@@ -1540,6 +1582,9 @@ void ShellController::dispatch(Action action) {
     if(scraper_.isOpen()){if(keyboard_.isOpen())keyboard_.dispatch(action);else scraper_.dispatch(action);return;}
     if(launchPreparation_.busy() || libraryTools_.busy())return;
     if(navigationLocked(action==Action::PreviousPage || action==Action::NextPage) && (action==Action::Home || action==Action::PreviousPage || action==Action::NextPage || action==Action::SystemMenu || action==Action::PreviousFace || action==Action::NextFace))return;
+    if(menuOpen_ && !powerMenu_ && notice_.isEmpty()) {
+        if(action==Action::SystemMenu)closeControls();else controls_.dispatch(action);return;
+    }
     if (homeMenuOpen_) {
         if(notificationsOpen_) {
             if(action==Action::Home)closeHomeMenu();
@@ -1556,15 +1601,19 @@ void ShellController::dispatch(Action action) {
             else if(action==Action::Up||action==Action::Down){notificationFocus_=std::clamp(notificationFocus()+(action==Action::Up?-1:1),0,std::max(0,int(notifications().size())-1));notificationSelection_=notifications().value(notificationFocus_).toMap()["id"].toString();emit changed();}
             return;
         }
-        if(action==Action::Back&&homeCallOpen_){homeCallOpen_=false;homeMenuSelection_="home";emit changed();}
+        if(action==Action::Back&&homeCallOpen_){homeCallOpen_=false;homeMenuSelection_="call";emit changed();}
         else if (action == Action::Home || action == Action::Back) closeHomeMenu();
         else if (action == Action::Confirm) activateHomeMenu(homeMenuFocus());
         else if (action == Action::Up || action == Action::Down) {
             const auto actions=homeMenuActions();
-            const int index=std::clamp(homeMenuFocus() + (action == Action::Up ? -1 : 1), 0, qMax(0,int(actions.size())-1));
-            homeMenuSelection_=actions.value(index).toMap()["id"].toString();emit changed();
+            const int direction=action==Action::Up?-1:1;
+            bool hasAction=false;for(const auto& row:actions)if(row.toMap().value("enabled",true).toBool())hasAction=true;
+            if(!hasAction){homeMenuSelection_.clear();notificationsOpen_=true;notificationSelection_=notifications().value(0).toMap()["id"].toString();}
+            else for(int index=homeMenuFocus()+direction;index>=0&&index<actions.size();index+=direction)
+                if(actions[index].toMap().value("enabled",true).toBool()){homeMenuSelection_=actions[index].toMap()["id"].toString();break;}
+            emit changed();
         } else if(action==Action::Right && !homeCallOpen_) {
-            const auto rows=homeMenuActions();for(int i=0;i<rows.size();++i)if(rows[i].toMap()["id"]=="notifications"){activateHomeMenu(i);break;}
+            notificationsOpen_=true;notificationSelection_=notifications().value(0).toMap()["id"].toString();emit changed();
         } else if (action == Action::SystemMenu) {
             homeMenuOpen_=false;optionsReturn_=true;dispatch(action);
         }
@@ -1613,7 +1662,7 @@ void ShellController::dispatch(Action action) {
     }
     if(action==Action::LocalAction && canEditWorld()) {libraryTools_.beginWorld(worlds_.region().value("id").toString(),true);return;}
     if (action == Action::Home) {
-        homeMenuOpen_ = true; notificationsOpen_=homeCallOpen_=false; homeMenuSelection_ = "home";
+        homeMenuSelection_.clear();homeMenuOpen_ = true; notificationsOpen_=homeCallOpen_=false; homeMenuSelection_ = homeMenuActions().value(0).toMap()["id"].toString();
         const auto actions=homeMenuActions();
         for(const auto& action:actions)if(action.toMap()["id"].toString().startsWith("answer-call:")){homeMenuSelection_=action.toMap()["id"].toString();break;}
         emit changed();return;
@@ -1626,7 +1675,8 @@ void ShellController::dispatch(Action action) {
     // the keyboard without changing its draft or key focus; Back unwinds it first.
     if (action == Action::SystemMenu) {
         if (notice_.isEmpty()) { menuOpen_ = !menuOpen_; if (!menuOpen_ && powerMenu_) { powerMenu_ = false; menuFocus_ = 6; } }
-        if(menuOpen_ && !powerMenu_ && menuItems().value(menuFocus_).isEmpty())menuFocus_=0;
+        if(menuOpen_ && !powerMenu_){controls_.setOwner(trainer_.profile()["id"].toString());controls_.begin();}
+        else if(!menuOpen_ && optionsReturn_){optionsReturn_=false;homeMenuOpen_=true;}
         emit changed();
         return;
     }

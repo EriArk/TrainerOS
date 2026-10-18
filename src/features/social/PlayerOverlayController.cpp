@@ -21,7 +21,7 @@ PlayerOverlayController::PlayerOverlayController(SocialController& social,TextEn
         if(balloons_.isEmpty())balloonTimer_.stop();if(before!=balloons_.size())emit changed();
     });
     connect(&social_,&SocialController::gameMessage,this,[this](QVariantMap message){
-        if(!game_||message["room"]!=social_.gameChat()["room"]||open_)return;
+        if(!game_||!partyGame_||message["room"]!=social_.gameChat()["room"]||open_)return;
         if(message["spectator"].toBool()&&!spectators_)return;
         if(!message["spectator"].toBool()) {bool found=false;for(const auto& p:players())if(p.toMap()["id"]==message["author"])found=true;if(!found)return;}
         for(const auto& v:balloons_)if(v.toMap()["id"]==message["id"])return;
@@ -31,23 +31,24 @@ PlayerOverlayController::PlayerOverlayController(SocialController& social,TextEn
     });
     sync();
 }
-QVariantList PlayerOverlayController::players() const {return game_?social_.activePlayers():QVariantList();}
-void PlayerOverlayController::setGame(qint64 pid) {if(game_==pid)return;clear();balloons_.clear();game_=pid;emit changed();}
+QVariantList PlayerOverlayController::players() const {return game_&&partyGame_?social_.activePlayers():QVariantList();}
+void PlayerOverlayController::setGame(qint64 pid,bool party) {if(game_==pid&&partyGame_==party)return;clear();balloons_.clear();game_=pid;partyGame_=pid&&party;emit changed();}
 bool PlayerOverlayController::validPeer() const {
+    if(notification_)return game_&&game_==chatGame_&&social_.accountGeneration()==accountGeneration_&&social_.account()["userId"]==account_&&social_.notificationChatValid(channel_);
     const auto context=social_.gameChat();
-    return game_&&game_==chatGame_&&social_.accountGeneration()==accountGeneration_&&social_.account()["userId"]==account_
+    return partyGame_&&game_&&game_==chatGame_&&social_.accountGeneration()==accountGeneration_&&social_.account()["userId"]==account_
         &&!room_.isEmpty()&&context["room"]==room_&&context["channel"]==channel_;
 }
 bool PlayerOverlayController::conversationReady() const {
     return open_&&validPeer()&&social_.account()["channel"]==channel_;
 }
-QString PlayerOverlayController::name() const {return social_.gameChat()["name"].toString();}
+QString PlayerOverlayController::name() const {if(notification_)return notificationTitle_;return social_.gameChat()["name"].toString();}
 QVariantMap PlayerOverlayController::voice() const {
     const auto v=social_.account()["voice"].toMap();
-    return !social_.gameChat().isEmpty()&&v["channel"]==social_.gameChat()["channel"]?v:QVariantMap();
+    return partyGame_&&!social_.gameChat().isEmpty()&&v["channel"]==social_.gameChat()["channel"]?v:QVariantMap();
 }
 int PlayerOverlayController::unread() const {return social_.gameChat()["unread"].toInt();}
-void PlayerOverlayController::presented(QString message){if(conversationReady()&&view_.ready())social_.presentedGameChat(room_,channel_,message);}
+void PlayerOverlayController::presented(QString message){if(conversationReady()&&view_.ready()){if(notification_)social_.presentedNotificationChat(channel_,message);else social_.presentedGameChat(room_,channel_,message);}}
 void PlayerOverlayController::setDisplay(QString display){if(display_==display)return;display_=display.left(40);sync();}
 void PlayerOverlayController::voiceAction(QString action){
     if(!game_||voice().isEmpty()||(action!="mute"&&action!="output"))return;
@@ -82,6 +83,14 @@ void PlayerOverlayController::sync() {
     }
     syncing_=false;emit changed();
 }
+bool PlayerOverlayController::openNotification(const QString& channel) {
+    if(!game_||!view_.menuOpen()||!view_.ready()||open_||pending_||keyboard_.isOpen())return false;
+    QString title="Messages";for(const auto& v:social_.notifications())if(v.toMap()["id"]==channel)title=v.toMap()["name"].toString();
+    if(!social_.acquireNotificationChat(channel))return false;
+    notification_=true;channel_=channel;chatGame_=game_;accountGeneration_=social_.accountGeneration();account_=social_.account()["userId"].toString();
+    notificationTitle_=title;
+    open_=true;view_.setContentInput(true);emit changed();return true;
+}
 void PlayerOverlayController::openPlayer(QString id) {
     if(id.isEmpty()||open_||pending_||keyboard_.isOpen())return;
     bool admitted=false;for(const auto& p:players())if(p.toMap()["id"]==id)admitted=true;if(!admitted)return;
@@ -97,10 +106,10 @@ void PlayerOverlayController::clear() {
             if(social_.accountGeneration()==accountGeneration_&&social_.account()["userId"]==account_)social_.preserveText(keyboard_.text());
             keyboard_.cancel();
         }
-        view_.setContentInput(false);view_.dismissMenu();
-        social_.releaseGameChat();
+        view_.setContentInput(false);
+        if(notification_)social_.releaseNotificationChat();else {view_.dismissMenu();social_.releaseGameChat();}
     }
-    peer_.clear();room_.clear();channel_.clear();chatGame_=0;emit changed();
+    notification_=false;notificationTitle_.clear();peer_.clear();room_.clear();channel_.clear();chatGame_=0;emit changed();
 }
 void PlayerOverlayController::close() {clear();}
 void PlayerOverlayController::setPosition(QPointF point) {
@@ -108,11 +117,11 @@ void PlayerOverlayController::setPosition(QPointF point) {
     point={qBound(0.,point.x(),1.),qBound(0.,point.y(),1.)};if(point==position_)return;
     position_=point;if(!settingsKey_.isEmpty())QSettings().setValue(settingsKey_,point);emit changed();
 }
-void PlayerOverlayController::compose() {if(conversationReady()&&view_.ready())social_.composeGameChat(room_,channel_);}
-void PlayerOverlayController::send() {if(conversationReady()&&view_.ready())social_.sendGameChat(room_,channel_);}
+void PlayerOverlayController::compose() {if(conversationReady()&&view_.ready()){if(notification_)social_.composeNotificationChat(channel_);else social_.composeGameChat(room_,channel_);}}
+void PlayerOverlayController::send() {if(conversationReady()&&view_.ready()){if(notification_)social_.sendNotificationChat(channel_);else social_.sendGameChat(room_,channel_);}}
 void PlayerOverlayController::dispatch(Action action) {
     if(!open_||!view_.ready())return;
-    if(action==Action::Home){close();return;}
+    if(action==Action::Home){close();view_.dismissMenu();return;}
     if(keyboard_.isOpen()) {
         if(action==Action::Back)social_.preserveText(keyboard_.text());
         keyboard_.dispatch(action);return;
