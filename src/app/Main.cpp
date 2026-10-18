@@ -691,7 +691,7 @@ int main(int argc, char* argv[]) {
             actions.append(shell.social()->incomingCallActions());
             for(const auto& value:shell.notifications()) {
                 const auto row=value.toMap();
-                actions.append(QVariantMap{{"id","notice:"+row["id"].toString()},{"label",row["name"]},{"detail",row["detail"]},
+                actions.append(QVariantMap{{"id","notice:"+row["id"].toString()},{"label",row["name"]},{"detail",row["detail"]},{"avatar",row["avatar"]},{"person",!row["name"].toString().isEmpty()},
                     {"readOnly",!(adventureOverlay && adventureOverlay->canMinimize())}});
             }
             actions.append(QVariantMap{{"id","controls"},{"label","Controls"},{"detail","Start · volume, brightness and more"}});
@@ -745,20 +745,31 @@ int main(int argc, char* argv[]) {
             }
             if(runtime["kind"]!="retroarch")return;
             const auto game=runtime["game"].toString();
-            if(action=="choose-shader"||action=="choose-bezel") {
+            if(action=="choose-shader"||action=="choose-bezel"||action=="display-frames") {
                 const auto family=action=="choose-shader"?QString("shader"):QString("bezel");
+                const auto parent=family=="shader"?QString("display-shaders"):QString("display");
                 auto rows=retroarch::appearanceChoices(game,family,runtime);
-                rows.append(QVariantMap{{"id","display"},{"label","Back"}});
-                exitPresentation.setPanel("display-choice",family=="shader"?"Choose shader · next launch":"Choose frame · next launch",rows,"display");return;
+                rows.append(QVariantMap{{"id",parent},{"label","Back"}});
+                exitPresentation.setPanel("display-choice",family=="shader"?"Choose shader":"Choose frame",rows,parent);return;
             }
-            QString caption="Display changes apply next launch";
+            QString category;
+            if(action=="display-shaders"||action=="shader"||action=="next-shader"||action=="previous-shader"||action.startsWith("shader:"))category="shaders";
+            else if(action=="display-frames"||action.startsWith("bezel:"))category="frames";
+            QString caption=category=="shaders"?"Shaders":category=="frames"?"Frames":"Game settings";
             if(action=="display"&&!runtime["appearanceNotice"].toString().isEmpty())caption=runtime["appearanceNotice"].toString();
-            if(action=="shader"||action=="next-shader"||action=="previous-shader")caption=adventureProcess.runtimeCommand(action)?"Shader preview":"Couldn't change the shader";
-            else if(action.startsWith("shader:")||action.startsWith("bezel:")){if(!retroarch::chooseAppearance(game,action,runtime))caption="Couldn't save display settings";}
-            else if(action!="display"&&!retroarch::changeAppearance(runtime["game"].toString(),action))caption="Couldn't save display settings";
-            auto rows=retroarch::appearanceActions(runtime["game"].toString());
-            rows.append(QVariantMap{{"id","shader"},{"label","Toggle shader now"}});rows.append(QVariantMap{{"id","next-shader"},{"label","Next shader now"}});rows.append(back);
-            exitPresentation.setPanel("display",caption,rows);
+            if(action=="shader"||action=="next-shader"||action=="previous-shader") {
+                if(!adventureProcess.runtimeCommand(action))caption="Couldn't change the shader";
+            } else if(action.startsWith("shader:")||action.startsWith("bezel:")) {
+                if(!retroarch::chooseAppearance(game,action,runtime))caption="Couldn't save display settings";
+            } else if(action!="display"&&action!="display-shaders"&&action!="display-frames") {
+                if(!retroarch::changeAppearance(game,action))caption="Couldn't save display settings";
+            }
+            if(category=="frames") {
+                auto rows=retroarch::appearanceChoices(game,"bezel",runtime);
+                rows.append(QVariantMap{{"id","display"},{"label","Back"}});
+                exitPresentation.setPanel("display-choice",caption,rows,"display");
+            } else exitPresentation.setPanel(category.isEmpty()?"display":"display-"+category,caption,
+                retroarch::appearanceMenu(game,category),category.isEmpty()?QString():QString("display"));
         });
         QObject::connect(&adventureLaunch, &AdventureLaunchController::adventureStarted, &exitPresentation,
             [&](const QString& id) {

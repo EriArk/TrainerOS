@@ -138,6 +138,32 @@ QVariantList appearanceActions(const QString& id) {
     // Automatic artwork occupies margins, including beside Mega Bezel.
     return actions;
 }
+QVariantList appearanceMenu(const QString& id,const QString& category) {
+    // Presentation groups reuse the established actions and saved values.
+    const auto all=appearanceActions(id);
+    auto entry=[&](const QString& action,const QString& label,const QString& glyph) {
+        QVariantMap result;
+        for(const auto& item:all)if(item.toMap()["id"]==action)result=item.toMap();
+        const auto old=result["label"].toString();const auto separator=old.indexOf(QChar(0x00b7));
+        if(separator>=0)result["detail"]=old.mid(separator+1).trimmed();
+        result["label"]=label;result["glyph"]=glyph;return result;
+    };
+    if(category=="shaders")return {
+        entry("choose-shader","Preset","pictures"),
+        QVariantMap{{"id","shader"},{"label","Toggle effect"},{"detail","Preview now"},{"glyph","sun"}},
+        QVariantMap{{"id","next-shader"},{"label","Next effect"},{"detail","Preview now"},{"glyph","pictures"}},
+        QVariantMap{{"id","display"},{"label","Back"}}};
+    if(category=="frames")return {entry("choose-bezel","Frame artwork","pictures"),
+        QVariantMap{{"id","display"},{"label","Back"}}};
+    if(!category.isEmpty())return {};
+    QVariantList rows{entry("ratio","Screen format","desktop"),entry("filter","Pixels","pictures"),
+        QVariantMap{{"id","display-shaders"},{"label","Shaders"},{"detail","Presets and live preview"},{"glyph","sun"}},
+        QVariantMap{{"id","display-frames"},{"label","Frames"},{"detail","Artwork around the game"},{"glyph","pictures"}},
+        QVariantMap{{"id","reset-appearance"},{"label","Use emulator defaults"}},
+        QVariantMap{{"id","back"},{"label","Back"}}};
+    for(int i=0;i<rows.size();++i){auto r=rows[i].toMap();r["gridX"]=i%2;r["gridY"]=i/2;rows[i]=r;}
+    return rows;
+}
 QVariantList appearanceChoices(const QString& id,const QString& family,const QVariantMap& runtime) {
     if(id.isEmpty()||(family!="shader"&&family!="bezel"))return {};
     QSettings settings;const auto prefix=key(id);const auto path=settings.value(prefix+family+"Path").toString();

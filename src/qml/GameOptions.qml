@@ -5,49 +5,54 @@ Panel {
     required property var presentation
     required property var shell
     readonly property string selection: (presentation.menuActions[presentation.menuFocus] || {}).id || ""
-    readonly property var leftActions: presentation.menuActions.filter(a => a.column === "game")
-    readonly property var rightActions: presentation.menuActions.filter(a => a.column !== "game" && a.id !== "continue" && a.id !== "exit" && a.id !== "minimize")
+    readonly property bool settingsRoot: presentation.panel === "display"
+    readonly property bool appearance: presentation.panel.indexOf("display") === 0
+    radius: 30
+    surface: Qt.tint(Theme.paper,"#09c29948")
     patterned: true
     GameActivity { anchors.fill: parent; visible: !root.presentation.panel.length; presentation: root.presentation; shell: root.shell }
-    MountedPanel {
-        id: artwork
-        visible: root.presentation.panel.length > 0
-        x: 18; y: 18; width: parent.width * (Theme.television ? .38 : .48); height: parent.height - 36
-        color: Theme.chassisDark
-        Image {
-            anchors.fill: parent; anchors.margins: 9
-            source: root.presentation.hasFrame ? "image://exit-frame/" + root.presentation.frameKey : ""
-            fillMode: Image.PreserveAspectFit; cache: false
+    Item {
+        anchors.fill: parent; visible: root.presentation.panel.length>0
+        Text { id: heading; x: 29; y: 23; width: parent.width-105; text: root.presentation.menuCaption; color: Theme.ink; font.family: Theme.displayFamily; font.pixelSize: 27; elide: Text.ElideRight; textFormat: Text.PlainText }
+        SocialIconButton { anchors.right: parent.right; anchors.rightMargin: 25; y: 22; icon: "x"; label: "Back"; onClicked: root.presentation.cancel() }
+        Item {
+            id: identity; x: 29; y: 76; width: Math.min(220,parent.width*.29); height: parent.height-y-27
+            GameFrame { id: picture; presentation: root.presentation; maximumWidth: identity.width; maximumHeight: 145 }
+            Text { id: name; y: picture.height+17; width: parent.width; text: root.presentation.gameTitle; font.family: Theme.displayFamily; font.pixelSize: 22; wrapMode: Text.WordWrap; maximumLineCount: 3; elide: Text.ElideRight; color: Theme.ink; textFormat: Text.PlainText }
+            Text { y: name.y+name.height+15; width: parent.width; text: root.presentation.ready ? (root.appearance ? "For this game only\n\nFormat, pixels and selected artwork apply next launch.\nLive previews are marked separately." : "Your game stays open.") : "Release the controls"; color: Theme.muted; font.pixelSize: 12; wrapMode: Text.WordWrap }
         }
-        Rectangle { anchors.left: parent.left; anchors.right: parent.right; anchors.bottom: parent.bottom; height: title.height + 40; color: "#df203f3e"; radius: 13 }
-        Text { id: title; x: 20; anchors.bottom: parent.bottom; anchors.bottomMargin: 20; width: parent.width - 40
-            text: root.presentation.gameTitle; color: "#fff2d9"; font.family: Theme.displayFamily; font.pixelSize: 29; wrapMode: Text.WordWrap }
-    }
-    Text { id: heading; visible: root.presentation.panel.length > 0; x: artwork.x + artwork.width + 24; y: 23; width: parent.width - x - 24
-        text: root.presentation.panel.length ? root.presentation.menuCaption : "Game Options"
-        color: Theme.ink; font.family: Theme.displayFamily; font.pixelSize: 25; wrapMode: Text.WordWrap }
-    Text { id: status; visible: root.presentation.panel.length > 0; x: heading.x; y: heading.y + heading.height + 9; width: heading.width
-        text: root.presentation.ready ? "The game is still running" : "Release the controls"
-        color: Theme.muted; font.pixelSize: 15 }
-    ListView {
-        id: actions
-        visible: root.presentation.panel.length > 0
-        x: heading.x; y: status.y + status.height + 16; width: heading.width; height: parent.height - y - 18
-        clip: true; spacing: 8; model: root.presentation.menuActions; currentIndex: root.presentation.menuFocus
-        onCurrentIndexChanged: positionViewAtIndex(currentIndex, ListView.Contain)
-        delegate: Item {
-            required property int index
-            required property var modelData
-            width: actions.width; height: button.height + (modelData.id === "exit" ? 14 : 0)
-            Rectangle { visible: modelData.id === "exit"; width: parent.width; height: 1; color: "#8b9b8d" }
-            Image { visible: !!modelData.icon; width: 52; height: 52; y: 2; source: modelData.icon || ""; sourceSize: Qt.size(104,104); fillMode: Image.PreserveAspectFit; asynchronous: true }
-            CapButton {
-                id: button; x: modelData.icon ? 62 : 0; y: modelData.id === "exit" ? 14 : 0; width: parent.width-x; height: Theme.television ? 66 : modelData.detail ? 57 : 43
-                label: modelData.label; detail: modelData.detail || ""; textSize: Theme.television ? 22 : 18
-                tint: modelData.id === "exit" ? Theme.pink : modelData.id === "continue" ? Theme.green : Theme.blue
-                selected: actions.currentIndex === index
-                enabled: root.presentation.ready && (modelData.readOnly !== true || root.presentation.panel === "achievements")
-                onActivated: root.presentation.activateAction(modelData.id)
+        Rectangle { x: identity.x+identity.width+21; y: identity.y; width: 1; height: identity.height; color: "#30477865" }
+        Item {
+            id: content; x: identity.x+identity.width+43; y: identity.y; width: parent.width-x-29; height: identity.height
+            Grid {
+                visible: root.settingsRoot; columns: 2; spacing: 13; width: parent.width
+                Repeater { model: root.settingsRoot ? root.presentation.menuActions.slice(0,4) : []
+                    GameSettingTile { required property var modelData; required property int index
+                        width: (content.width-13)/2; height: index<2 ? Math.min(132,content.height*.41) : Math.min(88,content.height*.27)
+                        compact: index>=2; label: modelData.label; detail: modelData.detail || ""; glyph: modelData.glyph || "settings"
+                        tint: index===0?Theme.blue:index===1?Theme.green:index===2?Theme.tabColors[4]:Theme.yellow
+                        selected: root.selection===modelData.id; enabled: root.presentation.ready && !modelData.readOnly
+                        onActivated: root.presentation.activateAction(modelData.id)
+                    }
+                }
+            }
+            Row { visible: root.settingsRoot; anchors.bottom: parent.bottom; width: parent.width; spacing: 13
+                Repeater { model: root.settingsRoot ? root.presentation.menuActions.slice(4) : []
+                    ActivityRow { required property var modelData; width: (content.width-13)/2; height: 43; label: modelData.label; glyph: modelData.id==="back"?"chevron":"settings"; accent: Theme.paper; selected: root.selection===modelData.id; enabled: root.presentation.ready; onActivated: root.presentation.activateAction(modelData.id) }
+                }
+            }
+            ListView {
+                id: actions; anchors.fill: parent; visible: !root.settingsRoot; clip: true; spacing: 10
+                model: root.settingsRoot ? [] : root.presentation.menuActions; currentIndex: root.presentation.menuFocus
+                onCurrentIndexChanged: if(currentIndex>=0)positionViewAtIndex(currentIndex,ListView.Contain)
+                delegate: ActivityRow {
+                    required property var modelData; required property int index
+                    width: actions.width; height: modelData.icon ? 77 : modelData.detail ? 63 : 49
+                    label: modelData.label; detail: modelData.detail || ""; glyph: modelData.glyph || (root.presentation.panel==="achievements"?"trophy":"pictures")
+                    artwork: modelData.icon || ""; accent: index%3===0?Theme.blue:index%3===1?Theme.green:Theme.yellow
+                    selected: root.selection===modelData.id; enabled: root.presentation.ready && (modelData.readOnly!==true || root.presentation.panel==="achievements")
+                    onActivated: root.presentation.activateAction(modelData.id)
+                }
             }
         }
     }

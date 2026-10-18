@@ -5,6 +5,8 @@ Panel {
     required property var shell
     readonly property bool inbox: shell.notificationsOpen
     readonly property var live: shell.liveGame
+    radius: 30
+    surface: Qt.tint(Theme.paper,"#09c29948")
     patterned: true
     Text { x: 27; y: 20; text: "Now"; color: Theme.ink; font.family: Theme.displayFamily; font.pixelSize: 29 }
     Text { x: 103; y: 32; text: root.shell.homeMenuCaption; color: Theme.muted; font.pixelSize: 14 }

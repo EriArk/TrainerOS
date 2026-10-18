@@ -174,6 +174,12 @@ void AdventureExitPresentation::updateInput(quint64 generation, const ExitInputS
                     if(inGame && up && id=="minimize")at=-1;
                     if(at>=0&&at<list.size())menuFocus_=list[at];
                 }
+            } else if(rows.value(menuFocus_).toMap().contains("gridX")) {
+                const auto current=rows[menuFocus_].toMap();
+                const int x=current["gridX"].toInt()+(right?1:left?-1:0);
+                const int y=current["gridY"].toInt()+(down?1:up?-1:0);
+                for(int i=0;i<rows.size();++i){const auto r=rows[i].toMap();
+                    if(r.contains("gridX") && r["gridX"].toInt()==x && r["gridY"].toInt()==y && !r["readOnly"].toBool()){menuFocus_=i;break;}}
             } else {
                 const int direction=up||left?-1:1;
                 for(int i=menuFocus_+direction;i>=0&&i<rows.size();i+=direction)

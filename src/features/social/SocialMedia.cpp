@@ -86,6 +86,22 @@ void SocialMedia::choosePicture(const QString& path) {
     QFile file(path);if(!file.open(QIODevice::ReadOnly)||file.size()>MaxBytes){fail("Couldn't open this picture.");return;}
     preparePicture(file.read(MaxBytes+1));
 }
+QVariantList SocialMedia::profileAvatars() {
+    QVariantList rows;
+    for(const auto& id:QStringList{"explorer","pilot","mage","robot","fox","diver"}) {
+        auto name=id;name[0]=name[0].toUpper();
+        rows.append(QVariantMap{{"name",name},{"builtin",id},{"image","qrc:/avatars/"+id+".png"}});
+    }
+    return rows;
+}
+void SocialMedia::chooseProfileAvatar(const QString& id) {
+    clear();bool allowed=false;
+    for(const auto& row:profileAvatars())if(row.toMap()["builtin"]==id)allowed=true;
+    if(!allowed){fail("This avatar is not available.");return;}
+    QFile file(":/avatars/"+id+".png");
+    if(!file.open(QIODevice::ReadOnly)||file.size()>MaxBytes){fail("Couldn't open this avatar.");return;}
+    preparePicture(file.read(MaxBytes+1));
+}
 void SocialMedia::preparePicture(QByteArray bytes) {
     state_="preparing";emit changed();const auto generation=generation_;
     auto* watcher=new QFutureWatcher<QByteArray>(this);

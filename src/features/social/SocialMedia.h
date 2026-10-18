@@ -35,6 +35,8 @@ public:
     QVariantList levels() const;
     double progress() const;
     QVariantList pictures() const;
+    static QVariantList profileAvatars();
+    void chooseProfileAvatar(const QString& id);
     void choosePicture(const QString& path);
     void record();
     void stopRecording();

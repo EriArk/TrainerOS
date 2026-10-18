@@ -97,7 +97,7 @@ QVariantList CommunicationSettings::rows() const{
     auto row=[](QString title,QString detail,QString kind="action",QString section={}){return QVariantMap{{"title",title},{"detail",detail},{"kind",kind},{"section",section}};};
     if(choosingAvatar_){
         QVariantList result;
-        for(const auto& item:pictures_){auto value=row(item.toMap()["name"].toString(),"","picture");value["image"]=QUrl::fromLocalFile(item.toMap()["path"].toString());result.append(value);}
+        for(const auto& item:pictures_){auto value=row(item.toMap()["name"].toString(),"","picture");value["image"]=item.toMap().contains("builtin")?item.toMap()["image"]:QVariant(QUrl::fromLocalFile(item.toMap()["path"].toString()));result.append(value);}
         result.append(row("Remove picture","","action"));result.append(row("Cancel","","action"));return result;
     }
     if(state["userId"].toString().isEmpty()){auto login=row(state["code"].toString().isEmpty()?"Sign in":"Cancel sign-in",state["code"].toString().isEmpty()?state["status"].toString():"Open fluxer.app/handoff · "+state["code"].toString());if(profileOnly_)return {login,row("Switch Trainer","Use another local profile","trainer-switch")};return {login};}
@@ -115,7 +115,7 @@ QVariantList CommunicationSettings::rows() const{
     }
     QVariantList result{
         row("Display name",user["name"].toString().isEmpty()?state["name"].toString():user["name"].toString(),"action","Profile"),
-        row("Profile picture","Choose from Pictures"),row("About me",user["bio"].toString().isEmpty()?"Add a little about yourself":user["bio"].toString()),
+        row("Profile picture","Avatars and your Pictures"),row("About me",user["bio"].toString().isEmpty()?"Add a little about yourself":user["bio"].toString()),
         row("Microphone",deviceLabel("input"),"choice","Audio"),row("Audio output",deviceLabel("output"),"choice"),
         row("Call volume","","volume"),row(testing_?"Stop microphone test":"Test microphone",testing_?"Listening locally · 10 seconds":"See your microphone level"),
         row("Do Not Disturb",state["doNotDisturb"].toBool()?"On":"Off","toggle","Notifications"),
@@ -166,11 +166,11 @@ void CommunicationSettings::activate(int index){
         if(index==3){editProfile();return;}
     }
     if(choosingAvatar_){
-        if(index<pictures_.size()){pendingAvatar_=true;avatar_.choosePicture(pictures_[index].toMap()["path"].toString());}
+        if(index<pictures_.size()){pendingAvatar_=true;const auto picture=pictures_[index].toMap();if(picture.contains("builtin"))avatar_.chooseProfileAvatar(picture["builtin"].toString());else avatar_.choosePicture(picture["path"].toString());}
         else {if(index==pictures_.size())send("profile-update",{{"field","avatar"},{"value",""}});choosingAvatar_=false;focus_=1;}
     }else if(account()["userId"].toString().isEmpty())send(account()["code"].toString().isEmpty()?"login":"cancel-login");
     else if(index==0||index==2){textField_=index==0?"global_name":"bio";emit textRequested(index==0?"Display name":"About me",profile()[index==0?"name":"bio"].toString(),index==0?32:320);}
-    else if(index==1){pictures_=avatar_.pictures();choosingAvatar_=true;focus_=0;}
+    else if(index==1){pictures_=SocialMedia::profileAvatars()+avatar_.pictures();choosingAvatar_=true;focus_=0;}
     else if(index==3||index==4)cycleDevice(index==3?"input":"output",1);
     else if(index==6){if(testing_)stopTest();else startTest();}
     else if(index>=7&&index<=9)send(index==7?"dnd":index==8?"notification-sound":"private");

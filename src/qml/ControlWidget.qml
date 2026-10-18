@@ -17,16 +17,19 @@ Rectangle {
     property real dragX: 0
     property real dragY: 0
     signal moved(real dx,real dy)
-    radius: 18
+    readonly property color material: Qt.tint(Theme.paper,"#14c3a068")
+    radius: Math.min(25,width/2)
     color: Theme.paper
     border.width: selected ? 2 : 1
     border.color: selected ? Theme.focusGlow : Qt.darker(Theme.paper,1.17)
     gradient: Gradient {
-        GradientStop { position: 0; color: Qt.lighter(root.kind === "downloads" || root.kind === "scraper" || (root.radio && root.radioData.level === 1) ? root.accent : Theme.paper,1.08) }
-        GradientStop { position: 1; color: root.kind === "downloads" || root.kind === "scraper" || (root.radio && root.radioData.level === 1) ? Qt.darker(root.accent,1.04) : Qt.darker(Theme.paper,1.045) }
+        GradientStop { position: 0; color: Qt.lighter(root.kind === "downloads" || root.kind === "scraper" ? root.accent : root.material,1.08) }
+        GradientStop { position: .5; color: root.kind === "downloads" || root.kind === "scraper" ? root.accent : root.material }
+        GradientStop { position: 1; color: Qt.darker(root.kind === "downloads" || root.kind === "scraper" ? root.accent : root.material,1.12) }
     }
-    Rectangle { z: -1; x: 1; y: 4; width: parent.width; height: parent.height; radius: parent.radius; color: "#24342b22" }
-    Rectangle { anchors.fill: parent; anchors.margins: 4; radius: 14; color: "transparent"; border.color: "#8afffff2" }
+    Rectangle { z: -1; x: -1; y: 5; width: parent.width+2; height: parent.height; radius: parent.radius; color: "#30342b22" }
+    Rectangle { anchors.fill: parent; anchors.margins: 3; radius: parent.radius-3; color: "transparent"; border.color: "#b0fffbe8" }
+    Rectangle { anchors.fill: parent; anchors.margins: 6; radius: parent.radius-6; color: "transparent"; border.color: "#204f3920" }
     transform: Translate { x: root.dragX; y: root.dragY }
     MouseArea {
         anchors.fill: parent
@@ -45,7 +48,15 @@ Rectangle {
     Item {
         anchors.fill: parent; anchors.margins: 12
         enabled: !root.board.editing
-        MenuGlyph { id: glyph; anchors.horizontalCenter: parent.horizontalCenter; y: root.slider?7:root.kind==="battery"?1:8; width: root.radio?Math.min(34,parent.width-4):root.kind==="battery"?24:30; height: width; glyph: root.icon; visible: root.kind !== "clock" && root.kind !== "storage" && root.kind !== "downloads"
+        Rectangle { id: radioCap; visible: root.radio; anchors.horizontalCenter: parent.horizontalCenter; y: 2; width: Math.min(63,parent.width+5); height: width; radius: width/2
+            readonly property color tone: root.radioData.level===1?root.accent:root.material
+            Rectangle { z: -1; x: -2; y: 4; width: parent.width+4; height: parent.height; radius: width/2; color: "#35463824" }
+            gradient: Gradient { GradientStop { position: 0; color: Qt.lighter(radioCap.tone,1.18) } GradientStop { position: 1; color: Qt.darker(radioCap.tone,1.15) } }
+            border.color: Qt.darker(tone,1.25)
+            Rectangle { anchors.fill: parent; anchors.margins: 3; radius: width/2; color: "transparent"; border.color: "#a6fffbe9" }
+            MenuGlyph { anchors.centerIn: parent; width: parent.width*.48; height: width; glyph: root.icon }
+        }
+        MenuGlyph { id: glyph; anchors.horizontalCenter: parent.horizontalCenter; y: root.slider?7:root.kind==="battery"?1:8; width: root.kind==="battery"?24:30; height: width; glyph: root.icon; visible: !root.radio && root.kind !== "clock" && root.kind !== "storage" && root.kind !== "downloads"
             MouseArea { anchors.fill: parent; enabled: root.kind==="volume"; onClicked: root.shell.systemAction("volume") }
         }
         Text { id: label; x: -4; width: parent.width+8; anchors.bottom: parent.bottom; anchors.bottomMargin: root.slider?3:5; text: root.modelData.title; font.family: Theme.displayFamily; font.pixelSize: root.width<78?11:16; fontSizeMode: Text.HorizontalFit; minimumPixelSize: 9; color: Theme.ink; horizontalAlignment: Text.AlignHCenter; elide: Text.ElideRight; visible: root.kind !== "storage" && root.kind !== "downloads" && root.kind !== "clock" }
@@ -65,7 +76,7 @@ Rectangle {
                 function set(x){root.shell.device.setQuickLevel(root.kind==="volume"?0:1,Math.round(x/width*100))} }
         }
         Text { anchors.horizontalCenter: parent.horizontalCenter; anchors.bottom: label.top; anchors.bottomMargin: 8; text: root.level>=0?root.level+"%":"—"; font.pixelSize: root.height>180?22:15; font.bold: true; color: Theme.ink; visible: root.slider }
-        Text { x: 0; y: 57; width: parent.width; text: root.radioData.level<0?"Unavailable":root.radioData.level===1?"On":"Off"; font.pixelSize: 12; color: Theme.ink; horizontalAlignment: Text.AlignHCenter; visible: root.radio }
+        Text { x: 0; y: radioCap.y+radioCap.height+9; width: parent.width; text: root.radioData.level<0?"Unavailable":root.radioData.level===1?"On":"Off"; font.pixelSize: 12; color: Theme.ink; horizontalAlignment: Text.AlignHCenter; visible: root.radio }
         Column { x: 7; y: 12; width: parent.width-14; spacing: 14; visible: root.kind === "downloads"
             Text { text: "Downloads"; color: Theme.ink; font.family: Theme.displayFamily; font.pixelSize: root.width<180?16:23 }
             Text { width: parent.width; text: root.shell.downloads.summary; font.pixelSize: root.width<180?11:15; color: Theme.ink; elide: Text.ElideRight }

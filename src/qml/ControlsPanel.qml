@@ -4,6 +4,8 @@ Panel {
     id: root
     required property var shell
     property var board: shell.controls
+    radius: 30
+    surface: Qt.tint(Theme.paper,"#09c29948")
     patterned: true
     Text { x: 28; y: 23; text: "Controls"; font.family: Theme.displayFamily; font.pixelSize: 30; color: Theme.ink }
     CapButton { x: 190; y: 23; width: 88; height: 32; label: root.board.editing?"Done":"Edit"; textSize: 15; centered: true; tint: Theme.paper; selected: root.board.selected === "edit"; onActivated: root.board.edit() }

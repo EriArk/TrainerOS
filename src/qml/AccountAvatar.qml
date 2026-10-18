@@ -5,10 +5,16 @@ Item {
     property string source: ""
     property string name: ""
     property string presence: ""
+    readonly property color accent: {
+        let hash=0; for(let i=0;i<name.length;++i)hash=(hash*31+name.charCodeAt(i))>>>0
+        return [Theme.blue,Theme.green,Theme.pink,Theme.yellow,Theme.tabColors[4]][hash%5]
+    }
     width: 42; height: width
     Rectangle { anchors.fill: parent; anchors.topMargin: 3; anchors.bottomMargin: -3; radius: width/2; color: "#50142324" }
     Rectangle { anchors.fill: parent; radius: width/2; color: Theme.chassisFoot; border.color: Theme.edgeLight; border.width: 1 }
-    Rectangle { anchors.fill: parent; anchors.margins: 3; radius: width/2; color: Theme.blue
+    Rectangle { anchors.fill: parent; anchors.margins: 3; radius: width/2
+        gradient: Gradient { GradientStop { position: 0; color: Qt.lighter(root.accent,1.23) } GradientStop { position: .6; color: root.accent } GradientStop { position: 1; color: Qt.darker(root.accent,1.16) } }
+        border.color: "#b3fff7dc"
         Text { anchors.centerIn: parent; text: (root.name || "?").substring(0,1).toUpperCase(); color: Theme.ink; font.family: Theme.displayFamily; font.pixelSize: parent.width*.5; textFormat: Text.PlainText }
     }
     Canvas {

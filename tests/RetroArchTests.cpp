@@ -39,6 +39,25 @@ class RetroArchTests final : public QObject {
         );
     }
 private slots:
+    void appearanceCategoriesRetainValuesAndOperations() {
+        const auto id=QUuid::createUuid().toString();
+        const auto original=retroarch::appearanceActions(id);
+        const auto root=retroarch::appearanceMenu(id);QCOMPARE(root.size(),6);
+        QCOMPARE(root[0].toMap()["id"].toString(),QString("ratio"));
+        QVERIFY(!root[0].toMap()["detail"].toString().isEmpty());
+        QCOMPARE(root[1].toMap()["gridX"].toInt(),1);
+        QCOMPARE(root[2].toMap()["gridY"].toInt(),1);
+        QCOMPARE(retroarch::appearanceActions(id),original); // browsing never writes preferences
+        QVERIFY(retroarch::changeAppearance(id,"ratio"));
+        QVERIFY(retroarch::appearanceMenu(id)[0].toMap()["detail"]!=root[0].toMap()["detail"]);
+        const auto shaders=retroarch::appearanceMenu(id,"shaders"),frames=retroarch::appearanceMenu(id,"frames");
+        QCOMPARE(shaders[0].toMap()["id"].toString(),QString("choose-shader"));
+        QCOMPARE(shaders[1].toMap()["detail"].toString(),QString("Preview now"));
+        QCOMPARE(frames[0].toMap()["id"].toString(),QString("choose-bezel"));
+        QVERIFY(retroarch::appearanceMenu(id,"unknown").isEmpty());
+        QVERIFY(retroarch::changeAppearance(id,"reset-appearance"));
+    }
+
     void batteryPairSeedsAndReturnsOnlyTheOwnedMachine_data() {
         QTest::addColumn<bool>("gba");QTest::addColumn<int>("saveSize");QTest::addColumn<int>("players");
         QTest::newRow("gb-mbc1")<<false<<32768<<2;

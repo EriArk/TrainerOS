@@ -11,6 +11,7 @@
 #include "integrations/social/CommunityIdentity.h"
 #include "integrations/social/LobbyChatIdentity.h"
 #include "features/social/SocialController.h"
+#include "features/social/SocialMedia.h"
 #include "features/social/PlayerOverlayController.h"
 #include "features/adventure/AdventureExitPresentation.h"
 #include <QJsonArray>
@@ -1239,6 +1240,16 @@ private slots:
         s.command("audio-settings",{{"volume",105}});QCOMPARE(s.voiceVolume_,100);
         QCOMPARE(s.voiceInput_,QString("headset"));
         s.setOwner("trainer-b",2);QVERIFY(s.voiceInput_.isEmpty());QVERIFY(s.voiceOutput_.isEmpty());QCOMPARE(s.voiceVolume_,100);
+    }
+    void builtInAvatarPreparationIsBoundedAndDoesNotSend() {
+        SocialMedia media;
+        QCOMPARE(SocialMedia::profileAvatars().size(),6);
+        media.chooseProfileAvatar("../../profile");QCOMPARE(media.state(),QString("error"));
+        media.chooseProfileAvatar("fox");
+        QTRY_COMPARE(media.state(),QString("picture"));
+        QVERIFY(!media.bytes().isEmpty());
+        QVERIFY(media.bytes().size()<1024*1024);
+        media.clear();QVERIFY(media.bytes().isEmpty());
     }
     void profileAvatarAcceptsShortProviderHashesButNotPaths() {
         FluxerSession s;bind(s);

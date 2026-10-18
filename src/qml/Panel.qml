@@ -12,7 +12,7 @@ Rectangle {
     Rectangle {
         anchors.fill: parent
         anchors.margins: 9
-        radius: 6
+        radius: Math.max(1, root.radius - 9)
         color: root.surface
         border.color: Theme.screenContact
         border.width: 1

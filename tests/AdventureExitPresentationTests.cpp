@@ -102,6 +102,22 @@ private slots:
         QVERIFY(!view.exitFromMenu());
         exit.endSession(true);QVERIFY(!view.visible());
     }
+    void settingsGridUsesSpatialDirectionsWithoutActivating() {
+        AdventureExitController exit;AdventureExitPresentation view(exit);
+        exit.beginSession(AdventureSavePolicy::ManualConfirm);exit.setAvailable(true);
+        QSignalSpy preview(&view,&AdventureExitPresentation::menuCaptureRequested),actions(&view,&AdventureExitPresentation::menuActionRequested);
+        QVERIFY(view.requestMenu());view.menuCaptureCompleted(preview.last()[0].toULongLong(),{});
+        view.setInputIsolated(true);view.setWindowFocused(true);
+        QVariantList rows;for(int i=0;i<6;++i)rows.append(QVariantMap{{"id",QString::number(i)},{"gridX",i%2},{"gridY",i/2}});
+        view.setPanel("display","Game settings",rows);
+        auto press=[&](bool right,bool down,bool confirm=false){view.updateInput(view.inputGeneration(),{true,true});ExitInputSnapshot input;input.connected=true;input.right=right;input.down=down;input.confirm=confirm;view.updateInput(view.inputGeneration(),input);};
+        press(true,false);QCOMPARE(view.menuFocus(),1);
+        press(true,false);QCOMPARE(view.menuFocus(),1);
+        press(false,true,true);QCOMPARE(view.menuFocus(),3);QVERIFY(actions.isEmpty());
+        press(false,true);QCOMPARE(view.menuFocus(),5);
+        view.setPanel("display-frames","Frames",{QVariantMap{{"id","choose-bezel"}}},"display");
+        view.updateInput(view.inputGeneration(),{true,true});view.cancel();QCOMPARE(actions.last()[0].toString(),QString("display"));
+    }
     void appearancePickerBackRetainsMenuAndHomeStillReturnsToGame() {
         AdventureExitController exit;AdventureExitPresentation view(exit);
         exit.beginSession(AdventureSavePolicy::ManualConfirm);exit.setAvailable(true);

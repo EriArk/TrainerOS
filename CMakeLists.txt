@@ -358,6 +358,10 @@ qt_add_resources(traineros crates_art PREFIX "/crates" BASE assets/crates
     FILES assets/crates/illustrations-wide.png assets/crates/gamepad.svg
     ${crates_example_images} ${crates_example_notices} assets/crates/examples/sources.json)
 set_source_files_properties(src/qml/Theme.qml PROPERTIES QT_QML_SINGLETON_TYPE TRUE)
+file(GLOB profile_avatars CONFIGURE_DEPENDS assets/avatars/*.png)
+qt_add_resources(traineros profile_avatars PREFIX "/avatars" BASE assets/avatars FILES ${profile_avatars})
+install(FILES ${profile_avatars} assets/avatars/README.md DESTINATION ${CMAKE_INSTALL_DATADIR}/traineros/avatars)
+
 file(GLOB trainer_qml_sources CONFIGURE_DEPENDS src/qml/*.qml src/qml/*.js)
 foreach(qml_file IN LISTS trainer_qml_sources)
     get_filename_component(qml_name "${qml_file}" NAME)
@@ -437,6 +441,8 @@ qt_add_qml_module(traineros
         src/qml/ShellOptions.qml
         src/qml/GameOptions.qml
         src/qml/GameActivity.qml
+        src/qml/GameFrame.qml
+        src/qml/GameSettingTile.qml
         src/qml/ActivityRow.qml
         src/qml/PassiveNotice.qml
         src/qml/LeagueBadge.qml
@@ -691,6 +697,7 @@ if(BUILD_TESTING)
     # to that file instead of defining them for every generated QML unit.
     set_source_files_properties(src/app/Main.cpp PROPERTIES COMPILE_DEFINITIONS TRAINEROS_UI_TESTS)
     qt_add_executable(trainer_social_tests tests/SocialTests.cpp)
+    qt_add_resources(trainer_social_tests profile_avatar_test_assets PREFIX "/avatars" BASE assets/avatars FILES ${profile_avatars})
     qt_add_executable(trainer_game_party_tests tests/GamePartyTests.cpp)
     qt_add_executable(trainer_lobby_tests tests/LobbyTests.cpp)
     qt_add_executable(trainer_contacts_tests tests/TemporaryContactsTests.cpp)
