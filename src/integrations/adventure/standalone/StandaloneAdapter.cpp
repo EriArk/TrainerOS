@@ -17,6 +17,8 @@ QStringList allowedPlatforms(const QString& id) {
     if (id == "armsx2") return {"ps2"};
     if (id == "cemu") return {"wiiu"};
     if (id == "duckstation") return {"psx"};
+    if (id == "rpcs3") return {"ps3"};
+    if (id == "eden") return {"switch"};
     if (id == "azahar") return {"n3ds"};
     if (id == "vita3k") return {"psvita"};
     if (id == "melonds") return {"nds"};
@@ -28,6 +30,8 @@ QStringList extensions(const QString& platform) {
     if (platform == "ps2") return {"iso", "chd", "cso", "bin", "gz"};
     if (platform == "wiiu") return {"wud", "wux", "wua", "rpx"};
     if (platform == "psx") return {"cue", "chd", "pbp", "m3u", "exe"};
+    if (platform == "ps3") return {"self", "elf"};
+    if (platform == "switch") return {"nro", "nsp", "xci"};
     if (platform == "n3ds") return {"3dsx", "cci", "cxi"};
     if (platform == "psvita") return {"psvita"};
     if (platform == "nds") return {"nds"};
@@ -116,6 +120,8 @@ std::optional<ProcessCommand> StandaloneAdapter::command(const Adventure& advent
     else if (id_ == "armsx2") arguments << "-batch" << "-fullscreen" << "--" << record->contentPath;
     else if (id_ == "cemu") arguments << "-f" << "-g" << record->contentPath;
     else if (id_ == "duckstation") arguments << "-batch" << "-fullscreen" << "--" << record->contentPath;
+    else if (id_ == "rpcs3") arguments << "--no-gui" << "--fullscreen" << record->contentPath;
+    else if (id_ == "eden") arguments << "-f" << "-g" << record->contentPath;
     else if (id_ == "dolphin") arguments << "-b" << "-C" << "Dolphin.Display.Fullscreen=True"
         << "-C" << "Dolphin.Interface.ConfirmStop=False" << "-e" << record->contentPath;
     else return {};

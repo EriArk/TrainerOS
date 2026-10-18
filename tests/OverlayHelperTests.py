@@ -26,7 +26,11 @@ class OverlayHelperTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             root=Path(directory);process=root/'42';process.mkdir()
             for name, args in (('Cemu',b'Cemu\0-f\0-g\0game.wua\0'),
-                               ('duckstation-qt',b'duckstation-qt\0-batch\0-fullscreen\0--\0game.chd\0')):
+                               ('duckstation-qt',b'duckstation-qt\0-batch\0-fullscreen\0--\0game.chd\0'),
+                               ('rpcs3',b'rpcs3\0--no-gui\0--fullscreen\0game.self\0'),
+                               ('rpcs3.AppImage',b'AppRun.wrapped\0--no-gui\0--fullscreen\0game.self\0'),
+                               ('eden.AppImage',b'eden\0-f\0-g\0game.nro\0'),
+                               ('eden',b'eden\0-f\0-g\0game.nro\0')):
                 target=process/'exe'
                 if target.is_symlink():target.unlink()
                 target.symlink_to('/app/bin/'+name)

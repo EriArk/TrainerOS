@@ -21,6 +21,8 @@ the emulator or save namespace.
 |---|---|---|
 | PPSSPP | PPSSPPSDL/ppsspp; org.ppsspp.PPSSPP | PSP standalone preference |
 | ARMSX2 | ARMSX2/armsx2; existing explicit wrapper wins | PS2; existing Odin setup retained |
+| RPCS3 | rpcs3/RPCS3; rpcs3.AppImage | PS3 SELF/ELF; separate TrainerOS SDL input profile, existing global profile retained |
+| Eden | eden; eden.AppImage | Switch NRO/NSP/XCI; initial SDL bindings only when config is absent |
 | melonDS | melonDS/AppImage; net.kuribo64.melonDS | Ordinary DS, existing optional pointer bridge reused |
 | Dolphin | dolphin-emu; org.DolphinEmu.dolphin-emu | Existing GC/Wii adapter; Wii controls remain separate |
 | RetroArch | retroarch; org.libretro.RetroArch | Existing platform/format registry and installed cores |
@@ -51,6 +53,13 @@ Fresh configuration files are seeded only if absent:
   mappings are never replaced. No generic Wii motion mapping is fabricated.
 - PPSSPP keeps upstream SDL defaults and existing controls. ARMSX2 keeps its
   existing emulator setup; no PS2 firmware/memory-card/controller rewrite.
+- RPCS3: a separate named TrainerOS SDL profile for the detected pad; selected
+  only for the new discovered launch route, without changing the existing global
+  profile. Fresh window/renderer settings suppress duplicate prompts and use
+  Vulkan/ordinary async shaders; existing settings are preserved. Explicit
+  migration with backup is separate: [maintenance](emulators/rpcs3.md).
+- Eden: actual SDL button/hat/axis mappings with its GUID convention. Existing
+  configs remain untouched. [Maintenance](emulators/eden.md).
 
 If a pad was absent, the missing initial DS/GC mapping can be seeded at a later
 startup with the controller connected. Notices are diagnostic logs, not new UI.

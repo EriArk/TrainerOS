@@ -63,7 +63,7 @@ Checked 2026-09-28:
 - [Libretro core info](https://github.com/libretro/libretro-core-info): supported extensions and firmware/resource requirements.
 - [PPSSPP setup](https://docs.libretro.com/library/ppsspp/): required redistributable helper assets, separate from a PSP BIOS.
 - [ARMSX2](https://github.com/ARMSX2/ARMSX2): native ARM64 PS2 route; requires its resources and a user BIOS.
-- [RPCS3 ARM64 binaries](https://github.com/RPCS3/rpcs3-binaries-linux-arm64) and [Eden releases](https://git.eden-emu.dev/eden-emu/eden/releases): reason to retain PS3/Switch folder slots. Their TrainerOS launch adapters are still pending.
+- [RPCS3 ARM64 binaries](https://github.com/RPCS3/rpcs3-binaries-linux-arm64) and [Eden releases](https://git.eden-emu.dev/eden-emu/eden/releases): shared TrainerOS launch adapters are delivered. Bounded Odin homebrew evidence and remaining Eden gaps: [LAUNCH-80](LAUNCH80_LAUNCHER_AUDIT.md#odin-homebrew--18-октября).
 
 ## Verification
 
@@ -90,8 +90,8 @@ alive; confirm returned to TrainerOS. That earlier probe used the PPSSPP Libretr
 core. The standalone delivery below supersedes its pending-route status.
 
 The earlier 128 MiB exit-picture limitation is resolved by the delivery below.
-Native PS3/Switch and per-system resource/controller proof beyond the
-representative launches remain pending.
+PS3/Switch now have bounded homebrew evidence linked above; resource/controller
+proof beyond the representative launches and Eden's remaining UX gaps stay open.
 
 Earlier installed production build:
 `b77a24e79e7282fac55ebedbae83eae398207ec88bdc2eb9efe65203669ce49c`.

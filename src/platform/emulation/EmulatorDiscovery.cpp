@@ -18,6 +18,8 @@ const QList<Route> routes{
     {"armsx2", {}, "ARMSX2", {"ARMSX2", "armsx2"}, {"ps2"}},
     {"cemu", "info.cemu.Cemu", "Cemu", {"Cemu", "cemu"}, {"wiiu"}},
     {"duckstation", "org.duckstation.DuckStation", "duckstation-qt", {"duckstation-qt", "DuckStation", "duckstation"}, {"psx"}},
+    {"rpcs3", {}, "rpcs3", {"rpcs3", "RPCS3"}, {"ps3"}},
+    {"eden", {}, "eden", {"eden"}, {"switch"}},
     {"melonds", "net.kuribo64.melonDS", "melonDS", {"melonDS"}, {"nds"}},
     {"azahar", "org.azahar_emu.Azahar", "azahar", {"azahar"}, {"n3ds"}},
     {"vita3k", {}, "vita3k", {"vita3k"}, {"psvita"}},
@@ -73,7 +75,22 @@ QByteArray dolphinDefaults(const EmulatorEnvironment& env) {
         "D-Pad/Up = `Pad N`\nD-Pad/Down = `Pad S`\nD-Pad/Left = `Pad W`\nD-Pad/Right = `Pad E`\n";
 }
 void controllerDefaults(const Route& route, const QString& configDir, const EmulatorEnvironment& env, QStringList& notices) {
-    if (route.id == "azahar") {
+    if (route.id == "rpcs3") {
+        // TrainerOS already confirms Exit; leave existing desktop preferences alone.
+        if (!seed(QDir(configDir).filePath("GuiConfigs/CurrentSettings.ini"),
+                  "[main_window]\ninfoBoxEnabledWelcome=false\nconfirmationBoxExitGame=false\n"))
+            notices << "rpcs3: initial window settings unavailable";
+        if (!seed(QDir(configDir).filePath("config.yml"),
+                  "Video:\n  Renderer: Vulkan\n  Shader Mode: Async Recompiler (multi-threaded)\n"))
+            notices << "rpcs3: initial renderer settings unavailable";
+    } else if (route.id == "eden") {
+        if (env.switchBindings.isEmpty()) return;
+        QByteArray bytes = "[Controls]\nplayer_0_connected=true\nplayer_0_connected\\default=false\n";
+        for (auto it=env.switchBindings.cbegin(); it!=env.switchBindings.cend(); ++it)
+            bytes += "player_0_" + it.key().toUtf8() + "=\"" + it.value().toUtf8()
+                + "\"\nplayer_0_" + it.key().toUtf8() + "\\default=false\n";
+        if (!seed(QDir(configDir).filePath("qt-config.ini"),bytes)) notices << "eden: initial controls unavailable";
+    } else if (route.id == "azahar") {
         const auto config = QDir(configDir).filePath("qt-config.ini");
         QByteArray bytes="[UI]\nfirstStart=false\nfirstStart\\default=false\nconfirmClose=false\nconfirmClose\\default=false\n"
             "[Renderer]\ngraphics_api=2\ngraphics_api\\default=false\nresolution_factor=1\nresolution_factor\\default=false\n"
@@ -143,6 +160,43 @@ EmulatorEnvironment installedEmulators(const QString& stateDirectory, const QStr
     if (sdlReady && SDL_NumJoysticks() > 0 && SDL_IsGameController(0)) {
         if (auto* pad = SDL_GameControllerOpen(0)) {
             env.controllerName = QString::fromUtf8(SDL_GameControllerName(pad));
+            char guid[33]{};
+            auto switchGuid=SDL_JoystickGetGUID(SDL_GameControllerGetJoystick(pad));
+            // Eden ignores SDL's controller-name CRC when identifying a device.
+            switchGuid.data[2]=switchGuid.data[3]=0;
+            SDL_JoystickGetGUIDString(switchGuid,guid,sizeof(guid));
+            const QString prefix = "engine:sdl,port:0,guid:" + QString::fromLatin1(guid);
+            const auto bind = [&](const QString& key, SDL_GameControllerButtonBind binding) {
+                QString value;
+                if (binding.bindType == SDL_CONTROLLER_BINDTYPE_BUTTON)
+                    value = ",button:" + QString::number(binding.value.button);
+                else if (binding.bindType == SDL_CONTROLLER_BINDTYPE_AXIS)
+                    value = ",axis:" + QString::number(binding.value.axis) + ",threshold:0.5,invert:+";
+                else if (binding.bindType == SDL_CONTROLLER_BINDTYPE_HAT) {
+                    const QHash<int,QString> directions{{SDL_HAT_UP,"up"},{SDL_HAT_DOWN,"down"},{SDL_HAT_LEFT,"left"},{SDL_HAT_RIGHT,"right"}};
+                    const auto direction = directions.value(binding.value.hat.hat_mask);
+                    if (!direction.isEmpty()) value = ",hat:" + QString::number(binding.value.hat.hat) + ",direction:" + direction;
+                }
+                if (!value.isEmpty()) env.switchBindings.insert("button_"+key,prefix+value);
+            };
+            const QList<QPair<QString,SDL_GameControllerButton>> switchButtons{
+                {"a",SDL_CONTROLLER_BUTTON_B},{"b",SDL_CONTROLLER_BUTTON_A},
+                {"x",SDL_CONTROLLER_BUTTON_Y},{"y",SDL_CONTROLLER_BUTTON_X},
+                {"l",SDL_CONTROLLER_BUTTON_LEFTSHOULDER},{"r",SDL_CONTROLLER_BUTTON_RIGHTSHOULDER},
+                {"plus",SDL_CONTROLLER_BUTTON_START},{"minus",SDL_CONTROLLER_BUTTON_BACK},
+                {"lstick",SDL_CONTROLLER_BUTTON_LEFTSTICK},{"rstick",SDL_CONTROLLER_BUTTON_RIGHTSTICK},
+                {"dup",SDL_CONTROLLER_BUTTON_DPAD_UP},{"ddown",SDL_CONTROLLER_BUTTON_DPAD_DOWN},
+                {"dleft",SDL_CONTROLLER_BUTTON_DPAD_LEFT},{"dright",SDL_CONTROLLER_BUTTON_DPAD_RIGHT}};
+            for (const auto& [key,button] : switchButtons) bind(key,SDL_GameControllerGetBindForButton(pad,button));
+            bind("zl",SDL_GameControllerGetBindForAxis(pad,SDL_CONTROLLER_AXIS_TRIGGERLEFT));
+            bind("zr",SDL_GameControllerGetBindForAxis(pad,SDL_CONTROLLER_AXIS_TRIGGERRIGHT));
+            for (int stick=0; stick<2; ++stick) {
+                const auto x=SDL_GameControllerGetBindForAxis(pad,stick==0?SDL_CONTROLLER_AXIS_LEFTX:SDL_CONTROLLER_AXIS_RIGHTX);
+                const auto y=SDL_GameControllerGetBindForAxis(pad,stick==0?SDL_CONTROLLER_AXIS_LEFTY:SDL_CONTROLLER_AXIS_RIGHTY);
+                if (x.bindType==SDL_CONTROLLER_BINDTYPE_AXIS && y.bindType==SDL_CONTROLLER_BINDTYPE_AXIS)
+                    env.switchBindings.insert(stick==0?"lstick":"rstick",prefix+",axis_x:"+QString::number(x.value.axis)
+                        +",axis_y:"+QString::number(y.value.axis)+",deadzone:0.15,range:1.0");
+            }
             const QList<QPair<QString, SDL_GameControllerButton>> buttons{
                 {"A",SDL_CONTROLLER_BUTTON_B},{"B",SDL_CONTROLLER_BUTTON_A},{"X",SDL_CONTROLLER_BUTTON_Y},{"Y",SDL_CONTROLLER_BUTTON_X},
                 {"L",SDL_CONTROLLER_BUTTON_LEFTSHOULDER},{"R",SDL_CONTROLLER_BUTTON_RIGHTSHOULDER},
@@ -208,7 +262,7 @@ EmulatorDiscovery prepareEmulators(const EmulatorEnvironment& env) {
             const auto manifest=readProfile(QFileInfo(launcher).dir().filePath("../manifest.json"));
             if(manifest["protocol"]!=1||manifest["source"]!="46602447c7f84d53790b44e1869ab5105178bf16"||manifest["settings"]!="native-lan-two-owned-v1")continue;
         }
-        if ((route.id == "melonds" || route.id == "dolphin" || route.id == "azahar" || route.id == "vita3k" || route.id == "cemu" || route.id == "duckstation") && executable(env.executables.value("python3"))) {
+        if ((route.id == "melonds" || route.id == "dolphin" || route.id == "azahar" || route.id == "vita3k" || route.id == "cemu" || route.id == "duckstation" || route.id == "rpcs3" || route.id == "eden") && executable(env.executables.value("python3"))) {
             const QStringList helpers{QDir(env.home).filePath(".local/libexec/traineros/controller-bridge.py"),
                 "/var/opt/traineros/integrations/controller-bridge.py"};
             for (const auto& helper : helpers) if (QFileInfo(helper).isFile()) {
@@ -247,6 +301,25 @@ EmulatorDiscovery prepareEmulators(const EmulatorEnvironment& env) {
             profile["backupProtocol"] = "mgba-sram-v1"; // Existing runtime checks still gate save ownership.
         } else {
             controllerDefaults(route, configDir, env, result.notices);
+            if (route.id == "rpcs3" && !env.controllerName.isEmpty()) {
+                // Separate named input profile: keep the user's global mapping
+                // (often Steam Virtual Gamepad) intact outside TrainerOS.
+                auto device=QJsonDocument(QJsonArray{env.controllerName+" 1"}).toJson(QJsonDocument::Compact);
+                device=device.mid(1,device.size()-2); // JSON string is also a YAML quoted scalar.
+                QByteArray bytes="Player 1 Input:\n  Handler: SDL\n  Device: "+device+"\n  Config:\n"
+                    "    Left Stick Left: LS X-\n    Left Stick Right: LS X+\n    Left Stick Up: LS Y+\n    Left Stick Down: LS Y-\n"
+                    "    Right Stick Left: RS X-\n    Right Stick Right: RS X+\n    Right Stick Up: RS Y+\n    Right Stick Down: RS Y-\n"
+                    "    Cross: South\n    Circle: East\n    Square: West\n    Triangle: North\n"
+                    "    Up: Up\n    Down: Down\n    Left: Left\n    Right: Right\n"
+                    "    Start: Start\n    Select: Back\n    PS Button: Guide\n"
+                    "    L1: LB\n    R1: RB\n    L2: LT\n    R2: RT\n    L3: LS\n    R3: RS\n";
+                for (int player=2;player<=7;++player)
+                    bytes+="Player "+QByteArray::number(player)+" Input:\n  Handler: \"Null\"\n  Device: \"Null\"\n";
+                if (seed(QDir(configDir).filePath("input_configs/global/TrainerOS.yml"),bytes)) {
+                    arguments.append("--input-config"); arguments.append("TrainerOS");
+                    profile["prefixArguments"]=arguments;
+                } else result.notices << "rpcs3: initial controls unavailable";
+            }
             if (route.id == "melonds" && QFileInfo(configDir + "/melonDS.toml").isFile()) {
                 profile["configFile"] = configDir + "/melonDS.toml";
                 profile["backupProtocol"] = "melonds-sav-v1";

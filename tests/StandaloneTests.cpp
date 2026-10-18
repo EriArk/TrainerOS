@@ -39,6 +39,38 @@ class StandaloneTests final : public QObject {
         QFile file(path); QVERIFY(file.open(QIODevice::WriteOnly)); QCOMPARE(file.write(data), data.size());
     }
 private slots:
+    void modernDiscoverySeedsControlsWithoutReplacingUserSettings() {
+        QTemporaryDir dir; EmulatorEnvironment env;
+        env.home=dir.path(); env.configHome=dir.filePath("config"); env.stateDirectory=dir.filePath("state");
+        env.executables={{"rpcs3",probe()},{"eden",probe()}};
+        env.controllerName="Handheld Pad";
+        env.switchBindings={{"button_a","engine:sdl,port:0,guid:00112233,button:1"},
+            {"lstick","engine:sdl,port:0,guid:00112233,axis_x:0,axis_y:1"}};
+        const auto found=prepareEmulators(env);
+        for (const auto& id:QStringList{"rpcs3","eden"}) {
+            const auto value=StandaloneInstallation::fromJson(found.profiles[id],id);
+            QCOMPARE(value.program,probe()); QCOMPARE(value.platforms,QStringList{id=="eden"?"switch":"ps3"});
+        }
+        QVERIFY(found.profiles["rpcs3"]["prefixArguments"].toArray().contains("--input-config"));
+        QFile pad(dir.filePath("config/rpcs3/input_configs/global/TrainerOS.yml"));
+        QVERIFY(pad.open(QIODevice::ReadOnly)); QVERIFY(pad.readAll().contains("Handheld Pad 1"));
+        const auto rpcsConfig=dir.filePath("config/rpcs3/config.yml");
+        const auto rpcsGui=dir.filePath("config/rpcs3/GuiConfigs/CurrentSettings.ini");
+        QFile graphics(rpcsConfig); QVERIFY(graphics.open(QIODevice::ReadOnly));
+        QVERIFY(graphics.readAll().contains("Async Recompiler (multi-threaded)")); graphics.close();
+        write(rpcsConfig,"existing renderer preferences");
+        write(rpcsGui,"existing desktop preferences");
+        const auto config=dir.filePath("config/eden/qt-config.ini");
+        QFile input(config); QVERIFY(input.open(QIODevice::ReadOnly));
+        QVERIFY(input.readAll().contains("player_0_button_a=\"engine:sdl")); input.close();
+        write(config,"user preferences and controller mapping");
+        prepareEmulators(env); QVERIFY(input.open(QIODevice::ReadOnly));
+        QCOMPARE(input.readAll(),QByteArray("user preferences and controller mapping"));
+        QVERIFY(graphics.open(QIODevice::ReadOnly));
+        QCOMPARE(graphics.readAll(),QByteArray("existing renderer preferences"));
+        QFile gui(rpcsGui); QVERIFY(gui.open(QIODevice::ReadOnly));
+        QCOMPARE(gui.readAll(),QByteArray("existing desktop preferences"));
+    }
     void standaloneAlternativesNeverRebindExistingCoreSaves() {
         MockLibraryRepository library;
         StandaloneAdapter cemu("cemu",library,{probe(),probe(),{},{"wiiu"}});
@@ -570,6 +602,8 @@ private slots:
         QTest::newRow("PS2") << QString("armsx2") << QString("ps2") << QString("chd");
         QTest::newRow("WiiU") << QString("cemu") << QString("wiiu") << QString("wua");
         QTest::newRow("PS1") << QString("duckstation") << QString("psx") << QString("chd");
+        QTest::newRow("PS3-homebrew") << QString("rpcs3") << QString("ps3") << QString("self");
+        QTest::newRow("Switch-homebrew") << QString("eden") << QString("switch") << QString("nro");
         QTest::newRow("GameCube") << QString("dolphin") << QString("gc") << QString("iso");
         QTest::newRow("Wii") << QString("dolphin") << QString("wii") << QString("wad");
     }
@@ -618,6 +652,8 @@ private slots:
             : adapterId == "armsx2" ? QJsonArray{"-batch", "-fullscreen", "--", record.contentPath}
             : adapterId == "cemu" ? QJsonArray{"-f", "-g", record.contentPath}
             : adapterId == "duckstation" ? QJsonArray{"-batch", "-fullscreen", "--", record.contentPath}
+            : adapterId == "rpcs3" ? QJsonArray{"--no-gui", "--fullscreen", record.contentPath}
+            : adapterId == "eden" ? QJsonArray{"-f", "-g", record.contentPath}
             : QJsonArray{"-b", "-C", "Dolphin.Display.Fullscreen=True", "-C", "Dolphin.Interface.ConfirmStop=False", "-e", record.contentPath};
         QCOMPARE(QJsonDocument::fromJson(output.readAll()).array(), arguments); output.close();
         QVERIFY(QFile::remove(receipt)); QVERIFY(QFile::rename(record.contentPath, record.contentPath + ".moved"));

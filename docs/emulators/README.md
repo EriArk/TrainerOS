@@ -17,6 +17,8 @@ a second execution plan or a claim that all installed runtimes are validated.
 
 | Emulator | Record | Scope |
 |---|---|---|
+| RPCS3 | [PS3 homebrew launch](rpcs3.md) | Existing Odin runtime/firmware, shared launch and separate SDL input profile; device cycle recorded in LAUNCH-80 |
+| Eden | [Switch homebrew launch](eden.md) | Official ARM64 0.2.1, shared launch and fresh SDL defaults; device cycle recorded in LAUNCH-80 |
 | Vita3K | [Native LAN integration](vita3k.md) | Installed ordinary invitation, native discovery, paired input, own-data Home/minimize/Exit and idle-loss handling; one reviewed homebrew profile, commercial AdHoc/PSN open |
 | melonDS | [DS delivery](melonds.md) | Installed two-player Nearby/Online invitations, native wireless race/soak and own-save return on Flip/Odin; four-player, broader games/saves, frontend polish and physical/distinct-network acceptance remain open |
 | RetroArch | [Common ARM64 baseline](retroarch.md) | Exact core bundle, two-device alignment, recoverable update/rollback and remaining image/standalone gates |
