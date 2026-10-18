@@ -15,9 +15,56 @@ RetroAchievementsProvider::RetroAchievementsProvider(LibraryRepository& library,
       account_(readAchievementAccount(QDir(directory_).filePath("integrations/retroachievements-account.json"))),
       transport_(transport ? std::move(transport) : retroAchievementsTransport(cancelled_)), worker_(new QObject) {
     worker_->moveToThread(&thread_); connect(&thread_, &QThread::finished, worker_, &QObject::deleteLater); thread_.start();
+    webAccount_=readAchievementAccount(QDir(directory_).filePath("integrations/retroachievements-web-account.json"));
     if (account_.valid()) loadCache();
 }
 RetroAchievementsProvider::~RetroAchievementsProvider() { cancelled_->store(true); thread_.quit(); thread_.wait(); }
+void RetroAchievementsProvider::clearHistory() {
+    ++historyGeneration_;history_.clear();historyBusy_=false;historyMore_=false;historyMessage_.clear();emit historyChanged();
+}
+QString RetroAchievementsProvider::historyStatus() const {
+    if(!hasHistoryKey())return "Account-wide history uses your Web API key from retroachievements.org/settings. Add it in RA account.";
+    return historyMessage_;
+}
+void RetroAchievementsProvider::setHistoryKey(const QString& input) {
+    if(!account_.valid())return;
+    const QString path=QDir(directory_).filePath("integrations/retroachievements-web-account.json");
+    AchievementAccount web{account_.username,input.trimmed()};
+    if(input.trimmed().isEmpty()) {
+        if(QFileInfo::exists(path) && !QFile::remove(path)){message_="Could not remove the saved history key.";emit snapshotChanged({});return;}
+        webAccount_={};clearHistory();message_="History key removed.";
+    } else if(!web.valid() || !writeAchievementAccount(path,web))message_="The Web API key could not be saved. Check the key and try again.";
+    else {webAccount_=web;clearHistory();message_="History key saved privately on this device.";}
+    emit snapshotChanged({});emit historyChanged();
+}
+void RetroAchievementsProvider::fetchHistory(bool more) {
+    if(historyBusy_ || !hasHistoryKey()) {emit historyChanged();return;}
+    if(more && !historyMore_)return;
+    const int offset=more?int(history_.size()):0,generation=historyGeneration_;
+    const auto web=webAccount_;
+    historyBusy_=true;historyMessage_="Loading account history...";emit historyChanged();
+    QMetaObject::invokeMethod(worker_,[this,web,offset,generation] {
+        const auto reply=transport_({{"r","account-history"},{"u",web.username},{"y",web.token},{"c","100"},{"o",QString::number(offset)}});
+        const auto page=reply.success?readAchievementHistoryPage(reply.body):std::optional<QVariantList>{};
+        QMetaObject::invokeMethod(this,[this,web,offset,generation,reply,page] {
+            if(generation!=historyGeneration_ || web.username!=account_.username || web.token!=webAccount_.token)return;
+            historyBusy_=false;
+            if(!page)historyMessage_=reply.offline ? "Offline. Previously loaded history is kept." : "History could not be loaded. Check your Web API key or try again.";
+            else {
+                // Do not advance offsets on duplicate/moving pages: retry from the start.
+                QSet<QString> ids; if(offset)for(const auto& row:history_)ids.insert(row.toMap()["id"].toString());
+                bool duplicate=false;for(const auto& row:*page)if(ids.contains(row.toMap()["id"].toString()))duplicate=true;
+                if(duplicate) {historyMore_=false;historyMessage_="History changed while loading. Refresh to update the list.";}
+                else {
+                    if(!offset)history_.clear();history_.append(*page);
+                    const int total=reply.body["Total"].toInt();historyMore_=!page->isEmpty() && history_.size()<total && history_.size()<10000;
+                    historyMessage_=history_.isEmpty()?"No games in this account's achievement history.":QString("%1 of %2 games").arg(history_.size()).arg(total);
+                }
+            }
+            emit historyChanged();
+        },Qt::QueuedConnection);
+    },Qt::QueuedConnection);
+}
 QString RetroAchievementsProvider::cacheDirectory() const {
     const auto key = QString::fromLatin1(QCryptographicHash::hash(account_.username.toUtf8(), QCryptographicHash::Sha256).toHex());
     return QDir(directory_).filePath("achievements/" + key);
@@ -70,7 +117,7 @@ void RetroAchievementsProvider::login(const QString& username, const QString& pa
             else if (!writeAchievementAccount(QDir(directory_).filePath("integrations/retroachievements-account.json"), account))
                 message_ = "Signed in, but the account could not be saved. Please try again.";
             else {
-                account_ = account; records_.clear(); runtimeIdentities_.clear(); liveAcknowledged_.clear(); pendingRefresh_ = true; loadCache();
+                account_ = account; clearHistory(); records_.clear(); runtimeIdentities_.clear(); liveAcknowledged_.clear(); pendingRefresh_ = true; loadCache();
             }
             emit snapshotChanged({});
         }, Qt::QueuedConnection);
@@ -82,7 +129,7 @@ void RetroAchievementsProvider::disconnectAccount() {
     if (QFileInfo::exists(filename) && !QFile::remove(filename)) {
         message_ = "The saved sign-in could not be removed. Try again."; emit snapshotChanged({}); return;
     }
-    account_ = {}; records_.clear(); runtimeIdentities_.clear();liveAcknowledged_.clear(); pendingRefresh_ = false; pendingAdventure_.clear();pendingNotify_=false;
+    account_ = {}; clearHistory(); webAccount_={}; QFile::remove(QDir(directory_).filePath("integrations/retroachievements-web-account.json")); records_.clear(); runtimeIdentities_.clear();liveAcknowledged_.clear(); pendingRefresh_ = false; pendingAdventure_.clear();pendingNotify_=false;
     message_ = "Signed out. Your local archive remains available."; emit snapshotChanged({});
 }
 bool RetroAchievementsProvider::disconnectForRemoval() {

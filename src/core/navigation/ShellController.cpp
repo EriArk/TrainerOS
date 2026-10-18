@@ -243,6 +243,7 @@ ShellController::ShellController(LibraryRepository& repo, TrainerRepository& pro
         emit changed();
     });
     hall_.editor()->setLibrary(&repo);
+    hall_.setGameLibrary(&repo);
     if (!repo.editable()) hall_.enableSampleJourney();
     hall_.showJourney();
     connect(hall_.account(), &AchievementAccountController::textRequested, this,
@@ -367,7 +368,7 @@ bool ShellController::canEditWorld() const {
 bool ShellController::localModalOpen() {
     return files_.modal() || social_.files()->picker()->isOpen() || (social_.myLobbiesOpen() || social_.lobbyCreateOpen() || social_.lobbyPickerOpen() || social_.lobbyVoteOpen()) || collectionManager()->isOpen() || downloads_.isOpen() || scraper_.isOpen() || (socialActive() && !social_.menu().isEmpty()) || libraryTools_.isOpen() || trainer_.editing()
         || (adapterActive() && activeModule_ && activeModule_->modalOpen())
-        || (page_==GameHubPage && hubFace_=="ra" && (hall_.editor()->isOpen() || hall_.account()->isOpen() || hall_.galleryMenuOpen() || hall_.route()=="achievement-detail"));
+        || (page_==GameHubPage && hubFace_=="ra" && (hall_.editor()->isOpen() || hall_.account()->isOpen() || hall_.galleryMenuOpen() || hall_.historyOpen() || hall_.route()=="achievement-detail"));
 }
 bool ShellController::chooseAdventureAvailable() {
     return !homeMenuOpen_ && (!adapterActive() || !activeModule_ || activeModule_->recentsAllowed())
@@ -409,7 +410,7 @@ void ShellController::setHubFace(const QString& requested) {
         showExperienceScreen(experience_.screen());
         if(switching && activeModule_)activeModule_->restoreNavigation(experience_.navigation()["module"].toObject());
     }
-    else if(face=="ra")hall_.showCurrentAchievements();
+    else if(face=="ra")hall_.showAchievementLibrary();
     else if(face=="lobby")social_.setFace("lobby");
     emit changed();
 }
@@ -583,10 +584,11 @@ void ShellController::syncExperience() {
         if(changing) {
             const auto restored=experience_.navigation();
             activeModule_->restoreNavigation(restored.contains("module")?restored["module"].toObject():restored.contains(descriptor.id)?restored.value(descriptor.id).toObject():restored);
-            hall_.setCurrentAdventure(currentAdventureId());hall_.restoreNavigation(restored["hall"].toObject());
+            hall_.setCurrentAdventure(currentAdventureId());
+            if(!hall_.browsingGames())hall_.restoreNavigation(restored["hall"].toObject());
         }
         if(adapterActive())showExperienceScreen(experience_.screen());
-        else if(hubFace_=="ra")hall_.showCurrentAchievements();
+        else if(hubFace_=="ra")hall_.showAchievementLibrary();
     }
     syncingExperience_=false;
 }
@@ -1488,6 +1490,10 @@ void ShellController::dispatch(Action action) {
         if(page_==GameHubPage && hubFace_=="overview" && overviewFace_=="screens") {
             if(pairedNavigationAvailable() && !navigationLocked() && !album_.filtering())album_.toggleFavorite();
         } else toggleLibraryFavorite(multiverse_.detail().value("id").toString());
+        return;
+    }
+    if(action==Action::ChangeView && page_==GameHubPage && hubFace_=="ra") {
+        if(!keyboard_.isOpen() && !menuOpen_ && !homeMenuOpen_ && !serviceOpen() && !drawerOpen_ && !quickAppsOpen_ && notice_.isEmpty())hall_.dispatch(action);
         return;
     }
     if(action==Action::ChangeView) {

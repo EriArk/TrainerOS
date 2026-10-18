@@ -248,7 +248,7 @@ void startHallSmoke(QQuickWindow* window, ShellController& shell, ControllerInpu
 void startAchievementGallerySmoke(QQuickWindow* window, ShellController& shell, ControllerInput& input,
     MockAchievementProvider& provider, SDL_Joystick* joystick, const QString& directory,
     bool& completed, int& warnings, QStringList& diagnostics) {
-    auto stage=std::make_shared<int>(0); auto failed=std::make_shared<bool>(false);
+    auto stage=std::make_shared<int>(-2); auto failed=std::make_shared<bool>(false);
     auto timer=new QTimer(window);timer->setInterval(450);
     QObject::connect(timer,&QTimer::timeout,window,[=,&shell,&input,&provider,&completed,&warnings,&diagnostics] {
         auto check=[&](bool ok,const char* reason){if(!ok){*failed=true;diagnostics.append(QString("Gallery %1: %2").arg(*stage).arg(reason));}};
@@ -258,7 +258,11 @@ void startAchievementGallerySmoke(QQuickWindow* window, ShellController& shell, 
         auto* hall=shell.hall();
         auto* grid=window->findChild<QQuickItem*>("achievement-grid");
         switch((*stage)++) {
-        case 0: provider.enableGalleryPreview();shell.openGameHubFace("ra");break;
+        case -2: provider.enableGalleryPreview();shell.openGameHubFace("ra");break;
+        case -1:
+            check(hall->route()=="sets" && hall->rows().size()==2,"game chooser excludes unsupported sets");
+            capture("games");press(a);break;
+        case 0: check(hall->route()=="achievements","chooser opens trophies");break;
         case 1:
             check(hall->route()=="achievements" && hall->rows().size()==127,"current game gallery");
             check(grid && qAbs(grid->width()/grid->property("cellWidth").toDouble()-6)<.01,"six columns");
@@ -288,7 +292,7 @@ void startAchievementGallerySmoke(QQuickWindow* window, ShellController& shell, 
             capture("earned");provider.setState("emerald-sample",AchievementState::Offline);break;
         case 7:check(hall->status().contains("Offline") && !hall->rows().isEmpty(),"offline cache");capture("offline");provider.setAccount({});break;
         case 8:check(hall->rows().isEmpty(),"disconnected account isolation");capture("disconnected");window->resize(1280,720);break;
-        case 9:provider.setAccount("sample-trainer");provider.refresh("emerald-sample");break;
+        case 9:provider.setAccount("sample-trainer");provider.refresh("emerald-sample");hall->activate(0);break;
         case 10:capture("gallery-720");window->resize(1920,1080);break;
         case 11:capture("gallery-1080");window->resize(1024,768);break;
         case 12:capture("gallery-4x3");press(a);break;
@@ -316,6 +320,14 @@ void startAchievementGallerySmoke(QQuickWindow* window, ShellController& shell, 
             }
             check(found,"celebration window");break;
         }
+        case 17:hall->showAchievementGames();shell.dispatch(Action::ChangeView);break;
+        case 18: {
+            auto* history=window->findChild<QQuickItem*>("achievement-history-popup");
+            check(history && history->isVisible() && history->width()<window->width()*.8,"history is a compact popup");
+            shell.dispatch(Action::NextFace);check(shell.hubFace()=="ra","history traps background navigation");
+            capture("history");press(b);break;
+        }
+        case 19:check(!hall->historyOpen() && hall->route()=="sets","history closes to game selection");capture("games-1080");break;
         default:
             check(warnings==0,"QML warnings");completed=true;timer->stop();
             QFile report(directory+"/verification.txt");if(report.open(QIODevice::WriteOnly))report.write(((*failed?QString("FAILED\n"):QString("PASSED\n"))+diagnostics.join('\n')).toUtf8());

@@ -7,15 +7,21 @@ Item {
     readonly property var summary: hall.gallery
     readonly property bool detailOpen: hall.route === "achievement-detail"
     readonly property bool active: visible && !shell.serviceOpen && !shell.menuOpen && !shell.drawerOpen
-        && !shell.quickAppsOpen && !shell.keyboard.open && !shell.notice.length && !hall.account.open
-    readonly property bool browsing: active && !detailOpen && !hall.galleryMenuOpen
+        && !shell.quickAppsOpen && !shell.keyboard.open && !shell.notice.length && !hall.account.open && !hall.historyOpen
+    readonly property bool browsing: active && hall.route !== "sets" && !detailOpen && !hall.galleryMenuOpen
     objectName: "achievement-gallery"
+    AchievementGames {anchors.fill: parent; shell: root.shell; visible: root.hall.route === "sets"}
     Item {
+        visible: root.hall.route !== "sets"
         anchors.fill: parent
         Item {
             id: header; width: parent.width; height: root.height < 300 ? 52 : 60
             Text {
-                x: 8; y: 0; width: parent.width-230; height: 32
+                x: 7; y: 3; text: "\u2039"; font.pixelSize: 30; color: Theme.ink
+                MouseArea {anchors.fill: parent; anchors.margins: -6; enabled: root.browsing; onClicked: root.hall.showAchievementGames()}
+            }
+            Text {
+                x: 34; y: 0; width: parent.width-256; height: 32
                 text: root.summary.title || root.shell.home.adventure || "Your achievements"
                 textFormat: Text.PlainText; elide: Text.ElideRight
                 font.family: Theme.displayFamily; font.pixelSize: 25; color: Theme.ink
@@ -50,7 +56,7 @@ Item {
             id: grid; objectName: "achievement-grid"
             x: 0; y: header.height; width: parent.width; height: Math.max(80,parent.height-y-Theme.adventureCutoutHeight-22)
             cellWidth: width/6; cellHeight: height/2
-            clip: true; model: root.hall.rows; currentIndex: root.hall.rowIndex
+            clip: true; model: visible ? root.hall.rows : []; currentIndex: root.hall.rowIndex
             interactive: root.browsing; boundsBehavior: Flickable.StopAtBounds
             snapMode: GridView.SnapToRow; cacheBuffer: cellHeight*2
             highlightMoveDuration: Theme.motion(130)
@@ -101,7 +107,7 @@ Item {
                     Rectangle { anchors.fill: parent; anchors.margins: 5; radius: 10; color: Qt.darker(trophy.metal,1.25) }
                     Image {
                         id: badge; anchors.fill: parent; anchors.margins: 7
-                        source: root.visible ? trophy.modelData.icon : ""; sourceSize: Qt.size(128,128)
+                        source: root.visible ? (trophy.modelData.icon || "") : ""; sourceSize: Qt.size(128,128)
                         fillMode: Image.PreserveAspectFit; asynchronous: true
                         opacity: trophy.earned ? 1 : .7
                     }
@@ -178,5 +184,6 @@ Item {
             }
         }
     }
+    AchievementHistory {anchors.fill: parent; shell: root.shell; visible: root.hall.historyOpen; z: 5}
     AchievementAccountPanel { anchors.fill: parent; shell: root.shell; visible: root.hall.account.open && !root.detailOpen; z: 6 }
 }

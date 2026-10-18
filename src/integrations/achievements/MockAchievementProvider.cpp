@@ -36,6 +36,12 @@ AchievementSnapshot MockAchievementProvider::sample(const QString& setId) const 
     result.fetchedAt = QDateTime::fromString("2026-09-01T20:00:00Z", Qt::ISODate);
     return result;
 }
+QVariantList MockAchievementProvider::accountHistory() const {
+    QVariantList rows;if(!hasHistoryKey())return rows;
+    const QStringList titles{"Pokemon Emerald","Pokemon Crystal","A Link to the Past","Super Mario World","Chrono Trigger","Sonic the Hedgehog","Final Fantasy VI"};
+    for(int i=0;i<titles.size();++i)rows.append(QVariantMap{{"id",QString::number(i+1)},{"title",titles[i]},{"platform",i<2?"Game Boy":"Super Nintendo"},{"earned",i+2},{"total",30},{"hardcore",i},{"date","18 Oct 2026"}});
+    return rows;
+}
 void MockAchievementProvider::enableGalleryPreview() {
     galleryPreview_=true;
     for(const auto& set:sets())snapshots_.insert(set.id,sample(set.id));

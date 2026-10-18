@@ -33,6 +33,6 @@ private:
     AchievementProvider& provider_;
     QString username_, password_;
     int focus_ = 0;
-    bool open_ = false, passwordField_ = false, confirmSignOut_ = false;
+    bool open_ = false, passwordField_ = false, historyKeyField_ = false, confirmSignOut_ = false;
 };
 }

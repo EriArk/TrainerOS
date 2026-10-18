@@ -1,5 +1,6 @@
 #include "HallOfFameController.h"
 #include <algorithm>
+#include "core/repository/CollectionRepository.h"
 
 namespace trainer {
 QVariantMap HallOfFameController::championPreview() const {
@@ -89,6 +90,8 @@ QString snapshotStatus(const AchievementSnapshot& snapshot) {
 HallOfFameController::HallOfFameController(HallOfFameRepository& repository, AchievementProvider& provider, QObject* parent)
     : QObject(parent), repository_(repository), provider_(provider), editor_(repository, this), account_(provider, this) {
     connect(&account_, &AchievementAccountController::changed, this, &HallOfFameController::changed);
+    connect(&provider_, &AchievementProvider::historyChanged, this, [this]{historyFocus_=std::clamp(historyFocus_,0,int(historyRows().size()));emit historyChanged();});
+
     connect(&editor_, &ArchiveEditor::changed, this, &HallOfFameController::changed);
     connect(&editor_, &ArchiveEditor::messageRequested, this, &HallOfFameController::messageRequested);
     connect(&editor_, &ArchiveEditor::saved, this, [this](const QString& id) {
@@ -132,12 +135,26 @@ void HallOfFameController::selectRow(const QString& id) {
     else if (route_ == "sets") setId_ = id;
     else achievementIds_[setId_] = id;
 }
+QList<AchievementSet> HallOfFameController::browsableSets() const {
+    QList<AchievementSet> result;
+    if(provider_.context().accountId.isEmpty())return result;
+    const auto libraryGames=gameLibrary_?gameLibrary_->adventures():QList<Adventure>{};
+    for(const auto& set:provider_.sets()) {
+        if(!set.supported || set.adventureId.isEmpty())continue;
+        if(gameLibrary_) {
+            if(std::none_of(libraryGames.cbegin(),libraryGames.cend(),[&](const auto& game){return game.id==set.adventureId;}))continue;
+            const auto registration=gameLibrary_->registration(set.adventureId);if(registration && registration->removed)continue;
+        }
+        result.append(set);
+    }
+    return result;
+}
 QList<HallOfFameController::Row> HallOfFameController::currentRows() const {
     QList<Row> result;
     if (isArchive()) {
         for (const auto& entry : archive_) result.append({entry.id, entry.adventureTitle, entry.world + " · " + memoryDate(entry.completedAt)});
     } else if (route_ == "sets") {
-        for (const auto& set : provider_.sets()) result.append({set.id, set.title, set.world + " · " + snapshotStatus(checkedSnapshot(set))});
+        for (const auto& set : (gameBrowser_ ? browsableSets() : provider_.sets())) result.append({set.id, set.title, set.world + " · " + snapshotStatus(checkedSnapshot(set))});
     } else {
         const auto snapshot = currentSnapshot();
         for (const auto& definition : snapshot.definitions) {
@@ -163,6 +180,27 @@ QVariantList HallOfFameController::rows() const {
     const auto snapshot = isArchive() ? AchievementSnapshot{} : currentSnapshot();
     for (const auto& row : currentRows()) {
         QVariantMap item{{"id", row.id}, {"title", row.title}, {"subtitle", row.subtitle}};
+        if (gameBrowser_ && route_ == "sets") {
+            AchievementSet set;for(const auto& candidate:provider_.sets())if(candidate.id==row.id){set=candidate;break;}
+            const auto records=checkedSnapshot(set);int earned=0,unknown=0;
+            for(const auto& definition:records.definitions) {const auto u=unlockFor(records,definition.id);if(!u.unlocked)++unknown;else if(*u.unlocked)++earned;}
+            item["earned"]=earned;item["total"]=records.definitions.size();item["unknown"]=unknown;
+            item["complete"]=!records.definitions.isEmpty() && unknown==0;
+            item["status"]=snapshotStatus(records);item["platform"]=set.world;
+            QVariantMap art;
+            if(gameLibrary_) {
+                art=gameLibrary_->artwork(set.adventureId);
+                const auto game=gameLibrary_->registration(set.adventureId);
+                if(game)item["platform"]=platformLabel(game->adventure.platformId).name;
+            }
+            QString cover;
+            for(const auto& key:QStringList{"boxart","cover","image"}) {
+                const auto value=art.value(key).toString();if(value.isEmpty())continue;
+                if(value==art.value("screenshot").toString() || value==art.value("titleshot").toString() || value==art.value("mix").toString())continue;
+                cover=value;break;
+            }
+            item["cover"]=cover;
+        }
         if (!isArchive() && route_ != "sets") {
             const auto unlock = unlockFor(snapshot, row.id);
             item["tint"] = !unlock.unlocked ? "#d9cfdf" : *unlock.unlocked ? "#f5d886" : "#c8d3d0";
@@ -251,6 +289,9 @@ QString HallOfFameController::status() const {
     return snapshotStatus(currentSnapshot());
 }
 QString HallOfFameController::emptyMessage() const {
+    if(gameBrowser_ && route_=="sets")return provider_.context().accountId.isEmpty()
+        ? "Connect your RetroAchievements account to explore your games and trophies."
+        : "Play a supported game to add its verified achievement set here. Saved records remain available offline.";
     if (isArchive()) return archiveError_.isEmpty() ? "Your first memory starts here. Record a completed Adventure." : archiveError_;
     if (route_ == "sets") return provider_.context().accountId.isEmpty()
         ? "Connect your RetroAchievements account. Your local archive remains available."
@@ -285,7 +326,19 @@ void HallOfFameController::setCurrentAdventure(const QString& id) {
 }
 void HallOfFameController::reconcile() {
     const auto sets = provider_.sets();
-    if (galleryMode_) {
+    if (gameBrowser_) {
+        const bool accountChanged=galleryContext_!=provider_.context();
+        const auto games=browsableSets();
+        const bool exists=std::any_of(games.begin(),games.end(),[&](const auto& game){return game.id==setId_;});
+        if(accountChanged || !exists) {
+            if(accountChanged)achievementIds_.clear();
+            setId_=games.isEmpty()?QString():games.first().id;
+            galleryContext_=provider_.context();galleryMenuOpen_=false;
+            achievementView_={"sets","list"};
+            if(!isArchive()){route_="sets";zone_="list";actionFocus_=0;}
+        }
+        preferCurrent_=false;
+    } else if (galleryMode_) {
         QStringList matches;
         for (const auto& set : sets) if (!currentAdventure_.isEmpty() && set.adventureId == currentAdventure_) matches.append(set.id);
         const QString match = matches.size() == 1 ? matches.first() : QString();
@@ -353,7 +406,31 @@ void HallOfFameController::showFace(int index) {
     const auto view=*views[index];
     route_=view.route;zone_=view.zone;actionFocus_=view.action;reconcile();
 }
+void HallOfFameController::openHistory() {
+    if(account_.isOpen())return;
+    historyOpen_=true;historyFocus_=0;emit historyChanged();emit changed();
+    if(historyRows().isEmpty())provider_.fetchHistory();
+}
+void HallOfFameController::closeHistory() {historyOpen_=false;emit historyChanged();emit changed();}
+void HallOfFameController::showAchievementLibrary() {
+    if(!gameBrowser_) {
+        gameBrowser_=true;galleryMode_=true;galleryContext_=provider_.context();
+        achievementView_={"sets","list"};
+        if(!isArchive()){route_="sets";zone_="list";}
+    }
+    showFace(2);reconcile();
+}
+void HallOfFameController::showAchievementGames() {
+    if(!gameBrowser_ || account_.isOpen())return;
+    galleryMenuOpen_=false;route_="sets";zone_="list";actionFocus_=0;reconcile();
+}
+void HallOfFameController::focusAchievementGame(int index) {
+    if(!gameBrowser_ || route_!="sets" || account_.isOpen())return;
+    const auto rows=currentRows();if(index<0 || index>=rows.size())return;
+    setId_=rows[index].id;zone_="list";emit changed();
+}
 void HallOfFameController::showCurrentAchievements() {
+    gameBrowser_=false;
     if (!galleryMode_) {
         galleryMode_ = true; galleryContext_ = provider_.context(); preferCurrent_ = true;
     }
@@ -404,7 +481,8 @@ void HallOfFameController::chooseGalleryOption(int index) {
     if (index < 4) galleryFilter_ = index;
     else if (index < 7) gallerySort_ = index-4;
     else if (index == 7) {
-        if (!currentAdventure_.isEmpty()) provider_.refreshAdventure(currentAdventure_);
+        if(gameBrowser_ && !setId_.isEmpty())provider_.refresh(setId_);
+        else if (!currentAdventure_.isEmpty()) provider_.refreshAdventure(currentAdventure_);
     } else account_.begin();
     reconcile();
 }
@@ -421,7 +499,7 @@ QJsonObject HallOfFameController::navigationState() const {
         return QJsonObject{{"route", view.route}, {"zone", view.zone}, {"action", view.action}};
     };
     const FaceView current{route_, zone_, actionFocus_};
-    return {{"gallery",galleryMode_}, {"galleryFilter",galleryFilter_}, {"gallerySort",gallerySort_},
+    return {{"gameBrowser",gameBrowser_},{"gallery",galleryMode_}, {"galleryFilter",galleryFilter_}, {"gallerySort",gallerySort_},
             {"galleryProvider",galleryContext_.providerId}, {"galleryAccount",galleryContext_.accountId},
             {"champion",championId_}, {"archive", archiveId_}, {"set", setId_}, {"achievements", selected}, {"route", route_},
             {"zone", zone_}, {"action", actionFocus_},
@@ -430,6 +508,7 @@ QJsonObject HallOfFameController::navigationState() const {
             {"achievementView", encode(isArchive() ? achievementView_ : current)}};
 }
 void HallOfFameController::restoreNavigation(const QJsonObject& state) {
+    gameBrowser_=state["gameBrowser"].toBool();
     galleryMode_ = galleryMode_ || state["gallery"].toBool();
     if (state["gallery"].toBool()) {
         galleryContext_ = {state["galleryProvider"].toString(), state["galleryAccount"].toString()};
@@ -478,7 +557,7 @@ void HallOfFameController::back() {
     if (route_ == "archive-champions") { showJourney(); return; }
     if (route_ == "archive-detail") route_ = "archive-list";
     else if (route_ == "achievement-detail") route_ = "achievements";
-    else if (route_ == "achievements" && !galleryMode_) route_ = "sets";
+    else if (route_ == "achievements" && (!galleryMode_ || gameBrowser_)) route_ = "sets";
     else return;
     zone_ = currentRows().isEmpty() ? "actions" : "list";
     actionFocus_ = 0;
@@ -523,7 +602,28 @@ void HallOfFameController::activateControl(const QString& zone, int index) {
 }
 void HallOfFameController::dispatch(Action action) {
     if (account_.isOpen()) { account_.dispatch(action); return; }
+    if(historyOpen_) {
+        if(action==Action::Back || action==Action::ChangeView){closeHistory();return;}
+        if(action==Action::ToggleContinue){provider_.fetchHistory();return;}
+        if(action==Action::Up || action==Action::Down)historyFocus_=std::clamp(historyFocus_+(action==Action::Up?-1:1),0,int(historyRows().size()));
+        if(action==Action::Confirm) {
+            if(!provider_.hasHistoryKey())account_.begin();
+            else if(historyFocus_==historyRows().size())provider_.fetchHistory(historyMore());
+        }
+        emit historyChanged();return;
+    }
     if (editor_.isOpen()) { editor_.dispatch(action); return; }
+    if (gameBrowser_ && route_=="sets") {
+        if(action==Action::ChangeView){openHistory();return;}
+        const auto rows=currentRows();
+        if(action==Action::Left || action==Action::Right || action==Action::Up || action==Action::Down) {
+            const int delta=action==Action::Left?-1:action==Action::Right?1:action==Action::Up?-5:5;
+            focusAchievementGame(std::clamp(rowIndex()+delta,0,qMax(0,int(rows.size())-1)));return;
+        }
+        if(action==Action::ToggleContinue || (action==Action::Confirm && rows.isEmpty())) {account_.begin();return;}
+        if(action==Action::Confirm){zone_="list";activate(rowIndex());return;}
+        return;
+    }
     if (galleryMode_ && !isArchive()) {
         if (route_ == "achievement-detail") {
             // The detail is a single modal card, not the legacy action workspace.

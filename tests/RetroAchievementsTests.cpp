@@ -51,6 +51,33 @@ public:
 class RetroAchievementsTests : public QObject {
     Q_OBJECT
 private slots:
+    void accountHistoryIsPagedPrivateAndRejectsMalformedProgress() {
+        QJsonObject row{{"GameID",42},{"Title","Another console game"},{"ConsoleName","SNES"},{"MaxPossible",20},{"NumAwarded",7},{"NumAwardedHardcore",3}};
+        QJsonObject page{{"Count",1},{"Total",2},{"Results",QJsonArray{row}}};
+        QVERIFY(readAchievementHistoryPage(page));
+        auto invalid=page;invalid["Count"]=2;QVERIFY(!readAchievementHistoryPage(invalid));
+        row["NumAwarded"]=-1;invalid["Results"]=QJsonArray{row};invalid["Count"]=1;QVERIFY(!readAchievementHistoryPage(invalid));
+        QTemporaryDir dir;RecentLibrary library;
+        QVERIFY(writeAchievementAccount(dir.filePath("integrations/retroachievements-account.json"),account));
+        std::atomic_int calls=0;std::atomic_bool offline=false;
+        RetroAchievementsProvider provider(library,dir.path(),[&](const auto& q){
+            if(q.value("r")!="account-history")return AchievementReply{};
+            ++calls;if(offline)return AchievementReply{{},false,true};
+            if(q.value("y")!=account.token || q.contains("t") || q.value("u")!=account.username)return AchievementReply{};
+            auto result=page;
+            if(q.value("o")=="1") {auto second=result["Results"].toArray()[0].toObject();second["GameID"]=43;result["Results"]=QJsonArray{second};}
+            return AchievementReply{result,true,false};
+        });
+        QTRY_VERIFY(!provider.accountBusy());
+        provider.fetchHistory();QCOMPARE(calls.load(),0);
+        provider.setHistoryKey(account.token);QVERIFY(provider.hasHistoryKey());
+        provider.fetchHistory();QTRY_VERIFY(!provider.historyBusy());QCOMPARE(provider.accountHistory().size(),1);QVERIFY(provider.historyMore());
+        provider.fetchHistory(true);QTRY_VERIFY(!provider.historyBusy());QCOMPARE(provider.accountHistory().size(),2);QVERIFY(!provider.historyMore());
+        offline=true;provider.fetchHistory();QTRY_VERIFY(!provider.historyBusy());QCOMPARE(provider.accountHistory().size(),2);QVERIFY(provider.historyStatus().contains("Offline"));offline=false;
+        provider.fetchHistory();provider.disconnectAccount();
+        QTest::qWait(100);QVERIFY(provider.accountHistory().isEmpty());QVERIFY(!provider.hasHistoryKey());
+        QVERIFY(!QFileInfo::exists(dir.filePath("integrations/retroachievements-web-account.json")));
+    }
     void serverWarningsAreNotAwardsOrProgressEvenInOldCache() {
         const auto value=fetchAchievements(account,registration("unused"),"",QString(32,'a'),[](const auto& q){
             auto reply=response(q);
@@ -353,7 +380,7 @@ private slots:
         controller.close(); controller.begin(); QCOMPARE(controller.rows()[1].toMap()["detail"].toString(), "Enter password");
         controller.activate(0); controller.applyText("ExampleTrainer"); controller.activate(1); controller.applyText("original test password"); controller.activate(2);
         QTRY_VERIFY(!provider.accountBusy()); QCOMPARE(provider.context().accountId, account.username);
-        QCOMPARE(controller.rows().size(), 3); controller.activate(1); QVERIFY(controller.status().contains("Sign out")); controller.dispatch(Action::Back);
+        QCOMPARE(controller.rows().size(), 4); controller.activate(1); QVERIFY(controller.status().contains("Sign out")); controller.dispatch(Action::Back);
         QCOMPARE(provider.context().accountId, account.username); controller.activate(1); controller.activate(1); QVERIFY(provider.context().accountId.isEmpty());
     }
 };

@@ -12,6 +12,13 @@
 namespace trainer {
 class HallOfFameController final : public QObject {
     Q_OBJECT
+    Q_PROPERTY(bool historyOpen READ historyOpen NOTIFY historyChanged)
+    Q_PROPERTY(QVariantList historyRows READ historyRows NOTIFY historyChanged)
+    Q_PROPERTY(QString historyStatus READ historyStatus NOTIFY historyChanged)
+    Q_PROPERTY(bool historyConfigured READ historyConfigured NOTIFY historyChanged)
+    Q_PROPERTY(bool historyBusy READ historyBusy NOTIFY historyChanged)
+    Q_PROPERTY(bool historyMore READ historyMore NOTIFY historyChanged)
+    Q_PROPERTY(int historyFocus READ historyFocus NOTIFY historyChanged)
     Q_PROPERTY(QString route READ route NOTIFY changed)
     Q_PROPERTY(bool overview READ overview NOTIFY changed)
     Q_PROPERTY(QVariantMap championPreview READ championPreview NOTIFY changed)
@@ -68,6 +75,23 @@ public:
     void cycleFace(int delta);
     void showFace(int index);
     void showCurrentAchievements();
+    void showAchievementLibrary();
+    bool historyOpen() const {return historyOpen_;}
+    QVariantList historyRows() const {return provider_.accountHistory();}
+    QString historyStatus() const {return provider_.historyStatus();}
+    bool historyConfigured() const {return provider_.hasHistoryKey();}
+    bool historyBusy() const {return provider_.historyBusy();}
+    bool historyMore() const {return provider_.historyMore();}
+    int historyFocus() const {return historyFocus_;}
+    Q_INVOKABLE void openHistory();
+    Q_INVOKABLE void closeHistory();
+    Q_INVOKABLE void loadHistory(bool more=false) {provider_.fetchHistory(more);}
+
+    bool browsingGames() const {return gameBrowser_;}
+    void setGameLibrary(LibraryRepository* library) {gameLibrary_=library;}
+    Q_INVOKABLE void showAchievementGames();
+    Q_INVOKABLE void focusAchievementGame(int index);
+    Q_INVOKABLE void openAchievementAccount() {account_.begin();}
     QVariantMap gallery() const;
     QVariantList galleryOptions() const;
     bool galleryMenuOpen() const { return galleryMenuOpen_; }
@@ -81,12 +105,17 @@ public:
     QJsonObject navigationState() const;
     void restoreNavigation(const QJsonObject&);
 signals:
+    void historyChanged();
     void momentRequested(const QString& capture);
     void detailScrollRequested(int delta);
     void changed();
     void rowsChanged();
     void messageRequested(const QString& message);
 private:
+    QList<AchievementSet> browsableSets() const;
+    LibraryRepository* gameLibrary_=nullptr;
+    bool gameBrowser_=false,historyOpen_=false;
+    int historyFocus_=0;
     QVariantList moments_;
     struct Row { QString id; QString title; QString subtitle; };
     QList<Row> currentRows() const;

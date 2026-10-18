@@ -11,6 +11,7 @@
 #include <QRegularExpression>
 #include <QSaveFile>
 #include <QTimer>
+#include <QUrlQuery>
 #include <QSet>
 #include <algorithm>
 
@@ -78,11 +79,14 @@ AchievementTransport retroAchievementsTransport(std::shared_ptr<std::atomic_bool
         // Constructed in the calling worker thread. Credentials stay in the POST
         // body; redirects, relaxed TLS checks and URL logging are never enabled.
         QNetworkAccessManager network;
-        QNetworkRequest request(QUrl("https://retroachievements.org/dorequest.php"));
+        const bool history=query.value("r")=="account-history";
+        QUrl url(history ? "https://retroachievements.org/API/API_GetUserCompletionProgress.php" : "https://retroachievements.org/dorequest.php");
+        if(history) {QUrlQuery params; for(const auto& key:{"u","y","c","o"})params.addQueryItem(key,query.value(key));url.setQuery(params);}
+        QNetworkRequest request(url);
         request.setAttribute(QNetworkRequest::RedirectPolicyAttribute, QNetworkRequest::ManualRedirectPolicy);
         request.setHeader(QNetworkRequest::ContentTypeHeader, "application/x-www-form-urlencoded");
         request.setHeader(QNetworkRequest::UserAgentHeader, "TrainerOS/0.1.0");
-        auto* reply = network.post(request, achievementFormBody(query));
+        auto* reply = history ? network.get(request) : network.post(request, achievementFormBody(query));
         reply->setReadBufferSize(MaxResponse + 1);
         QEventLoop loop; QTimer deadline, cancellation;
         deadline.setSingleShot(true); deadline.start(15000); cancellation.start(100);
@@ -101,9 +105,23 @@ AchievementTransport retroAchievementsTransport(std::shared_ptr<std::atomic_bool
         if (reply->error() != QNetworkReply::NoError || status != 200 || tooLarge || bytes.size() > MaxResponse) return result;
         QJsonParseError error; const auto document = QJsonDocument::fromJson(bytes, &error);
         if (error.error != QJsonParseError::NoError || !document.isObject()) return result;
-        result.body = document.object(); result.success = result.body["Success"].isBool() && result.body["Success"].toBool();
+        result.body = document.object(); result.success = history ? result.body["Results"].isArray() && !result.body.contains("Error") : result.body["Success"].isBool() && result.body["Success"].toBool();
         return result;
     };
+}
+std::optional<QVariantList> readAchievementHistoryPage(const QJsonObject& object) {
+    if(!object["Results"].isArray() || !object["Total"].isDouble() || object["Total"].toInt(-1)<0)return {};
+    const auto rows=object["Results"].toArray();if(rows.size()>100 || object["Count"].toInt(-1)!=rows.size())return {};
+    QVariantList result;QSet<QString> seen;
+    for(const auto& entry:rows) {
+        const auto value=entry.toObject();const auto id=number(value["GameID"]);
+        const auto title=value["Title"].toString(),platform=value["ConsoleName"].toString();
+        const int total=value["MaxPossible"].toInt(-1),earned=value["NumAwarded"].toInt(-1),hardcore=value["NumAwardedHardcore"].toInt(-1);
+        if(id.isEmpty() || seen.contains(id) || !text(title,512) || platform.size()>128 || total<0 || earned<0 || hardcore<0 || hardcore>earned || earned>total)return {};
+        seen.insert(id);result.append(QVariantMap{{"id",id},{"title",title},{"platform",platform},{"total",total},{"earned",earned},{"hardcore",hardcore},
+            {"date",QDateTime::fromString(value["MostRecentAwardedDate"].toString(),Qt::ISODate).toLocalTime().toString("dd MMM yyyy")}});
+    }
+    return result;
 }
 QString achievementContentHash(const AdventureRegistration& record, const std::atomic_bool& cancelled) {
     const auto& adventure = record.adventure;

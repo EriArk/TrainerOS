@@ -1,5 +1,11 @@
 # AGENTS.md — TrainerOS
 
+**18 октября — RA-73, уточнение владельца:** RetroAchievements получает красивый
+выбор игр библиотеки с подтверждёнными наборами. Общая история RA — только
+компактная кнопка и прокручиваемая всплывашка; не отдельная большая вкладка.
+Просмотр не меняет Home и не запускает игру. Это заменяет ограничение HUB-54
+«только текущая игра, без дополнительного выбора». См. docs/RA73_GAME_SELECTION.md.
+
 **Owner Files layout, 17 October 2026:** Social is temporarily paused; deliver embedded Files before Browser. Keep places/volumes left, thin translucent breadcrumbs above, and compact controls BELOW in an X-style chassis-grown tab between Y and the right wall. Leave a small clear gap after Y. Use attractive coherent folder/file icons; preserve current Quick Apps geometry. See docs/FILES68_IMPLEMENTATION.md.
 
 **17 октября — SOCIAL-67 согласован:** владелец принял управление SOCIAL-66.

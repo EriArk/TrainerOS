@@ -10,7 +10,8 @@ Item {
             if(shell.adapterMenuOpen) return [h("↑↓","Screens"),h("A","Open"),h("B","My Story")]
             return adapterPresenter.hints(h) || [h("A","Open"),h("Select","Actions"),h("B","Screens")]
         }
-        if(shell.hubFace === "ra") return shell.hall.route === "achievement-detail" ? [h("A",shell.hall.detail.capture ? "View moment" : "Close"),h("B","Gallery")] : shell.hall.galleryMenuOpen
+        if(shell.hubFace === "ra" && shell.hall.historyOpen) return [h("A","More / Account"),h("Select","Refresh"),h("B","Close")]
+        if(shell.hubFace === "ra") return shell.hall.route === "sets" ? [h("A","Achievements"),h("R3","History"),h("Select","RA account")] : shell.hall.route === "achievement-detail" ? [h("A",shell.hall.detail.capture ? "View moment" : "Close"),h("B","Gallery")] : shell.hall.galleryMenuOpen
             ? [h("↑↓","Options"),h("A","Choose"),h("B","Gallery")]
             : [h("A","Open"),h("Select","Options"),h("B","Back")]
         if(shell.overviewFace === "timeline") return [h("←→","Timeline"),h("B","My Story")]

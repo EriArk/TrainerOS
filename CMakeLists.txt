@@ -422,6 +422,8 @@ qt_add_qml_module(traineros
         src/qml/BadgeTray.qml
         src/qml/AdventureButton.qml
         src/qml/HallOfFamePage.qml
+        src/qml/AchievementHistory.qml
+        src/qml/AchievementGames.qml
         src/qml/AchievementGallery.qml
         src/qml/AchievementPopup.qml
         src/qml/AchievementCelebrationWindow.qml

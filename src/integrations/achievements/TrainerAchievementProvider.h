@@ -13,6 +13,7 @@ public:
         provider_=std::make_unique<RetroAchievementsProvider>(library_,directory);
         connect(provider_.get(),&AchievementProvider::snapshotChanged,this,&AchievementProvider::snapshotChanged);
         connect(provider_.get(),&AchievementProvider::achievementsEarned,this,&AchievementProvider::achievementsEarned);
+        connect(provider_.get(),&AchievementProvider::historyChanged,this,&AchievementProvider::historyChanged);
         emit snapshotChanged({});provider_->refreshAll();
     }
     AchievementContext context() const override { return provider_?provider_->context():AchievementContext{"retroAchievements",{}}; }
@@ -24,6 +25,13 @@ public:
     void observeRuntimeGame(const QString& id,const QString& hash,const QString& game) override {if(provider_)provider_->observeRuntimeGame(id,hash,game);}
     void acknowledgeLive(const QString& set,const QString& id) override {if(provider_)provider_->acknowledgeLive(set,id);}
     void refreshAll() override {if(provider_)provider_->refreshAll();}
+    QVariantList accountHistory() const override {return provider_?provider_->accountHistory():QVariantList{};}
+    QString historyStatus() const override {return provider_?provider_->historyStatus():AchievementProvider::historyStatus();}
+    bool historyBusy() const override {return provider_&&provider_->historyBusy();}
+    bool historyMore() const override {return provider_&&provider_->historyMore();}
+    bool hasHistoryKey() const override {return provider_&&provider_->hasHistoryKey();}
+    void setHistoryKey(const QString& key) override {if(provider_)provider_->setHistoryKey(key);}
+    void fetchHistory(bool more=false) override {if(provider_)provider_->fetchHistory(more);}
     bool canManageAccount() const override {return bool(provider_);}
     bool accountBusy() const override {return provider_&&provider_->accountBusy();}
     QString accountMessage() const override {return provider_?provider_->accountMessage():QString();}

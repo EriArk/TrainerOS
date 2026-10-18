@@ -3,6 +3,7 @@
 #include <QDateTime>
 #include <QHash>
 #include <optional>
+#include <QVariantList>
 
 namespace trainer {
 enum class AchievementState { Disconnected, Unsupported, Loading, Ready, Offline, Error };
@@ -54,12 +55,20 @@ public:
     virtual void refreshAdventure(const QString&, bool = false) { refreshAll(); }
     virtual void observeRuntimeGame(const QString&,const QString&,const QString&) {}
     virtual void acknowledgeLive(const QString&,const QString&) {}
+    virtual QVariantList accountHistory() const { return {}; }
+    virtual QString historyStatus() const { return "Connect an RA account and add its Web API key to view account history."; }
+    virtual bool historyBusy() const { return false; }
+    virtual bool historyMore() const { return false; }
+    virtual bool hasHistoryKey() const { return false; }
+    virtual void setHistoryKey(const QString&) {}
+    virtual void fetchHistory(bool = false) {}
     virtual bool canManageAccount() const { return false; }
     virtual bool accountBusy() const { return false; }
     virtual QString accountMessage() const { return {}; }
     virtual void login(const QString&, const QString&) {}
     virtual void disconnectAccount() {}
 signals:
+    void historyChanged();
     void snapshotChanged(const QString& setId);
     void achievementsEarned(const QString& title, const QStringList& names);
 };
@@ -77,6 +86,9 @@ public:
     void finishRefresh(const QString& setId);
     void enableAccountPreview() { accountPreview_ = true; }
     void enableGalleryPreview();
+    QVariantList accountHistory() const override;
+    bool hasHistoryKey() const override {return galleryPreview_ && !context_.accountId.isEmpty();}
+    QString historyStatus() const override {return hasHistoryKey()?"Sample account history":AchievementProvider::historyStatus();}
     bool canManageAccount() const override { return accountPreview_; }
     QString accountMessage() const override { return "Sample account controls. Credentials are never submitted in this preview."; }
 private:

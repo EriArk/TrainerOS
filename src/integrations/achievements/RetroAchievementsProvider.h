@@ -19,6 +19,13 @@ public:
     void refreshAdventure(const QString&,bool notify = false) override;
     void observeRuntimeGame(const QString&,const QString&,const QString&) override;
     void acknowledgeLive(const QString& set,const QString& id) override {liveAcknowledged_.insert(set+":"+id);}
+    QVariantList accountHistory() const override { return history_; }
+    QString historyStatus() const override;
+    bool historyBusy() const override { return historyBusy_; }
+    bool historyMore() const override { return historyMore_; }
+    bool hasHistoryKey() const override {return account_.valid() && webAccount_.valid() && webAccount_.username==account_.username;}
+    void setHistoryKey(const QString&) override;
+    void fetchHistory(bool more=false) override;
     bool canManageAccount() const override { return true; }
     bool accountBusy() const override { return busy_; }
     QString accountMessage() const override { return message_; }
@@ -26,6 +33,12 @@ public:
     void disconnectAccount() override;
     bool disconnectForRemoval();
 private:
+    AchievementAccount webAccount_;
+    QVariantList history_;
+    QString historyMessage_;
+    bool historyBusy_=false, historyMore_=false;
+    int historyGeneration_=0;
+    void clearHistory();
     struct RuntimeIdentity {QString hash,game;int revision; qint64 size,modified;};
     QHash<QString,RuntimeIdentity> runtimeIdentities_;
     QSet<QString> liveAcknowledged_;

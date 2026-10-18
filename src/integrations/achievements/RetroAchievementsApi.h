@@ -15,6 +15,7 @@ QByteArray achievementFormBody(const AchievementParameters&);
 struct AchievementAccount { QString username, token; bool valid() const; };
 struct LinkedAchievementSet { AchievementSet set; AchievementSnapshot snapshot; QString contentHash; };
 AchievementTransport retroAchievementsTransport(std::shared_ptr<std::atomic_bool> cancelled);
+std::optional<QVariantList> readAchievementHistoryPage(const QJsonObject&);
 QString achievementContentHash(const AdventureRegistration&, const std::atomic_bool& cancelled);
 AchievementAccount readAchievementAccount(const QString& filename);
 bool writeAchievementAccount(const QString& filename, const AchievementAccount&);

@@ -18,6 +18,7 @@ QVariantList AchievementAccountController::rows() const {
     if (connected()) return {
         QVariantMap{{"label", "Refresh recent Adventures"}, {"detail", provider_.context().accountId}, {"enabled", !busy()}},
         QVariantMap{{"label", confirmSignOut_ ? "Confirm sign out" : "Sign out"}, {"detail", "RetroAchievements"}, {"enabled", !busy()}},
+        QVariantMap{{"label", "History Web API key"}, {"detail", provider_.hasHistoryKey() ? "Saved; edit or clear" : "Optional, for account-wide history"}, {"enabled", !busy()}},
         QVariantMap{{"label", "Back"}, {"detail", ""}, {"enabled", true}}};
     return {
         QVariantMap{{"label", "Account name"}, {"detail", username_.isEmpty() ? "Enter name" : username_}, {"enabled", !busy()}},
@@ -27,24 +28,28 @@ QVariantList AchievementAccountController::rows() const {
 }
 void AchievementAccountController::begin() {
     if (!available()) return;
-    open_ = true; username_ = provider_.context().accountId; password_.clear(); focus_ = 0; confirmSignOut_ = false; emit changed();
+    historyKeyField_=false; open_ = true; username_ = provider_.context().accountId; password_.clear(); focus_ = 0; confirmSignOut_ = false; emit changed();
 }
 void AchievementAccountController::close() {
     if (!open_) return;
-    open_ = false; password_.clear(); username_.clear(); confirmSignOut_ = false; emit changed();
+    historyKeyField_=false; open_ = false; password_.clear(); username_.clear(); confirmSignOut_ = false; emit changed();
 }
 void AchievementAccountController::applyText(const QString& value) {
-    if (!open_ || busy() || connected()) return;
+    if (!open_ || busy()) return;
+    if(historyKeyField_ && connected()){historyKeyField_=false;provider_.setHistoryKey(value);emit changed();return;}
+    if(connected())return;
     if (passwordField_) password_ = value.left(128); else username_ = value.trimmed().left(32);
     emit changed();
 }
 void AchievementAccountController::activate(int index) {
     if (!open_ || index < 0 || index >= rows().size()) return;
+    historyKeyField_=false;
     focus_ = index;
     if (index == rows().size() - 1) { close(); return; }
     if (busy()) return;
     if (connected()) {
         if (index == 0) { confirmSignOut_ = false; provider_.refreshAll(); }
+        else if(index==2) {confirmSignOut_=false;historyKeyField_=true;emit textRequested("Web API key (blank removes it)",{},128,true);}
         else if (confirmSignOut_) { provider_.disconnectAccount(); confirmSignOut_ = false; focus_ = 0; }
         else confirmSignOut_ = true;
     } else if (index < 2) {
