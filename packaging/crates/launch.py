@@ -30,6 +30,12 @@ def main():
         if r['kind']=='game': env['TRAINEROS_CRATES_GAME']='1'
         for key in ('QT_QUICK_BACKEND','QT_SCALE_FACTOR','QSG_RHI_BACKEND'):
             env.pop(key,None)
+        # The managed Qt web runner shares the browser's affected Armada GL
+        # composition path. Keep this device workaround out of other apps.
+        if entry.name == 'traineros-webgame':
+            model = Path('/proc/device-tree/model')
+            if model.exists() and model.read_bytes().rstrip(b'\0').strip() in (b'AYN Odin 2', b'Retroid Pocket Flip2'):
+                env['QSG_RHI_BACKEND'] = 'vulkan'
         child = subprocess.Popen([str(entry)],cwd=base,env=env)
         signal.signal(signal.SIGTERM,lambda *_: child.terminate())
         return child.wait()

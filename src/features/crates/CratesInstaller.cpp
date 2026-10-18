@@ -89,7 +89,7 @@ void CratesInstaller::pump(){
 void CratesInstaller::event(const QByteArray& bytes){
     auto e=QJsonDocument::fromJson(bytes).object();
     for(auto& v:jobs_){auto r=v.toMap();if(r["id"]!=active_)continue;
-        if(e.contains("error")){r["state"]="failed";r["detail"]=e["error"].toString();}
+        if(e.contains("error")){r["state"]=r["cancelling"].toBool()?"cancelled":"failed";r["detail"]=r["cancelling"].toBool()?QString("Cancelled"):e["error"].toString();}
         else r["detail"]=e["stage"].toString();
         if(e.contains("progress"))r["progress"]=e["progress"].toDouble();else r.remove("progress");v=r;}
     emit changed();

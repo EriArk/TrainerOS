@@ -7,6 +7,24 @@ using namespace trainer;
 class CratesTests: public QObject {
     Q_OBJECT
 private slots:
+    void activeWorkerCancellationIsNotFailure() {
+#ifndef Q_OS_LINUX
+        QSKIP("Production worker runs on Linux");
+#else
+        QTemporaryDir temp;QVERIFY(temp.isValid());
+        const auto registry=temp.path()+"/registry.json",helper=temp.path()+"/worker.py";
+        QFile f(registry);QVERIFY(f.open(QIODevice::WriteOnly));
+        f.write("{\"packages\":[{\"id\":\"fixture\",\"title\":\"Fixture\",\"version\":\"1\"}]}");f.close();
+        f.setFileName(helper);QVERIFY(f.open(QIODevice::WriteOnly));
+        f.write("import signal,time,sys\ndef stop(*_):\n print('{\"error\":\"Cancelled\"}',flush=True)\n sys.exit(1)\nsignal.signal(signal.SIGTERM,stop)\nprint('{\"stage\":\"Downloading\"}',flush=True)\ntime.sleep(20)\n");f.close();
+        CratesInstaller jobs;jobs.configure(helper,registry,temp.path()+"/store");jobs.request("fixture");
+        QTRY_COMPARE(jobs.tasks()[0].toMap()["detail"].toString(),QString("Downloading"));
+        jobs.command("fixture","cancel");
+        QTRY_VERIFY(jobs.tasks()[0].toMap()["terminal"].toBool());
+        QCOMPARE(jobs.tasks()[0].toMap()["state"].toString(),QString("cancelled"));
+        QCOMPARE(jobs.tasks()[0].toMap()["actions"].toList()[0].toMap()["id"].toString(),QString("retry"));
+#endif
+    }
     void packageActionsAndDeduplicatedQueue() {
         QTemporaryDir temp;QVERIFY(temp.isValid());
         const auto registry=temp.path()+"/registry.json";QFile f(registry);QVERIFY(f.open(QIODevice::WriteOnly));

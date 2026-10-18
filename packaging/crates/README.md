@@ -36,6 +36,8 @@ the download; HTTP range resume is not advertised. Tasks persist in the common
 Downloads provider. A launcher-held `flock` protects live/minimized applications.
 
 `launch.py` is host code; metadata cannot replace its arguments with shell text.
+On the current Odin 2/Flip 2 Armada images the managed web runner uses Vulkan,
+matching the browser composition workaround. Other applications are unaffected.
 Apps get a standard Desktop Entry and use existing Apps window/input ownership.
 Games register one stable `crates:<id>` entry and use AdventureLaunchController,
 the ordinary checkpoint, history and game overlay. Package removal tombstones

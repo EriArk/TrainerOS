@@ -19,7 +19,7 @@
       "notes": "Initial TrainerOS package. User data is kept separately.",
       "url": "https://github.com/EriArk/TrainerOS/releases/download/crates-test-20261018/2048-aarch64.tar.gz",
       "picture": "qrc:/crates/examples/2048.png",
-      "compatibilityNote": "Experimental package for Armada Fedora 44 ARM64 with host Qt 6.11. Device gameplay acceptance is pending."
+      "compatibilityNote": "Experimental test package. Full handheld testing is still in progress."
     },
     {
       "id": "featherpad",
@@ -39,7 +39,7 @@
       "notes": "Initial TrainerOS package. User data is kept separately.",
       "url": "https://github.com/EriArk/TrainerOS/releases/download/crates-test-20261018/featherpad-aarch64.tar.gz",
       "picture": "qrc:/crates/examples/featherpad.png",
-      "compatibilityNote": "Experimental package for Armada Fedora 44 ARM64 with host Qt 6.11. Device gameplay acceptance is pending."
+      "compatibilityNote": "Experimental test package. Full handheld testing is still in progress."
     }
   ]
 }

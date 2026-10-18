@@ -114,8 +114,13 @@ Item {
                     enabled: !root.project.busy; onActivated: root.flow.installSelectedVersion() }
             }
             Rectangle {
-                anchors.fill: parent; visible: root.flow.actionsOpen; color: Theme.paper; radius: 8
+                anchors.right: parent.right; anchors.bottom: parent.bottom; anchors.bottomMargin: 45
+                width: Math.min(parent.width,280); height: 53+root.flow.actions.length*45
+                visible: root.flow.actionsOpen; color: Theme.paper; radius: 10; border.width: 1; border.color: Theme.rim
+                MouseArea { anchors.fill: parent }
                 Text { x: 8; y: 6; text: "Manage"; font.family: Theme.displayFamily; font.pixelSize: 22; color: Theme.ink }
+                Text { anchors.right: parent.right; anchors.rightMargin: 10; y: 8; text: "×"; font.pixelSize: 22; color: Theme.muted
+                    MouseArea { anchors.fill: parent; anchors.margins: -4; onClicked: root.flow.showActions() } }
                 Column { x: 8; y: 45; width: parent.width-16; spacing: 9
                     Repeater { model: root.flow.actions
                         CapButton { required property var modelData; required property int index
