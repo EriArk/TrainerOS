@@ -32,6 +32,10 @@
   commercial-game compatibility or reopening their multiplayer scope.
   This expands the shared list, not their priority: PS3/Switch stay at the end
   of the oldest-first queue. Do not treat device availability as a queue override.
+  Current sweep checks only launch from TrainerOS UI and controller response.
+  Once both pass, close normally and advance. Do not add save/reopen, deep
+  gameplay or repeated lifecycle tests without a concrete failure requiring them.
+  Those broader acceptance checks remain deferred, not certified by this sweep.
   Reuse launcher mechanisms in batches, then test oldest first. See
   [platform register](docs/LAUNCH80_PLATFORM_REGISTER.md); installed cores are not
   proof of launch, performance, input or multiplayer compatibility.
