@@ -9,6 +9,6 @@ namespace trainer {
 struct CratesCatalogue {
     QHash<QString,QVariantMap> projects;
     QHash<QString,QStringList> contents;
-    static bool read(const QByteArray&, const QStringList& crateIds, CratesCatalogue& result);
+    static bool read(const QByteArray&, const QStringList& crateIds, CratesCatalogue& result, const QString& verifiedAssets={});
 };
 }

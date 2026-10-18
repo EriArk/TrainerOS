@@ -1111,6 +1111,7 @@ int main(int argc, char* argv[]) {
                 QObject::connect(packages,&CratesInstaller::inventoryChanged,&shell,syncCrateGames);
                 QObject::connect(store.get(),&LocalStateStore::opened,&shell,[syncCrateGames](bool ready){if(ready)syncCrateGames();});
                 packages->configure("/var/opt/traineros/crates/installer.py","/var/opt/traineros/crates/packages.json",cratesRuntime.root);
+                shell.crates()->configureCatalogue("/var/opt/traineros/crates/catalogue.py",cratesRuntime.root+"/catalogue");
                 QObject::connect(shell.crates(),&CratesController::launchRequested,&shell,[&](QString id,QString kind){
                     if(kind=="game")shell.launchPreparation().launch("crates:"+id);
                     else shell.apps()->openDesktopId("org.traineros.crates."+id+".desktop");

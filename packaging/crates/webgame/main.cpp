@@ -6,6 +6,9 @@
 #include <QKeyEvent>
 #include <QDir>
 #include <QTimer>
+#include <QFile>
+#include <QJsonDocument>
+#include <QJsonObject>
 #include <QtWebEngineQuick/qtwebenginequickglobal.h>
 #include <SDL.h>
 int main(int argc,char** argv) {
@@ -15,6 +18,9 @@ int main(int argc,char** argv) {
     QQmlApplicationEngine engine;
     engine.rootContext()->setContextProperty("gameUrl",QUrl::fromLocalFile(QCoreApplication::applicationDirPath()+"/../web/index.html"));
     engine.rootContext()->setContextProperty("gameData",data);
+    QFile viewport(QCoreApplication::applicationDirPath()+"/../web/viewport.json");
+    const bool responsive=viewport.open(QIODevice::ReadOnly)&&viewport.size()<1024&&QJsonDocument::fromJson(viewport.readAll()).object()["responsive"].toBool();
+    engine.rootContext()->setContextProperty("responsiveViewport",responsive);
     engine.load(QUrl("qrc:/Game.qml"));if(engine.rootObjects().isEmpty())return 3;
     auto* window=qobject_cast<QQuickWindow*>(engine.rootObjects().first());
     SDL_InitSubSystem(SDL_INIT_GAMECONTROLLER);

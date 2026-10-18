@@ -345,6 +345,7 @@ private:
     ScrapeController scraper_;
     AppsController apps_;
     CratesController crates_;
+    bool restoringNavigation_=false;
     FilesController files_;
     BrowserController browser_;
     DownloadsController downloads_;

@@ -1,0 +1,6 @@
+{
+  "id":"breakout", "title":"Javascript Breakout", "kind":"game", "version":"2026.10.18-1",
+  "architecture":"aarch64", "entry":"bin/traineros-webgame", "license":"MIT",
+  "repository":"https://github.com/jakesgordon/javascript-breakout.git",
+  "revision":"eed59e2affa9423b93d2ac8ff93061bb88b33284"
+}

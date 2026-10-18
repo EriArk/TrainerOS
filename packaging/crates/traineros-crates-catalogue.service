@@ -1,0 +1,15 @@
+[Unit]
+Description=TrainerOS Crates metadata catalogue
+After=network.target
+
+[Service]
+ExecStart=/usr/bin/python3 %h/traineros-crates/catalogue_server.py %h/traineros-crates/data
+Restart=on-failure
+RestartSec=5
+NoNewPrivileges=true
+PrivateTmp=true
+UMask=0077
+MemoryMax=96M
+
+[Install]
+WantedBy=default.target

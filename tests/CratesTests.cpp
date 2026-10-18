@@ -7,6 +7,28 @@ using namespace trainer;
 class CratesTests: public QObject {
     Q_OBJECT
 private slots:
+    void catalogueOnlySyncsOnExplicitEntry() {
+#ifndef Q_OS_LINUX
+        QSKIP("Host catalogue worker runs on Linux");
+#else
+        QTemporaryDir temp;QVERIFY(temp.isValid());const auto root=temp.path();
+        QFile source(":/crates/catalogue.json");QVERIFY(source.open(QIODevice::ReadOnly));
+        QFile crates(":/crates/showcase.json");QVERIFY(crates.open(QIODevice::ReadOnly));
+        const QJsonObject response{{"catalogue",QJsonDocument::fromJson(source.readAll()).object()},
+            {"crates",QJsonDocument::fromJson(crates.readAll()).array()},{"packages",QJsonArray{}},{"result","snapshot"},{"revision",1}};
+        QFile payload(root+"/response.json");QVERIFY(payload.open(QIODevice::WriteOnly));payload.write(QJsonDocument(response).toJson());payload.close();
+        QFile cache(root+"/current.json");QVERIFY(cache.open(QIODevice::WriteOnly));cache.write("{}");cache.close();
+        QFile helper(root+"/worker.py");QVERIFY(helper.open(QIODevice::WriteOnly));
+        helper.write("import sys,pathlib\np=pathlib.Path(sys.argv[2])\nif sys.argv[1]=='sync':\n with (p/'calls').open('a') as f:f.write('request\\n')\nprint((p/'response.json').read_text())\n");helper.close();
+        CratesController c;c.configureCatalogue(helper.fileName(),root);QTest::qWait(120);
+        QVERIFY(!QFile::exists(root+"/calls")); // Cache load/OS navigation restore is not entry.
+        c.enter();c.enter();QTRY_VERIFY(QFile::exists(root+"/calls"));QTRY_VERIFY(c.syncStatus().isEmpty());
+        QFile calls(root+"/calls");QVERIFY(calls.open(QIODevice::ReadOnly));QCOMPARE(calls.readAll(),QByteArray("request\n"));calls.close();
+        QVERIFY(c.installer()->tasks().isEmpty());
+        c.leave();c.enter();QTRY_VERIFY(c.syncStatus().isEmpty());
+        QVERIFY(calls.open(QIODevice::ReadOnly));QCOMPARE(calls.readAll(),QByteArray("request\nrequest\n"));
+#endif
+    }
     void activeWorkerCancellationIsNotFailure() {
 #ifndef Q_OS_LINUX
         QSKIP("Production worker runs on Linux");

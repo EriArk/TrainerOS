@@ -1,0 +1,6 @@
+{
+  "id":"hextris", "title":"Hextris", "kind":"game", "version":"2026.10.18-1",
+  "architecture":"aarch64", "entry":"bin/traineros-webgame", "license":"GPL-3.0-or-later",
+  "repository":"https://github.com/Hextris/hextris.git",
+  "revision":"3f4847dc8fd7dab3d1c87e6324b9159d92fbd396"
+}

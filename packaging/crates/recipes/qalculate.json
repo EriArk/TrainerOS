@@ -1,0 +1,6 @@
+{
+  "id":"qalculate", "title":"Qalculate!", "kind":"app", "version":"5.13.0-traineros.1",
+  "architecture":"aarch64", "entry":"bin/start", "license":"GPL-2.0-or-later",
+  "repository":"https://github.com/Qalculate/qalculate-qt.git",
+  "revision":"77d5eb93457a10be581aa486aa8792351721ec4f"
+}

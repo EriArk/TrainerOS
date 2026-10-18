@@ -5,6 +5,7 @@
 #include <QJsonArray>
 #include <QJsonObject>
 #include <QSaveFile>
+#include <QSysInfo>
 namespace trainer {
 CratesInstaller::CratesInstaller(QObject* p):QObject(p) {
     persist_.setSingleShot(true);persist_.setInterval(500);
@@ -52,12 +53,16 @@ void CratesInstaller::readInventory(){
         const auto r=QJsonDocument::fromJson(f.readAll()).object().toVariantMap();inventory_[r["id"].toString()]=r;}
     emit inventoryChanged();
 }
+void CratesInstaller::useCatalogue(const QVariantList& packages,const QString& registry){packages_=packages;registry_=registry;emit changed();}
+void CratesInstaller::setOnline(bool online){if(online_==online)return;online_=online;emit changed();}
 QVariantList CratesInstaller::installed() const {QVariantList out;for(const auto& r:inventory_)out<<r;return out;}
 QVariantMap CratesInstaller::state(const QString& id) const {
-    QVariantList releases;for(const auto& v:packages_)if(v.toMap()["id"]==id){auto r=v.toMap();r["sizeBytes"]=r["size"];releases<<r;}
+    const auto cpu=QSysInfo::currentCpuArchitecture();const auto arch=cpu=="arm64"?QString("aarch64"):cpu;
+    QVariantList releases;for(const auto& v:packages_)if(v.toMap()["id"]==id && !v.toMap()["withdrawn"].toBool()){auto r=v.toMap();r["sizeBytes"]=r["size"];r["canRun"]=r["architecture"].toString().isEmpty()||r["architecture"]==arch;releases<<r;}
     const auto installed=inventory_.value(id);const auto latest=releases.value(0).toMap();
     QVariantMap out{{"installedVersion",installed["version"]},{"availableVersion",latest["version"]},{"packageReleases",releases},
-        {"canInstall",!releases.isEmpty()&&!helper_.isEmpty()},{"updateAvailable",!installed.isEmpty()&&!latest.isEmpty()&&installed["version"]!=latest["version"]}};
+        {"canInstall",online_&&!releases.isEmpty()&&!helper_.isEmpty()&&latest["canRun"].toBool()},
+        {"offline",!online_},{"updateAvailable",online_&&!installed.isEmpty()&&!latest.isEmpty()&&latest["canRun"].toBool()&&installed["version"]!=latest["version"]}};
     for(const auto& v:jobs_){auto r=v.toMap();if(r["id"]==id){out["job"]=r;out["busy"]=!r["terminal"].toBool();}}
     return out;
 }
@@ -68,7 +73,8 @@ QVariantList CratesInstaller::tasks() const {
         r["actions"]=a;r["kind"]="package";v=r;}return out;
 }
 void CratesInstaller::request(const QString& id,const QString& version,const QString& operation){
-    QVariantMap record;for(const auto& p:packages_){auto r=p.toMap();if(r["id"]==id&&(version.isEmpty()||r["version"]==version)){record=r;break;}}
+    if(operation!="remove"&&!online_)return;
+    QVariantMap record;for(const auto& p:packages_){auto r=p.toMap();if(r["id"]==id&&!r["withdrawn"].toBool()&&(version.isEmpty()||r["version"]==version)){record=r;break;}}
     if(operation=="remove")record=inventory_.value(id);
     if(record.isEmpty()||state(id)["busy"].toBool())return;
     for(int i=jobs_.size()-1;i>=0;--i)if(jobs_[i].toMap()["id"]==id)jobs_.removeAt(i);

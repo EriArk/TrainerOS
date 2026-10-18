@@ -2,7 +2,10 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 """Host-owned package transactions. No commands from catalogue metadata are run."""
 import contextlib
-import fcntl
+try:
+    import fcntl
+except ImportError:  # Maintainer-side schema/signing tools also run on Windows.
+    fcntl = None
 import hashlib
 import json
 import os
@@ -39,13 +42,25 @@ def safe_path(name):
 
 
 def read_registry(path):
-    if path.stat().st_size > 1024 * 1024:
+    if path.stat().st_size > 12 * 1024 * 1024:
         raise ValueError('Package registry too large')
     result = json.loads(path.read_text())
+    if 'signed' in result:
+        from catalogue import verified
+        result = dict(schema=1, packages=verified(result)['packages'])
     if result.get('schema') != 1: raise ValueError('Unsupported package registry')
     records = result['packages']
+    validate_records(records)
+    return [r for r in records if not r.get('withdrawn',False)]
+
+
+def validate_records(records):
+    if not isinstance(records,list) or len(records)>4000: raise ValueError('Too many package records')
     seen = set()
     for r in records:
+        if set(r)-{'id','version','title','kind','architecture','sha256','size','unpackedSize','entry','icon','url',
+                   'repository','revision','license','picture','compatibility','compatibilityNote','channel','notes','withdrawn','releasedOn'}:
+            raise ValueError('Unsupported package fields')
         if not ID.fullmatch(r['id']) or not ID.fullmatch(r['version']):
             raise ValueError('Invalid package identity')
         key = (r['id'], r['version'])
@@ -53,19 +68,26 @@ def read_registry(path):
         seen.add(key)
         if r['kind'] not in ('game', 'app') or r['architecture'] not in ('aarch64','x86_64'):
             raise ValueError('Unsupported package type')
+        if not isinstance(r.get('title'),str) or not 0<len(r['title'])<=160:
+            raise ValueError('Invalid package title')
+        if r.get('compatibility','untested') not in ('supported','untested','incompatible'):
+            raise ValueError('Invalid compatibility status')
+        picture=r.get('picture','')
+        if picture and (not re.fullmatch(r'qrc:/(?:crates|series)/[a-zA-Z0-9_./-]+',picture) or '..' in picture):
+            raise ValueError('Unapproved package illustration')
         if not re.fullmatch('[0-9a-f]{64}', r['sha256']) or not 0 < r['size'] < 1024**3:
             raise ValueError('Invalid package integrity record')
         u = urlsplit(r['url'])
-        if u.scheme != 'https' or u.hostname != 'github.com' or u.username or u.password or not u.path.startswith('/EriArk/TrainerOS/releases/download/'):
+        if u.scheme != 'https' or u.hostname != 'github.com' or u.username or u.password or u.port or u.query or u.fragment or not re.fullmatch(r'/EriArk/TrainerOS/releases/download/[A-Za-z0-9._-]+/[A-Za-z0-9._-]+',u.path):
             raise ValueError('Unapproved package source')
         safe_path(r['entry'])
         safe_path(r.get('icon','icon.svg'))
         if not 0 < r['unpackedSize'] < 4*1024**3: raise ValueError('Invalid unpacked size')
-    return records
 
 
 class Store:
     def __init__(self, root):
+        if fcntl is None: raise RuntimeError('Package transactions require a Linux host')
         self.root = Path(root).absolute()
         self.root.mkdir(parents=True, exist_ok=True)
         if self.root.is_symlink(): raise ValueError('Package root cannot be a link')
@@ -194,7 +216,7 @@ def main():
         cancelled = True
     signal.signal(signal.SIGTERM,stop)
     registry, root, operation, project, version = sys.argv[1:6]
-    records = read_registry(Path(registry)); store = Store(root)
+    store = Store(root)
     def emit(stage, progress=None):
         event={'stage':stage}
         if progress is not None: event['progress']=progress
@@ -210,6 +232,7 @@ def main():
                     time.sleep(.5)
                     if cancelled: raise InterruptedError('Cancelled')
         elif operation == 'install':
+            records = read_registry(Path(registry))
             record = next(r for r in records if r['id']==project and r['version']==version)
             if os.uname().machine != record['architecture']: raise ValueError('Package architecture cannot run here')
             emit('Reserving space')

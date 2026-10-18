@@ -9,6 +9,7 @@ import shutil
 import subprocess
 import sys
 import tarfile
+import ports
 
 recipe_root=Path(__file__).resolve().parent
 name=sys.argv[1]
@@ -20,10 +21,13 @@ if not source.exists(): run('git','clone',recipe['repository'],str(source))
 run('git','-C',str(source),'checkout','--detach',recipe['revision'])
 if stage.exists(): raise SystemExit('Choose a fresh output directory for packaging')
 stage.mkdir();(stage/'bin').mkdir()
-if name=='2048':
+if name in ('2048','hextris','breakout'):
     run('cmake','-S',str(recipe_root/'webgame'),'-B',str(build),'-DCMAKE_BUILD_TYPE=Release')
     run('cmake','--build',str(build),'-j4')
     shutil.copy2(build/'traineros-webgame',stage/'bin/traineros-webgame')
+if name in ('hextris','breakout'):
+    ports.web(name,source,stage,recipe_root)
+elif name=='2048':
     (stage/'web').mkdir()
     for file in ('index.html','js','style','meta','LICENSE.txt'):
         p=source/file
@@ -36,7 +40,9 @@ if name=='2048':
     html=html.replace('</head>','<style>html,body{margin:0}body{padding:16px 0}.game-container{margin-top:16px}.game-explanation,hr,.game-explanation~p{display:none}.container:after{content:"Gabriele Cirulli · TrainerOS adaptation · MIT";display:block;font-size:12px;margin-top:12px}</style></head>')
     html=html.replace('</body>','<script>document.addEventListener("keydown",function(e){if(e.key!=="Enter")return;var m=document.querySelector(".game-message");if(m.classList.contains("game-over"))document.querySelector(".retry-button").click();else if(m.classList.contains("game-won"))document.querySelector(".keep-playing-button").click();});</script></body>')
     (stage/'web/index.html').write_text(html)
-else:
+elif name=='qalculate':
+    ports.qalculate(source,build,stage,out,recipe_root)
+elif name=='featherpad':
     run('cmake','-S',str(source),'-B',str(build),'-DCMAKE_BUILD_TYPE=Release','-DCMAKE_INSTALL_PREFIX=/usr')
     run('cmake','--build',str(build),'-j4')
     dest=out/'dest';run('cmake','--install',str(build),env=dict(os.environ,DESTDIR=str(dest)))
@@ -47,6 +53,7 @@ else:
     shutil.copy2(source/'COPYING',stage/'LICENSE.upstream')
     icons=list((stage/'share/icons').rglob('featherpad.svg'))
     if icons: shutil.copy2(icons[0],stage/'icon.svg')
+else: raise SystemExit('No reviewed recipe for '+name)
 # Source archive is published beside the binary for reproducibility/licensing.
 run('git','-C',str(source),'archive','--format=tar.gz','--output='+str(out/(name+'-source.tar.gz')),'HEAD')
 archive=out/(name+'-aarch64.tar.gz')
@@ -57,6 +64,6 @@ size=sum(p.stat().st_size for p in stage.rglob('*') if p.is_file())
 record=dict(recipe,sha256=hashlib.sha256(archive.read_bytes()).hexdigest(),size=archive.stat().st_size,
             unpackedSize=size+1024*1024,compatibility='untested',channel='Experimental',
             notes='Initial TrainerOS package. User data is kept separately.',
-            url='https://github.com/EriArk/TrainerOS/releases/download/crates-test-20261018/'+archive.name)
+            url='https://github.com/EriArk/TrainerOS/releases/download/'+(sys.argv[3] if len(sys.argv)>3 else 'crates-test-20261018')+'/'+archive.name)
 (out/(name+'-record.json')).write_text(json.dumps(record,indent=2))
 print(json.dumps(record))

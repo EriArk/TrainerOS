@@ -2,6 +2,9 @@
 #include <QFile>
 #include <QJsonDocument>
 #include <QJsonArray>
+#include <QJsonObject>
+#include <QFileInfo>
+#include <QDebug>
 #include <algorithm>
 
 namespace trainer {
@@ -13,6 +16,58 @@ CratesController::CratesController(QObject* parent):QObject(parent) {
     if(catalogue.open(QIODevice::ReadOnly))loadCatalogue(catalogue.readAll());
     opening_.setSingleShot(true);
     connect(&opening_,&QTimer::timeout,this,[this]{opened_=true;emit changed();});
+    catalogueDeadline_.setSingleShot(true);catalogueDeadline_.setInterval(20000);
+    connect(&catalogueDeadline_,&QTimer::timeout,this,[this]{catalogueWorker_.kill();});
+    connect(&catalogueWorker_,&QProcess::readyReadStandardOutput,this,[this]{
+        catalogueBuffer_+=catalogueWorker_.readAllStandardOutput();
+        if(catalogueBuffer_.size()>12*1024*1024)catalogueWorker_.kill();
+    });
+    connect(&catalogueWorker_,&QProcess::readyReadStandardError,this,[this]{catalogueWorker_.readAllStandardError();});
+    connect(&catalogueWorker_,&QProcess::errorOccurred,this,[this](QProcess::ProcessError error){
+        if(error==QProcess::FailedToStart){catalogueDeadline_.stop();syncStatus_="Catalogue unavailable";installer_.setOnline(false);emit changed();}
+    });
+    connect(&catalogueWorker_,&QProcess::finished,this,[this](int code,QProcess::ExitStatus status){
+        catalogueDeadline_.stop();
+        const auto response=QJsonDocument::fromJson(catalogueBuffer_).object();
+        const bool applied=code==0&&status==QProcess::NormalExit&&!response.contains("error")&&applyCatalogue(response);
+        if(networkSync_){
+            installer_.setOnline(applied);syncStatus_=applied?QString():QString("Offline · saved catalogue");
+            qInfo()<<"Crates catalogue"<<(applied?response["result"].toString():QString("unavailable"))<<"revision"<<response["revision"].toInteger();
+        }
+        emit changed();
+        if(pendingSync_&&catalogueActive_){pendingSync_=false;refreshCatalogue(true);}
+    });
+}
+CratesController::~CratesController(){catalogueWorker_.disconnect(this);if(catalogueWorker_.state()!=QProcess::NotRunning){catalogueWorker_.kill();catalogueWorker_.waitForFinished(1000);}}
+void CratesController::configureCatalogue(const QString& helper,const QString& cache){
+    catalogueHelper_=helper;catalogueCache_=cache;installer_.setOnline(false);
+    // Loading the last authenticated snapshot never performs a network request.
+    if(QFileInfo::exists(cache+"/current.json"))refreshCatalogue(false);
+}
+void CratesController::enter(){
+    if(catalogueActive_)return;catalogueActive_=true;
+    if(catalogueHelper_.isEmpty())return;
+    if(catalogueWorker_.state()!=QProcess::NotRunning){if(!networkSync_)pendingSync_=true;return;}
+    refreshCatalogue(true);
+}
+void CratesController::refreshCatalogue(bool network){
+    networkSync_=network;catalogueBuffer_.clear();
+    if(network){syncStatus_="Refreshing…";emit changed();}
+    catalogueWorker_.start("/usr/bin/python3",{catalogueHelper_,network?"sync":"load",catalogueCache_});
+    catalogueDeadline_.start();
+}
+bool CratesController::applyCatalogue(const QJsonObject& response){
+    const auto nextCrates=response["crates"].toArray().toVariantList();
+    if(nextCrates.size()!=6)return false;
+    QStringList ids;for(const auto& c:nextCrates)ids<<c.toMap()["id"].toString();
+    CratesCatalogue next;
+    if(!CratesCatalogue::read(QJsonDocument(response["catalogue"].toObject()).toJson(),ids,next,catalogueCache_+"/assets"))return false;
+    const auto crateId=current()["id"].toString(),projectId=project()["id"].toString();
+    crates_=nextCrates;focus_=std::max(0,int(ids.indexOf(crateId)));catalogue_=std::move(next);
+    if(detailOpen_&&!catalogue_.contents.value(crateId).contains(projectId))closeDetail();
+    releaseIndex_=screenshotIndex_=0;
+    installer_.useCatalogue(response["packages"].toArray().toVariantList(),catalogueCache_+"/current.json");
+    emit catalogueChanged();emit projectChanged();emit changed();return true;
 }
 void CratesController::select(int index) {
     if(opened_ || opening() || index<0 || index>=crates_.size() || focus_==index)return;
@@ -45,23 +100,49 @@ QVariantMap CratesController::project() const {
 QString CratesController::primaryLabel() const {
     const auto p=project();if(p["busy"].toBool())return "View progress";
     if(!p["installedVersion"].toString().isEmpty())return p["kind"]=="game"?"Play":"Open";
+    if(p["offline"].toBool())return "Connect to download";
     return p["canInstall"].toBool()?"Download":"Package coming soon";
 }
 int CratesController::updateCount() const {int count=0;for(const auto& p:installer_.installed())if(installer_.state(p.toMap()["id"].toString())["updateAvailable"].toBool())++count;return count;}
-void CratesController::updateAll(){for(const auto& p:installer_.installed()){const auto id=p.toMap()["id"].toString();if(installer_.state(id)["updateAvailable"].toBool())installer_.request(id);}emit downloadsRequested();}
+void CratesController::updateAll(){
+    if(!updateCount())return;
+    for(const auto& p:installer_.installed()){
+        const auto state=installer_.state(p.toMap()["id"].toString());
+        if(state["updateAvailable"].toBool()&&state["packageReleases"].toList().value(0).toMap()["compatibility"]!="supported"){
+            updatePrompt_=true;updateChoice_=0;emit changed();return;
+        }
+    }
+    confirmUpdates(true);
+}
+void CratesController::confirmUpdates(bool accept){
+    updatePrompt_=false;emit changed();if(!accept)return;
+    for(const auto& p:installer_.installed()){const auto id=p.toMap()["id"].toString();if(installer_.state(id)["updateAvailable"].toBool())installer_.request(id);}
+    emit downloadsRequested();
+}
 bool CratesController::primaryEnabled() const {const auto p=project();return p["busy"].toBool()||p["canInstall"].toBool()||!p["installedVersion"].toString().isEmpty();}
 void CratesController::primary(){
     if(!detailOpen_||!primaryEnabled())return;const auto p=project();
     if(p["busy"].toBool()){emit downloadsRequested();return;}
     if(!p["installedVersion"].toString().isEmpty()){emit launchRequested(p["id"].toString(),p["kind"].toString());return;}
-    installer_.request(p["id"].toString());emit downloadsRequested();
+    requestPackage();
+}
+void CratesController::requestPackage(const QString& version){
+    const auto p=project();const auto rows=p["releases"].toList();QVariantMap release;
+    for(const auto& row:rows){const auto r=row.toMap();if(version.isEmpty()||r["version"]==version){release=r;break;}}
+    if(release.isEmpty()||!p["canInstall"].toBool()||(release.contains("canRun")&&!release["canRun"].toBool()))return;
+    if(release["compatibility"]=="untested"||release["compatibility"]=="incompatible"){
+        pendingVersion_=release["version"].toString();versionsOpen_=false;actionsOpen_=true;actionIndex_=0;
+        emit projectChanged();emit changed();return;
+    }
+    installer_.request(p["id"].toString(),release["version"].toString());emit downloadsRequested();
 }
 void CratesController::installSelectedVersion(){
     const auto p=project();const auto r=p["releases"].toList().value(releaseIndex_).toMap();
     if(!versionsOpen_||!p["canInstall"].toBool()||p["busy"].toBool()||r.isEmpty())return;
-    installer_.request(p["id"].toString(),r["version"].toString());showVersions();emit downloadsRequested();
+    versionsOpen_=false;requestPackage(r["version"].toString());emit changed();
 }
 QVariantList CratesController::actions() const {
+    if(!pendingVersion_.isEmpty())return {QVariantMap{{"id","confirm-install"},{"label","Install anyway · untested"}},QVariantMap{{"id","back"},{"label","Cancel"}}};
     if(confirmRemove_)return {QVariantMap{{"id","confirm-remove"},{"label","Remove · keep my data"}},QVariantMap{{"id","back"},{"label","Cancel"}}};
     const auto p=project();QVariantList a;
     if(p["updateAvailable"].toBool())a<<QVariantMap{{"id","update"},{"label","Update"}};
@@ -69,15 +150,17 @@ QVariantList CratesController::actions() const {
     if(!p["installedVersion"].toString().isEmpty())a<<QVariantMap{{"id","remove"},{"label","Remove…"}};
     return a;
 }
-void CratesController::showActions(){if(!detailOpen_||actions().isEmpty())return;actionsOpen_=!actionsOpen_;confirmRemove_=false;actionIndex_=0;emit projectChanged();emit changed();}
+void CratesController::showActions(){if(!detailOpen_||actions().isEmpty())return;actionsOpen_=!actionsOpen_;confirmRemove_=false;pendingVersion_.clear();actionIndex_=0;emit projectChanged();emit changed();}
 void CratesController::activateAction(int i){
     const auto action=actions().value(i).toMap()["id"].toString();const auto id=project()["id"].toString();
     if(action=="remove"){confirmRemove_=true;actionIndex_=0;emit projectChanged();emit changed();return;}
-    if(action=="update")installer_.request(id);
+    if(action=="update"){actionsOpen_=false;requestPackage();return;}
+    if(action=="confirm-install")installer_.request(id,pendingVersion_);
     if(action=="confirm-remove")installer_.request(id,{},"remove");
     actionsOpen_=confirmRemove_=false;
+    pendingVersion_.clear();
     if(action=="versions")showVersions();
-    if(action=="update"||action=="confirm-remove")emit downloadsRequested();
+    if(action=="confirm-install"||action=="confirm-remove")emit downloadsRequested();
     emit projectChanged();emit changed();
 }
 QVariantList CratesController::projects() const {
@@ -99,7 +182,7 @@ void CratesController::openProject(int index) {
     if(!opened_ || detailOpen_ || index<0 || index>=projectCount())return;
     selectProject(index);detailOpen_=true;versionsOpen_=false;screenshotIndex_=releaseIndex_=0;emit changed();
 }
-void CratesController::closeDetail(){detailOpen_=versionsOpen_=actionsOpen_=confirmRemove_=false;emit changed();}
+void CratesController::closeDetail(){detailOpen_=versionsOpen_=actionsOpen_=confirmRemove_=false;pendingVersion_.clear();emit changed();}
 void CratesController::turnPage(int delta) {
     if(!opened_ || detailOpen_ || projectCount()==0)return;
     const int next=std::clamp(page()+delta,0,pageCount()-1);
@@ -109,13 +192,20 @@ void CratesController::showVersions(){if(detailOpen_&&!project()["releases"].toL
 void CratesController::selectRelease(int i){if(detailOpen_&&i>=0&&i<project()["releases"].toList().size()){releaseIndex_=i;emit changed();}}
 void CratesController::selectScreenshot(int i){if(detailOpen_&&i>=0&&i<project()["screenshots"].toList().size()){screenshotIndex_=i;emit changed();}}
 void CratesController::back(){
-    if(actionsOpen_){actionsOpen_=confirmRemove_=false;emit projectChanged();emit changed();return;}
+    if(updatePrompt_){confirmUpdates(false);return;}
+    if(actionsOpen_){actionsOpen_=confirmRemove_=false;pendingVersion_.clear();emit projectChanged();emit changed();return;}
     if(versionsOpen_){versionsOpen_=false;emit changed();return;}
     if(detailOpen_){closeDetail();return;}
     opening_.stop();opened_=false;emit changed();
 }
-void CratesController::leave(){if(opening()||detailOpen_){opening_.stop();closeDetail();}}
+void CratesController::leave(){catalogueActive_=pendingSync_=false;if(updatePrompt_)confirmUpdates(false);if(opening()||detailOpen_){opening_.stop();closeDetail();}}
 bool CratesController::dispatch(Action action) {
+    if(updatePrompt_){
+        if(action==Action::Back)confirmUpdates(false);
+        else if(action==Action::Left||action==Action::Right){updateChoice_=action==Action::Right?1:0;emit changed();}
+        else if(action==Action::Confirm)confirmUpdates(updateChoice_==1);
+        return true;
+    }
     if(!opened_&&action==Action::ContextMenu&&updateCount()>0){updateAll();return true;}
     if(action==Action::Back){if(!opened_&&!opening())return false;back();return true;}
     if(detailOpen_) {

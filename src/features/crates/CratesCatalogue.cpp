@@ -4,6 +4,8 @@
 #include <QJsonArray>
 #include <QRegularExpression>
 #include <QSet>
+#include <QFileInfo>
+#include <QUrl>
 
 namespace trainer {
 namespace {
@@ -14,15 +16,20 @@ bool identity(const QString& id) {
 QString text(const QJsonObject& o,const char* key,int max=160) {
     return o.value(QLatin1String(key)).toString().trimmed().left(max);
 }
-QString art(const QJsonValue& value) {
+QString art(const QJsonValue& value,const QString& assets) {
     const auto s=value.toString();
-    // Only compiled assets for now. A future verified cache owns remote image admission.
+    if(!assets.isEmpty() && QRegularExpression("^asset:[0-9a-f]{64}$").match(s).hasMatch()) {
+        const QFileInfo image(assets+"/"+s.mid(6)+".png");
+        if(image.isFile() && !image.isSymLink() && image.canonicalPath()==QFileInfo(assets).canonicalFilePath())
+            return QUrl::fromLocalFile(image.absoluteFilePath()).toString();
+        return {};
+    }
     if(s.size()>256 || s.contains("..") || s.contains('?') || s.contains('#'))return {};
     if(!s.startsWith("qrc:/crates/") && !s.startsWith("qrc:/series/"))return {};
     return s;
 }
 }
-bool CratesCatalogue::read(const QByteArray& bytes,const QStringList& crateIds,CratesCatalogue& result) {
+bool CratesCatalogue::read(const QByteArray& bytes,const QStringList& crateIds,CratesCatalogue& result,const QString& assets) {
     if(bytes.size()>2*1024*1024)return false;
     QJsonParseError error;
     const auto doc=QJsonDocument::fromJson(bytes,&error);
@@ -40,7 +47,7 @@ bool CratesCatalogue::read(const QByteArray& bytes,const QStringList& crateIds,C
         QVariantList screens,releases;
         const auto images=o["screenshots"].toArray();
         if(images.size()>8 || o["releases"].toArray().size()>64)return false;
-        for(const auto& image:images) {const auto source=art(image);if(!source.isEmpty()&&!screens.contains(source))screens<<source;}
+        for(const auto& image:images) {const auto source=art(image,assets);if(!source.isEmpty()&&!screens.contains(source))screens<<source;}
         QSet<QString> versions;
         for(const auto& item:o["releases"].toArray()) {
             if(!item.isObject())return false;
@@ -61,7 +68,7 @@ bool CratesCatalogue::read(const QByteArray& bytes,const QStringList& crateIds,C
         parsed.projects[id]={{"id",id},{"title",text(o,"title")},{"kind",kind},
             {"license",text(o,"license",80)},{"sample",o["sample"].toBool(false)},
             {"creator",text(o,"creator")},{"summary",text(o,"summary",300)},
-            {"description",text(o,"description",12000)},{"hero",art(o["hero"])},
+            {"description",text(o,"description",12000)},{"hero",art(o["hero"],assets)},
             {"screenshots",screens},{"releases",releases}};
     }
     const auto contents=root["contents"].toObject();

@@ -12,6 +12,8 @@ public:
     explicit CratesInstaller(QObject* parent=nullptr);
     ~CratesInstaller() override;
     void configure(const QString& helper,const QString& registry,const QString& root);
+    void useCatalogue(const QVariantList& packages,const QString& signedRegistry);
+    void setOnline(bool online);
     QVariantMap state(const QString& id) const;
     QVariantList tasks() const;
     QVariantList installed() const;
@@ -35,5 +37,6 @@ private:
     QByteArray buffer_;
     QTimer retry_;
     QTimer persist_;
+    bool online_=true;
 };
 }

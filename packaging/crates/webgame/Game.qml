@@ -7,7 +7,7 @@ Window {
     WebEngineView {
         id: view
         anchors.fill: parent; focus: true; url: gameUrl
-        zoomFactor: Math.min(width/600,height/850)
+        zoomFactor: responsiveViewport ? 1 : Math.min(width/600,height/850)
         profile: WebEngineProfile {
             storageName: "game"; offTheRecord: false
             persistentStoragePath: gameData+"/web"; cachePath: gameData+"/cache"
@@ -16,6 +16,9 @@ Window {
         // Reviewed offline packages load their own relative JS/CSS resources.
         settings.localContentCanAccessFileUrls: true
         onNewWindowRequested: function(request) { }
+        onNavigationRequested: function(request) {
+            if (request.url.toString().indexOf("file:") !== 0) request.action = WebEngineNavigationRequest.IgnoreRequest
+        }
         onLoadingChanged: function(request) { if(request.status === WebEngineView.LoadSucceededStatus) forceActiveFocus() }
     }
 }

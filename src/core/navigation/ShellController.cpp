@@ -9,6 +9,7 @@
 #include <QSet>
 #include <QTimer>
 #include <QSignalBlocker>
+#include <QScopedValueRollback>
 #include <QCryptographicHash>
 #include <algorithm>
 #include "core/model/NavigationVersion.h"
@@ -429,7 +430,12 @@ void ShellController::selectFace(int index) {
     else if(page_==SocialPage) {
         socialFace_=QStringList{"chats","communities","friends"}.value(index,"chats");
         social_.setFace(socialFace_);
-    } else if(page_==AppsPage){files_.leave();crates_.leave();appsFace_=QStringList{"apps","crates","browser","files"}.value(index,"apps");if(appsFace_=="files")files_.enter();else if(appsFace_=="browser")browser_.enter();}
+    } else if(page_==AppsPage){
+        const auto next=QStringList{"apps","crates","browser","files"}.value(index,"apps");
+        if(next==appsFace_){if(next=="crates")crates_.enter();return;}
+        files_.leave();crates_.leave();appsFace_=next;
+        if(appsFace_=="files")files_.enter();else if(appsFace_=="browser")browser_.enter();else if(appsFace_=="crates")crates_.enter();
+    }
     else if(page_==GamesPage && !collectionsRoot_) {
         const auto rows=gamesRootZone_=="platforms"?gamesPlatforms():gamesCollections();
         openGamesRootItem(gamesRootZone_,rows.value(index).toMap()["id"].toString());
@@ -761,6 +767,7 @@ QJsonObject ShellController::navigationState() const {
 }
 void ShellController::restoreNavigation(const QJsonObject& state) {
     if(navigationLocked())return;
+    QScopedValueRollback<bool> restoring(restoringNavigation_,true);
     homeMenuOpen_=quickAppsOpen_=drawerOpen_=false;
     const int version=state["version"].toInt();
     if(version<1 || version>ShellNavigationVersion) {
@@ -992,6 +999,7 @@ void ShellController::openTrainers() {
 void ShellController::goToPage(int page) {
     PerformanceTrace::Scope perf("ShellController.goToPage");
     if(navigationLocked(true))return;
+    const bool enteringApps=page_!=AppsPage;
     // Closing transient controllers emits their local notifications. Publish
     // only the completed shell transition, not every intermediate close, so
     // hidden Home/drawer bindings do not rebuild the library repeatedly.
@@ -1015,7 +1023,7 @@ void ShellController::goToPage(int page) {
     { PerformanceTrace::Scope phase("navigation.manager"); libraryManager_.close(); service_.clear(); }
     page_ = std::clamp(page, 0, int(primaryNames().size())-1); // No wrapping until physical-device testing.
     quickAppsOpen_=false;
-    if(page_==AppsPage){apps_.refresh();if(appsFace_=="files")files_.enter();else if(appsFace_=="browser")browser_.enter();}
+    if(page_==AppsPage){apps_.refresh();if(appsFace_=="files")files_.enter();else if(appsFace_=="browser")browser_.enter();else if(appsFace_=="crates"&&enteringApps&&!restoringNavigation_)crates_.enter();}
     if(page_==SocialPage)social_.setFace(socialFace_);
     if(page_==1 && multiverseFace_)multiverse_.setCollection(worldCollection_);
     // Primary tabs resume their existing route and focus. Only explicit Back
