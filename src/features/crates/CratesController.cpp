@@ -75,6 +75,9 @@ void CratesController::select(int index) {
 }
 void CratesController::open(int index,bool reducedMotion) {
     if(opened_ || index<0 || index>=crates_.size())return;
+    // A restored Crates root stays offline at boot. Opening its first crate is
+    // also an explicit user entry, without requiring a detour to another tab.
+    enter();
     if(opening()){opening_.stop();opened_=true;}
     else {focus_=index;if(reducedMotion||reducedMotion_)opened_=true;else opening_.start(210);}
     emit catalogueChanged();emit projectChanged();emit changed();
