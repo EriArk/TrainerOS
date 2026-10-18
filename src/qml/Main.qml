@@ -277,11 +277,11 @@ Window {
                 GameHubPage { id: gameHubPage; anchors.fill: parent; shell: shellController; visible: (!shell.serviceOpen || shell.service === "settings" || shell.service === "account-profile") && shell.primaryId === "gamehub" }
                 AppsPage { anchors.fill: parent; flow: shell.apps; active: shell.primaryId === "apps" && shell.appsFace === "apps"; visible: (!shell.serviceOpen || shell.service === "settings" || shell.service === "account-profile") && active }
                 FilesPane { id: filesPane; anchors.fill: parent; flow: shell.files; applicationStatus: shell.apps.status; visible: !shell.serviceOpen && shell.primaryId === "apps" && shell.appsFace === "files"; takesFocus: visible && !shell.notice.length && !shell.drawerOpen && !shell.quickAppsOpen && !shell.keyboard.open && !shell.menuOpen && !shell.homeMenuOpen && !shell.files.view.menuOpen && !Object.keys(shell.files.dialog).length }
-                WorkspacePlaceholder {
+                CratesPage {
                     anchors.fill: parent
                     visible: (!shell.serviceOpen || shell.service === "settings" || shell.service === "account-profile") && shell.primaryId === "apps" && shell.appsFace === "crates"
-                    title: shell.appsFace === "crates" ? "Crates" : shell.appsFace === "browser" ? "Browser" : "Files"
-                    message: title + " is not available in this build."
+                    flow: shell.crates
+                    active: visible && !shell.serviceOpen && !shell.drawerOpen && !shell.quickAppsOpen && !shell.menuOpen && !shell.homeMenuOpen && !shell.keyboard.open && !shell.notice.length
                 }
                 SocialPage { anchors.fill: parent; shell: shellController; visible: (!shell.serviceOpen || shell.service === "settings" || shell.service === "account-profile") && shell.primaryId === "social" }
                 SeriesPage { anchors.fill: parent; shell: shellController; visible: (!shell.serviceOpen || shell.service === "settings" || shell.service === "account-profile") && shell.page === 1 && shell.collectionsRoot }
@@ -441,6 +441,7 @@ Window {
                 if (shell.page === 0) return [h("A",shell.homeGame.id ? (shell.liveGame.id === shell.homeGame.id ? "Return" : shell.home.actionHint) : "Collections"),h("Select","Game actions"),h("B","Back")]
                 if (shell.primaryId === "apps" && shell.appsFace === "files") return shell.files.view.menuOpen || Object.keys(shell.files.dialog).length ? [h("A","Select"),h("B","Close")] : [h("A","Open"),h("Hold A","Actions"),h("Select","Controls"),h("R3","View"),h("B","Back")]
                 if (shell.primaryId === "apps" && shell.appsFace === "browser") return browserPane.popup ? [h("A","Select"),h("B","Close")] : [h("A","Select"),h("Hold A","Actions"),h("Select","Controls"),h("B","Back")]
+                if (shell.primaryId === "apps" && shell.appsFace === "crates") return shell.crates.opened ? [h("B","Crates")] : [h("A",shell.crates.opening ? "Skip" : "Open"),h("B","Apps")]
                 if (shell.primaryId === "apps") return shell.apps.menu.length ? [h("↑↓","Choose"),h("A","Select"),h("B","Back")] : [h("A","Open"),h("Select","Options"),h("X","Quick Apps"),h("Y","Recent games"),h("B","Home")]
                 if (shell.primaryId === "gamehub") return gameHubPage.hints(h)
                 if (shell.primaryId === "social") return shell.social.hints

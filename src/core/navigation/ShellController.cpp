@@ -426,7 +426,7 @@ void ShellController::selectFace(int index) {
     else if(page_==SocialPage) {
         socialFace_=QStringList{"chats","communities","friends"}.value(index,"chats");
         social_.setFace(socialFace_);
-    } else if(page_==AppsPage){files_.leave();appsFace_=QStringList{"apps","crates","browser","files"}.value(index,"apps");if(appsFace_=="files")files_.enter();else if(appsFace_=="browser")browser_.enter();}
+    } else if(page_==AppsPage){files_.leave();crates_.leave();appsFace_=QStringList{"apps","crates","browser","files"}.value(index,"apps");if(appsFace_=="files")files_.enter();else if(appsFace_=="browser")browser_.enter();}
     else if(page_==GamesPage && !collectionsRoot_) {
         const auto rows=gamesRootZone_=="platforms"?gamesPlatforms():gamesCollections();
         openGamesRootItem(gamesRootZone_,rows.value(index).toMap()["id"].toString());
@@ -1003,7 +1003,7 @@ void ShellController::goToPage(int page) {
     { PerformanceTrace::Scope phase("navigation.keyboard"); if(textTarget_==TextTarget::Social)social_.preserveText(keyboard_.text()); keyboard_.cancel(); }
     if(textModule_){textModule_->cancelText();textModule_=nullptr;}
     textTarget_ = TextTarget::None;
-    apps_.leave(true);files_.leave();
+    apps_.leave(true);files_.leave();crates_.leave();
     social_.closeMenu();
     { PerformanceTrace::Scope phase("navigation.archive"); hall_.editor()->cancel(); }
     { PerformanceTrace::Scope phase("navigation.account"); hall_.account()->close(); }
@@ -1711,7 +1711,13 @@ void ShellController::dispatch(Action action) {
             return;
         }
         if(dispatchGameHub(action))return;
-        if (page_ == AppsPage) { if(appsFace_=="apps")apps_.dispatch(action);else if(appsFace_=="files")files_.dispatch(action);else if(action==Action::Back)selectFace(0); return; }
+        if (page_ == AppsPage) {
+            if(appsFace_=="apps")apps_.dispatch(action);
+            else if(appsFace_=="files")files_.dispatch(action);
+            else if(appsFace_=="crates") { if(!crates_.dispatch(action)&&action==Action::Back)selectFace(0); }
+            else if(action==Action::Back)selectFace(0);
+            return;
+        }
         if (page_ == SocialPage) { social_.dispatch(action); return; }
     }
     if (menuOpen_ && !powerMenu_ && notice_.isEmpty() && action == Action::Secondary) {

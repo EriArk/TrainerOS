@@ -1,0 +1,8 @@
+[
+  {"id":"whats-new","title":"What's New","subtitle":"Fresh finds & major updates","art":0,"color":"#bac6a1","lid":"#e2bd62","icon":"sparkle"},
+  {"id":"workshop","title":"Workshop","subtitle":"Made for TrainerOS","art":1,"color":"#89adb6","lid":"#b9a7cf","icon":"wrench"},
+  {"id":"adventure","title":"Adventure","subtitle":"Places worth exploring","art":2,"color":"#a3b78a","lid":"#a7b78d","icon":"mountains"},
+  {"id":"arcade","title":"Arcade","subtitle":"One more round","art":3,"color":"#d5a78d","lid":"#e6a08a","icon":"game-controller"},
+  {"id":"strategy","title":"Strategy","subtitle":"Your next move","art":4,"color":"#95b6ca","lid":"#92abc5","icon":"strategy"},
+  {"id":"tools","title":"Tools & Modules","subtitle":"Make it your own","art":5,"color":"#8caaad","lid":"#8ba1ac","icon":"gear"}
+]

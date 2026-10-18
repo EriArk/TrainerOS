@@ -81,6 +81,7 @@ add_library(trainer_core STATIC
     src/features/files/FilesController.cpp
     src/platform/files/FilesService.cpp
     src/features/apps/AppsController.cpp
+    src/features/crates/CratesController.cpp
     src/features/downloads/DownloadsController.cpp
     src/core/repository/BatoceraLibrary.cpp
     src/core/repository/RomPlatforms.cpp
@@ -346,6 +347,8 @@ qt_add_resources(traineros social_icons PREFIX "/social-icons" BASE assets/icons
     FILES ${social_icons} assets/icons/phosphor/LICENSE)
 file(GLOB home_icons CONFIGURE_DEPENDS assets/icons/home/*.svg)
 qt_add_resources(traineros home_icons PREFIX "/home-icons" BASE assets/icons/home FILES ${home_icons})
+qt_add_resources(traineros crates_showcase PREFIX "/crates" BASE data/crates FILES data/crates/showcase.json)
+qt_add_resources(traineros crates_art PREFIX "/crates" BASE assets/crates FILES assets/crates/illustrations-wide.png)
 set_source_files_properties(src/qml/Theme.qml PROPERTIES QT_QML_SINGLETON_TYPE TRUE)
 file(GLOB trainer_qml_sources CONFIGURE_DEPENDS src/qml/*.qml src/qml/*.js)
 foreach(qml_file IN LISTS trainer_qml_sources)
@@ -378,6 +381,10 @@ qt_add_qml_module(traineros
         src/qml/FilesControlTab.qml
         src/qml/FilesPopup.qml
         src/qml/AppsPage.qml
+        src/qml/CratesPage.qml
+        src/qml/CrateTile.qml
+        src/qml/CrateEmblem.qml
+        src/qml/CrateIllustration.qml
     src/qml/AppsMenu.qml
         src/qml/AppsDock.qml
         src/qml/AppControlsWindow.qml
@@ -562,6 +569,10 @@ if(BUILD_TESTING)
         set_tests_properties(session_supervisor PROPERTIES TIMEOUT 40)
     endif()
     qt_add_executable(trainer_power_tests tests/PowerStatusTests.cpp)
+    qt_add_executable(trainer_crates_tests tests/CratesTests.cpp)
+    target_link_libraries(trainer_crates_tests PRIVATE trainer_core Qt6::Test)
+    qt_add_resources(trainer_crates_tests crates_test_data PREFIX "/crates" BASE data/crates FILES data/crates/showcase.json)
+    add_test(NAME crates_showcase COMMAND trainer_crates_tests)
     qt_add_executable(trainer_device_tests tests/DeviceTests.cpp)
     qt_add_executable(trainer_standalone_tests tests/StandaloneTests.cpp)
     target_link_libraries(trainer_standalone_tests PRIVATE trainer_core Qt6::Test)

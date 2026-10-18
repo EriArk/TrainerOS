@@ -20,6 +20,7 @@
 #include "features/library/ScrapeController.h"
 #include "features/downloads/DownloadsController.h"
 #include "features/apps/AppsController.h"
+#include "features/crates/CratesController.h"
 #include "features/files/FilesController.h"
 #include "features/browser/BrowserController.h"
 #include "features/settings/SettingsController.h"
@@ -43,6 +44,7 @@ class ShellController final : public QObject {
     Q_PROPERTY(trainer::FilesController* files READ files CONSTANT)
     Q_PROPERTY(trainer::BrowserController* browser READ browser CONSTANT)
     Q_PROPERTY(trainer::AppsController* apps READ apps CONSTANT)
+    Q_PROPERTY(trainer::CratesController* crates READ crates CONSTANT)
     Q_PROPERTY(int page READ page NOTIFY changed)
     Q_PROPERTY(QString primaryId READ primaryId NOTIFY changed)
     Q_PROPERTY(QString hubFace READ hubFace NOTIFY changed)
@@ -178,6 +180,7 @@ public:
     FilesController* files(){return &files_;}
     BrowserController* browser(){return &browser_;}
     AppsController* apps(){return &apps_;}
+    CratesController* crates(){return &crates_;}
     DownloadsController* downloads() {return &downloads_;}
     bool canHoldConfirm() const;
     bool canEditWorld() const;
@@ -341,6 +344,7 @@ private:
     LibraryToolsController libraryTools_;
     ScrapeController scraper_;
     AppsController apps_;
+    CratesController crates_;
     FilesController files_;
     BrowserController browser_;
     DownloadsController downloads_;
