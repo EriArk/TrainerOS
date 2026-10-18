@@ -1,6 +1,6 @@
 # Dedicated TrainerOS session on ArmadaOS
 
-**Target change — #49:** the following session install, supervisor/recovery and dated acceptance remain implemented evidence; any resume check refers to legacy behavior. The next lifecycle increment must prove clean capture and a controller confirmation while the game stays alive, then cancellation back to the same process or graceful exit. The current hidden-shell/stop path does not prove this overlay. Preserve orphaned-game recovery, return route, maintenance and no-sleep policy. [Exit contract](EXPANSION_42_62.md#ordinary-saves-and-screenshot-first-exit).
+**Target change — #49:** the following session install, supervisor/recovery and dated acceptance remain implemented evidence; any resume check refers to legacy behavior. The next lifecycle increment must prove clean capture and a controller confirmation while the game stays alive, then cancellation back to the same process or graceful exit. The current hidden-shell/stop path does not prove this overlay. Preserve orphaned-game recovery, return route, maintenance and no-sleep policy. [Exit contract](https://github.com/EriArk/TrainerOS/blob/c6aaac25ba4f55262f3f6418e8d29cac7cdc9aec/docs/EXPANSION_42_62.md#ordinary-saves-and-screenshot-first-exit).
 
 This package targets the ArmadaOS testing build inspected on the Flip 2 on 2026-09-13. It preserves Steam and Plasma and does not modify the immutable `/usr` image. Sleep remains disabled by the owner's decision; wake/hinge testing is a separate gate.
 

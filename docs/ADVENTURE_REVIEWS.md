@@ -10,7 +10,7 @@ edit/delete/spoiler/report and one gentle eligibility prompt outside active play
 Use existing FluxerReviews + PlayHistory. V2 reads legacy V1 text reviews without
 inventing stars; stable content identity survives rename/move. OddCrate #151 uses
 the same reviews, curated compatible-version mapping and sample-aware ranking.
-See [full target](PRODUCT_VISION_RU.md#vision-reviews).
+See [full target](https://github.com/EriArk/TrainerOS/blob/c6aaac25ba4f55262f3f6418e8d29cac7cdc9aec/docs/PRODUCT_VISION_RU.md#vision-reviews).
 
 **Implementation boundary:** the Emerald-only `champion-v1` policy and V1 format
 described below are the existing bounded implementation, not the revised universal

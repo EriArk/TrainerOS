@@ -2,7 +2,7 @@
 
 ## Актуальная системная организация — 16 октября 2026
 
-[Контракт](UX_CONTRACT_20261016_RU.md), #77/#233/#234: аппаратные параметры и
+[Контракт](https://github.com/EriArk/TrainerOS/blob/c6aaac25ba4f55262f3f6418e8d29cac7cdc9aec/docs/UX_CONTRACT_20261016_RU.md), #77/#233/#234: аппаратные параметры и
 capabilities принадлежат Device, быстрые переключатели Start → Device, profile/
 privacy — Accounts & Communication. Автоматически определять физический controller,
 семантику и реальные glyphs Nintendo/Xbox/PlayStation/Steam; обновлять при смене,
@@ -17,7 +17,7 @@ privacy — Accounts & Communication. Автоматически определ�
 
 Owner addition, 2026-09-27. The requirements below retain their acceptance;
 the dated delivery section distinguishes installed behavior from remaining work.
-[ROADMAP](ROADMAP.md#unified-execution-order--existing-work-and-new-issues)
+[ROADMAP](https://github.com/EriArk/TrainerOS/blob/c6aaac25ba4f55262f3f6418e8d29cac7cdc9aec/docs/ROADMAP.md#unified-execution-order--existing-work-and-new-issues)
 remains the execution queue.
 
 ## Delivered radio slice — 2026-09-28

@@ -141,7 +141,7 @@ ordinary local firmware and private fresh VMUs remain required. Standalone Asio
 headers are a build dependency. The Linux integration suite passes after correcting
 its fake executable permissions; production executable validation was unchanged.
 
-[Hashes, build evidence and limits](../MULTIPLAYER_DEVICE_RECHECK_20261011.md).
+[Hashes, build evidence and limits](https://github.com/EriArk/TrainerOS/blob/c6aaac25ba4f55262f3f6418e8d29cac7cdc9aec/docs/MULTIPLAYER_DEVICE_RECHECK_20261011.md).
 This is a private staged executable, not an installed advertised bundle. Operator
 relay deployment, paired game/input/lifecycle and internet acceptance remain open.
 Rebase/reverse-check both added patches with the launch patch on upstream updates;

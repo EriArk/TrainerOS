@@ -7,11 +7,11 @@ Overview routes. Experience persistence v2 stores the chosen named screen and
 opaque module state under owner + game + module/version; the old two-slot v1
 state is migrated. A copied top-level route must never transfer a screen to a
 different game/module. Legacy Social Lobby points to GameHub Lobby. Runtime/save
-identity and database schema are unchanged. [Evidence](CORE16_FRAMEWORK_EVIDENCE.md).
+identity and database schema are unchanged. [Evidence](https://github.com/EriArk/TrainerOS/blob/c6aaac25ba4f55262f3f6418e8d29cac7cdc9aec/docs/CORE16_FRAMEWORK_EVIDENCE.md).
 
 **Current target reconciliation, 8 October 2026:**
-[Product vision](PRODUCT_VISION_RU.md#vision-architecture) and
-[#136-160](EXPANSION_136_160.md) add shared-backend handheld/TV presentation,
+[Product vision](https://github.com/EriArk/TrainerOS/blob/c6aaac25ba4f55262f3f6418e8d29cac7cdc9aec/docs/PRODUCT_VISION_RU.md#vision-architecture) and
+[#136-160](https://github.com/EriArk/TrainerOS/blob/c6aaac25ba4f55262f3f6418e8d29cac7cdc9aec/docs/EXPANSION_136_160.md) add shared-backend handheld/TV presentation,
 guest-content leases, curated OddCrate identities/reviews, and independent I/H/S/G
 update ownership. #119 now requires related independent image I and Software S
 manifests with one component-ownership contract. These are target changes, not a
@@ -32,10 +32,10 @@ and migrate legacy Pokémon routes without save/history rewrites. A collection
 membership never creates another experience or grants capabilities. Focused-card
 actions capture their own target; the live session remains independently bound.
 Universal profile/PIN/accounts and actual history are host data; game personas,
-favorites and evidenced progression are experience projections. [Contract](EXPANSION_174_178.md).
+favorites and evidenced progression are experience projections. [Contract](https://github.com/EriArk/TrainerOS/blob/c6aaac25ba4f55262f3f6418e8d29cac7cdc9aec/docs/EXPANSION_174_178.md).
 This does not deliver a schema change or reclassify old records without migration.
 
-**Planned UX-02 state boundary, 9 October 2026:** [precise map](UX_OPTIONS_MAP_RU.md).
+**Planned UX-02 state boundary, 9 October 2026:** [precise map](https://github.com/EriArk/TrainerOS/blob/c6aaac25ba4f55262f3f6418e8d29cac7cdc9aec/docs/UX_OPTIONS_MAP_RU.md).
 Selected Adventure/navigation state does not identify the live game. A live session
 needs verified owner/game/session/process-start/runtime/profile identity with
 independent foreground/input and confirmed pause state. Minimize keeps the same
@@ -44,7 +44,7 @@ restart recovery. Context actions capture stable target/owner/revision and reval
 before mutation; notification views retain provider event IDs. These are design
 constraints, not a delivered schema change or permission to discard existing state.
 
-**Planned model additions, 2026-10-08:** [#118–135](EXPANSION_118_135.md)
+**Planned model additions, 2026-10-08:** [#118–135](https://github.com/EriArk/TrainerOS/blob/c6aaac25ba4f55262f3f6418e8d29cac7cdc9aec/docs/EXPANSION_118_135.md)
 retain separate conversation, game-party, call and save-transaction identities.
 Hotseat distinguishes participant capacity, one simultaneous logical controller,
 ordered input owner and handoff state; ordinary multiplayer/player-count flags
@@ -76,9 +76,9 @@ provider mapping and persistence/protocol details remain in the
 Legacy `hall`/slot 4 maps to the existing nested Journey/Hall/RA state under
 Trainer; old Trainer opens Profile. Unknown future layouts fall back to Home.
 The SQLite schema, archive/history/RA ownership, persistent game IDs and external
-saves do not change. [Migration and checkpoint boundary](NAVIGATION_111.md).
+saves do not change. [Migration and checkpoint boundary](https://github.com/EriArk/TrainerOS/blob/c6aaac25ba4f55262f3f6418e8d29cac7cdc9aec/docs/NAVIGATION_111.md).
 
-**Planned extension — 2026-09-26:** [#69–90 contracts](EXPANSION_69_90.md)
+**Planned extension — 2026-09-26:** [#69–90 contracts](https://github.com/EriArk/TrainerOS/blob/c6aaac25ba4f55262f3f6418e8d29cac7cdc9aec/docs/EXPANSION_69_90.md)
 add no schema migration in this documentation increment. #90 generalizes the
 current two domains into versioned pack identities with per-Trainer selections,
 history projections and per-face state. Reclassification preserves Adventure ID,
@@ -120,13 +120,13 @@ Per-Trainer Home choices and history/media isolation now cover both contexts.
 See [the delivered binding contract](MULTIVERSE_BINDING.md); additional runtime
 save namespaces and semantic progress providers remain planned.
 
-**Target reconciliation — 2026-09-19 (#62).** The accepted [#42–62 specification](EXPANSION_42_62.md) supersedes older product direction. Planned behavior below is not a claim that the deployed build has changed; see the [working baseline](ROADMAP.md#working-baseline) and dated module evidence.
+**Target reconciliation — 2026-09-19 (#62).** The accepted [#42–62 specification](https://github.com/EriArk/TrainerOS/blob/c6aaac25ba4f55262f3f6418e8d29cac7cdc9aec/docs/EXPANSION_42_62.md) supersedes older product direction. Planned behavior below is not a claim that the deployed build has changed; see the [working baseline](https://github.com/EriArk/TrainerOS/blob/c6aaac25ba4f55262f3f6418e8d29cac7cdc9aec/docs/ROADMAP.md#working-baseline) and dated module evidence.
 
 The domain model should use TrainerOS language first and integration terminology second. Linux/ArmadaOS/emulator details belong behind integration and platform boundaries rather than shaping the user-facing model.
 
 The persistent implementation covers personal Worlds/Adventures, the local Trainer profile, favorites/manual Pokédex journal, observed play history, manual Hall memories, preferences and versioned browsing state. SQLite schema, recovery and migration constraints are documented in [LOCAL_PERSISTENCE.md](LOCAL_PERSISTENCE.md) and module documents. Reference catalogue data is composed separately; sample personal progress/archive/provider records are not seeded into the personal store.
 
-**Planned #63/#64 additions:** shared platform metadata supplies explicit chronology, with release/catalogue/stable-ID ties for World Adventure lists. A verified exact-build progress snapshot identifies the ordered semantic badge set and earned states; a separate asset provider supplies SVGs and provenance. Count-only and unknown observations never invent earned IDs. These are target contracts, not a claim that new schema fields exist. See [acceptance](EXPANSION_63_64.md); UI fixtures may exercise them before functional migration/new parsers.
+**Planned #63/#64 additions:** shared platform metadata supplies explicit chronology, with release/catalogue/stable-ID ties for World Adventure lists. A verified exact-build progress snapshot identifies the ordered semantic badge set and earned states; a separate asset provider supplies SVGs and provenance. Count-only and unknown observations never invent earned IDs. These are target contracts, not a claim that new schema fields exist. See [acceptance](https://github.com/EriArk/TrainerOS/blob/c6aaac25ba4f55262f3f6418e8d29cac7cdc9aec/docs/EXPANSION_63_64.md); UI fixtures may exercise them before functional migration/new parsers.
 
 ## Ownership contract — 2026-09-13
 
@@ -156,7 +156,7 @@ Schema 10 adds [optional PIN entry and a device-wide family reset code](TRAINER_
 [Active-profile deletion](TRAINER_REMOVAL.md) is delivered on schema 10;
 The first [GBA/mGBA per-Trainer save route](TRAINER_SAVES.md) is delivered;
 additional runtime namespaces and remaining domain binding are still **planned**.
-[Expansion acceptance](EXPANSION_PLAN.md) and [roadmap P2–P4](ROADMAP.md#unified-execution-order--existing-work-and-new-issues) define the remaining gates.
+[Expansion acceptance](https://github.com/EriArk/TrainerOS/blob/c6aaac25ba4f55262f3f6418e8d29cac7cdc9aec/docs/EXPANSION_PLAN.md) and [roadmap P2–P4](https://github.com/EriArk/TrainerOS/blob/c6aaac25ba4f55262f3f6418e8d29cac7cdc9aec/docs/ROADMAP.md#unified-execution-order--existing-work-and-new-issues) define the remaining gates.
 
 | Scope | Ownership and migration rule |
 | --- | --- |

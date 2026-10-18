@@ -2,7 +2,7 @@
 
 ## Последние требования #65 — 16 октября 2026
 
-[Контракт](UX_CONTRACT_20261016_RU.md), #65/#29/#233/#234, SYSTEM-16:
+[Контракт](https://github.com/EriArk/TrainerOS/blob/c6aaac25ba4f55262f3f6418e8d29cac7cdc9aec/docs/UX_CONTRACT_20261016_RU.md), #65/#29/#233/#234, SYSTEM-16:
 Start → Device запускает одной кнопкой missing-only всей eligible ROM-библиотеки;
 никакого обязательного выбора платформ и duplicate jobs. Полные настройки
 Account/API/quota, language/region, metadata/art/video/matching/existing-data/display

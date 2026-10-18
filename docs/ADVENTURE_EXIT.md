@@ -2,7 +2,7 @@
 
 ## Сохраняемые и новые lifecycle правила — 16 октября 2026
 
-[Контракт](UX_CONTRACT_20261016_RU.md), #49/#171/#191/#195: только явный Exit
+[Контракт](https://github.com/EriArk/TrainerOS/blob/c6aaac25ba4f55262f3f6418e8d29cac7cdc9aec/docs/UX_CONTRACT_20261016_RU.md), #49/#171/#191/#195: только явный Exit
 запускает protected capture/save/exit; Home не сохраняет и не завершает процесс.
 Solo Minimize и QuickChat получают реальную безопасную pause lease где поддержано;
 multiplayer остаётся live. Не подменять паузу savestate/relaunch. Временный кадр
@@ -15,14 +15,14 @@ Minimize не является кадром подтверждённого Exit.
 Ниже сохранён прежний текст с его датами. Конфликтующие цели и указания
 очерёдности заменены текущим разделом выше; доказательства не переносятся на новый UI.
 
-**Planned UX-02 integration, 9 October 2026:** [Game Options/minimize map](UX_OPTIONS_MAP_RU.md)
+**Planned UX-02 integration, 9 October 2026:** [Game Options/minimize map](https://github.com/EriArk/TrainerOS/blob/c6aaac25ba4f55262f3f6418e8d29cac7cdc9aec/docs/UX_OPTIONS_MAP_RU.md)
 retains this single explicit Exit protocol. Options/Minimize/Return do not create
 a ResumePoint, capture or new session and do not clear live-save guards. Capture
 must hide all interactive panels and passive HUD/toasts and bind the live process,
 including a previously minimized session. Cancel returns safely to that game.
 New minimize/passive-HUD capability is not established by the older exit proof below.
 
-**2026-10-01 supersession:** [physical Home menu](HOME_MENU.md) separates opening
+**2026-10-01 supersession:** [physical Home menu](https://github.com/EriArk/TrainerOS/blob/c6aaac25ba4f55262f3f6418e8d29cac7cdc9aec/docs/HOME_MENU.md) separates opening
 Home from Exit. Only explicit Exit requests a fresh clean capture and the save
 question. Verified autosave skips the manual question after a successful capture;
 capture failure keeps a cancellable fallback. The direct Home question and
@@ -115,7 +115,7 @@ Before enabling an adapter, verify on Flip's actual Gamescope/session setup:
 In the first increment the owner was away from the handheld. No device session,
 emulator configuration, sleep behavior or installed binary was changed. Hardware
 evidence, the QML prompt/SDL routing, canonical media consumers and safe legacy
-state retirement remain open under [#49 acceptance](EXPANSION_42_62.md#ordinary-saves-and-screenshot-first-exit).
+state retirement remain open under [#49 acceptance](https://github.com/EriArk/TrainerOS/blob/c6aaac25ba4f55262f3f6418e8d29cac7cdc9aec/docs/EXPANSION_42_62.md#ordinary-saves-and-screenshot-first-exit).
 
 ## Flip feasibility follow-up, 2026-09-19
 

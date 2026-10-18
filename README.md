@@ -10,7 +10,7 @@ For an ordinary game, that can be as simple as **pick it → press A → play �
 
 For games TrainerOS understands more deeply, the boundary starts to disappear. Your party, progress, collections and history can live in the system around the game. Friends can see that you are playing, ask to join, and enter a supported multiplayer game without opening an emulator lobby or typing an IP address.
 
-The first supported Adventure connects a creature-collecting RPG to the OS beyond launching it. Other supported series have their own collections; unclassified games remain in the **Multiverse**.
+The first supported Adventure connects a creature-collecting RPG to the OS beyond launching it. The Games library also supports ordinary games without a semantic adapter.
 
 TrainerOS is still in active development, but the current build already runs as a dedicated handheld session on **Retroid Pocket Flip 2** and **AYN Odin 2**.
 
@@ -21,8 +21,8 @@ with original fictional content and optional animated examples. The static bundl
 can be served independently or embedded in a website; it does not run emulators
 or connect to real accounts.
 
-Full target specification: [Product vision (Russian)](docs/PRODUCT_VISION_RU.md).
-It describes planned behaviour; current implementation and acceptance remain in the linked feature records.
+Current product contract: [Product specification (Russian)](docs/PRODUCT_SPEC.md).
+It describes accepted behaviour; [project status](PROJECT_STATUS.md) distinguishes delivery and remaining acceptance.
 
 ## Development status and getting started
 
@@ -42,12 +42,12 @@ every handheld. Selected game artwork and names are blurred in the public screen
 | Library, series and handheld shell | Installed device evidence; compatibility depends on available runtimes/content |
 | Semantic game integration | Exact supported game/build adapters, not all games on a platform |
 | Social and multiplayer | Implemented routes with bounded evidence; distinct-network, larger-group and human audio acceptance remain open |
-| Public distribution and updates | Armada image and SteamOS/Bazzite convergence installer share a planned release state; updates, rollback and repair remain planned |
+| Public distribution and updates | First beta: installer over existing Armada; clean installation, recovery and release verification remain open. Images and SteamOS/Bazzite come later |
 | Code license and public artwork | Original code: GPL-3.0-or-later; third-party terms remain separate and artwork review is ongoing |
 
 ## Pick a game and play
 
-Collections opens the collection browser. Some collections include regional worlds; other supported series have their own game wheels. Unclassified games remain in the **Multiverse**. Home adapts to the selected Adventure; Y opens global Recent games, and selecting an entry changes Home without launching it.
+Games opens collections and platforms, with wheel, list, shelves and screenshot grid views. Home adapts to the selected game; Y opens Recent / ★ without launching a game merely by selecting it.
 
 <table>
 <tr>
@@ -58,7 +58,7 @@ Collections opens the collection browser. Some collections include regional worl
 
 There is no normal setup screen between the library and the game. If a game is ready, **A launches it**.
 
-TrainerOS keeps emulator paths, cores, command lines and room settings out of the everyday interface. Press Home while playing to open Game Options: continue, minimize and browse TrainerOS, invite someone when multiplayer is available, or exit cleanly. Returning to a minimized game restores the same running process; a universal pause is not promised.
+TrainerOS keeps emulator paths, cores, command lines and room settings out of the everyday interface. Press Home while playing to open Game Options: continue, minimize and browse TrainerOS, manage the current lobby when available, or exit cleanly. Returning to a minimized game restores the same running process; a universal pause is not promised.
 
 Your ordinary game save stays the ordinary game save. TrainerOS does not make savestates the center of the experience.
 
@@ -70,7 +70,9 @@ The general library can use Batocera-style folders and existing metadata, artwor
 
 **Social is built into TrainerOS.** It is not a link that throws you into another app.
 
-Messages brings direct and group conversations together; Communities and Discover stay alongside it. A compact composer leaves room for the conversation: write and send, attach a picture, choose emoji or record a voice message. Call from the header; open a person's name for their Fluxer profile. Touch and controller controls work in parallel.
+Messages lists people and opens their direct conversation on the right. Groups and communities share the Communities section; Discover handles people, invitations and Recently Together. Context menus retain basic membership actions, calls and supported messages through Fluxer, with touch and controller operation.
+
+The screenshots below are dated evidence of an earlier layout; current flows are described in the product contract.
 
 <table>
 <tr>
@@ -79,15 +81,9 @@ Messages brings direct and group conversations together; Communities and Discove
 </tr>
 </table>
 
-And the chat actually knows about games.
+GameHub has the dedicated Lobby catalogue. Home offers the same access to your rooms or Create Lobby. Rooms can choose a game together, collect votes and readiness, and prepare a supported runtime. Once everyone is ready, the organizer explicitly presses **Start**. A shared launch window shows preparation and cancellation.
 
-If a friend is playing a compatible game, open **⋯** beside their name and choose **Ask to join game**. **Y** also opens shared activities. They get Accept / Decline in Home. Once accepted, Home and Social show the same party roster and readiness; the organizer presses **Start game**. Group menus keep membership, game access and notification controls together.
-
-TrainerOS handles the rest underneath. No copying IP addresses. No emulator room browser. No asking your friend which core they launched.
-
-You can also go the other way: while playing, open Home → **Play together** and pick a person or group. Nearby and Online friend labels explain the available connection.
-
-If you leave a supported match while the host keeps playing, the conversation can show the open place again so you can **Join game** and return to the same running host. Groups can keep their chat and membership while different game parties start and end inside them. Selected members can be allowed to join your games without making you approve the same person every time.
+Scheduled meetings can create a local reminder after acceptance. Invitations wait in notifications; service groups created by Lobby stay out of ordinary Social. Supported connections use the existing emulator mechanisms rather than player-entered IP addresses. Each route retains its own compatibility and remaining network checks.
 
 A group voice call is separate from a particular match, so the same friends can keep talking while somebody changes games, leaves a party or joins another one.
 
@@ -153,15 +149,11 @@ Installed Steam games are intended to join the Multiverse in the same way. Steam
 
 The main navigation stays small:
 
-**Home ⇄ Collections ⇄ game section A ⇄ game section B ⇄ Social**
+**Home ⇄ Games ⇄ GameHub ⇄ Social ⇄ Apps**
 
-L1/R1 moves between those spaces. The selected Adventure supplies the two game sections and Home content. L2/R2 moves between supported related views; Home has no collection cycling.
+L1/R1 switches sections and preserves their last place. L2/R2 switches related views or Home blocks. GameHub contains My Story, Screens, RetroAchievements, Lobby and supported adapter screens. Apps includes applications, Files, Browser and Crates.
 
-For the installed Pokémon experience, Companions contains **Field Guide ⇄ Party ⇄ Boxes ⇄ Care Center ⇄ Playroom ⇄ Shops**.
-
-Its Trainer section retains the game persona, Journey, Hall and RetroAchievements. The universal player profile is available through shared Options, independently of the selected game's progression.
-
-Social contains **Messages ⇄ Communities ⇄ Discover**. Messages includes both direct and group conversations.
+Home opens current-game settings and activity controls. Start opens customizable widgets and quick actions, including Settings, Power and Switch. The profile is available from the avatar in the chassis.
 
 First run already walks through controls, optional Wi-Fi/Bluetooth, date and time, game storage, Trainer creation and an optional PIN. It can continue offline and resume if setup is interrupted.
 
@@ -172,17 +164,15 @@ First run already walks through controls, optional Wi-Fi/Bluetooth, date and tim
 </tr>
 </table>
 
-Start opens the small system menu. Settings handles the things you normally expect from the handheld itself: connections, display and audio, storage, accounts and communication settings. Plasma stays available as an explicit maintenance/recovery environment, and Steam remains installed.
+Start opens the widget and quick-action menu. Settings handles the things you normally expect from the handheld itself: connections, display and audio, storage, accounts and communication settings. Plasma stays available as an explicit maintenance/recovery environment, and Steam remains installed.
 
 The point is not to remove Linux. The point is that you should not have to use a Linux desktop just to use your game console.
 
 ## Where it is going
 
-The public form of TrainerOS is intended to be a **ready-to-use ArmadaOS-based system image** for supported handhelds, not a weekend of manually installing a frontend and configuring a dozen emulators.
+The first public beta is planned as an **installer over existing ArmadaOS**. It should prepare the environment automatically, identify whether the OS is on microSD or internal storage, show responsive progress and preserve personal data. A simple launcher and minimal steps are the target; a finished public installer is not available yet.
 
-On first boot: choose the basics, point TrainerOS at internal or removable game storage, create your Trainer and start using the device. Supported emulator setups belong in the image. Your ROMs, firmware, saves and personal media remain yours.
-
-The remaining big pieces are the boring-but-important ones that turn the current development handhelds into something other people can safely live with: reproducible images, staged updates with rollback, portable Trainer backup/restore, wider handheld support, more verified multiplayer routes, more game families and final user-installable artwork.
+Images and other host installers remain later work. Current priorities include the complete ordinary-launch catalogue (PS3/Switch deferred), locked compatible emulator configurations, recoverable installation and the named outstanding user/network checks. Your ROMs, firmware, saves and personal media remain yours.
 
 What already exists is deliberately kept separate from what is merely planned. TrainerOS may know that a game launches without claiming it understands the save. It may know that a game has four players without claiming four real TrainerOS users have completed a session. Unsupported things stay unsupported instead of becoming optimistic buttons.
 

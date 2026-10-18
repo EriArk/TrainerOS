@@ -2,7 +2,7 @@
 
 **PS1 preparation, 11 October 2026:** PCSX ReARMed now has a source implementation
 through the existing relay/party flow, with two digital pads, matched CUE/CHD and
-owned BIOS, and temporary memory cards. [Boundaries and pending checks](MULTIPLAYER_PREPARATION.md#ps1-runtime-decision--11-october-2026).
+owned BIOS, and temporary memory cards. [Boundaries and pending checks](https://github.com/EriArk/TrainerOS/blob/c6aaac25ba4f55262f3f6418e8d29cac7cdc9aec/docs/MULTIPLAYER_PREPARATION.md#ps1-runtime-decision--11-october-2026).
 Handheld delivery and paired gameplay are pending; this does not enable DuckStation
 netplay, PS1 system-link, Multitap or pass-controller Hotseat.
 

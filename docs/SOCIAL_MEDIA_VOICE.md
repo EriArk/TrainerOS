@@ -2,7 +2,7 @@
 
 **Planned notification/lifecycle extension, 9 October 2026:** #173 uses one passive
 toast queue and inbox in Shell Options/Game Options; #171 preserves the independent
-group call while minimizing/returning a live game. See [UX-02](UX_OPTIONS_MAP_RU.md).
+group call while minimizing/returning a live game. See [UX-02](https://github.com/EriArk/TrainerOS/blob/c6aaac25ba4f55262f3f6418e8d29cac7cdc9aec/docs/UX_OPTIONS_MAP_RU.md).
 No-focus game HUD, privacy/DND/dedup and per-runtime audio control need new proof;
 installed communication evidence and deferred human speech/headset checks below
 are retained, not replaced by this documentation pass.

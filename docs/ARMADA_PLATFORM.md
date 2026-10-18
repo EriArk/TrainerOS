@@ -52,9 +52,9 @@ the supported distribution boundary and #71 adds compatible OTA rollback.
 Native package/session development remains the foundation. #73 Trainer recovery,
 #77/#78 profiles, #80/#81 readiness/health and #72 first boot precede release.
 #79 schedules dedicated sleep proof; current suspend remains disabled.
-[Acceptance](EXPANSION_69_90.md), [execution queue](ROADMAP.md#unified-execution-order--existing-work-and-new-issues).
+[Acceptance](https://github.com/EriArk/TrainerOS/blob/c6aaac25ba4f55262f3f6418e8d29cac7cdc9aec/docs/EXPANSION_69_90.md), [execution queue](https://github.com/EriArk/TrainerOS/blob/c6aaac25ba4f55262f3f6418e8d29cac7cdc9aec/docs/ROADMAP.md#unified-execution-order--existing-work-and-new-issues).
 
-**Planned lifecycle amendment #49:** ordinary saves/autosaves replace normal state-based resume. Prove capture-before-prompt, controller focus and cancellation without terminating the game through this platform/session boundary, not QML commands. Preserve current crash/recovery behavior and no-sleep policy. [Exit and migration contract](EXPANSION_42_62.md#ordinary-saves-and-screenshot-first-exit).
+**Planned lifecycle amendment #49:** ordinary saves/autosaves replace normal state-based resume. Prove capture-before-prompt, controller focus and cancellation without terminating the game through this platform/session boundary, not QML commands. Preserve current crash/recovery behavior and no-sleep policy. [Exit and migration contract](https://github.com/EriArk/TrainerOS/blob/c6aaac25ba4f55262f3f6418e8d29cac7cdc9aec/docs/EXPANSION_42_62.md#ordinary-saves-and-screenshot-first-exit).
 
 Preparation and acceptance steps are in [FIRST_DEVICE_RUN.md](FIRST_DEVICE_RUN.md). The first actual ARM64 build, runtime, display, storage and package findings are recorded in [ARMADA_DEVICE_BASELINE.md](ARMADA_DEVICE_BASELINE.md). The [dedicated session](SESSION_PROTOTYPE.md) records the later device checks: standalone controller/rendering, Adventure preservation across a shell crash, failed-start recovery and Steam/Plasma transitions. Offscreen CI does not replace those checks; sleep/wake remains deferred.
 
@@ -203,7 +203,7 @@ Mobile selection nor cleanup may enable suspend incidentally.
 
 ### D. Carefully reduce installed software and background activity
 
-The owner's next 2026-09-13 instruction adds a separate system-cleanup pass; see [roadmap step 10](ROADMAP.md#10-remove-unnecessary-software-and-background-work). Audit package/Flatpak/AppImage ownership and dependencies, development leftovers, autostarts and user/system services before changing them. Optional apps may be removed and unnecessary background entries disabled in reviewed reversible batches. Do not infer that a runtime is unused merely because its planned TrainerOS adapter has not shipped.
+The owner's next 2026-09-13 instruction adds a separate system-cleanup pass; see [roadmap step 10](https://github.com/EriArk/TrainerOS/blob/c6aaac25ba4f55262f3f6418e8d29cac7cdc9aec/docs/ROADMAP.md#10-remove-unnecessary-software-and-background-work). Audit package/Flatpak/AppImage ownership and dependencies, development leftovers, autostarts and user/system services before changing them. Optional apps may be removed and unnecessary background entries disabled in reviewed reversible batches. Do not infer that a runtime is unused merely because its planned TrainerOS adapter has not shipped.
 
 Preserve shared KDE/Qt, compositor/input/audio/network/authentication and recovery components, the required emulator stack and all personal game/save/media/history data. Use Armada's supported image/package mechanisms; do not blindly autoremove or prune shared runtimes, development containers or the verified rollback deployment. Record immutable-image/dependency limits explicitly.
 
@@ -339,7 +339,7 @@ A system update should not require rewriting Home, Worlds, Pokédex, Trainer, or
 
 ## Planned device controls, Help and startup extension
 
-The [#19–41 acceptance register](EXPANSION_PLAN.md) adds capabilities to the same Armada boundary, not an alternative system stack:
+The [#19–41 acceptance register](https://github.com/EriArk/TrainerOS/blob/c6aaac25ba4f55262f3f6418e8d29cac7cdc9aec/docs/EXPANSION_PLAN.md) adds capabilities to the same Armada boundary, not an alternative system stack:
 
 - #35 Start quick controls reuse actual volume/brightness services and safe minimums. #37 power-cable feedback requires a real supported haptic path and debounced external-power edges; charging/full updates and startup must not replay pulses. No gameplay rumble reconfiguration or resumption of sleep testing.
 - #38 probes installed Armada RGB/tool/config and the actual Flip hardware, then exposes only supported modes. The [generic UART proposal](https://github.com/armada-os/armada-packages/pull/73) and [Pocket S2 integration](https://github.com/armada-os/armada/pull/419) are references for the backend direction, not proof of Flip compatibility. No duplicated low-level protocol, experimental firmware change or continuous setting reassertion.

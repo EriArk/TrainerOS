@@ -1,14 +1,18 @@
 # UX-02 framework and controls
 
-## Целевой переход после UX-02 — 16 октября 2026
+> Техническая запись и датированные доказательства. Текущий UX —
+> [PRODUCT_SPEC](PRODUCT_SPEC.md), очередь — [CURRENT_TASKS](CURRENT_TASKS.md).
+> Старые «далее/следующий шаг» ниже не назначают новую работу; непроверенные
+> условия остаются непроверенными.
 
-Поставленная UX-02 ниже — историческое доказательство, не реализация #188–234.
-[Новый контракт](UX_CONTRACT_20261016_RU.md) заменяет обязательные first/second
-primary слоты на optional GameHub Adapter face. Нужно перенести API/registration/
-resolver/presenter/overlay/persistence и настоящий Pokémon, сохранив общий
-Home showcase, session hooks и exact-build save guards. RA/Overview/Lobby принадлежат
-host. Настоящий alternate-adapter test остаётся обязательным.
-Следующий блок CORE-16, затем Home/Games по [ROADMAP](ROADMAP.md#current-execution-queue).
+## Текущая граница
+
+Descriptor v2 и optional GameHub Adapter уже заменили обязательные first/second
+primary slots. [Архитектура](ARCHITECTURE.md) и [правила адаптера](../src/adapters/AGENTS.md)
+определяют текущую composition boundary. Home showcase, session hooks и exact-build
+save guards сохраняются; My Story/RA/Lobby принадлежат host. Настоящий
+alternate-adapter test обязателен при изменениях этой границы.
+Записи UX-02 ниже — доказательства прежнего этапа, не предложение снова делать CORE-16.
 
 ## Историческая редакция и доказательства
 
@@ -83,8 +87,8 @@ semantic/pack trust/artwork acceptance remain open as listed below.
 
 The following behavior/evidence was collected for the initial UI delivery of
 9 October 2026. Its binary hash and screenshots are historical, not proof of the
-subsequent adapter extraction. The accepted [interaction map](UX_OPTIONS_MAP_RU.md)
-and [experience register](EXPANSION_174_178.md) remain in effect.
+subsequent adapter extraction. The accepted [interaction map](https://github.com/EriArk/TrainerOS/blob/c6aaac25ba4f55262f3f6418e8d29cac7cdc9aec/docs/UX_OPTIONS_MAP_RU.md)
+and [experience register](https://github.com/EriArk/TrainerOS/blob/c6aaac25ba4f55262f3f6418e8d29cac7cdc9aec/docs/EXPANSION_174_178.md) remain in effect.
 
 ## Implemented behavior
 

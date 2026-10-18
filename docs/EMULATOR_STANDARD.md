@@ -70,17 +70,12 @@ the whole standard image. The subsequent [Dolphin bridge](emulators/dolphin.md)
 adds bounded two-device Melee NetPlay evidence with a separately maintained
 native artifact; broader routes and internet acceptance remain open.
 
-**Dreamcast preparation, 2026-10-11:** a separate pinned [Flycast Dojo bundle](emulators/flycast.md)
-provides the source-prepared two-player CHD GGPO/relay route. Ordinary Flycast and
-RetroArch bindings remain. Full ARM build, operator relay and handheld/gameplay
-acceptance are pending; this is not migration of ordinary VMUs.
-
-**Historical Flycast package checkpoint, 2026-10-03:** Flip then received the same standalone
-2.7 Flatpak commit and executable hash as Odin, recorded in baseline revision
-`arm64-20261003.2`. Existing core routes/settings/saves were not migrated.
-[Maintenance and WAN findings](emulators/flycast.md) keep installed-package
-alignment separate from the still-missing standalone/network integration.
-Internet reachability is the priority; local gameplay alone will not close it.
+**Recorded delivery, 12 October:** the separate Flycast Dojo bundle is installed
+on both devices; Soul Calibur Nearby/public-relay gameplay and ordinary
+invitation/Home/Exit were checked. Own VMUs/bindings remain protected; broader
+games, physical audio/input, distinct networks and relay availability remain open.
+See [exact artifacts and limits](emulators/flycast.md). This is recorded evidence,
+not a new device check or migration of ordinary saves.
 
 ## Selection
 
@@ -95,7 +90,7 @@ migration. Do not silently launch an incompatible fallback when a friend joins.
 | SNES / Satellaview / Sufami / MSU-1 | RetroArch + Snes9x | Retain; extensions/content still need mode-specific multiplayer support. |
 | GB / GBC | RetroArch + Gambatte; DoubleCherryGB and SameBoy link companions | Ordinary play remains Gambatte. DoubleCherryGB supplies netpacket/volatile pairs; SameBoy supplies supported battery pairs with automatic own-save preparation. [Evidence and limits](HANDHELD_MULTIPLAYER.md). |
 | GBA | RetroArch + mGBA; gpSP and mGBA Splitscreen link companions | Ordinary save integration stays on mGBA. Reviewed cable protocols and bounded RFU profiles use [gpSP](emulators/gpsp.md); generic 2-4-player cable parties use mGBA Splitscreen. [Exact builds, Kirby gameplay and limits](emulators/mgba-splitscreen.md) remain separate from wider game/capacity acceptance. |
-| Nintendo 64 | RetroArch + ParaLLEl-N64 (solo); separate RMG native netplay bundle prepared | Ordinary primary/saves retained. [RMG preparation](emulators/RMG.md) uses Mupen64Plus's native server, with runtime build/install, internet service and gameplay still pending; no deterministic RetroArch or cross-build claim. |
+| Nintendo 64 | RetroArch + ParaLLEl-N64 (solo); separate RMG native netplay bundle installed | Ordinary primary/saves retained. [RMG evidence](emulators/RMG.md) records Nearby/Online invitations and paired forced-relay Mario Kart 64. Wider games, four physical clients, distinct networks and production service remain open; no deterministic RetroArch or cross-build claim. |
 | Nintendo DS | melonDS standalone | Common desktop Linux build on both devices; normalize the present AppImage/Flatpak difference. Local wireless and WFC are separate modes. |
 | Nintendo 3DS (`n3ds`) | Azahar standalone | Maintained upstream 2126.2 ARM64 Vulkan bundle installed on both; native wireless room invitation and own storage. Existing explicit library bindings and old AppImage retained; no blanket legacy save migration. [Evidence](emulators/azahar.md). |
 | GameCube / Wii | Dolphin standalone | Retain; same NetPlay-compatible build on every peer. Separate GameCube controller and Wii motion profiles. |
@@ -104,14 +99,14 @@ migration. Do not silently launch an incompatible fallback when a friend joins.
 | Saturn | RetroArch + YabaSanshiro | Retain as the initial ARM route, with measured per-device compatibility; networking is not implied. |
 | Dreamcast / Naomi / Naomi 2 / Atomiswave / System SP | Flycast standalone | Prefer one native network implementation and configuration family. Existing Flycast core remains a compatibility route until launch/VMU migration is proven. Not all arcade cabinet-link modes equal Dreamcast GGPO. |
 | PlayStation (`psx`) | DuckStation standalone | Target ordinary-play primary on ARM64; preserve the existing PCSX-ReARMed route until memory-card/controller/launch migration passes. No automatic switch to a netplay fork or alternate core for online play. |
-| PlayStation 2 | ARMSX2 standalone | Preserve Odin's working installation. Standardize its exact ARM build and BIOS/memory-card handling; a PS2 network adapter is not universal couch-game netplay. |
-| PSP | PPSSPP standalone | Retain verified isolated configuration route; Lumines evidence is bounded and experimental. |
+| PlayStation 2 | ARMSX2; preserve existing approved standalone/core bindings | Preserve Odin's working installation. Standardize its exact ARM build and BIOS/memory-card handling; a PS2 network adapter is not universal couch-game netplay. |
+| PSP | PPSSPP standalone | Retain verified isolated configuration route; Lumines evidence is bounded; ordinary Nearby/Online is sufficient, private parties are deferred. |
 | FBNeo / Neo Geo | RetroArch + FBNeo | Retain; ROM-set and core revisions must match the selected compatibility profile. |
 | MAME | RetroArch + MAME | Retain for content outside the selected FBNeo set. Do not run every arcade ROM through both or silently substitute ROM-set requirements. |
 | Remaining classic computers/consoles and fantasy systems | RetroArch + existing registered core | Exact mapping below covers all other catalogue IDs. Keep empty folders hidden; core availability and playable speed remain separate. |
 | Wii U | Cemu, conditional device tier | Odin ARM64 package digest matches Armada-selected upstream-derived build aa20e2f86; Flip version remains to align. Native online prerequisites absent on both; no paired gameplay or TrainerOS profile. [Audit](emulators/cemu.md). |
-| Switch | Eden, conditional device tier | Selected candidate because upstream publishes Linux ARM64 and ARM64 room binaries. No local install/launch/network proof; do not promise all Switch games or substitute an Android package. |
-| PS3 | RPCS3, conditional device tier | Preserve Odin's existing file/setup. ARM64 availability is not performance or game-service compatibility proof. |
+| Switch | Deferred by owner | Outside the current launch/multiplayer milestone. Earlier runtime candidates are not installation authority. |
+| PS3 | Deferred by owner | Preserve existing user files; no current implementation or compatibility claim. |
 | Vita (`psvita`) | Vita3K, conditional device tier | Separate pinned ARM64 bundle and `.psvita` installed-title launcher on Flip/Odin. Ordinary invitations, native browser and paired gameplay passed for one exact homebrew LAN profile. Own accounts/data retained; commercial AdHoc/PSN and wider compatibility remain open. [Evidence](emulators/vita3k.md). |
 
 The conditional tier is part of the common policy, not a random emulator bundle

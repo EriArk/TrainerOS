@@ -1,17 +1,11 @@
 # Native development
 
-**Current planning boundary:** [UX-02 map](UX_OPTIONS_MAP_RU.md) specifies planned
-Options/Select/live-game changes; [#161–173](EXPANSION_161_173.md) maps dependencies.
-The 9 October map-first pass edits documentation only, preserving MP-02 timer WIP.
-Do not infer these capabilities from the current compact-menu implementation.
-
 TrainerOS is a C++20 / Qt Quick handheld shell on ArmadaOS. Development builds
 also run as an ordinary application; building the source does not install an
 Armada image, configure emulators or replace the desktop session.
 
 Start with [the documentation index](README.md), [current tasks](CURRENT_TASKS.md)
-and [engineering workflow](DEVELOPMENT_WORKFLOW.md). The previous prototype guide
-is preserved as [historical evidence](archive/DEVELOPMENT_BOOTSTRAP.md).
+and [engineering workflow](DEVELOPMENT_WORKFLOW.md).
 
 ## Dependencies
 
@@ -20,6 +14,9 @@ The authoritative list is [CMakeLists.txt](../CMakeLists.txt):
 - CMake 3.24+, a C++20 compiler and Ninja (recommended).
 - Qt 6.4+: Core, Gui, Qml, Quick, Sql, Network, Xml, Multimedia, WebSockets and
   Concurrent; Qt Test when `BUILD_TESTING=ON`.
+- Linux Files: Qt Widgets, pkg-config, GIO (`gio-2.0`) and libfm-qt6 development library.
+- Browser: matching Qt WebEngine Quick 6.9+; without it the build explicitly lacks
+  the embedded browser. See [runtime packaging](../packaging/linux/BROWSER_RUNTIME.md).
 - Qt6Keychain and a working platform keychain for real account credentials.
 - OpenSSL 3 Crypto and SDL2 2.0.14+, including development headers/CMake packages.
 - The QSQLITE driver and Qt Quick, Controls, Window, Shapes, QML WorkerScript/Models and
@@ -27,19 +24,11 @@ The authoritative list is [CMakeLists.txt](../CMakeLists.txt):
 - ffmpeg for the generated-video preview test; working multimedia backend/plugins
   and a graphical session for checks that decode and present video.
 
-Ubuntu 24.04 package example (not an Armada installation command):
-
-```sh
-sudo apt-get update
-sudo apt-get install build-essential cmake ninja-build qt6-base-dev qt6-declarative-dev \
-  qt6-multimedia-dev qt6-websockets-dev qtkeychain-qt6-dev libqt6sql6-sqlite \
-  libsdl2-dev libssl-dev ffmpeg fonts-dejavu-core \
-  qml6-module-qtquick qml6-module-qtquick-controls qml6-module-qtquick-window qml6-module-qtquick-shapes \
-  qml6-module-qtqml-workerscript qml6-module-qtqml-models qml6-module-qtmultimedia
-```
-
-This dependency list was reconciled with the source on 2026-10-06; a fresh-machine
-end-to-end reproduction is still a separate public-readiness acceptance item.
+Package names depend on the build host. The checked Fedora 44 ARM64 builder uses
+`qt6-qtwebengine-devel`, `libfm-qt-devel` and `glib2-devel` in addition to the
+existing Qt/SDL/OpenSSL toolchain. Install development dependencies in the builder;
+do not mutate the handheld host merely to compile. A complete fresh-machine build
+remains #117; the old Ubuntu command did not cover Files/Browser and was removed.
 
 ## Build and run on Linux
 
@@ -98,23 +87,13 @@ cmake --build build/native --parallel 2
 
 ## Current application boundaries
 
-- Primaries: Home / Collections / Companions / Trainer / Social. L1/R1 switches
-  primaries; L2/R2 switches supported peer faces, with no collection cycling on Home.
-- Collections starts at its grid on primary-page re-entry. Pokemon opens games
-  directly, while manual and dynamic collections share stable game identities.
-  Batocera platform
-  folders determine normal launch routes. A launches an installed ready game;
-  holding A opens management. Y selects from global recent games without launching.
-- Home during a game opens its compact overlay. Explicit Exit owns capture and
-  the applicable save confirmation. Start remains the system menu.
-- Game-specific data and protected writes require exact adapter capabilities;
-  ordinary launch does not require a semantic save adapter.
-- Network services, installed emulators, private media and hardware capabilities
-  are optional external dependencies, not supplied by a clean source checkout.
-
-For details use [navigation](NAVIGATION_111.md), [collections](SERIES_COLLECTIONS.md),
-[Home overlay](HOME_MENU.md), [ROM platforms](ROM_PLATFORMS.md),
-[Social](SOCIAL.md) and [adapter knowledge](adapters/README.md).
+Five primaries: Home / Games / GameHub / Social / Apps. Returning to a primary
+restores its place. Ordinary launch prepares a supported binding and starts the
+game; a missing dependency is an explicit preparation error, not an editor.
+Home owns current-game options; Start owns system widgets/actions. Minimize keeps
+the same process; explicit Exit owns fresh capture and applicable save confirmation.
+Game-specific capabilities require exact adapters; ordinary launch does not.
+See [product contract](PRODUCT_SPEC.md) and [architecture](ARCHITECTURE.md).
 
 ## Handheld deployment
 

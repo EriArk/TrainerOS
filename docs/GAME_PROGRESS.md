@@ -5,7 +5,7 @@ species Dex and protected healing, alongside Emerald. Device-wide read-only
 policy gates every current save mutator. [Scope, proof and remaining gates](SAVE_POLICY_FIRERED.md).
 Earlier Emerald-only delivery notes below are historical.
 
-**Accepted expansion, not delivered — #42/#50:** extend this exact-build read-only baseline with small semantic Party/Storage/Pokédex/Journey/Champion providers and independent guarded writers. No generation-wide support or editor capability follows from current badge/count reads. [Provider/research gates](EXPANSION_42_62.md#exact-save-providers-and-research). #9 will supply one shared context; #46/#47 projections follow proven fields. Old moment comparisons below explain legacy behavior superseded by #49.
+**Accepted expansion, not delivered — #42/#50:** extend this exact-build read-only baseline with small semantic Party/Storage/Pokédex/Journey/Champion providers and independent guarded writers. No generation-wide support or editor capability follows from current badge/count reads. [Provider/research gates](https://github.com/EriArk/TrainerOS/blob/c6aaac25ba4f55262f3f6418e8d29cac7cdc9aec/docs/EXPANSION_42_62.md#exact-save-providers-and-research). #9 will supply one shared context; #46/#47 projections follow proven fields. Old moment comparisons below explain legacy behavior superseded by #49.
 
 The user's 2026-09-13 save trial exposed a missing connection: imported saves loaded in the Adventures, while Home's badge/caught fields still had no real provider. This increment introduces the first bounded automatic-progress module on the existing library, launch/return and verified save-resolution foundations.
 
@@ -66,7 +66,7 @@ Party, map labels, per-species journal import, automatic historical events, DS/G
 
 ### Badge asset presentation - 2026-09-19
 
-The existing exact-build readers now identify `kanto-frlg` or `hoenn-rse`; their verified flag offsets/order and supported ROM fingerprints are unchanged. The independent `BadgeAssets` layer resolves ordered identities and credited art; Home uses recognizable vector-derived badges instead of original crystals. Unsupported sets/count-only/unknown values never choose another game's artwork. No new save support or schema migration is implied. See [delivery and remaining in-game comparison](EXPANSION_63_64.md#first-badge-delivery---2026-09-19) and [asset provenance](../assets/badges/README.md).
+The existing exact-build readers now identify `kanto-frlg` or `hoenn-rse`; their verified flag offsets/order and supported ROM fingerprints are unchanged. The independent `BadgeAssets` layer resolves ordered identities and credited art; Home uses recognizable vector-derived badges instead of original crystals. Unsupported sets/count-only/unknown values never choose another game's artwork. No new save support or schema migration is implied. See [delivery and remaining in-game comparison](https://github.com/EriArk/TrainerOS/blob/c6aaac25ba4f55262f3f6418e8d29cac7cdc9aec/docs/EXPANSION_63_64.md#first-badge-delivery---2026-09-19) and [asset provenance](../assets/badges/README.md).
 
 ## Per-Trainer save follow-up - 2026-09-23
 

@@ -72,7 +72,7 @@ clean exit/return for each runtime. A verified copy is not a verified playable
 title. Do not show fixture titles as installed content or infer readiness merely
 from an emulator's presence in Armada's wider device catalogue.
 
-The [roadmap](ROADMAP.md#later-collection-deliverable--representative-classics)
+The [roadmap](https://github.com/EriArk/TrainerOS/blob/c6aaac25ba4f55262f3f6418e8d29cac7cdc9aec/docs/ROADMAP.md#later-collection-deliverable--representative-classics)
 retains the full playable-collection acceptance and unresolved P9 runtime work.
-The [UI boundary](MULTIVERSE_UI.md) still distinguishes the delivered presentation
+The [UI boundary](https://github.com/EriArk/TrainerOS/blob/c6aaac25ba4f55262f3f6418e8d29cac7cdc9aec/docs/MULTIVERSE_UI.md) still distinguishes the delivered presentation
 from pending real library binding.

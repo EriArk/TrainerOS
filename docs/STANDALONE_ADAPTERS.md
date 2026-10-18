@@ -1,6 +1,6 @@
 # Standalone Adventure launch adapters
 
-**2026-09-19 target amendment:** the installed adapters and dated CLI observations below are evidence, not a future state-resume plan. #49 replaces all normal savestate paths with ordinary startup/save loading and capture-before-exit confirmation; prove each adapter's still-running-game input/capture/return behavior. [Lifecycle acceptance](EXPANSION_42_62.md#ordinary-saves-and-screenshot-first-exit).
+**2026-09-19 target amendment:** the installed adapters and dated CLI observations below are evidence, not a future state-resume plan. #49 replaces all normal savestate paths with ordinary startup/save loading and capture-before-exit confirmation; prove each adapter's still-running-game input/capture/return behavior. [Lifecycle acceptance](https://github.com/EriArk/TrainerOS/blob/c6aaac25ba4f55262f3f6418e8d29cac7cdc9aec/docs/EXPANSION_42_62.md#ordinary-saves-and-screenshot-first-exit).
 
 `AdapterRouter` dispatches capabilities, launch, resume and file attachment to the Adventure's adapter. It preserves unknown custom adapters and the existing RetroArch saved-moment path. Home, Worlds, play history and process return use the same interfaces for each integration.
 

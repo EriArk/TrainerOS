@@ -1,6 +1,6 @@
 # First ArmadaOS device run
 
-**Historical bootstrap plus current device checks:** the initial mock procedure and later state-resume checks below apply to their recorded implementation revisions. #49 supersedes normal saved-moment behavior; new acceptance must verify normal launch/save loading, capture-before-prompt, B returning to the same live process, confirmed exit and honest interruption. Shared Y/L2/R2 and other planned routes need their own physical checks. [Target acceptance](EXPANSION_42_62.md).
+**Historical bootstrap plus current device checks:** the initial mock procedure and later state-resume checks below apply to their recorded implementation revisions. #49 supersedes normal saved-moment behavior; new acceptance must verify normal launch/save loading, capture-before-prompt, B returning to the same live process, confirmed exit and honest interruption. Shared Y/L2/R2 and other planned routes need their own physical checks. [Target acceptance](https://github.com/EriArk/TrainerOS/blob/c6aaac25ba4f55262f3f6418e8d29cac7cdc9aec/docs/EXPANSION_42_62.md).
 
 This procedure uses a normal application in the existing desktop session. It does not install a TrainerOS session, change the default login, or remove Steam Gaming Mode or KDE Plasma. A Windows executable cannot run on the ARM64 handheld.
 

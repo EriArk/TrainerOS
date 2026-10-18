@@ -1,11 +1,16 @@
 # L07: несколько гостей — рабочий кандидат, 14 октября 2026
 
+> Техническая запись и датированные доказательства. Текущий UX —
+> [PRODUCT_SPEC](PRODUCT_SPEC.md), очередь — [CURRENT_TASKS](CURRENT_TASKS.md).
+> Старые «далее/следующий шаг» ниже не назначают новую работу; непроверенные
+> условия остаются непроверенными.
+
 **Не установлено и не принято.** Ветка `codex/remote-play-shared-host` сохраняет
 незавершённый следующий шаг после
 [`7c00926`](https://github.com/EriArk/TrainerOS/commit/7c0092667ca82c663c1f219168e13068ad08b8fc).
 На момент проверки этого кандидата обычная установленная сборка имела SHA256
 `6b86d077214dc6dedf120d687c22870daf6f1ac1d161cf27b6ca4326257dc42b`.
-Позднее Odin получил отдельную [Apps-сборку](APPS_AP01_EVIDENCE.md);
+Позднее Odin получил отдельную [Apps-сборку](https://github.com/EriArk/TrainerOS/blob/c6aaac25ba4f55262f3f6418e8d29cac7cdc9aec/docs/APPS_AP01_EVIDENCE.md);
 это не установка кандидата Remote Play и не его приёмка.
 Наличие кандидата не означает доступность игры втроём/вчетвером.
 
@@ -88,7 +93,8 @@ SSH: команды и SFTP зависают. Владелец уведомлё�
    и обновление статуса. PS3/Switch, собственный TURN и сложные NAT вне шага.
 
 Исходники: [организатор](../src/features/adventure/RemotePlayRuntime.cpp),
-[медиахост](../src/features/adventure/RemotePlayHost.cpp),
-[кодировщик](../tools/remote-play-stream/shared_source.hpp),
-[супервизор](../tools/remote-play-stream/run-group.py),
 [очередь Fluxer](../src/integrations/social/FluxerLobby.cpp).
+
+`RemotePlayHost.cpp`, `shared_source.hpp` и `run-group.py` описывали отдельный
+незавершённый кандидат ветки `codex/remote-play-shared-host`. В текущем дереве
+этих файлов нет; прежние ссылки на них не подтверждали слитую реализацию.

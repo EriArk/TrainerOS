@@ -156,7 +156,7 @@ raw GameCube ISO/GCM discs by disc magic and full content hash. The same pinned
 bridge handles two-to-four party-assigned pads; the exact Melee profile is retained.
 Unknown player counts default to two, known counts are bounded by four physical
 ports, and explicit single-player metadata still excludes invitations. Local
-names do not affect matching. [Preparation and remaining acceptance](../MULTIPLAYER_PREPARATION.md#gamecube-extension-research--11-october-2026)
+names do not affect matching. [Preparation and remaining acceptance](https://github.com/EriArk/TrainerOS/blob/c6aaac25ba4f55262f3f6418e8d29cac7cdc9aec/docs/MULTIPLAYER_PREPARATION.md#gamecube-extension-research--11-october-2026)
 separate this source change from installed wider-game compatibility. No new
 Dolphin patch is required; Wii, RVZ/other compressed discs and special peripherals
 remain outside this admission. Earlier "no other title" text describes the original
@@ -307,4 +307,4 @@ Nearby invitation, Mario/Ness match with independent controls and guest Exit
 followed by host peer-departure return. Generic Auto Modellista admission was
 checked separately; no paired match of that title is claimed. The ordinary
 Dolphin SRAM runtime file changed during solo launch/exit; pre-existing memory
-cards did not. [Exact integrity scope and remaining acceptance](../MULTIPLAYER_DEVICE_RECHECK_20261011.md).
+cards did not. [Exact integrity scope and remaining acceptance](https://github.com/EriArk/TrainerOS/blob/c6aaac25ba4f55262f3f6418e8d29cac7cdc9aec/docs/MULTIPLAYER_DEVICE_RECHECK_20261011.md).

@@ -236,7 +236,7 @@ under `gba` selected mGBA without catalogue recognition; a single request both
 prepared and invoked launch, repeated requests did not rewrite the record, and
 missing files/custom routes were preserved. Actual controller A on an isolated
 Flip Kirby DS wheel reached its title screen without intermediate UI. This checks
-launch, not new save/exit support. See the [approach audit](APPROACH_AUDIT_20260928.md).
+launch, not new save/exit support. See the [approach audit](https://github.com/EriArk/TrainerOS/blob/c6aaac25ba4f55262f3f6418e8d29cac7cdc9aec/docs/APPROACH_AUDIT_20260928.md).
 
 Final native/ARM64 builds passed. Installed production SHA-256:
 `9e20910dcff213d3a71a3586bacc033aa3f7c0f39ec4faf7568665a218b53916`.

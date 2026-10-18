@@ -6,7 +6,7 @@ recovery, explicit library domains and independent per-Trainer Home choices.
 Further source-aware observations remain planned. Legacy stored resume
 selection is not the target model. Preserve ordinary saves, history, manual
 records and independent media. [Domain contract](DATA_MODEL.md),
-[target acceptance](EXPANSION_42_62.md), [delivered ownership](TRAINER_OWNERSHIP.md).
+[target acceptance](https://github.com/EriArk/TrainerOS/blob/c6aaac25ba4f55262f3f6418e8d29cac7cdc9aec/docs/EXPANSION_42_62.md), [delivered ownership](TRAINER_OWNERSHIP.md).
 
 Schema 3 adds Adventure platform/catalogue/variant metadata through a transactional 2→3 migration; existing IDs, profile, favorites, configuration and file references are preserved. The bundled collection checklist is not persisted as owned data. See [collection catalogue](COLLECTION_CATALOGUE.md) for attachment and migration acceptance.
 

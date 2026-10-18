@@ -3,7 +3,7 @@
 ## Уточнение владельца — 16 октября 2026: добавление из игры
 
 Статус: сценарий добавления из Select реализован в GAMES-44;
-[проверки, поставка и оставшаяся приёмка](GAMES44_COLLECTION_PICKER.md).
+[проверки, поставка и оставшаяся приёмка](https://github.com/EriArk/TrainerOS/blob/c6aaac25ba4f55262f3f6418e8d29cac7cdc9aec/docs/GAMES44_COLLECTION_PICKER.md).
 Это уточнение заменяет предложение отдельного полноэкранного редактора коллекций
 в текущем блоке Games и переносит автоматическую часть #199 на очередь настроек.
 
@@ -56,7 +56,7 @@ below. Earlier installed evidence is historical, not the current navigation cont
   checkpoints and external files. Unreadable/unsupported files are kept and editing
   fails visibly. Explicit prior Home choices migrate without changing game IDs.
 - Historical region data remains available to game-specific progress/history.
-  The subsequent common UI is now planned in [UX-02](UX_OPTIONS_MAP_RU.md), not
+  The subsequent common UI is now planned in [UX-02](https://github.com/EriArk/TrainerOS/blob/c6aaac25ba4f55262f3f6418e8d29cac7cdc9aec/docs/UX_OPTIONS_MAP_RU.md), not
   implemented by this library delivery. Existing series art and
   README screenshots are preserved; MP-02's timer changes remain outside this work.
 

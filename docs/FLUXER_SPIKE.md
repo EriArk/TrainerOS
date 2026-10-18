@@ -155,4 +155,4 @@ Friends/Chats in #100/#101. Preserve origin and game process in Home overlays.
 Do not require live voice, media uploads or gameplay relay before text chat.
 The unproven matrix cells retain their own gates; #99 is not blanket completion
 of #100–110. People search and TrainerOS capability recognition follow the owner
-addition in [the acceptance register](EXPANSION_98_112.md#people-search-and-client-compatibility).
+addition in [the acceptance register](https://github.com/EriArk/TrainerOS/blob/c6aaac25ba4f55262f3f6418e8d29cac7cdc9aec/docs/EXPANSION_98_112.md#people-search-and-client-compatibility).

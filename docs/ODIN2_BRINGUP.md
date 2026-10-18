@@ -20,7 +20,7 @@ checked. Kernel controller events exercised L1/R1, Start, Settings and Back;
 earning were not retested on Odin in this delivery-only increment.
 
 Both reachable handhelds are now part of every normal
-[delivery check](DEVELOPMENT_WORKFLOW.md#completion-report-and-device-boundary).
+[delivery check](DEVELOPMENT_WORKFLOW.md#устройства).
 Earlier hashes and bring-up evidence below are historical.
 
 The owner's device was already running ArmadaOS 20260927.eba5232, kernel 7.2.6,

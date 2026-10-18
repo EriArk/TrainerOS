@@ -152,7 +152,7 @@ directory through this configuration. No personal card import/return is added.
 The session copies only the selected BIOS; no BIOS is shipped or exchanged.
 Discs stay read-only in their original location. Full content/track and relevant
 sidecar hashes are rechecked before launch; the private BIOS copy is rechecked too.
-[Format boundaries](../MULTIPLAYER_PREPARATION.md#ps1-runtime-decision--11-october-2026)
+[Format boundaries](https://github.com/EriArk/TrainerOS/blob/c6aaac25ba4f55262f3f6418e8d29cac7cdc9aec/docs/MULTIPLAYER_PREPARATION.md#ps1-runtime-decision--11-october-2026)
 remain explicit. Ordinary core options, saves and adapter bindings are unchanged.
 
 ## Checks, update and rollback

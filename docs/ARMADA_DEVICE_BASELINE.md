@@ -131,4 +131,4 @@ Official authentication details are in [Armada's documentation](https://armadaos
 This proves startup, retained displayed state and the exercised navigation after
 this update. It is not a new emulator launch/exit, suspend/wake, Mobile replacement
 or rollback test. The existing no-sleep policy was not changed. The later badge
-build has its own [delivery checkpoint](EXPANSION_63_64.md#first-badge-delivery---2026-09-19).
+build has its own [delivery checkpoint](https://github.com/EriArk/TrainerOS/blob/c6aaac25ba4f55262f3f6418e8d29cac7cdc9aec/docs/EXPANSION_63_64.md#first-badge-delivery---2026-09-19).

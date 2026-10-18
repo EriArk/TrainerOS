@@ -31,7 +31,7 @@ IMG_1047; это не физическая приёмка всех устрой�
   Команда адаптера размещается после прогресса, без наложения подписей.
 
 Механизм заменяет мелкие фиксированные размеры после `87bb989` и полноэкранную
-иллюстрацию [Home17](HOME17_VISUAL_DELIVERY.md), поставленную в
+иллюстрацию [Home17](https://github.com/EriArk/TrainerOS/blob/c6aaac25ba4f55262f3f6418e8d29cac7cdc9aec/docs/HOME17_VISUAL_DELIVERY.md), поставленную в
 [d6135f3](https://github.com/EriArk/TrainerOS/commit/d6135f3).
 
 ## Проверки исходников и хост-сборки

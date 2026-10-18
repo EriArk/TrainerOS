@@ -34,7 +34,7 @@ room vote (#210), voice channels, несколько publishers/viewer demand и
 аккаунта или установленной работе. При отсутствии capability не публиковать
 приватные данные, не обещать discovery и не подменять сигналинг видимым DM-спамом.
 Повторно использовать подтверждённые Fluxer механизмы; не строить собственный
-media server. [Контракт](UX_CONTRACT_20261016_RU.md) различает spectator Fluxer
+media server. [Текущий контракт](PRODUCT_SPEC.md) различает spectator Fluxer
 и interactive P2P, сохраняет один согласованный call и общие Downloads.
 
 ## Историческая редакция и доказательства

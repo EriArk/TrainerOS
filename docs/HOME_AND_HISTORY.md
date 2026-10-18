@@ -2,7 +2,7 @@
 
 ## Home/GameHub v2 — требования 16 октября 2026
 
-[Контракт](UX_CONTRACT_20261016_RU.md), #188–191/#197–207: Home имеет три зоны
+[Контракт](https://github.com/EriArk/TrainerOS/blob/c6aaac25ba4f55262f3f6418e8d29cac7cdc9aec/docs/UX_CONTRACT_20261016_RU.md), #188–191/#197–207: Home имеет три зоны
 (showcase/один Play, activity+avatars, verified recent RA). Y Recent/Favorites
 выбирает без запуска; фактически успешный launch обновляет историю, live game
 фиксирует контекст. Exit возвращает предзапусковой маршрут. Overview/Timeline/
@@ -19,7 +19,7 @@ Minimize и verified live achievement имеют разные provenance; сра
 
 The selected Adventure's Experience Package supplies Home's game-specific content,
 widgets, actions, imagery and verified progress as well as both contextual primary
-slots. See [precise map](UX_OPTIONS_MAP_RU.md) and [#174–178 + owner correction](EXPANSION_174_178.md).
+slots. See [precise map](https://github.com/EriArk/TrainerOS/blob/c6aaac25ba4f55262f3f6418e8d29cac7cdc9aec/docs/UX_OPTIONS_MAP_RU.md) and [#174–178 + owner correction](https://github.com/EriArk/TrainerOS/blob/c6aaac25ba4f55262f3f6418e8d29cac7cdc9aec/docs/EXPANSION_174_178.md).
 This is more than a renamed card or alternate background. Host layout/input, the
 stable Home route, direct A and one global Y/Recent games remain predictable.
 No Home L2/R2 collection cycling or independent per-series Home choices return.
@@ -36,7 +36,7 @@ Adaptive presenters and the new framework are planned before resuming MP-02.
 Earlier dated two-context/domain-selection and setup descriptions below are
 historical and superseded; their save/capture/history evidence remains intact.
 
-**Planned UX-02 lifecycle, 9 October 2026:** [map](UX_OPTIONS_MAP_RU.md) separates
+**Planned UX-02 lifecycle, 9 October 2026:** [map](https://github.com/EriArk/TrainerOS/blob/c6aaac25ba4f55262f3f6418e8d29cac7cdc9aec/docs/UX_OPTIONS_MAP_RU.md) separates
 Home's global selected Adventure from the actually running session. Minimize/Return
 keeps one process and history session; proven paused intervals are not eligible
 gameplay time. Actual exit/crash ends the session. This target does not deliver
@@ -56,7 +56,7 @@ A on a card commits the context and closes without launching; B cancels and rest
 
 Cards show the latest clean TrainerOS exit image, title, World and honest session/progress metadata. They are recent Adventure choices, not emulator-state slots. No extra persistent Current Adventure capsule/chip or independent per-feature selector: headers/content may show identity naturally.
 
-Unobstructed Home A immediately invokes its large physical launch button regardless of prior directional input. Launch uses normal game startup and the game's ordinary save/autosave; Worlds also has an explicit launch action. Unconfigured/empty selections offer setup or Worlds exploration. The bottom-frame drawer remains compact, expands before rising inside the fixed viewport, and preserves controller focus. See [shared selection acceptance](EXPANSION_42_62.md#shared-adventure-and-paired-navigation).
+Unobstructed Home A immediately invokes its large physical launch button regardless of prior directional input. Launch uses normal game startup and the game's ordinary save/autosave; Worlds also has an explicit launch action. Unconfigured/empty selections offer setup or Worlds exploration. The bottom-frame drawer remains compact, expands before rising inside the fixed viewport, and preserves controller focus. See [shared selection acceptance](https://github.com/EriArk/TrainerOS/blob/c6aaac25ba4f55262f3f6418e8d29cac7cdc9aec/docs/EXPANSION_42_62.md#shared-adventure-and-paired-navigation).
 
 **Accepted target #49, not yet implemented:** normal TrainerOS creates, manages and resumes no emulator savestates/ResumePoints, in either Pokémon or Multiverse. Ordinary game saves/autosaves are authoritative. Relaunch starts the game normally; the game loads its own save.
 
@@ -64,7 +64,7 @@ On user-requested exit, capture a clean gameplay screenshot **before** the overl
 
 Exit images feed Home/Y/history with Trainer/domain/Adventure/session provenance. Cancelled attempts and crash/kill/battery loss cannot fabricate a confirmed exit or replace valid history with a false capture. Preserve prior valid media where appropriate and mark interrupted outcomes honestly. Capture failure leaves a usable exit/cancel path, never a state-thumbnail substitute.
 
-Checkpoint the launching page/paired face/route/focus, restore it promptly on return, and refresh ordinary-save observations asynchronously. First prove capture, overlay/input ownership and cancellation with the still-running emulator on Flip. Migration retires only verified TrainerOS-owned obsolete state artifacts safely, preserving ordinary saves, histories and independent images. [Full lifecycle/migration acceptance](EXPANSION_42_62.md#ordinary-saves-and-screenshot-first-exit).
+Checkpoint the launching page/paired face/route/focus, restore it promptly on return, and refresh ordinary-save observations asynchronously. First prove capture, overlay/input ownership and cancellation with the still-running emulator on Flip. Migration retires only verified TrainerOS-owned obsolete state artifacts safely, preserving ordinary saves, histories and independent images. [Full lifecycle/migration acceptance](https://github.com/EriArk/TrainerOS/blob/c6aaac25ba4f55262f3f6418e8d29cac7cdc9aec/docs/EXPANSION_42_62.md#ordinary-saves-and-screenshot-first-exit).
 
 ## Selection and navigation
 

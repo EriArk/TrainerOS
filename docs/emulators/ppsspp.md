@@ -12,7 +12,7 @@ Nearby invitation, host save/leave barrier, native discovery and paired arena
 were rechecked with independent input. The first challenge returned to the lobby;
 the second reached gameplay. Home/Exit cleaned both temporary configuration roots;
 ordinary PSP save hashes remained unchanged. A real generic UMD parser check is
-not wider-title gameplay evidence. [Full evidence and limits](../MULTIPLAYER_DEVICE_RECHECK_20261011.md).
+not wider-title gameplay evidence. [Full evidence and limits](https://github.com/EriArk/TrainerOS/blob/c6aaac25ba4f55262f3f6418e8d29cac7cdc9aec/docs/MULTIPLAYER_DEVICE_RECHECK_20261011.md).
 
 ## Generic Ad Hoc preparation — 11 October 2026
 

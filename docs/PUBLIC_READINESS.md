@@ -72,11 +72,10 @@ Gitleaks reported no typical secret findings across its history scan. These are
 bounded checks, not a guarantee that every historical byte or third-party right
 has been cleared. Private scan outputs stay outside version control.
 
-## Order after this pass
+## Current release boundary
 
-Resume MP-02 from [current tasks](CURRENT_TASKS.md). Public-readiness issues remain
-explicit follow-ups and do not restart passed multiplayer checks or replace
-image/update work under #70/#71. The 2026-10-07 ordering correction places the
-image after Pack Studio; see ROADMAP. The accepted GPL-3.0-or-later decision and
-bounded card-art replacement are recorded; further asset replacement and
-history-cleanup choices still require the owner's decision first.
+The current queue is [CURRENT_TASKS](CURRENT_TASKS.md). The first beta is an
+[installer over Armada](EARLY_BETA_INSTALLER_RU.md), not a mandatory image after
+Pack Studio. Issues #115/#116/#117 remain separate acceptance; dated checks above
+do not clear future artifacts, new artwork or fresh-machine installation.
+Do not replace README screenshots or rewrite Git history as part of routine cleanup.

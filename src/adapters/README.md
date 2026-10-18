@@ -32,7 +32,8 @@ experience composition, not a replacement emulator or untrusted plugin loader.
 
 Legacy database fields and navigation keys retain their identities during migration.
 External installation, signing/trust and varied real-game semantic proof remain
-under #92/#90. See [the accepted contract](../../docs/EXPANSION_174_178.md).
+under #92/#90. See [the current boundary](../../docs/ARCHITECTURE.md#experience-boundary)
+and [historical requirements](https://github.com/EriArk/TrainerOS/blob/c6aaac25ba4f55262f3f6418e8d29cac7cdc9aec/docs/EXPANSION_174_178.md).
 
 ## Compatibility and adapter-owned assets
 

@@ -1,64 +1,40 @@
-# Documentation
+# Документация TrainerOS
 
-**Current project snapshot:** [PROJECT_STATUS (Russian)](../PROJECT_STATUS.md)
-collects delivered work and its evidence boundaries across the whole project.
-[CHANGELOG (Russian)](../CHANGELOG.md) records dated changes for posts and the site.
+## Постоянные точки входа
 
-**11 October 2026:** [adaptive Home and adapter-owned experiences](UX_FRAMEWORK.md)
-are installed on Flip/Odin. Multiplayer has continued; the latest
-[PS1/GameCube preparation](MULTIPLAYER_PREPARATION.md) and
-[Hotseat catalogue](HOTSEAT_GAME_CATALOG.md) retain their unfinished device and
-implementation gates. [Current tasks](CURRENT_TASKS.md) and [ROADMAP](ROADMAP.md)
-own the accepted order, including offline preparation through Wii U plus Vita.
-The [UX/options map](UX_OPTIONS_MAP_RU.md) and issue expansion documents preserve
-requirements; older planning-only introductions do not supersede delivery records.
+| Нужно понять | Документ |
+| --- | --- |
+| Правила работы | [AGENTS](../AGENTS.md), [workflow](DEVELOPMENT_WORKFLOW.md) |
+| Какой продукт делаем | [PRODUCT_SPEC](PRODUCT_SPEC.md), [визуальный язык](DESIGN_LANGUAGE.md) |
+| Что делать сейчас | [CURRENT_TASKS](CURRENT_TASKS.md), короткий [ROADMAP](ROADMAP.md) |
+| Что уже сделано | [PROJECT_STATUS](../PROJECT_STATUS.md) |
+| Как развивалось | [CHANGELOG](../CHANGELOG.md), [коммиты](https://github.com/EriArk/TrainerOS/commits/codex/apps-workspace/) |
+| Запланированные задачи | [GitHub issues](https://github.com/EriArk/TrainerOS/issues) |
+| Как устроено/собрать | [ARCHITECTURE](ARCHITECTURE.md), [DEVELOPMENT](DEVELOPMENT.md) |
 
-**Final product:** [Complete product vision (Russian)](PRODUCT_VISION_RU.md)
-describes the end-to-end target, detailed behaviour, safeguards, failure handling,
-acceptance and issue coverage. [Issues #136-160](EXPANSION_136_160.md) reconcile guest
-content, OddCrate, independent updates and TV. Targets and installed evidence are
-explicitly separate; [ROADMAP](ROADMAP.md) retains the active execution order.
+Текущий договор важнее старого отчёта; последние явные решения владельца важнее
+противоречащего issue. PRODUCT_SPEC содержит короткую таблицу таких замен.
+Исходники, установленная сборка и фактическая приёмка — разные уровни доказательств.
 
+## Технические справочники — читать по задаче
 
-Start with the [project overview](../README.md) and [native build guide](DEVELOPMENT.md).
-TrainerOS is under active development. Dated device reports describe what was
-observed on those builds; they are not universal compatibility promises.
+- Запуск: [весь каталог](LAUNCH80_PLATFORM_REGISTER.md), [лаунчеры](LAUNCH80_LAUNCHER_AUDIT.md),
+  [стандарт](EMULATOR_STANDARD.md), [мультиплеер](EMULATOR_MULTIPLAYER_MATRIX.md),
+  [обслуживание эмуляторов](emulators/README.md).
+- Данные: [модель](DATA_MODEL.md), [persistence](LOCAL_PERSISTENCE.md),
+  [save lineage](SAVE_LINEAGE.md), [backup](SAVE_BACKUPS.md), [выход](ADVENTURE_EXIT.md).
+- Адаптеры: [реестр знаний](adapters/README.md), [границы framework](UX_FRAMEWORK.md).
+- Общение: [Social](SOCIAL.md), [возможности Fluxer](FLUXER_CAPABILITIES_RU.md),
+  [Lobby](LOBBY.md), [Remote Play](REMOTE_PLAY_TRANSPORT.md).
+- Apps: [Files](FILES68_IMPLEMENTATION.md), [Browser](BROWSER71_IMPLEMENTATION.md),
+  [Crates installer](CRATES76_INSTALLER.md), [каталог](CRATES77_CATALOGUE.md).
+- Устройство: [платформа](ARMADA_PLATFORM.md), [диагностика](DEVICE_DIAGNOSTICS.md),
+  [производительность](PERFORMANCE72.md), [масштаб](DISPLAY_SCALING.md).
+- Выпуск: [первая бета](EARLY_BETA_INSTALLER_RU.md), [открытые gates](PUBLIC_READINESS.md),
+  [лицензия](../LICENSING.md), [third-party notices](../THIRD_PARTY_NOTICES.md).
 
-## Work on the project
-
-- [Contributing](../CONTRIBUTING.md) — scope, changes, verification and issues.
-- [Development](DEVELOPMENT.md) — dependencies, isolated build/run and checks.
-- [Engineering workflow](DEVELOPMENT_WORKFLOW.md) — complete delivery and evidence.
-- [Roadmap](ROADMAP.md) — accepted order; [current tasks](CURRENT_TASKS.md) — remaining acceptance.
-- [Issues #118–135](EXPANSION_118_135.md) — installer/shared release, live Hotseat and Social/Together reconciliation.
-- [Architecture](ARCHITECTURE.md) and [data model](DATA_MODEL.md) — boundaries and identity.
-- [Security reporting](../SECURITY.md), [code license and scope](../LICENSING.md)
-  and [third-party inventory](../THIRD_PARTY_NOTICES.md).
-
-## Understand current features
-
-- [Series collections](SERIES_COLLECTIONS.md), [ROM platforms](ROM_PLATFORMS.md),
-  [standard emulators](EMULATOR_STANDARD.md) and [emulator maintenance](emulators/README.md).
-- [Primary navigation](NAVIGATION_111.md), [physical Home menu](HOME_MENU.md),
-  [first run](FIRST_RUN.md) and [startup-to-play acceptance](STARTUP_EXPERIENCE_AUDIT.md).
-- [Social](SOCIAL.md), [compact interface and profiles](SOCIAL_COMPACT.md),
-  [calls and notifications](SOCIAL_MEDIA_VOICE.md),
-  [multiplayer experience](MULTIPLAYER_EXPERIENCE.md),
-  [classic RetroArch profiles](RETROARCH_MULTIPLAYER_PROFILES.md) and
-  [independent handheld link](HANDHELD_MULTIPLAYER.md).
-- [Game-adapter knowledge](adapters/README.md) and [Emerald Link](EMERALD_LINK.md).
-- [Public-readiness audit and follow-ups](PUBLIC_READINESS.md).
-- [User agreement draft (Russian)](USER_AGREEMENT_DRAFT_RU.md) — proposed content responsibilities; not effective service terms.
-
-## Reading historical records
-
-Owner decisions and the active roadmap supersede older target descriptions.
-Feature documents often contain dated checkpoints: distinguish implemented work,
-observed behavior, and acceptance still waiting on hardware or human testing.
-The [bootstrap development guide](archive/DEVELOPMENT_BOOTSTRAP.md) and
-[original Codex bootstrap brief](CODEX_START.md) are historical, not onboarding.
-Older acceptance remains open unless explicitly delivered or superseded; a new
-document does not silently cancel it. The first alpha follows accepted multiplayer,
-guest sessions and required release dependencies, including #161 fallback artwork,
-then image/installer delivery. Full Pack Studio, optional ROM-native assets and
-remaining updates/repair/final acceptance stay after alpha; see the active roadmap.
+Датированные разделы технических записей сохраняют конкретные проверки, хеши,
+ограничения и восстановление. Их старые «следующие шаги» не являются очередью.
+Ссылки на `blob/<commit>/…` — неизменяемая историческая запись, не текущий контракт.
+Промежуточные планы экранов, копии issues и прежние очереди удалены из рабочей
+документации 18 октября; они доступны в Git. Новую папку-архив не создаём.

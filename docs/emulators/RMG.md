@@ -238,7 +238,7 @@ Host promotion still requires `libminizip.so.1`, `libSDL3_net.so.0` and
 packages. The diagnostic configure omitted the recipe's installed RPATH; retain
 that existing recipe flag in a release build. No host OS packages were layered,
 operator server fabricated, or multiplayer profile enabled by this build.
-[Exact build hashes, dependencies and remaining acceptance](../MULTIPLAYER_DEVICE_RECHECK_20261011.md).
+[Exact build hashes, dependencies and remaining acceptance](https://github.com/EriArk/TrainerOS/blob/c6aaac25ba4f55262f3f6418e8d29cac7cdc9aec/docs/MULTIPLAYER_DEVICE_RECHECK_20261011.md).
 
 
 ## Handheld runtime continuation - 12 October 2026

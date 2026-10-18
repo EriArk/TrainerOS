@@ -1,5 +1,16 @@
 # melonDS deterministic wireless preparation
 
+## Current evidence summary — reconciled 18 October 2026
+
+The [12 October ordinary delivery](#ordinary-handheld-delivery--12-october-2026)
+supersedes the initial research status: the two-player Nearby/Online runtime is
+installed on Flip/Odin, with Mario Kart DS, invitation/Home lifecycle and protected
+own-save return evidence. The initial claims below of no installed profile refer
+only to that earlier checkpoint. This reconciliation is not a new device test.
+Four players, wider games/save formats/resources, physical acceptance and distinct
+Internet connections remain open. No semantic save capability is implied.
+Current work follows [CURRENT_TASKS](../CURRENT_TASKS.md), not the research queue.
+
 ## Research registration — 11 October 2026
 
 Registered as **researching**, now **partial** after the bounded core port below.
@@ -14,7 +25,7 @@ core `85fdb7596011a3d0e679a6f1f88c312e77ff4cc5`; the actual deterministic core
 change is `88a65f9445bc2537ff6f5a78f27694df5a254dcf`. Research and bounded
 native-port checks follow here before any runtime enablement.
 
-The accepted [DS requirements](../EXPANSION_161_173.md) retain separate native
+The accepted [DS requirements](https://github.com/EriArk/TrainerOS/blob/c6aaac25ba4f55262f3f6418e8d29cac7cdc9aec/docs/EXPANSION_161_173.md) retain separate native
 port, private state, party integration and real gameplay gates. LAN-only wireless,
 game WFC and shared-controller netplay do not meet those requirements.
 
