@@ -1,0 +1,106 @@
+{
+  "schema": 1,
+  "projects": [
+    {
+      "id": "2048",
+      "title": "2048",
+      "kind": "game",
+      "creator": "Gabriele Cirulli",
+      "license": "MIT",
+      "sample": true,
+      "summary": "Slide, combine, and reach 2048.",
+      "description": "Slide the numbered tiles and merge equal pairs. A small puzzle built around one simple goal: make a 2048 tile.",
+      "hero": "qrc:/crates/examples/2048.png",
+      "screenshots": [
+        "qrc:/crates/examples/2048.png"
+      ],
+      "releases": []
+    },
+    {
+      "id": "hextris",
+      "title": "Hextris",
+      "kind": "game",
+      "creator": "Logan Engstrom & the Hextris team",
+      "license": "GPL-3.0-or-later",
+      "sample": true,
+      "summary": "Turn the hexagon. Match the colours.",
+      "description": "Rotate the central hexagon to catch falling blocks. Match colours and clear space before the stack grows too large.",
+      "hero": "qrc:/crates/examples/hextris-2.png",
+      "screenshots": [
+        "qrc:/crates/examples/hextris-2.png",
+        "qrc:/crates/examples/hextris.png"
+      ],
+      "releases": []
+    },
+    {
+      "id": "breakout",
+      "title": "Breakout",
+      "kind": "game",
+      "creator": "Jake Gordon & contributors",
+      "license": "MIT",
+      "sample": true,
+      "summary": "A paddle, a ball, and a wall of bricks.",
+      "description": "Keep the ball in play and clear the coloured bricks. A small browser arcade game with multiple layouts and touch controls.",
+      "hero": "qrc:/crates/examples/breakout-2.png",
+      "screenshots": [
+        "qrc:/crates/examples/breakout-2.png",
+        "qrc:/crates/examples/breakout.png"
+      ],
+      "releases": []
+    },
+    {
+      "id": "featherpad",
+      "title": "FeatherPad",
+      "kind": "app",
+      "creator": "Pedram Pourang (Tsu Jan)",
+      "license": "GPL-3.0",
+      "sample": true,
+      "summary": "A light editor for notes and text.",
+      "description": "Edit plain text in tabs or a side pane. Search, syntax highlighting and session management keep everyday notes and small files close at hand.",
+      "hero": "qrc:/crates/examples/featherpad.png",
+      "screenshots": [
+        "qrc:/crates/examples/featherpad.png",
+        "qrc:/crates/examples/featherpad-2.png"
+      ],
+      "releases": []
+    },
+    {
+      "id": "qalculate",
+      "title": "Qalculate!",
+      "kind": "app",
+      "creator": "Hanna Knutsson & contributors",
+      "license": "GPL-2.0-or-later",
+      "sample": true,
+      "summary": "Numbers, units, and quick conversions.",
+      "description": "A desktop calculator for everyday arithmetic, percentages and unit conversions, with a history of calculations and more advanced mathematical tools.",
+      "hero": "qrc:/crates/examples/qalculate.png",
+      "screenshots": [
+        "qrc:/crates/examples/qalculate.png"
+      ],
+      "releases": []
+    }
+  ],
+  "contents": {
+    "whats-new": [
+      "2048",
+      "hextris",
+      "breakout",
+      "featherpad",
+      "qalculate"
+    ],
+    "workshop": [],
+    "adventure": [],
+    "arcade": [
+      "hextris",
+      "breakout"
+    ],
+    "strategy": [
+      "2048",
+      "hextris"
+    ],
+    "tools": [
+      "featherpad",
+      "qalculate"
+    ]
+  }
+}

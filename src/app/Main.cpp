@@ -84,6 +84,7 @@
 #include "ExitSmokeScenario.h"
 #include "DownloadsSmokeScenario.h"
 #include "AppsSmokeScenario.h"
+#include "CratesSmokeScenario.h"
 #include "ExperienceSmokeScenario.h"
 #include "LobbySmokeScenario.h"
 #include "PlayerOverlaySmokeScenario.h"
@@ -206,6 +207,7 @@ int main(int argc, char* argv[]) {
     parser.addOption({"lobby-smoke-test", "Verify lobby and keyboard QML with isolated provider fixtures."});
     parser.addOption({"experience-smoke-test", "Verify independent experience modules in the real QML host."});
     parser.addOption({"apps-smoke-test", "Verify the Apps workspace with isolated providers and SDL input."});
+    parser.addOption({"crates-smoke-test", "Verify the Crates catalogue and project popup with isolated preview data."});
     parser.addOption({"downloads-smoke-test", "Verify the Downloads layout and SDL navigation with isolated queue fixtures, then exit."});
     parser.addOption({"exit-smoke-test", "Verify the isolated Adventure exit window through SDL input, then exit."});
     parser.addOption({"worlds-smoke-test", "Verify Worlds browsing and mock actions through SDL input, then exit."});
@@ -224,7 +226,7 @@ int main(int argc, char* argv[]) {
     bool hallSmoke = false;
     bool diagnosticsSmoke = false;
     bool exitSmoke = false;
-    bool downloadsSmoke = false, appsSmoke = false;
+    bool downloadsSmoke = false, appsSmoke = false, cratesSmoke = false;
     bool experienceSmoke = false;
     bool lobbySmoke = false, playerOverlaySmoke = false;
     QString persistencePhase;
@@ -234,6 +236,7 @@ int main(int argc, char* argv[]) {
     experienceSmoke = parser.isSet("experience-smoke-test");
     downloadsSmoke = parser.isSet("downloads-smoke-test");
     appsSmoke = parser.isSet("apps-smoke-test");
+    cratesSmoke = parser.isSet("crates-smoke-test");
     exitSmoke = parser.isSet("exit-smoke-test");
     worldsSmoke = parser.isSet("worlds-smoke-test");
     pokedexSmoke = parser.isSet("pokedex-smoke-test");
@@ -244,7 +247,7 @@ int main(int argc, char* argv[]) {
     if (parser.isSet("persistence-smoke-test") && (!QStringList{"seed", "verify", "error", "library-seed", "library-verify", "library-final", "library-launch", "library-home", "library-home-reopen", "library-center", "collection"}.contains(persistencePhase)
             || parser.value("data-dir").isEmpty() || parser.isSet("ephemeral"))) return 2;
 #endif
-    const bool smoke = appsSmoke || playerOverlaySmoke || lobbySmoke || experienceSmoke || parser.isSet("smoke-test") || downloadsSmoke || artSmoke || exitSmoke || worldsSmoke || pokedexSmoke || hallSmoke || diagnosticsSmoke || !persistencePhase.isEmpty();
+    const bool smoke = cratesSmoke || appsSmoke || playerOverlaySmoke || lobbySmoke || experienceSmoke || parser.isSet("smoke-test") || downloadsSmoke || artSmoke || exitSmoke || worldsSmoke || pokedexSmoke || hallSmoke || diagnosticsSmoke || !persistencePhase.isEmpty();
     auto smokeBattery = std::make_shared<std::atomic_int>(65);
     PowerStatus powerStatus([smoke, smokeBattery] {
         if (!smoke) return systemBatteryStatus();
@@ -1170,6 +1173,8 @@ int main(int argc, char* argv[]) {
                     LobbySmokeScenario::start(window,shell,input,joystick,screenshotDir,smokeCompleted,qmlWarnings,diagnostics);
                 } else if(experienceSmoke) {
                     startExperienceSmoke(window,shell,input,joystick,screenshotDir,smokeCompleted,qmlWarnings,diagnostics);
+                } else if(cratesSmoke) {
+                    startCratesSmoke(window,shell,input,joystick,screenshotDir,smokeCompleted,qmlWarnings,diagnostics);
                 } else if(appsSmoke) {
                     startAppsSmoke(window,shell,input,joystick,screenshotDir,smokeCompleted,qmlWarnings,diagnostics);
                 } else if (exitSmoke) {

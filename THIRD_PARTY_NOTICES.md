@@ -7,6 +7,7 @@ remain in force. Distribution/image obligations need a separate review before re
 
 | Material | Existing record / terms |
 | --- | --- |
+| Crates example project screenshots | [Attribution, upstream sources and included notices](assets/crates/examples/README.md); MIT, GPL-3.0 and GPL-2.0-or-later as recorded per project; no project binaries included |
 | Fredoka, Chakra Petch, Bungee fonts | [Font provenance](assets/fonts/README.md); included SIL OFL 1.1 texts |
 | PokeAPI reference data | [BSD notice](data/licenses/PokeAPI.txt); names/design rights are separate |
 | Community gym-badge recreations | [Author, CC BY 3.0 and provenance](assets/badges/README.md); underlying designs are not cleared by attribution |

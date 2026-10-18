@@ -441,7 +441,10 @@ Window {
                 if (shell.page === 0) return [h("A",shell.homeGame.id ? (shell.liveGame.id === shell.homeGame.id ? "Return" : shell.home.actionHint) : "Collections"),h("Select","Game actions"),h("B","Back")]
                 if (shell.primaryId === "apps" && shell.appsFace === "files") return shell.files.view.menuOpen || Object.keys(shell.files.dialog).length ? [h("A","Select"),h("B","Close")] : [h("A","Open"),h("Hold A","Actions"),h("Select","Controls"),h("R3","View"),h("B","Back")]
                 if (shell.primaryId === "apps" && shell.appsFace === "browser") return browserPane.popup ? [h("A","Select"),h("B","Close")] : [h("A","Select"),h("Hold A","Actions"),h("Select","Controls"),h("B","Back")]
-                if (shell.primaryId === "apps" && shell.appsFace === "crates") return shell.crates.opened ? [h("B","Crates")] : [h("A",shell.crates.opening ? "Skip" : "Open"),h("B","Apps")]
+                if (shell.primaryId === "apps" && shell.appsFace === "crates") {
+                    if (shell.crates.detailOpen) return [h("B","Close")].concat(shell.crates.project.releases.length ? [h("Select","Versions")] : [])
+                    return shell.crates.opened ? (shell.crates.projectCount ? [h("A","Details"),h("B","Crates")] : [h("B","Crates")]) : [h("A",shell.crates.opening ? "Skip" : "Open"),h("B","Apps")]
+                }
                 if (shell.primaryId === "apps") return shell.apps.menu.length ? [h("↑↓","Choose"),h("A","Select"),h("B","Back")] : [h("A","Open"),h("Select","Options"),h("X","Quick Apps"),h("Y","Recent games"),h("B","Home")]
                 if (shell.primaryId === "gamehub") return gameHubPage.hints(h)
                 if (shell.primaryId === "social") return shell.social.hints
@@ -483,6 +486,7 @@ Window {
         Loader { anchors.fill: screen; active: shell.service === "trainer-setup"; visible: active; sourceComponent: TrainerSetupPanel { shell: shellController } }
         Loader { anchors.fill: screen; active: shell.service === "device"; visible: active; sourceComponent: DevicePanel { shell: shellController } }
         Loader { anchors.fill: screen; active: shell.service === "diagnostics"; visible: active; sourceComponent: DiagnosticsPanel { shell: shellController } }
+        Loader { anchors.fill: screen; z: 2.8; active: shell.primaryId === "apps" && shell.appsFace === "crates" && shell.crates.detailOpen && !shell.serviceOpen && !shell.quickAppsOpen && !shell.drawerOpen; visible: active; sourceComponent: CratesProjectPopup { flow: shell.crates } }
         Loader { anchors.fill: screen; z: 3.1; active: shell.scraper.open && !shell.keyboard.open; visible: active; sourceComponent: ScrapePanel { shell: shellController } }
         Loader { anchors.fill: screen; z: 3.2; active: shell.downloads.open; visible: active; sourceComponent: DownloadsPanel { flow: shell.downloads } }
         MyLobbiesPopup { anchors.fill: screen; social: shell.social; z: 3.5 }

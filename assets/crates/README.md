@@ -3,7 +3,10 @@
 Original six-scene atlas generated with the built-in OpenAI image tool on
 2026-10-18 for the owner-approved Crates concept. Source is `illustrations-wide.png`,
 1254 × 1254; six panoramic 1254 × 209 strips, in showcase order.
-No third-party game artwork, logos or product screenshots are included.
+The showcase atlas contains no third-party game artwork, logos or screenshots.
+Separate temporary project examples and their upstream notices are documented in
+[examples/README.md](examples/README.md). `gamepad.svg` is original TrainerOS
+vector artwork, covered by the repository's GPL-3.0-or-later source licence.
 
 Prompt: six independent, warm painterly illustrations for small crate insets:
 sunrise explorers, maker workshop, forest mountains, arcade platforms,

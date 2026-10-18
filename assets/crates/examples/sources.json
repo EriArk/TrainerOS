@@ -1,0 +1,117 @@
+[
+  {
+    "id": "2048",
+    "repository": "https://github.com/gabrielecirulli/2048",
+    "revision": "478b6ec346e3787f589e4af751378d06ded4cbbc",
+    "files": [
+      {
+        "file": "2048.png",
+        "url": "https://cloud.githubusercontent.com/assets/1175750/8614312/280e5dc2-26f1-11e5-9f1f-5891c3ca8b26.png",
+        "sha256": "2ea0f7b8349639636fdb6ffac8bb1e48f37e8beda89bab25843e0637c9f4495b",
+        "bytes": 51599
+      },
+      {
+        "file": "2048-LICENSE.txt",
+        "url": "https://raw.githubusercontent.com/gabrielecirulli/2048/478b6ec346e3787f589e4af751378d06ded4cbbc/LICENSE.txt",
+        "sha256": "57e12c39a6ad9d98b2e451065bfdfbd15fc9e0c2ed3bf4dc1d09acab41ff02fc",
+        "bytes": 1083
+      }
+    ]
+  },
+  {
+    "id": "hextris",
+    "repository": "https://github.com/Hextris/hextris",
+    "revision": "3f4847dc8fd7dab3d1c87e6324b9159d92fbd396",
+    "files": [
+      {
+        "file": "hextris-LICENSE.txt",
+        "url": "https://raw.githubusercontent.com/Hextris/hextris/3f4847dc8fd7dab3d1c87e6324b9159d92fbd396/LICENSE.md",
+        "sha256": "ccb349b4132ed7737f25e5adebfe61f3d52dca33708df1e50352320438d1d4c2",
+        "bytes": 35178
+      },
+      {
+        "file": "hextris.png",
+        "url": "https://hextris.github.io/presskit.zip",
+        "member": "presskit/computer/1.PNG",
+        "sha256": "956badbbe633cfb9e58c3d946f181c00f4c0e404a1f233789a4d2c7fb42c6e88",
+        "bytes": 93636
+      },
+      {
+        "file": "hextris-2.png",
+        "url": "https://hextris.github.io/presskit.zip",
+        "member": "presskit/computer/2.PNG",
+        "sha256": "ddc56926c6692357e028a315744df775cb059d3d346f3f7c8016bf9ffce41113",
+        "bytes": 96869
+      }
+    ]
+  },
+  {
+    "id": "breakout",
+    "repository": "https://github.com/jakesgordon/javascript-breakout",
+    "revision": "eed59e2affa9423b93d2ac8ff93061bb88b33284",
+    "files": [
+      {
+        "file": "breakout.png",
+        "url": "https://raw.githubusercontent.com/jakesgordon/javascript-breakout/eed59e2affa9423b93d2ac8ff93061bb88b33284/packaged/assets/level1.1280x800.png",
+        "sha256": "33a9ebf643658781e9c676cd5e51c02f95a91fa7f23855b13e59aca74326dbc2",
+        "bytes": 765287
+      },
+      {
+        "file": "breakout-2.png",
+        "url": "https://raw.githubusercontent.com/jakesgordon/javascript-breakout/eed59e2affa9423b93d2ac8ff93061bb88b33284/packaged/assets/level5.1280x800.png",
+        "sha256": "e9e7d2c6e04f80cf6b0610b21429fb2f5e2ef7b814cb61829eda18427b8ae3dc",
+        "bytes": 830214
+      },
+      {
+        "file": "breakout-LICENSE.txt",
+        "url": "https://raw.githubusercontent.com/jakesgordon/javascript-breakout/eed59e2affa9423b93d2ac8ff93061bb88b33284/LICENSE",
+        "sha256": "f57c728322b21e4103d485dccf31b59ff48a220df2ecc6cea77349ec15a422e3",
+        "bytes": 1471
+      }
+    ]
+  },
+  {
+    "id": "featherpad",
+    "repository": "https://github.com/tsujan/FeatherPad",
+    "revision": "d9ae18ad793a1beae9484610914cfc5e62cc511b",
+    "files": [
+      {
+        "file": "featherpad.png",
+        "url": "https://raw.githubusercontent.com/tsujan/FeatherPad/d9ae18ad793a1beae9484610914cfc5e62cc511b/screenshots/Tabs.png",
+        "sha256": "706f85b3344bf33852cc9ef7d9be65cf2f13e588f258a266272499e843613936",
+        "bytes": 122989
+      },
+      {
+        "file": "featherpad-2.png",
+        "url": "https://raw.githubusercontent.com/tsujan/FeatherPad/d9ae18ad793a1beae9484610914cfc5e62cc511b/screenshots/Side-Pane.png",
+        "sha256": "ff32abc16ffec12c994090ed4cb65d99fb8b391f5cbc3cada702067bae6a705f",
+        "bytes": 125757
+      },
+      {
+        "file": "featherpad-LICENSE.txt",
+        "url": "https://raw.githubusercontent.com/tsujan/FeatherPad/d9ae18ad793a1beae9484610914cfc5e62cc511b/COPYING",
+        "sha256": "0ae0485a5bd37a63e63603596417e4eb0e653334fa6c7f932ca3a0e85d4af227",
+        "bytes": 35148
+      }
+    ]
+  },
+  {
+    "id": "qalculate",
+    "repository": "https://github.com/Qalculate/qalculate-qt",
+    "revision": "77d5eb93457a10be581aa486aa8792351721ec4f",
+    "files": [
+      {
+        "file": "qalculate.png",
+        "url": "https://raw.githubusercontent.com/Qalculate/qalculate.github.io/d577bd64f32d591b5fd68cf19ba907b2cacb57ae/images/qalculate-qt.png",
+        "sha256": "1acc27e474f7b977c2b1662c4d742f4a3b7bf14ae44d08a51870ecc06bafd736",
+        "bytes": 42906
+      },
+      {
+        "file": "qalculate-LICENSE.txt",
+        "url": "https://raw.githubusercontent.com/Qalculate/qalculate-qt/77d5eb93457a10be581aa486aa8792351721ec4f/COPYING",
+        "sha256": "edaef632cbb643e4e7a221717a6c441a4c1a7c918e6e4d56debc3d8739b233f6",
+        "bytes": 17984
+      }
+    ]
+  }
+]

@@ -34,20 +34,8 @@ Item {
             }
         }
     }
-    Item {
-        anchors.fill: parent; visible: root.flow.opened
-        Text { x: 6; y: 4; text: "‹   Crates   /   "+(root.flow.current.title || ""); font.pixelSize: 19; color: Theme.ink }
-        MouseArea { x: 0; y: 0; width: 112; height: 36; onClicked: root.flow.back(); cursorShape: Qt.PointingHandCursor }
-        // Honest authored empty state: no fictional projects, ratings or installs.
-        Item {
-            anchors.centerIn: parent; width: Math.min(parent.width-44,570); height: Math.min(parent.height-65,225)
-            CrateTile { x: 0; y: 9; width: parent.width*0.43; height: parent.height-18; entry: root.flow.current; enabled: false }
-            Column {
-                x: parent.width*0.48; width: parent.width-x; anchors.verticalCenter: parent.verticalCenter; spacing: 13
-                Text { width: parent.width; text: "A little room for discovery"; font.family: Theme.displayFamily; font.pixelSize: 26; wrapMode: Text.WordWrap; color: Theme.ink }
-                Text { width: parent.width; text: "This crate is waiting for its first projects."; font.pixelSize: 17; wrapMode: Text.WordWrap; color: Theme.muted }
-                Text { width: parent.width; text: root.flow.current.subtitle || ""; font.pixelSize: 14; wrapMode: Text.WordWrap; color: Theme.muted }
-            }
-        }
+    Loader {
+        anchors.fill: parent; active: root.visible && root.flow.opened
+        sourceComponent: CratesCataloguePage { flow: root.flow; active: root.active }
     }
 }

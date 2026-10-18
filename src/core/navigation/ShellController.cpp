@@ -1113,6 +1113,7 @@ void ShellController::openContext(const QString& type,const QString& target) {
     // Feature controllers own their captured person/message/entity targets.
     // This is the same dispatcher used by Select, with their existing guards.
     if(page_==AppsPage && appsFace_=="apps")apps_.dispatch(Action::LocalAction);
+    else if(page_==AppsPage && appsFace_=="crates")crates_.dispatch(Action::LocalAction);
     else if(page_==SocialPage)social_.dispatch(Action::LocalAction);
     else if(page_==GameHubPage)dispatchGameHub(Action::LocalAction);
 }

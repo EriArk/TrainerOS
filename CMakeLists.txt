@@ -82,6 +82,7 @@ add_library(trainer_core STATIC
     src/platform/files/FilesService.cpp
     src/features/apps/AppsController.cpp
     src/features/crates/CratesController.cpp
+    src/features/crates/CratesCatalogue.cpp
     src/features/downloads/DownloadsController.cpp
     src/core/repository/BatoceraLibrary.cpp
     src/core/repository/RomPlatforms.cpp
@@ -347,8 +348,12 @@ qt_add_resources(traineros social_icons PREFIX "/social-icons" BASE assets/icons
     FILES ${social_icons} assets/icons/phosphor/LICENSE)
 file(GLOB home_icons CONFIGURE_DEPENDS assets/icons/home/*.svg)
 qt_add_resources(traineros home_icons PREFIX "/home-icons" BASE assets/icons/home FILES ${home_icons})
-qt_add_resources(traineros crates_showcase PREFIX "/crates" BASE data/crates FILES data/crates/showcase.json)
-qt_add_resources(traineros crates_art PREFIX "/crates" BASE assets/crates FILES assets/crates/illustrations-wide.png)
+qt_add_resources(traineros crates_showcase PREFIX "/crates" BASE data/crates FILES data/crates/showcase.json data/crates/catalogue.json)
+file(GLOB crates_example_images CONFIGURE_DEPENDS assets/crates/examples/*.png)
+file(GLOB crates_example_notices CONFIGURE_DEPENDS assets/crates/examples/*-LICENSE.txt)
+qt_add_resources(traineros crates_art PREFIX "/crates" BASE assets/crates
+    FILES assets/crates/illustrations-wide.png assets/crates/gamepad.svg
+    ${crates_example_images} ${crates_example_notices} assets/crates/examples/sources.json)
 set_source_files_properties(src/qml/Theme.qml PROPERTIES QT_QML_SINGLETON_TYPE TRUE)
 file(GLOB trainer_qml_sources CONFIGURE_DEPENDS src/qml/*.qml src/qml/*.js)
 foreach(qml_file IN LISTS trainer_qml_sources)
@@ -382,6 +387,10 @@ qt_add_qml_module(traineros
         src/qml/FilesPopup.qml
         src/qml/AppsPage.qml
         src/qml/CratesPage.qml
+        src/qml/CratesCataloguePage.qml
+        src/qml/CratesProjectCard.qml
+        src/qml/CratesProjectArt.qml
+        src/qml/CratesProjectPopup.qml
         src/qml/CrateTile.qml
         src/qml/CrateEmblem.qml
         src/qml/CrateIllustration.qml
@@ -571,7 +580,7 @@ if(BUILD_TESTING)
     qt_add_executable(trainer_power_tests tests/PowerStatusTests.cpp)
     qt_add_executable(trainer_crates_tests tests/CratesTests.cpp)
     target_link_libraries(trainer_crates_tests PRIVATE trainer_core Qt6::Test)
-    qt_add_resources(trainer_crates_tests crates_test_data PREFIX "/crates" BASE data/crates FILES data/crates/showcase.json)
+    qt_add_resources(trainer_crates_tests crates_test_data PREFIX "/crates" BASE data/crates FILES data/crates/showcase.json data/crates/catalogue.json)
     add_test(NAME crates_showcase COMMAND trainer_crates_tests)
     qt_add_executable(trainer_device_tests tests/DeviceTests.cpp)
     qt_add_executable(trainer_standalone_tests tests/StandaloneTests.cpp)
@@ -655,6 +664,9 @@ if(BUILD_TESTING)
     target_sources(traineros PRIVATE tests/ui/CenterSmokeScenario.cpp tests/ui/CenterSmokeScenario.h)
     target_sources(traineros PRIVATE tests/ui/ExitSmokeScenario.cpp tests/ui/ExitSmokeScenario.h)
     target_sources(traineros PRIVATE tests/ui/AppsSmokeScenario.cpp tests/ui/AppsSmokeScenario.h)
+    target_sources(traineros PRIVATE tests/ui/CratesSmokeScenario.cpp tests/ui/CratesSmokeScenario.h)
+    add_test(NAME crates_qml_smoke COMMAND traineros --crates-smoke-test --screenshot-dir "${CMAKE_CURRENT_BINARY_DIR}/screenshots/crates")
+    set_tests_properties(crates_qml_smoke PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software;QT_FORCE_STDERR_LOGGING=1" TIMEOUT 30)
     target_sources(traineros PRIVATE tests/ui/DownloadsSmokeScenario.cpp tests/ui/DownloadsSmokeScenario.h)
     add_test(NAME apps_qml_smoke COMMAND traineros --apps-smoke-test --screenshot-dir "${CMAKE_CURRENT_BINARY_DIR}/screenshots/apps")
     set_tests_properties(apps_qml_smoke PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software" TIMEOUT 30)

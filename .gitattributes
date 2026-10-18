@@ -10,3 +10,5 @@ tools/gamescope-capture/LICENSE.gamescope text eol=lf whitespace=-blank-at-eof
 # Preserve downloaded dependency notices, including the MPL text's upstream space.
 tools/remote-play-stream/transport/licenses/* -text
 tools/remote-play-stream/transport/licenses/lib*.LICENSE whitespace=-blank-at-eol
+# These notices are hashed in the Crates artwork provenance; preserve upstream bytes.
+assets/crates/examples/*-LICENSE.txt -text whitespace=-blank-at-eof

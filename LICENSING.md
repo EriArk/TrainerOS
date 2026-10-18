@@ -28,6 +28,7 @@ material; preserve its author, license text and attribution when redistributing.
 The default software grant does not relicense separately supplied materials:
 
 - Fonts in `assets/fonts/` retain their SIL Open Font License notices.
+- Crates example screenshots retain their [upstream terms and attribution](assets/crates/examples/README.md).
 - PokeAPI-derived reference data retains `data/licenses/PokeAPI.txt`.
 - Badge recreations retain the author/license/provenance in `assets/badges/`.
 - The Dolphin patch/bridge and its reusable copy retain GPL-2.0-or-later.
