@@ -1,0 +1,45 @@
+{
+  "schema": 1,
+  "packages": [
+    {
+      "id": "2048",
+      "repository": "https://github.com/gabrielecirulli/2048.git",
+      "revision": "478b6ec346e3787f589e4af751378d06ded4cbbc",
+      "license": "MIT",
+      "entry": "bin/traineros-webgame",
+      "kind": "game",
+      "title": "2048",
+      "version": "2026.10.18-1",
+      "architecture": "aarch64",
+      "sha256": "083329b0a29a706370be139079ddfb1c8f90758189ee217a9a91e3e44cbcedb2",
+      "size": 351171,
+      "unpackedSize": 1757257,
+      "compatibility": "untested",
+      "channel": "Experimental",
+      "notes": "Initial TrainerOS package. User data is kept separately.",
+      "url": "https://github.com/EriArk/TrainerOS/releases/download/crates-test-20261018/2048-aarch64.tar.gz",
+      "picture": "qrc:/crates/examples/2048.png",
+      "compatibilityNote": "Experimental package for Armada Fedora 44 ARM64 with host Qt 6.11. Device gameplay acceptance is pending."
+    },
+    {
+      "id": "featherpad",
+      "repository": "https://github.com/tsujan/FeatherPad.git",
+      "revision": "d9ae18ad793a1beae9484610914cfc5e62cc511b",
+      "license": "GPL-3.0",
+      "entry": "bin/start",
+      "kind": "app",
+      "title": "FeatherPad",
+      "version": "1.6.4-traineros.1",
+      "architecture": "aarch64",
+      "sha256": "f4ea52f4c82c8c0bbd52ee2b575614670a03a78047020bce29abcd9c4b6cf871",
+      "size": 1321204,
+      "unpackedSize": 4951805,
+      "compatibility": "untested",
+      "channel": "Experimental",
+      "notes": "Initial TrainerOS package. User data is kept separately.",
+      "url": "https://github.com/EriArk/TrainerOS/releases/download/crates-test-20261018/featherpad-aarch64.tar.gz",
+      "picture": "qrc:/crates/examples/featherpad.png",
+      "compatibilityNote": "Experimental package for Armada Fedora 44 ARM64 with host Qt 6.11. Device gameplay acceptance is pending."
+    }
+  ]
+}

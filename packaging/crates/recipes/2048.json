@@ -1,0 +1,11 @@
+{
+  "id": "2048",
+  "repository": "https://github.com/gabrielecirulli/2048.git",
+  "revision": "478b6ec346e3787f589e4af751378d06ded4cbbc",
+  "license": "MIT",
+  "entry": "bin/traineros-webgame",
+  "kind": "game",
+  "title": "2048",
+  "version": "2026.10.18-1",
+  "architecture": "aarch64"
+}

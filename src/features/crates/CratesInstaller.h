@@ -1,0 +1,39 @@
+#pragma once
+#include <QObject>
+#include <QProcess>
+#include <QVariantList>
+#include <QTimer>
+#include <QMap>
+#include <functional>
+namespace trainer {
+class CratesInstaller final : public QObject {
+    Q_OBJECT
+public:
+    explicit CratesInstaller(QObject* parent=nullptr);
+    ~CratesInstaller() override;
+    void configure(const QString& helper,const QString& registry,const QString& root);
+    QVariantMap state(const QString& id) const;
+    QVariantList tasks() const;
+    QVariantList installed() const;
+    void request(const QString& id,const QString& version={},const QString& operation="install");
+    void command(const QString& id,const QString& command);
+    QString root() const {return root_;}
+    QString helper() const {return helper_;}
+    std::function<QString()> replacementGuard;
+signals:
+    void changed();
+    void inventoryChanged();
+private:
+    void pump();
+    void readInventory();
+    void event(const QByteArray&);
+    void persistJobs();
+    QString helper_,registry_,root_,active_;
+    QVariantList packages_,jobs_;
+    QMap<QString,QVariantMap> inventory_;
+    QProcess worker_;
+    QByteArray buffer_;
+    QTimer retry_;
+    QTimer persist_;
+};
+}

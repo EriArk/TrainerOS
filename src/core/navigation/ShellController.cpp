@@ -215,6 +215,9 @@ ShellController::ShellController(LibraryRepository& repo, TrainerRepository& pro
         if(command=="resolve"){downloads_.close();goToPage(AppsPage);selectFace(3);}
     });
     connect(&apps_, &AppsController::changed, this, &ShellController::changed);
+    connect(crates_.installer(),&CratesInstaller::changed,this,[this]{downloads_.publish("crates",crates_.installer()->tasks());});
+    connect(&crates_,&CratesController::downloadsRequested,&downloads_,&DownloadsController::begin);
+    connect(&downloads_,&DownloadsController::commandRequested,this,[this](QString provider,QString id,QString command){if(provider=="crates")crates_.installer()->command(id,command);});
     connect(&apps_, &AppsController::foregroundRequested, this, [this]{
         if(quickAppsOpen_){quickAppsOpen_=false;apps_.leave();emit changed();}
     });
@@ -1113,7 +1116,7 @@ void ShellController::openContext(const QString& type,const QString& target) {
     // Feature controllers own their captured person/message/entity targets.
     // This is the same dispatcher used by Select, with their existing guards.
     if(page_==AppsPage && appsFace_=="apps")apps_.dispatch(Action::LocalAction);
-    else if(page_==AppsPage && appsFace_=="crates")crates_.dispatch(Action::LocalAction);
+    else if(page_==AppsPage && appsFace_=="crates")crates_.dispatch(Action::ContextMenu);
     else if(page_==SocialPage)social_.dispatch(Action::LocalAction);
     else if(page_==GameHubPage)dispatchGameHub(Action::LocalAction);
 }

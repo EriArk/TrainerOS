@@ -49,6 +49,7 @@ public:
     bool controlsOpen() const{return controls_;}
     int controlIndex() const{return controlFocus_;}
     void openFile(const QString& url);
+    void openDesktopId(const QString& id);
     Q_INVOKABLE void refresh();
     void focusRail() { railFocused_=true;normalize();emit changed(); }
     Q_INVOKABLE void select(int index,bool rail=false);

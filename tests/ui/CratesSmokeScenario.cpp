@@ -22,7 +22,7 @@ void startCratesSmoke(QQuickWindow* window,ShellController& shell,ControllerInpu
         case 2:check(c->projectIndex()==1,"SDL selection failed");press(SDL_CONTROLLER_BUTTON_B);break;
         case 3:check(c->detailOpen(),"SDL confirm failed");shot("project");press(SDL_CONTROLLER_BUTTON_DPAD_RIGHT);break;
         case 4:check(c->screenshotIndex()==1,"Screenshot navigation failed");press(SDL_CONTROLLER_BUTTON_BACK);break;
-        case 5:check(c->versionsOpen(),"Select did not open versions");press(SDL_CONTROLLER_BUTTON_DPAD_DOWN);break;
+        case 5:check(c->actionsOpen(),"Select did not open actions");c->activateAction(0);check(c->versionsOpen(),"Versions action failed");press(SDL_CONTROLLER_BUTTON_DPAD_DOWN);break;
         case 6:check(c->releaseIndex()==1,"Version selection failed");shot("versions");press(SDL_CONTROLLER_BUTTON_A);break;
         case 7:check(c->detailOpen()&&!c->versionsOpen(),"B should close versions first");press(SDL_CONTROLLER_BUTTON_A);break;
         case 8:check(!c->detailOpen()&&c->projectIndex()==1,"Popup lost focus");c->turnPage(1);break;

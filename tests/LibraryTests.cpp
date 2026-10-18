@@ -39,6 +39,20 @@ public:
 class LibraryTests final : public QObject {
     Q_OBJECT
 private slots:
+    void managedPackageRemovalKeepsIdentityAndNeverMovesFiles() {
+        QTemporaryDir dir;const auto path=dir.filePath("package.json");fixtureFile(path);
+        LocalStateStore store(dir.filePath("state"),nullptr,"user-library-v1");store.open();QTRY_VERIFY(store.ready());
+        AdventureRegistration r;r.adventure.id="crates:fixture";r.adventure.title="Package";
+        r.adventure.domain="multiverse";r.adventure.platformId="ports";r.adventure.adapterId="crates-native";r.contentPath=path;
+        bool done=false;store.saveAdventureAsync(r,this,[&](auto result){QVERIFY2(result.success,qPrintable(result.error));done=true;});QTRY_VERIFY(done);
+        const auto revision=store.registration(r.adventure.id)->revision;
+        done=false;store.editLibraryAsync({LibraryEditKind::DeactivatePackage,r.adventure.id,revision},this,[&](QString e){QVERIFY2(e.isEmpty(),qPrintable(e));done=true;});QTRY_VERIFY(done);
+        QVERIFY(store.registration(r.adventure.id)->removed);QVERIFY(QFileInfo::exists(path));
+        done=false;store.editLibraryAsync({LibraryEditKind::RestorePackage,r.adventure.id,revision},this,[&](QString e){QVERIFY2(e.isEmpty(),qPrintable(e));done=true;});QTRY_VERIFY(done);
+        QVERIFY(!store.registration(r.adventure.id)->removed);QCOMPARE(store.registration(r.adventure.id)->revision,revision);
+        done=false;store.editLibraryAsync({LibraryEditKind::DeactivatePackage,r.adventure.id,revision+1},this,[&](QString e){QVERIFY(!e.isEmpty());done=true;});QTRY_VERIFY(done);
+        QVERIFY(!store.registration(r.adventure.id)->removed);
+    }
     void folderRevisionTracksStoreMetadataAndPresentation() {
         QTemporaryDir dir;const auto root=dir.filePath("roms/gba");QVERIFY(QDir().mkpath(root));
         fixtureFile(root+"/fixture.gba");

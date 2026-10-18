@@ -60,6 +60,9 @@ def supported_emulator_process(pid, proc=Path('/proc')):
     # checked by X11.owns separately; comm is not executable identity.
     try:
         executable = (proc / str(pid) / 'exe').readlink().name
+        if executable == 'traineros-webgame':
+            env = (proc / str(pid) / 'environ').read_bytes().split(b'\0')
+            return b'TRAINEROS_CRATES_GAME=1' in env
         if executable == 'dolphin-emu':
             # Only our batch launch suppresses Dolphin's second desktop prompt.
             args = (proc / str(pid) / 'cmdline').read_bytes().split(b'\0')

@@ -4,6 +4,7 @@
 #include <QVariantList>
 #include <QTimer>
 #include "CratesCatalogue.h"
+#include "CratesInstaller.h"
 
 namespace trainer {
 // The authored showcase is independent of the future remote project catalogue.
@@ -25,6 +26,12 @@ class CratesController final : public QObject {
     Q_PROPERTY(bool versionsOpen READ versionsOpen NOTIFY changed)
     Q_PROPERTY(int releaseIndex READ releaseIndex NOTIFY changed)
     Q_PROPERTY(int screenshotIndex READ screenshotIndex NOTIFY changed)
+    Q_PROPERTY(QString primaryLabel READ primaryLabel NOTIFY projectChanged)
+    Q_PROPERTY(bool primaryEnabled READ primaryEnabled NOTIFY projectChanged)
+    Q_PROPERTY(bool actionsOpen READ actionsOpen NOTIFY changed)
+    Q_PROPERTY(int actionIndex READ actionIndex NOTIFY changed)
+    Q_PROPERTY(QVariantList actions READ actions NOTIFY projectChanged)
+    Q_PROPERTY(int updateCount READ updateCount NOTIFY projectChanged)
 public:
     explicit CratesController(QObject* parent=nullptr);
     QVariantList crates() const { return crates_; }
@@ -39,6 +46,18 @@ public:
     int pageCount() const {return (projectCount()+5)/6;}
     bool detailOpen() const {return detailOpen_;}
     QVariantMap project() const;
+    CratesInstaller* installer(){return &installer_;}
+    QString primaryLabel() const;
+    bool primaryEnabled() const;
+    bool actionsOpen() const{return actionsOpen_;}
+    int actionIndex() const{return actionIndex_;}
+    QVariantList actions() const;
+    Q_INVOKABLE void primary();
+    Q_INVOKABLE void installSelectedVersion();
+    int updateCount() const;
+    Q_INVOKABLE void updateAll();
+    Q_INVOKABLE void showActions();
+    Q_INVOKABLE void activateAction(int index);
     bool versionsOpen() const {return versionsOpen_;}
     int releaseIndex() const {return releaseIndex_;}
     int screenshotIndex() const {return screenshotIndex_;}
@@ -61,7 +80,12 @@ signals:
     void catalogueChanged();
     void projectChanged();
     void detailScrollRequested(int delta);
+    void launchRequested(QString id,QString kind);
+    void downloadsRequested();
 private:
+    CratesInstaller installer_{this};
+    bool actionsOpen_=false,confirmRemove_=false;
+    int actionIndex_=0;
     QVariantList crates_;
     int focus_=0;
     bool opened_=false;

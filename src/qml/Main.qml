@@ -442,7 +442,11 @@ Window {
                 if (shell.primaryId === "apps" && shell.appsFace === "files") return shell.files.view.menuOpen || Object.keys(shell.files.dialog).length ? [h("A","Select"),h("B","Close")] : [h("A","Open"),h("Hold A","Actions"),h("Select","Controls"),h("R3","View"),h("B","Back")]
                 if (shell.primaryId === "apps" && shell.appsFace === "browser") return browserPane.popup ? [h("A","Select"),h("B","Close")] : [h("A","Select"),h("Hold A","Actions"),h("Select","Controls"),h("B","Back")]
                 if (shell.primaryId === "apps" && shell.appsFace === "crates") {
-                    if (shell.crates.detailOpen) return [h("B","Close")].concat(shell.crates.project.releases.length ? [h("Select","Versions")] : [])
+                    if (shell.crates.detailOpen) {
+                        if (shell.crates.actionsOpen) return [h("A","Choose"),h("B","Back")]
+                        if (shell.crates.versionsOpen) return [h("A",shell.crates.project.canInstall ? "Install version" : "Back"),h("B","Back")]
+                        return (shell.crates.primaryEnabled ? [h("A",shell.crates.primaryLabel)] : []).concat([h("B","Close")],shell.crates.actions.length ? [h("Select","Actions")] : [])
+                    }
                     return shell.crates.opened ? (shell.crates.projectCount ? [h("A","Details"),h("B","Crates")] : [h("B","Crates")]) : [h("A",shell.crates.opening ? "Skip" : "Open"),h("B","Apps")]
                 }
                 if (shell.primaryId === "apps") return shell.apps.menu.length ? [h("↑↓","Choose"),h("A","Select"),h("B","Back")] : [h("A","Open"),h("Select","Options"),h("X","Quick Apps"),h("Y","Recent games"),h("B","Home")]

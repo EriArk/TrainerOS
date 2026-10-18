@@ -1,10 +1,27 @@
 #include <QtTest>
+#include <QTemporaryDir>
+#include <QFile>
 #include "features/crates/CratesController.h"
 #include "fixtures/crates/CatalogueFixture.h"
 using namespace trainer;
 class CratesTests: public QObject {
     Q_OBJECT
 private slots:
+    void packageActionsAndDeduplicatedQueue() {
+        QTemporaryDir temp;QVERIFY(temp.isValid());
+        const auto registry=temp.path()+"/registry.json";QFile f(registry);QVERIFY(f.open(QIODevice::WriteOnly));
+        f.write("{\"packages\":[{\"id\":\"2048\",\"title\":\"2048\",\"version\":\"1\",\"kind\":\"game\"}]}");f.close();
+        CratesController c;c.installer()->replacementGuard=[]{return QString("Game is running");};
+        c.installer()->configure("/not-executed",registry,temp.path()+"/store");
+        c.open(0,true);c.openProject(0);QCOMPARE(c.primaryLabel(),QString("Download"));QVERIFY(c.primaryEnabled());
+        QSignalSpy downloads(&c,&CratesController::downloadsRequested);c.primary();c.primary();
+        QCOMPARE(c.installer()->tasks().size(),1);QCOMPARE(c.primaryLabel(),QString("View progress"));
+        QCOMPARE(c.installer()->tasks()[0].toMap()["detail"].toString(),QString("Game is running"));
+        c.installer()->command("2048","cancel");QVERIFY(!c.project()["busy"].toBool());
+        c.installer()->command("2048","retry");QCOMPARE(c.installer()->tasks().size(),1);
+        c.installer()->command({},"cancel-all");QVERIFY(c.installer()->tasks()[0].toMap()["terminal"].toBool());
+        c.closeDetail();c.openProject(1);QVERIFY(!c.primaryEnabled());QCOMPARE(c.primaryLabel(),QString("Package coming soon"));
+    }
     void authoredIdentity() {
         CratesController c;QCOMPARE(c.crates().size(),6);
         QSet<QString> ids;

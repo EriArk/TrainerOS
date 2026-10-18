@@ -75,21 +75,24 @@ Item {
                 Connections { target: root.flow; function onDetailScrollRequested(delta) { const target=root.flow.versionsOpen ? versions : description; target.contentY=Math.max(0,Math.min(target.contentHeight-target.height,target.contentY+delta)) } }
             }
             Column {
-                id: metadata; anchors.bottom: parent.bottom; anchors.bottomMargin: root.releases.length ? 43 : 0; width: parent.width; spacing: 7
+                id: metadata; anchors.bottom: parent.bottom; anchors.bottomMargin: 50; width: parent.width; spacing: 5
                 Rectangle { width: parent.width; height: 1; color: Qt.alpha(Theme.rim,.5) }
-                Text { width: parent.width; text: root.release.version ? "Version "+root.release.version+(root.release.channel ? " · "+root.release.channel : "") : "No Crates package yet"; textFormat: Text.PlainText; elide: Text.ElideRight; color: Theme.ink; font.pixelSize: 13 }
+                Text { width: parent.width; text: root.project.busy ? root.project.job.detail : root.project.installedVersion ? "Installed · "+root.project.installedVersion : root.release.version ? "Version "+root.release.version+(root.release.channel ? " · "+root.release.channel : "") : "No Crates package yet"; textFormat: Text.PlainText; elide: Text.ElideRight; color: Theme.ink; font.pixelSize: 13 }
                 Text { width: parent.width; text: (root.release.architecture ? root.release.architecture+" · " : "")+root.compatibilityText(); textFormat: Text.PlainText; elide: Text.ElideRight; color: root.release.compatibility === "incompatible" ? "#984b51" : Theme.muted; font.pixelSize: 13 }
                 Text { visible: text.length>0; text: root.sizeText(root.release.sizeBytes); color: Theme.muted; font.pixelSize: 12 }
             }
-            CapButton { anchors.right: parent.right; anchors.bottom: parent.bottom; width: 126; height: 30; label: "Versions"; textSize: 13; centered: true; claimsFocus: false; tint: Theme.blue
-                visible: root.releases.length>0; onActivated: root.flow.showVersions() }
+            CapButton { objectName: "crates-primary"; anchors.left: parent.left; anchors.bottom: parent.bottom; width: parent.width-(root.flow.actions.length ? 44 : 0); height: 36
+                label: root.flow.primaryLabel; enabled: root.flow.primaryEnabled; textSize: 15; centered: true; claimsFocus: false; tint: Theme.green
+                onActivated: root.flow.primary() }
+            CapButton { anchors.right: parent.right; anchors.bottom: parent.bottom; width: 36; height: 36; label: "…"; textSize: 20; centered: true; claimsFocus: false; tint: Theme.blue
+                visible: root.flow.actions.length>0; onActivated: root.flow.showActions() }
             Rectangle {
                 anchors.fill: parent; visible: root.flow.versionsOpen; color: Theme.paper
                 Text { text: "Versions"; font.family: Theme.displayFamily; font.pixelSize: 24; color: Theme.ink }
                 Text { anchors.right: parent.right; y: 0; text: "‹ Back"; font.pixelSize: 14; color: Theme.muted
                     MouseArea { anchors.fill: parent; anchors.margins: -4; onClicked: root.flow.showVersions() } }
                 ListView {
-                    id: versions; y: 35; width: parent.width; height: parent.height-35; clip: true
+                    id: versions; y: 35; width: parent.width; height: parent.height-35-(root.project.canInstall ? 43 : 0); clip: true
                     model: root.releases; spacing: 3; currentIndex: root.flow.releaseIndex; boundsBehavior: Flickable.StopAtBounds
                     ScrollBar.vertical: ScrollBar { policy: ScrollBar.AsNeeded }
                     onCurrentIndexChanged: positionViewAtIndex(currentIndex,ListView.Contain)
@@ -104,6 +107,22 @@ Item {
                             Text { width: parent.width; visible: index===root.flow.releaseIndex; text: modelData.notes || "No release notes"; textFormat: Text.PlainText; wrapMode: Text.WordWrap; color: Theme.muted; font.pixelSize: 12 }
                         }
                         MouseArea { anchors.fill: parent; onClicked: root.flow.selectRelease(index) }
+                    }
+                }
+                CapButton { anchors.bottom: parent.bottom; width: parent.width; height: 33; visible: !!root.project.canInstall
+                    label: "Install selected version"; textSize: 13; centered: true; claimsFocus: false; tint: Theme.green
+                    enabled: !root.project.busy; onActivated: root.flow.installSelectedVersion() }
+            }
+            Rectangle {
+                anchors.fill: parent; visible: root.flow.actionsOpen; color: Theme.paper; radius: 8
+                Text { x: 8; y: 6; text: "Manage"; font.family: Theme.displayFamily; font.pixelSize: 22; color: Theme.ink }
+                Column { x: 8; y: 45; width: parent.width-16; spacing: 9
+                    Repeater { model: root.flow.actions
+                        CapButton { required property var modelData; required property int index
+                            width: parent.width; height: 36; label: modelData.label; textSize: 13; claimsFocus: false
+                            tint: modelData.id.indexOf("remove")>=0 ? Theme.pink : Theme.blue
+                            selected: index===root.flow.actionIndex; onActivated: root.flow.activateAction(index)
+                        }
                     }
                 }
             }

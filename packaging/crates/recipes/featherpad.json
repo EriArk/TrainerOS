@@ -1,0 +1,11 @@
+{
+  "id": "featherpad",
+  "repository": "https://github.com/tsujan/FeatherPad.git",
+  "revision": "d9ae18ad793a1beae9484610914cfc5e62cc511b",
+  "license": "GPL-3.0",
+  "entry": "bin/start",
+  "kind": "app",
+  "title": "FeatherPad",
+  "version": "1.6.4-traineros.1",
+  "architecture": "aarch64"
+}

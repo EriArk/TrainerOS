@@ -149,6 +149,12 @@ void AppsController::refresh(){
     emit commandRequested({{"command","refresh"}});
 }
 void AppsController::select(int index,bool rail){const auto list=rail?this->rail():rows();if(index<0||index>=list.size())return;railFocused_=rail;(rail?railFocus_:focus_)=index;emit changed();}
+void AppsController::openDesktopId(const QString& id) {
+    if(id.isEmpty()||!ready_||!launching_.isEmpty())return;
+    if(launchGuard){const auto error=launchGuard();if(!error.isEmpty()){status_=error;emit changed();return;}}
+    emit commandRequested({{"command","refresh"}});
+    emit commandRequested({{"command","launch"},{"id",id}});
+}
 void AppsController::open(int index,bool rail) {
     if(index<0||index>=(rail?this->rail():rows()).size())return;
     select(index,rail);const auto id=selected();if(id.isEmpty()||!ready_||!launching_.isEmpty())return;

@@ -82,6 +82,8 @@ add_library(trainer_core STATIC
     src/platform/files/FilesService.cpp
     src/features/apps/AppsController.cpp
     src/features/crates/CratesController.cpp
+    src/features/crates/CratesInstaller.cpp
+    src/features/crates/CratesLibrary.h
     src/features/crates/CratesCatalogue.cpp
     src/features/downloads/DownloadsController.cpp
     src/core/repository/BatoceraLibrary.cpp
@@ -582,6 +584,9 @@ if(BUILD_TESTING)
     target_link_libraries(trainer_crates_tests PRIVATE trainer_core Qt6::Test)
     qt_add_resources(trainer_crates_tests crates_test_data PREFIX "/crates" BASE data/crates FILES data/crates/showcase.json data/crates/catalogue.json)
     add_test(NAME crates_showcase COMMAND trainer_crates_tests)
+    if(UNIX AND Python3_Interpreter_FOUND)
+        add_test(NAME crates_installer COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/CratesInstallerTests.py)
+    endif()
     qt_add_executable(trainer_device_tests tests/DeviceTests.cpp)
     qt_add_executable(trainer_standalone_tests tests/StandaloneTests.cpp)
     target_link_libraries(trainer_standalone_tests PRIVATE trainer_core Qt6::Test)

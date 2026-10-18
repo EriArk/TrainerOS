@@ -35,6 +35,16 @@ QString editLibrary(QSqlDatabase& db, const LibraryEdit& edit) {
     if(!q.exec("SELECT 1 FROM play_sessions WHERE outcome='running' LIMIT 1"))return fail(failure());
     if(q.next())return fail("Close the running game before editing your library.");
     q.finish();
+    if(edit.kind==LibraryEditKind::DeactivatePackage||edit.kind==LibraryEditKind::RestorePackage){
+        q.prepare("SELECT adapter_id,revision FROM adventures WHERE id=?");q.addBindValue(edit.id);
+        if(!q.exec()||!q.next()||q.value(0).toString()!="crates-native"||q.value(1).toInt()!=edit.revision||!edit.id.startsWith("crates:"))return fail("Package identity changed");
+        q.finish();
+        q.prepare(edit.kind==LibraryEditKind::DeactivatePackage
+            ? "INSERT OR IGNORE INTO library_removals(adventure_id,trash_path) VALUES(?,'')"
+            : "DELETE FROM library_removals WHERE adventure_id=?");
+        q.addBindValue(edit.id);if(!q.exec())return fail(failure());
+        if(!db.commit())return fail(failure());return {};
+    }
     if(edit.kind==LibraryEditKind::RenameWorld) {
         if(!labelValid(edit.text,32))return fail("Use a World name of 1–32 characters.");
         if(!q.exec("SELECT world_editing FROM preferences WHERE slot=1") || !q.next() || !q.value(0).toBool())

@@ -17,7 +17,9 @@ Item {
         visible: !flow.opened
         x: root.sideMargin; y: 3; width: root.innerWidth; height: root.height-3
         Text { x: 6; y: 0; text: "Crates"; font.family: Theme.displayFamily; font.pixelSize: 27; color: Theme.ink }
-        Text { anchors.right: parent.right; anchors.rightMargin: 7; y: 9; text: root.flow.crates.length+" crates"; color: Theme.muted; font.pixelSize: 13 }
+        Text { anchors.right: parent.right; anchors.rightMargin: 7; y: 9; visible: root.flow.updateCount===0; text: root.flow.crates.length+" crates"; color: Theme.muted; font.pixelSize: 13 }
+        CapButton { anchors.right: parent.right; y: 0; width: 172; height: 28; visible: root.flow.updateCount>0
+            label: "Update all · "+root.flow.updateCount; textSize: 13; claimsFocus: false; tint: Theme.green; onActivated: root.flow.updateAll() }
         Repeater {
             model: root.flow.crates
             CrateTile {

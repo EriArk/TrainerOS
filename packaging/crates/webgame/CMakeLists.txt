@@ -1,0 +1,8 @@
+cmake_minimum_required(VERSION 3.24)
+project(traineros_webgame LANGUAGES CXX)
+set(CMAKE_CXX_STANDARD 20)
+find_package(Qt6 REQUIRED COMPONENTS Core Gui Qml Quick WebEngineQuick)
+find_package(SDL2 REQUIRED CONFIG)
+qt_add_executable(traineros-webgame main.cpp)
+target_link_libraries(traineros-webgame PRIVATE Qt6::Quick Qt6::Qml Qt6::WebEngineQuick SDL2::SDL2)
+qt_add_resources(traineros-webgame ui PREFIX / FILES Game.qml)

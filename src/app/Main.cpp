@@ -1,4 +1,6 @@
 #include "adapters/pokemon/PokemonExperience.h"
+#include "integrations/adventure/CratesAdventureAdapter.h"
+#include "features/crates/CratesLibrary.h"
 #ifdef TRAINER_WEBENGINE
 #include <QtWebEngineQuick/qtwebenginequickglobal.h>
 #endif
@@ -349,7 +351,10 @@ int main(int argc, char* argv[]) {
         struct SaveRuntimes { RetroArchInstallation retroarch; StandaloneInstallation melonds; };
         auto saveRuntimes = std::make_shared<std::atomic<std::shared_ptr<const SaveRuntimes>>>(
             std::make_shared<const SaveRuntimes>(SaveRuntimes{retroarchInstallation, melonDsInstallation}));
-        AdapterRouter adapters({&ppsspp, &armsx2, &melonDs, &dolphin, &azahar, &vita3k, &retroarch});
+        CratesAdventureAdapter cratesRuntime;
+        cratesRuntime.root=QDir(stateDirectory).filePath("crates");
+        cratesRuntime.helper="/var/opt/traineros/crates/launch.py";
+        AdapterRouter adapters({&cratesRuntime,&ppsspp, &armsx2, &melonDs, &dolphin, &azahar, &vita3k, &retroarch});
         if (personalLibrary && !smoke) selectedAdapter = &adapters;
 #ifdef TRAINEROS_UI_TESTS
         ProbeAdventureAdapter probeAdapter;
@@ -1092,6 +1097,24 @@ int main(int argc, char* argv[]) {
                 dolphin.requestLaunch = requestAdventure;
                 ppsspp.requestLaunch = requestAdventure;
                 armsx2.requestLaunch = requestAdventure;
+                cratesRuntime.requestLaunch = requestAdventure;
+                cratesRuntime.ownerId=[&]{return store->ownerId();};
+                auto* packages=shell.crates()->installer();
+                packages->replacementGuard=[&]{return adventureLaunch.active()||session.blocked()?QString("Waiting for your game or save operation to finish"):QString();};
+                auto* crateLibrary=new CratesLibrary(activeLibrary,cratesRuntime.root,&shell);
+                QObject::connect(crateLibrary,&CratesLibrary::changed,&shell,[&]{shell.refreshLibrary();shell.apps()->refresh();});
+                QObject::connect(crateLibrary,&CratesLibrary::error,&shell,&ShellController::showNotice);
+                const auto syncCrateGames=[&,crateLibrary]{
+                    if(store->load()&&!adventureLaunch.active())crateLibrary->update(shell.crates()->installer()->installed());
+                };
+                QObject::connect(&adventureLaunch,&AdventureLaunchController::changed,&shell,[syncCrateGames]{syncCrateGames();});
+                QObject::connect(packages,&CratesInstaller::inventoryChanged,&shell,syncCrateGames);
+                QObject::connect(store.get(),&LocalStateStore::opened,&shell,[syncCrateGames](bool ready){if(ready)syncCrateGames();});
+                packages->configure("/var/opt/traineros/crates/installer.py","/var/opt/traineros/crates/packages.json",cratesRuntime.root);
+                QObject::connect(shell.crates(),&CratesController::launchRequested,&shell,[&](QString id,QString kind){
+                    if(kind=="game")shell.launchPreparation().launch("crates:"+id);
+                    else shell.apps()->openDesktopId("org.traineros.crates."+id+".desktop");
+                });
                 multiplayer.requestRuntimeLaunch = requestAdventure;
                 remotePlay.requestGuestLaunch = requestAdventure;
                 QObject::connect(&adventureLaunch, &AdventureLaunchController::changed, &session, [&] {

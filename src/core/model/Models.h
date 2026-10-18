@@ -51,7 +51,7 @@ struct ShellPreferences {
     bool worldEditing = false;
     bool videoPreviews = true;
 };
-enum class LibraryEditKind { RenameWorld, RenameGame, MoveGame, RemoveGame, RestoreGame, MoveFile };
+enum class LibraryEditKind { RenameWorld, RenameGame, MoveGame, RemoveGame, RestoreGame, MoveFile, DeactivatePackage, RestorePackage };
 struct LibraryEdit {
     LibraryEditKind kind;
     QString id;
