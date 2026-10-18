@@ -1,5 +1,28 @@
 # RetroArch common ARM64 baseline
 
+## Common sweep repairs — 18 October 2026
+
+- ColecoVision / Gearcoleco on Flip expected `colecovision.rom` at the system
+  directory root. The owner's existing `Machines/COL - ColecoVision/coleco.rom`
+  was copied to that previously absent alias, read back and matched to MD5
+  `2c66f5911e5b42b8ebe113403548eee7`. Source firmware retained; no BIOS in Git.
+  Reproduction: with RetroArch closed, verify that source hash, copy exclusively
+  (refuse an existing differing target), and verify target bytes/hash. Rollback
+  only that added alias after verifying it remains identical. Controller Tester
+  then shows Right/E. No emulator patch.
+- Sega CD on Odin had all three BIOS files but no `discFirmware.segacd` identity
+  in the explicit TrainerOS profile. The existing launch guard correctly refused it.
+  [register-disc-firmware.py](../../packaging/emulators/retroarch/register-disc-firmware.py)
+  registers SHA-256 for the three existing 128 KiB regional files, without replacing
+  firmware, weakening runtime hash checks or overwriting differing profile hashes.
+  The backup is `<profile>.before-launch80`; restore it with RetroArch closed to
+  undo this repair. Size/hash registration is not independent BIOS authenticity
+  certification. Eternal Champions now launches; Start/Down selects Enter Duel.
+
+The scripts are explicit installation repairs, not universal first-run provisioning.
+The [platform register](../LAUNCH80_PLATFORM_REGISTER.md) records the other tested
+cores and retains uncertain input separately. No blanket RetroArch compatibility claim.
+
 ## Короткий проход ранних консолей — 18 октября 2026
 
 Channel F, Atari 2600, Odyssey² и Intellivision проверены на Flip через обычный

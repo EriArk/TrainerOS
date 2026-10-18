@@ -27,7 +27,7 @@
   and unknown-device fallback; do not claim that all devices have passed #77.
 - Ordinary A launch prepares an approved route automatically, not an editor.
   Keep emulator paths, core setup and commands out of ordinary player flows.
-- Current launch scope is all 106 catalogue IDs. Owner added PS3/Switch on
+- Current launch scope is all 107 catalogue IDs, including original Xbox. Owner added PS3/Switch on
   18 October: test those two on Odin using small homebrew, without claiming
   commercial-game compatibility or reopening their multiplayer scope.
   This expands the shared list, not their priority: PS3/Switch stay at the end

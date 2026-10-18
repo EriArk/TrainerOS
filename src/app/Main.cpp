@@ -352,13 +352,14 @@ int main(int argc, char* argv[]) {
         StandaloneAdapter duckstation("duckstation", activeLibrary, standaloneInstallation("duckstation"));
         StandaloneAdapter rpcs3("rpcs3", activeLibrary, standaloneInstallation("rpcs3"));
         StandaloneAdapter eden("eden", activeLibrary, standaloneInstallation("eden"));
+        StandaloneAdapter xemu("xemu", activeLibrary, standaloneInstallation("xemu"));
         struct SaveRuntimes { RetroArchInstallation retroarch; StandaloneInstallation melonds; };
         auto saveRuntimes = std::make_shared<std::atomic<std::shared_ptr<const SaveRuntimes>>>(
             std::make_shared<const SaveRuntimes>(SaveRuntimes{retroarchInstallation, melonDsInstallation}));
         CratesAdventureAdapter cratesRuntime;
         cratesRuntime.root=QDir(stateDirectory).filePath("crates");
         cratesRuntime.helper="/var/opt/traineros/crates/launch.py";
-        AdapterRouter adapters({&cratesRuntime,&ppsspp, &armsx2, &cemu, &duckstation, &rpcs3, &eden, &melonDs, &dolphin, &azahar, &vita3k, &retroarch});
+        AdapterRouter adapters({&cratesRuntime,&ppsspp, &armsx2, &cemu, &duckstation, &rpcs3, &eden, &xemu, &melonDs, &dolphin, &azahar, &vita3k, &retroarch});
         if (personalLibrary && !smoke) selectedAdapter = &adapters;
 #ifdef TRAINEROS_UI_TESTS
         ProbeAdventureAdapter probeAdapter;
@@ -936,6 +937,7 @@ int main(int argc, char* argv[]) {
                 changed |= duckstation.updateInstallation(standalone("duckstation"));
                 changed |= rpcs3.updateInstallation(standalone("rpcs3"));
                 changed |= eden.updateInstallation(standalone("eden"));
+                changed |= xemu.updateInstallation(standalone("xemu"));
                 if (changed) {
                     retroarchInstallation = next;
                     saveRuntimes->store(std::make_shared<const SaveRuntimes>(SaveRuntimes{next, ds}));
@@ -1164,6 +1166,7 @@ int main(int argc, char* argv[]) {
                 duckstation.requestLaunch = requestAdventure;
                 rpcs3.requestLaunch = requestAdventure;
                 eden.requestLaunch = requestAdventure;
+                xemu.requestLaunch = requestAdventure;
                 cratesRuntime.requestLaunch = requestAdventure;
                 cratesRuntime.ownerId=[&]{return store->ownerId();};
                 auto* packages=shell.crates()->installer();

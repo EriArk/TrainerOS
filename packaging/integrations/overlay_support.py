@@ -62,11 +62,11 @@ def supported_emulator_process(pid, proc=Path('/proc')):
         executable = (proc / str(pid) / 'exe').readlink().name
         # ARM AppImage userland execution can retain the package's /proc/exe.
         # The managed flags and XRes process-tree ownership are still required.
-        executable = {'rpcs3.AppImage': 'rpcs3', 'eden.AppImage': 'eden'}.get(executable, executable)
+        executable = {'rpcs3.AppImage': 'rpcs3', 'eden.AppImage': 'eden', 'xemu.AppImage': 'xemu'}.get(executable, executable)
         if executable == 'traineros-webgame':
             env = (proc / str(pid) / 'environ').read_bytes().split(b'\0')
             return b'TRAINEROS_CRATES_GAME=1' in env
-        if executable in ('Cemu', 'cemu', 'duckstation-qt', 'rpcs3', 'eden'):
+        if executable in ('Cemu', 'cemu', 'duckstation-qt', 'rpcs3', 'eden', 'xemu'):
             # The surrounding X11 ownership check still requires this launch's
             # exact process tree. Plain desktop emulator windows are excluded.
             args = (proc / str(pid) / 'cmdline').read_bytes().split(b'\0')
@@ -74,6 +74,8 @@ def supported_emulator_process(pid, proc=Path('/proc')):
                 return b'-batch' in args and b'-fullscreen' in args
             if executable == 'rpcs3':
                 return b'--no-gui' in args and b'--fullscreen' in args
+            if executable == 'xemu':
+                return b'-full-screen' in args and b'-dvd_path' in args
             return b'-f' in args and b'-g' in args
         if executable == 'dolphin-emu':
             # Only our batch launch suppresses Dolphin's second desktop prompt.

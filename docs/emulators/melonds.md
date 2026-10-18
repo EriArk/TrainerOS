@@ -1,5 +1,34 @@
 # melonDS deterministic wireless preparation
 
+## Ordinary standalone repair — 18 October 2026
+
+Odin's ordinary Flatpak melonDS failed before loading a game because its BIOS
+directory was mounted read-only. The DS firmware needs a writable working copy.
+[make-firmware-writable.py](../../packaging/emulators/melonds/make-firmware-writable.py)
+copies the existing file into the runtime's private writable directory, verifies
+readback, preserves the original and backs up `melonDS.toml`; it refuses conflicting
+destination contents, multi-instance ambiguity and a running emulator.
+BIOS permissions, shared firmware and game saves are not changed.
+
+All twelve ordinary joystick buttons were also `-1`.
+[bind-unassigned-controller.py](../../packaging/emulators/melonds/bind-unassigned-controller.py)
+fills an entirely unassigned profile from the verified SDL mapping, retaining
+keyboard/hotkeys and refusing existing custom bindings. Odin's bridge was SDL
+index 1, Xbox One Elite 2 Controller. DS A/B/X/Y follow their physical Nintendo
+positions. Hat encoding follows [upstream EmuInstanceInput](https://github.com/melonDS-emu/melonDS/blob/master/src/frontend/qt_sdl/EmuInstanceInput.cpp).
+The script is a bounded repair, not a claim of automatic controller hotplug setup;
+re-evaluate SDL identity/order after changes to the runtime/input stack.
+
+After both repairs, Games → New Super Mario Bros. launches and Down changes
+Mario Game to Mario Vs. Luigi. The successful session exits normally. The initial
+firmware-error dialog did not close normally and required terminating that failed
+process; it is not counted as a clean session. Existing deterministic multiplayer
+runtime/profiles were not modified or re-certified by this ordinary check.
+
+Rollback while closed: restore `melonDS.toml.before-launch80-input`, then
+`melonDS.toml.before-launch80-firmware` as needed. Retain the private firmware
+copy if it has since acquired user settings. Do not overwrite it on an update.
+
 ## Current evidence summary — reconciled 18 October 2026
 
 The [12 October ordinary delivery](#ordinary-handheld-delivery--12-october-2026)

@@ -10,6 +10,15 @@
   ],
   "platforms": [
     {
+      "id": "xbox",
+      "folder": "xbox",
+      "name": "Xbox",
+      "core": "xemu",
+      "extensions": ["iso"],
+      "aliases": [],
+      "shape": "console"
+    },
+    {
       "id": "3do",
       "folder": "3do",
       "name": "3DO Interactive Multiplayer",

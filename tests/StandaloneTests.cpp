@@ -604,6 +604,7 @@ private slots:
         QTest::newRow("PS1") << QString("duckstation") << QString("psx") << QString("chd");
         QTest::newRow("PS3-homebrew") << QString("rpcs3") << QString("ps3") << QString("self");
         QTest::newRow("Switch-homebrew") << QString("eden") << QString("switch") << QString("nro");
+        QTest::newRow("Xbox-disc") << QString("xemu") << QString("xbox") << QString("iso");
         QTest::newRow("GameCube") << QString("dolphin") << QString("gc") << QString("iso");
         QTest::newRow("Wii") << QString("dolphin") << QString("wii") << QString("wad");
     }
@@ -654,6 +655,7 @@ private slots:
             : adapterId == "duckstation" ? QJsonArray{"-batch", "-fullscreen", "--", record.contentPath}
             : adapterId == "rpcs3" ? QJsonArray{"--no-gui", "--fullscreen", record.contentPath}
             : adapterId == "eden" ? QJsonArray{"-f", "-g", record.contentPath}
+            : adapterId == "xemu" ? QJsonArray{"-full-screen", "-dvd_path", record.contentPath}
             : QJsonArray{"-b", "-C", "Dolphin.Display.Fullscreen=True", "-C", "Dolphin.Interface.ConfirmStop=False", "-e", record.contentPath};
         QCOMPARE(QJsonDocument::fromJson(output.readAll()).array(), arguments); output.close();
         QVERIFY(QFile::remove(receipt)); QVERIFY(QFile::rename(record.contentPath, record.contentPath + ".moved"));

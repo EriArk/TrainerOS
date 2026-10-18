@@ -1,5 +1,20 @@
 # Dolphin integration checkpoint
 
+## Ordinary launch sweep — 18 October 2026
+
+Odin's ordinary GCPad/Wiimote `Device` still named `SDL/0/Steam Virtual Gamepad`,
+which was absent. SDL enumeration identified `SDL/0/Xbox One Elite 2 Controller`.
+[Bounded repair](../../packaging/emulators/dolphin/rebind-stale-input.py) replaces
+only that stale value in `GCPadNew.ini` / `WiimoteNew.ini`, with a
+`.before-launch80` backup and all mappings retained; it refuses a running Dolphin.
+This is an ordinary-profile repair, not a rewrite of multiplayer session profiles.
+
+Games → Mario Kart Wii now reaches New Licence with controller input. Auto
+Modellista on GameCube renders its title but its input remains unconfirmed even
+after that repair. Do not mark both systems passed from the Wii result.
+To roll back, close Dolphin and restore the corresponding backed-up INI files.
+Recheck runtime SDL device identity after an emulator/input-stack update.
+
 ## Wii Remote delivery — 12 October 2026
 
 Wii shared-console NetPlay is installed on Flip/Odin through ordinary Play together,

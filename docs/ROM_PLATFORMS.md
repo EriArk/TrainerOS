@@ -9,10 +9,13 @@ library priority without replacing any R1–R18 acceptance or Steam integration.
 ## Delivered contract
 
 `data/rom-platforms.json` is the shared registry for folder aliases, labels,
-supported file formats and preferred Libretro cores. Its first 105 categories
-include 100 core-backed categories (72 distinct ARM64 cores), existing standalone
-DS/GameCube/Wii routes, and reserved PS3/Switch folders with documented native
-ARM64 upstream projects. Reserved folders do not advertise a launch capability.
+supported file formats and preferred runtime candidates. It now contains 107 IDs,
+including original Xbox through xemu. The initial core bundle covered 100
+core-backed categories (72 distinct ARM64 cores); standalone routes and current
+device results are tracked in the [LAUNCH-80 register](LAUNCH80_PLATFORM_REGISTER.md).
+PS3/Switch have bounded homebrew evidence, not general game compatibility.
+The `core` candidate field does not make xemu or other standalone runtimes
+Libretro cores. Empty folders do not advertise an installed launch capability.
 This is not complete Batocera parity: its engine ports, utilities and remaining
 machine-specific software-list routes still need their own mapping. They are
 unmapped, not declared impossible. ARM availability does not prove performance,

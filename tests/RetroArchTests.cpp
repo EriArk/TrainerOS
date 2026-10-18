@@ -955,7 +955,7 @@ private slots:
             QCOMPARE(romPlatformId(p.folder),p.id);
             if(!p.core.isEmpty())QVERIFY(romContentSupported(p.id,p.core,p.extensions.first()));
         }
-        QVERIFY(ids.size()>=100);QVERIFY(!ids.contains("xbox"));
+        QVERIFY(ids.size()>=107);QVERIFY(ids.contains("xbox"));
         QCOMPARE(romCore("psp"),QString("ppsspp"));QCOMPARE(romCore("dreamcast"),QString("flycast"));
         QVERIFY(!romContentSupported("megadrive","genesis_plus_gx","chd"));
     }

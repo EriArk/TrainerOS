@@ -30,7 +30,9 @@ class OverlayHelperTests(unittest.TestCase):
                                ('rpcs3',b'rpcs3\0--no-gui\0--fullscreen\0game.self\0'),
                                ('rpcs3.AppImage',b'AppRun.wrapped\0--no-gui\0--fullscreen\0game.self\0'),
                                ('eden.AppImage',b'eden\0-f\0-g\0game.nro\0'),
-                               ('eden',b'eden\0-f\0-g\0game.nro\0')):
+                               ('eden',b'eden\0-f\0-g\0game.nro\0'),
+                               ('xemu',b'xemu\0-full-screen\0-dvd_path\0game.iso\0'),
+                               ('xemu.AppImage',b'AppRun\0-full-screen\0-dvd_path\0game.iso\0')):
                 target=process/'exe'
                 if target.is_symlink():target.unlink()
                 target.symlink_to('/app/bin/'+name)
