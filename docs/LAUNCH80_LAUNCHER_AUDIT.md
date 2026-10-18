@@ -260,6 +260,60 @@ Home/Exit вернул оболочку с одним подтверждение
 звук, коммерческие игры и универсальная совместимость остаются непроверенными.
 Следующий проход — ранние платформы по реестру; эти образцы их не заменяют.
 
+## Ранние консоли — 18 октября
+
+Flip, та же production-сборка `ab61d368…`, Armada `20261017.64207e6`.
+Каждая игра выбрана и запущена обычным A из Games, без редактора привязки и без
+прямого запуска эмулятора из SSH. Нажатия поданы в существующее устройство
+Retroid Pocket Gamepad; результат проверен по кадрам реальной игры.
+Это удалённая проверка input path, не физическое нажатие владельцем.
+
+| Платформа / ядро | Авторский образец | Наблюдение |
+| --- | --- | --- |
+| Channel F / FreeChaF | [BUFO v1.0.0](https://github.com/vs-sr-dev/fcf-bufo/releases/tag/v1.0.0) | Крестовина сдвинула лягушку влево по нижней полосе |
+| Atari 2600 / Stella | [Berta and Butterflies v1.00 NTSC](https://github.com/vandalton/BertaAndButterflies/releases/tag/v1.00) | Fire перешёл с заставки в игру, вправо изменило сторону сачка |
+| Odyssey² / O2EM | [Bird Hunt](https://github.com/Ahnl66/BIRD-HUNT) | Fire начал матч после штатного per-content swap портов |
+| Intellivision / FreeIntv | [Space Raid](https://github.com/nanochess/Space-Raid-Inty) | Кнопка действия начала игру с жизнями вместо attract-mode; вправо сдвинуло корабль |
+
+Все четыре штатно закрыты, записи `returned`; после последнего выхода процесса
+RetroArch нет, TrainerOS работает, SQLite `quick_check=ok`.
+Сейвы, звук, длительная игра и второй handheld не проверялись. Единственный
+повторный запуск понадобился Bird Hunt для проверки исправленного порта.
+Встроенная клавиатура O2EM реагировала ещё до исправления; это отдельно от
+подтверждённого Fire в самой игре после исправления.
+
+Перед запуском добавлены четыре отсутствовавших образца и шесть BIOS из имеющейся
+библиотеки владельца: `sl31253.bin`, `sl31254.bin`, `sl90025.bin`, `o2rom.bin`,
+`exec.bin`, `grom.bin`. Существующие отличающиеся файлы не перезаписывались,
+запись проверена чтением и хешами. BIOS/ROM не включены в Git или установщик.
+Авторская публикация образцов не означает общей лицензии на их перепаковку:
+в частности Space Raid имеет собственные ограничения распространения/изменений.
+Настройка Bird Hunt и откат: [учёт RetroArch](emulators/retroarch.md#короткий-проход-ранних-консолей--18-октября-2026).
+Использован [штатный Swap Gamepads O2EM](https://docs.libretro.com/library/o2em/#core-options),
+а не патч эмулятора или глобальная смена раскладки.
+
+| Образец | SHA-256 |
+| --- | --- |
+| BUFO | `8749659ad0426d4b2d55c1927d6b68b2e84f6ea23e32f23e16495ef27b861443` |
+| Berta | `3e0efbbf4aba069cbe06d5bf2795c2110914aa40e378743cfcc40321aae3928d` |
+| Bird Hunt | `ddab090389f9c8e97bb77143fd6e9fdfdd6abf35d78b357de8fb04907af8aca9` |
+| Space Raid | `f6a1cf9ed2a30055e7eb1f2115ba5ab9afc74e0eb9ad970197fd3818caa6e4f4` |
+
+| Установленное ядро | SHA-256 |
+| --- | --- |
+| freechaf | `f0f24b56d2fd9d5befce8e5915be0ae1c79fe7d2346ac89e72234779d1349baa` |
+| stella | `bf2cf27781f9e393079c9a53c71d8676d638025086955498641723a8e121228a` |
+| o2em | `155fa5caa73687cadd9c5ba22706b3be3560157165873eca1b52daa0f2bdc588` |
+| freeintv | `f0e6dfb5089bdcef32c0cc2fecfc724be5acb9d6a7a2a7e1522b013b1f7a38f8` |
+
+Локальные свидетельства в `work/launch80/`: `flip-channelf-input.png` /
+`flip-channelf-moved.png`, `flip-atari-loaded.png` / `flip-atari-input.png`,
+`flip-odyssey-loaded.png` / `flip-odyssey-swapped-fire.png`,
+`flip-intv-action-a.png` / `flip-intv-action-y.png` / `flip-intv-moved.png`.
+Снимки/приватные данные не публикуются. Apple II / PET / Atari 800 остаются
+следующими: в исходных папках только `_info.txt`, в библиотеках устройств нет
+игровых образцов. Это недостаток тестового контента, не вывод о неподдержке систем.
+
 ## Предыдущие проверки и история блокировки сборки
 
 **Уточнение после вопроса владельца:** Odin не является обязательным устройством

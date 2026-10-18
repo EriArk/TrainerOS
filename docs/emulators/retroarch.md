@@ -1,5 +1,22 @@
 # RetroArch common ARM64 baseline
 
+## Короткий проход ранних консолей — 18 октября 2026
+
+Channel F, Atari 2600, Odyssey² и Intellivision проверены на Flip через обычный
+Games → A. [Образцы, хеши и границы](../LAUNCH80_LAUNCHER_AUDIT.md#ранние-консоли--18-октября).
+Новые emulator patches не нужны. Для Bird Hunt потребовалась готовая опция
+`o2em_swap_gamepads`: игра читает другой порт, а её авторские тесты подают ввод
+в оба порта. [Сохранённая настройка](../../packaging/emulators/retroarch/samples/bird-hunt.opt)
+предназначена только для образца с SHA-256
+`ddab090389f9c8e97bb77143fd6e9fdfdd6abf35d78b357de8fb04907af8aca9`.
+Она установлена в Flatpak RetroArch `config/retroarch/config/O2EM/bird-hunt.opt`;
+после выхода RetroArch дописал туда остальные собственные значения по умолчанию.
+Глобальный core-options и remap не менялись. При переносе проверять hash игры и
+сохранять существующие личные настройки, не перезаписывать их целиком.
+Откат — удалить только добавленный ключ `o2em_swap_gamepads` из per-game файла
+при закрытом эмуляторе. При обновлении O2EM сверить штатную семантику портов;
+не превращать этот пример в глобальный swap для всей платформы.
+
 ## Remote Play: закрепление P1/P2 — 14 октября 2026
 
 `src/integrations/adventure/retroarch/RetroArchRemotePlay.cpp` готовит временный
