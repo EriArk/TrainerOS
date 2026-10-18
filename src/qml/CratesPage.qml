@@ -7,14 +7,15 @@ Item {
     enabled: active
     onActiveChanged: if(!active) flow.leave()
     Binding { target: root.flow; property: "reducedMotion"; value: Theme.reducedMotion }
-    readonly property real gutter: 15
-    readonly property real innerWidth: width-16
+    readonly property real gutter: 27
+    readonly property real sideMargin: 27
+    readonly property real innerWidth: width-2*sideMargin
     readonly property real headerHeight: 37
     readonly property real usableHeight: height-headerHeight-22
-    readonly property real featuredHeight: usableHeight*0.56
+    readonly property real featuredHeight: usableHeight*0.54
     Item {
         visible: !flow.opened
-        x: 8; y: 3; width: root.innerWidth; height: root.height-3
+        x: root.sideMargin; y: 3; width: root.innerWidth; height: root.height-3
         Text { x: 6; y: 0; text: "Crates"; font.family: Theme.displayFamily; font.pixelSize: 27; color: Theme.ink }
         Text { anchors.right: parent.right; anchors.rightMargin: 7; y: 9; text: root.flow.crates.length+" crates"; color: Theme.muted; font.pixelSize: 13 }
         Repeater {
