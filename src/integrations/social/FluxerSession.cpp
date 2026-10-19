@@ -915,6 +915,33 @@ void FluxerSession::leaveVoice() {
     voiceWrite({{"op","leave"}});if(voiceProcess_.state()!=QProcess::NotRunning)voiceProcess_.closeWriteChannel();
     if(voiceProcess_.state()!=QProcess::NotRunning){voiceProcess_.kill();voiceProcess_.waitForFinished(700);}
     voiceBuffer_.clear();voiceGrantIdentity_.clear();
+    voiceCallMessage_.clear();voicePeerSeen_=false;
+}
+void FluxerSession::reconcileDirectCall(const QString& channel,const QJsonObject& call,bool deleted) {
+    // CALL_UPDATE carries the provider's complete roster, including another
+    // connection of the same account. Media reconnects/empty speaker lists are
+    // not hangups. Group and lobby rooms intentionally stay open for members.
+    if(voiceChannel_.isEmpty()||voiceChannel_!=channel||channels_.value(channel)["type"].toInt(-1)!=1
+       ||call["unavailable"].toBool())return;
+    const auto message=call["message_id"].toString();
+    if(!message.isEmpty()) {
+        if(!voiceCallMessage_.isEmpty()&&voiceCallMessage_!=message)return;
+        voiceCallMessage_=message;
+    }
+    if(!deleted) {
+        if(!call["voice_states"].isArray())return; // Partial ringing/region update.
+        const auto states=call["voice_states"].toArray();
+        if(states.size()>100)return;
+        bool peer=false;
+        for(const auto& value:states) {
+            const auto id=value.toObject()["user_id"].toString();
+            if(!idValid(id))return; // Malformed is not an empty roster.
+            if(id!=self_)peer=true;
+        }
+        if(peer){voicePeerSeen_=true;return;}
+        if(!voicePeerSeen_)return; // Outgoing call is still awaiting an answer.
+    }
+    leaveVoice();voiceStatus_="Call ended";
 }
 void FluxerSession::reconcileVoice() {
     // A fresh chat session does not own the lifetime of an already connected
@@ -980,6 +1007,7 @@ void FluxerSession::voiceCommand(QString operation,const QVariantMap& args) {
         if(!voiceAvailable()||!voiceChannel_.isEmpty()||!idValid(channel)||(type!=1&&type!=3))return;
         callNotices_.remove(channel);
         voiceChannel_=channel;voiceState_="connecting";voiceStatus_="Connecting...";voiceMuted_=true;voiceDeaf_=false;
+        reconcileDirectCall(channel,calls_.value(channel));
         voiceDeadline_.start(20000);publish();
         if(!calls_.contains(channel))request("POST","/v1/channels/"+channel+"/call/ring",{},[this,channel](Reply reply){
             if(voiceChannel_!=channel)return;
@@ -1691,6 +1719,7 @@ void FluxerSession::gatewayEvent(const QJsonObject& event) {
                 calls_[id]=call;
             }
             updateCallNotice(type,id,d);
+            reconcileDirectCall(id,d,type=="CALL_DELETE");
             // Calls have a persistent, actionable presentation from the snapshot.
             // They must not pass through visible-conversation message suppression.
             publish();return;

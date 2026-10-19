@@ -69,6 +69,66 @@ class SocialTests : public QObject {
         s.channel_=channel;s.channels_[channel]={{"id",channel},{"type",1}};
     }
 private slots:
+    void directCallEndsWhenLastRemoteAccountLeaves() {
+        FluxerSession s;s.setTransport([](auto,auto,auto,Completion,auto){});bind(s);
+        s.voiceChannel_=channel;s.voiceState_="connected";s.voiceMuted_=false;
+        s.voiceConnection_="local";s.voiceParticipants_=2;s.voicePeople_={s.self_,remote};
+        auto update=[&](QJsonArray roster){s.gatewayEvent({{"op",0},{"t","CALL_UPDATE"},{"d",QJsonObject{
+            {"channel_id",channel},{"message_id","123"},{"voice_states",roster}}}});};
+        const QJsonObject self{{"user_id",s.self_},{"connection_id","local"}};
+        const QJsonObject peer{{"user_id",remote},{"connection_id","peer"}};
+        update({self,peer});QVERIFY(s.voicePeerSeen_);
+        // Muting, leaving the selected DM and other-device self presence do not
+        // change the lifetime. Only loss of the last remote account does.
+        s.channel_=remote;update({self,peer});QCOMPARE(s.voiceChannel_,QString(channel));
+        update({self,QJsonObject{{"user_id",s.self_},{"connection_id","other-self"}}});
+        QVERIFY(s.voiceChannel_.isEmpty());QVERIFY(s.voiceConnection_.isEmpty());
+        QVERIFY(s.voicePeople_.isEmpty());QVERIFY(s.voiceMuted_);QCOMPARE(s.voiceParticipants_,0);
+        QCOMPARE(s.voiceStatus_,QString("Call ended"));QVERIFY(!s.voicePeerSeen_);QVERIFY(s.voiceCallMessage_.isEmpty());
+    }
+    void directCallWaitsForAnswerAndRetainsOtherPeerConnections() {
+        FluxerSession s;s.setTransport([](auto,auto,auto,Completion,auto){});bind(s);
+        s.voiceChannel_=channel;s.voiceState_="connecting";
+        auto update=[&](QJsonArray roster){s.reconcileDirectCall(channel,{{"message_id","123"},{"voice_states",roster}});};
+        const QJsonObject self{{"user_id",s.self_}};
+        const QJsonObject peer{{"user_id",remote},{"connection_id","peer-one"}};
+        update({self});QCOMPARE(s.voiceChannel_,QString(channel));QVERIFY(!s.voicePeerSeen_);
+        update({self,peer,QJsonObject{{"user_id",remote},{"connection_id","peer-two"}}});
+        update({self,peer});QCOMPARE(s.voiceChannel_,QString(channel));
+        update({self});QVERIFY(s.voiceChannel_.isEmpty());
+        // A second outgoing call in the same DM must not inherit answered state.
+        s.voiceChannel_=channel;update({self});QCOMPARE(s.voiceChannel_,QString(channel));
+    }
+    void directCallIgnoresPartialStaleUnavailableAndMediaReconnectEvents() {
+        FluxerSession s;s.setTransport([](auto,auto,auto,Completion,auto){});bind(s);
+        s.voiceChannel_=channel;s.voiceState_="connected";
+        auto event=[&](QString type,QJsonObject d){s.gatewayEvent({{"op",0},{"t",type},{"d",d}});};
+        event("CALL_CREATE",{{"channel_id",channel},{"message_id","123"},
+            {"voice_states",QJsonArray{QJsonObject{{"user_id",s.self_}},QJsonObject{{"user_id",remote}}}}});
+        event("CALL_UPDATE",{{"channel_id",channel},{"ringing",QJsonArray{}}});
+        event("CALL_UPDATE",{{"channel_id",channel},{"message_id","122"},{"voice_states",QJsonArray{}}});
+        event("CALL_UPDATE",{{"channel_id",channel},{"message_id","123"},{"voice_states",QJsonArray{QJsonObject{}}}});
+        event("CALL_DELETE",{{"channel_id",remote}});
+        event("CALL_DELETE",{{"channel_id",channel},{"unavailable",true}});
+        s.voiceState_="reconnecting";s.voicePresence({{"count",1},{"people",QJsonArray{}}});s.disconnected();
+        QCOMPARE(s.voiceChannel_,QString(channel));QVERIFY(s.voicePeerSeen_);
+        // Fresh Gateway roster after recovery still ends a call whose peer left.
+        s.calls_.clear();event("CALL_CREATE",{{"channel_id",channel},{"message_id","123"},
+            {"voice_states",QJsonArray{QJsonObject{{"user_id",s.self_}}}}});
+        QVERIFY(s.voiceChannel_.isEmpty());
+    }
+    void directCallDeletionEndsEvenPendingAnswerButGroupsRemainIndependent() {
+        FluxerSession s;s.setTransport([](auto,auto,auto,Completion,auto){});bind(s);
+        s.voiceChannel_=channel;s.voiceState_="connecting";
+        s.gatewayEvent({{"op",0},{"t","CALL_DELETE"},{"d",QJsonObject{{"channel_id",channel}}}});
+        QVERIFY(s.voiceChannel_.isEmpty());
+        for(const int type:{3,2}) {
+            s.channels_[channel]["type"]=type;s.voiceChannel_=channel;s.voiceState_="connected";
+            s.reconcileDirectCall(channel,{{"voice_states",QJsonArray{QJsonObject{{"user_id",remote}}}}});
+            s.reconcileDirectCall(channel,{{"voice_states",QJsonArray{}}});
+            QCOMPARE(s.voiceChannel_,QString(channel));QVERIFY(!s.voicePeerSeen_);
+        }
+    }
     void incomingCallPromptSurvivesVisibleDmAndKeepsNavigationAndDraft() {
         MockLibraryRepository library;MockTrainerRepository trainers;MockAdventureAdapter adapter;
         DevelopmentPlatformService platform;MockPokedexRepository dex;MockHallOfFameRepository hall;MockAchievementProvider achievements;

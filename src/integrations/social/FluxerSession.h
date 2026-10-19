@@ -171,6 +171,9 @@ private:
     void voiceStateUpdate(bool leave=false);
     void voiceGrant(const QJsonObject& grant);
     void reconcileVoice();
+    void reconcileDirectCall(const QString& channel,const QJsonObject& call,bool deleted=false);
+    QString voiceCallMessage_;
+    bool voicePeerSeen_=false;
     void voiceWrite(const QJsonObject& command);
     void bindOnline();
     void request(QByteArray method, QString path, QJsonObject body, Completion done, bool anonymous = false, QByteArray captcha = {});
