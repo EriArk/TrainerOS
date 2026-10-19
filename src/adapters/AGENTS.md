@@ -1,5 +1,8 @@
 # Adapter implementation rules
 
+> **Current target (19 October 2026):** [TrainerOS product map](../../docs/PRODUCT_ARCHITECTURE_RU.md) and [#207 Experience Adapter v3](https://github.com/EriArk/TrainerOS/issues/207) replace the **two game primary slots** with an optional **GameHub → Adapter** contribution plus bounded Home/Game Options/Select integrations. The current in-tree `ExperienceModule.h` still has legacy descriptor/slot APIs until the planned migration. Maintain existing tested runtime while implementing that issue; **do not design new integrations around the retired two-primary interface**.
+
+
 - Own a versioned compatibility/asset manifest. Declare alternative match rules
   (OR), each with its required constraints (AND). ScreenScraper is one optional
   provider; support other catalogue IDs, explicit local identities, ROM hashes/
@@ -18,7 +21,7 @@
   composition factory and their sources/resources in CMake. Do not add game names,
   concrete module includes, widget registrations or controller branches to the
   generic shell, `Main.qml`, or `ExperienceHost.qml`.
-- Home and both game slots must use the same selected owner/game/module context.
+- The current compiled Home + legacy slots share selected owner/game/module context; the **target** exposes one optional GameHub Adapter contribution plus scoped Home/live/context hooks. Never mix the Home selection with a different actually running game.
   A collection is not an adapter identity. Titles never grant capabilities.
 - Keep UI presentation distinct from exact-build semantic readers/writers and
   emulator launch/netplay adapters. Reuse their existing services and authorization;
