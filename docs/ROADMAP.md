@@ -1,5 +1,9 @@
 # TrainerOS Roadmap
 
+> **Reading notice (19 October 2026):** the detailed implementation/evidence chronology below currently reaches **14 October** and must not be mistaken for the **latest target UX**. The new architecture is summarized in [PRODUCT_ARCHITECTURE_RU](PRODUCT_ARCHITECTURE_RU.md); updates from #206/#224/#233/#234 and the approved **future Platform SDK / Network Fabric #235–244** are tracked in their feature issues. **Do not treat those new SDK issues as automatic early-beta blockers or silently reprioritize the working L07/release tasks.** ROADMAP/CURRENT_TASKS remain the actual execution owners; update their active queue explicitly when the owner changes order. Historical device/runtime reports below are not new validations.
+
+---
+
 **Активный план — 14 октября 2026, доставка L06:**
 [полный цикл, карта входов, очередь и критерии окончания](LOBBY_EXECUTION_PLAN_RU.md).
 L01–L05 сохраняют ранее установленную реализацию и отдельную приёмку.
