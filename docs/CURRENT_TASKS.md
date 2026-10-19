@@ -1,5 +1,9 @@
 # Current tasks
 
+> **19 October 2026 — scope/current target note.** The runtime delivery log below reaches **14 October** and retains specific verified L06/L07 work. The **target OS structure** now follows [PRODUCT_ARCHITECTURE_RU](PRODUCT_ARCHITECTURE_RU.md), with UI issue owners #206/#224/#233/#234 and the **approved but unimplemented** Platform SDK/Network Fabric epic [#235](https://github.com/EriArk/TrainerOS/issues/235) and #236–244. These issues are NOT a newly imposed early-beta dependency or automatic change to the accepted execution order. When reprioritizing, amend the live queue explicitly and preserve previous evidence; do not pick work from outdated historical sections.
+
+---
+
 **Активный план — 14 октября 2026, доставка L06:**
 [полный цикл, карта входов, очередь и критерии окончания](LOBBY_EXECUTION_PLAN_RU.md).
 L01–L05 сохраняют ранее установленную реализацию и отдельную приёмку.
