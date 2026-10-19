@@ -2,13 +2,16 @@
 
 TrainerOS uses a complete delivery loop: inspect → implement → review → verify → commit → push → verify the remote commit. The user has authorized this routine for project work. A local commit alone is not a delivered increment. Since the user's 2026-09-13 instruction, GitHub Actions is not a delivery gate; verification runs on the Windows host, Linux build server and Flip as appropriate.
 
+
+> **Current reading/decision order (19 October 2026):** [product architecture](PRODUCT_ARCHITECTURE_RU.md) → accepted feature issue → [ROADMAP](ROADMAP.md) / [CURRENT_TASKS](CURRENT_TASKS.md) for scheduled work → dated implementation evidence. Use this workflow for verification/delivery; do not choose an old Worlds/Companions or pre-15-Oct menu contract from older docs. The new SDK issues #235–244 are approved future scope, **not automatic early-beta blockers**. For docs-only maintenance, verify documents/links/remote commit; do **not** claim runtime changes, run unrelated builds, or deploy to devices just for a text revision.
+
 ## Before changing code
 
 ### Whole increments and avoiding loops
 
-Use [ROADMAP](ROADMAP.md#active-execution-queue--2026-10-04) for order and
+Use [ROADMAP](ROADMAP.md#active-execution-queue--2026-10-09) for order and
 [Current tasks](CURRENT_TASKS.md) for the current outcome and remaining acceptance.
-Do not choose a new task from an old checkpoint's "next" sentence.
+Do not choose a new task from an old checkpoint's "next" sentence. Read [the canonical documentation index](README.md); when a newer accepted contract supersedes an old feature page, update one owner and link to it, rather than copying the same instruction across unrelated files.
 
 1. State the task ID, whole user-visible outcome and reasoning level. If the
    recommended level changes, wait for the owner's continuation before starting.
