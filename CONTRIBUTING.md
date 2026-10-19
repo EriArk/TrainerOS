@@ -1,8 +1,6 @@
 # Contributing to TrainerOS
 
-TrainerOS is a native C++20 / Qt Quick handheld shell for ArmadaOS. Start with
-[development setup](docs/DEVELOPMENT.md), the [documentation index](docs/README.md)
-and [current work](docs/CURRENT_TASKS.md).
+TrainerOS is a controller-first Linux gaming operating environment built as a native C++20 / Qt Quick shell, initially on ArmadaOS. Start with the [current product map](docs/PRODUCT_ARCHITECTURE_RU.md), [documentation index](docs/README.md), [development setup](docs/DEVELOPMENT.md) and [current work](docs/CURRENT_TASKS.md). An accepted design issue is not proof that it is installed.
 
 ## Discuss the scope
 
