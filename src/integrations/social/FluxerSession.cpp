@@ -57,6 +57,17 @@ bool newer(const QString& a, const QString& b) {
 }
 }
 FluxerSession::FluxerSession(QObject* parent) : QObject(parent) {
+    networkRecovery_.setSingleShot(true);
+    connect(&networkRecovery_,&QTimer::timeout,this,[this]{
+        if(token_.isEmpty())return;
+        if(state_!="connected"){authenticated();return;}
+        // Refresh reads only. Uncertain messages/mutations are never replayed.
+        refresh();
+        lobbyDirectoryCommand("lobby-directory-refresh",{});
+    });
+    gatewayDeadline_.setSingleShot(true);
+    gatewayDeadline_.setInterval(20000);
+    connect(&gatewayDeadline_,&QTimer::timeout,this,&FluxerSession::disconnected);
     lobbyChatMaintenance_.setInterval(15000);
     connect(&lobbyChatMaintenance_,&QTimer::timeout,this,&FluxerSession::checkLobbyGroups);
     lobbyChatMaintenance_.start();
@@ -233,6 +244,7 @@ void FluxerSession::reset() {
     if (poll_) poll_->stop();
     if (heartbeat_) heartbeat_->stop();
     if (reconnect_) reconnect_->stop();
+    networkRecovery_.stop();gatewayDeadline_.stop();networkRecoveryAttempt_=0;
     if (socket_) { socket_->disconnect(this); socket_->abort(); socket_->deleteLater(); socket_ = nullptr; }
     if (network_) {
         for(auto* reply:network_->findChildren<QNetworkReply*>())reply->abort();
@@ -398,19 +410,47 @@ void FluxerSession::request(QByteArray method, QString path, QJsonObject body, C
     if(!captcha.isEmpty())req.setRawHeader("X-Captcha-Token",captcha);
     if(!anonymous && !token_.isEmpty()) req.setRawHeader("Authorization",token_.toUtf8());
     auto* reply=network_->sendCustomRequest(req,method,method=="GET"?QByteArray():QJsonDocument(body).toJson(QJsonDocument::Compact));
+    const QPointer<QNetworkAccessManager> manager(network_);
+    // Includes time spent queued behind a dead HTTP/2 connection, not just
+    // transfer inactivity. A route change must not leave a busy flag forever.
+    auto* deadline=new QTimer(reply);deadline->setSingleShot(true);
+    connect(deadline,&QTimer::timeout,reply,[reply]{if(!reply->isFinished())reply->abort();});
+    deadline->start(20000);
     reply->setReadBufferSize(responseLimit+1);
     auto received=std::make_shared<QByteArray>();
     connect(reply,&QIODevice::readyRead,reply,[reply,received]{
         received->append(reply->readAll()); if(received->size()>responseLimit) reply->abort();
     });
-    connect(reply,&QNetworkReply::finished,this,[reply,received,complete=std::move(complete)]() mutable {
-        received->append(reply->readAll());
+    connect(reply,&QNetworkReply::finished,this,[this,epoch,manager,reply,deadline,received,complete=std::move(complete)]() mutable {
+        deadline->stop();
+        if(reply->isOpen())received->append(reply->readAll());
         int status=reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
+        if(reply->error()!=QNetworkReply::NoError&&status<400)status=0;
         if(received->size()>responseLimit) status=0;
         const double retry=reply->rawHeader("Retry-After").toDouble();
         Reply result{status,status?QJsonDocument::fromJson(*received):QJsonDocument(),int(retry)+1};
+        if(epoch==epoch_&&manager&&manager==network_) {
+            if(!status)retireNetwork(manager);
+            else {
+                if(networkRecoveryAttempt_>0&&status>=200&&status<300&&state_=="connected")status_="Connected";
+                networkRecoveryAttempt_=0;
+            }
+        }
         reply->deleteLater(); complete(std::move(result));
     });
+}
+void FluxerSession::retireNetwork(QNetworkAccessManager* failed) {
+    if(!failed||failed!=network_)return;
+    // A failed socket may remain ESTABLISHED after Wi-Fi/hotspot switching.
+    // Replace the pool before invoking abort callbacks so subsequent requests
+    // cannot reuse that route. Preserve account, drafts and provider session.
+    network_=nullptr;
+    const auto replies=failed->findChildren<QNetworkReply*>();
+    for(auto* reply:replies)if(!reply->isFinished())reply->abort();
+    failed->clearConnectionCache();
+    failed->deleteLater();
+    if(!token_.isEmpty()&&!networkRecovery_.isActive())
+        networkRecovery_.start(qMin(30000,2000*(1<<qMin(networkRecoveryAttempt_++,4))));
 }
 void FluxerSession::verifiedRequest(QByteArray method, QString path, QJsonObject body, Completion done, int attempt, QByteArray captcha) {
     request(method,path,body,[this,method,path,body,done=std::move(done),attempt](Reply r) mutable {
@@ -1573,6 +1613,9 @@ void FluxerSession::gatewaySend(int op,const QJsonValue& data) {
 }
 void FluxerSession::openGateway() {
     if(transport_||token_.isEmpty())return;
+    if(reconnect_)reconnect_->stop();
+    if(heartbeat_)heartbeat_->stop();
+    awaitingAck_=false;
     if(socket_) {socket_->disconnect(this);socket_->abort();socket_->deleteLater();}
     socket_=new QWebSocket(QString(),QWebSocketProtocol::VersionLatest,this);
     socket_->setMaxAllowedIncomingMessageSize(responseLimit);socket_->setMaxAllowedIncomingFrameSize(responseLimit);
@@ -1582,11 +1625,14 @@ void FluxerSession::openGateway() {
     connect(socket_,&QWebSocket::textMessageReceived,this,[this](const QString& text){gatewayEvent(QJsonDocument::fromJson(text.toUtf8()).object());});
     connect(socket_,&QWebSocket::disconnected,this,&FluxerSession::disconnected);
     connect(socket_,&QWebSocket::errorOccurred,this,[this](QAbstractSocket::SocketError){disconnected();});
+    gatewayDeadline_.start();
     socket_->open(QUrl("wss://gateway.fluxer.app/?v=1&encoding=json"));
 }
 void FluxerSession::disconnected() {
     // Chat Gateway and LiveKit are independent connections. Keep the call and
     // microphone choice while chat reconnects; the media SDK handles its route.
+    gatewayDeadline_.stop();
+    if(socket_){socket_->disconnect(this);socket_->abort();socket_->deleteLater();socket_=nullptr;}
     ++onlineSendRevision_;onlineQueue_.clear();onlineSending_=false;onlineSendTimer_.stop();
     online_.close("Connection interrupted. Reconnect the activity to recover.");
     if(heartbeat_)heartbeat_->stop();
@@ -1654,6 +1700,8 @@ void FluxerSession::gatewayEvent(const QJsonObject& event) {
             if(!historyFile_.isEmpty()&&!historySave_.isActive())historySave_.start();
         }
         if(type=="READY"||type=="RESUMED") {
+            gatewayDeadline_.stop();
+            if(reconnect_)reconnect_->stop();
             if(type=="READY") {
             updateUserSettings(d["user_settings"].toObject());gatewaySession_=d["session_id"].toString();readThrough_.clear();quietThrough_.clear();unread_.clear();mentions_.clear();calls_.clear();readsReady_=true;
                 for(const auto& v:d["read_states"].toArray())applyReadState(v.toObject(),false);

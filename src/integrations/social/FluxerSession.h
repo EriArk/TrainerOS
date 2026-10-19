@@ -240,6 +240,7 @@ private:
     EncryptedCredentials* encryptedCredentials_ = nullptr;
     bool credentialLoading_ = false;
     void disconnected();
+    void retireNetwork(QNetworkAccessManager* failed);
     void reset();
     void mergeMessage(const QJsonObject& message);
     void fail(const Reply& reply, QString fallback);
@@ -249,6 +250,8 @@ private:
     QTimer* poll_ = nullptr;
     QTimer* heartbeat_ = nullptr;
     QTimer* reconnect_ = nullptr;
+    QTimer networkRecovery_{this}, gatewayDeadline_{this};
+    int networkRecoveryAttempt_ = 0;
     Transport transport_;
     QString guild_;
     QHash<QString,QJsonObject> guilds_;

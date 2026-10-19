@@ -23,9 +23,36 @@
 #include <QCryptographicHash>
 #include <QtEndian>
 #include <QVideoFrame>
+#include <QNetworkAccessManager>
+#include <QNetworkReply>
+#include <QWebSocket>
 #include "platform/storage/EncryptedCredentials.h"
 
 namespace trainer {
+// Held replies reproduce a dead pooled connection without public network access.
+class HeldSocialReply final : public QNetworkReply {
+public:
+    explicit HeldSocialReply(QObject* parent):QNetworkReply(parent){open(QIODevice::ReadOnly);}
+    void fail(int status=0) {
+        if(isFinished())return;
+        setAttribute(QNetworkRequest::HttpStatusCodeAttribute,status);
+        setError(QNetworkReply::TimeoutError,"Simulated route loss");
+        setFinished(true);close();emit finished();
+    }
+    void abort() override {fail();}
+    void succeed() {setAttribute(QNetworkRequest::HttpStatusCodeAttribute,200);setFinished(true);emit finished();}
+protected:
+    qint64 readData(char*,qint64) override {return -1;}
+};
+class HeldSocialNetwork final : public QNetworkAccessManager {
+public:
+    QList<HeldSocialReply*> replies;
+    explicit HeldSocialNetwork(QObject* parent):QNetworkAccessManager(parent){}
+protected:
+    QNetworkReply* createRequest(Operation,const QNetworkRequest&,QIODevice*) override {
+        auto* reply=new HeldSocialReply(this);replies.append(reply);return reply;
+    }
+};
 class SocialTests : public QObject {
     Q_OBJECT
     using Reply=FluxerSession::Reply;
@@ -42,6 +69,46 @@ class SocialTests : public QObject {
         s.channel_=channel;s.channels_[channel]={{"id",channel},{"type",1}};
     }
 private slots:
+    void routeLossRetiresPoolCompletesBusyRequestsAndNeverReplaysMutation() {
+        FluxerSession s;bind(s);const auto token=s.token_;s.gatewaySession_="resume-session";
+        auto* manager=new HeldSocialNetwork(&s);s.network_=manager;
+        int gets=0,posts=0;
+        s.request("GET","/v1/test",{},[&](Reply r){++gets;QCOMPARE(r.status,0);});
+        s.request("POST","/v1/test",{},[&](Reply r){++posts;QCOMPARE(r.status,0);});
+        manager->replies.first()->fail(200); // Partial HTTP 200 is not a success.
+        QCOMPARE(gets,1);QCOMPARE(posts,1);QVERIFY(!s.network_);
+        QCOMPARE(s.token_,token);QCOMPARE(s.gatewaySession_,QString("resume-session"));
+        QVERIFY(s.networkRecovery_.isActive());
+        QStringList methods;
+        s.setTransport([&](auto method,auto,auto,Completion done,QByteArray){methods.append(method);done({0,{}});});
+        s.networkRecovery_.stop();QMetaObject::invokeMethod(&s.networkRecovery_,"timeout");
+        QVERIFY(!methods.isEmpty());for(const auto& method:methods)QCOMPARE(method,QString("GET"));
+        QCOMPARE(posts,1);
+    }
+    void queuedRestDeadlineReleasesRequestAndRetiredPoolCannotKillReplacement() {
+        FluxerSession s;bind(s);auto* manager=new HeldSocialNetwork(&s);s.network_=manager;
+        int finished=0;
+        s.request("GET","/v1/test",{},[&](Reply r){++finished;QCOMPARE(r.status,0);});
+        auto* deadline=manager->replies.first()->findChild<QTimer*>();QVERIFY(deadline);
+        QMetaObject::invokeMethod(deadline,"timeout");QCOMPARE(finished,1);QVERIFY(!s.network_);
+        auto* replacement=new HeldSocialNetwork(&s);s.network_=replacement;
+        s.retireNetwork(manager);QCOMPARE(s.network_,replacement);
+        s.status_="Connection lost. Try again when online";
+        s.request("GET","/v1/test",{},[](Reply r){QCOMPARE(r.status,200);});
+        replacement->replies.first()->succeed();QCOMPARE(s.status_,QString("Connected"));
+        s.reset();QVERIFY(!s.networkRecovery_.isActive());QVERIFY(!s.gatewayDeadline_.isActive());
+    }
+    void gatewayHandshakeDeadlineRetriesWithoutLosingVoiceConsent() {
+        FluxerSession s;bind(s);
+        s.voiceChannel_=channel;s.voiceMuted_=true;s.voiceState_="reconnecting";
+        s.socket_=new QWebSocket(QString(),QWebSocketProtocol::VersionLatest,&s);
+        s.gatewayDeadline_.start(1);
+        QTRY_VERIFY(!s.socket_);QVERIFY(s.reconnect_&&s.reconnect_->isActive());
+        QCOMPARE(s.voiceChannel_,QString(channel));QVERIFY(s.voiceMuted_);
+        s.setTransport([](auto,auto,auto,Completion done,QByteArray){done({200,QJsonDocument(QJsonArray{})});});
+        s.gatewayEvent({{"op",0},{"t","RESUMED"},{"d",QJsonObject{}}});
+        QVERIFY(!s.reconnect_->isActive());QVERIFY(!s.gatewayDeadline_.isActive());
+    }
     void discoverPeopleAreProfilesAndUnknownTagsRequireConfirmation() {
         FluxerSession s;bind(s);QStringList requests;
         s.setTransport([&](auto method,auto path,auto,Completion done,QByteArray){requests<<method+" "+path;if(method=="GET")done({200,QJsonDocument(QJsonObject{{"id",remote},{"username","Mika"}})});});

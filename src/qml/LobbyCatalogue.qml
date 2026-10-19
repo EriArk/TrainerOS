@@ -143,7 +143,13 @@ Item {
             Text { width: 24; text: "›"; font.pixelSize: 25; color: Theme.ink; opacity: root.social.lobbyPage+1<root.social.lobbyPageCount ? 1 : .2
                 MouseArea { anchors.fill: parent; enabled: root.social.lobbyPage+1<root.social.lobbyPageCount; onClicked: root.social.turnLobbyPage(1) } }
         }
-        Text { anchors.right: parent.right; anchors.bottom: parent.bottom; anchors.bottomMargin: 4; text: root.social.lobbyDirectory.busy ? "Refreshing…" : "↻ Refresh"; color: Theme.muted; font.pixelSize: 11
-            MouseArea { anchors.fill: parent; anchors.margins: -5; enabled: !root.social.lobbyDirectory.busy; onClicked: root.social.lobbyAction("refresh") } }
+        CapButton {
+            objectName: "lobby-refresh"
+            anchors.right: parent.right; anchors.bottom: parent.bottom; anchors.bottomMargin: 3
+            width: 130; height: 27; textSize: 12; tint: Theme.blue; claimsFocus: false
+            enabled: !root.social.lobbyDirectory.busy
+            label: root.social.lobbyDirectory.busy ? "Refreshing…" : "↻  Refresh"
+            onActivated: root.social.lobbyAction("refresh")
+        }
     }
 }
