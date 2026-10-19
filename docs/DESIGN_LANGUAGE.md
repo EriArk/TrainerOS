@@ -1,5 +1,9 @@
 # TrainerOS Design Language
 
+> **19 October 2026 product boundary:** keep the distinctive tactile, friendly TrainerOS chassis, readable focus and compact controller-first controls, **not** a universal Pokémon-only theme. Current root surfaces are [Home/Games/GameHub/Social/Apps](PRODUCT_ARCHITECTURE_RU.md); game-specific ornament and optional experiences belong to their adapters, not to every ordinary app/Files/Browser. The historical September layout sketches and old Worlds/Companions structure below are visual research/evidence, not the latest route contract (#206/#224/#233).
+
+---
+
 **Adaptive content, 9 October 2026:** [experience/Home contract](EXPANSION_174_178.md).
 Home and two game-oriented slots may change real content, vocabulary, widgets and
 game-specific visual treatment through one experience. Preserve shared warm material
