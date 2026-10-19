@@ -1,5 +1,9 @@
 # Five-section navigation and legacy migration — #111
 
+> **19 October 2026 — legacy navigation evidence.** This #111 deliverable records an earlier installed five-section implementation. The **current target** is [Home / Games / GameHub / Social / Apps](PRODUCT_ARCHITECTURE_RU.md), with #206/#224 secondary faces, #227 global input, #233 Start, and #168/#170 Home/Game Options. Do not use the earlier five slot IDs/Worlds/Trainer mappings as requirements for new UI. The real legacy migrations and device evidence remain applicable to the historical build.
+
+---
+
 **Implementation update, 9 October 2026:** the owner subsequently authorized the
 UX-02 implementation. Current behavior, handheld delivery and retained acceptance
 are recorded in [UX_FRAMEWORK](UX_FRAMEWORK.md). Dated planning-only and compact-menu
