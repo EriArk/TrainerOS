@@ -51,6 +51,7 @@ Panel {
                     label: modelData.label; detail: modelData.detail || ""; glyph: modelData.glyph || (root.presentation.panel==="achievements"?"trophy":"pictures")
                     artwork: modelData.icon || ""; accent: index%3===0?Theme.blue:index%3===1?Theme.green:Theme.yellow
                     selected: root.selection===modelData.id; enabled: root.presentation.ready && (modelData.readOnly!==true || root.presentation.panel==="achievements")
+                    removable: !!modelData.removable; onRemoved: root.shell.dismissNotificationById(modelData.id.substring(7))
                     onActivated: root.presentation.activateAction(modelData.id)
                 }
             }

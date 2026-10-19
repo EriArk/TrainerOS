@@ -33,6 +33,11 @@ QVariantMap ShellController::passiveNotice() const {
     if(!achievementToast_.isEmpty())return {{"title",achievementToast_.section('\n',0,0)},{"detail",achievementToast_.section('\n',1)},{"kind","achievement"}};
     return {};
 }
+void ShellController::dismissPassiveNotice() {
+    if(!social_.toastTitle().isEmpty()){dismissNotificationById(social_.toastChannel());social_.hideToast();}
+    else {if(!achievementNotifications_.isEmpty())dismissNotificationById(achievementNotifications_.first().toMap()["id"].toString());achievementToast_.clear();++achievementToastGeneration_;}
+    emit changed();
+}
 void ShellController::configureProgress(GameProgressProvider* provider) {
     if (progress_) disconnect(progress_, nullptr, this, nullptr);
     progress_ = provider;
@@ -1148,6 +1153,9 @@ void ShellController::editCollection(int index) {
 }
 void ShellController::openContext(const QString& type,const QString& target) {
     if(navigationLocked() || homeMenuOpen_ || menuOpen_ || serviceOpen() || keyboard_.isOpen() || localModalOpen() || !notice_.isEmpty())return;
+    if(type.isEmpty() && page_==HomePage && dashboard_.focus().startsWith("event:")){
+        homeMenuOpen_=notificationsOpen_=true;notificationSelection_=dashboard_.focus().mid(6);emit changed();return;
+    }
     if(type.isEmpty() && page_==HomePage && dashboard_.focus()!="play")return;
     if(type.isEmpty() && page_==GamesPage && collectionsRoot_) {
         if(gamesRootZone_=="collections") {
@@ -1499,7 +1507,7 @@ void ShellController::activateNotification(int index) {
     if(!notificationsOpen()||navigationLocked())return;
     if(index<0 || index>=notifications().size())return;
     const auto row=notifications().value(index).toMap();
-    if(row["provider"]=="achievements"){showNotice(row["name"].toString()+"\n"+row["detail"].toString());closeHomeMenu();return;}
+    if(row["provider"]=="achievements"){dismissNotificationById(row["id"].toString());showNotice(row["name"].toString()+"\n"+row["detail"].toString());closeHomeMenu();return;}
     if(row["answerable"].toBool()) {
         notificationsOpen_=false;homeCallOpen_=false;homeMenuSelection_="answer-call:"+row["id"].toString();emit changed();
         return;
@@ -1519,6 +1527,21 @@ void ShellController::dismissNotifications() {
     achievementNotifications_.clear();achievementToast_.clear();++achievementToastGeneration_;
     social_.dismissNotifications();emit changed();
 }
+void ShellController::dismissNotificationById(const QString& id) {
+    const auto rows=notifications();
+    for(int i=0;i<rows.size();++i) {
+        const auto row=rows[i].toMap();
+        if(row["id"]!=id||row["ringing"].toBool()||row["pending"].toBool())continue;
+        if(row["provider"]=="achievements"){
+            if(achievementNotifications_.value(0).toMap()["id"]==id){achievementToast_.clear();++achievementToastGeneration_;}
+            achievementNotifications_.removeIf([&](const QVariant& v){return v.toMap()["id"]==id;});
+        }
+        else social_.dismissNotificationAt(i);
+        const auto remaining=notifications();notificationFocus_=qMin(i,int(remaining.size())-1);
+        notificationSelection_=remaining.value(notificationFocus_).toMap()["id"].toString();
+        emit changed();return;
+    }
+}
 void ShellController::openSocialNotification() {
     if(navigationLocked()||(!homeMenuOpen_&&!canReceiveNearby()))return;
     const auto face=social_.notificationFace();if(face.isEmpty())return;
@@ -1526,6 +1549,7 @@ void ShellController::openSocialNotification() {
     social_.openNotification();emit changed();
 }
 void ShellController::dispatch(Action action) {
+    if(social_.dispatchIncomingCall(action))return;
     if(page_==AppsPage && appsFace_=="browser" && service_.isEmpty() && !keyboard_.isOpen() && !menuOpen_ && !homeMenuOpen_ && !drawerOpen_ && !quickAppsOpen_ && notice_.isEmpty() && !localModalOpen()) {
         if(action==Action::Up||action==Action::Down||action==Action::Left||action==Action::Right||action==Action::Confirm||action==Action::ContextMenu||action==Action::Back||action==Action::LocalAction||action==Action::ScrollUp||action==Action::ScrollDown){browser_.dispatch(action);return;}
         if(action==Action::ChangeView||action==Action::ToggleFavorite)return;
@@ -1592,10 +1616,11 @@ void ShellController::dispatch(Action action) {
             else if(action==Action::Confirm)activateNotification(notificationFocus());
             else if(action==Action::Secondary) {
                 const auto row=notifications().value(notificationFocus()).toMap();
-                if(row["provider"]=="achievements")achievementNotifications_.removeIf([&](const QVariant& item){return item.toMap()["id"]==row["id"];});
-                else social_.dismissNotificationAt(notificationFocus());
+                if(row["ringing"].toBool())social_.answerCall(row["id"].toString(),false);
+                else dismissNotificationById(row["id"].toString());
                 emit changed();
             }
+            else if(action==Action::ContextMenu||action==Action::LocalAction)dismissNotifications();
             else if(action==Action::SystemMenu){homeMenuOpen_=false;optionsReturn_=true;dispatch(action);}
             else if(action==Action::Left){notificationsOpen_=false;emit changed();}
             else if(action==Action::Up||action==Action::Down){notificationFocus_=std::clamp(notificationFocus()+(action==Action::Up?-1:1),0,std::max(0,int(notifications().size())-1));notificationSelection_=notifications().value(notificationFocus_).toMap()["id"].toString();emit changed();}

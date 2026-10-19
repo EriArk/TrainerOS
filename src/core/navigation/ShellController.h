@@ -240,6 +240,7 @@ public:
     QVariantMap liveGame() const { return liveGame_; }
     QVariantList notifications() const;
     QVariantMap passiveNotice() const;
+    Q_INVOKABLE void dismissPassiveNotice();
     HomeDashboardController* dashboard(){return &dashboard_;}
     Q_INVOKABLE void activateDashboard(const QString& key);
     void setLiveGame(const QVariantMap& game);
@@ -267,6 +268,7 @@ public:
     Q_INVOKABLE void activateNotification(int index);
     Q_INVOKABLE void openNotificationById(const QString& id);
     Q_INVOKABLE void dismissNotifications();
+    Q_INVOKABLE void dismissNotificationById(const QString& id);
     Q_INVOKABLE void activateHomeMenu(int index);
     Q_INVOKABLE void openSocialNotification();
     Q_INVOKABLE void closeHomeMenu();

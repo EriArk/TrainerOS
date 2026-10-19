@@ -10,7 +10,7 @@ Item {
     readonly property real gap: 16 * unit
     readonly property real split: width * .33
     readonly property real usableHeight: height - (shell.chooseAdventureAvailable ? Theme.adventureCutoutHeight : 0) - 10
-    function hints(h) { if (!visible) return null; return flow.focus === "play" ? [h("A",shell.liveGame.id ? "Return" : shell.homeGame.id ? shell.home.actionHint : "Choose a game"),h("Select","Game actions"),h("B","Back")] : [h("A","Open"),h("B","Play focus")] }
+    function hints(h) { if (!visible) return null; return flow.focus === "play" ? [h("A",shell.liveGame.id ? "Return" : shell.homeGame.id ? shell.home.actionHint : "Choose a game"),h("Select","Game actions"),h("B","Back")] : flow.focus.indexOf("event:")===0 ? [h("A","Open"),h("Select","Notifications"),h("B","Play focus")] : [h("A","Open"),h("B","Play focus")] }
 
     // One quiet social area, with individual controls rather than a wall of tiles.
     Item {
@@ -76,9 +76,14 @@ Item {
                 Text { width: parent.width; text: "Friends, messages and invitations\nmeet here."; color: Theme.muted; font.pixelSize: 13*root.unit; wrapMode: Text.WordWrap }
             }
         }
+        Item { id: updateHeading; y: root.flow.people.length ? chatRow.y+chatRow.height+3 : lobbyCard.height+7; width: parent.width; height: root.flow.activities.length ? 26 : 0
+            Text { anchors.right: parent.right; anchors.rightMargin: 4; anchors.verticalCenter: parent.verticalCenter; text: "Clear updates"; color: Theme.muted; font.pixelSize: 11; visible: parent.height>0
+                MouseArea { anchors.fill: parent; anchors.margins: -5; onClicked: root.shell.dismissNotifications() }
+            }
+        }
         ListView {
             id: events; objectName: "home-activity"
-            y: root.flow.people.length ? chatRow.y + chatRow.height + 8 * root.unit : lobbyCard.height+12 * root.unit
+            y: updateHeading.y+updateHeading.height+5
             width: parent.width; height: Math.max(0, parent.height-y)
             clip: true; spacing: 9 * root.unit; model: root.flow.activities
             currentIndex: { for(let i=0;i<model.length;i++) if(model[i].key===root.flow.focus)return i;return -1 }
@@ -92,11 +97,12 @@ Item {
                 Rectangle { anchors.fill: parent; anchors.margins: 1; radius: 8; color: eventRow.selected ? "#30e8c66c" : eventPointer.containsMouse ? "#182f716b" : "transparent"; border.width: eventRow.selected ? 2 : 0; border.color: Theme.focus }
                 Rectangle { x: 5; y: 14; width: 24; height: 24; radius: 12; color: modelData.request ? Theme.pink : modelData.activity ? Theme.green : Theme.blue; opacity: .6 }
                 Text { x: 5; y: 13; width: 24; horizontalAlignment: Text.AlignHCenter; text: modelData.request ? "+" : modelData.activity ? "↗" : "·"; color: Theme.ink; font.pixelSize: 21 }
-                Text { x: 38; y: 6; width: parent.width-x-22; text: modelData.name || "Activity"; color: Theme.ink; font.pixelSize: 14; elide: Text.ElideRight }
-                Text { x: 38; y: 27; width: parent.width-x-22; text: modelData.detail || ""; color: Theme.muted; font.pixelSize: 12; elide: Text.ElideRight }
-                Text { anchors.right: parent.right; anchors.rightMargin: 6; anchors.verticalCenter: parent.verticalCenter; text: "›"; color: eventRow.selected ? Theme.ink : Theme.muted; font.pixelSize: 24 }
+                Text { x: 38; y: 6; width: parent.width-x-34; text: modelData.name || "Activity"; color: Theme.ink; font.pixelSize: 14; elide: Text.ElideRight }
+                Text { x: 38; y: 27; width: parent.width-x-34; text: modelData.detail || ""; color: Theme.muted; font.pixelSize: 12; elide: Text.ElideRight }
+                Text { anchors.right: parent.right; anchors.rightMargin: 6; anchors.verticalCenter: parent.verticalCenter; visible: !!modelData.ringing || !!modelData.pending; text: "›"; color: eventRow.selected ? Theme.ink : Theme.muted; font.pixelSize: 24 }
                 Rectangle { x: 38; y: parent.height-1; width: parent.width-x-8; height: 1; color: "#183c655e" }
                 MouseArea { id: eventPointer; anchors.fill: parent; hoverEnabled: true; onClicked: root.shell.activateDashboard(modelData.key) }
+                SocialIconButton { anchors.right: parent.right; anchors.verticalCenter: parent.verticalCenter; icon: "x"; label: "Remove notification"; visible: !modelData.ringing && !modelData.pending; onClicked: root.shell.dismissNotificationById(modelData.id) }
                 Accessible.role: Accessible.Button; Accessible.name: (modelData.name || "Activity")+", "+(modelData.detail || "")
                 Accessible.onPressAction: root.shell.activateDashboard(modelData.key)
             }

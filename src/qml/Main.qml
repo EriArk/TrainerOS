@@ -12,9 +12,9 @@ Window {
     color: Theme.chassisDark
     readonly property real uiScale: shell.settings.displayDensity(Screen.width, Screen.height,
         width, height, shell.settings.displayProfile, shell.settings.interfaceScale)
-    Binding { target: controllerInput; property: "pointerMode"; value: (filesPane.takesFocus || browserPane.takesFocus) && (!adventureLaunch.active || adventureLaunch.minimized) && !sessionState.blocked }
-    Binding { target: controllerInput; property: "nativeKeyboard"; value: browserPane.takesFocus && !browserPane.popup && !browserPane.toolsFocused }
-    Binding { target: controllerInput; property: "browserMode"; value: browserPane.takesFocus }
+    Binding { target: controllerInput; property: "pointerMode"; value: !shell.social.incomingCall.id && (filesPane.takesFocus || browserPane.takesFocus) && (!adventureLaunch.active || adventureLaunch.minimized) && !sessionState.blocked }
+    Binding { target: controllerInput; property: "nativeKeyboard"; value: !shell.social.incomingCall.id && browserPane.takesFocus && !browserPane.popup && !browserPane.toolsFocused }
+    Binding { target: controllerInput; property: "browserMode"; value: !shell.social.incomingCall.id && browserPane.takesFocus }
     AppControlsWindow { flow: shell.apps; bridge: appsOverlay }
     AdventureExitWindow {
         presentation: adventureExitPresentation
@@ -213,6 +213,7 @@ Window {
         PassiveNotice {
             objectName: "passive-notification"
             notice: shell.passiveNotice
+            onDismissed: shell.dismissPassiveNotice()
             visible: !!notice.title && window.active && !sessionState.blocked && !shell.homeMenuOpen && (!adventureLaunch.active || adventureLaunch.minimized)
             z: 30; x: parent.width - width - 26; y: Theme.brandHeight + 21
         }
@@ -382,6 +383,7 @@ Window {
             function hint(button, label) { return {button:button, label:label} }
             readonly property var localActions: {
                 const h = hint
+                if (shell.social.incomingCall.id) return [h("A","Answer"),h("B","Decline")]
                 if (shell.social.lobbyCreateOpen || shell.social.lobbyPickerOpen || shell.social.lobbyVoteOpen) return [h("↑↓","Choose"),h("A","Select"),h("B","Close")]
                 if (shell.social.myLobbiesOpen) return [h("\u2191\u2193","Choose"),h("A","Open"),h("B","Back")]
                 if (shell.social.online.open) return shell.social.online.incoming ? [h("A","Accept"),h("B","Decline")] : [h("B","Cancel")]
@@ -389,7 +391,9 @@ Window {
                 if (shell.homeMenuOpen) {
                     if (!shell.notificationsOpen) return [h("↑↓","Choose"),h("A","Select"),h("B","Back")]
                     const selectedNotice = shell.notifications[shell.notificationFocus] || {}
-                    return [h("↑↓","Choose"),h("A","Open"),h("X",selectedNotice.ringing ? "Decline" : "Dismiss"),h("B","Back")]
+                    const noticeHints = [h("↑↓","Choose"),h("A","Open")]
+                    if (!selectedNotice.pending) noticeHints.push(h("X",selectedNotice.ringing ? "Decline" : "Remove"))
+                    return noticeHints.concat([h("Select","Clear updates"),h("B","Back")])
                 }
                 if (shell.notice.length) return [h("A", shell.modeConfirmation ? "Continue" : "OK"), h("B","Cancel")]
                 if (shell.downloads.open) return [h("↑↓","Choose"),h("←→","Actions"),h("A","Select"),h("B","Close")]
@@ -602,6 +606,10 @@ Window {
         TrainerAccessPanel { anchors.fill: parent; access: sessionState.access; visible: sessionState.access.active }
         LobbyImportPanel { anchors.fill: parent; visible: lobbyImport.open; importer: lobbyImport }
         LaunchPanel { anchors.fill: parent; visible: launchPresentation.state.visible; launch: launchPresentation }
+        IncomingCall {
+            anchors.fill: parent; z: 100; social: shell.social
+            visible: !!call.id && !sessionState.blocked && (!adventureLaunch.active || adventureLaunch.minimized)
+        }
     }
     readonly property var shell: shellController
 }

@@ -4,6 +4,7 @@ import QtQuick.Controls
 Item {
     id: root
     property string icon
+    property string glyph: ""
     property string label
     property real iconRotation: 0
     property bool highlighted: false
@@ -21,12 +22,14 @@ Item {
         border.width: root.tint.a > 0 || root.highlighted ? 1 : 0
         border.color: Qt.darker(color, 1.12)
     }
-    Image { anchors.centerIn: parent; width: 19; height: 19; rotation: root.iconRotation; sourceSize: Qt.size(38,38); source: "qrc:/social-icons/" + root.icon + ".svg" }
+    Image { visible: !root.glyph; anchors.centerIn: parent; width: 19; height: 19; rotation: root.iconRotation; sourceSize: Qt.size(38,38); source: root.glyph ? "" : "qrc:/social-icons/" + root.icon + ".svg" }
+    MenuGlyph { visible: !!root.glyph; anchors.centerIn: parent; width: 19; height: 19; glyph: root.glyph }
     MouseArea { id: mouse; anchors.fill: parent; hoverEnabled: true
         onClicked: { root.tooltipSuppressed = true; root.clicked() }
         onExited: root.tooltipSuppressed = false
     }
-    ToolTip.visible: mouse.containsMouse && !root.tooltipSuppressed
+    onHighlightedChanged: tooltipSuppressed = false
+    ToolTip.visible: (mouse.containsMouse || highlighted) && !root.tooltipSuppressed && root.visible
     ToolTip.delay: 650
     ToolTip.text: label
 }

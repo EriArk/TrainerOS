@@ -33,12 +33,24 @@ Item {
             onClicked: { root.anchorMenu(this); root.social.contextRow() } }
         Rectangle { anchors.bottom: parent.bottom; width: parent.width; height: 1; color: Theme.chassis; opacity: .18 }
     }
-    Rectangle { id: activityStrip; y: chatHeading.height; width: parent.width; height: visible ? 25 : 0; radius: 5; color: "#deedcb"
-        readonly property var party: root.social.gameParty
+    Rectangle { id: activityStrip; objectName: "active-call-bar"; y: chatHeading.height+3; width: parent.width; height: visible ? 40 : 0; radius: 10; color: Qt.tint(Theme.paper,"#2c92bf9b"); border.color: Qt.tint(Theme.paper,"#6684a88b")
         readonly property var voice: root.account.voice || ({})
         visible: !root.compact && !root.embeddedRoom && !!voice.channel
-        Text { renderType: typeof Text.CurveRendering === "number" ? Text.CurveRendering : Text.QtRendering; x: 8; anchors.verticalCenter: parent.verticalCenter; width: parent.width - 16; text: (activityStrip.party.party ? ((activityStrip.party.game || {}).label || "Game party") : activityStrip.party.joining ? "Join request sent" : "") + (activityStrip.voice.channel ? "  Call · " + (activityStrip.voice.name || "Connected") : ""); font.pixelSize: 11; color: Theme.ink; elide: Text.ElideRight; textFormat: Text.PlainText }
-        MouseArea { anchors.fill: parent; onClicked: { root.anchorMenu(parent); root.social.call() } }
+        readonly property bool connected: voice.state === "connected" || voice.state === "reconnecting"
+        Rectangle { x: 12; anchors.verticalCenter: parent.verticalCenter; width: 7; height: 7; radius: 4; color: activityStrip.voice.state==="connected" ? "#548b5d" : Theme.yellow }
+        Column { x: 27; anchors.verticalCenter: parent.verticalCenter; width: parent.width-151; spacing: 2
+            Text { width: parent.width; text: activityStrip.voice.name || "Voice call"; font.family: Theme.displayFamily; font.pixelSize: 14; color: Theme.ink; elide: Text.ElideRight; textFormat: Text.PlainText }
+            Text { width: parent.width; text: activityStrip.voice.state==="connected" ? (activityStrip.voice.muted ? "Microphone off" : "Microphone on") : activityStrip.voice.state==="reconnecting" ? "Reconnecting…" : "Connecting…"; font.pixelSize: 10; color: Theme.muted; elide: Text.ElideRight }
+        }
+        Row { anchors.right: parent.right; anchors.rightMargin: 6; anchors.verticalCenter: parent.verticalCenter; spacing: 5
+            SocialIconButton { objectName: "call-microphone"; icon: "microphone"; label: activityStrip.voice.muted ? "Turn microphone on" : "Mute microphone"; tint: activityStrip.voice.muted ? Theme.paper : Theme.green; highlighted: root.padControl===3; enabled: activityStrip.connected; onClicked: root.social.controlCall("voice-mute")
+                Rectangle { anchors.centerIn: parent; width: 22; height: 2; rotation: -45; color: Theme.ink; visible: !!activityStrip.voice.muted }
+            }
+            SocialIconButton { objectName: "call-output"; glyph: "speaker"; label: activityStrip.voice.deaf ? "Enable call sound" : "Silence call sound"; tint: activityStrip.voice.deaf ? Theme.pink : Theme.paper; highlighted: root.padControl===4; enabled: activityStrip.connected; onClicked: root.social.controlCall("voice-output")
+                Rectangle { anchors.centerIn: parent; width: 22; height: 2; rotation: -45; color: Theme.ink; visible: !!activityStrip.voice.deaf }
+            }
+            SocialIconButton { objectName: "call-end"; icon: "phone"; iconRotation: 135; label: "End call"; tint: Theme.pink; highlighted: root.padControl===5; onClicked: root.social.controlCall("voice-leave") }
+        }
     }
     Text { renderType: typeof Text.CurveRendering === "number" ? Text.CurveRendering : Text.QtRendering; id: connectionStatus; y: activityStrip.y + activityStrip.height; width: parent.width; height: visible ? 22 : 0
         visible: !!root.account.status && root.account.status !== "Connected"
@@ -97,7 +109,9 @@ Item {
                         MouseArea { anchors.fill: parent; enabled: true; onClicked: { const mime=parent.modelData.content_type || ""; if(!root.embeddedRoom && (mime.startsWith("audio/") || mime.startsWith("image/")))root.social.selectMessage(root.sourceIndex(messageRow.index));else root.social.downloadFile(messageRow.modelData.id,parent.modelData.id) } }
                     }
                 }
-                Text { renderType: typeof Text.CurveRendering === "number" ? Text.CurveRendering : Text.QtRendering; visible: !!modelData.delivery; width: parent.width; text: modelData.delivery || ""; font.pixelSize: 11; color: "#80542a"; wrapMode: Text.Wrap; textFormat: Text.PlainText }
+                Text { renderType: typeof Text.CurveRendering === "number" ? Text.CurveRendering : Text.QtRendering; visible: !!modelData.delivery; width: parent.width; text: (modelData.delivery || "") + (modelData.retryable ? "  ·  Retry ↻" : ""); font.pixelSize: 12; color: "#80542a"; wrapMode: Text.Wrap; textFormat: Text.PlainText
+                    MouseArea { anchors.fill: parent; anchors.topMargin: -4; anchors.bottomMargin: -4; enabled: !!messageRow.modelData.retryable && !root.readOnlyChat; onClicked: root.social.retryMessage(messageRow.modelData.id) }
+                }
             }
         }
     }

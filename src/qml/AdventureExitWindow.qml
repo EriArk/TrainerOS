@@ -108,6 +108,7 @@ Window {
         }
         ControlsPanel { anchors.centerIn: parent; width: parent.width*.94; height: parent.height*.92; shell: shellController; visible: window.presentation.menuOpen && shellController.gameControlsOpen; enabled: window.presentation.ready }
         DownloadsPanel { anchors.fill: parent; flow: shellController.downloads; visible: shellController.gameControlsOpen && shellController.downloads.open; enabled: window.presentation.ready }
+        IncomingCall { anchors.fill: parent; z: 100; social: shellController.social; ready: window.presentation.ready; visible: !!call.id && window.presentation.menuOpen && !sessionState.blocked }
         QuickLobbyChat {
             anchors.right: parent.right; anchors.rightMargin: 28
             anchors.verticalCenter: parent.verticalCenter

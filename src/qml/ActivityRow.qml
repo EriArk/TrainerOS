@@ -10,6 +10,8 @@ Item {
     property string avatar: ""
     property bool person: false
     property string artwork: ""
+    property bool removable: false
+    signal removed()
     signal activated()
     height: detail.length ? 59 : 44
     opacity: enabled ? 1 : .45
@@ -21,12 +23,13 @@ Item {
     MenuGlyph { x: 14; anchors.verticalCenter: parent.verticalCenter; width: 16; height: 16; glyph: root.glyph; visible: !root.person && !root.artwork }
     AccountAvatar { x: 3; anchors.verticalCenter: parent.verticalCenter; width: 37; height: 37; source: root.avatar; name: root.label; visible: root.person }
     Image { x: 0; anchors.verticalCenter: parent.verticalCenter; width: 39; height: 39; source: root.artwork; visible: !!root.artwork; sourceSize: Qt.size(96,96); fillMode: Image.PreserveAspectFit; asynchronous: true }
-    Column { x: 47; anchors.verticalCenter: parent.verticalCenter; width: parent.width-x-23; spacing: 4
+    Column { x: 47; anchors.verticalCenter: parent.verticalCenter; width: parent.width-x-(root.removable?37:23); spacing: 4
         Text { width: parent.width; text: root.label; color: Theme.ink; font.family: Theme.displayFamily; font.pixelSize: 18; elide: Text.ElideRight; textFormat: Text.PlainText }
         Text { width: parent.width; visible: text.length; text: root.detail; color: Theme.muted; font.pixelSize: 12; elide: Text.ElideRight; textFormat: Text.PlainText }
     }
-    Text { anchors.right: parent.right; anchors.rightMargin: 7; anchors.verticalCenter: parent.verticalCenter; text: "›"; color: Theme.muted; font.pixelSize: 22 }
+    Text { anchors.right: parent.right; anchors.rightMargin: 7; anchors.verticalCenter: parent.verticalCenter; visible: !root.removable; text: "›"; color: Theme.muted; font.pixelSize: 22 }
     Rectangle { x: 47; width: parent.width-x-9; height: 1; anchors.bottom: parent.bottom; color: "#23476a61" }
     MouseArea { anchors.fill: parent; onClicked: root.activated() }
+    SocialIconButton { anchors.right: parent.right; anchors.verticalCenter: parent.verticalCenter; visible: root.removable; icon: "x"; label: "Remove notification"; onClicked: root.removed() }
     Accessible.role: Accessible.Button; Accessible.name: label; Accessible.onPressAction: activated()
 }

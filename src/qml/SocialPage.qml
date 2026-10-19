@@ -130,9 +130,14 @@ FocusScope {
             label: root.faceIndex===0 ? "Find a person" : root.social.communityOpen ? "Community info" : "Create"
             onClicked: {root.anchorMenu(this);if(root.faceIndex===0)root.social.filterPeople();else if(root.social.communityOpen)root.social.communityInfo();else root.social.collectionOptions()}
         }
+        Item { id: filterChip; x: 20; y: 42; width: people.width-16; height: visible?29:0
+            visible: root.faceIndex===0 && !!root.social.peopleFilter
+            Text { width: parent.width-30; anchors.verticalCenter: parent.verticalCenter; text: "Filter: "+root.social.peopleFilter; color: Theme.muted; font.pixelSize: 12; elide: Text.ElideRight; textFormat: Text.PlainText }
+            SocialIconButton { anchors.right: parent.right; width: 28; height: 28; icon: "x"; label: "Show all people"; onClicked: root.social.clearPeopleFilter() }
+        }
         ListView {
             id: people; objectName: "social-people"
-            x: 12; y: 51; width: parent.width*.29; height: parent.height-y-29
+            x: 12; y: filterChip.visible ? 77 : 51; width: parent.width*.29; height: parent.height-y-29
             clip: true; spacing: 2; model: root.social.rows; currentIndex: root.social.focusIndex
             onCurrentIndexChanged: positionViewAtIndex(currentIndex,ListView.Contain)
             section.property: "section"
@@ -162,7 +167,7 @@ FocusScope {
             }
         }
         Text { anchors.right: parent.right; anchors.rightMargin: 20; y: parent.height-12; text: "Powered by Fluxer"; font.pixelSize: 9; color: Theme.muted; opacity: .65 }
-        Text { x: people.x+8; y: 99; width: people.width-16; visible: !people.count
+        Text { x: people.x+8; y: people.y+48; width: people.width-16; visible: !people.count
             text: root.faceIndex===1 ? root.social.communityOpen ? "No text channels available." : "Your groups and communities will appear here." : root.social.peopleFilter ? "No matching people" : "Friends and people you talk to will appear here."
             wrapMode: Text.WordWrap; horizontalAlignment: Text.AlignHCenter; color: Theme.muted; font.pixelSize: 14 }
         ConversationPane {

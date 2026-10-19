@@ -37,6 +37,7 @@ Item {
             onCurrentIndexChanged: if(currentIndex>=0)positionViewAtIndex(currentIndex,ListView.Contain)
             delegate: ActivityRow { required property var modelData; width: actions.width; label: modelData.label; detail: modelData.detail || ""; avatar: modelData.avatar || ""; person: !!modelData.person; selected: root.selection===modelData.id
                 glyph: modelData.id.indexOf("voice")>=0||modelData.id==="call"?"speaker":modelData.id==="controls"?"settings":"chat"; accent: modelData.id==="controls"?Theme.green:Theme.blue
+                removable: !!modelData.removable; onRemoved: root.shell.dismissNotificationById(modelData.id.substring(7))
                 enabled: root.presentation.ready && !modelData.readOnly; onActivated: root.presentation.activateAction(modelData.id)
             }
         }

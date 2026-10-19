@@ -69,6 +69,7 @@ QString SocialController::communityTitle() const {
     return "Communities";
 }
 void SocialController::filterPeople(){textPurpose_="people-filter";emit textRequested("Find a person",peopleFilter_,100);}
+void SocialController::clearPeopleFilter(){peopleFilter_.clear();focus_=0;emit changed();}
 void SocialController::communityBack(){
     if(communityId_.isEmpty())return;
     const auto id=communityId_;communityId_.clear();reading_=false;focus_=0;
@@ -113,12 +114,14 @@ bool SocialController::dispatchConversationControls(Action action) {
     if(face_!="chats"&&face_!="communities")return false;
     if(action==Action::Back||action==Action::Left) {enterConversationPerson_.clear();enterConversationChannel_.clear();}
     if(!reading_||!conversation())return false;
+    const bool hasCall=!snapshot_["voice"].toMap()["channel"].toString().isEmpty();
+    if(!hasCall&&conversationControl_>=3&&conversationControl_<=5)conversationControl_=0;
     if(action==Action::Back){reading_=false;conversationControl_=-1;return true;}
     if(action==Action::ChangeView){conversationControl_=11;compose();return true;}
     if(action==Action::ToggleFavorite){conversationProfile();return true;}
     if(conversationControl_<0) {
         if(action==Action::Down&&messageFocus_>=messages().size()-1){conversationControl_=11;return true;}
-        if(action==Action::Up&&messageFocus_==0){conversationControl_=0;return true;}
+        if(action==Action::Up&&messageFocus_==0){conversationControl_=hasCall?3:0;return true;}
         if(action==Action::Confirm){
             const auto message=messages().value(messageFocus_).toMap();openMenu();
             if(message["attachments"].toList().size()==1&&!menuCommands_.isEmpty()&&menuCommands_.first().startsWith("attachment:"))selectMenu(0);
@@ -127,8 +130,9 @@ bool SocialController::dispatchConversationControls(Action action) {
         return false;
     }
     const bool header=conversationControl_<10;
+    const bool callControls=conversationControl_>=3&&conversationControl_<=5;
     if(action==Action::Left||action==Action::Right) {
-        const int first=header?0:10,last=header?2:14,step=action==Action::Left?-1:1;
+        const int first=callControls?3:header?0:10,last=callControls?5:header?2:14,step=action==Action::Left?-1:1;
         if(conversationControl_==first&&step<0){reading_=false;conversationControl_=-1;return true;}
         conversationControl_=qBound(first,conversationControl_+step,last);
         if(header&&conversationControl_==1&&(!currentChat()["guild"].toString().isEmpty()||!snapshot_["voice"].toMap()["available"].toBool()))conversationControl_+=step;
@@ -136,6 +140,8 @@ bool SocialController::dispatchConversationControls(Action action) {
         return true;
     }
     if(action==Action::Up||action==Action::Down) {
+        if(callControls&&action==Action::Up){conversationControl_=0;return true;}
+        if(hasCall&&header&&!callControls&&action==Action::Down){conversationControl_=3;return true;}
         if(header&&action==Action::Up){if(snapshot_["historyMore"].toBool())earlierMessages();return true;}
         if(!header&&action==Action::Down)return true;
         if(messages().isEmpty())conversationControl_=header?11:0;
@@ -148,6 +154,9 @@ bool SocialController::dispatchConversationControls(Action action) {
     case 0:conversationProfile();break;
     case 1:call();break;
     case 2:contextRow(-1);break;
+    case 3:controlCall("voice-mute");break;
+    case 4:controlCall("voice-output");break;
+    case 5:controlCall("voice-leave");break;
     case 10:attachFile();break;
     case 11:compose();break;
     case 12:emoji();break;

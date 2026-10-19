@@ -35,6 +35,7 @@ class SocialController final : public QObject {
     Q_PROPERTY(QVariantList rows READ rows NOTIFY changed)
     Q_PROPERTY(QVariantList messages READ messages NOTIFY changed)
     Q_PROPERTY(QVariantList notifications READ notifications NOTIFY changed)
+    Q_PROPERTY(QVariantMap incomingCall READ incomingCall NOTIFY changed)
     Q_PROPERTY(QVariantList hints READ hints NOTIFY changed)
     Q_PROPERTY(QString draft READ draft NOTIFY changed)
     Q_PROPERTY(bool lobbyChatVisible READ lobbyChatVisible NOTIFY changed)
@@ -118,6 +119,9 @@ public:
     QString communityTitle() const;
     bool communityOpen() const {return !communityId_.isEmpty();}
     Q_INVOKABLE void filterPeople();
+    Q_INVOKABLE void clearPeopleFilter();
+    Q_INVOKABLE void retryMessage(const QString& id);
+    void acknowledgeConversation(const QString& channel,const QString& message);
     Q_INVOKABLE void communityBack();
     Q_INVOKABLE void communityInfo();
     Q_INVOKABLE void composerTools();
@@ -311,7 +315,7 @@ public:
     bool conversationVisible() const { return conversationVisible_; }
     bool gameActive() const{return gameActive_;}
     void setGameActive(bool active){if(gameActive_!=active){gameActive_=active;emit presentationChanged();emit changed();}}
-    void controlCall(const QString& operation){emit commandRequested(operation,{});}
+    Q_INVOKABLE void controlCall(const QString& operation){if(operation=="voice-mute"||operation=="voice-output"||operation=="voice-leave")emit commandRequested(operation,{});}
     QVariantMap gameParty() const{return gameParty_;}
     void setGameParty(QVariantMap state);
     QString runtimePeer() const;
@@ -332,12 +336,17 @@ public:
     QVariantList runtimeFriends() const;
     void runtimeCommand(const QString& op,const QVariantMap& args={}){emit commandRequested(op,args);}
     bool answerCall(const QString& channel,bool accept,bool allowOngoing=false);
+    QVariantMap incomingCall() const;
+    Q_INVOKABLE void respondToIncomingCall(const QString& channel, bool accept);
+    bool dispatchIncomingCall(Action action);
     QVariantList incomingCallActions(const QString& retainedChannel={}) const;
     void reviewCommand(const QString& operation,const QVariantMap& args){emit commandRequested(operation,args);}
     void setSurfaceAvailable(bool available);
     void setConversationVisible(bool visible);
     QString toastTitle() const { return toastTitle_; }
     QString toastText() const { return toastText_; }
+    QString toastChannel() const { return toastChannel_; }
+    void hideToast();
     Q_INVOKABLE void presented(QString channel, QString message);
     QString notificationFace() const;
     void openNotification();

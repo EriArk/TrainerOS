@@ -225,7 +225,7 @@ void FluxerSession::reset() {
     retainHistory();saveHistoryCache();historySave_.stop();
     historyCache_.clear();historyLru_.clear();historyFile_.clear();historyAnchor_.clear();
     ++reviewRevision_;reviewBusy_=false;reviewIdentity_.clear();reviewRows_.clear();ownReview_.clear();
-    leaveVoice();calls_.clear();callNotices_.clear();voiceStatus_.clear();
+    leaveVoice();calls_.clear();decliningCalls_.clear();callNotices_.clear();voiceStatus_.clear();
     ++epoch_;
     resetFiles();attachmentBusy_=false;attachmentReply_=nullptr;notificationSound_=true;
     profile_={};userSettings_={};++profileReadRevision_;profileStatus_.clear();profileBusy_=false;person_={};++personRevision_;
@@ -300,6 +300,8 @@ void FluxerSession::publish() {
         const qint64 lastInteraction=validMessage && messageId ? qint64(messageId>>22)+1420070400000LL : 0;
         chats.append(QVariantMap{{"socialHidden",hiddenSocialGroup(it.key())},{"service",user["id"]==lobbyDirectory::bot},{"lastInteraction",lastInteraction},{"avatar",avatar(user)},{"id",it.key()},{"name",name.isEmpty()?QString("Conversation"):name.left(120)},
             {"call",calls_.contains(it.key())&&!calls_.value(it.key())["unavailable"].toBool()},
+            {"callBusy",decliningCalls_.contains(it.key())},
+            {"callError",calls_.value(it.key())["decline_error"].toString()},
             {"ringing",!calls_.value(it.key())["unavailable"].toBool()&&calls_.value(it.key())["ringing"].toArray().contains(self_)&&voiceChannel_!=it.key()},
             {"missedCall",callNotices_.value(it.key())["missed"].toBool()?callNotices_.value(it.key())["message"].toString():QString()},
             {"owner",c["owner_id"].toString()},{"members",c["recipients"].toArray().toVariantList()},
@@ -375,7 +377,7 @@ void FluxerSession::publish() {
         {"presence",userSettings_.value("status").toString()},{"customStatus",customStatus()},
         {"person",person_},{"profile",profile_.toVariantMap()},{"profileStatus",profileStatus_},{"profileBusy",profileBusy_},
         {"audio",audioConfiguration().toVariantMap()},
-        {"unreadCount",unreadCount},{"doNotDisturb",doNotDisturb_},{"privatePreviews",privatePreviews_},
+        {"unreadCount",unreadCount},{"doNotDisturb",doNotDisturb_},{"callsSuppressed",notificationsSuppressed()},{"privatePreviews",privatePreviews_},
         {"mutationBusy",mutationBusy_},{"attachmentBusy",attachmentBusy_},{"notificationSound",notificationSound_},
         {"voice",QVariantMap{{"available",voiceAvailable()},{"channel",voiceChannel_},{"name",voiceName},
             {"summary",voiceName.isEmpty()?voiceStatus_:voiceName+" · "+voiceStatus_},
@@ -951,10 +953,26 @@ void FluxerSession::updateCallNotice(const QString& type,const QString& channel,
 }
 void FluxerSession::voiceCommand(QString operation,const QVariantMap& args) {
     if(mediaCommand(operation,args)){publish();return;}
+    if(operation=="voice-switch") {
+        const auto target=args["channel"].toString();const auto type=channels_.value(target)["type"].toInt(-1);
+        if(voiceChannel_.isEmpty()||voiceChannel_!=args["previous"]||target==voiceChannel_
+           ||!voiceAvailable()||!idValid(target)||(type!=1&&type!=3))return;
+        leaveVoice();operation="voice-join";
+    }
     if(operation=="voice-decline") {
-        const auto id=args["channel"].toString();if(!calls_.contains(id))return;
-        callNotices_.remove(id);
-        request("POST","/v1/channels/"+id+"/call/stop-ringing",{},[this](Reply r){if(r.status<200||r.status>=300)voiceStatus_="Couldn't decline the call. Try again.";publish();});return;
+        const auto id=args["channel"].toString();if(!calls_.contains(id)||decliningCalls_.contains(id))return;
+        const QJsonValue message=calls_[id].value("message_id");
+        calls_[id].remove("decline_error");decliningCalls_.insert(id);publish();
+        request("POST","/v1/channels/"+id+"/call/stop-ringing",{},[this,id,message](Reply r){
+            decliningCalls_.remove(id);
+            if(!calls_.contains(id)||calls_.value(id).value("message_id")!=message){publish();return;}
+            if(r.status>=200&&r.status<300) {
+                callNotices_.remove(id);
+                if(calls_.contains(id)) {auto ringing=calls_[id]["ringing"].toArray();for(int i=ringing.size()-1;i>=0;--i)if(ringing[i]==self_)ringing.removeAt(i);calls_[id]["ringing"]=ringing;}
+                if(!historyFile_.isEmpty()&&!historySave_.isActive())historySave_.start();
+            } else {voiceStatus_="Couldn't decline the call. Try again.";calls_[id]["decline_error"]=voiceStatus_;}
+            publish();
+        });return;
     }
     if(operation=="voice-leave"){leaveVoice();voiceStatus_="Call ended";publish();return;}
     if(operation=="voice-join") {
@@ -1663,7 +1681,6 @@ void FluxerSession::gatewayEvent(const QJsonObject& event) {
         }
         if(type=="CALL_CREATE"||type=="CALL_UPDATE"||type=="CALL_DELETE") {
             const auto id=d["channel_id"].toString();
-            const bool wasRinging=calls_.value(id)["ringing"].toArray().contains(self_);
             if(!idValid(id))return;
             if(type=="CALL_DELETE") {
                 if(d["unavailable"].toBool()){calls_[id]["unavailable"]=true;calls_[id]["ringing"]=QJsonArray{};}
@@ -1674,7 +1691,8 @@ void FluxerSession::gatewayEvent(const QJsonObject& event) {
                 calls_[id]=call;
             }
             updateCallNotice(type,id,d);
-            if(type!="CALL_DELETE"&&!wasRinging&&d["ringing"].toArray().contains(self_)&&!hiddenSocialGroup(id)&&!notificationsSuppressed()&&!muted_.contains(id))emit incomingMessage(generation_,id,"Incoming call","Press Home to answer");
+            // Calls have a persistent, actionable presentation from the snapshot.
+            // They must not pass through visible-conversation message suppression.
             publish();return;
         }
         if(type=="MESSAGE_UPDATE"||type=="MESSAGE_DELETE"||type=="CHANNEL_PINS_UPDATE"||type=="CHANNEL_DELETE"||type=="GUILD_UPDATE"||type=="GUILD_DELETE") {

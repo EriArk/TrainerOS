@@ -566,6 +566,36 @@ int main(int argc, char* argv[]) {
         QObject::connect(&adventureProcess,&ProcessService::finished,shell.social(),[&]{shell.social()->setGameProcess(0);});
         std::unique_ptr<AdventureOverlayService> adventureOverlay;
         PlayerOverlayController playerOverlay(*shell.social(),*shell.keyboard(),exitPresentation);
+        // Incoming calls reuse the game's captured-frame/input lease. They never
+        // create a second input owner or change the game's save/exit lifecycle.
+        bool callOwnsGameMenu=false,callUsesContentInput=false,previousCallContentInput=false;
+        QString gameCallAttempt;
+        const auto syncIncomingCall=[&]{
+            const auto call=shell.social()->incomingCall();
+            const bool show=!call.isEmpty()&&!session.blocked()&&adventureLaunch.active()&&!adventureLaunch.minimized();
+            if(show) {
+                if(!exitPresentation.menuOpen()&&!exitPresentation.capturing()
+                   &&adventureOverlay&&adventureLaunch.exitController().available()
+                   &&adventureLaunch.exitController().phase()==AdventureExitController::Phase::Idle
+                   &&gameCallAttempt!=call["id"].toString()) {
+                    gameCallAttempt=call["id"].toString();
+                    callOwnsGameMenu=true;
+                    // The helper must first acquire the input lease and raise
+                    // the overlay; requesting only a preview bypasses that step.
+                    adventureOverlay->openOptions();
+                }
+                if(exitPresentation.menuOpen()&&!callUsesContentInput) {
+                    previousCallContentInput=exitPresentation.contentInput();callUsesContentInput=true;
+                    exitPresentation.setContentInput(true);
+                }
+            } else {
+                gameCallAttempt.clear();
+                if(callUsesContentInput){callUsesContentInput=false;exitPresentation.setContentInput(previousCallContentInput);}
+                if(callOwnsGameMenu){callOwnsGameMenu=false;exitPresentation.dismissMenu();}
+            }
+        };
+        QObject::connect(shell.social(),&SocialController::changed,&exitPresentation,syncIncomingCall,Qt::QueuedConnection);
+        QObject::connect(&exitPresentation,&AdventureExitPresentation::changed,&exitPresentation,syncIncomingCall,Qt::QueuedConnection);
         QObject::connect(&adventureProcess,&ProcessService::started,&playerOverlay,[&]{
             // Replies bind to every owned game; a gathering lobby must not
             // expose its roster over an unrelated solo game.
@@ -652,10 +682,10 @@ int main(int argc, char* argv[]) {
             for(const auto& value:shell.notifications()) {
                 const auto row=value.toMap();
                 rows.append(QVariantMap{{"id","notice:"+row["id"].toString()},
-                    {"label",row["name"]},{"detail",row["detail"]},{"readOnly",!(adventureOverlay && adventureOverlay->canMinimize())}});
+                    {"label",row["name"]},{"detail",row["detail"]},{"removable",!row["ringing"].toBool()&&!row["pending"].toBool()},{"readOnly",!(adventureOverlay && adventureOverlay->canMinimize())}});
             }
             const bool empty=rows.isEmpty();
-            if(!empty)rows.append(QVariantMap{{"id","dismiss-notifications"},{"label","Dismiss notifications"}});
+            if(!empty)rows.append(QVariantMap{{"id","dismiss-notifications"},{"label","Clear updates"}});
             rows.append(QVariantMap{{"id","back"},{"label","Back"}});
             exitPresentation.setPanel("notifications",empty?"You're all caught up!":"Your updates",rows);
         };
@@ -696,9 +726,10 @@ int main(int argc, char* argv[]) {
             actions.append(shell.social()->incomingCallActions());
             for(const auto& value:shell.notifications()) {
                 const auto row=value.toMap();
-                actions.append(QVariantMap{{"id","notice:"+row["id"].toString()},{"label",row["name"]},{"detail",row["detail"]},{"avatar",row["avatar"]},{"person",!row["name"].toString().isEmpty()},
+                actions.append(QVariantMap{{"id","notice:"+row["id"].toString()},{"label",row["name"]},{"detail",row["detail"]},{"avatar",row["avatar"]},{"person",!row["name"].toString().isEmpty()},{"removable",!row["ringing"].toBool()&&!row["pending"].toBool()},
                     {"readOnly",!(adventureOverlay && adventureOverlay->canMinimize())}});
             }
+            if(!shell.notifications().isEmpty())actions.append(QVariantMap{{"id","dismiss-notifications"},{"label","Clear updates"},{"detail","Keep calls and invitations"}});
             actions.append(QVariantMap{{"id","controls"},{"label","Controls"},{"detail","Start · volume, brightness and more"}});
             exitPresentation.setExtraActions(actions);
             if(exitPresentation.menuOpen()&&exitPresentation.panel()=="notifications")gameNotifications();
@@ -971,10 +1002,15 @@ int main(int argc, char* argv[]) {
         };
         ControllerInput input(nullptr, preferred);
         remotePlay.ownerDevice=[&]{return input.kernelDeviceName();};
-        const auto updateTextInput=[&]{input.setTextEntryEnabled(shell.keyboard()->isOpen()&&(playerOverlay.chatOpen()?exitPresentation.ready():!shell.menuOpen()&&shell.notice().isEmpty()&&!shell.homeMenuOpen()));};
+        const auto updateTextInput=[&]{input.setTextEntryEnabled(shell.social()->incomingCall().isEmpty()&&shell.keyboard()->isOpen()&&(playerOverlay.chatOpen()?exitPresentation.ready():!shell.menuOpen()&&shell.notice().isEmpty()&&!shell.homeMenuOpen()));};
         QObject::connect(&shell,&ShellController::changed,&input,updateTextInput);
         QObject::connect(shell.keyboard(),&TextEntryController::changed,&input,updateTextInput);
         QObject::connect(&exitPresentation,&AdventureExitPresentation::changed,&input,updateTextInput);
+        QString inputCall;
+        QObject::connect(shell.social(),&SocialController::changed,&input,[&]{
+            const auto id=shell.social()->incomingCall()["id"].toString();
+            if(id!=inputCall){inputCall=id;input.requireNeutral();updateTextInput();}
+        });
         QObject::connect(&input,&ControllerInput::textEntered,shell.keyboard(),&TextEntryController::insertText);
         QObject::connect(&input,&ControllerInput::textBackspace,shell.keyboard(),&TextEntryController::backspace);
         QObject::connect(&input,&ControllerInput::textSubmitted,&shell,[&]{shell.keyboard()->dispatch(Action::LocalAction);});
@@ -999,6 +1035,7 @@ int main(int argc, char* argv[]) {
             // An exit prompt must never navigate the hidden shell. The platform
             // input provider feeds its own isolated snapshots to the presenter.
             if (adventureLaunch.exitController().phase() != AdventureExitController::Phase::Idle) return;
+            if(!session.blocked()&&(!adventureLaunch.active()||adventureLaunch.minimized())&&shell.social()->dispatchIncomingCall(action))return;
             if(launchPresentation.visible()){if(action==Action::Back)launchPresentation.cancel();return;}
             if(lobbyImport.open()){lobbyImport.dispatch(action);return;}
             if(playerOverlay.chatOpen()){playerOverlay.dispatch(action);return;}
@@ -1224,7 +1261,7 @@ int main(int argc, char* argv[]) {
                     QObject::connect(adventureOverlay.get(),&AdventureOverlayService::gameRequested,window,[&,window]{
                         adventureLaunch.updateReturnContext(shell.navigationState());window->hide();
                     });
-                    QObject::connect(adventureOverlay.get(),&AdventureOverlayService::contentAction,&shell,[&](Action action){if(shell.gameControlsOpen())shell.dispatchGameControls(action);else playerOverlay.dispatch(action);});
+                    QObject::connect(adventureOverlay.get(),&AdventureOverlayService::contentAction,&shell,[&](Action action){if(shell.social()->dispatchIncomingCall(action))return;if(shell.gameControlsOpen())shell.dispatchGameControls(action);else playerOverlay.dispatch(action);});
                     QObject::connect(adventureOverlay.get(),&AdventureOverlayService::shellRequested,&shell,[&]{if(!pendingSystemAction.isEmpty()){const auto id=std::exchange(pendingSystemAction,QString());if(id=="current-lobby")shell.openGameHubFace("lobby");else shell.systemAction(id);}});
                     QObject::connect(adventureOverlay.get(),&AdventureOverlayService::shellAction,&session,[&](Action action){
                         if(adventureLaunch.minimized())session.dispatch(action);

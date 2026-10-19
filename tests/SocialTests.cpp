@@ -69,6 +69,117 @@ class SocialTests : public QObject {
         s.channel_=channel;s.channels_[channel]={{"id",channel},{"type",1}};
     }
 private slots:
+    void incomingCallPromptSurvivesVisibleDmAndKeepsNavigationAndDraft() {
+        MockLibraryRepository library;MockTrainerRepository trainers;MockAdventureAdapter adapter;
+        DevelopmentPlatformService platform;MockPokedexRepository dex;MockHallOfFameRepository hall;MockAchievementProvider achievements;
+        ShellController shell(library,trainers,adapter,platform,builtinExperiences(dex,dex),hall,achievements);
+        auto* c=shell.social();shell.goToPage(3);const auto origin=shell.navigationState();
+        c->setSurfaceAvailable(true);c->setConversationVisible(true);c->drafts_[channel]="unsent";
+        QVariantMap row{{"id",channel},{"name","Friend"},{"kind","chats"},{"ringing",true},{"call",true}};
+        QVariantMap state{{"state","connected"},{"userId","self"},{"channel",channel},{"notificationSound",false},
+            {"voice",QVariantMap{{"available",true}}},{"chats",QVariantList{row}}};
+        c->receive(0,state);QSignalSpy commands(c,&SocialController::commandRequested);
+        QCOMPARE(c->incomingCall()["id"].toString(),QString(channel));
+        shell.dispatch(Action::NextPage);QCOMPARE(shell.navigationState(),origin);QVERIFY(commands.isEmpty());
+        c->respondToIncomingCall("stale",true);QVERIFY(commands.isEmpty());
+        shell.dispatch(Action::Confirm);QCOMPARE(commands.last()[0].toString(),QString("voice-join"));
+        QCOMPARE(c->drafts_[channel],QString("unsent"));QCOMPARE(shell.navigationState(),origin);
+        row["callBusy"]=true;state["chats"]=QVariantList{row};c->receive(0,state);commands.clear();
+        shell.dispatch(Action::Back);QVERIFY(commands.isEmpty());
+        row["callBusy"]=false;state["chats"]=QVariantList{row};c->receive(0,state);
+        shell.dispatch(Action::Back);QCOMPARE(commands.last()[0].toString(),QString("voice-decline"));
+        row["ringing"]=false;state["chats"]=QVariantList{row};c->receive(0,state);QVERIFY(c->incomingCall().isEmpty());
+        commands.clear();c->respondToIncomingCall(channel,true);QVERIFY(commands.isEmpty());
+        row["ringing"]=true;state["chats"]=QVariantList{row};state["callsSuppressed"]=true;c->receive(0,state);QVERIFY(c->incomingCall().isEmpty());
+        state["callsSuppressed"]=false;row["muted"]=true;state["chats"]=QVariantList{row};c->receive(0,state);QVERIFY(c->incomingCall().isEmpty());
+        row["muted"]=false;row["socialHidden"]=true;state["chats"]=QVariantList{row};c->receive(0,state);QVERIFY(c->incomingCall().isEmpty());
+        state["state"]="signed-out";c->receive(0,state);QVERIFY(c->incomingCall().isEmpty());
+    }
+    void declineCallWaitsForProviderAndAllowsRetryWithoutParallelRequests() {
+        FluxerSession s;bind(s);Completion pending;int requests=0;
+        s.setTransport([&](auto method,auto path,auto,Completion done,QByteArray){QCOMPARE(method,QByteArray("POST"));QVERIFY(path.endsWith("/call/stop-ringing"));++requests;pending=done;});
+        s.calls_[channel]={{"ringing",QJsonArray{s.self_}}};
+        s.voiceCommand("voice-decline",{{"channel",channel}});QVERIFY(s.decliningCalls_.contains(channel));
+        s.voiceCommand("voice-decline",{{"channel",channel}});QCOMPARE(requests,1);
+        pending({0,{}});QVERIFY(!s.decliningCalls_.contains(channel));QVERIFY(s.calls_[channel]["ringing"].toArray().contains(s.self_));
+        s.voiceCommand("voice-decline",{{"channel",channel}});QCOMPARE(requests,2);pending({204,{}});
+        QVERIFY(!s.decliningCalls_.contains(channel));QVERIFY(s.calls_[channel]["ringing"].toArray().isEmpty());
+    }
+    void clearingOldNotificationsKeepsLiveInvitationsAndNewMessagesReturn() {
+        SocialController c;QSignalSpy commands(&c,&SocialController::commandRequested);
+        QVariantMap old{{"id",channel},{"kind","chats"},{"name","Friend"},{"unread",1},{"last","123"}};
+        QVariantMap ringing{{"id",remote},{"kind","chats"},{"ringing",true}};
+        QVariantMap state{{"state","connected"},{"userId","self"},{"notificationSound",false},{"chats",QVariantList{old,ringing}}};
+        c.receive(0,state);c.dismissNotifications();QCOMPARE(c.notifications().size(),1);QVERIFY(commands.isEmpty());
+        c.receive(0,state);QCOMPARE(c.notifications().size(),1);
+        old["last"]="124";state["chats"]=QVariantList{old,ringing};c.receive(0,state);QCOMPARE(c.notifications().size(),2);
+    }
+    void callBarControllerActionsUseTheExistingSession() {
+        SocialController c;QSignalSpy commands(&c,&SocialController::commandRequested);
+        c.receive(0,{{"state","connected"},{"userId","self"},{"channel",channel},
+            {"chats",QVariantList{QVariantMap{{"id",channel},{"kind","chats"},{"name","Friend"}}}},
+            {"voice",QVariantMap{{"available",true},{"channel",channel},{"state","connected"}}}});
+        c.reading_=true;c.conversationControl_=1;commands.clear();
+        c.dispatch(Action::Down);QCOMPARE(c.conversationControl_,3);c.dispatch(Action::Confirm);
+        QCOMPARE(commands.last()[0].toString(),QString("voice-mute"));
+        c.dispatch(Action::Right);c.dispatch(Action::Confirm);QCOMPARE(commands.last()[0].toString(),QString("voice-output"));
+        c.dispatch(Action::Right);c.dispatch(Action::Confirm);QCOMPARE(commands.last()[0].toString(),QString("voice-leave"));
+    }
+    void homeInboxSelectClearsOldNotificationsAndKeepsPendingInvites() {
+        MockLibraryRepository library;MockTrainerRepository trainers;MockAdventureAdapter adapter;
+        DevelopmentPlatformService platform;MockPokedexRepository dex;MockHallOfFameRepository hall;MockAchievementProvider achievements;
+        ShellController shell(library,trainers,adapter,platform,builtinExperiences(dex,dex),hall,achievements);
+        auto* c=shell.social();c->receive(0,{{"state","connected"},{"userId","self"},
+            {"chats",QVariantList{QVariantMap{{"id",channel},{"name","Friend"},{"kind","chats"},{"unread",1},{"last","123"}}}}});
+        c->activityNotifications_.append(QVariantMap{{"id","pending"},{"session","invite"},{"runtime",true}});
+        c->runtimeInvitation_={{"request","invite"}};
+        shell.dispatch(Action::Home);shell.dispatch(Action::Right);
+        QVERIFY(shell.notificationsOpen());QCOMPARE(shell.notifications().size(),2);
+        QSignalSpy commands(c,&SocialController::commandRequested);shell.dispatch(Action::LocalAction);
+        QCOMPARE(shell.notifications().size(),1);QVERIFY(shell.notifications().first().toMap()["pending"].toBool());QVERIFY(commands.isEmpty());
+        shell.dismissNotificationById("pending");QCOMPARE(shell.notifications().size(),1);
+    }
+    void switchingCallsRequiresExplicitConfirmationAndKeepsOldCallOnCancel() {
+        SocialController c;c.receive(0,{{"state","connected"},{"userId","self"},{"channel",remote},
+            {"chats",QVariantList{QVariantMap{{"id",remote},{"name","New friend"},{"kind","chats"}}}},
+            {"voice",QVariantMap{{"available",true},{"channel",channel},{"name","Old friend"}}}});
+        QSignalSpy commands(&c,&SocialController::commandRequested);c.call();
+        QVERIFY(c.menuTitle().contains("Switch"));QVERIFY(commands.isEmpty());
+        c.dispatch(Action::Back);QVERIFY(commands.isEmpty());QCOMPARE(c.account()["voice"].toMap()["channel"].toString(),QString(channel));
+        c.call();c.selectMenu(1);QCOMPARE(commands.last()[0].toString(),QString("voice-switch"));
+        QCOMPARE(commands.last()[1].toMap()["previous"].toString(),QString(channel));
+        QCOMPARE(commands.last()[1].toMap()["channel"].toString(),QString(remote));
+    }
+    void viewedUpdatesDisappearOnlyAfterTheActualTailIsPresented() {
+        SocialController c;c.setSurfaceAvailable(true);c.setConversationVisible(true);
+        QVariantMap chat{{"id",channel},{"name","Friend"},{"kind","chats"},{"last","10"},{"unread",1},{"missedCall","missed"}};
+        QVariantMap state{{"state","connected"},{"userId","self"},{"channel",channel},{"readTail","10"},{"chats",QVariantList{chat}}};
+        c.receive(0,state);QCOMPARE(c.notifications().size(),1);
+        c.presented(channel,"9");QCOMPARE(c.notifications().size(),1);
+        c.presented(channel,"10");QVERIFY(c.notifications().isEmpty());
+        c.receive(0,state);QVERIFY(c.notifications().isEmpty());
+        chat["last"]="11";state["chats"]=QVariantList{chat};state["readTail"]="11";c.receive(0,state);QCOMPARE(c.notifications().size(),1);
+        c.setConversationVisible(false);c.presented(channel,"11");QCOMPARE(c.notifications().size(),1);
+        c.setConversationVisible(true);c.presented(channel,"11");QVERIFY(c.notifications().isEmpty());
+    }
+    void clearUpdatesPreservesFriendRequestsAndViewedRequestStaysInPeople() {
+        SocialController c;c.receive(0,{{"state","connected"},{"userId","self"},
+            {"friends",QVariantList{QVariantMap{{"id",remote},{"name","Friend"},{"type",3}}}}});
+        QSignalSpy commands(&c,&SocialController::commandRequested);c.dismissNotifications();
+        QCOMPARE(c.notifications().size(),1);QVERIFY(commands.isEmpty());
+        c.openNotificationAt(0);QVERIFY(c.notifications().isEmpty());QCOMPARE(c.peopleRows().size(),1);
+        for(const auto& args:commands)QVERIFY(args[0]!="remove");
+    }
+    void peopleFilterCanBeClearedAndRetryUsesOnlyCurrentFailedMessage() {
+        SocialController c;c.receive(0,{{"state","connected"},{"userId","self"},{"channel",channel},
+            {"chats",QVariantList{QVariantMap{{"id",channel},{"kind","chats"},{"name","Friend"}}}},
+            {"messages",QVariantList{QVariantMap{{"id","failed"},{"retryable",true}},QVariantMap{{"id","sent"},{"retryable",false}}}}});
+        c.peopleFilter_="missing";c.dispatch(Action::Back);QVERIFY(c.peopleFilter_.isEmpty());
+        QSignalSpy commands(&c,&SocialController::commandRequested);
+        c.retryMessage("stale");c.retryMessage("sent");QVERIFY(commands.isEmpty());
+        c.retryMessage("failed");QCOMPARE(commands.size(),1);QCOMPARE(commands.last()[0].toString(),QString("retry-message"));
+        QCOMPARE(commands.last()[1].toMap()["channel"].toString(),QString(channel));
+    }
     void routeLossRetiresPoolCompletesBusyRequestsAndNeverReplaysMutation() {
         FluxerSession s;bind(s);const auto token=s.token_;s.gatewaySession_="resume-session";
         auto* manager=new HeldSocialNetwork(&s);s.network_=manager;
@@ -1088,7 +1199,7 @@ private slots:
         c.sendDraft();QCOMPARE(commands.count(),1);
         c.call();QCOMPARE(commands.last()[0].toString(),QString("voice-join"));
         commands.clear();c.snapshot_["voice"]=QVariantMap{{"channel","other-call"},{"available",true},{"muted",true}};
-        c.call();QVERIFY(commands.isEmpty());QCOMPARE(c.menuTitle(),QString("Call"));QCOMPARE(c.menu().size(),3);QVERIFY(!c.menuCommands_.contains("open-lobby"));
+        c.call();QVERIFY(commands.isEmpty());QCOMPARE(c.menuTitle(),QString("Switch call?"));QCOMPARE(c.menu().size(),2);QVERIFY(!c.menuCommands_.contains("open-lobby"));
         c.closeMenu();c.snapshot_["messages"]=QVariantList{QVariantMap{{"id","older"}},QVariantMap{{"id","newer"}}};
         c.retainMessagePosition(0,false);QCOMPARE(commands.last()[1].toMap()["id"].toString(),QString("older"));QVERIFY(c.reading());
     }
@@ -1500,7 +1611,7 @@ private slots:
         ShellController shell(library,trainers,adapter,platform,builtinExperiences(dex,dex),hall,achievements);
         auto* social=shell.social();QSignalSpy commands(social,&SocialController::commandRequested);
         shell.goToPage(1);const auto origin=shell.navigationState();commands.clear();
-        social->receive(0,{{"state","connected"},{"userId","self"},{"voice",QVariantMap{{"available",true}}},
+        social->receive(0,{{"callsSuppressed",true},{"state","connected"},{"userId","self"},{"voice",QVariantMap{{"available",true}}},
             {"chats",QVariantList{QVariantMap{{"id",channel},{"name","Friend"},{"kind","chats"},{"ringing",true}}}}});
         QVERIFY(!shell.homeMenuOpen());QVERIFY(commands.isEmpty());
         shell.dispatch(Action::Home);
@@ -1515,7 +1626,7 @@ private slots:
         ShellController shell(library,trainers,adapter,platform,builtinExperiences(dex,dex),hall,achievements);
         auto* social=shell.social();QSignalSpy commands(social,&SocialController::commandRequested);
         QVariantMap chat{{"id",channel},{"name","Friend"},{"kind","chats"},{"ringing",true}};
-        QVariantMap state{{"state","connected"},{"userId","self"},{"voice",QVariantMap{{"available",true}}},{"chats",QVariantList{chat}}};
+        QVariantMap state{{"callsSuppressed",true},{"state","connected"},{"userId","self"},{"voice",QVariantMap{{"available",true}}},{"chats",QVariantList{chat}}};
         social->receive(0,state);shell.dispatch(Action::Home);shell.dispatch(Action::Down);commands.clear();
         const QString decline="decline-call:"+QString(channel);
         QCOMPARE(shell.homeMenuActions()[shell.homeMenuFocus()].toMap()["id"].toString(),decline);
@@ -1540,7 +1651,7 @@ private slots:
         auto* social=shell.social();QSignalSpy commands(social,&SocialController::commandRequested);
         shell.goToPage(3);const auto origin=shell.navigationState();
         QVariantMap chat{{"id",channel},{"name","Friend"},{"kind","chats"},{"ringing",true},{"call",true}};
-        QVariantMap state{{"state","connected"},{"userId","self"},{"voice",QVariantMap{{"available",true}}},{"chats",QVariantList{chat}}};
+        QVariantMap state{{"callsSuppressed",true},{"state","connected"},{"userId","self"},{"voice",QVariantMap{{"available",true}}},{"chats",QVariantList{chat}}};
         social->receive(0,state);shell.dispatch(Action::Home);commands.clear();
         chat["ringing"]=false;state["chats"]=QVariantList{chat};social->receive(0,state);
         QCOMPARE(shell.homeMenuActions()[shell.homeMenuFocus()].toMap()["label"].toString(),QString("Join call"));
@@ -1596,7 +1707,7 @@ private slots:
         ShellController shell(library,trainers,adapter,platform,builtinExperiences(dex,dex),hall,achievements);
         auto* social=shell.social();QSignalSpy commands(social,&SocialController::commandRequested);
         shell.goToPage(3);const auto origin=shell.navigationState();
-        social->receive(0,{{"state","connected"},{"userId","self"},{"voice",QVariantMap{{"available",true}}},
+        social->receive(0,{{"callsSuppressed",true},{"state","connected"},{"userId","self"},{"voice",QVariantMap{{"available",true}}},
             {"chats",QVariantList{QVariantMap{{"id",channel},{"name","Friend"},{"kind","chats"},{"ringing",true}}}}});
         shell.dispatch(Action::Home);shell.dispatch(Action::Right);QVERIFY(shell.notificationsOpen());
         QVERIFY(social->notifications().first().toMap()["answerable"].toBool());
@@ -1882,7 +1993,7 @@ private slots:
         commands.clear();c.openNotificationAt(0);QVERIFY(!c.contacts());
         QCOMPARE(c.rows().value(c.focusIndex()).toMap()["id"].toString(),"request");
         for(const auto& command:commands)QVERIFY(command[0].toString()!="accept");
-        state["chats"]=QVariantList{};c.receive(0,state);QCOMPARE(c.notifications().size(),1);
+        state["chats"]=QVariantList{};c.receive(0,state);QVERIFY(c.notifications().isEmpty());
         c.setOwner("another-trainer");QVERIFY(c.notifications().isEmpty());
     }
     void linkPacketsAreHiddenButKeepTheirReadWatermark() {

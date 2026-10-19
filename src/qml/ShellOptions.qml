@@ -33,12 +33,16 @@ Panel {
     }
     Item { x: activity.x+activity.width+18; y: activity.y; width: parent.width-x-25; height: activity.height
         Text { x: 10; y: 15; text: "Notifications"; color: Theme.ink; font.family: Theme.displayFamily; font.pixelSize: 23 }
+        CapButton { anchors.right: parent.right; y: 12; width: 104; height: 29; label: "Clear updates"; textSize: 12; centered: true; claimsFocus: false; tint: Theme.blue; visible: root.shell.notifications.length>0; onActivated: root.shell.dismissNotifications() }
         ListView { id: notices; x: 2; y: 61; width: parent.width-4; height: parent.height-y; clip: true; spacing: 9
             model: root.shell.notifications; currentIndex: root.inbox?root.shell.notificationFocus:-1
             onCurrentIndexChanged: if(currentIndex>=0)positionViewAtIndex(currentIndex,ListView.Contain)
-            delegate: ActivityRow { required property int index; required property var modelData
-                width: notices.width; label: modelData.name; detail: modelData.detail || ""; glyph: modelData.request?"party":"chat"; accent: modelData.request?Theme.pink:Theme.blue
-                selected: root.inbox && root.shell.notificationFocus===index; onActivated: root.shell.openNotificationById(modelData.id)
+            delegate: Item { required property int index; required property var modelData
+                width: notices.width; height: 59
+                ActivityRow { width: parent.width-36; height: parent.height; label: modelData.name; detail: modelData.detail || ""; glyph: modelData.request?"party":"chat"; accent: modelData.request?Theme.pink:Theme.blue
+                    selected: root.inbox && root.shell.notificationFocus===index; onActivated: root.shell.openNotificationById(modelData.id)
+                }
+                SocialIconButton { anchors.right: parent.right; anchors.verticalCenter: parent.verticalCenter; icon: "x"; label: "Remove notification"; visible: !modelData.ringing && !modelData.pending; onClicked: root.shell.dismissNotificationById(modelData.id) }
             }
         }
         Text { anchors.centerIn: parent; visible: notices.count===0; text: "All caught up"; color: Theme.muted; font.family: Theme.displayFamily; font.pixelSize: 22 }

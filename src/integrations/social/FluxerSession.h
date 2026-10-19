@@ -162,6 +162,7 @@ private:
     QSet<QString> mediaBlocked_;
     void voicePresence(const QJsonObject& event);
     QHash<QString,QJsonObject> calls_;
+    QSet<QString> decliningCalls_;
     QHash<QString,QJsonObject> callNotices_;
     void updateCallNotice(const QString& type,const QString& channel,const QJsonObject& event);
     bool voiceAvailable() const;

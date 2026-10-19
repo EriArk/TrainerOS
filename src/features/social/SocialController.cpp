@@ -266,7 +266,18 @@ void SocialController::presented(QString channel,QString message) {
     if(!surfaceAvailable_||!conversationVisible_||contacts_||face_=="friends"||!menu_.isEmpty()
         ||snapshot_["historyBusy"].toBool()||snapshot_["channel"]!=channel
         ||snapshot_.value("readTail",messages().isEmpty()?QString():messages().last().toMap()["id"]).toString()!=message)return;
+    acknowledgeConversation(channel,message);
     emit commandRequested("read",{{"channel",channel},{"message",message}});
+}
+void SocialController::acknowledgeConversation(const QString& channel,const QString& message) {
+    if(message.isEmpty())return;
+    for(const auto& v:notifications()) {
+        const auto row=v.toMap();
+        if(row["id"]!=channel||row["ringing"].toBool()||row["pending"].toBool()||row["last"]!=message)continue;
+        const auto stamp=notificationStamp(row);
+        if(dismissedNotifications_.value(channel)==stamp)return;
+        dismissedNotifications_[channel]=stamp;if(toastChannel_==channel)hideToast();saveNotifications();emit changed();return;
+    }
 }
 QString SocialController::notificationFace() const {
     if(toastChannel_.startsWith("reminder:"))return "lobby";
@@ -299,12 +310,42 @@ void SocialController::dismissNotificationAt(int index) {
         saveNotifications();emit changed();return;
     }
     dismissedNotifications_[row["id"].toString()]=notificationStamp(row);
+    if(toastChannel_==row["id"])hideToast();
     saveNotifications();
     emit changed();
 }
+void SocialController::hideToast(){toastTimer_.stop();toastTitle_.clear();toastText_.clear();toastChannel_.clear();emit presentationChanged();}
 void SocialController::dismissNotifications() {
     const auto list=notifications();
-    for(int i=list.size()-1;i>=0;--i)dismissNotificationAt(i);
+    for(int i=list.size()-1;i>=0;--i) {
+        const auto row=list[i].toMap();
+        if(!row["ringing"].toBool()&&!row["pending"].toBool()&&!row["request"].toBool())dismissNotificationAt(i);
+    }
+}
+QVariantMap SocialController::incomingCall() const {
+    if(snapshot_["state"]!="connected" || snapshot_["doNotDisturb"].toBool() || snapshot_["callsSuppressed"].toBool())return {};
+    for(const auto& value:notifications()) {
+        const auto row=value.toMap();
+        if(!row["ringing"].toBool())continue;
+        bool blocked=false;
+        for(const auto& friendValue:snapshot_["friends"].toList()) {
+            const auto person=friendValue.toMap();if(person["type"].toInt()!=2)continue;
+            for(const auto& member:row["members"].toList())if(member.toMap()["id"]==person["id"])blocked=true;
+        }
+        if(!blocked)return row;
+    }
+    return {};
+}
+void SocialController::respondToIncomingCall(const QString& channel,bool accept) {
+    const auto call=incomingCall();
+    if(call["id"]!=channel||call["callBusy"].toBool())return;
+    answerCall(channel,accept);
+}
+bool SocialController::dispatchIncomingCall(Action action) {
+    const auto call=incomingCall();if(call.isEmpty())return false;
+    if(action==Action::Confirm)respondToIncomingCall(call["id"].toString(),true);
+    else if(action==Action::Back)respondToIncomingCall(call["id"].toString(),false);
+    return true;
 }
 bool SocialController::answerCall(const QString& channel,bool accept,bool allowOngoing) {
     if(snapshot_["state"]!="connected")return false;
@@ -405,6 +446,7 @@ void SocialController::openNotificationAt(int index) {
         setFace("lobby");selectLobby(1);toastTimer_.stop();toastTitle_.clear();toastText_.clear();toastChannel_.clear();emit presentationChanged();return;
     }
     if(row["runtime"].toBool()) {
+        if(!row["pending"].toBool()){activityNotifications_.removeIf([&](const QVariant& v){return v.toMap()["id"]==row["id"];});saveNotifications();}
         setFace("chats");
         if(row["pending"].toBool())emit runtimeAction("multiplayer-request:"+row["session"].toString());
         else {menuMode_="missed";menuTitle_=row["name"].toString();menuDetail_="This invitation has expired. Ask for a new invitation.";menu_={"Close"};menuCommands_={"cancel"};menuFocus_=0;emit changed();}
@@ -418,6 +460,7 @@ void SocialController::openNotificationAt(int index) {
     }
     setFace(face);selection_.stop();reading_=false;contacts_=false;
     if(row["request"].toBool()) {
+        dismissedNotifications_[row["id"].toString()]=notificationStamp(row);saveNotifications();
         profile(row["id"].toString());
         const auto people=rows();for(int i=0;i<people.size();++i)if(people[i].toMap()["id"]==row["id"]){focus_=i;break;}
     } else {
@@ -448,6 +491,7 @@ void SocialController::openNotification() {
 void SocialController::receive(quint64 generation,QVariantMap snapshot) {
     PerformanceTrace::Scope perf("SocialController::receive");
     if(generation!=generation_)return;
+    const auto previousCall=incomingCall()["id"].toString();
     const auto relations=[](const QVariant& list){QStringList keys;for(const auto& v:list.toList()){const auto r=v.toMap();keys.append(r["id"].toString()+":"+r["type"].toString());}keys.sort();return keys;};
     const bool contactsChanged=relations(snapshot_["friends"])!=relations(snapshot["friends"]);
     const auto roomChannel=viewedLobby().state()["conversation"].toString();
@@ -555,6 +599,8 @@ void SocialController::receive(quint64 generation,QVariantMap snapshot) {
         discoverPage_=qBound(0,discoverPage_,(int(searchResults().size())-1)/pageSize);
         if(searchFocus_<0&&discoverArea_=="results")searchFocus_=discoverPage_*pageSize;
     }
+    const auto call=incomingCall();
+    if(!call.isEmpty()&&call["id"].toString()!=previousCall&&(surfaceAvailable_||gameActive_)&&snapshot_.value("notificationSound",true).toBool())media_.chime();
     emit changed();
 }
 QVariantMap SocialController::account() const {
@@ -648,6 +694,9 @@ QVariantList SocialController::hints() const {
                 case 0: action="Info"; break;
                 case 1: action="Call"; break;
                 case 2: action="Options"; break;
+                case 3: action="Microphone"; break;
+                case 4: action="Call sound"; break;
+                case 5: action="End call"; break;
                 case 10: action="Attach"; break;
                 case 11: action="Write"; break;
                 case 12: action="Emoji"; break;
@@ -696,6 +745,15 @@ void SocialController::sendDraft() {
     if(!files_.selected().isEmpty()){files_.send(draft());return;}
     send();
 }
+void SocialController::retryMessage(const QString& id) {
+    if(!conversation()||snapshot_["state"]!="connected"||!menu_.isEmpty())return;
+    for(const auto& value:messages()) {
+        const auto row=value.toMap();
+        if(row["id"]==id&&row["retryable"].toBool()){
+            emit commandRequested("retry-message",{{"channel",snapshot_["channel"]},{"id",id}});return;
+        }
+    }
+}
 void SocialController::lobbyChatTools(){
     if(!lobbyChatVisible())return;
     menu_.clear();menuCommands_.clear();menuMode_="lobby-files";menuTitle_="Lobby chat";menuDetail_.clear();menuFocus_=0;
@@ -734,6 +792,12 @@ void SocialController::call() {
     if(!conversation()||!menu_.isEmpty()||snapshot_["state"]!="connected")return;
     const auto voice=snapshot_["voice"].toMap();
     if(!voice["channel"].toString().isEmpty()){
+        if(voice["channel"]!=snapshot_["channel"]&&currentChat()["guild"].toString().isEmpty()) {
+            menuMode_="switch-call";menuTitle_="Switch call?";
+            menuDetail_="Leave "+voice["name"].toString()+" and call "+conversationName()+"?";
+            menuChannel_=snapshot_["channel"].toString();menuSubject_=voice["channel"].toString();
+            menu_={"Keep current call","Switch call"};menuCommands_={"cancel","switch-call"};menuFocus_=0;emit changed();return;
+        }
         menuMode_="call";menuTitle_="Call";menuDetail_=voice["name"].toString();menuChannel_=voice["channel"].toString();menuFocus_=0;
         menu_={voice["muted"].toBool()?"Turn microphone on":"Mute microphone",voice["deaf"].toBool()?"Enable call sound":"Silence call sound","Leave call"};
         menuCommands_={"voice-mute","voice-output","voice-leave"};emit changed();return;
@@ -1183,6 +1247,12 @@ void SocialController::confirmAction(QString title,QString operation,QString id)
 void SocialController::selectMenu(int index) {
     if(index<0||index>=menuCommands_.size()||snapshot_["mutationBusy"].toBool())return;
     const auto command=menuCommands_[index];
+    if(command=="switch-call"){
+        const auto target=menuChannel_,previous=menuSubject_;closeMenu();
+        if(snapshot_["state"]=="connected"&&snapshot_["voice"].toMap()["channel"]==previous)
+            emit commandRequested("voice-switch",{{"channel",target},{"previous",previous}});
+        return;
+    }
     if(command=="ask-leave-community"||command=="ask-delete-community") {
         const auto guild=menuGuild_;const auto name=menuTitle_;const bool deleting=command=="ask-delete-community";
         confirmAction((deleting?"Delete ":"Leave ")+name+"?",deleting?"delete-community":"leave-community",guild);
@@ -1440,7 +1510,7 @@ void SocialController::dispatch(Action action) {
             if(m["attachments"].toList().size()==1)selectMenu(0);
         }
     }else if(conversation()&&(rows().value(focus_).toMap()["id"]==snapshot_["channel"]||rows().value(focus_).toMap()["channel"]==snapshot_["channel"])){reading_=true;conversationControl_=messages().isEmpty()?11:-1;}else activate(focus_);}
-    else if(action==Action::Back){if(reading_)reading_=false;else communityBack();}
+    else if(action==Action::Back){if(reading_)reading_=false;else if(face_=="chats"&&!peopleFilter_.isEmpty())clearPeopleFilter();else communityBack();}
     else if(action==Action::Secondary){if(face_=="groups"&&!conversation())openPeople("create-group");
         else if(face_=="communities"&&!conversation()){textPurpose_="create-community";emit textRequested("Community name",QString(),100);}else compose();}
     else if(action==Action::ChangeView)compose();

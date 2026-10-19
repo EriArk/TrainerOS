@@ -32,6 +32,7 @@ void SocialController::sendNotificationChat(const QString& channel){
 }
 void SocialController::presentedNotificationChat(const QString& channel,const QString& message){
     if(!notificationChatValid(channel)||snapshot_["channel"]!=channel||snapshot_["historyBusy"].toBool()||snapshot_["readTail"]!=message)return;
+    acknowledgeConversation(channel,message);
     emit commandRequested("read",{{"channel",channel},{"message",message}});
 }
 QVariantMap SocialController::gameChat() const {

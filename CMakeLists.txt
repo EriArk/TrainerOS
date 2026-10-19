@@ -445,6 +445,7 @@ qt_add_qml_module(traineros
         src/qml/GameSettingTile.qml
         src/qml/ActivityRow.qml
         src/qml/PassiveNotice.qml
+        src/qml/IncomingCall.qml
         src/qml/LeagueBadge.qml
         src/qml/BadgeTray.qml
         src/qml/AdventureButton.qml
