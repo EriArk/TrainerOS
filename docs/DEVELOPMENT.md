@@ -1,5 +1,9 @@
 # Native development
 
+> **Current reading order (19 October 2026):** [current product architecture](PRODUCT_ARCHITECTURE_RU.md) → [documentation index](README.md) → [active roadmap/tasks](ROADMAP.md) and scoped GitHub issue → this native build guide. The original '9 October UX-02 doc-only planning boundary' below is a **dated build context**, not the latest target. Never infer shipping of #206/#224/#233/#235–244 from docs alone.
+
+---
+
 **Current planning boundary:** [UX-02 map](UX_OPTIONS_MAP_RU.md) specifies planned
 Options/Select/live-game changes; [#161–173](EXPANSION_161_173.md) maps dependencies.
 The 9 October map-first pass edits documentation only, preserving MP-02 timer WIP.
