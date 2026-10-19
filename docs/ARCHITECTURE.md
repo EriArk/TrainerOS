@@ -1,5 +1,9 @@
 # TrainerOS Architecture
 
+> **Current source-of-truth (19 October 2026):** [product architecture and system ownership](PRODUCT_ARCHITECTURE_RU.md) + specific accepted issues. The historical composed two-game-primary Experience and five semantic slots described immediately below were superseded by **Home / Games / GameHub / Social / Apps**, with optional **GameHub Adapter** and one common **Lobby** (#206/#207/#224/#216). [#235–244](https://github.com/EriArk/TrainerOS/issues/235) introduce a **planned**, low-friction Platform SDK / Network Fabric facade to existing services, not a shipped plugin ABI or new backend. Keep existing code, save, process and provider boundaries until their own scoped migrations are implemented. Dated technical evidence below stays valid in its original build context.
+
+---
+
 ## Planned composed game experience — #174–178 and adaptive Home
 
 The [owner's adaptive-Home correction](EXPANSION_174_178.md) extends the same
