@@ -1,5 +1,9 @@
 # Native Social - conversations and discovery
 
+> **Current product UX (19 October 2026):** see [TrainerOS architecture](PRODUCT_ARCHITECTURE_RU.md), [Social v3 #128](https://github.com/EriArk/TrainerOS/issues/128), children #217–223, and [canonical GameHub Lobby #179](https://github.com/EriArk/TrainerOS/issues/179). Social has **Messages / Communities / Discover**; normal multiplayer belongs to **GameHub Lobby**. Global X/Y are **Quick Apps / Recent Games & Favorites** in shell, not the former Social X compose/Y Together. The dated installed Social/Fluxer evidence below is preserved, but **do not reimplement old UI shortcuts**. Social Activities and public developer APIs belong to approved **future** #235–244; they are not yet shipped.
+
+---
+
 **Installed UX-01, 2026-10-08:** unified DM/group Messages, Communities and
 Discover now run on Flip/Odin. X composes, Y opens Together, and direct touch
 buttons expose Send, pictures, voice messages, calls and context. Home/Social
