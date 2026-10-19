@@ -1,5 +1,9 @@
 # TrainerOS — состояние проекта
 
+> **Status/evidence boundary (19 October 2026):** The cumulative **implementation and device snapshot below is dated 14 October**; it is not a claim that the major 15–19 October interface/SDK targets were shipped. The accepted **future** product layout and system/API direction are summarized in [current product architecture](docs/PRODUCT_ARCHITECTURE_RU.md), with issues [#206](https://github.com/EriArk/TrainerOS/issues/206), [#224](https://github.com/EriArk/TrainerOS/issues/224), [#233](https://github.com/EriArk/TrainerOS/issues/233), [#234](https://github.com/EriArk/TrainerOS/issues/234), and **[#235–244](https://github.com/EriArk/TrainerOS/issues/235)**. Do not interpret the older public text or captures below as final UI evidence. Documentation maintenance itself introduces no new runtime capabilities.
+
+---
+
 Обновлено: **14 октября 2026**. Сводка охватывает работу с начала проекта
 5 сентября по подключение Remote Play к лобби 14 октября. Источники — история `main`, документы
 функций и реестр задач GitHub, сверенный 13 октября. Это текущий срез; история
