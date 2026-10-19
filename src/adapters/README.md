@@ -1,5 +1,8 @@
 # Game experience adapters
 
+> **Architecture transition — 19 October 2026.** This file describes current compiled adapters and in-tree behavior; [the new product map](../../docs/PRODUCT_ARCHITECTURE_RU.md) and [#207](https://github.com/EriArk/TrainerOS/issues/207) are the accepted **target**: five universal primaries, **GameHub / Overview / RA / optional Adapter / Lobby**, no game-supplied primary slots. Preserve the current runtime/semantic/save boundaries and tests during migration. Target SDK packaging [#92](https://github.com/EriArk/TrainerOS/issues/92) and Platform SDK [#235](https://github.com/EriArk/TrainerOS/issues/235) remain separate future work.
+
+
 Each game family has one directory here. `pokemon/` owns its presentation and
 controller orchestration, including the game persona; `generic/` supplies ordinary
 game details, observed sessions and verified achievements. `BuiltinExperiences.cpp`
@@ -7,9 +10,7 @@ is the explicit application composition list.
 
 The contract is [ExperienceModule](../core/experience/ExperienceModule.h).
 It supplies a versioned descriptor, a compiled-resource presenter, Home projection,
-local input/actions, focus/modal guards and opaque navigation state. The host owns
-the five navigation slots, universal identity/profile, history, accounts, Start,
-Options, actual runtime/session ownership and authorized service boundaries.
+local input/actions, focus/modal guards and opaque navigation state. The **current implementation** hosts legacy semantic navigation slots; the **target** shell owns the five universal primaries and GameHub's fixed faces. In both cases it owns universal identity/profile, history, accounts, Start, Options, actual runtime/session and authorized service boundaries.
 
 A new adapter adds its directory, a factory registration and CMake sources/resources.
 It must not modify ShellController, Main.qml or ExperienceHost. Application-level
