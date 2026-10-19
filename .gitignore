@@ -100,3 +100,6 @@ device-check-*.json
 # Local agent configuration and run artifacts (never global Codex history)
 /.codex/
 /.codex-*/
+
+# Local demo recordings; index and checksums are tracked
+/videos/**/*.mp4

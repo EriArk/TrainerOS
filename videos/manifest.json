@@ -1,0 +1,227 @@
+[
+  {
+    "file": "sources/active-lobby-intro.mp4",
+    "bytes": 849700,
+    "sha256": "8542433148e8a9803ed7fb93e1d797f776d9370563b254ffa622a9087089963c"
+  },
+  {
+    "file": "sources/active-p1-part.mp4",
+    "bytes": 2239158,
+    "sha256": "3e1ee0233f47d4354554f0a97c814bb5514a7d0a88561ebb970b4f6349ccb375"
+  },
+  {
+    "file": "sources/active-p2-part.mp4",
+    "bytes": 2401278,
+    "sha256": "53fa1b5283222d070270000537f6750c97b9ba21903d0eda0d027f55f292f9f5"
+  },
+  {
+    "file": "sources/lobby-final-part-0.mp4",
+    "bytes": 91658,
+    "sha256": "df2a72bc6717721fc9c93d0c2b13fa4d1e2399f5ff99cb480502532a8e461612"
+  },
+  {
+    "file": "sources/lobby-final-part-1.mp4",
+    "bytes": 144704,
+    "sha256": "522858b821751db2112cc92577cf83a8c804cc862da23e730808d4f9b310dcf5"
+  },
+  {
+    "file": "sources/lobby-final-part-2.mp4",
+    "bytes": 55738,
+    "sha256": "b9c6dbe00379c51c9dfa5433201b0898c5aafb37da0b093a4652af5ddf38ba77"
+  },
+  {
+    "file": "sources/lobby-final-part-3.mp4",
+    "bytes": 97888,
+    "sha256": "588308951a0b7cbf72a8544e576e77623cb181158ba3542141ca0d086a990f0c"
+  },
+  {
+    "file": "sources/lobby-final-part-4.mp4",
+    "bytes": 60874,
+    "sha256": "fbc2a232926cd6373f1775812bc60f0b202ece3a007d8d55b025152cb967642c"
+  },
+  {
+    "file": "sources/lobby-final-part-5.mp4",
+    "bytes": 220052,
+    "sha256": "72c5bc7ce14c223dac90cb3bbcefd0b5fe8325f6f243067c699cf366afe007ee"
+  },
+  {
+    "file": "sources/lobby-final-part-6.mp4",
+    "bytes": 83681,
+    "sha256": "6b13d297cdde8593c30a63b7f187e43b27150073b1dbd9499a88dd11e71087db"
+  },
+  {
+    "file": "sources/lobby-final-part-7.mp4",
+    "bytes": 138469,
+    "sha256": "1cf9542165699cce120e2abb440a8eee178a6e7183b983ac500316e48bf689b2"
+  },
+  {
+    "file": "sources/lobby-final-part-8.mp4",
+    "bytes": 1275363,
+    "sha256": "82aef5fbb464a618332590f5ff4e429f35c761e53a7780ec9d9beeed49c3db70"
+  },
+  {
+    "file": "sources/lobby-final-part-9.mp4",
+    "bytes": 3605009,
+    "sha256": "a81c781b923c49e5dcdf513159f3a515502233287efa0e67fc83ae796d4b08bc"
+  },
+  {
+    "file": "sources/pipewire-motion.mp4",
+    "bytes": 155030,
+    "sha256": "52378178fcbb34b6ef9dfb3abaaebc4f7c23417bc8a7f98249b1c37deb7a5b3a"
+  },
+  {
+    "file": "sources/traineros-apps-flip-20s.mp4",
+    "bytes": 730909,
+    "sha256": "ee8455b87b88e36b36d2023e92afc784d1091006175be5b7e21c327d179a1071"
+  },
+  {
+    "file": "traineros-apps-turquoise-final-30s.mp4",
+    "bytes": 809021,
+    "sha256": "67c17a97d01b8e2ad0ca3b9d17bbd52cb72aef6ab22718ecc2172937fcf9f235"
+  },
+  {
+    "file": "sources/traineros-browser-flip-12s.mp4",
+    "bytes": 1320823,
+    "sha256": "cdb02effe08cf3ee43aa850f8be2fc0e2781ba290db75cb11e4a64fb915f3b62"
+  },
+  {
+    "file": "sources/traineros-crates-odin-25s.mp4",
+    "bytes": 1760408,
+    "sha256": "a6bf52c6057186da1ff28b87ac02c03494492022510dd13ac99c51ce95a1d9b4"
+  },
+  {
+    "file": "traineros-crates-red-final-22s.mp4",
+    "bytes": 795513,
+    "sha256": "d6c64d5c9979daa8dd274977de976c89b333ad28af6d3fc0bc68ab25bd07a6e1"
+  },
+  {
+    "file": "sources/traineros-emerald-return-3s.mp4",
+    "bytes": 566770,
+    "sha256": "346aeb16e03f479af02103ce4085e711f7df36e372c088d9d8fa3effc7418c53"
+  },
+  {
+    "file": "sources/traineros-gamehub-turquoise-40s.mp4",
+    "bytes": 3392081,
+    "sha256": "d40c6d245b9fef464f656ab364eeb8ebbb05a7b18faf513632321d8c9186c655"
+  },
+  {
+    "file": "traineros-gamehub-turquoise-final-40s.mp4",
+    "bytes": 1911464,
+    "sha256": "713d7b8c1c479ca7c651100755f60632dcde727f7213fb7dfd63178930a9c2cc"
+  },
+  {
+    "file": "sources/traineros-gamehub-turquoise-take2-40s.mp4",
+    "bytes": 2906051,
+    "sha256": "0accd1c773e1f432625222ab05bfa283646456cd2f150448dba4353287fd7762"
+  },
+  {
+    "file": "traineros-games-turquoise-35s.mp4",
+    "bytes": 3854985,
+    "sha256": "95c54554940b5de248a9a6d3d1809b9ae04b0d73bea6b2f87a84cb640193cf39"
+  },
+  {
+    "file": "traineros-home-red-20s.mp4",
+    "bytes": 1835787,
+    "sha256": "8396e8fbccfa093ceda5437dbb47bb8447a22c74eaa9934a35278b86c7dfd9da"
+  },
+  {
+    "file": "traineros-home-start-red-final-21s.mp4",
+    "bytes": 860478,
+    "sha256": "28bc3460ede4c60b40c1a43a9ba47e84785a4b80ac2d1deaead81660be1dbc2d"
+  },
+  {
+    "file": "sources/traineros-home-start-red-menus-24s.mp4",
+    "bytes": 1458377,
+    "sha256": "0284b15b2cf72cb9e71b4db044005f681e40797c012d3109d9596a908901bed2"
+  },
+  {
+    "file": "sources/traineros-home-start-red-menus-take2-24s.mp4",
+    "bytes": 1865929,
+    "sha256": "9d1fad6f6139140b820a62982540080fa9e8b819ba55783403ac3f5c8edcef18"
+  },
+  {
+    "file": "sources/traineros-lobby-create-odin-120s.mp4",
+    "bytes": 2639488,
+    "sha256": "d06c4be8afd0a90aaad42fb27666956c732d1cfce501cef472aa094b78ea58e6"
+  },
+  {
+    "file": "sources/traineros-lobby-join-flip-120s.mp4",
+    "bytes": 2023928,
+    "sha256": "45ea45dd1638864882706ddc8ba3278a954bc1c8170642dcaea2f4704df088f4"
+  },
+  {
+    "file": "traineros-lobby-metal-slug-final-67s.mp4",
+    "bytes": 5766180,
+    "sha256": "d1a660288eda063cf7d07e29486002263903f8acf0a4cf1fcfa2c0e0af2efed4"
+  },
+  {
+    "file": "traineros-lobby-metal-slug-v2-66s.mp4",
+    "bytes": 5488888,
+    "sha256": "b2f534484a2c70ffe08a6d29845c7be62796bd21dddf576cee8122a8c8a2d7b1"
+  },
+  {
+    "file": "sources/traineros-lobby-ready-odin-90s.mp4",
+    "bytes": 1776933,
+    "sha256": "ec7aaa5358b1f6ee440645278af4cbae55b46e1e3fb0581a8e349539c216a5ea"
+  },
+  {
+    "file": "sources/traineros-lobby-start-odin-45s.mp4",
+    "bytes": 1300436,
+    "sha256": "961d5dc40057260e7b8fc5466bee56b529262e8559387f0dda34e35fe6149dbc"
+  },
+  {
+    "file": "sources/traineros-lobby-vote-odin-120s.mp4",
+    "bytes": 2556275,
+    "sha256": "798ef8209f30dcdf3639b52e2344a6a88f1ac0841638041d69f0b80c2beb01e9"
+  },
+  {
+    "file": "sources/traineros-metal-slug-active-45s.mp4",
+    "bytes": 21276501,
+    "sha256": "2b964ee9ee019b44af28c38fbd0ed3167e25b9756403d9d15b0df0755719bc06"
+  },
+  {
+    "file": "traineros-metal-slug-both-players-22s.mp4",
+    "bytes": 4639724,
+    "sha256": "b51c6754ae3b1ada768620dc608accc617e4fec33e259b7cc7d607824675b07f"
+  },
+  {
+    "file": "sources/traineros-metal-slug-flip-120s.mp4",
+    "bytes": 35713215,
+    "sha256": "980caa01669f2eaba98c89ea0eb8200b69745debfa930f43abd70914c6de622f"
+  },
+  {
+    "file": "sources/traineros-metal-slug-odin-120s.mp4",
+    "bytes": 42417461,
+    "sha256": "445aa57d1e96213e7c4f54535b715d2fb731fcb6c65c7035a09deaa449c36231"
+  },
+  {
+    "file": "traineros-overview-75s.mp4",
+    "bytes": 6315683,
+    "sha256": "4e215db3bc44b7c5f6ca7a6d5b784d405d4e3c308d06fbfc2d7eb8b339c31eab"
+  },
+  {
+    "file": "traineros-overview-captioned-75s.mp4",
+    "bytes": 6317057,
+    "sha256": "23d68c1369f0f7a9b7ee9ff18a51dbc8a3d5feea83682c1ee63f1f4074f810ad"
+  },
+  {
+    "file": "sources/traineros-ra-turquoise-19s.mp4",
+    "bytes": 1483232,
+    "sha256": "4be10ab50dee476f64310c9d9c03386ee1a8b585da57f540b9dc2412ea8e0bf2"
+  },
+  {
+    "file": "sources/traineros-social-flip-45s.mp4",
+    "bytes": 1186072,
+    "sha256": "6ed6266c885543aed4d5248b66201ed31a5607eec7df221e4fdbe4162b4ebbb4"
+  },
+  {
+    "file": "sources/traineros-social-odin-45s.mp4",
+    "bytes": 1417211,
+    "sha256": "6101dd573dbf18fa4da8aa00df67594a39ddb9fa7b314bd91ee5b482f9fd242d"
+  },
+  {
+    "file": "traineros-social-two-devices-final-27s.mp4",
+    "bytes": 583552,
+    "sha256": "fb77e63369b184b4ffb282a6fb849faba846b76d21fb1fd281a34f713fc9b59f"
+  }
+]
