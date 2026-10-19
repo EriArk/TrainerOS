@@ -13,6 +13,8 @@
 | **How is the code organized?** | [ARCHITECTURE](ARCHITECTURE.md), [DATA_MODEL](DATA_MODEL.md), [LOCAL_PERSISTENCE](LOCAL_PERSISTENCE.md), [DESIGN_LANGUAGE](DESIGN_LANGUAGE.md) |
 | **What was agreed earlier?** | Historical [product vision](PRODUCT_VISION_RU.md), [PRODUCT_SPEC](PRODUCT_SPEC.md), [UX_NAVIGATION](UX_NAVIGATION.md), [UX_OPTIONS_MAP](UX_OPTIONS_MAP_RU.md), expansion registers, [original Codex brief](CODEX_START.md) |
 
+[Documentation audit and remaining reconciliation plan — 19 October 2026](DOCUMENTATION_AUDIT_20261019_RU.md) records the completed inventory, safe cleanup and items that must wait for actual code/device delivery.
+
 **Authority / conflict rule:** explicit later owner decision and the current issue contract win over earlier target text; [the current architecture map](PRODUCT_ARCHITECTURE_RU.md) summarizes those decisions. Code and evidence, not target language, determine what is actually implemented. Do not silently discard still-open acceptance when old UI wording is superseded.
 
 ## Feature references (current owner + technical history)
