@@ -1,5 +1,9 @@
 # Native ScreenScraper — accepted scope and delivery order
 
+> **Target clarification (16–19 October 2026):** the native backend/device evidence below is the **8 October** checkpoint, not the final configuration. [#65](https://github.com/EriArk/TrainerOS/issues/65) and [#234](https://github.com/EriArk/TrainerOS/issues/234) own the **full ScreenScraper Settings** (aggressive matching by default, video downloads ON by default with explicit options); [#233](https://github.com/EriArk/TrainerOS/issues/233) owns the **one-tap library-wide missing-only QuickAction** with tasks in shared Downloads. All are **accepted target**, not proven new code. [Current product map](PRODUCT_ARCHITECTURE_RU.md).
+
+---
+
 Accepted [issue #65](https://github.com/EriArk/TrainerOS/issues/65), 2026-09-24.
 Status, 2026-10-08: developer access approved; native jobs, Settings and display
 choices delivered on Flip 2 and Odin 2; evidence and remaining boundaries below.
