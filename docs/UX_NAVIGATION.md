@@ -1,5 +1,9 @@
 # TrainerOS UX & Navigation
 
+> **Navigation target update (19 October 2026):** read the [current TrainerOS map](PRODUCT_ARCHITECTURE_RU.md) and current feature issues #111/#206/#224/#227/#233/#168/#170 **before** the dated navigation text below. The five active **target** roots are **Home / Games / GameHub / Social / Apps**; not Home/Collections/two Experience primaries/Social. X is shell Quick Apps, Y is shell Recent Games/Favorites; Start is QuickActions/Extensions, with Game Options as the in-game prerequisite. The previous five semantic slots, Home X/L2/R2 and narrow Start mapping are historical, **not instructions for new code**. Main's older route implementation must be migrated and tested; no claim that this target is shipped.
+
+---
+
 **Active target, 9 October 2026:** [precise UX-02 map](UX_OPTIONS_MAP_RU.md).
 Five semantic slots are Home / Collections / [experience A] / [experience B] / Social.
 The [#174–178 + adaptive Home contract](EXPANSION_174_178.md) supplies game-specific
