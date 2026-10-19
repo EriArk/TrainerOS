@@ -1,0 +1,1178 @@
+[
+  {
+    "file": "review/active-actions-detail.png",
+    "source": "work/launch80/active-actions-detail.png",
+    "bytes": 4938267,
+    "sha256": "321c3ca154df68cc6e65bab7a86af585b3a11827cb67fb9d39ebc8c8a69aaab2"
+  },
+  {
+    "file": "review/active-contact.png",
+    "source": "work/launch80/active-contact.png",
+    "bytes": 1704790,
+    "sha256": "94d2f9d6fc8cccc2df6d4b732878857c8c7c5d75338ecbee24f46971cd1da33a"
+  },
+  {
+    "file": "review/active-final-contact.png",
+    "source": "work/launch80/active-final-contact.png",
+    "bytes": 2446640,
+    "sha256": "eddf75e757d3af8592cd555dd057c76a5569e3632c47e11256bf8cb0b7cc991b"
+  },
+  {
+    "file": "review/active-p2-shot.png",
+    "source": "work/launch80/active-p2-shot.png",
+    "bytes": 2121232,
+    "sha256": "ee342f11d14b9fa097b054eea7b96df053af6731d5eaaaff55561f325ffa725e"
+  },
+  {
+    "file": "review/apps-contact.png",
+    "source": "work/launch80/apps-contact.png",
+    "bytes": 286231,
+    "sha256": "4f9a2c32b4b0c9299db1d455b5542596dda4c7000e5fe347f8e39e7d0c9e62c4"
+  },
+  {
+    "file": "review/apps-final-contact.png",
+    "source": "work/launch80/apps-final-contact.png",
+    "bytes": 453080,
+    "sha256": "7176ef8bf2fd2ea49d8289579c1af680c5ca1ff4b795499fdcfbc10465c45fb8"
+  },
+  {
+    "file": "review/browser-contact.png",
+    "source": "work/launch80/browser-contact.png",
+    "bytes": 300307,
+    "sha256": "02dd32b1350839836f01f44e20715c6957febef011aa8394abba3f0959667d3b"
+  },
+  {
+    "file": "review/capture-test.png",
+    "source": "work/launch80/capture-test.png",
+    "bytes": 535579,
+    "sha256": "386d212815aba7365a642782a56df82d581d9a666d44180b5718d4dd574e3679"
+  },
+  {
+    "file": "review/crates-contact.png",
+    "source": "work/launch80/crates-contact.png",
+    "bytes": 460860,
+    "sha256": "4b1a6ced8622aea5d7ae8a0084c36c7b7573f686493e2823dc49b501c52a5e0e"
+  },
+  {
+    "file": "review/crates-final-contact.png",
+    "source": "work/launch80/crates-final-contact.png",
+    "bytes": 497649,
+    "sha256": "98feaec439f6466c117081e7dc04a98ce39440789712f8cd209da7cc227b589c"
+  },
+  {
+    "file": "review/create-contact.png",
+    "source": "work/launch80/create-contact.png",
+    "bytes": 465416,
+    "sha256": "bca4c0b668f55ed8f7b0a306793a8e13003556b42655ff266704ced76fcc793f"
+  },
+  {
+    "file": "review/create-transition.png",
+    "source": "work/launch80/create-transition.png",
+    "bytes": 130361,
+    "sha256": "0376a8ab6bf2376fc02b866fca9edc71cec5e32fb408f0e74f0e5e015f0a7c6d"
+  },
+  {
+    "file": "gameplay/flip-active-game-ready.png",
+    "source": "work/launch80/flip-active-game-ready.png",
+    "bytes": 193641,
+    "sha256": "743f604de80eae64dbcbe8203a50c74133bc26090a9188ad8f9f23b38b8d40da"
+  },
+  {
+    "file": "gameplay/flip-active-launched.png",
+    "source": "work/launch80/flip-active-launched.png",
+    "bytes": 930714,
+    "sha256": "90234af599bed6b42c417c139f3f23a48fb7ec1168c968cd69e5e86d4e994325"
+  },
+  {
+    "file": "preparation/flip-active-recovered.png",
+    "source": "work/launch80/flip-active-recovered.png",
+    "bytes": 381401,
+    "sha256": "698babc15508c2fdcf5054b0163dde66cd2b76b911e40b937e787541b98e65fb"
+  },
+  {
+    "file": "preparation/flip-active-take-before.png",
+    "source": "work/launch80/flip-active-take-before.png",
+    "bytes": 381401,
+    "sha256": "698babc15508c2fdcf5054b0163dde66cd2b76b911e40b937e787541b98e65fb"
+  },
+  {
+    "file": "preparation/flip-active-take-restarted.png",
+    "source": "work/launch80/flip-active-take-restarted.png",
+    "bytes": 381401,
+    "sha256": "698babc15508c2fdcf5054b0163dde66cd2b76b911e40b937e787541b98e65fb"
+  },
+  {
+    "file": "preparation/flip-after-game.png",
+    "source": "work/launch80/flip-after-game.png",
+    "bytes": 404540,
+    "sha256": "53cbe70af36faf1a7daeb13eff9907804b8d50ae0d1ad106006f45fb71c0c5f0"
+  },
+  {
+    "file": "apps-files-browser/flip-apps-after.png",
+    "source": "work/launch80/flip-apps-after.png",
+    "bytes": 400665,
+    "sha256": "a0de7ef8b8df8607d7b21ea3fb2e820b1f98e935e8ff92541b7524cb4dbe0cb8"
+  },
+  {
+    "file": "apps-files-browser/flip-apps-before.png",
+    "source": "work/launch80/flip-apps-before.png",
+    "bytes": 282459,
+    "sha256": "38c14e1d78e469fbe7ef11cf91b2f5f60660cdb9394b2e391aa46495eed79c24"
+  },
+  {
+    "file": "apps-files-browser/flip-apps-grid.png",
+    "source": "work/launch80/flip-apps-grid.png",
+    "bytes": 715461,
+    "sha256": "1e2140acf35d3f3d46bb7dd097a19343c48f13980a5321dc6f348f33f548bb8c"
+  },
+  {
+    "file": "apps-files-browser/flip-browser-before.png",
+    "source": "work/launch80/flip-browser-before.png",
+    "bytes": 323399,
+    "sha256": "86352e1568b9ac13527806b919023f4d06232ed6da5d46a2f90cbab6e5915636"
+  },
+  {
+    "file": "apps-files-browser/flip-browser-full.png",
+    "source": "work/launch80/flip-browser-full.png",
+    "bytes": 855577,
+    "sha256": "42e424bcbc8bf84ea0ca68a98a9e084b5b3952088b3374d1851fab81eab70ef4"
+  },
+  {
+    "file": "apps-files-browser/flip-browser-open.png",
+    "source": "work/launch80/flip-browser-open.png",
+    "bytes": 400665,
+    "sha256": "a0de7ef8b8df8607d7b21ea3fb2e820b1f98e935e8ff92541b7524cb4dbe0cb8"
+  },
+  {
+    "file": "gameplay/flip-character-active.png",
+    "source": "work/launch80/flip-character-active.png",
+    "bytes": 156556,
+    "sha256": "19a91fda1e8354d026f9345ac7ea2c8bae9455cfc44923092b2d3051b6b68962"
+  },
+  {
+    "file": "preparation/flip-filming-finished.png",
+    "source": "work/launch80/flip-filming-finished.png",
+    "bytes": 381401,
+    "sha256": "698babc15508c2fdcf5054b0163dde66cd2b76b911e40b937e787541b98e65fb"
+  },
+  {
+    "file": "gamehub/flip-filter-top.png",
+    "source": "work/launch80/flip-filter-top.png",
+    "bytes": 878954,
+    "sha256": "f353c6f546b7acf36d2ce427e1028e71e26226f3e5c931181ac098438d402300"
+  },
+  {
+    "file": "gamehub/flip-gallery-color.png",
+    "source": "work/launch80/flip-gallery-color.png",
+    "bytes": 1329346,
+    "sha256": "6a3d26fa743697ccc70f13e0cbbc72593c3dd8496f052910264392973f2bff7a"
+  },
+  {
+    "file": "gamehub/flip-gallery-filter.png",
+    "source": "work/launch80/flip-gallery-filter.png",
+    "bytes": 877083,
+    "sha256": "c83d76f3c56057ac3500e39a3d103cde5ee5ab2e94e5e2ffb94a4b3630c02291"
+  },
+  {
+    "file": "gamehub/flip-gallery-ready.png",
+    "source": "work/launch80/flip-gallery-ready.png",
+    "bytes": 1684083,
+    "sha256": "beeac4f385ae88e1022428143821b2d1bd5952cdc41d502cf6d79735046befac"
+  },
+  {
+    "file": "gamehub/flip-gallery-reset.png",
+    "source": "work/launch80/flip-gallery-reset.png",
+    "bytes": 1436141,
+    "sha256": "180bf858831b3ef22267ecc64d468887efa7196478ae2ea034408408d0d85cbe"
+  },
+  {
+    "file": "games/flip-games-grid-ready.png",
+    "source": "work/launch80/flip-games-grid-ready.png",
+    "bytes": 1344422,
+    "sha256": "6379fbc313a7ebf7f41317e9b62b45c9ca34e5c1c67ef205f8774dbd60a169a0"
+  },
+  {
+    "file": "games/flip-games-list-ready.png",
+    "source": "work/launch80/flip-games-list-ready.png",
+    "bytes": 1653150,
+    "sha256": "8c6f54742bb52b075646c368bbf000024f08cf34e7a1a4303b850b73492d3523"
+  },
+  {
+    "file": "games/flip-games-record-start.png",
+    "source": "work/launch80/flip-games-record-start.png",
+    "bytes": 2006013,
+    "sha256": "a0f1cca88fc6f5307716e9cb2143af8be4c2d9786a38f2d626a9aebc5544b649"
+  },
+  {
+    "file": "games/flip-games-shelves-ready.png",
+    "source": "work/launch80/flip-games-shelves-ready.png",
+    "bytes": 1945846,
+    "sha256": "c47a6d8795d416307057528a0c4768e5e1257b1d313f37edf299652d85ef4c79"
+  },
+  {
+    "file": "games/flip-games-video-before.png",
+    "source": "work/launch80/flip-games-video-before.png",
+    "bytes": 1135889,
+    "sha256": "15092949bb920076706006be556e415531cb904c89ed428215b5cc406c78a3aa"
+  },
+  {
+    "file": "games/flip-games-video-mario.png",
+    "source": "work/launch80/flip-games-video-mario.png",
+    "bytes": 1012461,
+    "sha256": "5e1198ae92722e84c9eddcd23ffe601b7cd0b0dd507defc2fe5a1573c83510f7"
+  },
+  {
+    "file": "games/flip-games-video-root.png",
+    "source": "work/launch80/flip-games-video-root.png",
+    "bytes": 1547186,
+    "sha256": "5e291ac96dae6c40500ca5272801ad83e77da6050281eecd733bae7d2c3133db"
+  },
+  {
+    "file": "games/flip-games-wheel-ready.png",
+    "source": "work/launch80/flip-games-wheel-ready.png",
+    "bytes": 1931708,
+    "sha256": "934337ace22fd4f8bd81580f9caf51ac26122c8fb9285aa9ed828d96699529db"
+  },
+  {
+    "file": "preparation/flip-guest-exit.png",
+    "source": "work/launch80/flip-guest-exit.png",
+    "bytes": 769342,
+    "sha256": "37de6546f5576de0eb944f81cbfb7c56d1ae372af78073016b19f0104230dd58"
+  },
+  {
+    "file": "gamehub/flip-hub-ready.png",
+    "source": "work/launch80/flip-hub-ready.png",
+    "bytes": 2033419,
+    "sha256": "cb1b1d486a8a8e13912b7101a96f23ff9cb4af2a632783fd7bf57454cfd708a8"
+  },
+  {
+    "file": "gamehub/flip-hub-record-start.png",
+    "source": "work/launch80/flip-hub-record-start.png",
+    "bytes": 891433,
+    "sha256": "9ad5515bf3539d52744a56eb073ce36f41040a6ec8cbd4be66213d5f55aefe6b"
+  },
+  {
+    "file": "gamehub/flip-hub-take2-start.png",
+    "source": "work/launch80/flip-hub-take2-start.png",
+    "bytes": 891433,
+    "sha256": "9ad5515bf3539d52744a56eb073ce36f41040a6ec8cbd4be66213d5f55aefe6b"
+  },
+  {
+    "file": "apps-files-browser/flip-import-done.png",
+    "source": "work/launch80/flip-import-done.png",
+    "bytes": 506951,
+    "sha256": "f2511aee16a8e4cd9749041dec02517d28eb6d072b273625004ba5d80fd7a2d7"
+  },
+  {
+    "file": "apps-files-browser/flip-import-emulation.png",
+    "source": "work/launch80/flip-import-emulation.png",
+    "bytes": 408377,
+    "sha256": "6d9bfb8186742fda45ed618886d0cf0207152460dc730185c78e37a706298e10"
+  },
+  {
+    "file": "apps-files-browser/flip-import-folders.png",
+    "source": "work/launch80/flip-import-folders.png",
+    "bytes": 417895,
+    "sha256": "8544d0e6613e7815ad6f4068b2d1fd87d1fcead79c5ec6b70205770b946f0229"
+  },
+  {
+    "file": "apps-files-browser/flip-import-game.png",
+    "source": "work/launch80/flip-import-game.png",
+    "bytes": 401753,
+    "sha256": "41c60d6266a612e9a794ba4b923158e5212e5c7b1ab041b09c61b219d7196546"
+  },
+  {
+    "file": "apps-files-browser/flip-import-home.png",
+    "source": "work/launch80/flip-import-home.png",
+    "bytes": 413940,
+    "sha256": "f0114b54778685a74c957d88193f05a57a09e6792764ce2b848576a69501852b"
+  },
+  {
+    "file": "apps-files-browser/flip-import-neogeo.png",
+    "source": "work/launch80/flip-import-neogeo.png",
+    "bytes": 415725,
+    "sha256": "979351bfff42b4974d928961cad2190d15d9016833dfbe912e88243462314f56"
+  },
+  {
+    "file": "apps-files-browser/flip-import-neogeolist.png",
+    "source": "work/launch80/flip-import-neogeolist.png",
+    "bytes": 424889,
+    "sha256": "1e863aa45d479a3d397dc871b66ce4fa6f6644a5367cd57b69b034cdd094e2e8"
+  },
+  {
+    "file": "apps-files-browser/flip-import-next.png",
+    "source": "work/launch80/flip-import-next.png",
+    "bytes": 414722,
+    "sha256": "888064e38eff2b65d734a072a70eb9ae891b8858ab78e8c28fd0e0307cef13a0"
+  },
+  {
+    "file": "apps-files-browser/flip-import-platforms.png",
+    "source": "work/launch80/flip-import-platforms.png",
+    "bytes": 418093,
+    "sha256": "9084fd61188aee327c8ff95fb11d18ba79042e5d307ad264ff36fa6181b224f8"
+  },
+  {
+    "file": "apps-files-browser/flip-import-romfile.png",
+    "source": "work/launch80/flip-import-romfile.png",
+    "bytes": 423477,
+    "sha256": "fa0d0bdc8041ba33ad33e619729ad8ff00cf83d097040d319e230b13c7365c3f"
+  },
+  {
+    "file": "apps-files-browser/flip-import-roms.png",
+    "source": "work/launch80/flip-import-roms.png",
+    "bytes": 413775,
+    "sha256": "e1f0816084b9e46039b2a6fe3cb37b24cc7b018c62689172a836a27d8a7be8d1"
+  },
+  {
+    "file": "apps-files-browser/flip-import-romsfocus.png",
+    "source": "work/launch80/flip-import-romsfocus.png",
+    "bytes": 411051,
+    "sha256": "0fc9150c4b1f7e4920dc8260741126c6214ba2cc5f9f97b8f57301dc3cc3cc7a"
+  },
+  {
+    "file": "preparation/flip-launching.png",
+    "source": "work/launch80/flip-launching.png",
+    "bytes": 348509,
+    "sha256": "7c587bd4d1e985c9a0e899c6e6e1abda3e76663e62e63f19ff1d9a9de67bdea1"
+  },
+  {
+    "file": "lobby/flip-lobby-compatible.png",
+    "source": "work/launch80/flip-lobby-compatible.png",
+    "bytes": 414335,
+    "sha256": "6308c7b8c28d9fab1b4e5dfe9422011191510409b48ae44845ad4707adc63966"
+  },
+  {
+    "file": "lobby/flip-lobby-incoming.png",
+    "source": "work/launch80/flip-lobby-incoming.png",
+    "bytes": 372501,
+    "sha256": "218a8a5437cc3527b353833c4783f6d0ff1e5ae72d92220b349def49c4ead1ac"
+  },
+  {
+    "file": "lobby/flip-lobby-join.png",
+    "source": "work/launch80/flip-lobby-join.png",
+    "bytes": 346229,
+    "sha256": "ecbbd7a16df77867892633e852c8960a6dea1f5621a4f61f6f5145378f8e58f1"
+  },
+  {
+    "file": "lobby/flip-lobby-joined.png",
+    "source": "work/launch80/flip-lobby-joined.png",
+    "bytes": 377038,
+    "sha256": "90bacf3fbaeeb4528c8fe63c9be6b12497c9bbc0cea3a2b060fd37c095afafae"
+  },
+  {
+    "file": "lobby/flip-lobby-match-ready.png",
+    "source": "work/launch80/flip-lobby-match-ready.png",
+    "bytes": 402389,
+    "sha256": "583fc350ed44200505c2be6f626338a8ea6b9b03f4ce2dba2c5ec466ead26630"
+  },
+  {
+    "file": "lobby/flip-lobby-restored.png",
+    "source": "work/launch80/flip-lobby-restored.png",
+    "bytes": 272579,
+    "sha256": "91b7d51d8db2397f6c65b3ca2c6cb615bbcaf38b865b5465dcdc9e07504dddda"
+  },
+  {
+    "file": "lobby/flip-lobby-return.png",
+    "source": "work/launch80/flip-lobby-return.png",
+    "bytes": 381401,
+    "sha256": "698babc15508c2fdcf5054b0163dde66cd2b76b911e40b937e787541b98e65fb"
+  },
+  {
+    "file": "lobby/flip-lobby-root.png",
+    "source": "work/launch80/flip-lobby-root.png",
+    "bytes": 381729,
+    "sha256": "725e5032e2e7dc430404137f4b91da0efde7bd1e692f14a51eff352944e60468"
+  },
+  {
+    "file": "gameplay/flip-metal-players.png",
+    "source": "work/launch80/flip-metal-players.png",
+    "bytes": 154545,
+    "sha256": "188c743393f70a54c63ac0413bd89b929eaf220eefbaeb58fd3f72e654c4d143"
+  },
+  {
+    "file": "gameplay/flip-metal-running.png",
+    "source": "work/launch80/flip-metal-running.png",
+    "bytes": 208814,
+    "sha256": "72b812129f45e403b5a5948abbc691ae92bb09c4b70a500e5158810c8f25e737"
+  },
+  {
+    "file": "gameplay/flip-mission-active.png",
+    "source": "work/launch80/flip-mission-active.png",
+    "bytes": 34450,
+    "sha256": "f71a76bb49d97e7ece3f3c9adf1a4d652d3dd75702168215cbbe9a778a4a0873"
+  },
+  {
+    "file": "gameplay/flip-mission.png",
+    "source": "work/launch80/flip-mission.png",
+    "bytes": 81340,
+    "sha256": "f1ec69e454ba06803e8799b4ab862de8a64ba31e861ddae30f89001698a5773c"
+  },
+  {
+    "file": "lobby/flip-my-lobbies.png",
+    "source": "work/launch80/flip-my-lobbies.png",
+    "bytes": 366540,
+    "sha256": "4d1751d9b1d917fd26cbaf96a5c4e4d96e3319fad5b3fc9fd4e444cd7f7a12a8"
+  },
+  {
+    "file": "gamehub/flip-ra-current.png",
+    "source": "work/launch80/flip-ra-current.png",
+    "bytes": 914712,
+    "sha256": "2c0725dd9851f911d5759ea7206dfb307b405a1bd910ce7e15cf32aedf56c151"
+  },
+  {
+    "file": "gamehub/flip-ra-detail.png",
+    "source": "work/launch80/flip-ra-detail.png",
+    "bytes": 682005,
+    "sha256": "9c19a246a061daf4c4502cc026d3ba9e19e0e96f429f81ef98d3ed4da45a9534"
+  },
+  {
+    "file": "gamehub/flip-ra-earned-detail.png",
+    "source": "work/launch80/flip-ra-earned-detail.png",
+    "bytes": 914712,
+    "sha256": "2c0725dd9851f911d5759ea7206dfb307b405a1bd910ce7e15cf32aedf56c151"
+  },
+  {
+    "file": "gamehub/flip-ra-grid.png",
+    "source": "work/launch80/flip-ra-grid.png",
+    "bytes": 1042398,
+    "sha256": "c95309ef18287e55cdb4ca1f671c172bdcb3326797081da376f1542100702ba3"
+  },
+  {
+    "file": "gamehub/flip-ra-library-reset.png",
+    "source": "work/launch80/flip-ra-library-reset.png",
+    "bytes": 2033419,
+    "sha256": "cb1b1d486a8a8e13912b7101a96f23ff9cb4af2a632783fd7bf57454cfd708a8"
+  },
+  {
+    "file": "gamehub/flip-ra-options.png",
+    "source": "work/launch80/flip-ra-options.png",
+    "bytes": 641662,
+    "sha256": "40c06c54e3a7834a9433c5bc3bde23000f5ef73fbcd71836c93abb370cb0a534"
+  },
+  {
+    "file": "lobby/flip-ready-active.png",
+    "source": "work/launch80/flip-ready-active.png",
+    "bytes": 402389,
+    "sha256": "583fc350ed44200505c2be6f626338a8ea6b9b03f4ce2dba2c5ec466ead26630"
+  },
+  {
+    "file": "lobby/flip-ready-state.png",
+    "source": "work/launch80/flip-ready-state.png",
+    "bytes": 413815,
+    "sha256": "7bae0fd3fb9c933127a0d609b7525033dea2a8f50e3cd75ed0d79c660aaf4421"
+  },
+  {
+    "file": "gameplay/flip-select-characters.png",
+    "source": "work/launch80/flip-select-characters.png",
+    "bytes": 156556,
+    "sha256": "737dc2323cb243ae7d8baa8c9326a2b4e1fd6994170a3ec13f8b0dbb73948cce"
+  },
+  {
+    "file": "gameplay/flip-selection-active.png",
+    "source": "work/launch80/flip-selection-active.png",
+    "bytes": 150589,
+    "sha256": "5dd6ea668468013449845c29d8d01aaacbd57ca46a2a8417a44aa2dca8d91ce3"
+  },
+  {
+    "file": "social/flip-social-before.png",
+    "source": "work/launch80/flip-social-before.png",
+    "bytes": 1396766,
+    "sha256": "9dc084395c7512ba2a8c250a11a09859b640ddd20fd535554d6c4803cbfecffe"
+  },
+  {
+    "file": "social/flip-social-compose.png",
+    "source": "work/launch80/flip-social-compose.png",
+    "bytes": 445979,
+    "sha256": "ef3a0aa1ef5b6388dc94f5d502fd0c96841c1e2b879a96e3f24a88529e76e73a"
+  },
+  {
+    "file": "social/flip-social-draft.png",
+    "source": "work/launch80/flip-social-draft.png",
+    "bytes": 448244,
+    "sha256": "9a803d350a2ab81e1f7fc9ff666aef1644d3681d5f3e9a5d1563bf6bcc02c36f"
+  },
+  {
+    "file": "social/flip-social-open.png",
+    "source": "work/launch80/flip-social-open.png",
+    "bytes": 455138,
+    "sha256": "909d19d8e48f635970f6c6dcd2ed4fe1ea9b9f9b087567d8985a5c8b2b78333b"
+  },
+  {
+    "file": "social/flip-social-reply.png",
+    "source": "work/launch80/flip-social-reply.png",
+    "bytes": 506744,
+    "sha256": "29f2ed2f075333b0d785ab0aa46a742033bd0e60c63f7c0763d150cc38d5aa72"
+  },
+  {
+    "file": "gamehub/flip-story-flip.png",
+    "source": "work/launch80/flip-story-flip.png",
+    "bytes": 891433,
+    "sha256": "9ad5515bf3539d52744a56eb073ce36f41040a6ec8cbd4be66213d5f55aefe6b"
+  },
+  {
+    "file": "gamehub/flip-timeline-ready.png",
+    "source": "work/launch80/flip-timeline-ready.png",
+    "bytes": 530170,
+    "sha256": "56832b4a84c6172afbe16fe65500a24d5b6c900126be782c1d8961f01c9eb915"
+  },
+  {
+    "file": "gameplay/flip-two-playing.png",
+    "source": "work/launch80/flip-two-playing.png",
+    "bytes": 109626,
+    "sha256": "27af3a08fee4ea3c3bcad1fff5c1522df50998cd509865504389069664e33334"
+  },
+  {
+    "file": "home/flip-video-turquoise-check.png",
+    "source": "work/launch80/flip-video-turquoise-check.png",
+    "bytes": 1135889,
+    "sha256": "15092949bb920076706006be556e415531cb904c89ed428215b5cc406c78a3aa"
+  },
+  {
+    "file": "lobby/flip-vote-open.png",
+    "source": "work/launch80/flip-vote-open.png",
+    "bytes": 459562,
+    "sha256": "3d7f0093e7fa6dcdf9074471c1c9a03eab5ca88e3c7518b10ba643a2eb64ac54"
+  },
+  {
+    "file": "review/game-return-first.png",
+    "source": "work/launch80/game-return-first.png",
+    "bytes": 845624,
+    "sha256": "b8d6e2d892d68dcfe5fe885265c843b40a0d8751f2acc119e22bbe36b2edacfc"
+  },
+  {
+    "file": "review/games-contact.png",
+    "source": "work/launch80/games-contact.png",
+    "bytes": 1638857,
+    "sha256": "b114b1b022ca6a841c88d315957cd4436c6f2a6721fe032031c209a0bc9762d3"
+  },
+  {
+    "file": "review/games-final.png",
+    "source": "work/launch80/games-final.png",
+    "bytes": 470824,
+    "sha256": "ef3ecf60d8b51f11f4a8fd2328632ac0e334b8c45a6ba681b9c982cfd63e0713"
+  },
+  {
+    "file": "review/hub-contact.png",
+    "source": "work/launch80/hub-contact.png",
+    "bytes": 1481107,
+    "sha256": "c3f5c92633e42a63913c76ce9ac6cbeab36e0f1f0b950b0c5ce71f979448a6c1"
+  },
+  {
+    "file": "review/hub-final.png",
+    "source": "work/launch80/hub-final.png",
+    "bytes": 518524,
+    "sha256": "bb79cb2a453949eb08a5f0d9a6c5673e7c19384f26c4e1f715372c2b58cf53e0"
+  },
+  {
+    "file": "review/hub-join.png",
+    "source": "work/launch80/hub-join.png",
+    "bytes": 433997,
+    "sha256": "1d8b0d44595dacb88fbe1344e8d14f12188b8befbd5a996b4c44fd5f7e446cb5"
+  },
+  {
+    "file": "review/hub-take2-contact.png",
+    "source": "work/launch80/hub-take2-contact.png",
+    "bytes": 1524805,
+    "sha256": "38eb22d423a705b991cd4d64cdaaddc3fe3e0b949b773749b7a84ba024f0e5de"
+  },
+  {
+    "file": "review/hub-take2-final.png",
+    "source": "work/launch80/hub-take2-final.png",
+    "bytes": 450218,
+    "sha256": "d925e8a4253218ff1a86e5d8c764a7cef5298851abd89c4dd0d5c4aefbe1c576"
+  },
+  {
+    "file": "review/join-contact.png",
+    "source": "work/launch80/join-contact.png",
+    "bytes": 271151,
+    "sha256": "360eeae4195a46c789db43f378124c73c7675bdf194d7d9758f28b52ae4bfea4"
+  },
+  {
+    "file": "review/join-transition.png",
+    "source": "work/launch80/join-transition.png",
+    "bytes": 138327,
+    "sha256": "ff3db174f280885746eeac271eaefd311e3748bbaadae107bf0c0524dc683a7d"
+  },
+  {
+    "file": "review/lobby-final-contact.png",
+    "source": "work/launch80/lobby-final-contact.png",
+    "bytes": 1351368,
+    "sha256": "3bafe0ad630456d9881439322de796dfbf4e6af71449595d69f1d78fdde10d90"
+  },
+  {
+    "file": "review/lobby-game-detail.png",
+    "source": "work/launch80/lobby-game-detail.png",
+    "bytes": 863302,
+    "sha256": "5a28d427645cd77ffcec648f88dff2ef4a16e01c2e51ebcbb2df0c515416d9d1"
+  },
+  {
+    "file": "review/lobby-start-detail.png",
+    "source": "work/launch80/lobby-start-detail.png",
+    "bytes": 260318,
+    "sha256": "9610e393e85c5d8fbbd292cc340091ec6065483be329019fc20ec8d3596d9fc5"
+  },
+  {
+    "file": "review/menus-contact.png",
+    "source": "work/launch80/menus-contact.png",
+    "bytes": 932604,
+    "sha256": "2f2e6c3671fb741b4d81d19b71d049ed4ff06a8f4f86a14c865080e8b87519cf"
+  },
+  {
+    "file": "review/menus-contact2.png",
+    "source": "work/launch80/menus-contact2.png",
+    "bytes": 1105834,
+    "sha256": "a1db649b98481d4eb784f11aa5da076cfa111baabf03e7e83c9bd493b259408d"
+  },
+  {
+    "file": "review/menus-final-contact.png",
+    "source": "work/launch80/menus-final-contact.png",
+    "bytes": 1471039,
+    "sha256": "0e095b093cd00cb2e895907f6922917e6990ac31fe263f5b28f1ac20d7c3cfa9"
+  },
+  {
+    "file": "review/metal-actions-contact.png",
+    "source": "work/launch80/metal-actions-contact.png",
+    "bytes": 1197581,
+    "sha256": "cf13c0e69df66485f534253f3d052688e4721649b657e36d0ce350e3fac545b6"
+  },
+  {
+    "file": "review/metal-flip-contact.png",
+    "source": "work/launch80/metal-flip-contact.png",
+    "bytes": 1122489,
+    "sha256": "9a897df0d71d76d8f62719bbd5e8b83ff05bf79b3ddb17970cfc912739517f1e"
+  },
+  {
+    "file": "review/metal-odin-contact.png",
+    "source": "work/launch80/metal-odin-contact.png",
+    "bytes": 1786528,
+    "sha256": "50876eb3fbdad8823970cfd413584515d1d35558c0aefba4e20f472f0b1b4d3f"
+  },
+  {
+    "file": "review/metal-p1-contact.png",
+    "source": "work/launch80/metal-p1-contact.png",
+    "bytes": 704584,
+    "sha256": "72eea13fb3db66f7ab52e74ea3b81a851acea13cd3e4b33735c384369bd09a2d"
+  },
+  {
+    "file": "home-start-menus/odin-active-exit-menu.png",
+    "source": "work/launch80/odin-active-exit-menu.png",
+    "bytes": 1484386,
+    "sha256": "dda5c03d4ad7bed8fe3e7076b29c18c719a83657369def02ae8254d8c12e5640"
+  },
+  {
+    "file": "preparation/odin-active-exited.png",
+    "source": "work/launch80/odin-active-exited.png",
+    "bytes": 2088452,
+    "sha256": "8136f9d0ff2b4945113dd26398b4883e285317a358dcf15c8379915e4a7dc9da"
+  },
+  {
+    "file": "preparation/odin-active-finished.png",
+    "source": "work/launch80/odin-active-finished.png",
+    "bytes": 451120,
+    "sha256": "f182f3cfabe009e3a23e508ecec38f037f21782add284d866bd5e57b3fe74203"
+  },
+  {
+    "file": "gameplay/odin-active-game-ready.png",
+    "source": "work/launch80/odin-active-game-ready.png",
+    "bytes": 4217790,
+    "sha256": "33343c14c01e14be7ef4535c9f68eb66d2da964434fb609752e2b843e3daaf39"
+  },
+  {
+    "file": "preparation/odin-active-take-before.png",
+    "source": "work/launch80/odin-active-take-before.png",
+    "bytes": 446539,
+    "sha256": "61514cd59f2d417efeb3b4519183f788a5b33da0f6787582a48e454411c342b6"
+  },
+  {
+    "file": "preparation/odin-active-take-restarted.png",
+    "source": "work/launch80/odin-active-take-restarted.png",
+    "bytes": 466059,
+    "sha256": "e4cbac95aa435f29910ab3b6552ac9c7dfa6bf5b7bb8cfe90b411c3e98e04643"
+  },
+  {
+    "file": "preparation/odin-after-game.png",
+    "source": "work/launch80/odin-after-game.png",
+    "bytes": 450005,
+    "sha256": "6eb1e926435b06308f102e073204f3c6b93f75a84946152ce602e7b227b39646"
+  },
+  {
+    "file": "lobby/odin-all-ready.png",
+    "source": "work/launch80/odin-all-ready.png",
+    "bytes": 466098,
+    "sha256": "e5f45099b6fe557adbd92fe5248b1680a7588f864d09b19bf5e64660f7f80980"
+  },
+  {
+    "file": "apps-files-browser/odin-apps-before.png",
+    "source": "work/launch80/odin-apps-before.png",
+    "bytes": 1590657,
+    "sha256": "e98c6ecea98e67c181535499f8985403359ac31a7986d5e837c8dd8ac07ce2fa"
+  },
+  {
+    "file": "preparation/odin-chosen.png",
+    "source": "work/launch80/odin-chosen.png",
+    "bytes": 457712,
+    "sha256": "5c85b348b201bd31e7e58daae70469bc6385bebfceba3f5fb35f6f0c18a008a8"
+  },
+  {
+    "file": "home-start-menus/odin-controls-ready.png",
+    "source": "work/launch80/odin-controls-ready.png",
+    "bytes": 945567,
+    "sha256": "50c04d6c49c5824ad5c86e870a1cb31aa6df737eea44ad86be136ae8c37a40a4"
+  },
+  {
+    "file": "crates/odin-crates-catalog.png",
+    "source": "work/launch80/odin-crates-catalog.png",
+    "bytes": 923666,
+    "sha256": "69e4f56d4d49f490a855201ed075670a7216d4f53928e18836a12208eaa623ae"
+  },
+  {
+    "file": "crates/odin-crates-detail.png",
+    "source": "work/launch80/odin-crates-detail.png",
+    "bytes": 662355,
+    "sha256": "c93780e96471d70431adfb7d2cac66dca0441984b76576d2162a9bf3fee7403a"
+  },
+  {
+    "file": "preparation/odin-emerald-launch.png",
+    "source": "work/launch80/odin-emerald-launch.png",
+    "bytes": 14872,
+    "sha256": "995535330901c4200d63a30b2813b61a8da4dd481acf1be94c8b23af3ecfec79"
+  },
+  {
+    "file": "home-start-menus/odin-exit-confirm.png",
+    "source": "work/launch80/odin-exit-confirm.png",
+    "bytes": 446417,
+    "sha256": "336020fac0142c6b57753c0af832ee0903718761dcde15a1d0cd406ebbb8591c"
+  },
+  {
+    "file": "home-start-menus/odin-game-home-menu.png",
+    "source": "work/launch80/odin-game-home-menu.png",
+    "bytes": 1518093,
+    "sha256": "c448bc1ce6a4333e18aa6a3227adf9fe9d6810712117d53a17092aa4af433157"
+  },
+  {
+    "file": "home-start-menus/odin-game-settings-ready.png",
+    "source": "work/launch80/odin-game-settings-ready.png",
+    "bytes": 3654615,
+    "sha256": "ec6be2dd775733b5217abf130ac5a220fb7fa69f158b14974da2d4a175373d8e"
+  },
+  {
+    "file": "gamehub/odin-gamehub-before.png",
+    "source": "work/launch80/odin-gamehub-before.png",
+    "bytes": 2212449,
+    "sha256": "0a68ae23e9b1b6f9477d7a53e43fb0d0066ea9d3c0933fa52f238fd3058171fe"
+  },
+  {
+    "file": "gamehub/odin-gamehub-story.png",
+    "source": "work/launch80/odin-gamehub-story.png",
+    "bytes": 612159,
+    "sha256": "6c61c8802219b47603f945ba2b5091d33b677527803e2531a0d73cf75cfd8c10"
+  },
+  {
+    "file": "home/odin-home-launch-ready.png",
+    "source": "work/launch80/odin-home-launch-ready.png",
+    "bytes": 2214558,
+    "sha256": "9bcc3f391b7665ee64f9c53b49c4bade398cb4403a0f14e9d2dbd085d0073d78"
+  },
+  {
+    "file": "home-start-menus/odin-ingame-start.png",
+    "source": "work/launch80/odin-ingame-start.png",
+    "bytes": 2855429,
+    "sha256": "f75930062776ac980af44124b8ae092b8f837cff5c0b8f7ba587ac091c4d89b0"
+  },
+  {
+    "file": "preparation/odin-launching.png",
+    "source": "work/launch80/odin-launching.png",
+    "bytes": 387160,
+    "sha256": "b6964d6576899d16411b8111ff389753c9bb5331238799efa7ba811d38b38b51"
+  },
+  {
+    "file": "lobby/odin-lobby-ballot.png",
+    "source": "work/launch80/odin-lobby-ballot.png",
+    "bytes": 541133,
+    "sha256": "e1ee41198ad55b49dab8d1c7aa375f0685903cc7ccaad729478c2648a8ac7064"
+  },
+  {
+    "file": "lobby/odin-lobby-before.png",
+    "source": "work/launch80/odin-lobby-before.png",
+    "bytes": 584035,
+    "sha256": "733cd0f8159365aca3554641a3e6c53896a04664629efddfe88012677433548a"
+  },
+  {
+    "file": "lobby/odin-lobby-created.png",
+    "source": "work/launch80/odin-lobby-created.png",
+    "bytes": 411838,
+    "sha256": "ab3f2787e36c48673d99d48fbcebd5230ef32afd6ce029bfe08809173777e9e7"
+  },
+  {
+    "file": "lobby/odin-lobby-invite.png",
+    "source": "work/launch80/odin-lobby-invite.png",
+    "bytes": 392453,
+    "sha256": "d3258a23a968dcf38e8a4804ba1dc22eb7b16b59ea0347b136bf3f68494cd5f2"
+  },
+  {
+    "file": "lobby/odin-lobby-match-ready.png",
+    "source": "work/launch80/odin-lobby-match-ready.png",
+    "bytes": 456746,
+    "sha256": "0d9b8055846261de762f249e2f8ec14f3c9584f4fde75af9402b96b99b36ac7d"
+  },
+  {
+    "file": "lobby/odin-lobby-metal-selected.png",
+    "source": "work/launch80/odin-lobby-metal-selected.png",
+    "bytes": 554738,
+    "sha256": "881af722f06edab8128d2fd099df590dff20e92a72e1653a1b426c56b7115903"
+  },
+  {
+    "file": "lobby/odin-lobby-metal.png",
+    "source": "work/launch80/odin-lobby-metal.png",
+    "bytes": 558629,
+    "sha256": "36e2b9471156b4bd6f2bbc2515a79229782fb0c0d6464358e5a7d82d35a09f00"
+  },
+  {
+    "file": "lobby/odin-lobby-options-edit.png",
+    "source": "work/launch80/odin-lobby-options-edit.png",
+    "bytes": 443240,
+    "sha256": "ef533b0087a877194fb39ac304c207ed11acd90c057d76b288505cffae8551d6"
+  },
+  {
+    "file": "lobby/odin-lobby-options.png",
+    "source": "work/launch80/odin-lobby-options.png",
+    "bytes": 417334,
+    "sha256": "a0f35a3d1ed5cf1303141ff7711e30cddb09390b88796824230eaa6f260f0675"
+  },
+  {
+    "file": "lobby/odin-lobby-picker.png",
+    "source": "work/launch80/odin-lobby-picker.png",
+    "bytes": 660655,
+    "sha256": "69c43f8c47608b70ff05610a97f08e7a3c67fb20e6e3ab8ac71d01febc9eac13"
+  },
+  {
+    "file": "lobby/odin-lobby-reload-ready.png",
+    "source": "work/launch80/odin-lobby-reload-ready.png",
+    "bytes": 473051,
+    "sha256": "954464e637a35ed308e81fff78a57439245e77da39094f8d0f3d6d3bb7a0eca6"
+  },
+  {
+    "file": "lobby/odin-lobby-reloaded.png",
+    "source": "work/launch80/odin-lobby-reloaded.png",
+    "bytes": 262590,
+    "sha256": "8f15a415f9ab7c619ae08e123ccb8467ecfa77dfeb481bac3b5b98e55cfbabdd"
+  },
+  {
+    "file": "lobby/odin-lobby-root.png",
+    "source": "work/launch80/odin-lobby-root.png",
+    "bytes": 475984,
+    "sha256": "ea0d242434b435831ba8ff291b895d84381cc3f159d0da60c8f3c05e96a6b9be"
+  },
+  {
+    "file": "lobby/odin-lobby-second.png",
+    "source": "work/launch80/odin-lobby-second.png",
+    "bytes": 555013,
+    "sha256": "377815bd5a9260c20c849fac5665a5ca39ec3300fff1756fe19ed73aef3261ab"
+  },
+  {
+    "file": "lobby/odin-lobby-vote-open.png",
+    "source": "work/launch80/odin-lobby-vote-open.png",
+    "bytes": 479257,
+    "sha256": "86fa20cd3d3753d3934f2b6af1fd1bfaad8e0506755a79614556a54197fc2800"
+  },
+  {
+    "file": "lobby/odin-lobby-wizard.png",
+    "source": "work/launch80/odin-lobby-wizard.png",
+    "bytes": 497478,
+    "sha256": "d6c160d0e08502e1296c351d201c5093f38f23eab08d59d448998178326de1f3"
+  },
+  {
+    "file": "home-start-menus/odin-menu-record-start.png",
+    "source": "work/launch80/odin-menu-record-start.png",
+    "bytes": 1692942,
+    "sha256": "3190e7e79cc6e416e46163626e0e49628bcc1ca4277b9d16545978a234690a85"
+  },
+  {
+    "file": "home-start-menus/odin-menu-reopen.png",
+    "source": "work/launch80/odin-menu-reopen.png",
+    "bytes": 1692942,
+    "sha256": "3190e7e79cc6e416e46163626e0e49628bcc1ca4277b9d16545978a234690a85"
+  },
+  {
+    "file": "home-start-menus/odin-menus-before.png",
+    "source": "work/launch80/odin-menus-before.png",
+    "bytes": 848639,
+    "sha256": "ebe84c62c3c9c45fb77acdf04f28bb62392a670ef3011d231c396042ae8dcf60"
+  },
+  {
+    "file": "gameplay/odin-metal-running.png",
+    "source": "work/launch80/odin-metal-running.png",
+    "bytes": 4277718,
+    "sha256": "fe168e7d948d5b5720babcb313a7865ec0fa9da720ace710ef9b0ecc8ca3f060"
+  },
+  {
+    "file": "preparation/odin-multiplayer-exit.png",
+    "source": "work/launch80/odin-multiplayer-exit.png",
+    "bytes": 1484672,
+    "sha256": "e6ef8c86e249895fc52f86649b91236f093e2237efeda33e2da6cf24c8bbdcf3"
+  },
+  {
+    "file": "lobby/odin-my-lobbies-active.png",
+    "source": "work/launch80/odin-my-lobbies-active.png",
+    "bytes": 436031,
+    "sha256": "481e6cadf03fafafefa2f641fccab46b33ff3d7d5ac42b90fee854726cd2e151"
+  },
+  {
+    "file": "home-start-menus/odin-options-ready.png",
+    "source": "work/launch80/odin-options-ready.png",
+    "bytes": 1342901,
+    "sha256": "ded86fb8177f84b60c438abe05ba1a041dc0116030ea388ab416bf591adca9d0"
+  },
+  {
+    "file": "preparation/odin-repick.png",
+    "source": "work/launch80/odin-repick.png",
+    "bytes": 431247,
+    "sha256": "138a8380012caa686c5bb345f01387e6f558b63c71d677d80837a73068b6456e"
+  },
+  {
+    "file": "home-start-menus/odin-settings-focus.png",
+    "source": "work/launch80/odin-settings-focus.png",
+    "bytes": 1692080,
+    "sha256": "b9b7b93a711842d0458c2928d66092deb17966065e8ed5cc1970be251ffa4a58"
+  },
+  {
+    "file": "social/odin-social-before.png",
+    "source": "work/launch80/odin-social-before.png",
+    "bytes": 2073325,
+    "sha256": "6736aa0e64bd9e94417b193a7a1b2b841b7a4726124076749dccb2eb4f176b53"
+  },
+  {
+    "file": "social/odin-social-messages.png",
+    "source": "work/launch80/odin-social-messages.png",
+    "bytes": 509967,
+    "sha256": "c84f5c020bbb305647e800eed493f28357a271be3cb12e9c2e0da19cba9826d4"
+  },
+  {
+    "file": "social/odin-social-open.png",
+    "source": "work/launch80/odin-social-open.png",
+    "bytes": 689931,
+    "sha256": "f5d0a18468ab28085b740689ae99a8cddc3fdd34fbf1d1d8d5bb0bf24152bebf"
+  },
+  {
+    "file": "social/odin-social-received.png",
+    "source": "work/launch80/odin-social-received.png",
+    "bytes": 531707,
+    "sha256": "ed4f9c7b5f2d2e46ded91239c34fcca1b3c54d07d01a93c90f0f832d8f1b531c"
+  },
+  {
+    "file": "social/odin-social-sent.png",
+    "source": "work/launch80/odin-social-sent.png",
+    "bytes": 563591,
+    "sha256": "1192d2f67d47c78449c5bd6f7024fe0a5b8de012e09c78323463d000dacc75d1"
+  },
+  {
+    "file": "home-start-menus/odin-start-active.png",
+    "source": "work/launch80/odin-start-active.png",
+    "bytes": 467262,
+    "sha256": "a359ffc092b12b0ccc2dd2a731360fe94b24702ac94c9ea6aa753acac1472e23"
+  },
+  {
+    "file": "home-start-menus/odin-start-button.png",
+    "source": "work/launch80/odin-start-button.png",
+    "bytes": 473594,
+    "sha256": "88584ba781e026a8f1be2dd9c481d684cdb1c176154e416742df6ee41a7221c9"
+  },
+  {
+    "file": "home-start-menus/odin-start-ready.png",
+    "source": "work/launch80/odin-start-ready.png",
+    "bytes": 1692942,
+    "sha256": "3190e7e79cc6e416e46163626e0e49628bcc1ca4277b9d16545978a234690a85"
+  },
+  {
+    "file": "gamehub/odin-story-ready.png",
+    "source": "work/launch80/odin-story-ready.png",
+    "bytes": 848639,
+    "sha256": "ebe84c62c3c9c45fb77acdf04f28bb62392a670ef3011d231c396042ae8dcf60"
+  },
+  {
+    "file": "lobby/odin-two-votes.png",
+    "source": "work/launch80/odin-two-votes.png",
+    "bytes": 535647,
+    "sha256": "0d2a1d00435ee82c2dd127f4811e64297b581ce852152a09a9633308e2a082fa"
+  },
+  {
+    "file": "home/odin-video-appearance.png",
+    "source": "work/launch80/odin-video-appearance.png",
+    "bytes": 353348,
+    "sha256": "94820fbd7e06a428a5f50f395d31f18da550975df8b6ed0414719119893535d8"
+  },
+  {
+    "file": "home/odin-video-control-up.png",
+    "source": "work/launch80/odin-video-control-up.png",
+    "bytes": 593425,
+    "sha256": "eec69b88c91605d6ba831da1e21a766ed8c0ce3e3e4a8b3f5009f5ac7c76319c"
+  },
+  {
+    "file": "home/odin-video-current.png",
+    "source": "work/launch80/odin-video-current.png",
+    "bytes": 2576611,
+    "sha256": "5b4df919d8a20f3e172395272c969c031db6ecd82926c5d5f03e4b90caaa4720"
+  },
+  {
+    "file": "home/odin-video-emerald-choice.png",
+    "source": "work/launch80/odin-video-emerald-choice.png",
+    "bytes": 1154026,
+    "sha256": "015a7bc3ce4929eb0f74666bd60df5e21f5e9bd9dcb779cc6b22da2993e06a34"
+  },
+  {
+    "file": "home/odin-video-emerald-focused.png",
+    "source": "work/launch80/odin-video-emerald-focused.png",
+    "bytes": 1959698,
+    "sha256": "58a26d8076e566a67db622978aac7417b8804f1505c8c0f9013a28f0f3748aba"
+  },
+  {
+    "file": "home/odin-video-emerald-home.png",
+    "source": "work/launch80/odin-video-emerald-home.png",
+    "bytes": 2516318,
+    "sha256": "c39c438aaf5b8d623f34471be9473857297649dfeb5185a6577c8ed730fe9fc0"
+  },
+  {
+    "file": "home/odin-video-emerald-ready.png",
+    "source": "work/launch80/odin-video-emerald-ready.png",
+    "bytes": 2232407,
+    "sha256": "ddb981e70afbdcfba170f5f87f46a405ed7f3ca09916d3fb32eda880b0c4d7df"
+  },
+  {
+    "file": "home/odin-video-fav-emerald.png",
+    "source": "work/launch80/odin-video-fav-emerald.png",
+    "bytes": 2008293,
+    "sha256": "4722f70b6991260079989f8edd7b65cc20652387e797fd9b5fc318e977135b53"
+  },
+  {
+    "file": "home/odin-video-favorites.png",
+    "source": "work/launch80/odin-video-favorites.png",
+    "bytes": 2296756,
+    "sha256": "1cd36bf96890024d3759d2e3788ccfcb108e9d98f39b667756e304414aa20e12"
+  },
+  {
+    "file": "games/odin-video-games-root.png",
+    "source": "work/launch80/odin-video-games-root.png",
+    "bytes": 1961279,
+    "sha256": "f4b49c82ae34e1149fe6af1cffdf917a351e8e27457964f1580d1abdc0301e93"
+  },
+  {
+    "file": "home/odin-video-home-before.png",
+    "source": "work/launch80/odin-video-home-before.png",
+    "bytes": 1163045,
+    "sha256": "b4d582ad5ac103b3ae6e35d785e7002500d45126c34c061e5df7491c3c887a51"
+  },
+  {
+    "file": "home/odin-video-home.png",
+    "source": "work/launch80/odin-video-home.png",
+    "bytes": 2876962,
+    "sha256": "ea99688f1204bf721a555eaa46405ca18a3ca3852b45d53232500769f60050b7"
+  },
+  {
+    "file": "home/odin-video-pokemon-list.png",
+    "source": "work/launch80/odin-video-pokemon-list.png",
+    "bytes": 1076405,
+    "sha256": "a492958fa06ec16b6725cc231bce0cd22bf50000a5173e1c58b60300d48aa49e"
+  },
+  {
+    "file": "home/odin-video-pokemon.png",
+    "source": "work/launch80/odin-video-pokemon.png",
+    "bytes": 1233989,
+    "sha256": "e5c5aab80f4ed1341032b155015deb24cb16f3613963496a19639e089ec2a8d6"
+  },
+  {
+    "file": "home/odin-video-recents.png",
+    "source": "work/launch80/odin-video-recents.png",
+    "bytes": 2296756,
+    "sha256": "1cd36bf96890024d3759d2e3788ccfcb108e9d98f39b667756e304414aa20e12"
+  },
+  {
+    "file": "home/odin-video-red-fav.png",
+    "source": "work/launch80/odin-video-red-fav.png",
+    "bytes": 1917722,
+    "sha256": "f9bf393cab79f769761b006f0b08d05eeef369c3d716bf357fd584b2e40350f7"
+  },
+  {
+    "file": "home/odin-video-settings-red.png",
+    "source": "work/launch80/odin-video-settings-red.png",
+    "bytes": 593381,
+    "sha256": "9cbc6b43fcd6feede9520c119e76ee92b578b1572601391d7a5617233e534809"
+  },
+  {
+    "file": "lobby/odin-vote-current.png",
+    "source": "work/launch80/odin-vote-current.png",
+    "bytes": 534023,
+    "sha256": "257dd91929adc891faafef4005c59840c850a23be44ffdc72530f7cfafc03495"
+  },
+  {
+    "file": "review/overview-caption-preview.png",
+    "source": "work/launch80/overview-caption-preview.png",
+    "bytes": 382066,
+    "sha256": "1921fb1e7eb4298331ceaee16bb3d3fbe3edd83d703c0fe736835f1bbed4eb6e"
+  },
+  {
+    "file": "review/overview-final-contact.png",
+    "source": "work/launch80/overview-final-contact.png",
+    "bytes": 3580638,
+    "sha256": "4de223f2eab376a468a0fe046874d380abc958dbb0be177a79a23bd3a6855fdf"
+  },
+  {
+    "file": "review/overview-home-source.png",
+    "source": "work/launch80/overview-home-source.png",
+    "bytes": 942939,
+    "sha256": "16eee0a4d9f9f91fb73dd14a5d3d1434a98aa6f21cd3677a90c9326d14fd07e0"
+  },
+  {
+    "file": "review/overview-hub-source.png",
+    "source": "work/launch80/overview-hub-source.png",
+    "bytes": 1321915,
+    "sha256": "4f5823d5c8da9662d5b066841e12dc7e34e63a60941ca9d034fe11773c1acc10"
+  },
+  {
+    "file": "review/ra-contact.png",
+    "source": "work/launch80/ra-contact.png",
+    "bytes": 743792,
+    "sha256": "e51e7fa3dc78a90be4cc19b562eb580dce0812829b2d311da1a91602e9ca0441"
+  },
+  {
+    "file": "review/ready-contact.png",
+    "source": "work/launch80/ready-contact.png",
+    "bytes": 286312,
+    "sha256": "1fea55a143d338aea4899b7b4372f6559e770200fcd5d4913c094c9a16e4c33f"
+  },
+  {
+    "file": "review/social-final-contact.png",
+    "source": "work/launch80/social-final-contact.png",
+    "bytes": 499738,
+    "sha256": "e974537ce5736795cf19f5de6931ccd976a3ecd741ca0ab82c9cc026c161609d"
+  },
+  {
+    "file": "review/social-flip-contact.png",
+    "source": "work/launch80/social-flip-contact.png",
+    "bytes": 343664,
+    "sha256": "2a45f2e99fa1e37f7aa2f26eb41cbe4b10f6f0e19b5035b2120ff8fda94626f2"
+  },
+  {
+    "file": "review/social-odin-contact.png",
+    "source": "work/launch80/social-odin-contact.png",
+    "bytes": 406983,
+    "sha256": "62b5dfe0dd23def52e53af0cde318ed3dfec3532931b42ff17e52eb468dc4172"
+  },
+  {
+    "file": "review/start-contact.png",
+    "source": "work/launch80/start-contact.png",
+    "bytes": 300766,
+    "sha256": "6374920e2c1391f11c427b8a60b822897f6c4dc8b5a291f0b8f163f8ac567c32"
+  },
+  {
+    "file": "review/video-contact.png",
+    "source": "work/launch80/video-contact.png",
+    "bytes": 600187,
+    "sha256": "6e68a7c7fd1788ba777f1c2ed04f7d14dd8217585dbb12184fd181b2623e3a35"
+  },
+  {
+    "file": "review/video-last.png",
+    "source": "work/launch80/video-last.png",
+    "bytes": 553656,
+    "sha256": "c06ed99ad6f0dbb0156b9c16a19dce513efab4c0f4e529221267243d34784205"
+  }
+]

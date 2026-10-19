@@ -103,3 +103,7 @@ device-check-*.json
 
 # Local demo recordings; index and checksums are tracked
 /videos/**/*.mp4
+/videos/screenshots/**/*.png
+/videos/screenshots/**/*.jpg
+/videos/screenshots/**/*.jpeg
+/videos/screenshots/**/*.webp
