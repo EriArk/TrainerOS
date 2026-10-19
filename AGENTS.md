@@ -53,6 +53,14 @@ TrainerOS is a **controller-first native Linux shell / operating environment** w
 
 No new SDK epic/child task becomes a blocker for the first early public beta merely because it exists. Follow the active agreed release queue.
 
+## Retained owner delivery preferences
+
+- For a **new substantial work increment**, announce the intended user-visible slice and a suitable reasoning-effort recommendation before beginning. Preserve the owner's earlier six-position scheme when explicitly using it: **1/6 Низкое, 2/6 Среднее, 3/6 Высокое, 4/6 Очень высокое, 5/6 Максимум, 6/6 Ультра**. If changing the previously agreed level, explain briefly and wait for the owner's continuation. Do not turn a scope discussion into implementation permission.
+- Prefer a **complete useful feature chain** (provider → UI → relevant tests → device → commit) to a pile of isolated internal microtasks.
+- When deploying an actual build, update **both Flip 2 and Odin 2 when reachable**, preserve separate user state/boot/session preferences, and report deferred devices. Never claim Windows/Linux host tests as device proof.
+- Game/save adapter edits also follow [adapter knowledge](docs/adapters/README.md): update factual per-title evidence and run `tools/export-game-adapters.py` / `tools/check-adapter-knowledge.py` as applicable.
+- Respect original [GPL and third-party code/art license boundaries](LICENSING.md), and keep screenshots/reports free of private accounts, downloaded ROMs, saves, keys and unapproved artwork.
+
 ## Development delivery loop
 
 1. Confirm task and accepted scope. Questions, informal brainstorming and proposals **do not authorize** new code/issues/repo edits. When explicitly authorized, work on a coherent outcome without repeatedly asking permission for ordinary commit/push.
