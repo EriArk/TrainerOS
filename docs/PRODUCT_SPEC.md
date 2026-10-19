@@ -1,5 +1,9 @@
 # TrainerOS Product Specification
 
+> **Reading note (19 Oct 2026): historical product specification.** This document records the earlier Pokémon-first and October 8 target, not today's authoritative five-root OS architecture. See [current product architecture](PRODUCT_ARCHITECTURE_RU.md), the relevant newer feature issues and [docs index](README.md). Retain evidence and unsatisfied requirements, but **do not implement** the old Worlds/Companions/Trainer primaries, old Start placement, OddCrate routing or deprecated input mappings from the historical sections below. Target ≠ installed.
+
+---
+
 **Current consolidated target, 8 October 2026:** read the
 [complete Russian product vision](PRODUCT_VISION_RU.md) and
 [#136-160 acceptance register](EXPANSION_136_160.md). Prepared Armada image and
