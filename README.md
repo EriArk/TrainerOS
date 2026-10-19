@@ -156,7 +156,7 @@ The agreed interface has five main spaces: **Home, Games, GameHub, Social and Ap
 
 The interesting part is how they cooperate. Say someone invites you to a multiplayer game and you are missing your own copy: you can keep the conversation and Lobby context, use Files or the browser to import a game you own, follow the task in the shared Downloads manager and return. You should not need to leave TrainerOS for a separate desktop every time you want to do something ordinary.
 
-**Home** is the system's context-aware Options surface, or Game Options while a game is running. **Start** is planned as a shared grid for **QuickActions / Extensions**; **Quick Apps** provides a quick dock for applications. Those designs are being implemented in stages and are **not** what the older screenshots below show.
+The **physical Home button** opens Shell Options in the system or Game Options for a running game. **Start** is planned as a shared grid for **QuickActions / Extensions**; **Quick Apps** provides a quick dock for applications. Those designs are being implemented in stages and are **not** what the older screenshots below show.
 
 First run already walks through controls, optional Wi-Fi/Bluetooth, date and time, game storage, Trainer creation and an optional PIN. It can continue offline and resume if setup is interrupted.
 
