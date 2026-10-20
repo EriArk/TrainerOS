@@ -119,6 +119,10 @@ def main():
     install(own + "/traineros.desktop", (source / "traineros.desktop").read_bytes(), 0o644)
     install("/etc/systemd/user/traineros-session.service", (source / "traineros-session.service").read_bytes(), 0o644)
     install("/etc/sudoers.d/traineros-session", policy, 0o440)
+    power_spec = importlib.util.spec_from_file_location("traineros_install_power", source.parent / "integrations/install-power.py")
+    power_install = importlib.util.module_from_spec(power_spec)
+    power_spec.loader.exec_module(power_install)
+    power_install.install(args.user)
     install("/etc/sddm.conf.d/90-traineros.conf",
             ("[Wayland]\nSessionDir=" + ",".join(directories) + "\n").encode(), 0o644)
     # Keep the original default for an explicit rollback, without modifying it.

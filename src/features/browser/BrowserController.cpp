@@ -61,12 +61,19 @@ void BrowserController::configure(const QString& directory,const QString& owner)
             jobs_<<d;
         }
     }
-    if(tabs_.isEmpty())newTab();
-    if(std::none_of(tabs_.begin(),tabs_.end(),[this](const QVariant& v){return v.toMap()["id"]==selected_;}))selected_=tabs_.first().toMap()["id"].toString();
+    // Restore addresses without loading them. Start on the local dashboard,
+    // reusing an existing blank tab instead of adding one on every restart.
+    selected_.clear();
+    for(const auto& v:tabs_)if(v.toMap()["url"].toString()=="about:blank"){selected_=v.toMap()["id"].toString();break;}
+    if(selected_.isEmpty())newTab();
     emit profileChanged();emit changed();emit downloadsChanged();
 }
 void BrowserController::enter() {
     if(tabs_.isEmpty())newTab();
+    for(const auto& v:tabs_)if(v.toMap()["id"]==selected_ && v.toMap()["url"].toString()=="about:blank")return;
+    ensureEngine();
+}
+void BrowserController::ensureEngine() {
 #ifdef TRAINER_WEBENGINE
     if(!profile_) {
         // Reuse Chromium's bounded range/validator-aware download jobs. Keep
@@ -106,8 +113,14 @@ QString BrowserController::newTab(QString url) {
     url=navigationUrl(url);if(url.isEmpty())return {};
     const auto id=QUuid::createUuid().toString(QUuid::WithoutBraces);tabs_<<QVariantMap{{"id",id},{"url",url},{"title","New tab"},{"icon",QString()}};selected_=id;saveTimer_.start();emit changed();return id;
 }
-void BrowserController::select(const QString& id){for(const auto& v:tabs_)if(v.toMap()["id"]==id){selected_=id;saveTimer_.start();emit changed();return;}}
-void BrowserController::closeTab(const QString& id){for(int i=0;i<tabs_.size();++i)if(tabs_[i].toMap()["id"]==id){tabs_.removeAt(i);if(selected_==id)selected_=tabs_.isEmpty()?QString():tabs_[qMin(i,int(tabs_.size())-1)].toMap()["id"].toString();break;}if(tabs_.isEmpty())newTab();saveTimer_.start();emit changed();}
+void BrowserController::select(const QString& id){for(const auto& v:tabs_)if(v.toMap()["id"]==id){selected_=id;enter();saveTimer_.start();emit changed();return;}}
+void BrowserController::openUrl(const QString& input){
+    const auto url=navigationUrl(input);if(url.isEmpty())return;
+    if(tabs_.isEmpty())newTab();
+    updateTab(selected_,url,url=="about:blank"?"New tab":url,QString());
+    enter();emit navigateRequested(url);
+}
+void BrowserController::closeTab(const QString& id){for(int i=0;i<tabs_.size();++i)if(tabs_[i].toMap()["id"]==id){tabs_.removeAt(i);if(selected_==id)selected_=tabs_.isEmpty()?QString():tabs_[qMin(i,int(tabs_.size())-1)].toMap()["id"].toString();break;}if(tabs_.isEmpty())newTab();enter();saveTimer_.start();emit changed();}
 void BrowserController::updateTab(const QString& id,const QString& url,const QString& title,const QString& icon,bool visited){
     for(auto& v:tabs_)if(v.toMap()["id"]==id){auto row=v.toMap();row["url"]=url;row["title"]=title.isEmpty()?"New tab":title;row["icon"]=icon;v=row;break;}
     if(visited&&(url.startsWith("https://")||url.startsWith("http://"))) {
@@ -119,7 +132,7 @@ void BrowserController::toggleBookmark(const QString& url,const QString& title){
 void BrowserController::removeHistory(){history_.clear();persist();emit changed();}
 void BrowserController::persist(){if(path_.isEmpty())return;QSaveFile f(path_+"/session.json");if(f.open(QIODevice::WriteOnly)){f.setPermissions(QFile::ReadOwner|QFile::WriteOwner);f.write(QJsonDocument(QJsonObject{{"tabs",QJsonArray::fromVariantList(tabs_)},{"selected",selected_},{"bookmarks",QJsonArray::fromVariantList(bookmarks_)},{"history",QJsonArray::fromVariantList(history_)}}).toJson());f.commit();}}
 void BrowserController::requestAddress(const QString& url){textTarget_="address";emit textRequested("Address or search",url=="about:blank"?QString():url,4096,false);}
-void BrowserController::applyText(const QString& text){const auto target=textTarget_;textTarget_.clear();if(target=="address"){const auto url=navigationUrl(text);if(!url.isEmpty())emit navigateRequested(url);}else if(target=="field"&&field_){QInputMethodQueryEvent query(Qt::ImCursorPosition|Qt::ImSurroundingText);QCoreApplication::sendEvent(field_,&query);QInputMethodEvent event;event.setCommitString(text,-query.value(Qt::ImCursorPosition).toInt(),query.value(Qt::ImSurroundingText).toString().size());QCoreApplication::sendEvent(field_,&event);field_=nullptr;}}
+void BrowserController::applyText(const QString& text){const auto target=textTarget_;textTarget_.clear();if(target=="address"){openUrl(text);}else if(target=="field"&&field_){QInputMethodQueryEvent query(Qt::ImCursorPosition|Qt::ImSurroundingText);QCoreApplication::sendEvent(field_,&query);QInputMethodEvent event;event.setCommitString(text,-query.value(Qt::ImCursorPosition).toInt(),query.value(Qt::ImSurroundingText).toString().size());QCoreApplication::sendEvent(field_,&event);field_=nullptr;}}
 void BrowserController::editPageField(){auto* target=QGuiApplication::focusObject();if(!target)return;const auto enabled=QInputMethod::queryFocusObject(Qt::ImEnabled,{}).toBool();if(!enabled)return;field_=target;textTarget_="field";emit textRequested("Enter text",QInputMethod::queryFocusObject(Qt::ImSurroundingText,{}).toString(),8192,QInputMethod::queryFocusObject(Qt::ImHints,{}).toInt()&Qt::ImhHiddenText);}
 void BrowserController::copyText(const QString& text){QGuiApplication::clipboard()->setText(text);}
 void BrowserController::pointerEvent(QObject* object,qreal x,qreal y,int button){auto* item=qobject_cast<QQuickItem*>(object);if(!item||!item->window())return;const auto local=item->mapToScene(QPointF(x,y));const auto global=item->window()->mapToGlobal(local.toPoint());if(!button){QMouseEvent e(QEvent::MouseMove,local,global,Qt::NoButton,Qt::NoButton,Qt::NoModifier);QCoreApplication::sendEvent(item->window(),&e);return;}const auto b=button==2?Qt::RightButton:Qt::LeftButton;QMouseEvent press(QEvent::MouseButtonPress,local,global,b,b,Qt::NoModifier);QMouseEvent release(QEvent::MouseButtonRelease,local,global,b,Qt::NoButton,Qt::NoModifier);QCoreApplication::sendEvent(item->window(),&press);QCoreApplication::sendEvent(item->window(),&release);}

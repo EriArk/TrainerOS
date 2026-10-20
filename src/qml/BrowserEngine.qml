@@ -15,7 +15,7 @@ Item {
         for (const id in views) if (ids.indexOf(id)<0) { const old=views[id];if(current===old)current=null;delete views[id];surface.forgetTab(id);old.destroy() }
         // Restored tabs keep their identity/title/URL, but only start a renderer
         // when visited. Already opened tabs retain DOM, history and downloads.
-        for (const tab of flow.tabs) if (tab.id===flow.selected && !views[tab.id]) views[tab.id]=page.createObject(engine,{tabId:tab.id,url:tab.url})
+        for (const tab of flow.tabs) if (tab.id===flow.selected && tab.url!=="about:blank" && !views[tab.id]) views[tab.id]=page.createObject(engine,{tabId:tab.id,url:tab.url})
         if(current&&current.tabId!==flow.selected)surface.captureTab(current.tabId,current)
         current=views[flow.selected] || null
         for (const id in views) views[id].selected=(id===flow.selected)
@@ -78,7 +78,7 @@ Item {
             }
             onNewWindowRequested: function(request) {
                 if(!request.userInitiated)return
-                const id=engine.flow.newTab();engine.reconcile();const next=engine.views[id];if(next)next.acceptAsNewWindow(request)
+                const id=engine.flow.newTab();engine.views[id]=page.createObject(engine,{tabId:id,url:"about:blank"});engine.reconcile();engine.views[id].acceptAsNewWindow(request)
             }
             onFullScreenRequested: function(request) {request.accept();engine.surface.fullScreen=request.toggleOn;engine.surface.reveal()}
             onPermissionRequested: function(permission) {

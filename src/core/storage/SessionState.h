@@ -33,6 +33,8 @@ public:
     QStringList choices() const;
     int focusIndex() const { return focus_; }
     void start();
+    void flushForSleep() {stateChanged();flush();}
+    bool writesPending() const {return writing_ || (store_ && (store_->pending() || desired_!=committed_));}
     void setTrainerSwitchGuard(std::function<bool()> guard) { switchGuard_=std::move(guard); }
     void setTrainerRemovalPreparation(std::function<QString()> prepare) { prepareRemoval_=std::move(prepare); }
     void requestTrainers();

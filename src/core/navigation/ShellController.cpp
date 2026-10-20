@@ -244,6 +244,7 @@ ShellController::ShellController(LibraryRepository& repo, TrainerRepository& pro
     connect(this, &ShellController::changed, this, [this] { device_.setMonitoring(onboardingConnections_ || menuOpen_ || gameControlsOpen_ || service_ == "device" || service_ == "settings"); });
     connect(&device_, &DeviceController::closeRequested, this, [this] { service_ = "settings"; emit changed(); });
     connect(&device_, &DeviceController::messageRequested, this, &ShellController::showNotice);
+    connect(&powerControl_, &PowerControl::changed, this, &ShellController::changed);
     connect(&device_, &DeviceController::powerRequested, this, [this](const QString& mode) {
         if(!liveGame_.isEmpty()){showNotice("Save and exit the running game before leaving this system session.");return;}
         if(scraper_.busy()){showNotice("Finish or cancel downloads before leaving this system session.");return;}
@@ -1033,7 +1034,7 @@ void ShellController::systemAction(const QString& id){
 }
 QStringList ShellController::menuItems() const {
     if (powerMenu_) {
-        QStringList items{"Power off", "Restart", "Cancel"};
+        QStringList items{"Sleep", powerControl_.keepAwake()?"Keep awake: On":"Keep awake: Off", "Restart", "Power off", "Cancel"};
         if (!platform_.dedicatedSession()) items.append(platform_.canSwitchSession() ? "Enter TrainerOS Mode" : "Exit Development App");
         return items;
     }
@@ -1312,19 +1313,21 @@ void ShellController::confirm() {
             if(scraper_.busy())downloads_.begin();else scraper_.beginSystems();
             return;
         }
-        if(scraper_.busy()&&((powerMenu_&&menuFocus_!=2)||(!powerMenu_&&(menuFocus_==2||menuFocus_==4||menuFocus_==5)))){showNotice("Finish or cancel downloads before switching Trainer or leaving this system session.");return;}
+        if(scraper_.busy()&&((powerMenu_&&(menuFocus_==2||menuFocus_==3||menuFocus_==5))||(!powerMenu_&&(menuFocus_==2||menuFocus_==4||menuFocus_==5)))){showNotice("Finish or cancel downloads before switching Trainer or leaving this system session.");return;}
         if (powerMenu_) {
-            if (menuFocus_ == 2) { powerMenu_ = false; menuFocus_ = 6; return; }
-            if (menuFocus_ == 3) {
+            if (menuFocus_ == 0) { powerControl_.sleep(); return; }
+            if (menuFocus_ == 1) { powerControl_.toggleKeepAwake(); return; }
+            if (menuFocus_ == 4) { powerMenu_ = menuOpen_ = false; return; }
+            if (menuFocus_ == 5) {
                 if (platform_.canSwitchSession()) { mode_ = "traineros"; notice_ = "Enter the TrainerOS session?"; }
                 else { mode_ = "development-exit"; notice_ = "Close the development app?"; }
                 return;
             }
-            device_.requestPower(menuFocus_ == 1);
+            device_.requestPower(menuFocus_ == 2);
             return;
         }
         if (menuFocus_ >= 7) { if(menuFocus_<9 || !network_.busy())device_.adjustQuick(menuFocus_ - 7, Action::Confirm); return; }
-        if (menuFocus_ == 6) { powerMenu_ = true; menuFocus_ = 2; return; }
+        if (menuFocus_ == 6) { powerMenu_ = true; menuFocus_ = 0; return; }
         if (menuFocus_ >= 4 && platform_.canSwitchSession()) {
             mode_ = menuFocus_ == 5 ? "steam" : "desktop";
             notice_ = mode_ == "steam" ? "Open Steam Gaming Mode? Your Trainer data will be saved first."

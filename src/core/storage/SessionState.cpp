@@ -74,7 +74,9 @@ SessionState::SessionState(ShellController& shell, LocalStateStore* store, QObje
             shell_.reloadModules();
             shell_.hall()->refreshArchive();
             shell_.refreshLibrary(); shell_.settings()->reload();
-            shell_.restoreNavigation(store_->navigation());
+            auto navigation = store_->navigation();
+            navigation["page"] = "home"; // Startup root; each section retains its own position.
+            shell_.restoreNavigation(navigation);
             if(firstRun_.stage()=="complete")shell_.goToPage(0);
             committed_ = store_->navigation();
             desired_ = shell_.navigationState();

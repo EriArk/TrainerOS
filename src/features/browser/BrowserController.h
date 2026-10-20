@@ -30,6 +30,8 @@ public:
     QVariantList downloads() const;
     void configure(const QString& directory,const QString& owner);
     void enter();
+    void ensureEngine();
+    Q_INVOKABLE void openUrl(const QString& input);
     void dispatch(Action);
     void applyText(const QString&);
     static QString navigationUrl(QString input);

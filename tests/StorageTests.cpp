@@ -96,6 +96,10 @@ private slots:
                 }
                 experience["entries"]=entries;state["experienceNavigation"]=experience;return state;
             };
+            // Fresh launches always start at Home, retaining the remembered
+            // positions inside the other roots for subsequent tab switches.
+            QCOMPARE(f.shell.page(), 0);
+            navigation["page"] = "home";
             QCOMPARE(normalized(f.shell.navigationState()), normalized(navigation));
             QVERIFY(!f.shell.menuOpen()); QVERIFY(!f.shell.keyboard()->isOpen()); QVERIFY(!f.shell.trainer()->editing());
             auto* trainer = f.shell.trainer(); trainer->beginEdit(); trainer->setDraftName("ERI 3"); trainer->activate(2);

@@ -11,10 +11,57 @@ Item {
         color: "#70102927"
     }
     ControlsPanel { anchors.centerIn: parent; width: parent.width-24; height: parent.height-12; shell: root.shell; visible: root.shell.menuOpen && !root.shell.powerMenu && !root.shell.notice.length }
+    Rectangle {
+        id: powerPopup
+        visible: root.shell.powerMenu && !root.shell.notice.length
+        anchors.centerIn: parent
+        width: Math.min(400,parent.width-32)
+        height: Math.min(parent.height-12, powerContent.height+30)
+        radius: 24; color: Theme.chassis; border.color: Qt.darker(Theme.chassis,1.35)
+        Rectangle {anchors.fill:parent;anchors.margins:3;radius:22;color:Theme.paper;border.color:Qt.alpha("white",.5)}
+        Flickable {
+            anchors.fill:parent;anchors.margins:15;contentHeight:powerContent.height;clip:true
+            Column {
+                id: powerContent; width:parent.width;spacing:10
+                Row {
+                    width:parent.width;spacing:12
+                    Text {width:parent.width-46;text:"Power";font.family:Theme.displayFamily;font.pixelSize:27;color:Theme.ink}
+                    Text {text:"×";font.pixelSize:27;color:Theme.muted
+                        MouseArea {anchors.fill:parent;anchors.margins:-6;onClicked:root.shell.activate(4)}
+                    }
+                }
+                Text {width:parent.width;text:root.shell.powerControl.busy?"Preparing sleep…":"Rest now, pick up where you left off.";wrapMode:Text.WordWrap;color:Theme.muted;font.pixelSize:13}
+                Repeater {
+                    model:root.shell.menuItems
+                    CapButton {
+                        required property int index
+                        required property string modelData
+                        objectName:"menu-"+index
+                        width:powerContent.width;height:index===1?54:39
+                        label:index===1?"Keep awake":modelData
+                        detail:index===1?"Keep downloads running with the lid closed":""
+                        contentInset:index===1?46:14
+                        textSize:16
+                        tint:index===0?Theme.blue:index===1?Theme.green:index===3?Theme.pink:Theme.yellow
+                        selected:root.shell.focusIndex===index
+                        enabled: index>1 || (root.shell.powerControl.available&&!root.shell.powerControl.busy)
+                        onActivated:root.shell.activate(index)
+                        Rectangle {
+                            visible:index===1;x:13;y:17;width:22;height:22;radius:6
+                            color:root.shell.powerControl.keepAwake?Theme.chassis:Theme.paper
+                            border.color:Qt.alpha(Theme.ink,.35)
+                            Text {anchors.centerIn:parent;text:root.shell.powerControl.keepAwake?"✓":"";color:Theme.paper;font.pixelSize:17}
+                        }
+                    }
+                }
+                Text {width:parent.width;visible:text.length>0;text:root.shell.powerControl.error;wrapMode:Text.WordWrap;font.pixelSize:13;color:Theme.ink}
+            }
+        }
+    }
     // Existing guarded confirmations keep their own surface.
     Rectangle {
         anchors { top: parent.top; right: parent.right; bottom: parent.bottom }
-        visible: root.shell.powerMenu || root.shell.notice.length > 0
+        visible: root.shell.notice.length > 0
         width: root.shell.notice.length > 0 || root.shell.powerMenu ? 376 : 420; color: Theme.chassis
         Panel {
             anchors.fill: parent; anchors.margins: 8

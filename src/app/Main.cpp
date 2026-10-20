@@ -613,6 +613,32 @@ int main(int argc, char* argv[]) {
             else shell.goToPage(0);
         });
         QString pendingNotification, pendingSystemAction;
+        shell.powerControl()->prepareSleep=[&](std::function<void(QString)> done){
+            if(adventureLaunch.active()){done("Save and close the game before sleeping. Live-game sleep is not validated yet.");return;}
+              for(const auto& task:shell.files()->service()->tasks())if(!task.toMap()["terminal"].toBool()){
+                  done("Finish the current file operation before sleeping.");return;
+              }
+            if(session.blocked()||shell.moduleServiceBusy()||folders.writing()||shell.settings()->storage()->busy()
+               ||(saveBackups&&saveBackups->busy())){done("Finish the current save or file operation before sleeping.");return;}
+            session.flushForSleep();
+            auto* wait=new QTimer(&session);wait->setInterval(50);
+            auto ticks=std::make_shared<int>(0);
+            QObject::connect(wait,&QTimer::timeout,&session,[&,wait,ticks,done]{
+                  bool guarded=adventureLaunch.active()||session.blocked()||shell.moduleServiceBusy()||folders.writing()
+                    ||shell.settings()->storage()->busy()||(saveBackups&&saveBackups->busy());
+                  for(const auto& task:shell.files()->service()->tasks())guarded|=!task.toMap()["terminal"].toBool();
+                if(!guarded&&!session.writesPending()){wait->stop();wait->deleteLater();done({});}
+                else if(++*ticks>=80){wait->stop();wait->deleteLater();done("A write is still pending. Try Sleep again after it finishes.");}
+            });wait->start();
+        };
+        QObject::connect(shell.powerControl(),&PowerControl::menuRequested,&shell,[&]{
+            if(adventureLaunch.active()&&!adventureLaunch.minimized()){
+                pendingSystemAction="power";
+                if(adventureOverlay)adventureOverlay->requestShell();
+              }else if(shell.apps()->processId()>0){
+                  pendingSystemAction="power";shell.apps()->control(1);
+              }else shell.systemAction("power");
+        });
         QObject::connect(&adventureProcess,&ProcessService::finished,&shell,[&]{pendingSystemAction.clear();});
         QObject::connect(&shell,&ShellController::gameControlsClosed,&exitPresentation,[&](bool resume){
             exitPresentation.setContentInput(false);if(resume)exitPresentation.dismissMenu();
@@ -1122,6 +1148,7 @@ int main(int argc, char* argv[]) {
             QObject::connect(shell.apps(),&AppsController::shellRequested,window,[&,window]{
                 if(adventureLaunch.active())return;
                 shell.goToSection("apps");if(parser.isSet("windowed"))window->show();else window->showFullScreen();window->requestActivate();
+                  if(pendingSystemAction=="power"){pendingSystemAction.clear();shell.systemAction("power");}
             });
             if(personalLibrary&&!smoke&&platform.dedicatedSession()) {
                 const QString helper="/var/opt/traineros/integrations/apps-service.py";
@@ -1164,6 +1191,15 @@ int main(int argc, char* argv[]) {
                 QObject::connect(report,&QTimer::timeout,window,[&shell]{PerformanceTrace::flush(shell.page());});report->start();
             }
             deviceReports.setWindow(window);
+            QObject::connect(shell.powerControl(),&PowerControl::woke,window,[&,window]{
+                // Re-arm the existing input filter's neutral gate after resume.
+                input.setEnabled(false);
+                QTimer::singleShot(250,window,[&,window]{
+                    window->requestUpdate();
+                    input.setEnabled(app.applicationState()==Qt::ApplicationActive&&!adventureLaunch.active());
+                });
+            });
+            if(!smoke&&platform.dedicatedSession())shell.powerControl()->start();
             session.start();
             if (!parser.isSet("windowed") && !smoke) window->showFullScreen();
             if (personalLibrary && !smoke) {

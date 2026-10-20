@@ -25,6 +25,7 @@ Item {
     property bool pointerVisible: false
     property real pointerX: width/2
     property real pointerY: height/2
+    property int dashboardFocus: -1
     readonly property bool startPage: !page || page.url.toString()==="about:blank"
     readonly property bool expanded: active && fullScreen
     readonly property var shortcuts: flow.bookmarks.length ? flow.bookmarks : [
@@ -33,7 +34,7 @@ Item {
         {title:"Internet Archive",url:"https://archive.org/",symbol:"A",color:"#cedce8"}]
     function reveal() {chrome=true}
     function scrolled(dy) {if(popup||toolsFocused)return;chrome=dy<0}
-    function navigate(url) {if(!page)return;error="";popup="";toolsFocused=false;page.url=url;reveal()}
+    function navigate(url) {error="";popup="";toolsFocused=false;flow.openUrl(url);reveal()}
     function openPopup(kind,rows) {
         if(kind==="tabs"&&page)captureTab(flow.selected,page)
         popupRows=rows||[];popupIndex=0;popup=kind;reveal()
@@ -100,8 +101,16 @@ Item {
             if(action==="click"){if(toolIndex===-2)flow.requestAddress(page?page.url.toString():"");else if(toolIndex===-1)openPopup("tabs");else command(toolFlow.controls[toolIndex].id)}
             return
         }
+        if(startPage) {
+            if(action==="left")dashboardFocus=Math.max(-1,dashboardFocus-1)
+            else if(action==="right")dashboardFocus=Math.min(root.shortcuts.length-1,dashboardFocus+1)
+            else if(action==="down")dashboardFocus=Math.min(root.shortcuts.length-1,dashboardFocus<0?0:dashboardFocus+4)
+            else if(action==="up")dashboardFocus=dashboardFocus<4?-1:dashboardFocus-4
+            else if(action==="click"){if(dashboardFocus<0)flow.requestAddress("");else navigate(root.shortcuts[dashboardFocus].url)}
+            if(dashboardFocus>=0)dashboardTiles.positionViewAtIndex(dashboardFocus,GridView.Contain)
+            return
+        }
         if(action==="click"||action==="context") {
-            if(startPage){flow.requestAddress("");return}
             flow.pointerEvent(root,pointerX,pointerY,action==="context"?2:1);if(action==="click")queueFieldCheck();return
         }
         spatial(action)
@@ -123,7 +132,7 @@ Item {
     onTakesFocusChanged: if(!takesFocus){pointerVisible=false;if(!shellController.keyboard.open&&popup!=="permission")dismiss()}
     Connections {target:flow
         function onCommandRequested(command){if(root.active)root.handle(command)}
-        function onNavigateRequested(url){root.navigate(url)}
+        function onNavigateRequested(url){if(root.page)root.page.url=url;else if(webLoader.item)webLoader.item.reconcile();root.reveal()}
         function onProfileChanging(){webLoader.active=false;root.page=null;root.thumbs=({});root.dismiss()}
         function onProfileChanged(){webLoader.active=!!flow.profile&&flow.available}
     }
@@ -143,22 +152,23 @@ Item {
         Repeater {model:3
             Rectangle {required property int index;width:parent.width*(.75+index*.24);height:width;radius:width/2;x:parent.width*.65-width/2;y:parent.height*.55-height/2;color:"transparent";border.width:1;border.color:Qt.alpha(Theme.chassis,.08)}
         }
-        Column {anchors.centerIn:parent;spacing:22;width:Math.min(500,parent.width-40)
-            Text {anchors.horizontalCenter:parent.horizontalCenter;text:"Explore";font.family:Theme.displayFamily;font.pixelSize:26;color:Theme.ink}
-            Rectangle {anchors.horizontalCenter:parent.horizontalCenter;width:Math.min(390,parent.width);height:40;radius:20;color:Qt.alpha(Theme.chassis,.07);border.color:Qt.alpha(Theme.chassis,.18)
+        Column {anchors.centerIn:parent;spacing:16;width:Math.min(580,parent.width-40)
+            Text {anchors.horizontalCenter:parent.horizontalCenter;text:"Your corner of the web";font.family:Theme.displayFamily;font.pixelSize:28;color:Theme.ink}
+            Text {anchors.horizontalCenter:parent.horizontalCenter;text:"A quiet start. Choose where to go.";font.pixelSize:14;color:Theme.muted}
+            Rectangle {anchors.horizontalCenter:parent.horizontalCenter;width:Math.min(440,parent.width);height:42;radius:21;color:Qt.alpha(Theme.chassis,.07);border.width:root.dashboardFocus<0?2:1;border.color:Qt.alpha(Theme.chassis,root.dashboardFocus<0?.5:.18)
                 Text {anchors.centerIn:parent;text:"Search or enter an address";font.pixelSize:14;color:Theme.muted}
                 MouseArea {anchors.fill:parent;onClicked:flow.requestAddress("")}
             }
-            Flow {width:Math.min(parent.width,Math.min(4,root.shortcuts.length)*112+Math.max(0,Math.min(4,root.shortcuts.length)-1)*14);anchors.horizontalCenter:parent.horizontalCenter;spacing:14
-                Repeater {model:root.shortcuts
-                    Item {required property var modelData;width:112;height:82
-                        Rectangle {anchors.horizontalCenter:parent.horizontalCenter;width:49;height:49;radius:15;color:modelData.color||Theme.blue;border.color:Qt.alpha(Theme.ink,.15)
-                            Text {anchors.centerIn:parent;text:modelData.symbol||modelData.title.slice(0,1).toUpperCase();font.family:Theme.displayFamily;font.pixelSize:26;color:Theme.ink}
+            GridView {id:dashboardTiles;width:Math.min(4,root.shortcuts.length)*130;anchors.horizontalCenter:parent.horizontalCenter;height:Math.min(2,Math.ceil(root.shortcuts.length/4))*98;cellWidth:130;cellHeight:98;clip:true;model:root.shortcuts
+                    delegate: Item {required property int index;required property var modelData;width:130;height:98
+                        Rectangle {x:(parent.width-width)/2;y:4;width:62;height:62;radius:20;color:Qt.darker(modelData.color||[Theme.blue,Theme.green,Theme.pink,Theme.yellow][index%4],1.35)}
+                        Rectangle {anchors.horizontalCenter:parent.horizontalCenter;width:62;height:62;radius:20;color:modelData.color||[Theme.blue,Theme.green,Theme.pink,Theme.yellow][index%4];border.width:root.dashboardFocus===index?2:1;border.color:root.dashboardFocus===index?Theme.chassis:Qt.alpha(Theme.ink,.15)
+                            Rectangle {anchors.fill:parent;anchors.margins:2;radius:18;color:"transparent";border.color:Qt.alpha("white",.6)}
+                            Text {anchors.centerIn:parent;text:modelData.symbol||modelData.title.slice(0,1).toUpperCase();font.family:Theme.displayFamily;font.pixelSize:29;color:Theme.ink}
                         }
-                        Text {y:56;width:parent.width;text:modelData.title;horizontalAlignment:Text.AlignHCenter;elide:Text.ElideRight;color:Theme.ink;font.pixelSize:12;textFormat:Text.PlainText}
+                        Text {y:72;width:parent.width-8;x:4;text:modelData.title;horizontalAlignment:Text.AlignHCenter;elide:Text.ElideRight;color:Theme.ink;font.pixelSize:13;textFormat:Text.PlainText}
                         MouseArea {anchors.fill:parent;onClicked:root.navigate(modelData.url)}
                     }
-                }
             }
         }
         Text {anchors.centerIn:parent;visible:!flow.available;text:"This build has no embedded web engine.";color:Theme.ink}

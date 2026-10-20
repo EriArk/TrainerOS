@@ -165,6 +165,8 @@ add_library(trainer_core STATIC
     src/platform/ArmadaPlatformService.cpp
     src/platform/power/PowerStatus.h
     src/platform/power/PowerStatus.cpp
+    src/platform/power/PowerControl.h
+    src/platform/power/PowerControl.cpp
     src/core/model/SaveBackup.h
     src/platform/storage/SaveBackupStorage.h
     src/platform/storage/SaveBackupStorage.cpp
