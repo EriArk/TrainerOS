@@ -33,6 +33,11 @@
 - **One GameHub Lobby and normal multiplayer** [#179](https://github.com/EriArk/TrainerOS/issues/179), [#216](https://github.com/EriArk/TrainerOS/issues/216), [LOBBY_EXECUTION_PLAN_RU](LOBBY_EXECUTION_PLAN_RU.md), [REMOTE_PLAY_LOBBY](REMOTE_PLAY_LOBBY.md), [multiplayer working matrix](MULTIPLAYER_WORKING_MATRIX.md).
 - **Fluxer packet/data relay is conditional, not assumed:** existing [#105 transport research](https://github.com/EriArk/TrainerOS/issues/105), then [#238 Network Fabric](https://github.com/EriArk/TrainerOS/issues/238).
 
+### Server-side infrastructure (planning, not shipped)
+
+- **[TrainerOS Backend plan](TRAINEROS_BACKEND_PLAN_RU.md)** — one optional VPS for the existing Fluxer bot and potential shared services: event/API intake, scores, tournaments, rewards, clans, operations and scale. This plan does **not** move gameplay, voice, video or saves to the server.
+- **[Hosted Crates data & install recipes](CRATES_SERVER_STORAGE_RU.md)** — small signed/verified catalog metadata, revisions, install recipes and compatible configuration; **GitHub Releases remains the binary/package host**. Existing implementation owners: [#144](https://github.com/EriArk/TrainerOS/issues/144), [#146](https://github.com/EriArk/TrainerOS/issues/146), [#147](https://github.com/EriArk/TrainerOS/issues/147), [#148](https://github.com/EriArk/TrainerOS/issues/148).
+
 ### Device and delivery
 
 - [Armada platform](ARMADA_PLATFORM.md), [device baseline](ARMADA_DEVICE_BASELINE.md), [first run](FIRST_RUN.md), [native build guide](DEVELOPMENT.md), [public readiness](PUBLIC_READINESS.md), [security](../SECURITY.md), [licensing](../LICENSING.md), [third-party notices](../THIRD_PARTY_NOTICES.md).
