@@ -458,3 +458,33 @@ RetroArch нет, TrainerOS работает, SQLite `quick_check=ok`.
 - `upstream-es_find_rules.xml` SHA-256 `67af7c75f76733dac4de2dead1aa01d32e89071f2ed4b3791514d5abcdc8c6c9`.
 - `batocera-es_systems.yml` SHA-256 `6257cff6c78e66f4aa75dbd5aaaaa48a6e3018e7a795d53bf2bf3e73109b031e`.
 - `core-info.json` SHA-256 `8de610c772eaa719354f79b50ac16d8198504ab6394513db8176623be001c4ba`.
+
+
+## PC — проверка основы запуска, 20 октября 2026
+
+Это подготовка #246–250, не доставленный PC wizard. Продуктовый контракт —
+[PC в PRODUCT_SPEC](PRODUCT_SPEC.md#pc--согласованный-сценарий-20-октября-2026-target).
+Основной референс — [Faugus](https://github.com/Faugus/faugus-launcher), запуск
+через существующий [UMU](https://github.com/Open-Wine-Components/umu-launcher),
+без установки второго интерфейса лаунчера.
+
+- Официальный zipapp UMU 1.4.4 проверен по SHA-256 release asset и запущен на
+  Odin/ARM64. С установленным GE-Proton11-5-aarch64 и отдельным тестовым prefix
+  Windows `cmd.exe /c echo` вернул ожидаемый маркер и exit 0 без запуска Steam.
+  Это проверка Windows runtime, **не игра, GPU или контроллер**.
+- Проверка x86 syswow64 через SSH без среды дисплея закончилась timeout;
+  повтор с окружением графической сессии и Windows-путём выполнил PE32/i386
+  `syswow64/cmd.exe`: маркер получен, exit 0, журнал подтвердил FEXUnixLib.
+  При реальном запуске передавать среду пользовательской графической сессии,
+  не наследовать настройки рендера самой оболочки. Первый timeout не изолирует
+  причину между окружением и способом указания пути — отдельного вывода нет.
+- Armada имеет свой launch wrapper с per-game FEX/performance/Turnip настройками.
+  Установленные пользователем/Steam runtime остаются read-only; wrapper может
+  менять содержимое Proton, поэтому нельзя включать его целиком без разбора.
+- `AdventureRegistration`, `ProcessService`, Files/File Picker и Downloads уже
+  владеют нужными общими механизмами. PC runtime binding должен использовать их,
+  а не расширять ROM registry на EXE или превращать installer в игровую карточку.
+- Личные Sacred установщики проверяются отдельно. Переименование `.part` выполнено
+  по просьбе владельца; оно не является проверкой содержимого. Sacred Gold не
+  прошёл проверку; у Sacred 2 ошибка zlib повторилась в Windows и Linux.
+  Исправность комплектов не подтверждена; установленных Sacred на устройствах нет.

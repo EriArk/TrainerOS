@@ -138,29 +138,14 @@ void SocialController::openLobbyForGame(const QString& key) {
         toastTitle_="Play together";toastText_="This game's multiplayer runtime is not available yet.";
         toastTimer_.start();emit presentationChanged();return;
     }
-    if(viewedLobby().state().isEmpty()) {
-        createAnotherLobby();int modes=0;for(const auto& v:lobbyGames_)if(v.toMap().value("adventure",v.toMap()["key"]).toString()==key)++modes;
-        if(modes==1)lobbyChoices_={selected};else {openLobbyPicker();lobbyPickerSearch_=selected["title"].toString();emit changed();}return;
+    if(viewedLobby().state().isEmpty())createAnotherLobby();
+    else {
+        openLobby();
+        const auto phase=viewedLobby().state()["phase"].toString();
+        if(!viewedLobby().hosting()||(phase!="gathering"&&phase!="choosing"))return;
     }
-    openLobby();
-    if(!viewedLobby().hosting())return;
-    const auto current=viewedLobby().state()["game"].toObject();
-    QVariantList modes;for(const auto& v:lobbyGames_) {
-        const auto g=v.toMap();if(g.value("adventure",g["key"]).toString()==key)modes.append(g);
-    }
-    if(modes.size()>1) {
-        for(const auto& v:modes)if(v.toMap()["id"].toString()==current["id"].toString())return;
-        if(viewedLobby().state()["phase"]!="gathering"&&viewedLobby().state()["phase"]!="choosing")return;
-        menuMode_="lobby";menuTitle_="How to play";menuDetail_=selected["title"].toString();menuFocus_=0;menu_.clear();menuCommands_.clear();
-        for(const auto& v:modes){const auto g=v.toMap();menu_.append(g.value("modeLabel","Emulator multiplayer").toString());menuCommands_.append("lobby:game:"+g["key"].toString());}
-        emit changed();return;
-    }
-    if(current["id"].toString().isEmpty()) {lobbyAction("game:"+key);return;}
-    if(current["id"]==selected["id"].toString())return;
-    if(viewedLobby().state()["phase"]!="gathering"&&viewedLobby().state()["phase"]!="choosing")return;
-    menuMode_="lobby";menuTitle_="Choose a game";menuDetail_=selected["title"].toString();menuFocus_=0;
-    menu_={"Keep "+current["title"].toString(),"Choose "+selected["title"].toString()};
-    menuCommands_={"cancel","lobby:game:"+key};emit changed();
+    openLobbyPicker();
+    lobbyPickerAction("game:"+selected.value("adventure",selected["key"]).toString());
 }
 QVariantList SocialController::lobbyRows() const {
     QVariantList rows;
@@ -243,7 +228,17 @@ void SocialController::selectLobby(int index) {
     for(const auto& v:lobbyActions()) {const auto a=v.toMap();if(a["enabled"].toBool()){menu_.append(a["label"].toString());menuCommands_.append("lobby:"+a["id"].toString());}}
     menu_.append("Back");menuCommands_.append("cancel");lobbyDetailFocused_=false;emit changed();
 }
-void SocialController::setLobbyGames(QVariantList games) {if(lobbyGames_==games)return;lobbyGames_=std::move(games);
+void SocialController::setLobbyGames(QVariantList games) {
+    if(lobbyGames_==games)return;
+    const auto focusedMode=lobbyPicker()["modes"].toList().value(lobbyPickerModeFocus_).toMap()["key"].toString();
+    lobbyGames_=std::move(games);
+    refreshLobbyPicker();
+    if(!focusedMode.isEmpty()&&!lobbyPickerModeGame_.isEmpty()) {
+        const auto modes=lobbyPicker()["modes"].toList();int index=-1;
+        for(int i=0;i<modes.size();++i)if(modes[i].toMap()["key"]==focusedMode){index=i;break;}
+        if(index>=0)lobbyPickerModeFocus_=index;
+        else {lobbyPickerModeGame_.clear();lobbyCreationError_="This play mode is no longer available. Choose a mode again.";}
+    }
     if(lobbyRuntime_.problem()=="local-content") {
         const auto game=lobby_.state()["game"].toObject();
         for(const auto& v:lobbyGames_){const auto g=v.toMap();if(g["id"].toString()==game["id"].toString()&&g["mode"].toString()==game["mode"].toString()){lobbyAutoPreparation_.clear();break;}}

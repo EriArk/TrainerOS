@@ -49,6 +49,7 @@ add_library(trainer_core STATIC
     src/features/social/SocialLobbyRoom.cpp
     src/features/social/SocialMyLobbies.cpp
     src/features/social/SocialLobbyCreation.cpp
+    src/features/social/LobbyPickerModel.cpp
     src/features/social/SocialRecent.cpp
     src/features/social/LobbySession.cpp
     src/features/social/LobbyCoordinator.cpp

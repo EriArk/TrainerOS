@@ -32,6 +32,56 @@ public:
 // Isolated provider state; exercises the actual QML and input, never an account.
 class LobbySmokeScenario {
 public:
+    static void picker(QQuickWindow* window,ShellController& shell,QString directory,bool& completed,int& warnings,QStringList& diagnostics) {
+        auto* social=shell.social();
+        QObject::disconnect(social->session_,nullptr,social,nullptr);QObject::disconnect(social,nullptr,social->session_,nullptr);
+        auto rows=std::make_shared<QVariantList>();auto tick=std::make_shared<int>(0);
+        auto failed=std::make_shared<bool>(false);auto anchor=std::make_shared<QString>();
+        auto* timer=new QTimer(window);timer->setInterval(500);
+        const auto check=[failed,&diagnostics](bool ok,QString text){if(!ok){*failed=true;diagnostics.append("FAIL "+text);}};
+        const auto find=[window](QString name){
+            const std::function<QQuickItem*(QQuickItem*)> search=[&](QQuickItem* item)->QQuickItem* {if(item->objectName()==name)return item;for(auto* child:item->childItems())if(auto* found=search(child))return found;return nullptr;};
+            return search(window->contentItem());
+        };
+        const auto click=[=](QString name){
+            auto* item=find(name);if(!item)return false;
+            const auto point=item->mapToScene(QPointF(item->width()/2,item->height()/2));const auto global=window->mapToGlobal(point.toPoint());
+            QMouseEvent down(QEvent::MouseButtonPress,point,global,Qt::LeftButton,Qt::LeftButton,Qt::NoModifier),up(QEvent::MouseButtonRelease,point,global,Qt::LeftButton,Qt::NoButton,Qt::NoModifier);
+            QCoreApplication::sendEvent(window,&down);QCoreApplication::sendEvent(window,&up);return true;
+        };
+        QObject::connect(timer,&QTimer::timeout,window,[=,&shell,&completed,&warnings,&diagnostics]{
+            const int step=(*tick)++;
+            if(step==0){
+                for(int i=0;i<160;++i)rows->append(QVariantMap{{"key",QString::number(i)},{"id","net:"+QString::number(i)},{"title",QString("Adventure %1").arg(i,3,10,QChar('0'))},{"platform","nes"},{"mode","netplay"},{"modeLabel","NetPlay"},{"seats",2}});
+                auto remote=rows->at(85).toMap();remote["key"]="85:remote";remote["adventure"]="85";remote["id"]="remote:85";remote["mode"]="remoteplay.v1";remote["modeLabel"]="Remote Play";rows->append(remote);
+                social->receive(0,{{"state","connected"},{"userId","1"},{"name","Host"}});
+                social->setLobbyGames(*rows);shell.goToPage(2);emit social->lobbyRequested();social->createAnotherLobby();social->openLobbyPicker();window->resize(960,540);return;
+            }
+            auto* list=find("lobby-picker-games");check(list,"Real picker ListView exists");if(!list)return;
+            if(step==1){social->dispatch(Action::Right);for(int i=0;i<85;++i)social->dispatch(Action::Down);return;}
+            if(step==2){QMetaObject::invokeMethod(list,"captureAnchor");*anchor=list->property("anchorKey").toString();check(!anchor->isEmpty()&&*anchor!="0","Deep viewport captured");social->dispatch(Action::Confirm);return;}
+            if(step==3){check(social->lobbyPicker()["modes"].toList().size()==2,"Two actual modes share one game row");window->grabWindow().save(directory+"/picker-modes.png");social->dispatch(Action::Back);return;}
+            if(step==4){social->dispatch(Action::Confirm);return;}
+            if(step==5){check(click("lobby-picker-mode-0"),"Touch selects an actual mode");return;}
+            if(step==6){check(social->lobbyChoices_.size()==1,"Touch pins candidate");window->grabWindow().save(directory+"/picker-selected.png");}
+            if(step>=6){
+                QMetaObject::invokeMethod(list,"captureAnchor");
+                check(list->property("anchorKey").toString()==*anchor,QString("Viewport anchor retained at tick %1").arg(step));
+                check(social->lobbyPicker()["gameKey"].toString()=="85",QString("Focus retained at tick %1").arg(step));
+                emit social->changed(); // unrelated voice/directory/heartbeat notification
+                if(step%6==0){
+                    // Reorder and metadata changes are real list edits, not just repeated equal data.
+                    if(step%12==0)rows->move(0,rows->size()-1);else rows->move(rows->size()-1,0);
+                    auto g=rows->at(0).toMap();g["cover"]="";g["updated"]=step;(*rows)[0]=g;social->setLobbyGames(*rows);
+                }
+            }
+            if(step<266)return; // > two minutes of actual rendered async updates
+            timer->stop();completed=true;window->grabWindow().save(directory+"/picker-after-refresh.png");
+            diagnostics.append(QString("Picker: 160 games, 133 seconds, controller + touch, repeated model reorder/heartbeat; qmlWarnings=%1").arg(warnings));
+            QFile report(directory+"/picker-check.txt");if(report.open(QIODevice::WriteOnly))report.write(diagnostics.join('\n').toUtf8());
+            QCoreApplication::exit(*failed||warnings?4:0);
+        });timer->start();
+    }
     static void catalogue(QQuickWindow* window,ShellController& shell,ControllerInput& input,SDL_Joystick* joystick,QString directory,bool& completed,int& warnings,QStringList& diagnostics) {
         auto* social=shell.social();
         QObject::disconnect(social->session_,nullptr,social,nullptr);QObject::disconnect(social,nullptr,social->session_,nullptr);
@@ -181,7 +231,7 @@ public:
                 capture("create-wide");social->cancelLobbyDraft();social->createAnotherLobby();check(social->lobbyDraft()["access"]=="private","Closing discards all entered fields");
                 social->setLobbyGames({QVariantMap{{"key","kart"},{"id","kart-id"},{"title","Super Mario Kart"},{"platform","snes"},{"mode","netplay"},{"modeLabel","NetPlay"},{"seats",2}},QVariantMap{{"key","bomber"},{"id","bomber-id"},{"title","Bomberman"},{"platform","nes"},{"mode","netplay"},{"modeLabel","NetPlay"},{"seats",2}}});social->openLobbyPicker();break;
             case 33:
-                capture("game-picker");social->lobbyPickerAction("pick:kart");social->lobbyPickerAction("pick:bomber");press(SDL_CONTROLLER_BUTTON_X);check(!social->lobbyPicker()["open"].toBool(),"Y applies the picker selection through controller routing");break;
+                capture("game-picker");social->lobbyPickerAction("game:kart");social->lobbyPickerAction("mode:kart");social->lobbyPickerAction("game:bomber");social->lobbyPickerAction("mode:bomber");press(SDL_CONTROLLER_BUTTON_X);check(!social->lobbyPicker()["open"].toBool(),"Y applies the picker selection through controller routing");break;
             case 34:
                 capture("create-vote-selection");social->submitLobbyDraft();check(social->myLobbies().size()==3,"Confirm creates exactly one room");social->lobbyAction("vote");break;
             case 35:
@@ -317,6 +367,7 @@ public:
         if(qEnvironmentVariableIsSet("TRAINEROS_FILES68_SMOKE")){files68(window,shell,directory,completed,warnings,diagnostics);return;}
         if(qEnvironmentVariableIsSet("TRAINEROS_SOCIAL67_SMOKE")){social67(window,shell,directory,completed,warnings,diagnostics);return;}
         if(qEnvironmentVariableIsSet("TRAINEROS_SOCIAL65_SMOKE")){social65(window,shell,directory,completed,warnings,diagnostics);return;}
+        if(qEnvironmentVariableIsSet("TRAINEROS_LOBBY_PICKER_SMOKE")){picker(window,shell,directory,completed,warnings,diagnostics);return;}
         if(qEnvironmentVariableIsSet("TRAINEROS_LOBBY_CATALOGUE_SMOKE")){catalogue(window,shell,input,joystick,directory,completed,warnings,diagnostics);return;}
         auto* social=shell.social();
         QObject::disconnect(social->session_,nullptr,social,nullptr);

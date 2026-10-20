@@ -970,10 +970,12 @@ private slots:
         SocialController c;c.receive(0,{{"state","connected"},{"userId","1"},{"name","Host"}});
         c.setLobbyGames({QVariantMap{{"key","a"},{"id","a"},{"title","First"},{"platform","nes"},{"mode","netplay"},{"seats",2}},
             QVariantMap{{"key","b"},{"id","b"},{"title","Second"},{"platform","nes"},{"mode","netplay"},{"seats",2}}});
-        c.openLobbyForGame("a");c.submitLobbyDraft();const auto room=c.lobby_.state()["id"].toString();
+        c.openLobbyForGame("a");QVERIFY(c.lobbyPicker()["modeOpen"].toBool());
+        c.lobbyPickerAction("mode:a");c.lobbyPickerAction("apply");c.submitLobbyDraft();const auto room=c.lobby_.state()["id"].toString();
         QCOMPARE(c.lobby_.state()["game"].toObject()["id"].toString(),"a");
         c.openLobbyForGame("b");QCOMPARE(c.lobby_.state()["id"].toString(),room);QCOMPARE(c.lobby_.state()["game"].toObject()["id"].toString(),"a");
-        QVERIFY(c.menuCommands_.contains("lobby:game:b"));c.selectMenu(1);
+        QVERIFY(c.menuCommands_.isEmpty());QVERIFY(c.lobbyPicker()["modeOpen"].toBool());
+        c.lobbyPickerAction("mode:b");c.lobbyPickerAction("clear");c.lobbyPickerAction("game:b");c.lobbyPickerAction("mode:b");c.lobbyPickerAction("apply");
         QCOMPARE(c.lobby_.state()["game"].toObject()["id"].toString(),"b");
         c.openLobbyForGame("missing");QCOMPARE(c.lobby_.state()["game"].toObject()["id"].toString(),"b");
     }
@@ -982,9 +984,64 @@ private slots:
         c.setLobbyGames({QVariantMap{{"key","a"},{"id","native"},{"title","Game"},{"platform","nes"},{"mode","netplay"},{"seats",2}},
             QVariantMap{{"key","a:remoteplay"},{"adventure","a"},{"id","remote"},{"title","Game"},{"platform","nes"},{"mode","remoteplay.v1"},{"modeLabel","Remote Play"},{"seats",2}}});
         c.openLobbyForGame("a");QVERIFY(c.lobbyPicker()["open"].toBool());QVERIFY(c.lobby_.state().isEmpty());
-        c.lobbyPickerAction("pick:a:remoteplay");c.lobbyPickerAction("apply");c.submitLobbyDraft();const auto room=c.lobby_.state()["id"].toString();
+        c.lobbyPickerAction("mode:a:remoteplay");c.lobbyPickerAction("apply");c.submitLobbyDraft();const auto room=c.lobby_.state()["id"].toString();
         QCOMPARE(c.lobby_.state()["game"].toObject()["id"].toString(),QString("remote"));
         c.openLobbyForGame("a");QCOMPARE(c.lobby_.state()["id"].toString(),room);QCOMPARE(c.lobby_.state()["game"].toObject()["id"].toString(),"remote");
+    }
+    void pickerKeepsIdentityAcrossHeartbeatReorderRenameAndRemoval() {
+        SocialController c;c.receive(0,{{"state","connected"},{"userId","1"},{"name","Host"}});
+        QVariantList games;
+        for(int i=0;i<120;++i)games.append(QVariantMap{{"key",QString::number(i)},{"id","net:"+QString::number(i)},{"title","Game "+QString::number(i)},{"platform","nes"},{"mode","netplay"},{"seats",2}});
+        c.setLobbyGames(games);c.createAnotherLobby();c.openLobbyPicker();c.lobbyPickerAction("focus:85");
+        QSignalSpy resets(c.lobbyPickerModel(),&QAbstractItemModel::modelReset);
+        QSignalSpy navigations(&c,&SocialController::lobbyPickerNavigate);
+        QSignalSpy refreshes(&c.lobbyPickerModel_,&LobbyPickerModel::refreshed);
+        for(int i=0;i<180;++i){emit c.changed();c.setLobbyGames(games);}
+        QCOMPARE(refreshes.size(),0);QCOMPARE(c.lobbyPicker()["gameKey"].toString(),"85");
+        games.move(85,91);auto renamed=games[91].toMap();renamed["title"]="Renamed";games[91]=renamed;c.setLobbyGames(games);
+        QCOMPARE(c.lobbyPicker()["gameKey"].toString(),"85");QCOMPARE(c.lobbyPicker()["focus"].toInt(),91);
+        games.removeAt(91);c.setLobbyGames(games);
+        QCOMPARE(c.lobbyPicker()["focus"].toInt(),91);QCOMPARE(c.lobbyPicker()["gameKey"],games[91].toMap()["key"]);
+        QCOMPARE(resets.size(),0);QCOMPARE(navigations.size(),0);
+    }
+    void pickerGroupsExactModesPinsAcrossFiltersAndCancelsWithoutMutation() {
+        SocialController c;c.receive(0,{{"state","connected"},{"userId","1"},{"name","Host"}});
+        const QVariantMap a{{"key","a"},{"id","native-a"},{"title","Same title"},{"platform","nes"},{"mode","netplay"},{"seats",2}};
+        const QVariantMap b{{"key","a:remote"},{"adventure","a"},{"id","remote-a"},{"title","Same title"},{"platform","nes"},{"mode","remoteplay.v1"},{"seats",2}};
+        const QVariantMap other{{"key","b"},{"id","native-b"},{"title","Same title"},{"platform","snes"},{"mode","netplay"},{"seats",2}};
+        c.setLobbyGames({a,b,other});c.createAnotherLobby();c.openLobbyPicker();
+        QCOMPARE(c.lobbyPickerRows().size(),2);
+        c.lobbyPickerAction("game:a");QCOMPARE(c.lobbyPicker()["modes"].toList().size(),2);
+        c.dispatch(Action::Back);QVERIFY(c.lobbyChoices_.isEmpty());QVERIFY(c.lobbyPickerOpen());QVERIFY(!c.lobbyPicker()["modeOpen"].toBool());
+        c.lobbyPickerAction("game:a");c.lobbyPickerAction("mode:a");
+        c.lobbyPickerAction("game:a");c.lobbyPickerAction("mode:a:remote");
+        QCOMPARE(c.lobbyChoices_.size(),2);QCOMPARE(c.lobbyPickerPins().size(),1);
+        QCOMPARE(c.lobbyPickerPins()[0].toMap()["modes"].toList().size(),2);
+        c.lobbyPickerAction("category:snes");QCOMPARE(c.lobbyPickerRows().size(),1);QCOMPARE(c.lobbyPickerPins().size(),1);
+        c.lobbyPickerAction("apply");c.submitLobbyDraft();QCOMPARE(c.lobby_.state()["vote"].toObject()["choices"].toArray().size(),2);
+        c.openLobbyPicker();QCOMPARE(c.lobbyChoices_.size(),2);QCOMPARE(c.lobbyPickerPins().size(),1);
+        c.lobbyPickerAction("clear");c.lobbyPickerAction("cancel");c.openLobbyPicker();QCOMPARE(c.lobbyChoices_.size(),2);
+    }
+    void pickerModeRefreshNeverChangesTheFocusedModeSilently() {
+        SocialController c;c.receive(0,{{"state","connected"},{"userId","1"},{"name","Host"}});
+        const QVariantMap a{{"key","a"},{"id","native-a"},{"title","Game"},{"platform","nes"},{"mode","netplay"},{"seats",2}};
+        const QVariantMap b{{"key","a:remote"},{"adventure","a"},{"id","remote-a"},{"title","Game"},{"platform","nes"},{"mode","remoteplay.v1"},{"seats",2}};
+        c.setLobbyGames({a,b});c.createAnotherLobby();c.openLobbyPicker();c.lobbyPickerAction("game:a");
+        c.dispatch(Action::Down);QCOMPARE(c.lobbyPicker()["modeFocus"].toInt(),1);
+        c.setLobbyGames({b,a});QCOMPARE(c.lobbyPicker()["modeFocus"].toInt(),0);
+        c.setLobbyGames({a});QVERIFY(!c.lobbyPicker()["modeOpen"].toBool());
+        QVERIFY(!c.lobbyPicker()["error"].toString().isEmpty());QVERIFY(c.lobbyChoices_.isEmpty());
+        QCOMPARE(c.lobbyPicker()["gameKey"].toString(),"a");
+    }
+    void pickerMetadataRefreshIsAllowedButChangedRuntimeNeedsReselection() {
+        SocialController c;c.receive(0,{{"state","connected"},{"userId","1"},{"name","Host"}});
+        QVariantMap g{{"key","a"},{"id","native-a"},{"title","Game"},{"platform","nes"},{"mode","netplay"},{"seats",2},{"runtime",QVariantMap{{"build","one"}}}};
+        c.setLobbyGames({g});c.createAnotherLobby();c.openLobbyPicker();c.lobbyPickerAction("game:a");
+        QVERIFY(c.lobbyPicker()["modeOpen"].toBool());c.lobbyPickerAction("mode:a");
+        g["title"]="New title";g["cover"]="new-cover";c.setLobbyGames({g});QVERIFY(c.validateLobbyChoices());
+        QCOMPARE(c.lobbyChoices_[0].toMap()["title"].toString(),"New title");
+        g["runtime"]=QVariantMap{{"build","two"}};c.setLobbyGames({g});QVERIFY(!c.validateLobbyChoices());
+        c.lobbyPickerAction("apply");QVERIFY(c.lobbyPickerOpen());QVERIFY(c.lobby_.state().isEmpty());
     }
     void lobbyConversationCreatesOnceAndAddsMembersWithoutTouchingVoice() {
         FluxerSession s;int creates=0,adds=0;const auto room=QUuid::createUuid().toString(QUuid::WithoutBraces);

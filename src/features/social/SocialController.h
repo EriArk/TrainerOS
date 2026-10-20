@@ -14,6 +14,7 @@
 #include "LobbyReminders.h"
 #include "LobbyRuntime.h"
 #include "RecentTogether.h"
+#include "LobbyPickerModel.h"
 #include <QJsonArray>
 
 namespace trainer {
@@ -82,8 +83,9 @@ class SocialController final : public QObject {
     Q_PROPERTY(bool myLobbiesOpen READ myLobbiesOpen NOTIFY changed)
     Q_PROPERTY(bool lobbyCreateOpen READ lobbyCreateOpen NOTIFY changed)
     Q_PROPERTY(QVariantMap lobbyDraft READ lobbyDraft NOTIFY changed)
-    Q_PROPERTY(QVariantList lobbyPickerRows READ lobbyPickerRows NOTIFY changed)
-    Q_PROPERTY(QVariantList lobbyPickerCategories READ lobbyPickerCategories NOTIFY changed)
+    Q_PROPERTY(QAbstractItemModel* lobbyPickerModel READ lobbyPickerModel CONSTANT)
+    Q_PROPERTY(QVariantList lobbyPickerRows READ lobbyPickerRows NOTIFY lobbyPickerCatalogueChanged)
+    Q_PROPERTY(QVariantList lobbyPickerCategories READ lobbyPickerCategories NOTIFY lobbyPickerCatalogueChanged)
     Q_PROPERTY(QVariantMap lobbyPicker READ lobbyPicker NOTIFY changed)
     Q_PROPERTY(bool lobbyPickerOpen READ lobbyPickerOpen NOTIFY changed)
     Q_PROPERTY(bool lobbyVoteOpen READ lobbyVoteOpen NOTIFY changed)
@@ -151,6 +153,7 @@ public:
     bool lobbyPickerOpen() const {return lobbyPickerOpen_;}
     bool lobbyVoteOpen() const {return lobbyVoteOpen_ && !viewedLobby().state()["vote"].toObject().isEmpty();}
     QVariantList lobbyPickerRows() const;
+    QAbstractItemModel* lobbyPickerModel() {return &lobbyPickerModel_;}
     QVariantList lobbyPickerCategories() const;
     std::function<QVariantList()> lobbyCollections;
     std::function<bool(QString,QString)> lobbyCollectionContains;
@@ -356,6 +359,8 @@ public:
     void dismissNotificationAt(int index);
     void dismissNotifications();
 signals:
+    void lobbyPickerCatalogueChanged();
+    void lobbyPickerNavigate(int index);
     void gameMessage(QVariantMap message);
     void lobbyImportRequested();
     void filesDownloadRequested();
@@ -433,6 +438,14 @@ private:
     quint64 lobbyPickerGeneration_=0;
     int lobbyDraftFocus_=0,lobbyPickerFocus_=0,lobbyPickerRail_=0;
     bool lobbyPickerRailFocused_=true;
+    LobbyPickerModel lobbyPickerModel_{this};
+    QVariantList lobbyPickerOriginalChoices_;
+    QString lobbyPickerGame_,lobbyPickerModeGame_;
+    int lobbyPickerModeFocus_=0,lobbyPickerPinFocus_=0;
+    bool lobbyPickerPinsFocused_=false;
+    void refreshLobbyPicker();
+    QVariantList lobbyPickerPins() const;
+    bool validateLobbyChoices();
     int myLobbiesIndex_=0;
     LobbyCoordinator lobby_{this};
     LobbyReminders lobbyReminders_;

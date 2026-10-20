@@ -824,7 +824,7 @@ void SocialController::preserveText(QString text) {
 void SocialController::applyText(QString text) {
     if(textPurpose_=="people-filter"){peopleFilter_=text.trimmed();focus_=0;textPurpose_.clear();emit changed();return;}
     if(textPurpose_.startsWith("lobby-draft-")||textPurpose_=="lobby-picker-search") {
-        if(textPurpose_=="lobby-picker-search") {lobbyPickerSearch_=text.trimmed();lobbyPickerFocus_=0;}
+        if(textPurpose_=="lobby-picker-search") {lobbyPickerSearch_=text.trimmed();refreshLobbyPicker();}
         else if(lobbyCreateOpen_&&lobbyDraftAccount_==snapshot_["userId"].toString()) {
             if(textPurpose_=="lobby-draft-name")lobbyDraft_["title"]=text.trimmed().left(80);
             else {const auto date=QDateTime::fromString(text.trimmed(),"yyyy-MM-dd HH:mm");
