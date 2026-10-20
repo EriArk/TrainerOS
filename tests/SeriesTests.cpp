@@ -5,6 +5,8 @@
 #include <QtTest>
 #include <QTemporaryDir>
 #include <QFile>
+#include <QCryptographicHash>
+#include <QJsonDocument>
 using namespace trainer;
 
 class SeriesLibrary final: public LibraryRepository {
@@ -46,6 +48,26 @@ public:
 class SeriesTests: public QObject {
     Q_OBJECT
 private slots:
+    void personalGenreCollectionsReplaceSeriesAndSurviveEdits() {
+        QTemporaryDir directory;SeriesLibrary library;SeriesAdapter adapter;
+        const auto key=QString::fromLatin1(QCryptographicHash::hash("owner",QCryptographicHash::Sha256).toHex());
+        QVERIFY(QDir().mkpath(directory.path()+"/collections"));
+        QFile file(directory.path()+"/collections/"+key+".json");QVERIFY(file.open(QIODevice::WriteOnly));
+        file.write(R"({"version":1,"hiddenCollections":["pokemon","mario","zelda","multiverse"],"collections":[{"id":"user:genre-platform","name":"Platformers","dynamic":false,"games":["m1"]}]})");file.close();
+        MultiversePresentation presentation(library,adapter);
+        auto* collections=presentation.collectionManager();
+        collections->configure(directory.path(),"owner");
+        QStringList ids;for(const auto& row:presentation.collections())ids.append(row.toMap()["id"].toString());
+        QVERIFY(!ids.contains("pokemon"));QVERIFY(!ids.contains("mario"));QVERIFY(!ids.contains("zelda"));
+        QVERIFY(ids.contains("multiverse"));QVERIFY(ids.contains("user:genre-platform"));
+        QCOMPARE(presentation.game("m1")["id"].toString(),QString("m1"));
+        collections->begin("user:genre-platform");collections->activate(0);collections->applyText("Platform games");collections->activate(2);
+        collections->configure(directory.path(),"owner");
+        QVERIFY(!collections->visible("mario"));QVERIFY(collections->visible("multiverse"));
+        QCOMPARE(collections->definitions()[0].toObject()["name"].toString(),QString("Platform games"));
+        collections->configure(directory.path(),"another-owner");
+        QVERIFY(collections->visible("mario"));QVERIFY(collections->definitions().isEmpty());
+    }
     void primaryTabsRestoreGameLocationUntilExplicitBack() {
         SeriesLibrary library;SeriesAdapter adapter;MockTrainerRepository profiles;DevelopmentPlatformService platform;MockPokedexRepository dex;
         MockHallOfFameRepository archive;MockAchievementProvider achievements;
@@ -259,10 +281,12 @@ private slots:
         for(const auto& row:shell.gamesCollections()) {
             QVERIFY(row.toMap()["id"]!="multiverse");QVERIFY(row.toMap()["id"]!="auto:favorites");
         }
-        QCOMPARE(shell.gamesPlatforms().size(),3);
+        QCOMPARE(shell.gamesPlatforms().size(),4); // PC remains available for adding the first game.
+        QStringList platformIds;for(const auto& row:shell.gamesPlatforms())platformIds.append(row.toMap()["id"].toString());
+        QVERIFY(platformIds.contains("pc"));
         shell.dispatch(Action::NextFace);QVERIFY(shell.collectionsRoot());QVERIFY(shell.faceNames().isEmpty());
         shell.openGamesRootItem("collections","mario");QCOMPARE(shell.multiverse()->games().size(),2);
-        QCOMPARE(shell.gamesPlatforms().size(),3); // Root platforms are not narrowed by the browsed collection.
+        QCOMPARE(shell.gamesPlatforms().size(),4); // Root platforms are not narrowed by the browsed collection.
         shell.dispatch(Action::Back);QCOMPARE(shell.gamesRootZone(),"collections");
         shell.dispatch(Action::Down);QCOMPARE(shell.gamesRootZone(),"platforms");
         shell.openGamesRootItem("platforms","gba");QCOMPARE(shell.multiverse()->route(),"games");

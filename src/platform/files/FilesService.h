@@ -16,7 +16,7 @@ public:
     QVariantList places() const;
     QVariantList tasks() const;
     bool available() const;
-    void start(const QString& operation, const QStringList& sources, const QString& destination = {});
+    QString start(const QString& operation, const QStringList& sources, const QString& destination = {});
     void answer(const QString& task, const QString& answer);
     void cancel(const QString& task = {});
 Q_SIGNALS:

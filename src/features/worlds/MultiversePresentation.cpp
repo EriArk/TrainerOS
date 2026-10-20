@@ -114,6 +114,7 @@ QVariantList MultiversePresentation::collections() const {
     for(const auto& game:entries_)if(game.linked)++counts[game.series.isEmpty()?seriesForTitle(game.title):game.series];
     QVariantList result;
     for(const auto& d:seriesDefinitions()) {
+        if(collections_ && !collections_->visible(d.id))continue;
         if(d.id!="pokemon" && d.id!="multiverse" && !counts.value(d.id))continue;
         result.append(QVariantMap{{"id",d.id},{"name",d.id=="multiverse"?QString("All games"):d.name},{"colour",d.colour},
             {"art","qrc:/series/"+d.id+".png"},{"count",d.id=="multiverse"?int(entries_.size()):counts.value(d.id)}});
@@ -123,6 +124,7 @@ QVariantList MultiversePresentation::collections() const {
         for(const auto& d:collections_->definitions())extra.append(d.toObject().toVariantMap());
         for(const auto& v:extra) {
             auto row=v.toMap();int count=0;
+            if(!collections_->visible(row["id"].toString()))continue;
             for(const auto& g:entries_)if(g.linked) {
                 const auto r=repository_->registration(g.id);
                 if(r && collections_->contains(row["id"].toString(),r->adventure))++count;
@@ -205,7 +207,7 @@ QVariantList MultiversePresentation::systems() const {
             platforms.append({g.system,g.system.isEmpty()?QString("Other platforms"):g.system,g.system,"console"});
         for(const auto& p:platforms) {
             const auto count=std::count_if(entries_.begin(),entries_.end(),[&](const auto& g){return g.system==p.id && g.linked && belongs(g);});
-            if(count)result.append(QVariantMap{{"id",p.id},{"name",p.name},{"shape",p.shape},{"count",int(count)}});
+            if(count || (p.id=="pc" && repository_->editable()))result.append(QVariantMap{{"id",p.id},{"name",p.id=="pc"?QString("PC"):p.name},{"shape",p.shape},{"count",int(count)}});
         }
         systemsCache_=result;systemsCached_=true;return result;
     }
@@ -228,7 +230,7 @@ QVariantList MultiversePresentation::allSystems() const {
             platforms.append({game.system,game.system.isEmpty()?QString("Other platforms"):game.system,game.system,"console"});
     }
     QVariantList rows;
-    for(const auto& p:platforms)if(counts.value(p.id))rows.append(QVariantMap{{"id",p.id},{"name",p.name},{"shape",p.shape},{"count",counts[p.id]}});
+    for(const auto& p:platforms)if(counts.value(p.id) || (p.id=="pc" && repository_ && repository_->editable()))rows.append(QVariantMap{{"id",p.id},{"name",p.id=="pc"?QString("PC"):p.name},{"shape",p.shape},{"count",counts[p.id]}});
     return rows;
 }
 void MultiversePresentation::openSystem(const QString& id) {

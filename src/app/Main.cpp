@@ -1,5 +1,6 @@
 #include "adapters/pokemon/PokemonExperience.h"
 #include "integrations/adventure/CratesAdventureAdapter.h"
+#include "integrations/adventure/PcAdventureAdapter.h"
 #include "features/crates/CratesLibrary.h"
 #ifdef TRAINER_WEBENGINE
 #include <QtWebEngineQuick/qtwebenginequickglobal.h>
@@ -357,9 +358,10 @@ int main(int argc, char* argv[]) {
         auto saveRuntimes = std::make_shared<std::atomic<std::shared_ptr<const SaveRuntimes>>>(
             std::make_shared<const SaveRuntimes>(SaveRuntimes{retroarchInstallation, melonDsInstallation}));
         CratesAdventureAdapter cratesRuntime;
+        PcAdventureAdapter pcRuntime;
         cratesRuntime.root=QDir(stateDirectory).filePath("crates");
         cratesRuntime.helper="/var/opt/traineros/crates/launch.py";
-        AdapterRouter adapters({&cratesRuntime,&ppsspp, &armsx2, &cemu, &duckstation, &rpcs3, &eden, &xemu, &melonDs, &dolphin, &azahar, &vita3k, &retroarch});
+        AdapterRouter adapters({&pcRuntime,&cratesRuntime,&ppsspp, &armsx2, &cemu, &duckstation, &rpcs3, &eden, &xemu, &melonDs, &dolphin, &azahar, &vita3k, &retroarch});
         if (personalLibrary && !smoke) selectedAdapter = &adapters;
 #ifdef TRAINEROS_UI_TESTS
         ProbeAdventureAdapter probeAdapter;
@@ -401,6 +403,7 @@ int main(int argc, char* argv[]) {
                 shell.collectionManager()->configure(stateDirectory,ready?store->ownerId():QString());
                 shell.apps()->configure(stateDirectory,ready?store->ownerId():QString());
                 shell.files()->configure(stateDirectory,ready?store->ownerId():QString());
+                shell.pcGames()->configure(stateDirectory,ready?store->ownerId():QString());
                 shell.browser()->configure(stateDirectory,ready?store->ownerId():QString());
                 shell.album()->configure(stateDirectory,ready?store->ownerId():QString());
             });
@@ -410,6 +413,7 @@ int main(int argc, char* argv[]) {
                 shell.collectionManager()->configure(stateDirectory,{});
                 shell.apps()->configure(stateDirectory,{});
                 shell.files()->configure(stateDirectory,{});
+                shell.pcGames()->configure(stateDirectory,{});
                 shell.browser()->configure(stateDirectory,{});
                 shell.album()->configure(stateDirectory,{});
             });
@@ -1241,6 +1245,8 @@ int main(int argc, char* argv[]) {
                 eden.requestLaunch = requestAdventure;
                 xemu.requestLaunch = requestAdventure;
                 cratesRuntime.requestLaunch = requestAdventure;
+                pcRuntime.library=&activeLibrary;
+                pcRuntime.requestLaunch=requestAdventure;
                 cratesRuntime.ownerId=[&]{return store->ownerId();};
                 auto* packages=shell.crates()->installer();
                 packages->replacementGuard=[&]{return adventureLaunch.active()||session.blocked()?QString("Waiting for your game or save operation to finish"):QString();};

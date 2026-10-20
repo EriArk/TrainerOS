@@ -22,6 +22,15 @@ PNG = base64.b64decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQI
 
 
 class OverlayHelperTests(unittest.TestCase):
+    def test_ordinary_pc_window_requires_managed_launch_marker(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory); process = root / '42'; process.mkdir()
+            (process / 'exe').symlink_to('/games/ordinary-game')
+            for env, expected in ((b'', False), (b'TRAINEROS_PC_MANAGED=0\0', False),
+                                  (b'TRAINEROS_PC_MANAGED=1\0', True)):
+                (process / 'environ').write_bytes(env)
+                self.assertEqual(supported_emulator_process(42, root), expected)
+
     def test_standalone_launch_flags_do_not_admit_plain_desktop_windows(self):
         with tempfile.TemporaryDirectory() as directory:
             root=Path(directory);process=root/'42';process.mkdir()

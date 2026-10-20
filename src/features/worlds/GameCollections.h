@@ -22,6 +22,7 @@ public:
     void configure(const QString& directory,const QString& owner);
     void refresh();
     QJsonArray definitions() const { return definitions_; }
+    bool visible(const QString& id) const { return id == "multiverse" || !hidden_.contains(id); }
     bool contains(const QString& collection,const Adventure& game) const;
     bool known(const QString& id) const;
     bool played(const QString& id) const { return played_.contains(id); }
@@ -50,6 +51,7 @@ private:
     QList<Adventure> candidates() const;
     LibraryRepository& library_;
     QJsonArray definitions_;
+    QSet<QString> hidden_;
     QSet<QString> played_;
     QString file_,route_,error_,field_,query_,game_;
     bool writable_=true;

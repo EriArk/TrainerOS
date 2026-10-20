@@ -83,6 +83,8 @@ add_library(trainer_core STATIC
     src/platform/files/FilesService.cpp
     src/features/apps/AppsController.cpp
     src/features/crates/CratesController.cpp
+    src/features/pc/PcGamesController.cpp
+    src/features/pc/PcGamesController.h
     src/features/crates/CratesInstaller.cpp
     src/features/crates/CratesLibrary.h
     src/features/crates/CratesCatalogue.cpp
@@ -494,6 +496,7 @@ qt_add_qml_module(traineros
         src/qml/PlayerBubbles.qml
         src/qml/ConversationPane.qml
         src/qml/ChatFilePicker.qml
+        src/qml/PcGamePopup.qml
         src/qml/SocialPage.qml
         src/qml/DiscoverPane.qml
         src/qml/DiscoverCommunityCard.qml
@@ -600,6 +603,13 @@ if(BUILD_TESTING)
     endif()
     qt_add_executable(trainer_power_tests tests/PowerStatusTests.cpp)
     qt_add_executable(trainer_crates_tests tests/CratesTests.cpp)
+    qt_add_executable(trainer_pc_tests tests/PcGamesTests.cpp)
+    target_link_libraries(trainer_pc_tests PRIVATE trainer_core Qt6::Test)
+    add_test(NAME pc_games COMMAND trainer_pc_tests)
+    if(UNIX AND Python3_Interpreter_FOUND)
+        add_test(NAME pc_session COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/PcSessionTests.py)
+        set_tests_properties(pc_session PROPERTIES TIMEOUT 15)
+    endif()
     target_link_libraries(trainer_crates_tests PRIVATE trainer_core Qt6::Test)
     qt_add_resources(trainer_crates_tests crates_test_data PREFIX "/crates" BASE data/crates FILES data/crates/showcase.json data/crates/catalogue.json)
     add_test(NAME crates_showcase COMMAND trainer_crates_tests)

@@ -45,10 +45,11 @@ PlatformLabel platformLabel(const QString& id) {
 }
 QList<PlatformLabel> multiversePlatforms() {
     // Registry membership describes a content category, not installed runtime
-    // readiness. Empty systems never become cards in the production browser.
+    // readiness. PC is an explicit user-added source, including its empty state.
     QList<PlatformLabel> result;
     for (const auto& p : collectionPlatforms()) if (p.id != "android" && p.id != "pc") result.append(p);
     const QList<PlatformLabel> additional{
+        {"pc","PC","PC","computer"},
         {"nes","Nintendo Entertainment System","NES","cartridge"},
         {"snes","Super Nintendo","SNES","cartridge"},
         {"virtualboy","Virtual Boy","VB","console"},

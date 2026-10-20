@@ -4,6 +4,12 @@
 
 ## Read before working
 
+**Owner library size correction, 21 October 2026:** exclude Xbox 360 and PS3
+from the current handheld copy and final matched libraries. Stop their transfers
+and remove only this job's copied/partial payloads; preserve source files and
+personal saves. The active selection is now 314 games across 24 families; the
+original 321-entry request remains historical evidence, not the current copy plan.
+
 1. [Current product and architecture](docs/PRODUCT_ARCHITECTURE_RU.md) — **what TrainerOS is and which components own what**.
 2. [Documentation index](docs/README.md) — where to find the appropriate current feature contract, implementation evidence and historical source.
 3. [ROADMAP](docs/ROADMAP.md), [CURRENT_TASKS](docs/CURRENT_TASKS.md) and the **specific GitHub issue** — accepted sequence, task scope and outstanding acceptance.
@@ -36,6 +42,7 @@ TrainerOS is a **controller-first native Linux shell / operating environment** w
 ## Current owner constraints
 
 - The active increment is Lobby Game Picker #252–254, PC installation/launch and LAN-over-internet #246–251. In parallel, deliver the exact [owner game selection](docs/MULTIPLAYER_GAME_SELECTION.md) to both devices.
+- Owner correction, 21 October: finish the interrupted PC Home/exit delivery without repeating passed checks. Make the two visible libraries identical: the approved selection plus old games confirmed present on both handhelds; copy both supplied Sacred distributions. Replace the old collection views with genre collections while keeping each owner's saves, profile and history. Remove the temporary PC input fixture, its library cards and temporary folders from both devices at the end. Copy verification is not installer integrity or gameplay compatibility.
 - Keep one live room and separate scheduled rooms. All Ready enables the host's explicit Start; never auto-launch. Offline Lobby, private PSP and full pass-controller catalogue stay deferred.
 - Couch means independent simultaneous pads. Do not manufacture PS2 couch networking with two local game copies. Reuse upstream networking and existing Fluxer signaling.
 - First beta is an installer over Armada; images and SteamOS/Bazzite come later. SDK/backend/account targets do not automatically block it.

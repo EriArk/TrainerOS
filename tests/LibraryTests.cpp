@@ -200,7 +200,9 @@ private slots:
         shell.dispatch(Action::NextPage);QCOMPARE(shell.page(),2);QVERIFY(!shell.libraryTools()->isOpen());
         shell.goToPage(1);QVERIFY(!shell.collectionsRoot());QCOMPARE(shell.multiverse()->route(),"games");
         shell.dispatch(Action::ContextMenu);QVERIFY(shell.libraryTools()->isOpen());
-        shell.dispatch(Action::SystemMenu);shell.dispatch(Action::Confirm);
+        shell.dispatch(Action::SystemMenu);QVERIFY(shell.menuOpen());
+        // Start is now a widget dashboard; its initial focus is not Settings.
+        shell.controls()->select("settings");shell.dispatch(Action::Confirm);
         QCOMPARE(shell.service(),"settings");QVERIFY(!shell.libraryTools()->isOpen());
     }
     void contextualEditsDeleteRomAndPreserveIdentity() {
@@ -421,20 +423,41 @@ private slots:
         QVERIFY(q.exec("PRAGMA user_version")); QVERIFY(q.next()); QCOMPARE(q.value(0).toInt(),16);
         QVERIFY(q.exec("SELECT payload FROM shell_state WHERE scope='prototype-library-v1'")); QVERIFY(q.next()); QVERIFY(!q.value(0).toString().isEmpty());
     }
-    void filePagingCancellationAndUnavailableDirectory() {
+    void filePickerScrollHistoryCancellationAndUnavailableDirectory() {
         QTemporaryDir dir; QVERIFY(QDir().mkpath(dir.path() + "/folder"));
         for (int i = 0; i < 90; ++i) fixtureFile(dir.path() + QString("/entry-%1.bin").arg(i, 3, 10, QChar('0')));
         LocalFileCatalog catalog; FilePickerController picker(&catalog);
         picker.begin(dir.path()); QTRY_VERIFY(!picker.busy()); QCOMPARE(picker.rows().size(), 80);
         QVERIFY(picker.rows().first().toMap()["title"].toString() == "folder");
         for (int i = 0; i < 80; ++i) picker.dispatch(Action::Down);
-        QCOMPARE(picker.zone(), QString("actions"));
-        picker.dispatch(Action::Up);
-        QCOMPARE(picker.zone(), QString("list")); QCOMPARE(picker.rowIndex(), 79);
-        picker.activate(3, "actions"); QTRY_VERIFY(!picker.busy()); QCOMPARE(picker.rows().size(), 11);
-        picker.activate(2, "actions"); picker.cancel(); QTest::qWait(100); QVERIFY(!picker.isOpen());
+        QTRY_VERIFY(!picker.busy()); QCOMPARE(picker.rows().size(),91); QCOMPARE(picker.rowIndex(),80);
+        QCOMPARE(picker.zone(), QString("list")); QVERIFY(!picker.hasMore());
+        picker.navigate(dir.path()+"/folder"); QTRY_VERIFY(!picker.busy()); QVERIFY(picker.rows().isEmpty());
+        picker.back();QTRY_VERIFY(!picker.busy());QCOMPARE(picker.rows().size(),91);QCOMPARE(picker.rowIndex(),80);
+        picker.refresh(); picker.cancel(); QTest::qWait(100); QVERIFY(!picker.isOpen());
         picker.begin(dir.path() + "/missing"); QTRY_VERIFY(!picker.busy()); QVERIFY(!picker.error().isEmpty()); QCOMPARE(picker.zone(), "actions");
         picker.dispatch(Action::Back); QVERIFY(!picker.isOpen());
+    }
+    void filePickerExplicitSelectionAndMissingFile() {
+        QTemporaryDir dir;fixtureFile(dir.path()+"/example.txt");LocalFileCatalog catalog;FilePickerController picker(&catalog);
+        QSignalSpy chosen(&picker,&FilePickerController::selected);
+        picker.begin(dir.path());QTRY_VERIFY(!picker.busy());QVERIFY(!picker.canChoose());
+        picker.select(0);QVERIFY(picker.canChoose());QVERIFY(chosen.isEmpty());
+        picker.activate(0,"list");QCOMPARE(picker.zone(),QString("actions"));QVERIFY(chosen.isEmpty());
+        QVERIFY(QFile::remove(dir.path()+"/example.txt"));picker.choose();QVERIFY(chosen.isEmpty());QVERIFY(!picker.error().isEmpty());
+        picker.cancel();fixtureFile(dir.path()+"/example.txt");picker.begin(dir.path());QTRY_VERIFY(!picker.busy());
+        picker.select(0);picker.choose();QCOMPARE(chosen.size(),1);QCOMPARE(chosen[0][0].toString(),dir.path()+"/example.txt");
+    }
+    void filePickerIgnoresStaleDirectoryAndPlacesResults() {
+        struct DelayedCatalog : FileCatalog {
+            struct Pending {QString path;std::function<void(DirectoryPage)> done;};QList<Pending> requests;
+            void list(const QString& path,int,QObject*,std::function<void(DirectoryPage)> done) override {requests.append({path,done});}
+            void reply(int index) {DirectoryPage result;result.path=requests[index].path;result.entries={{"/example","example",true}};requests[index].done(result);}
+        } catalog;
+        FilePickerController picker(&catalog);picker.begin("/old");picker.navigate("/new");
+        catalog.reply(2);QCOMPARE(picker.path(),QString("/new"));
+        catalog.reply(1);QCOMPARE(picker.path(),QString("/new"));
+        picker.cancel();catalog.reply(0);QVERIFY(picker.places().isEmpty());QVERIFY(!picker.isOpen());
     }
     void settingsAreCommittedAndRetryable() {
         QTemporaryDir dir;

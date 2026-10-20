@@ -17,7 +17,7 @@ namespace {
 QVariantMap row(const QString& label) { return {{"label",label},{"enabled",true}}; }
 }
 void GameCollections::configure(const QString& directory,const QString& owner) {
-    close();definitions_={};file_.clear();writable_=!owner.isEmpty();error_.clear();
+    close();definitions_={};hidden_.clear();file_.clear();writable_=!owner.isEmpty();error_.clear();
     if(writable_) {
         const auto key=QString::fromLatin1(QCryptographicHash::hash(owner.toUtf8(),QCryptographicHash::Sha256).toHex());
         file_=QDir(directory).filePath("collections/"+key+".json");
@@ -28,7 +28,11 @@ void GameCollections::configure(const QString& directory,const QString& owner) {
                 QJsonParseError parse;const auto doc=QJsonDocument::fromJson(input.readAll(),&parse);
                 if(parse.error!=QJsonParseError::NoError || !doc.isObject() || doc["version"].toInt()!=1 || !doc["collections"].isArray()) {
                     writable_=false;error_="Couldn't read your collections. Existing data has been kept.";
-                } else definitions_=doc["collections"].toArray();
+                } else {
+                    definitions_=doc["collections"].toArray();
+                    for(const auto& id:doc["hiddenCollections"].toArray())
+                        if(id.isString() && id.toString()!="multiverse")hidden_.insert(id.toString());
+                }
             }
         }
     }
@@ -43,7 +47,9 @@ bool GameCollections::save(const QJsonArray& next) {
     if(!writable_) {if(error_.isEmpty())error_="Choose a Trainer before editing collections.";emit changed();return false;}
     if(!file_.isEmpty()) {
         QDir().mkpath(QFileInfo(file_).absolutePath());QSaveFile output(file_);
-        const auto bytes=QJsonDocument(QJsonObject{{"version",1},{"collections",next}}).toJson();
+        auto hidden=hidden_.values();hidden.sort();
+        const auto bytes=QJsonDocument(QJsonObject{{"version",1},{"collections",next},
+            {"hiddenCollections",QJsonArray::fromStringList(hidden)}}).toJson();
         if(!output.open(QIODevice::WriteOnly) || output.write(bytes)!=bytes.size() || !output.commit()) {
             error_="Couldn't save the collection. Your previous collections are unchanged.";emit changed();return false;
         }

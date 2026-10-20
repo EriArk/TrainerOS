@@ -84,40 +84,11 @@ Item {
             takesFocus: root.takesFocus && visible
             onActivated: function(row) { root.shell.activate(row) }
         }
-        Item {
-            anchors.fill: parent; visible: root.manager.route === "files"
-            ControllerList {
-                x: 24; y: libraryHeader.height + 11; width: parent.width - 48; height: 216
-                model: root.files.rows; currentIndex: root.files.rowIndex; namePrefix: "file-row-"; tint: Theme.blue
-                takesFocus: root.takesFocus && parent.visible && root.files.zone === "list"
-                onActivated: function(row) { root.shell.activate(row, "list") }
-            }
-            Text {
-                x: 30; y: 314; width: parent.width - 60; elide: Text.ElideRight; font.pixelSize: 14; color: Theme.muted
-                text: root.files.busy ? "Reading folder…" : root.files.error || (root.files.rows.length === 0 ? "This folder is empty." : "")
-            }
-            MountedPanel {
-                anchors { left: parent.left; right: parent.right; bottom: parent.bottom }
-                height: 72; color: "#bfd6c8"
-                Row {
-                    x: 16; y: 16; spacing: 9
-                    Repeater {
-                        model: root.files.actions
-                        delegate: CapButton {
-                            required property int index; required property var modelData
-                            objectName: "file-action-" + index
-                            width: 139; height: 43; textSize: 13; label: modelData.title; centered: true
-                            tint: index === 5 ? Theme.pink : Theme.yellow
-                            selected: root.takesFocus && root.manager.route === "files" && root.files.zone === "actions" && root.files.focusIndex === index
-                            onActivated: root.shell.activate(index, "actions")
-                        }
-                    }
-                }
-            }
-        }
         Text {
             x: 30; y: 311; width: parent.width - 60; elide: Text.ElideRight; color: "#853b24"; font.pixelSize: 14
             visible: root.manager.route !== "files"; text: root.manager.error; textFormat: Text.PlainText
         }
     }
+    ChatFilePicker { anchors.fill: parent; picker: root.files; title: "Choose a game file" }
+
 }

@@ -72,7 +72,11 @@ ShellController::ShellController(LibraryRepository& repo, TrainerRepository& pro
     : QObject(parent), repository_(repo), adapter_(adapter), platform_(platform),
       keyboard_(this), trainer_(profiles, this), worlds_(repo, adapter, this), multiverse_(repo, adapter, this),
       hall_(archive, achievements, this),
-      libraryManager_(repo, nullptr, this), libraryTools_(repo,this), scraper_(repo,this), settings_(this), device_(this), diagnostics_(this), dashboard_(repo,achievements,social_,this), story_(repo,achievements) {
+      libraryManager_(repo, nullptr, this), libraryTools_(repo,this), scraper_(repo,this), pcGames_(repo,*files_.service(),this), settings_(this), device_(this), diagnostics_(this), dashboard_(repo,achievements,social_,this), story_(repo,achievements) {
+
+    connect(&pcGames_,&PcGamesController::changed,this,&ShellController::changed);
+    connect(&pcGames_,&PcGamesController::saved,this,[this](QString){refreshLibrary();});
+    connect(&pcGames_,&PcGamesController::textRequested,this,[this](QString title,QString text,int limit){textTarget_=TextTarget::PcGame;keyboard_.begin(title,text,limit);});
 
     connect(&dashboard_,&HomeDashboardController::changed,this,&ShellController::changed);
     social_.lobbyCollections=[this]{return gamesCollections();};
@@ -339,6 +343,7 @@ ShellController::ShellController(LibraryRepository& repo, TrainerRepository& pro
         else if (target == TextTarget::Social) social_.applyText(text);
         else if (target == TextTarget::Files) files_.applyText(text);
         else if (target == TextTarget::Browser) browser_.applyText(text);
+        else if (target == TextTarget::PcGame) pcGames_.applyText(text);
         else if (target == TextTarget::Scraper) scraper_.applyText(text);
         else if (target == TextTarget::Communication) settings_.communication()->applyText(text);
     });
@@ -346,6 +351,7 @@ ShellController::ShellController(LibraryRepository& repo, TrainerRepository& pro
     syncExperience();
 }
 void ShellController::configureServices(FileCatalog* files, PreferencesRepository* preferences) {
+    pcGames_.setCatalog(files);
     libraryTools_.setCatalog(files);
     libraryManager_.files()->setCatalog(files); settings_.setRepository(preferences);
     const auto records=repository_.registrations();
@@ -388,6 +394,7 @@ bool ShellController::canEditWorld() const {
         && !drawerOpen_ && !libraryTools_.isOpen() && !worlds_.region().value("id").toString().isEmpty();
 }
 bool ShellController::localModalOpen() {
+    if(pcGames_.isOpen())return true;
     return files_.modal() || social_.files()->picker()->isOpen() || (social_.myLobbiesOpen() || social_.lobbyCreateOpen() || social_.lobbyPickerOpen() || social_.lobbyVoteOpen()) || collectionManager()->isOpen() || downloads_.isOpen() || scraper_.isOpen() || (socialActive() && !social_.menu().isEmpty()) || libraryTools_.isOpen() || trainer_.editing()
         || (adapterActive() && activeModule_ && activeModule_->modalOpen())
         || (page_==GameHubPage && hubFace_=="ra" && (hall_.editor()->isOpen() || hall_.account()->isOpen() || hall_.galleryMenuOpen() || hall_.historyOpen() || hall_.route()=="achievement-detail"));
@@ -1126,6 +1133,7 @@ void ShellController::focusGamesRootItem(const QString& zone,const QString& id) 
 }
 void ShellController::openGamesRootItem(const QString& zone,const QString& id) {
     if(page_!=GamesPage || navigationLocked() || !pairedNavigationAvailable())return;
+    pcAddFocused_=false;
     if(zone=="collections") {
         if(id=="_create") {gamesRootZone_=zone;gamesCollectionId_=id;manageCollection(true);emit changed();return;}
         for(int i=0;i<collections().size();++i)if(collections()[i].toMap()["id"]==id && id!="multiverse" && id!="auto:favorites") {
@@ -1558,6 +1566,8 @@ void ShellController::dispatch(Action action) {
         if(action==Action::ChangeView||action==Action::ToggleFavorite)return;
     }
     if(social_.files()->picker()->isOpen()){social_.files()->dispatch(action);return;}
+    if(service_=="library" && libraryManager_.files()->isOpen() && !keyboard_.isOpen()){libraryManager_.dispatch(action);return;}
+    if(pcGames_.isOpen() && !keyboard_.isOpen() && !downloads_.isOpen() && !serviceOpen() && !menuOpen_ && !homeMenuOpen_ && notice_.isEmpty()) {pcGames_.dispatch(action);return;}
     if((social_.myLobbiesOpen() || social_.lobbyCreateOpen() || social_.lobbyPicker()["open"].toBool() || social_.lobbyPicker()["voteOpen"].toBool())&&!keyboard_.isOpen()){social_.dispatch(action);return;}
     if(page_==GameHubPage && hubFace_=="lobby" && (action==Action::ToggleFavorite || action==Action::ChangeView)) {
         if(pairedNavigationAvailable() && !navigationLocked() && !localModalOpen())social_.dispatch(action);
@@ -1794,7 +1804,13 @@ void ShellController::dispatch(Action action) {
                 emit changed();
                 return;
             }
+            if(multiverseFace_ && multiverse_.systemId()=="pc" && multiverse_.route()=="games") {
+                if(action==Action::Up && multiverse_.focusIndex()==0){pcAddFocused_=true;emit changed();return;}
+                if(pcAddFocused_ && action==Action::Down){pcAddFocused_=false;emit changed();return;}
+                if(action==Action::Confirm && (pcAddFocused_ || multiverse_.games().isEmpty())){pcGames_.begin();return;}
+            }
             if(action==Action::Back) {
+                pcAddFocused_=false;
                 collectionsRoot_=true;emit changed();return;
             }
             if (multiverseFace_) multiverse_.dispatch(action); else worlds_.dispatch(action);

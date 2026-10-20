@@ -101,7 +101,12 @@ def supported_emulator_process(pid, proc=Path('/proc')):
                 len(value) > len(b'TRAINEROS_AZAHAR_SESSION=') for value in env)
         # The packaged DS frontend handles WM_DELETE_WINDOW by agreeing a
         # complete-frame return with its peer; SIGTERM deliberately cancels.
-        return executable in ('retroarch', 'PPSSPPSDL', 'armsx2-qt', 'melonDS', 'traineros-ds')
+        if executable in ('retroarch', 'PPSSPPSDL', 'armsx2-qt', 'melonDS', 'traineros-ds'):
+            return True
+        # Ordinary PC games have arbitrary executable names. The caller also
+        # requires this launch's exact XRes process tree and WM_DELETE_WINDOW.
+        env = (proc / str(pid) / 'environ').read_bytes().split(b'\0')
+        return b'TRAINEROS_PC_MANAGED=1' in env
     except OSError:
         return False
 

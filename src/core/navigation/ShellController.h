@@ -21,6 +21,7 @@
 #include "features/downloads/DownloadsController.h"
 #include "features/apps/AppsController.h"
 #include "features/crates/CratesController.h"
+#include "features/pc/PcGamesController.h"
 #include "features/files/FilesController.h"
 #include "features/browser/BrowserController.h"
 #include "platform/power/PowerControl.h"
@@ -48,6 +49,8 @@ class ShellController final : public QObject {
     Q_PROPERTY(trainer::PowerControl* powerControl READ powerControl CONSTANT)
     Q_PROPERTY(trainer::AppsController* apps READ apps CONSTANT)
     Q_PROPERTY(trainer::CratesController* crates READ crates CONSTANT)
+    Q_PROPERTY(trainer::PcGamesController* pcGames READ pcGames CONSTANT)
+    Q_PROPERTY(bool pcAddFocused MEMBER pcAddFocused_ NOTIFY changed)
     Q_PROPERTY(int page READ page NOTIFY changed)
     Q_PROPERTY(QString primaryId READ primaryId NOTIFY changed)
     Q_PROPERTY(QString hubFace READ hubFace NOTIFY changed)
@@ -187,6 +190,7 @@ public:
     PowerControl* powerControl(){return &powerControl_;}
     AppsController* apps(){return &apps_;}
     CratesController* crates(){return &crates_;}
+    PcGamesController* pcGames(){return &pcGames_;}
     DownloadsController* downloads() {return &downloads_;}
     bool canHoldConfirm() const;
     bool canEditWorld() const;
@@ -363,6 +367,8 @@ private:
     CratesController crates_;
     bool restoringNavigation_=false;
     FilesController files_;
+    PcGamesController pcGames_;
+    bool pcAddFocused_=false;
     BrowserController browser_;
     PowerControl powerControl_;
     DownloadsController downloads_;
@@ -380,7 +386,7 @@ private:
     bool achievementPhotoReturn_=false;
     QJsonObject achievementPhotoNavigation_;
     QString service_;
-    enum class TextTarget { None, TrainerName, WorldsSearch, MultiverseSearch, Library, LibraryTools, Collections, Archive, Module, AchievementAccount, SetupName, Network, Social, Communication, Scraper, Files, Browser };
+    enum class TextTarget { None, TrainerName, WorldsSearch, MultiverseSearch, Library, LibraryTools, Collections, Archive, Module, AchievementAccount, SetupName, Network, Social, Communication, Scraper, Files, Browser, PcGame };
     TextTarget textTarget_ = TextTarget::None;
     QList<ContinueEntry> points_;
     QList<ContinueEntry> favorites_;

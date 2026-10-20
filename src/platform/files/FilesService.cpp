@@ -169,15 +169,15 @@ QVariantList FilesService::places() const {
     }
     return result;
 }
-void FilesService::start(const QString& op,const QStringList& sources,const QString& destination) {
-    if(!QStringList{"copy","move","rename","trash","delete","mkdir"}.contains(op))return;
+QString FilesService::start(const QString& op,const QStringList& sources,const QString& destination) {
+    if(!QStringList{"copy","move","rename","trash","delete","mkdir"}.contains(op))return {};
     auto task=std::make_shared<Task>();task->operation=op;task->sources=sources;task->destination=destination;impl_->jobs<<task;
 #ifdef TRAINER_WITH_LIBFM
     task->future=QtConcurrent::run([task]{execute(task);});
 #else
     task->finished=true;task->error="File operations require the Linux libfm-qt backend.";
 #endif
-    impl_->timer.start();Q_EMIT changed();
+    impl_->timer.start();Q_EMIT changed();return task->id;
 }
 void FilesService::cancel(const QString& id){for(const auto& task:impl_->jobs)if(id.isEmpty()||task->id==id){std::lock_guard lock(task->mutex);if(task->finished)continue;task->cancelled=true;task->question.clear();
 #ifdef TRAINER_WITH_LIBFM

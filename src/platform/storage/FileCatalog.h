@@ -6,7 +6,11 @@
 #include <functional>
 
 namespace trainer {
-struct FileEntry { QString path, name; bool directory = false; };
+struct FileEntry {
+    QString path, name;
+    bool directory = false;
+    QString icon, sizeLabel, modified;
+};
 struct DirectoryPage {
     QString path, error;
     QList<FileEntry> entries;

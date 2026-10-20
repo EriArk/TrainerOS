@@ -26,6 +26,7 @@ class MultiversePresentation final : public QObject {
     Q_PROPERTY(QVariantMap detail READ detail NOTIFY changed)
     Q_PROPERTY(QVariantMap selected READ selected NOTIFY changed)
     Q_PROPERTY(QString systemName READ systemName NOTIFY changed)
+    Q_PROPERTY(QString systemId READ systemId NOTIFY changed)
     Q_PROPERTY(QString query READ query NOTIFY changed)
     Q_PROPERTY(QString filterLabel READ filterLabel NOTIFY changed)
     Q_PROPERTY(int focusIndex READ focusIndex NOTIFY changed)
@@ -63,6 +64,7 @@ public:
     QVariantMap selected() const;
     QVariantList choices() const;
     QString systemName() const;
+    QString systemId() const { return system_; }
     QString query() const { return queries_.value(system_); }
     QString filterLabel() const;
     int focusIndex() const;
