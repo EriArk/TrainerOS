@@ -1,6 +1,6 @@
 # TrainerOS documentation
 
-> **Read [the current product & architecture map (Russian)](PRODUCT_ARCHITECTURE_RU.md) first.** It records the owner-approved direction as of **19 October 2026**: TrainerOS is a game-first operating environment; five root spaces are **Home / Games / GameHub / Social / Apps**, with Start, system/game Options, Crates and the planned Platform SDK/Network Fabric. **Target ≠ shipped.** The main-branch build still has some earlier UI structure; do not infer implementation from issues or mockups.
+> **Read [the current product & architecture map (Russian)](PRODUCT_ARCHITECTURE_RU.md) first.** It records the owner-approved direction updated **20 October 2026**: TrainerOS is a game-first operating environment; five root spaces are **Home / Games / GameHub / Social / Apps**, with Start, system/game Options, Crates and the planned Platform SDK/Network Fabric. **Target ≠ shipped.** The main-branch build still has some earlier UI structure; do not infer implementation from issues or mockups.
 
 ## Pick the right source
 
@@ -32,6 +32,11 @@
 - **Social** [#128](https://github.com/EriArk/TrainerOS/issues/128), [#217–223](https://github.com/EriArk/TrainerOS/issues/217); integration/evidence [SOCIAL](SOCIAL.md), [SOCIAL_UX](SOCIAL_UX.md), [Fluxer capability audit](FLUXER_CAPABILITIES_RU.md).
 - **One GameHub Lobby and normal multiplayer** [#179](https://github.com/EriArk/TrainerOS/issues/179), [#216](https://github.com/EriArk/TrainerOS/issues/216), [LOBBY_EXECUTION_PLAN_RU](LOBBY_EXECUTION_PLAN_RU.md), [REMOTE_PLAY_LOBBY](REMOTE_PLAY_LOBBY.md), [multiplayer working matrix](MULTIPLAYER_WORKING_MATRIX.md).
 - **Fluxer packet/data relay is conditional, not assumed:** existing [#105 transport research](https://github.com/EriArk/TrainerOS/issues/105), then [#238 Network Fabric](https://github.com/EriArk/TrainerOS/issues/238).
+
+### TrainerOS Account, economy and first-party exclusives (approved TARGET, not shipped)
+
+- **[TrainerOS Account, shared economy and first-party exclusives](TRAINEROS_ACCOUNT_ECONOMY_RU.md)** — separate offline Trainer vs. portable TrainerOS ID, Fluxer/RA/Patreon/Ko-fi linking, free-access cosmetic store, subscriber earn multipliers up to ×3, and AbyssTail games integrated with platform services rather than DRM. Prices, tiers and implementations are not finalized.
+- Related [Crates ecosystem policy](https://github.com/EriArk/crates/blob/main/docs/traineros-ecosystem.md).
 
 ### Server-side infrastructure (planning, not shipped)
 
