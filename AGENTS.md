@@ -9,6 +9,12 @@ from the current handheld copy and final matched libraries. Stop their transfers
 and remove only this job's copied/partial payloads; preserve source files and
 personal saves. The active selection is now 314 games across 24 families; the
 original 321-entry request remains historical evidence, not the current copy plan.
+The owner cancelled the lengthy full SD checksum pass: successful transfer,
+file presence and expected sizes are sufficient for this delivery. Do not restart
+full disk hashing. The completed old-game comparison is retained; both Sacred
+installer copies and the matched library/12 genre collections are now applied.
+The owner additionally requested thematic genre covers on both devices. Preserve
+the installed library composition and each owner's saves/history while applying art.
 
 1. [Current product and architecture](docs/PRODUCT_ARCHITECTURE_RU.md) — **what TrainerOS is and which components own what**.
 2. [Documentation index](docs/README.md) — where to find the appropriate current feature contract, implementation evidence and historical source.

@@ -1,0 +1,78 @@
+{
+  "mode": "built-in image_gen",
+  "assets": [
+    {
+      "key": "fighting",
+      "prompt": "Use case: stylized-concept. Asset type: square game genre collection cover for TrainerOS, displayed inside a small circular crop. Primary request: Fighting games theme, a warmly lit martial arts tournament arena with two oversized red and blue padded sparring gloves meeting in the center, energetic soft impact spark. Style: polished hand-painted storybook game environment, rounded shapes, warm pastel highlights with rich dark contrast, charming handheld game library art. Composition: one clear central silhouette, important subject inside central 65 percent, full-bleed square background, readable at 80px. No text, letters, logos, watermark, recognizable franchise characters or signature objects. Original illustration.",
+      "source_filename": "exec-acb0c375-e21a-470f-90bf-b280c67339bd.png",
+      "file": "fighting.png"
+    },
+    {
+      "key": "brawlers",
+      "prompt": "Use case: stylized-concept. Asset type: square game genre collection cover for TrainerOS, shown inside a small circular crop. Subject: Beat em up games: a bold red fingerless leather glove and a rolled teal bandana lying on a wooden crate in a neon violet rainy arcade street, dynamic diagonal composition, no weapons. Style: polished hand-painted storybook game art, rounded shapes, warm pastel highlights and rich contrasting colors, charming handheld game library. Composition: simple central subject inside central 65 percent, bold silhouette readable at 80px, full bleed square environment. No text, letters, logos, watermark, recognizable franchise characters or signature objects. Original illustration.",
+      "source_filename": "exec-47de7c50-c19f-474a-9aca-e1ab58ed60db.png",
+      "file": "brawlers.png"
+    },
+    {
+      "key": "shooters",
+      "prompt": "Use case: stylized-concept. Asset type: square game genre collection cover for TrainerOS, shown inside a small circular crop. Subject: Shooters: a small original orange space fighter seen from above flying toward a bright turquoise ringed planet through violet space, two clean light trails, playful arcade science fiction. Style: polished hand-painted storybook game art, rounded shapes, warm pastel highlights and rich contrasting colors, charming handheld game library. Composition: simple central subject inside central 65 percent, bold silhouette readable at 80px, full bleed square environment. No text, letters, logos, watermark, recognizable franchise characters or signature objects. Original illustration.",
+      "source_filename": "exec-55c30c32-2214-4ca1-af90-439ff5c4d46c.png",
+      "file": "shooters.png"
+    },
+    {
+      "key": "racing",
+      "prompt": "Use case: stylized-concept. Asset type: square game genre collection cover for TrainerOS, shown inside a small circular crop. Subject: Racing: a single original yellow rally car drifting around a winding coastal racetrack at golden hour, teal sea and coral cliffs, bold sweeping turn. Style: polished hand-painted storybook game art, rounded shapes, warm pastel highlights and rich contrasting colors, charming handheld game library. Composition: simple central subject inside central 65 percent, bold silhouette readable at 80px, full bleed square environment. No text, letters, logos, watermark, recognizable franchise characters or signature objects. Original illustration.",
+      "source_filename": "exec-7681b697-7d72-40ac-8388-95acbaa83177.png",
+      "file": "racing.png"
+    },
+    {
+      "key": "sports",
+      "prompt": "Use case: stylized-concept. Asset type: square game genre collection cover for TrainerOS, shown inside a small circular crop. Subject: Sports: a large soccer ball and orange basketball on a lush green stadium field, curved stands, cheerful daylight. Style: polished hand-painted storybook game art, rounded shapes, warm pastel highlights and rich contrasting colors, charming handheld game library. Composition: simple central subject inside central 65 percent, bold silhouette readable at 80px, full bleed square environment. No text, letters, logos, watermark, recognizable franchise characters or signature objects. Original illustration.",
+      "source_filename": "exec-39627076-24f8-4823-914e-09f07e73b992.png",
+      "file": "sports.png"
+    },
+    {
+      "key": "rpg",
+      "prompt": "Use case: stylized-concept. Asset type: square game genre collection cover for TrainerOS, shown inside a small circular crop. Subject: Role playing games: a fairytale castle with teal pointed roofs on a grassy floating hill, a large ornate closed spellbook and crystal resting prominently in foreground, peach sunrise, magical exploration. Style: polished hand-painted storybook game art, rounded shapes, warm pastel highlights and rich contrasting colors, charming handheld game library. Composition: simple central subject inside central 65 percent, bold silhouette readable at 80px, full bleed square environment. No text, letters, logos, watermark, recognizable franchise characters or signature objects. Original illustration.",
+      "source_filename": "exec-f505cbd0-84d0-43c8-be92-409f45774dea.png",
+      "file": "rpg.png"
+    },
+    {
+      "key": "strategy",
+      "prompt": "Use case: stylized-concept. Asset type: square game genre collection cover for TrainerOS, shown inside a small circular crop. Subject: Strategy games: a large ivory chess knight and a coral rook on a miniature hexagonal landscape battlefield with small pine trees and a tiny fort, overhead three quarter view, thoughtful calm mood. Style: polished hand-painted storybook game art, rounded shapes, warm pastel highlights and rich contrasting colors, charming handheld game library. Composition: simple central subject inside central 65 percent, bold silhouette readable at 80px, full bleed square environment. No text, letters, logos, watermark, recognizable franchise characters or signature objects. Original illustration.",
+      "source_filename": "exec-d382d23a-6689-429c-a813-2033f7854132.png",
+      "file": "strategy.png"
+    },
+    {
+      "key": "platform",
+      "prompt": "Use case: stylized-concept. Asset type: square game genre collection cover for TrainerOS, shown inside a small circular crop. Subject: Platform games: a playful path of grassy floating stepping-stone islands rising toward a golden star-shaped jewel, turquoise sky, lavender clouds, small waterfalls, no characters. Style: polished hand-painted storybook game art, rounded shapes, warm pastel highlights and rich contrasting colors, charming handheld game library. Composition: simple central subject inside central 65 percent, bold silhouette readable at 80px, full bleed square environment. No text, letters, logos, watermark, recognizable franchise characters or signature objects. Original illustration.",
+      "source_filename": "exec-b7d511c5-0a56-4d08-89ce-682275331f6e.png",
+      "file": "platform.png"
+    },
+    {
+      "key": "puzzle",
+      "prompt": "Use case: stylized-concept. Asset type: square game genre collection cover for TrainerOS, shown inside a small circular crop. Subject: Puzzle games: large interlocking colorful wooden jigsaw pieces and a translucent cobalt cube with a golden glow, on a lavender tabletop, clever playful geometric composition. Style: polished hand-painted storybook game art, rounded shapes, warm pastel highlights and rich contrasting colors, charming handheld game library. Composition: simple central subject inside central 65 percent, bold silhouette readable at 80px, full bleed square environment. No text, letters, logos, watermark, recognizable franchise characters or signature objects. Original illustration.",
+      "source_filename": "exec-1064fe74-ea16-4581-834b-b905103db977.png",
+      "file": "puzzle.png"
+    },
+    {
+      "key": "party",
+      "prompt": "Use case: stylized-concept. Asset type: square game genre collection cover for TrainerOS, shown inside a small circular crop. Subject: Arcade and party games: a chunky coral arcade joystick with colorful round buttons beside two bouncing dice and a burst of paper confetti, turquoise and pink game room, joyful playful mood. Style: polished hand-painted storybook game art, rounded shapes, warm pastel highlights and rich contrasting colors, charming handheld game library. Composition: simple central subject inside central 65 percent, bold silhouette readable at 80px, full bleed square environment. No text, letters, logos, watermark, recognizable franchise characters or signature objects. Original illustration.",
+      "source_filename": "exec-3572f104-d556-45bb-8b1a-9a32195db52f.png",
+      "file": "party.png"
+    },
+    {
+      "key": "adventure",
+      "prompt": "Use case: stylized-concept. Asset type: square game genre collection cover for TrainerOS, shown inside a small circular crop. Subject: Action and adventure games: an old brass compass and travel satchel in foreground beside a winding trail leading through emerald jungle toward ancient sunlit stone ruins, warm mystery and discovery. Style: polished hand-painted storybook game art, rounded shapes, warm pastel highlights and rich contrasting colors, charming handheld game library. Composition: simple central subject inside central 65 percent, bold silhouette readable at 80px, full bleed square environment. No text, letters, logos, watermark, recognizable franchise characters or signature objects. Original illustration.",
+      "source_filename": "exec-fecfddc9-8a8c-4ca0-9afc-5d0076b0b77a.png",
+      "file": "adventure.png"
+    },
+    {
+      "key": "music",
+      "prompt": "Use case: stylized-concept. Asset type: square game genre collection cover for TrainerOS, shown inside a small circular crop. Subject: Music and rhythm games: large violet headphones encircling a coral portable synthesizer keyboard with several large ivory keys, floating colorful sound ribbons and glowing stage lights, vibrant concert mood. Style: polished hand-painted storybook game art, rounded shapes, warm pastel highlights and rich contrasting colors, charming handheld game library. Composition: simple central subject inside central 65 percent, bold silhouette readable at 80px, full bleed square environment. No text, letters, logos, watermark, recognizable franchise characters or signature objects. Original illustration.",
+      "source_filename": "exec-873fe6eb-d3a3-4881-9503-6dabad34411e.png",
+      "file": "music.png"
+    }
+  ],
+  "date": "2026-10-21"
+}

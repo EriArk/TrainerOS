@@ -9,9 +9,15 @@
 #include <QJsonArray>
 #include <QCryptographicHash>
 #include <QRegularExpression>
+#include <QUrl>
 
 namespace trainer {
 namespace {
+QString collectionCover(const QVariant& value) {
+    const QUrl url(value.toString());
+    // Collection covers are bundled or explicitly local, never network fetches.
+    return url.scheme()=="qrc" || (url.isLocalFile() && url.host().isEmpty()) ? url.toString() : QString();
+}
 QString placeholderCover(const QString& id, const QString& genre) {
     // Catalogue genre only: never infer a genre from a filename or game title.
     const auto text=genre.toCaseFolded();
@@ -102,6 +108,12 @@ QString MultiversePresentation::collectionName() const {
     return seriesDefinition(collection_).name;
 }
 QString MultiversePresentation::collectionArt() const {
+    if(collections_)for(const auto& value:collections_->definitions()) {
+        const auto definition=value.toObject();
+        if(definition["id"]!=collection_)continue;
+        const auto cover=collectionCover(definition["art"].toVariant());
+        if(!cover.isEmpty())return cover;
+    }
     return "qrc:/series/"+(collection_.contains(':')?QString("multiverse"):collection_)+".png";
 }
 QVariantMap MultiversePresentation::game(const QString& id) const {
@@ -130,7 +142,7 @@ QVariantList MultiversePresentation::collections() const {
                 if(r && collections_->contains(row["id"].toString(),r->adventure))++count;
             }
             row["count"]=count;row["colour"]=row["dynamic"].toBool()||row["id"].toString().startsWith("auto:")?"#9bb9df":"#e9b2cd";
-            row["art"]="";result.append(row);
+            row["art"]=collectionCover(row.value("art"));result.append(row);
         }
     }
     collectionsCache_=result;return result;

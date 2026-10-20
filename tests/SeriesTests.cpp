@@ -53,18 +53,27 @@ private slots:
         const auto key=QString::fromLatin1(QCryptographicHash::hash("owner",QCryptographicHash::Sha256).toHex());
         QVERIFY(QDir().mkpath(directory.path()+"/collections"));
         QFile file(directory.path()+"/collections/"+key+".json");QVERIFY(file.open(QIODevice::WriteOnly));
-        file.write(R"({"version":1,"hiddenCollections":["pokemon","mario","zelda","multiverse"],"collections":[{"id":"user:genre-platform","name":"Platformers","dynamic":false,"games":["m1"]}]})");file.close();
+        file.write("{\"version\":1,\"hiddenCollections\":[\"pokemon\",\"mario\",\"zelda\",\"multiverse\"],\"collections\":[{\"id\":\"user:genre-platform\",\"name\":\"Platformers\",\"art\":\"qrc:/genres/platform.png\",\"dynamic\":false,\"games\":[\"m1\"]},{\"id\":\"user:remote-art\",\"name\":\"Remote\",\"art\":\"https://example.invalid/cover.png\",\"games\":[]}]}");file.close();
         MultiversePresentation presentation(library,adapter);
         auto* collections=presentation.collectionManager();
         collections->configure(directory.path(),"owner");
         QStringList ids;for(const auto& row:presentation.collections())ids.append(row.toMap()["id"].toString());
         QVERIFY(!ids.contains("pokemon"));QVERIFY(!ids.contains("mario"));QVERIFY(!ids.contains("zelda"));
         QVERIFY(ids.contains("multiverse"));QVERIFY(ids.contains("user:genre-platform"));
+        for(const auto& row:presentation.collections()) {
+            const auto item=row.toMap();
+            if(item["id"]=="user:genre-platform")QCOMPARE(item["art"].toString(),QString("qrc:/genres/platform.png"));
+            if(item["id"]=="user:remote-art")QVERIFY(item["art"].toString().isEmpty());
+        }
+        presentation.setCollection("user:genre-platform");
+        QCOMPARE(presentation.collectionArt(),QString("qrc:/genres/platform.png"));
         QCOMPARE(presentation.game("m1")["id"].toString(),QString("m1"));
         collections->begin("user:genre-platform");collections->activate(0);collections->applyText("Platform games");collections->activate(2);
         collections->configure(directory.path(),"owner");
         QVERIFY(!collections->visible("mario"));QVERIFY(collections->visible("multiverse"));
         QCOMPARE(collections->definitions()[0].toObject()["name"].toString(),QString("Platform games"));
+        QCOMPARE(collections->definitions()[0].toObject()["art"].toString(),QString("qrc:/genres/platform.png"));
+        QCOMPARE(presentation.collectionArt(),QString("qrc:/genres/platform.png"));
         collections->configure(directory.path(),"another-owner");
         QVERIFY(collections->visible("mario"));QVERIFY(collections->definitions().isEmpty());
     }

@@ -1,4 +1,5 @@
 import QtQuick
+import QtQuick.Effects
 
 Item {
     id: root
@@ -75,34 +76,26 @@ Item {
                         GradientStop { position: 1; color: Qt.darker(modelData.colour,1.5) }
                     }
                     Rectangle { anchors.fill: parent; anchors.margins: -3; radius: width/2; color: "transparent"; border.width: 2; border.color: Theme.focus; opacity: 0.4; visible: cap.selected }
-                    Canvas {
+                    Image {
                         id: art
-                        x: 5; y: 5; width: (rim.width-10)*Theme.uiScale; height: width
-                        scale: 1/Theme.uiScale; transformOrigin: Item.TopLeft; antialiasing: true
-                        property string picture: modelData.art || ""
-                        property string loaded: ""
-                        function refresh() {
-                            if(loaded)unloadImage(loaded)
-                            loaded=picture
-                            if(loaded)loadImage(loaded)
-                            requestPaint()
-                        }
-                        onPictureChanged: refresh()
-                        Component.onCompleted: refresh()
-                        onImageLoaded: requestPaint()
-                        onCanvasSizeChanged: requestPaint()
-                        onPaint: {
-                            const c=getContext("2d"),d=width
-                            c.reset();c.save();c.beginPath();c.arc(d/2,d/2,d/2,0,Math.PI*2);c.clip()
-                            if(loaded && isImageLoaded(loaded)) {
-                                // Built-in series art is 1536 x 1024; crop its centre, preserve proportions.
-                                c.drawImage(loaded,256,0,1024,1024,0,0,d,d)
-                            }
-                            c.restore()
-                        }
+                        x: 5; y: 5; width: rim.width-10; height: width
+                        source: modelData.art || ""
+                        sourceSize.width: 512; sourceSize.height: 512
+                        fillMode: Image.PreserveAspectCrop
+                        asynchronous: true; visible: false
+                    }
+                    Rectangle {
+                        id: artMask
+                        width: art.width; height: art.height; radius: width/2
+                        color: "white"; visible: false; layer.enabled: true
+                    }
+                    MultiEffect {
+                        x: art.x; y: art.y; width: art.width; height: art.height
+                        source: art; maskEnabled: true; maskSource: artMask
+                        visible: art.status === Image.Ready
                     }
                     Text {
-                        anchors.centerIn: parent; visible: !modelData.art
+                        anchors.centerIn: parent; visible: art.status !== Image.Ready
                         text: modelData.id === "_create" ? "+" : modelData.id.startsWith("auto:") || modelData.dynamic ? "\u21bb" : "\u25a4"
                         font.pixelSize: rim.width*0.5; color: Theme.paper
                     }
