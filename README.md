@@ -21,7 +21,7 @@ with original fictional content and optional animated examples. The static bundl
 can be served independently or embedded in a website; it does not run emulators
 or connect to real accounts.
 
-Current product contract: [Product specification (Russian)](docs/PRODUCT_SPEC.md).
+Current product direction: [Product architecture (Russian)](docs/PRODUCT_ARCHITECTURE_RU.md); [accepted screen decisions](docs/PRODUCT_SPEC.md).
 It describes accepted behaviour; [project status](PROJECT_STATUS.md) distinguishes delivery and remaining acceptance.
 
 ## Development status and getting started

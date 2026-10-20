@@ -42,7 +42,7 @@ different-network acceptance. Оставшиеся внешние условия
 
 ## Документы и Git
 
-AGENTS — постоянные правила; PRODUCT_SPEC — контракт; CURRENT_TASKS — текущие
+AGENTS — постоянные правила; PRODUCT_ARCHITECTURE_RU — каркас; PRODUCT_SPEC — экранные решения; CURRENT_TASKS — текущие
 галочки/приёмка; ROADMAP — короткая очередь; issues — backlog; commits/CHANGELOG —
 история. Не создавать отдельный файл на каждое передвижение кнопки. Технический
 документ нужен для механизма, ограничений, восстановления или неповторимого знания.

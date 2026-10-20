@@ -5,7 +5,7 @@
 | Нужно понять | Документ |
 | --- | --- |
 | Правила работы | [AGENTS](../AGENTS.md), [workflow](DEVELOPMENT_WORKFLOW.md) |
-| Какой продукт делаем | [PRODUCT_SPEC](PRODUCT_SPEC.md), [визуальный язык](DESIGN_LANGUAGE.md) |
+| Какой продукт делаем | [продукт и архитектура](PRODUCT_ARCHITECTURE_RU.md), [экранные решения](PRODUCT_SPEC.md), [визуальный язык](DESIGN_LANGUAGE.md) |
 | Что делать сейчас | [CURRENT_TASKS](CURRENT_TASKS.md), короткий [ROADMAP](ROADMAP.md) |
 | Что уже сделано | [PROJECT_STATUS](../PROJECT_STATUS.md) |
 | Как развивалось | [CHANGELOG](../CHANGELOG.md), [коммиты](https://github.com/EriArk/TrainerOS/commits/codex/apps-workspace/) |
@@ -37,4 +37,9 @@
 ограничения и восстановление. Их старые «следующие шаги» не являются очередью.
 Ссылки на `blob/<commit>/…` — неизменяемая историческая запись, не текущий контракт.
 Промежуточные планы экранов, копии issues и прежние очереди удалены из рабочей
-документации 18 октября; они доступны в Git. Новую папку-архив не создаём.
+документации 18 октября; они доступны в Git. Архив старого AGENTS из main сохранён как историческая запись; удалённые промежуточные планы не возвращаются.
+
+## Согласованные будущие контракты
+
+- [Аккаунт и экономика](TRAINEROS_ACCOUNT_ECONOMY_RU.md), [backend](TRAINEROS_BACKEND_PLAN_RU.md), [Crates storage](CRATES_SERVER_STORAGE_RU.md).
+- SDK #235–244, PC #246–251 и Picker #252–254 — в актуальных issues. Цель не означает установленную функцию.
