@@ -148,10 +148,85 @@
         "qrc:/crates/projects/light-cycles.png"
       ],
       "releases": []
+    },
+    {
+      "id": "falling-blocks",
+      "title": "Falling Blocks",
+      "kind": "game",
+      "creator": "AbyssTail",
+      "license": "GPL-3.0-or-later",
+      "summary": "Clear lines. Race your rival.",
+      "description": "A two-player race to clear lines, with bot practice and local or TrainerOS Lobby play. Experimental Linux builds; physical controls and live internet acceptance remain open.",
+      "hero": "qrc:/crates/projects/falling-blocks.png",
+      "screenshots": [
+        "qrc:/crates/projects/falling-blocks.png"
+      ],
+      "releases": []
+    },
+    {
+      "id": "minesweeper-race",
+      "title": "Minesweeper Race",
+      "kind": "game",
+      "creator": "AbyssTail",
+      "license": "GPL-3.0-or-later",
+      "summary": "Find safe squares faster.",
+      "description": "Two players reveal safe squares on matched minefields, with bot practice and local or TrainerOS Lobby play. Experimental Linux builds; physical controls and live internet acceptance remain open.",
+      "hero": "qrc:/crates/projects/minesweeper-race.png",
+      "screenshots": [
+        "qrc:/crates/projects/minesweeper-race.png"
+      ],
+      "releases": []
+    },
+    {
+      "id": "chain-reaction",
+      "title": "Chain Reaction",
+      "kind": "game",
+      "creator": "AbyssTail",
+      "license": "GPL-3.0-or-later",
+      "summary": "Swap. Match. Build a cascade.",
+      "description": "Swap adjacent tiles and build cascades in a two-player score race, with bot practice and local or TrainerOS Lobby play. Experimental Linux builds; physical controls and live internet acceptance remain open.",
+      "hero": "qrc:/crates/projects/chain-reaction.png",
+      "screenshots": [
+        "qrc:/crates/projects/chain-reaction.png"
+      ],
+      "releases": []
+    },
+    {
+      "id": "mini-racing",
+      "title": "Brick Racing",
+      "kind": "game",
+      "creator": "AbyssTail",
+      "license": "GPL-3.0-or-later",
+      "summary": "Share the road. Race to the finish.",
+      "description": "Two rivals share a brick-style road with traffic, overtaking and boost. Bot practice, two local players or TrainerOS Lobby. Experimental Linux builds; physical controls and live internet acceptance remain open.",
+      "hero": "qrc:/crates/projects/mini-racing.png",
+      "screenshots": [
+        "qrc:/crates/projects/mini-racing.png"
+      ],
+      "releases": []
+    },
+    {
+      "id": "tanks",
+      "title": "Brick Tanks",
+      "kind": "game",
+      "creator": "AbyssTail",
+      "license": "GPL-3.0-or-later",
+      "summary": "Break bricks. Outflank your rival.",
+      "description": "Two tanks duel on a shared arena with destructible bricks, steel cover and protected respawns. Bot practice, two local players or TrainerOS Lobby. Experimental Linux builds; physical controls and live internet acceptance remain open.",
+      "hero": "qrc:/crates/projects/tanks.png",
+      "screenshots": [
+        "qrc:/crates/projects/tanks.png"
+      ],
+      "releases": []
     }
   ],
   "contents": {
     "whats-new": [
+      "falling-blocks",
+      "minesweeper-race",
+      "chain-reaction",
+      "mini-racing",
+      "tanks",
       "pong",
       "snake-arena",
       "light-cycles",
@@ -164,6 +239,11 @@
       "qalculate"
     ],
     "workshop": [
+      "falling-blocks",
+      "minesweeper-race",
+      "chain-reaction",
+      "mini-racing",
+      "tanks",
       "pong",
       "snake-arena",
       "light-cycles",
@@ -172,6 +252,9 @@
     ],
     "adventure": [],
     "arcade": [
+      "tanks",
+      "mini-racing",
+      "falling-blocks",
       "pong",
       "snake-arena",
       "light-cycles",
@@ -180,6 +263,8 @@
       "breakout"
     ],
     "strategy": [
+      "chain-reaction",
+      "minesweeper-race",
       "pocket-artillery",
       "2048",
       "hextris"
