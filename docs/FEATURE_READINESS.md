@@ -144,15 +144,15 @@ R-ID не перенумеровывать; новая функция получ
 | ☐ | <a id="r096"></a>**R096** Crates: подготовка, принятие и публикация стороннего автора | **[S12]**; [S13], [S14] | Недоделано | Подписанный publisher pipeline существует; самостоятельный author onboarding/передача полномочий не определены. [F09](STRUCTURE_MAP_RU.md#f09), #147/#149. |
 | ☐ | <a id="r097"></a>**R097** Crates: отзыв релиза и сохранение установленных данных | **[S12]**; [S13], [S02] | Не проверено | withdrawn/snapshot механизм есть; полный пользовательский цикл отзыва/повторной публикации вне примеров не принят. [Публикация](../packaging/crates/README.md). |
 | ☐ | <a id="r070"></a>**R070** System modules/SPI: версии, роли, установка и lifecycle | **[S14]**; [S13], [S04] | Не сделано | #231: external module host, API compatibility, uninstall/quarantine/migration; built-in Experience не закрывает внешний SPI. [F11](STRUCTURE_MAP_RU.md#f11). |
-| ☐ | <a id="r098"></a>**R098** SDK core: service discovery, bridge и lifecycle | **[S14]**; [S01], [S03], [S15] | Не сделано | #236: небольшой внешний API, own-app без обязательного аккаунта; graceful missing-host/version и cleanup. [F11](STRUCTURE_MAP_RU.md#f11). |
-| ☐ | <a id="r099"></a>**R099** UI contributions: slots, widgets, actions и overlays | **[S14]**; [S04], [S03] | Не сделано | #237: host focus/input/context, никакого нового primary; реальный внешний вклад и корректное снятие. [F11](STRUCTURE_MAP_RU.md#f11). |
+| ☐ | <a id="r098"></a>**R098** SDK core: service discovery, bridge и lifecycle | **[S14]**; [S01], [S03], [S15] | Недоделано | Protocol v1 preview: local discovery/bridge, real context/events и cleanup проверены на Windows, включая отдельный процесс; [SDK](PLATFORM_SDK.md). Остальные service facades и ARM acceptance открыты. |
+| ☐ | <a id="r099"></a>**R099** UI contributions: slots, widgets, actions и overlays | **[S14]**; [S04], [S03] | Недоделано | Plain-text Start widget, activation callback, текущий dashboard и снятие вклада реализованы; [SDK](PLATFORM_SDK.md). Полные slots/GameHub/overlays/TV/package lifecycle #237 не закрыты. |
 | ☐ | <a id="r100"></a>**R100** Network Fabric: API peer channels поверх текущих transport | **[S07]**; [S14], [S06] | Не сделано | #238: LAN/P2P, membership/reconnect/backpressure; без новой relay-инфраструктуры/симуляции за приложение. [F11](STRUCTURE_MAP_RU.md#f11). |
 | ☐ | <a id="r101"></a>**R101** Social Activities: приложение из разговора через тот же Lobby | **[S06]**; [S05], [S14], [S13] | Не сделано | #239: invite/install/return, persistent reference отдельно от запущенного мира; не второй Lobby. [F11](STRUCTURE_MAP_RU.md#f11). |
 | ☐ | <a id="r102"></a>**R102** SDK: owner-scoped shared objects и remote actions | **[S14]**; [S07], [S01], [S08] | Не сделано | #240: приложение владеет схемой/данными; revoke/replay/receipt без обязательной общей БД. [F11](STRUCTURE_MAP_RU.md#f11). |
 | ☐ | <a id="r103"></a>**R103** File Provider SDK: источник в Files/Picker/Downloads | **[S15]**; [S14], [S13] | Не сделано | #241: provider interface, auth/capabilities/job lifecycle; существующий Files не является публичным SDK. [F11](STRUCTURE_MAP_RU.md#f11). |
 | ☐ | <a id="r104"></a>**R104** Media Session SDK: playback, metadata и audio focus | **[S15]**; [S14], [S05], [S04] | Не сделано | #242: один app process/widget, voice coexistence, logout/crash cleanup; не новый music service. [F11](STRUCTURE_MAP_RU.md#f11). |
 | ☐ | <a id="r105"></a>**R105** Game Tools SDK: calculator/checklist и live overlay | **[S14]**; [S03], [S04], [S02] | Не сделано | #243: выбранная игра отдельно от живой, manual tool без save adapter, cleanup при смене owner/session. [F11](STRUCTURE_MAP_RU.md#f11). |
-| ☐ | <a id="r106"></a>**R106** SDK: четыре независимых демо и путь нового автора | **[S14]**; [S06], [S07], [S15] | Не сделано | #244: network game, music app, file provider, calculator; optional shared-data sample; воспроизводимый guide/установка/acceptance. [F11](STRUCTURE_MAP_RU.md#f11). |
+| ☐ | <a id="r106"></a>**R106** SDK: четыре независимых демо и путь нового автора | **[S14]**; [S06], [S07], [S15] | Недоделано | Есть короткий author guide, language-neutral wire contract и реальный Python hello-widget. Четыре network/media/file/tool demos #244 и внешний автор/ARM ещё не приняты; [старт](../sdk/README.md). |
 
 ## Сейвы, адаптеры, система и распространение
 
@@ -203,6 +203,17 @@ R-ID не перенумеровывать; новая функция получ
 | ☐ | <a id="r137"></a>**R137** Права на artwork и публичный showcase | **[S12]**; [S14], [S13] | Недоделано | #116/#64: лицензии/авторство материалов отдельно от GPL кода; README screenshots не заменялись. |
 | ☐ | <a id="r138"></a>**R138** Чистый checkout и воспроизводимость разработки | **[S13]**; [S15] | Не проверено | #117: без приватного machine state. #7 исторически закрыт; GitHub Actions выключен по решению владельца, не возобновлять. |
 | ☑ | <a id="r139"></a>**R139** Связность требований, владельцев и карты готовности | **[S14]**; [S04], [S13] | Сделано | Текущая docs-only сверка: [реестр требований](REQUIREMENTS_COVERAGE_RU.md), 253 issues; не реализация перечисленных функций. |
+
+## Дополнительные core-требования из Crates
+
+Сверены с [core proposals Crates](https://github.com/EriArk/crates/blob/c5158f6/docs/traineros-core-proposals.md).
+Это функции консоли, а не обязательный код каждой устанавливаемой программы.
+
+| Готово | Функция | Владелец; связи | Статус | Подтверждение / остаток |
+| --- | --- | --- | --- | --- |
+| ☐ | <a id="r140"></a>**R140** Per-game performance profiles | **[S15]**; [S03], [S04] | Не проверено | Приняты как core; реальные capabilities/persistence/apply/restore всех host ещё требуют контракта и проверки. Отдельно от исправления Sacred. |
+| ☐ | <a id="r141"></a>**R141** Gyro Bridge и mappings | **[S04]**; [S15], [S03] | Не проверено | Core input responsibility; sensor support/mapping/lifecycle конкретных устройств не установлены этой SDK-работой. |
+| ☐ | <a id="r142"></a>**R142** Challenge Cards | **[S05]**; [S06], [S10], [S14] | Не проверено | Общая Social/game функция для live и async challenges; формат/expiry/validation и связывание результата открыты, не отдельная Activity app. |
 
 ## Обновление карты
 

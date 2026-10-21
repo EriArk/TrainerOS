@@ -3,9 +3,10 @@
 #include <QObject>
 #include <QVariantList>
 #include <QRect>
+#include <QMap>
 
 namespace trainer {
-// Layout for the built-in controls only. No external module or executable API.
+// Host-owned layout/rendering. External widgets supply plain data, never QML.
 class ControlsDashboard final : public QObject {
     Q_OBJECT
     Q_PROPERTY(QVariantList widgets READ widgets NOTIFY layoutChanged)
@@ -35,6 +36,7 @@ public:
     int pages() const;
     QString status() const{return status_;}
     void setOwner(const QString& owner);
+    void setExternalWidgets(const QVariantList& widgets);
     void begin();
     void leave();
     void dispatch(Action);
@@ -52,12 +54,15 @@ signals:
     void changed();
     void layoutChanged();
     void actionRequested(QString id);
+    void contributionActivated(QString id);
     void adjustRequested(QString id,int delta);
     void closeRequested();
 private:
     struct Widget {QString id;QRect rect;int page=0;bool hidden=false;};
     QList<Widget> items_;
     QVariantList publishedLayout_;
+    QMap<QString,QVariantMap> external_;
+    QVariantMap externalLayout_;
     QString key_,selected_="volume",status_;
     int page_=0,pickIndex_=0,switchIndex_=0;
     bool switching_=false;

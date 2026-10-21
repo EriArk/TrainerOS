@@ -15,6 +15,7 @@ find_package(SDL2 2.0.14 REQUIRED CONFIG)
 find_package(Qt6 6.9 QUIET COMPONENTS WebEngineQuick)
 
 add_library(trainer_core STATIC
+    src/platform/sdk/PlatformHost.cpp
     src/features/browser/BrowserController.cpp
     src/features/adventure/LaunchPresentation.cpp
     src/features/adventure/RuntimeIdentity.cpp
@@ -545,6 +546,13 @@ qt_add_qml_module(traineros
 )
 
 if(BUILD_TESTING)
+    find_package(Python3 REQUIRED COMPONENTS Interpreter)
+    qt_add_executable(trainer_platform_tests tests/PlatformHostTests.cpp
+        src/platform/sdk/PlatformHost.cpp src/features/device/ControlsDashboard.cpp)
+    target_include_directories(trainer_platform_tests PRIVATE src)
+    target_link_libraries(trainer_platform_tests PRIVATE Qt6::Core Qt6::Network Qt6::Test)
+    target_compile_definitions(trainer_platform_tests PRIVATE SDK_SOURCE="${CMAKE_SOURCE_DIR}" SDK_PYTHON="${Python3_EXECUTABLE}")
+    add_test(NAME platform_sdk COMMAND trainer_platform_tests)
     qt_add_executable(trainer_controls_tests tests/ControlsDashboardTests.cpp src/features/device/ControlsDashboard.cpp)
     target_include_directories(trainer_controls_tests PRIVATE src)
     target_link_libraries(trainer_controls_tests PRIVATE Qt6::Core Qt6::Test)
@@ -701,6 +709,9 @@ if(BUILD_TESTING)
     target_sources(traineros PRIVATE tests/ui/CenterSmokeScenario.cpp tests/ui/CenterSmokeScenario.h)
     target_sources(traineros PRIVATE tests/ui/ExitSmokeScenario.cpp tests/ui/ExitSmokeScenario.h)
     target_sources(traineros PRIVATE tests/ui/AppsSmokeScenario.cpp tests/ui/AppsSmokeScenario.h)
+    target_sources(traineros PRIVATE tests/ui/PlatformSmokeScenario.h)
+    add_test(NAME platform_qml_smoke COMMAND traineros --ephemeral --platform-smoke-test --screenshot-dir "${CMAKE_CURRENT_BINARY_DIR}/screenshots/platform")
+    set_tests_properties(platform_qml_smoke PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software;QT_FORCE_STDERR_LOGGING=1" TIMEOUT 30)
     target_sources(traineros PRIVATE tests/ui/CratesSmokeScenario.cpp tests/ui/CratesSmokeScenario.h)
     add_test(NAME crates_qml_smoke COMMAND traineros --crates-smoke-test --screenshot-dir "${CMAKE_CURRENT_BINARY_DIR}/screenshots/crates")
     set_tests_properties(crates_qml_smoke PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software;QT_FORCE_STDERR_LOGGING=1" TIMEOUT 30)
@@ -712,6 +723,7 @@ if(BUILD_TESTING)
     # Only the entry point branches on this macro; keep test entry flags scoped
     # to that file instead of defining them for every generated QML unit.
     set_source_files_properties(src/app/Main.cpp PROPERTIES COMPILE_DEFINITIONS TRAINEROS_UI_TESTS)
+    set_property(SOURCE src/app/Main.cpp APPEND PROPERTY COMPILE_DEFINITIONS SDK_SOURCE="${CMAKE_SOURCE_DIR}" SDK_PYTHON="${Python3_EXECUTABLE}")
     qt_add_executable(trainer_social_tests tests/SocialTests.cpp)
     qt_add_resources(trainer_social_tests profile_avatar_test_assets PREFIX "/avatars" BASE assets/avatars FILES ${profile_avatars})
     qt_add_executable(trainer_game_party_tests tests/GamePartyTests.cpp)

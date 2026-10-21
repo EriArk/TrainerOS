@@ -35,16 +35,20 @@ bool ControlsDashboard::fits(const Widget& w,const QList<Widget>& items) const {
 int ControlsDashboard::pages() const {int n=1;for(const auto& w:items_)if(!w.hidden)n=std::max(n,w.page+1);return std::max(n,moving_?page_+1:1);}
 QVariantList ControlsDashboard::widgets() const {
     QVariantList result;
-    for(const auto& w:items_)if(!w.hidden&&w.page==page_)result.append(QVariantMap{{"id",w.id},{"title",title(w.id)},{"x",w.rect.x()},{"y",w.rect.y()},{"w",w.rect.width()},{"h",w.rect.height()}});
+    for(const auto& w:items_)if(!w.hidden&&w.page==page_){
+        auto row=external_.value(w.id);row.insert("id",w.id);row.insert("title",external_.contains(w.id)?row.value("title"):title(w.id));
+        row.insert("x",w.rect.x());row.insert("y",w.rect.y());row.insert("w",w.rect.width());row.insert("h",w.rect.height());result.append(row);
+    }
     return result;
 }
 QVariantList ControlsDashboard::available() const {
-    QVariantList r;int i=0;for(const auto& w:items_)if(w.hidden)r.append(QVariantMap{{"id",w.id},{"title",title(w.id)},{"selected",i++==pickIndex_}});return r;
+    QVariantList r;int i=0;for(const auto& w:items_)if(w.hidden)r.append(QVariantMap{{"id",w.id},{"title",external_.contains(w.id)?external_[w.id].value("title"):title(w.id)},{"selected",i++==pickIndex_}});return r;
 }
 void ControlsDashboard::setOwner(const QString& owner){
     const auto key=owner.isEmpty()?QString():"controls/v1/"+QString::fromLatin1(QCryptographicHash::hash(owner.toUtf8(),QCryptographicHash::Sha256).toHex());
     if(key==key_&&!items_.isEmpty())return;
-    leave();key_=key;items_=defaults();page_=0;selected_="volume";
+    leave();key_=key;items_=defaults();external_.clear();externalLayout_.clear();page_=0;selected_="volume";
+    if(!key_.isEmpty())externalLayout_=QSettings().value(key_+"/extensions").toMap();
     const auto data=key_.isEmpty()?QByteArray():QSettings().value(key_).toByteArray();
     if(data.size()<=8192){
         const auto rows=QJsonDocument::fromJson(data).array();QList<Widget> loaded;QSet<QString> seen;bool valid=rows.size()==items_.size();
@@ -61,8 +65,33 @@ void ControlsDashboard::setOwner(const QString& owner){
 }
 void ControlsDashboard::save(){
     if(key_.isEmpty())return;QJsonArray rows;
-    for(const auto& w:items_)rows.append(QJsonObject{{"id",w.id},{"x",w.rect.x()},{"y",w.rect.y()},{"w",w.rect.width()},{"h",w.rect.height()},{"page",w.page},{"hidden",w.hidden}});
+    for(const auto& w:items_){
+        const QJsonObject record{{"id",w.id},{"x",w.rect.x()},{"y",w.rect.y()},{"w",w.rect.width()},{"h",w.rect.height()},{"page",w.page},{"hidden",w.hidden}};
+        if(external_.contains(w.id))externalLayout_[w.id]=record.toVariantMap();else rows.append(record);
+    }
     QSettings().setValue(key_,QJsonDocument(rows).toJson(QJsonDocument::Compact));
+    QSettings().setValue(key_+"/extensions",externalLayout_);
+}
+void ControlsDashboard::setExternalWidgets(const QVariantList& rows){
+    QMap<QString,QVariantMap> next;
+    for(const auto& value:rows){const auto row=value.toMap();const auto id=row["id"].toString();if(id.startsWith("sdk:"))next[id]=row;}
+    if(next==external_)return;
+    if(next.keys()!=external_.keys()){
+        // Cancel a layout edit before removing its objects, so Back cannot revive
+        // a disconnected process's widget or stale input target.
+        leave();save();
+        for(auto i=items_.begin();i!=items_.end();)if(external_.contains(i->id)&&!next.contains(i->id))i=items_.erase(i);else ++i;
+        for(auto i=next.begin();i!=next.end();++i)if(!external_.contains(i.key())){
+            Widget w{i.key(),{0,0,4,2},0,true};
+            const auto saved=externalLayout_.value(i.key()).toMap();
+            if(!saved.isEmpty()){
+                Widget restored{i.key(),{saved["x"].toInt(),saved["y"].toInt(),saved["w"].toInt(),saved["h"].toInt()},saved["page"].toInt(),saved["hidden"].toBool()};
+                if((restored.rect.size()==QSize(4,2)||restored.rect.size()==QSize(2,2))&&fits(restored,items_))w=restored;
+            }
+            items_.append(w);
+        }
+    }
+    external_=next;normalize();emit changed();
 }
 void ControlsDashboard::normalize(){
     QList<int> used;for(const auto& w:items_)if(!w.hidden&&!used.contains(w.page))used.append(w.page);std::sort(used.begin(),used.end());
@@ -85,6 +114,7 @@ void ControlsDashboard::activate(QString id){
     selected_=id;status_.clear();
     if(editing_){if(auto* w=find(id)){original_=*w;moveOriginal_=items_;moving_=true;}emit changed();return;}
     if(id=="volume"||id=="brightness"){adjusting_=!adjusting_;emit changed();return;}
+    if(id.startsWith("sdk:")){const auto* w=find(id);if(w&&!w->hidden&&external_.contains(id))emit contributionActivated(id);emit changed();return;}
     emit actionRequested(id);emit changed();
 }
 void ControlsDashboard::pick(){if(!editing_)return;picking_=true;pickIndex_=0;emit changed();}
@@ -96,7 +126,7 @@ void ControlsDashboard::restore(QString id){
 void ControlsDashboard::hide(){if(!editing_||moving_)return;if(auto* w=find(selected_)){w->hidden=true;normalize();save();emit changed();}}
 void ControlsDashboard::resize(){
     if(!editing_||moving_)return;auto* w=find(selected_);if(!w)return;
-    auto candidate=*w;QSize full;for(const auto& d:defaults())if(d.id==w->id)full=d.rect.size();
+    auto candidate=*w;QSize full=external_.contains(w->id)?QSize(4,2):QSize();for(const auto& d:defaults())if(d.id==w->id)full=d.rect.size();
     candidate.rect.setSize(w->rect.size()==full?QSize(2,2):full);
     if(candidate.rect==w->rect)return;
     for(int p=page_;p<8;++p)for(int y=0;y<=4-candidate.rect.height();++y)for(int x=0;x<=12-candidate.rect.width();++x){candidate.page=p;candidate.rect.moveTo(x,y);if(fits(candidate,items_)){*w=candidate;page_=p;normalize();save();emit changed();return;}}

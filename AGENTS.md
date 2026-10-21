@@ -87,7 +87,13 @@ TrainerOS is a **controller-first native Linux shell / operating environment** w
 - Device host capabilities are **reported and gated**, not guessed. Respect gamepad, touch, handheld/TV layout, stable focus and short purposeful animations; never make normal use require a mouse/keyboard.
 - Prefer fixing a known scope end-to-end rather than replacing stable components with fashionable technology. Respect settled architecture and reuse passed tests unless the change directly affects them.
 
-### Platform SDK / Crates — approved foundation, not shipped API
+### Platform SDK / Crates — bounded local API, wider contracts remain targets
+
+Local protocol v1 preview now implements discovery, real context/events and a
+host-owned text widget with callback/cleanup; see [author entry](sdk/README.md)
+and [evidence/remaining contracts](docs/PLATFORM_SDK.md). Wider SDK/SPI targets
+and handheld delivery remain separate. Extend actual owners through this bridge,
+not placeholder successful APIs.
 
 [#235 — TrainerOS Platform SDK & Network Fabric](https://github.com/EriArk/TrainerOS/issues/235) and #236–244 define optional service/contribution contracts for games, apps, media/file providers, tools and system modules. They extend existing #231 (system module SPI), #92/#207 (semantic adapters), #179/#216 (Lobby), #233 (Start), #229 (Files) and #144–152 (Crates); **do not implement parallel systems**.
 

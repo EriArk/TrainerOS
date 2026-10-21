@@ -96,7 +96,7 @@ flowchart LR
 | <a id="s11"></a>**S11 Экономика и права** | Серверный баланс/журнал, покупки, инвентарь, правила начисления и преимущества подписки | Основание награды/покупка/проверенная подписка → подтверждённая операция и права | Клиент не назначает баланс. Магазин открыт всем, множитель до ×3, приобретения сохраняются; без pay-to-win/прямой продажи монет. Тарифы не определены. |
 | <a id="s12"></a>**S12 Crates и публикации** | Курируемый каталог, проекты/релизы, размещение, сведения об авторах, reviews/Top Rated | Одобренная публикация, каталог, допустимый отзыв → предложение установки и сведения о проекте | Установленные файлы принадлежат учёту S13. Донат автору не равен подписке TrainerOS. Reviews используют существующий Fluxer механизм. |
 | <a id="s13"></a>**S13 Доставка и обслуживание** | Общие представление/команды заданий; исполнители владеют своей очередью/транзакцией. Версии/зависимости/целостность, активные пакеты, update/remove/recovery | Выбранный источник/версия/операция → результат задания и изменение inventory | Downloads не исполняет установку. Crates — один источник/исполнитель. Image/host, TrainerOS Software, игры и пользовательские данные имеют разных владельцев обновления. |
-| <a id="s14"></a>**S14 Расширения и контракты** | Совместимость, регистрация, доступ к существующим сервисам и разрешённым UI-точкам, отключение | Manifest/descriptor/контекст → действующие возможности и вклады пакета | Адаптер, runtime-интеграция и SDK-приложение — разные роли. Публичные SDK/#92/SPI ещё не готовы; built-in API не объявляется внешним ABI. |
+| <a id="s14"></a>**S14 Расширения и контракты** | Совместимость, регистрация, доступ к существующим сервисам и разрешённым UI-точкам, отключение | Manifest/descriptor/контекст → действующие возможности и вклады пакета | Адаптер, runtime-интеграция и SDK-приложение — разные роли. Local SDK preview даёт context/Start widget; остальные facades/#92/SPI открыты. Built-in API не объявляется внешним ABI. |
 | <a id="s15"></a>**S15 Среда устройства** | Общие файловые/медиа/аппаратные службы: места хранения, звук, питание, сеть устройства, диагностика | Фактические host capabilities/запросы → доступные операции и состояние | Использует Armada/Linux. Не выдумывает поддержку устройства и не делает Desktop Mode обязательным для обычных действий. |
 
 Пользовательские материалы отделены от заменяемого кода. Системы S01/S10/S11 могут
@@ -133,7 +133,7 @@ flowchart LR
 
 | **E20** | Автор/издатель → S12 → S13 | Принятый project ID, immutable release assets, подпись и revision; withdrawn | Первый проект курируется; следующая версия через существующий publisher. Отзыв каталога не удаляет установленный пакет; F09. |
 | **E21** | S12 ↔ S05; S15 → S12 | Provider-owned review ID, project/content identity, stars/text и preview device/arch/version | Edit/delete/report через Fluxer; Top Rated производен от того же источника, без отдельного account/голоса; F10. |
-| **E22** | Программа ↔ S14 ↔ S06/S07/S15 | Versioned discovery/capabilities, service/contribution IDs, owner/session/generation | Public SDK target поверх существующих служб; host снимает bindings, app владеет своими данными/симуляцией. F11; не новый универсальный ABI. |
+| **E22** | Программа ↔ S14 ↔ S06/S07/S15 | Versioned discovery/capabilities, service/contribution IDs, owner/session/generation | Local v1 bridge/context/widget реализован; Network/Lobby/Files/Media facades ещё target. Host снимает bindings, app владеет данными/симуляцией. F11; не универсальный ABI. |
 | **E23** | S15/перезапуск/provider loss → затронутые владельцы | Причина прерывания, сохранённая operation identity и фактический исход каждого сервиса | Каждый владелец восстанавливает своё состояние; общий экран успеха не доказывает процесс/save/channel/call/job. F12. |
 
 ## 4. Подключаемое содержимое: вход, работа, выход
@@ -201,7 +201,7 @@ Built-in Experience реализован; внешние SPI/SDK-вклады т
 | S11 | [Согласованная экономика](TRAINEROS_ACCOUNT_ECONOMY_RU.md) | Кошелёк, подписочные права и магазин — target, не установленный backend. |
 | S12 | [CratesCatalogue](../src/features/crates/CratesCatalogue.h), [CratesController](../src/features/crates/CratesController.h), [FluxerReviews](../src/integrations/social/FluxerReviews.cpp), [поставка](CRATES77_CATALOGUE.md) | Полные reviews/Top Rated, публикации и donation UX не закрыты. |
 | S13 | [CratesInstaller](../src/features/crates/CratesInstaller.h), [DownloadsController](../src/features/downloads/DownloadsController.h), [FilesService](../src/platform/files/FilesService.h), [PC](../packaging/pc/README.md) | Разные исполнители корректно публикуют свои задания через общий интерфейс. Полный набор команд/providers, software updater и installer/recovery не завершены; централизация всех очередей не требуется. |
-| S14 | [ExperienceModule](../src/core/experience/ExperienceModule.h), [manifest](../src/core/experience/ExperienceManifest.h), [composition](../src/adapters/BuiltinExperiences.cpp), [правила](../src/adapters/AGENTS.md) | Trusted built-ins существуют; #92, SPI и Platform SDK #235–244 остаются отдельными незавершёнными контрактами. |
+| S14 | [ExperienceModule](../src/core/experience/ExperienceModule.h), [manifest](../src/core/experience/ExperienceManifest.h), [composition](../src/adapters/BuiltinExperiences.cpp), [правила](../src/adapters/AGENTS.md), [PlatformHost](../src/platform/sdk/PlatformHost.cpp) | Trusted built-ins и local SDK context/widget существуют; #92, SPI и остальные service facades #235–244 остаются незавершёнными контрактами. |
 | S15 | [PlatformService](../src/platform/PlatformService.h), [device](../src/platform/device), [FilesService](../src/platform/files/FilesService.h), [power](../src/platform/power), [Apps](../src/features/apps/AppsController.h), [Browser](../src/features/browser/BrowserController.h) | Микшер, сон/recovery, providers и все host/device profiles не завершены. Apps/Browser — потребители общих служб, не отдельные владельцы профиля. |
 
 ## 7. Внешние системы и пределы их роли
@@ -508,8 +508,8 @@ process/owner/context/generation, снимает при выходе, несов
 
 | Роль / вход | Host владеет | Программа владеет / выход | Минимальная проверка готовности |
 | --- | --- | --- | --- |
-| Обычное приложение: Apps launch | S03/S04 запуск, foreground, Home/Quick Apps; текущий `AppsController`/apps-service | Собственный процесс, интерфейс и данные; закрытие освобождает ввод/host bindings | Существующий launch не зависит от SDK/Crates. Внешний service bridge — #236, ещё не готов. |
-| Widget/action: S14 contribution register | S04 разрешённый slot, размер, focus/back/touch, клавиатура, capture/input policy | Содержимое и действие; remove/uninstall снимают instance/pin/callback | Start Extensions + QuickActions; один instance на widget type. #233/#237, реальный внешний модуль, не descriptor-only fixture. |
+| Обычное приложение: Apps launch | S03/S04 запуск, foreground, Home/Quick Apps; текущий `AppsController`/apps-service | Собственный процесс, интерфейс и данные; закрытие освобождает ввод/host bindings | Существующий launch не зависит от SDK/Crates. #236 частично: local discovery/context/lifecycle; полные service facades открыты. |
+| Widget/action: S14 contribution register | S04 разрешённый slot, размер, focus/back/touch, клавиатура, capture/input policy | Содержимое и действие; remove/uninstall снимают instance/pin/callback | Preview: plain-text Start widget из внешнего процесса с callback/cleanup. Полный Start Extensions + QuickActions, slots и package lifecycle #233/#237 остаются открытыми. |
 | Game Tool: выбранная или живая игра | S02 выбранная identity; S03 фактический session; S04 вложенный GameHub/ограниченный overlay | Калькулятор/checklist/свои настройки; ручной инструмент работает без save parser | #243: выбрать другую игру при живом процессе, закрыть/сменить owner, снять вклад. Save/телеметрия только через доказанный provider. |
 | File Provider: источник в Files/Picker | S15 дерево/выбор/conflict UI; S13 общая task-панель/маршрутизация | Auth и listing/read/write своего источника, конкретный transfer job | #241: local mock/WebDAV → picker → явный импорт → возврат; revoke/offline/read-only/disk full. Uninstall убирает источник, не скопированные пользователем файлы. |
 | Media Session: приложение публикует playback | S15 общие actions/audio focus/output, S04 widget; звонок остаётся S05 | Реальный audio process, metadata, поддержанные play/pause/next | #242: Apps → Games → Start, voice coexistence, crash/logout cleanup. Widget управляет тем же процессом; нет нового music daemon. |
@@ -532,8 +532,10 @@ host quarantine неисправного модуля — внутренний �
 Сетевой SDK использует existing transports, не новые протоколы/relay: неподходящий
 NAT без доступного relay даёт честный отказ. Fluxer permission не подразумевается.
 
-**Готовность:** built-in Experience, Apps/Files/Downloads/media опоры существуют;
-публичные contracts/bridge/SPI и четыре независимых demos #244 ещё не доставлены.
+**Готовность:** built-in Experience, Apps/Files/Downloads/media опоры существуют.
+[Platform SDK v1 preview](PLATFORM_SDK.md) добавляет реальный local bridge, context/events
+и host-owned текстовый Start widget с callback/cleanup. [Авторский вход](../sdk/README.md)
+не зависит от языка; public service facades, package SPI и четыре demos #244 ещё не закрыты.
 Демо: network game, music player, file provider, game calculator; shared-object
 sample необязателен для простой realtime игры. Проверка одного не закрывает другие.
 

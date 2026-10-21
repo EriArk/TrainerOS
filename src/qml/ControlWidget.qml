@@ -7,13 +7,14 @@ Rectangle {
     property var board: shell.controls
     readonly property string kind: modelData.id
     readonly property bool selected: board.selected === kind
+    readonly property bool external: modelData.external === true
     readonly property bool slider: kind === "volume" || kind === "brightness"
     readonly property int level: slider ? Number(shell.device.rows[kind === "volume" ? 0 : 1].level) : -1
     readonly property int radioIndex: kind === "wifi" ? 0 : kind === "bluetooth" ? 1 : 2
     readonly property bool radio: kind === "wifi" || kind === "bluetooth" || kind === "airplane"
     readonly property var radioData: radio ? shell.device.radios[radioIndex] : ({})
     readonly property color accent: kind === "downloads" ? Theme.green : kind === "scraper" || kind === "brightness" ? Theme.yellow : kind === "bluetooth" ? Theme.tabColors[4] : Theme.blue
-    readonly property string icon: ({volume:"speaker",brightness:"sun",wifi:"wifi",bluetooth:"bluetooth",airplane:"airplane",downloads:"download",battery:"battery",clock:"clock",storage:"storage",scraper:"pictures"})[kind]
+    readonly property string icon: ({volume:"speaker",brightness:"sun",wifi:"wifi",bluetooth:"bluetooth",airplane:"airplane",downloads:"download",battery:"battery",clock:"clock",storage:"storage",scraper:"pictures"})[kind] || "game-controller"
     property real dragX: 0
     property real dragY: 0
     signal moved(real dx,real dy)
@@ -48,6 +49,10 @@ Rectangle {
     Item {
         anchors.fill: parent; anchors.margins: 12
         enabled: !root.board.editing
+        Text { anchors.fill: parent; anchors.topMargin: 5; anchors.bottomMargin: 32
+            visible: root.external; text: root.modelData.text || ""; textFormat: Text.PlainText
+            color: Theme.ink; font.pixelSize: 15; wrapMode: Text.Wrap; elide: Text.ElideRight
+            maximumLineCount: 4; verticalAlignment: Text.AlignVCenter; horizontalAlignment: Text.AlignHCenter }
         Rectangle { id: radioCap; visible: root.radio; anchors.horizontalCenter: parent.horizontalCenter; y: 2; width: Math.min(63,parent.width+5); height: width; radius: width/2
             readonly property color tone: root.radioData.level===1?root.accent:root.material
             Rectangle { z: -1; x: -2; y: 4; width: parent.width+4; height: parent.height; radius: width/2; color: "#35463824" }
@@ -56,10 +61,10 @@ Rectangle {
             Rectangle { anchors.fill: parent; anchors.margins: 3; radius: width/2; color: "transparent"; border.color: "#a6fffbe9" }
             MenuGlyph { anchors.centerIn: parent; width: parent.width*.48; height: width; glyph: root.icon }
         }
-        MenuGlyph { id: glyph; anchors.horizontalCenter: parent.horizontalCenter; y: root.slider?7:root.kind==="battery"?1:8; width: root.kind==="battery"?24:30; height: width; glyph: root.icon; visible: !root.radio && root.kind !== "clock" && root.kind !== "storage" && root.kind !== "downloads"
+        MenuGlyph { id: glyph; anchors.horizontalCenter: parent.horizontalCenter; y: root.slider?7:root.kind==="battery"?1:8; width: root.kind==="battery"?24:30; height: width; glyph: root.icon; visible: !root.external && !root.radio && root.kind !== "clock" && root.kind !== "storage" && root.kind !== "downloads"
             MouseArea { anchors.fill: parent; enabled: root.kind==="volume"; onClicked: root.shell.systemAction("volume") }
         }
-        Text { id: label; x: -4; width: parent.width+8; anchors.bottom: parent.bottom; anchors.bottomMargin: root.slider?3:5; text: root.modelData.title; font.family: Theme.displayFamily; font.pixelSize: root.width<78?11:16; fontSizeMode: Text.HorizontalFit; minimumPixelSize: 9; color: Theme.ink; horizontalAlignment: Text.AlignHCenter; elide: Text.ElideRight; visible: root.kind !== "storage" && root.kind !== "downloads" && root.kind !== "clock" }
+        Text { id: label; x: -4; width: parent.width+8; anchors.bottom: parent.bottom; anchors.bottomMargin: root.slider?3:5; text: root.modelData.title; textFormat: Text.PlainText; font.family: Theme.displayFamily; font.pixelSize: root.width<78?11:16; fontSizeMode: Text.HorizontalFit; minimumPixelSize: 9; color: Theme.ink; horizontalAlignment: Text.AlignHCenter; elide: Text.ElideRight; visible: root.kind !== "storage" && root.kind !== "downloads" && root.kind !== "clock" }
         Item {
             visible: root.slider && root.height>180; x: (parent.width-width)/2; y: 49; width: Math.min(36,parent.width-4); height: parent.height-103
             Rectangle { anchors.fill: parent; radius: width/2; color: Qt.darker(Theme.paper,1.12); border.color: "#404f5b4a" }
