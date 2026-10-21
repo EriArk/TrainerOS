@@ -230,7 +230,7 @@ bool LobbyRoomCoordinator::requestLive(QString operation) {
     send(host_,"live-request",{{"ticket",remote_.value("ticket")},{"operation",operation}});return true;
 }
 bool LobbyRoomCoordinator::releaseRemotePlayer(QString peer,QString ticket,QString admission) {
-    if(!hosting()||peer==session_.state()["owner"]||session_.state()["game"].toObject()["mode"]!="remoteplay.v1")return false;
+    if(!hosting()||peer==session_.state()["owner"].toString()||session_.state()["game"].toObject()["mode"]!="remoteplay.v1")return false;
     // An ended connection may release only its own admission, never a later P2.
     return admission.isEmpty()?session_.finishPlayer(peer,ticket):session_.releaseLive(peer,ticket,admission);
 }

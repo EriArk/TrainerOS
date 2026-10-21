@@ -6,6 +6,9 @@ No build executes here. Only already reviewed projects from the bundled catalogu
 can be updated. Authentication belongs to gh/SSH and the external signing key.
 """
 import argparse
+import base64
+import copy
+import hashlib
 import json
 from pathlib import Path
 import re
@@ -14,6 +17,44 @@ import tempfile
 import uuid
 from catalogue import atomic,decode,verified
 from publish_catalogue import publish
+
+
+def add_project_presentations(value, records, catalogue, root):
+    """Introduce approved projects without replacing unrelated live catalogue edits."""
+    approved = {p['id']: p for p in catalogue['projects']}
+    ids = {r['id'] for r in records}
+    if ids - approved.keys():
+        raise ValueError('Project has not been reviewed for this catalogue')
+    projects = {p['id']: p for p in value['catalogue']['projects']}
+    for project in catalogue['projects']:
+        if project['id'] not in ids:
+            continue
+        project = copy.deepcopy(project)
+        def artwork(source):
+            if not source.startswith('qrc:/crates/projects/'):
+                return source
+            path = root/'assets/crates'/source[len('qrc:/crates/'):]
+            if not path.resolve().is_relative_to((root/'assets/crates/projects').resolve()):
+                raise ValueError('Invalid project artwork path')
+            data = path.read_bytes()
+            key = hashlib.sha256(data).hexdigest()
+            value['assets'][key] = base64.b64encode(data).decode()
+            return 'asset:'+key
+        project['hero'] = artwork(project.get('hero', ''))
+        project['screenshots'] = [artwork(s) for s in project.get('screenshots', [])]
+        # Release availability comes from verified package records, not presentation.
+        if project['id'] in projects:
+            project['releases'] = projects[project['id']].get('releases', [])
+        projects[project['id']] = project
+    value['catalogue']['projects'] = list(projects.values())
+    for crate, members in catalogue['contents'].items():
+        selected = [id for id in members if id in ids]
+        existing = value['catalogue']['contents'].get(crate, [])
+        if selected:
+            value['catalogue']['contents'][crate] = selected + [id for id in existing if id not in ids]
+        elif any(id in ids for id in existing):
+            value['catalogue']['contents'][crate] = [id for id in existing if id not in ids]
+    return value
 
 
 def main():
@@ -29,8 +70,9 @@ def main():
     root=Path(__file__).resolve().parents[2];pub=Path(__file__).with_name('catalogue-key.pem')
     def run(*args,**kwargs):return subprocess.run(args,check=True,**kwargs)
     previous=decode(run('ssh',a.ssh_target,'cat '+a.remote_dir+'/current.json',capture_output=True).stdout)
-    value=verified(previous,pub);value=dict(value,revision=value['revision']+1)
-    approved={r['id'] for r in json.loads((root/'data/crates/catalogue.json').read_text())['projects']}
+    value=copy.deepcopy(verified(previous,pub));value['revision']+=1
+    catalogue=json.loads((root/'data/crates/catalogue.json').read_text(encoding='utf-8'))
+    approved={r['id'] for r in catalogue['projects']}
     added=[]
     for record in a.record:
         r=decode(record.read_bytes())
@@ -40,11 +82,11 @@ def main():
         if any(x['id']==r['id'] and x['version']==r['version'] for x in value['packages']):
             raise SystemExit('Version is already published; choose a new version')
         archive=next((f for f in a.asset if f.name==r['url'].rsplit('/',1)[-1]),None)
-        import hashlib
         if not archive or archive.stat().st_size!=r['size'] or hashlib.sha256(archive.read_bytes()).hexdigest()!=r['sha256']:
             raise SystemExit('Release asset does not match its record')
         added.append(r)
     value['packages']=added+value['packages']
+    add_project_presentations(value, added, catalogue, root)
     with tempfile.TemporaryDirectory() as directory:
         d=Path(directory);atomic(d/'before.json',previous);atomic(d/'input.json',value)
         publish(d/'input.json',a.key,d/'signed.json',d/'before.json',pub)

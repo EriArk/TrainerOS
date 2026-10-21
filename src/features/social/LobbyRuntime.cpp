@@ -8,7 +8,7 @@ LobbyRuntime::LobbyRuntime(LobbyCoordinator& lobby,QObject* parent):QObject(pare
     connect(&lobby_,&LobbyCoordinator::launchRequested,this,&LobbyRuntime::launch);
     connect(&lobby_,&LobbyCoordinator::liveJoinRequested,this,[this](QString peer,QString operation,int seat){
         const auto s=lobby_.state();
-        if(playing_&&activeService_&&ticket_==s["ticket"]&&liveSupported()&&s["liveJoining"].toBool()
+        if(playing_&&activeService_&&ticket_==s["ticket"].toString()&&liveSupported()&&s["liveJoining"].toBool()
            &&activeService_->admitLive(ticket_,peer,operation,seat)) {
             if(lobby_.admitLive(peer,operation,seat))return;
             activeService_->releaseLive(peer,operation);

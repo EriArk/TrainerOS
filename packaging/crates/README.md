@@ -62,6 +62,17 @@ managed registration case in `LibraryTests`, and the managed game close case in
 
 ## Catalogue and publication
 
+Approved first-party projects now include Session Timer and Pocket Artillery.
+Their experimental Linux x86_64 packages are hosted in `EriArk/crates`; pass
+`--repository EriArk/crates` and the project's exact release tag to the publisher.
+It brings that project's reviewed presentation and crate memberships from
+`data/crates/catalogue.json` into the signed snapshot alongside its release record.
+PNG screenshots under `assets/crates/projects` are embedded by content hash;
+unrelated live project edits and old package records are retained. Existing release
+assets are verified, never replaced. The local signing key stays outside the repo.
+Clients need the updated source allowlist and SDK discovery launcher; older helpers
+keep their last valid cache when they cannot accept the new catalogue.
+
 `catalogue.py` runs in a short-lived worker. On explicit Crates entry it performs
 one HTTPS request with revision/digest. There is no startup timer, GitHub polling,
 background update or implicit install. Snapshot/delta responses authenticate the

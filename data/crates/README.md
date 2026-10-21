@@ -8,7 +8,10 @@ The owner requested a small temporary open-source selection on 2026-10-18.
 The bundled catalogue contains 2048, Hextris, Breakout, FeatherPad and Qalculate!
 as labelled examples, with real upstream artwork and empty Crates release lists.
 [Sources and notices](../../assets/crates/examples/README.md) distinguish upstream
-screenshots from actual TrainerOS compatibility. Workshop remains for owner projects.
+screenshots from actual TrainerOS compatibility. Workshop now contains the owner's
+Session Timer and Pocket Artillery, with actual desktop screenshots and explicit
+experimental x86_64/SDK requirements. The signed server catalogue provides their
+published release records; bundled presentation alone never grants installation.
 This temporary utility selection does not replace Bazaar as the ordinary app store.
 Fictional pagination/version fixtures remain only in `tests/fixtures/crates`.
 
@@ -30,7 +33,7 @@ Unknown compatibility is untested, never supported. Installation state, ratings,
 commands and external asset URLs are not accepted from this presentation document.
 
 This is **not** the signed remote catalogue or an installation manifest. Server
-trust, verified asset caching, package ownership, hashes/signatures, executable
-admission and actual downloads remain #146–148. Viewing release metadata grants
-no filesystem or execution capability. The later service must feed this model
+trust, verified asset caching and installation are implemented separately by
+[the Crates helpers](../../packaging/crates/README.md). Viewing release metadata grants
+no filesystem or execution capability. The catalogue worker feeds this model
 only after its own trust checks; never expose raw server data as an install command.

@@ -13,6 +13,7 @@ sys.path.insert(0,str(ROOT/'packaging/crates'))
 import catalogue as c
 import catalogue_server as server
 import publish_catalogue as publisher
+from publish_release import add_project_presentations
 
 
 class CatalogueTests(unittest.TestCase):
@@ -30,6 +31,30 @@ class CatalogueTests(unittest.TestCase):
     def tearDownClass(cls): cls.folder.cleanup()
 
     def signed(self,value): return {'signed':copy.deepcopy(value),'signature':c.signature(value,self.key)}
+
+    def test_first_release_adds_reviewed_project_and_embedded_art(self):
+        value=copy.deepcopy(self.base)
+        ids={'session-timer','pocket-artillery'}
+        value['catalogue']['projects']=[p for p in value['catalogue']['projects'] if p['id'] not in ids]
+        for crate,members in value['catalogue']['contents'].items():
+            value['catalogue']['contents'][crate]=[id for id in members if id not in ids]
+        value['catalogue']['projects'][0]['summary']='Retained live editorial change'
+        records=[{'id':id} for id in sorted(ids)]
+        add_project_presentations(value,records,self.base['catalogue'],ROOT)
+        c.validate(value)
+        self.assertEqual(value['catalogue']['projects'][0]['summary'],'Retained live editorial change')
+        self.assertEqual(value['catalogue']['contents']['workshop'],['session-timer','pocket-artillery'])
+        self.assertEqual(len(value['assets']),2)
+        self.assertEqual(value['packages'],self.base['packages'])
+        for p in value['catalogue']['projects']:
+            if p['id'] in ids:
+                self.assertTrue(p['hero'].startswith('asset:'))
+                self.assertIn(p['hero'][6:],value['assets'])
+        before=copy.deepcopy(value)
+        add_project_presentations(value,records,self.base['catalogue'],ROOT)
+        self.assertEqual(value,before)
+        with self.assertRaises(ValueError):
+            add_project_presentations(value,[{'id':'unreviewed'}],self.base['catalogue'],ROOT)
 
     def next(self):
         value=copy.deepcopy(self.base);value['revision']=2

@@ -366,6 +366,8 @@ file(GLOB crates_example_notices CONFIGURE_DEPENDS assets/crates/examples/*-LICE
 qt_add_resources(traineros crates_art PREFIX "/crates" BASE assets/crates
     FILES assets/crates/illustrations-wide.png assets/crates/gamepad.svg
     ${crates_example_images} ${crates_example_notices} assets/crates/examples/sources.json)
+qt_add_resources(traineros crates_projects PREFIX "/crates" BASE assets/crates
+    FILES assets/crates/projects/session-timer.png assets/crates/projects/pocket-artillery.png)
 set_source_files_properties(src/qml/Theme.qml PROPERTIES QT_QML_SINGLETON_TYPE TRUE)
 file(GLOB profile_avatars CONFIGURE_DEPENDS assets/avatars/*.png)
 qt_add_resources(traineros profile_avatars PREFIX "/avatars" BASE assets/avatars FILES ${profile_avatars})

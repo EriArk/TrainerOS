@@ -53,7 +53,9 @@ private slots:
         f.write("{\"packages\":[{\"id\":\"2048\",\"title\":\"2048\",\"version\":\"1\",\"kind\":\"game\"}]}");f.close();
         CratesController c;c.installer()->replacementGuard=[]{return QString("Game is running");};
         c.installer()->configure("/not-executed",registry,temp.path()+"/store");
-        c.open(0,true);c.openProject(0);QCOMPARE(c.primaryLabel(),QString("Download"));QVERIFY(c.primaryEnabled());
+        c.open(0,true);
+        for(int i=0;i<c.projectCount();++i){c.selectProject(i);if(c.project()["id"]=="2048")break;}
+        c.openProject(c.projectIndex());QCOMPARE(c.primaryLabel(),QString("Download"));QVERIFY(c.primaryEnabled());
         QSignalSpy downloads(&c,&CratesController::downloadsRequested);c.primary();c.primary();
         QCOMPARE(c.installer()->tasks().size(),1);QCOMPARE(c.primaryLabel(),QString("View progress"));
         QCOMPARE(c.installer()->tasks()[0].toMap()["detail"].toString(),QString("Game is running"));
