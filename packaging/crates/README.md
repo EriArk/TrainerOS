@@ -41,6 +41,13 @@ the download; HTTP range resume is not advertised. Tasks persist in the common
 Downloads provider. A launcher-held `flock` protects live/minimized applications.
 
 `launch.py` is host code; metadata cannot replace its arguments with shell text.
+It resolves `TRAINEROS_SDK_ENDPOINT` against the host's original XDG data directory
+before assigning private package data paths. Installed SDK apps therefore discover
+the same local host as development launches; only the path, never its token, is passed.
+Release admission accepts only `EriArk/TrainerOS` and the owner's `EriArk/crates`
+GitHub Releases, retaining exact URL/size/hash checks. For the latter, pass
+`--repository EriArk/crates` to `publish_release.py`; project approval and signed
+catalogue publication remain required. This does not publish a catalogue entry.
 On the current Odin 2/Flip 2 Armada images the managed web runner uses Vulkan,
 matching the browser composition workaround. Other applications are unaffected.
 Apps get a standard Desktop Entry and use existing Apps window/input ownership.

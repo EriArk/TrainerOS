@@ -27,6 +27,11 @@ def main():
         data.mkdir(parents=True,exist_ok=True)
         env = dict(os.environ, XDG_CONFIG_HOME=str(data/'config'), XDG_DATA_HOME=str(data/'share'),
                    XDG_CACHE_HOME=str(data/'cache'), TRAINEROS_PACKAGE_DATA=str(data))
+        # Resolve host discovery before assigning the package's private XDG root.
+        # Pass only the path; the SDK owns its token and normal admission checks.
+        env['TRAINEROS_SDK_ENDPOINT'] = os.environ.get('TRAINEROS_SDK_ENDPOINT') or str(
+            Path(os.environ.get('XDG_DATA_HOME') or Path.home()/'.local/share') /
+            'traineros/platform-v1/endpoint.json')
         if r['kind']=='game': env['TRAINEROS_CRATES_GAME']='1'
         for key in ('QT_QUICK_BACKEND','QT_SCALE_FACTOR','QSG_RHI_BACKEND'):
             env.pop(key,None)
