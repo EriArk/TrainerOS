@@ -16,6 +16,7 @@ Continue independent local work and retain device acceptance as unverified.
 as the canonical map of console-owned responsibilities, package roles and cross-system
 contracts. Each readiness row links its primary owner and affected systems. Before a
 change, identify the owner, entry/exit contract, consumers and lifecycle consequences;
+use the map's F01–F08 end-to-end flows and reverse impact table to trace affected paths;
 reuse its current implementation. Update the map when ownership/contracts change,
 and readiness/evidence when implementation or checks change. This is not a global
 execution plan or an instruction to create new managers/microservices. Public SDK,
