@@ -6,10 +6,10 @@
 | --- | --- |
 | Правила работы | [AGENTS](../AGENTS.md), [workflow](DEVELOPMENT_WORKFLOW.md) |
 | Какой продукт делаем | [продукт и архитектура](PRODUCT_ARCHITECTURE_RU.md), [экранные решения](PRODUCT_SPEC.md), [визуальный язык](DESIGN_LANGUAGE.md) |
-| Что делать сейчас | [CURRENT_TASKS](CURRENT_TASKS.md), короткий [ROADMAP](ROADMAP.md) |
+| Готовность функций и остаток | [Карта с галочками](FEATURE_READINESS.md), [условия проверки](CURRENT_TASKS.md) |
 | Что уже сделано | [PROJECT_STATUS](../PROJECT_STATUS.md) |
 | Как развивалось | [CHANGELOG](../CHANGELOG.md), [коммиты](https://github.com/EriArk/TrainerOS/commits/codex/apps-workspace/) |
-| Запланированные задачи | [GitHub issues](https://github.com/EriArk/TrainerOS/issues) |
+| Требования к функциям | [GitHub issues](https://github.com/EriArk/TrainerOS/issues) |
 | Как устроено/собрать | [ARCHITECTURE](ARCHITECTURE.md), [DEVELOPMENT](DEVELOPMENT.md) |
 
 Текущий договор важнее старого отчёта; последние явные решения владельца важнее

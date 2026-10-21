@@ -1,7 +1,8 @@
 # Мультиплеер — механизмы и подтверждённые границы
 
 Сводка записей репозитория на 18 октября 2026, **не новый прогон устройств**.
-Текущая работа — LAUNCH-80; [CURRENT_TASKS](CURRENT_TASKS.md) задаёт очередь.
+С 21 октября глобальная очередь снята; состояние функций — в
+[карте готовности](FEATURE_READINESS.md). Датированные доказательства ниже сохранены.
 [Стандарт](EMULATOR_STANDARD.md) требует утверждённые runtime/core/build/protocol
 и настройки, общий допуск до запуска. Обнаруженная установка, число игроков в
 метаданных и работающий solo не являются сетевой совместимостью.
@@ -19,7 +20,7 @@ Shared-console pads, независимые link-машины, native online и 
 | N64 / RMG | Native Mupen64Plus netplay, установлен Nearby/Online; Mario Kart 64 forced-relay и обычный Home/Exit. [RMG](emulators/RMG.md) | Не все игры, четыре устройства, разные сети и production service |
 | PS1 | PCSX-ReARMed shared pads и отдельный исторический handoff-профиль; [запись](emulators/pcsx-rearmed.md) | Multitap/system link, broader content/карты отдельно. DuckStation solo не означает netplay |
 | PS2 | Native DEV9/game online требуется; LRPS2 shared-console эксперимент остановлен. [Исследование](emulators/lrps2.md) | Нет принятой общей native-online интеграции/парной проверки; couch через отдельный Remote Play, не две копии PS2 на одном host |
-| PSP | PPSSPP Ad Hoc Nearby/Online, Lumines и lifecycle на двух устройствах. [PPSSPP](emulators/ppsspp.md) | Generic форматы/игры отдельно; private-party admission отложен, не текущий blocker |
+| PSP | PPSSPP Ad Hoc Nearby/Online, Lumines и lifecycle на двух устройствах. [PPSSPP](emulators/ppsspp.md) | Generic форматы/игры отдельно; private-party admission не завершён |
 | Dreamcast / Flycast | Отдельный Dojo bundle установлен; Soul Calibur Nearby/public relay, input/Home/Exit. [Flycast](emulators/flycast.md) | Same-router relay не разные сети; native DC services и arcade cabinet link не равны GGPO |
 | GameCube / Wii | Dolphin native NetPlay, отдельные pads/remotes, Melee/NSMB Wii и lifecycle. [Dolphin](emulators/dolphin.md) | Motion, четыре физических участника, разные сети, wider games. Native BBA/game online отдельно |
 | DS | Deterministic wireless bundle установлен на Flip/Odin; Mario Kart DS, обычные Nearby/Online приглашения, Home и защищённый возврат собственных сейвов. [melonDS](emulators/melonds.md#ordinary-handheld-delivery--12-october-2026) | Same-router проверки не разные сети; четыре игрока, wider save/game/resource и физическая приёмка открыты; WFC отдельно |
@@ -27,18 +28,19 @@ Shared-console pads, независимые link-машины, native online и 
 | Wii U | Cemu native online требует собственные console/account данные. [Cemu](emulators/cemu.md) | На аудите нет own OTP/SEEPROM/certs, нет принятой пары/TrainerOS network profile; solo source route отдельный |
 | Vita | Vita3K, один exact vitaQuake LAN-профиль с own data, native discovery и парным вводом. [Vita3K](emulators/vita3k.md) | Не commercial AdHoc/PSN, не все игры/группы/сети |
 | Remote Play | Одна игра на host, поток и гостевой input; [транспорт](REMOTE_PLAY_TRANSPORT.md), [групповой кандидат](REMOTE_PLAY_GROUPS.md) | Iris/IDR, многогостевой lifecycle/Gamescope, физическая задержка и сложные NAT; кандидат не установлен как готовая функция |
-| PS3 / Switch | Отложены владельцем | Не начинать и не включать в текущую сертификацию |
+| PS3 / Switch | Готовность multiplayer не установлена | Исследовать поддерживаемые режимы/runtime; solo homebrew не является сетевой проверкой |
 
 Явная single-player metadata исключает приглашение; неизвестная metadata не
 равна single-player и не разрешает несуществующий runtime. Capacity задаёт
 проверенный профиль. При подключении сохраняются личные сейвы/firmware/account
 identity и условия host/guest progress; не подменять их скопированной чужой средой.
 
-Обычный PSP достаточен. Полный каталог передачи одного геймпада отложен; позднее
-уточнение владельца о couch относится к одновременным независимым pads, а не P1
-handoff. Ранее созданные handoff-механизмы не требуют продолжать их сейчас.
+Обычный PSP имеет сохранённые проверки. Полный каталог передачи одного геймпада
+и live handoff остаются незавершёнными задачами. Couch относится к одновременным
+независимым pads; эти режимы не заменяют друг друга.
 Voice call независим от смены/выхода игровой партии; spectator media через Fluxer,
-gameplay Remote Play отдельно. Сложные NAT и offline Lobby — позднее.
+gameplay Remote Play отдельно. Offline Lobby остаётся задачей; сложные NAT —
+известное ограничение прямого соединения, без обязательного тяжёлого relay.
 
 Точные pins, patches, конфигурации, обновление/rollback и прежние результаты
 сохраняются в [emulators](emulators/README.md). Непройденные проверки там не закрыты

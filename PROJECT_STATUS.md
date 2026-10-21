@@ -1,5 +1,15 @@
 # TrainerOS — состояние проекта
 
+**21 октября — карта готовности вместо глобальных планов.** По решению владельца
+глобальная очередь/этапы сняты; все незавершённые и непроверенные функции сохранены
+в [единой таблице с галочками](docs/FEATURE_READINESS.md). Категории «отложено» нет.
+Старые последовательности ниже являются историей решений, а не текущей очередью.
+Последние PC/LAN/input изменения остаются отдельным WIP: есть реализация
+транспорта и частичные проверки, полный игровой цикл не принят. Sacred имеет
+сообщённую владельцем проблему производительности. Ранние записи ниже описывают
+свои сборки, а не готовность нынешних исходников. Портативки у владельца; в этой
+сверке подключения, сборки и новые аппаратные проверки не выполнялись.
+
 **21 октября — PC-импорт и общий файловый пикер.** Games → PC теперь принимает
 папку готовой Windows/Linux-игры: копирует через общие Files/Downloads, предлагает
 реальный executable и создаёт карточку только после подтверждения. Лаунчер
@@ -208,9 +218,9 @@ root/docs. Ссылки и README-изображения проверены; с�
 | GameHub | My Story по библиотеке, таймлайн, галерея с плёнкой/100-фото буфером и отдельным избранным; RA-выбор игр/история и карточка достижения. [RA73](docs/RA73_GAME_SELECTION.md), [RA56](docs/RA56_ACHIEVEMENT_LOOP.md) | Личная RA-history ждёт Web API key; баннер/джингл/физические кнопки на финальной полировке |
 | Home/Start | Home — текущая игра/её настройки, лобби/голос/уведомления; Start — виджеты/quick actions и Settings/Power/Switch. [78/79](docs/CONTROLS78_HOME_START.md) | Не новый уровень совместимости настроек всех эмуляторов; физическая приёмка открыта |
 | Social | Люди → DM, группы/комьюнити отдельно, Discover; удаление друзей, выход/удаление по правам Fluxer, скрытие служебных групп. [Social](docs/SOCIAL.md), [lifecycle](docs/SOCIAL66_LIFECYCLE_CONTROLS.md), [Discover](docs/SOCIAL67_DISCOVER.md) | Live public discovery, destructive MFA flow и новый Recently Together требуют отдельных проверок |
-| Lobby | Каталог 2×3, My Lobbies/расписание, wizard/Game Picker, голосование/Ready, ручной Start хозяина, общий launch splash, HUD/тёмный mini-chat. [Контракт](docs/LOBBY.md), [подготовка](docs/LOBBY63_PREPARATION.md), [HUD](docs/LOBBY64_ENTRIES_HUD.md) | Все runtime/разные сети не закрыты; offline Lobby и Watch/переход роли отложены |
+| Lobby | Каталог 2×3, My Lobbies/расписание, wizard/Game Picker, голосование/Ready, ручной Start хозяина, общий launch splash, HUD/тёмный mini-chat. [Контракт](docs/LOBBY.md), [подготовка](docs/LOBBY63_PREPARATION.md), [HUD](docs/LOBBY64_ENTRIES_HUD.md) | Все runtime/разные сети не закрыты; offline Lobby и Watch/переход роли не завершены |
 | Apps/Files/Browser | Приложения/избранное/скрытие; Files libfm-qt с breadcrumb/нижним управлением; QtWebEngine, вкладки, bookmark/history popovers, fullscreen и общие загрузки. [Files](docs/FILES68_IMPLEMENTATION.md), [Browser](docs/BROWSER71_IMPLEMENTATION.md) | Не новая универсальная сертификация файловых backend/сайтов/устройств |
-| Crates | Тематические ящики, каталог/проект, установка/запуск временных open-source примеров, подписанные обновления каталога. [76](docs/CRATES76_INSTALLER.md), [77](docs/CRATES77_CATALOGUE.md) | Физическая совместимость пакетов вне проверок, полный publishing/reviews ещё не готовы; SPI полностью отложен |
+| Crates | Тематические ящики, каталог/проект, установка/запуск временных open-source примеров, подписанные обновления каталога. [76](docs/CRATES76_INSTALLER.md), [77](docs/CRATES77_CATALOGUE.md) | Физическая совместимость пакетов вне проверок, полный publishing/reviews ещё не готовы; SPI не завершён |
 | Отзывчивость | PERF-72 доставлен обоим; исправлены лишние фоновые работы и use-after-free, измерены CPU/PSS на одинаковом маршруте. [Методика](docs/PERFORMANCE72.md) | Ограниченный замер не заменяет длительную приёмку; старые общие UI-fixtures не объявлены зелёными |
 | Библиотечные медиа | ScreenScraper, пользовательские материалы и общая очередь Downloads. [ScreenScraper](docs/SCREENSCRAPER.md) | Artwork/redistribution не очищаются наличием scraper |
 | Профили и сейвы | Локальные Trainers/PIN, собственная история, обычные save routes/backup, контролируемый Exit и capture. [Trainer saves](docs/TRAINER_SAVES.md), [exit](docs/ADVENTURE_EXIT.md) | Все runtime/миграции и переносимый полный экспорт ещё не приняты |
@@ -231,7 +241,7 @@ LAUNCH-80 исследует готовые лаунчеры общим паке
 Это не «весь мультиплеер готов»: PS2, Wii U, большие группы/разные сети и
 широкая совместимость остаются поимёнными пробелами в
 [матрице](docs/EMULATOR_MULTIPLAYER_MATRIX.md) и [записях runtime](docs/emulators/README.md).
-Обычный PSP принят как достаточный; private PSP и полный handoff-каталог отложены.
+Обычный PSP имеет сохранённые проверки; private PSP и полный handoff-каталог остаются незавершёнными.
 
 Remote Play использует P2P отдельного игрового медиапотока; Fluxer spectator stream
 его не заменяет. Многогостевой кандидат не принят: Iris/IDR и стабильность Gamescope
@@ -255,6 +265,6 @@ Remote Play использует P2P отдельного игрового ме�
 SteamOS/Bazzite, Pack Studio, Help и полный product backlog не становятся
 автоматически блокерами первой беты. README-снимки пока исторические и сохранены.
 
-Следующая работа — подготовить недостающие тестовые образцы по реестру,
-начиная с ранних компьютеров Apple II / PET / Atari 800. Положительные результаты не повторять без причины. Открытая приёмка и
-отложенные пункты собраны в [CURRENT_TASKS](docs/CURRENT_TASKS.md).
+Недостающие образцы Apple II / PET / Atari 800 и остальных строк реестра остаются
+задачами запуска, без глобального приоритета. Положительные результаты не повторять
+без причины. Остаток работ — в [карте готовности](docs/FEATURE_READINESS.md).

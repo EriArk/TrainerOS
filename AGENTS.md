@@ -1,6 +1,16 @@
 # TrainerOS — active agent / developer contract
 
-**Current owner-approved direction: 20 October 2026.** This is the short, **active** entrypoint for Codex and other development agents. The previous 84 KB collection of dated requirements was preserved in full (with relative links rebased) in [historical AGENTS archive](docs/archive/AGENTS_2026-10-14.md). It contains valuable implementation evidence and older decisions, but its superseded page names, priorities and button assignments are **not active instructions**.
+**Current owner-approved direction: 21 October 2026.** This is the short, **active** entrypoint for Codex and other development agents. The previous 84 KB collection of dated requirements was preserved in full (with relative links rebased) in [historical AGENTS archive](docs/archive/AGENTS_2026-10-14.md). It contains valuable implementation evidence and older decisions, but its superseded page names, priorities and button assignments are **not active instructions**.
+
+## Current working mode — owner correction, 21 October 2026
+
+Global plans, milestones and mandatory execution queues are withdrawn. Work
+by the readiness of individual features, using [the readiness map](docs/FEATURE_READINESS.md).
+Keep unfinished requirements and unchecked acceptance; there is no deferred category.
+Older sequencing in issues, plans and reports is historical, not an active queue.
+Record real dependencies beside the feature. Do not create a replacement global plan.
+The handhelds are with the owner: do not connect, probe or deploy to them.
+Continue independent local work and retain device acceptance as unverified.
 
 ## Read before working
 
@@ -18,13 +28,13 @@ the installed library composition and each owner's saves/history while applying 
 
 1. [Current product and architecture](docs/PRODUCT_ARCHITECTURE_RU.md) — **what TrainerOS is and which components own what**.
 2. [Documentation index](docs/README.md) — where to find the appropriate current feature contract, implementation evidence and historical source.
-3. [ROADMAP](docs/ROADMAP.md), [CURRENT_TASKS](docs/CURRENT_TASKS.md) and the **specific GitHub issue** — accepted sequence, task scope and outstanding acceptance.
+3. [Feature readiness](docs/FEATURE_READINESS.md), [CURRENT_TASKS](docs/CURRENT_TASKS.md) and the **specific GitHub issue** — feature state, task scope and outstanding acceptance.
 4. [DEVELOPMENT_WORKFLOW](docs/DEVELOPMENT_WORKFLOW.md) and [DEVELOPMENT](docs/DEVELOPMENT.md) — reproducible builds, review, tests, device and publication rules.
 5. Read **only relevant** technical docs for the feature. Examples: [ARCHITECTURE](docs/ARCHITECTURE.md), [DATA_MODEL](docs/DATA_MODEL.md), [DESIGN_LANGUAGE](docs/DESIGN_LANGUAGE.md), [ARMADA_PLATFORM](docs/ARMADA_PLATFORM.md). Read [adapter knowledge](docs/adapters/README.md) and [src/adapters/AGENTS.md](src/adapters/AGENTS.md) before adapter/save work.
 
 The short [PRODUCT_SPEC](docs/PRODUCT_SPEC.md) records accepted screen decisions. Removed long UX/expansion documents remain in Git history; the old [AGENTS](docs/archive/AGENTS_2026-10-14.md) is **dated history**. They provide retained requirements and evidence, not permission to revert newer owner decisions.
 
-**Conflict rule:** newer explicit owner decision and its current feature issue → [current product map](docs/PRODUCT_ARCHITECTURE_RU.md) → active queue → implementation/evidence of the actual build → historical text. If a recent issue conflicts with the summary, **update the summary**, not the working issue. A newer *target* does not mean it has been implemented. Never silently drop uncompleted acceptance.
+**Conflict rule:** newer explicit owner decision and its current feature issue → [current product map](docs/PRODUCT_ARCHITECTURE_RU.md) → feature readiness and dependencies → implementation/evidence of the actual build → historical text. If a recent issue conflicts with the summary, **update the summary**, not the working issue. A newer *target* does not mean it has been implemented. Never silently drop uncompleted acceptance.
 
 ## Product identity: an OS-level environment, not a ROM frontend
 
@@ -47,9 +57,9 @@ TrainerOS is a **controller-first native Linux shell / operating environment** w
 
 ## Current owner constraints
 
-- The active increment is Lobby Game Picker #252–254, PC installation/launch and LAN-over-internet #246–251. In parallel, deliver the exact [owner game selection](docs/MULTIPLAYER_GAME_SELECTION.md) to both devices.
-- Owner correction, 21 October: finish the interrupted PC Home/exit delivery without repeating passed checks. Make the two visible libraries identical: the approved selection plus old games confirmed present on both handhelds; copy both supplied Sacred distributions. Replace the old collection views with genre collections while keeping each owner's saves, profile and history. Remove the temporary PC input fixture, its library cards and temporary folders from both devices at the end. Copy verification is not installer integrity or gameplay compatibility.
-- Keep one live room and separate scheduled rooms. All Ready enables the host's explicit Start; never auto-launch. Offline Lobby, private PSP and full pass-controller catalogue stay deferred.
+- Picker #252–254 and PC #246–251 retain their unfinished criteria in the readiness map. The completed [library delivery](docs/MULTIPLAYER_SELECTION_DELIVERY.md) is evidence, not a new transfer task.
+- Earlier delivery scope, retained as requirements rather than execution order: PC Home/exit without repeating passed checks. Make the two visible libraries identical: the approved selection plus old games confirmed present on both handhelds; copy both supplied Sacred distributions. Replace the old collection views with genre collections while keeping each owner's saves, profile and history. Remove the temporary PC input fixture, its library cards and temporary folders from both devices at the end. Copy verification is not installer integrity or gameplay compatibility.
+- Keep one live room and separate scheduled rooms. All Ready enables the host's explicit Start; never auto-launch. Offline Lobby, private PSP and the full pass-controller catalogue remain unfinished features in the readiness map.
 - Couch means independent simultaneous pads. Do not manufacture PS2 couch networking with two local game copies. Reuse upstream networking and existing Fluxer signaling.
 - First beta is an installer over Armada; images and SteamOS/Bazzite come later. SDK/backend/account targets do not automatically block it.
 - Preserve both devices' own profiles/saves/settings. The owner permits removing Steam games and other ROMs when needed for the agreed selection; preserve server originals and record exact removals privately.
@@ -73,7 +83,7 @@ TrainerOS is a **controller-first native Linux shell / operating environment** w
 
 **Network Fabric:** LAN/nearby/direct P2P, existing Fluxer identity/invitations/signaling and **only genuinely supported** provider messaging/relay as selected by workload. [#105](https://github.com/EriArk/TrainerOS/issues/105) owns Fluxer transport research. Do not assume a voice/video connection provides unlimited arbitrary realtime game packets, guarantee connection through difficult NAT or force a centralized packet proxy into each frame. Distinguish low-rate semantic events and realtime gameplay. The system should make a tiny Tetris/Tanks app easy to integrate.
 
-No new SDK epic/child task becomes a blocker for the first early public beta merely because it exists. Follow the active agreed release queue.
+No new SDK epic/child task becomes a blocker for the first early public beta merely because it exists. Keep each release requirement and its actual dependencies in the readiness map.
 
 ## Retained owner delivery preferences
 
