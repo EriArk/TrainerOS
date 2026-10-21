@@ -229,6 +229,8 @@ void SocialController::selectLobby(int index) {
     menu_.append("Back");menuCommands_.append("cancel");lobbyDetailFocused_=false;emit changed();
 }
 void SocialController::setLobbyGames(QVariantList games) {
+    runtimeLobbyGames_=games;
+    games.append(activityLobbyGames_);
     if(lobbyGames_==games)return;
     const auto focusedMode=lobbyPicker()["modes"].toList().value(lobbyPickerModeFocus_).toMap()["key"].toString();
     lobbyGames_=std::move(games);
@@ -244,6 +246,10 @@ void SocialController::setLobbyGames(QVariantList games) {
         for(const auto& v:lobbyGames_){const auto g=v.toMap();if(g["id"].toString()==game["id"].toString()&&g["mode"].toString()==game["mode"].toString()){lobbyAutoPreparation_.clear();break;}}
     }
     emit changed();}
+void SocialController::setLobbyActivities(QVariantList games) {
+    activityLobbyGames_=std::move(games);
+    setLobbyGames(runtimeLobbyGames_);
+}
 void SocialController::editLobbySearch() {textPurpose_="lobby-search";emit textRequested("Find a lobby",lobbySearch_,100);}
 void SocialController::lobbyAction(QString action) {
     if(action.startsWith("create-field:")){lobbyDraftAction(action.mid(13));return;}

@@ -6,6 +6,14 @@ widget и lifecycle cleanup. [Старт автора](../sdk/README.md) и
 [wire contract](../sdk/PROTOCOL.md) — документация для использования; этот файл
 фиксирует владение, реализацию и границы проверки. Это не завершение #231/#235–244.
 
+**Продолжение без портативок:** [native activity/records contract](../sdk/NETWORK.md)
+подключает работающий app к существующему Lobby и надёжному каналу на двух игроков.
+Готовой игры в Crates нет; пример и тестовые клиенты проверяют обмен данными.
+`SdkNetwork` — `LobbyRuntimeService`, а не новый владелец комнат или протокол шифрования.
+Он использует неизменённый DS/Vita record helper, private runtime signaling и
+существующие prepare/Ready/explicit Start/finish. `SocialController` объединяет
+app contributions и runtime catalogue без взаимного перезаписывания.
+
 ## Используемые владельцы и точки подключения
 
 S14 / E22 / F11 предоставляет внешнему процессу необязательный интерфейс к
@@ -44,6 +52,24 @@ Edit/Add; одно нажатие приходит как событие при�
    Shell stop и EOF обрабатываются отдельно; прежние callbacks не повторяются.
 
 ## Проверка
+
+**Локальное продолжение 21 октября 2026:** `sdk_network` прошёл за 11,12 с:
+два внешних Python-клиента через публичный SDK и два настоящих процесса
+неизменённого helper обменялись records по pinned TLS/loopback. Проверены
+prepare/Ready/explicit Start, consume/ack, отклонение чужого grant, задержка
+финального Lobby snapshot, crash cleanup и новая сессия в той же комнате.
+Только authenticated provider signaling заменён локальной тестовой связкой;
+это не проверка настоящих Fluxer accounts, разных сетей/NAT или игры.
+`platform_sdk` (2,63 с), `lobby` (1,87 с) и три целевых Social-проверки прошли:
+совместный каталог runtime/apps, ограниченная автоподготовка, Ready только после
+подготовки. Отдельный shared-helper installer выполнен в чистый build-каталог;
+зависимости/imports прошли, системный Python и эмуляторы не менялись.
+`platform_qml_smoke` повторно прошёл за 9,05 с после изменения композиции;
+просмотрен реальный кадр виджета с `Activations: 1` и видимым focus.
+Повторно собран `traineros` с `BUILD_TESTING=OFF`; startup probe с установленным
+shared bundle прошёл: немедленный handshake после discovery, реальные
+`lobby.activity`/`network.records` capabilities, no-profile gate для activity и
+отсутствие тестового smoke-флага. Это Windows Debug host proof, не ARM-поставка.
 
 **Фактический локальный результат 21 октября 2026:** Windows/UCRT64 Debug,
 `platform_sdk` и `controls_dashboard` прошли (2,75 с / 0,25 с);
@@ -86,6 +112,12 @@ python3 tests/PlatformSdkStartupProbe.py build/native/traineros
 Для Windows добавить `.exe` к исполняемому файлу и использовать `py`.
 Для отдельной проверки обычной сборки: configure `-DBUILD_TESTING=OFF`, собрать
 `traineros` и запустить тот же startup probe с `--production`.
+Для сетевой проверки сначала установить helper по [инструкции](../sdk/NETWORK.md),
+передать его Python через `TRAINEROS_TEST_RECORD_PYTHON`, собрать
+`trainer_sdk_network_tests` и выполнить `ctest -R '^sdk_network$' --output-on-failure`
+в build-каталоге. Без этой зависимости тест явно пропускается, а не подтверждает
+транспорт. Startup probe принимает `--network-python` и `--network-helper` для
+проверки реальной композиции и дополнительных capabilities обычной оболочки.
 QML-тест сохраняет `platform-widget.png` и `platform-activated.png` в
 `build/native/screenshots/platform/`; показаны реальный счётчик до/после callback.
 
@@ -102,7 +134,7 @@ endpoints для отсутствующего backend.
 
 | Функция | Что ещё нужно подключить / проверить |
 | --- | --- |
-| Lobby + Network Fabric | App activity admission/starter, реальные participant/channel handles и возврат; существующие runtime transports не объявлены публичным game SDK автоматически |
+| Lobby + Network Fabric | Реализованы running-app registration, admission, reliable 2-peer records и возврат; offline admission, direct ICE/unreliable fast path, 5 peers, installer/start/rejoin и real-account/internet/ARM proof открыты |
 | GameHub tools / live overlays | Registry/placement/context/input lease для этих slots; Start widget не заменяет их |
 | Media / Files / Downloads | Service facade к действующим owners, provider registration, реальные операции/error/cancel; не второй worker или музыкальный сервер |
 | System module packages | Проверенная installed identity, lifecycle/autostart/uninstall/update, scopes к чувствительным операциям; app ID пока только namespacing |
@@ -110,5 +142,5 @@ endpoints для отсутствующего backend.
 | Results / economy / challenges | Согласованные форматы/validation/authoritative implementation; self-reported данные не становятся наградой |
 | Полная авторская приёмка #244 | Четыре независимых network/media/file/tool demos, внешний автор, ARM и supported hosts; один hello-widget их не закрывает |
 
-Конкретные состояния — R098/R099/R106 в [карте готовности](FEATURE_READINESS.md).
+Конкретные состояния — R098–R101/R106 в [карте готовности](FEATURE_READINESS.md).
 Это зависимости отдельных функций, без возвращения глобальной очереди.

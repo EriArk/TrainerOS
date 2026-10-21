@@ -1,9 +1,12 @@
 #pragma once
 #include "platform/sdk/PlatformHost.h"
+#include "platform/sdk/SdkNetwork.h"
 #include "core/navigation/ShellController.h"
 #include "core/navigation/AdventureLaunchController.h"
 #include <QUuid>
 #include <QDebug>
+#include <QStandardPaths>
+#include <QFileInfo>
 
 namespace trainer {
 // Composition only: real controllers remain the source of lifecycle/context.
@@ -17,6 +20,20 @@ public:
         connect(shell.apps(), &AppsController::changed, this, [this] { sync(); });
         connect(&launch, &AdventureLaunchController::changed, this, [this] { sync(); });
         connect(shell.powerControl(), &PowerControl::woke, this, [this] { host_.notifyLifecycle("wake"); });
+        const auto data=QStandardPaths::writableLocation(QStandardPaths::GenericDataLocation)+"/TrainerOS";
+        auto root=data+"/platform/records";
+        if(!QFileInfo::exists(root+"/secure-channel.py"))root=data+"/emulators/melonds-netplay/transport";
+#ifdef Q_OS_WIN
+        const auto interpreter=root+"/venv/Scripts/python.exe";
+#else
+        const auto interpreter=root+"/venv/bin/python";
+#endif
+        network_=std::make_unique<SdkNetwork>(*shell.social()->lobbyCoordinator(),*shell.social()->lobbyRuntime(),
+            qEnvironmentVariable("TRAINEROS_RECORD_PYTHON",interpreter),
+            qEnvironmentVariable("TRAINEROS_RECORD_HELPER",root+"/secure-channel.py"));
+        host_.setNetwork(network_.get());
+        connect(network_.get(),&SdkNetwork::activitiesChanged,this,[this]{shell_.social()->setLobbyActivities(network_->activities());});
+        connect(network_.get(),&SdkNetwork::openLobbyRequested,this,[this]{shell_.openGameHubFace("lobby");});
         sync();
         QString error;
         if (!host_.start(endpoint, &error)) qWarning().noquote() << "Platform SDK unavailable:" << error;
@@ -25,6 +42,7 @@ private:
     ShellController& shell_;
     AdventureLaunchController& launch_;
     PlatformHost host_;
+    std::unique_ptr<SdkNetwork> network_;
     QString session_;
     void sync() {
         const auto owner = shell_.trainer()->profile()["id"].toString();

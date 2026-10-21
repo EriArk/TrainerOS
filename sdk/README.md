@@ -13,12 +13,16 @@
 | `context: 1` | Текущий локальный profile ID, выбранная игра отдельно от живой game session, состояние процесса/minimize и текущая app activity | Snapshot + события изменений; смена профиля отзывает подключение |
 | `lifecycle: 1` | Событие реального PowerControl `wake`, окончание подключения/остановка host | Закрытие сокета снимает подписки и вклады; автоматического запуска программы нет |
 | `ui.start.widget: 1` | Текстовый виджет с одной активацией: title/body → существующий Start → Edit → Add | Нажатие A или touch возвращает `widget.activated`; обновление, скрытие, resize, remove/disconnect |
+| `lobby.activity: 1` | Работающая программа появляется в обычном Lobby; совместимость по app/protocol, подготовка/Ready/Start | Удаление регистрации и возврат в ту же комнату; нужен установленный shared record helper |
+| `network.records: 1` | Два допущенных участника получают надёжный упорядоченный канал; bounded send/consume/ack | Снятие канала при crash/смене контекста; новая сессия получает новый grant |
 
 Это **реализованная основа в исходниках**, не установленный API на портативках.
 Она позволяет писать обычное приложение с необязательной интеграцией, наблюдатель
 контекста, ручной счётчик/виджет и прототип игры, реагирующий на смену контекста.
-Полные SDK для Lobby/Network Fabric, Media, Files, GameHub tools, protected saves,
-input/capture и backend ещё не подключены. Их нет в `capabilities`; вызов вернёт
+Есть первый [сетевой контракт и пример обмена](NETWORK.md) поверх существующего
+Lobby и защищённого транспорта. Полный Network Fabric, Media, Files, GameHub tools,
+protected saves, input/capture и backend ещё не подключены. Отсутствующие сервисы
+не выдаются в `capabilities`; вызов вернёт
 `unsupported_method`, без фиктивного результата.
 
 ## Быстрый реальный пример
@@ -86,7 +90,7 @@ competitive mini-games, widgets, apps, extensions, game tools и core proposals.
 | --- | --- | --- | --- |
 | Обычные apps: Pixelpad, Comic Shelf | Apps launch/Home и необязательный SDK context | UI/документы/форматы и обычные файлы приложения | Обычный запуск существует; context API в этой поставке |
 | Quick Notes, Session Timer, Controller Monitor | Start host/widget input + нужный service capability | Текст, ручные команды и собственное состояние | Текст/активация готовы; редактор текста, metrics/devices API ещё отдельные функции |
-| Tanks/Pong и другие 24 mini-games | Один Lobby, допуск/участники, транспорт и Social | Правила, симуляция, синхронизация, match result | Общий SDK admission/channel/result bridge пока отсутствует; не создавать отдельный lobby/login/backend в игре |
+| Tanks/Pong и другие 24 mini-games | Один Lobby, допуск/участники, транспорт и Social | Правила, симуляция, синхронизация, match result | Admission + 2-player reliable records bridge реализован; полноценный realtime/результаты и сами игры ещё отсутствуют |
 | Music Radio / Audio Profiles | Media Session, system mixer, Start вклад | Источники музыки/auth, playlist или presets | Widget готов в ограниченном виде; media/mixer API не готов |
 | Speedrun Timer / Controller Overlay | Selected/live identity, GameHub вклад/ограниченный overlay | Manual timer/splits/свой UI | Context готов; GameHub/overlay/input hooks не подключены |
 | Save Journal | Защищённый owner/save backup/read/restore service | Представление существующих backup records | SDK доступа к save ещё нет; нельзя обходить его чтением чужих путей |

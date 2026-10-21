@@ -5,6 +5,9 @@ one per newline, maximum 64 KiB including the newline. Only the local user can
 read the endpoint secret. No HTTP/WebSocket server, CORS route or internet listener.
 Qt is a host implementation detail; a client needs JSON + a byte-stream socket.
 
+Optional `lobby.activity` / `network.records` capabilities and their methods are
+defined in [NETWORK.md](NETWORK.md); they appear only with the shared helper.
+
 ## Discovery and admission
 
 Read `TRAINEROS_SDK_ENDPOINT` when explicitly set. Otherwise:

@@ -69,6 +69,16 @@ class SocialTests : public QObject {
         s.channel_=channel;s.channels_[channel]={{"id",channel},{"type",1}};
     }
 private slots:
+    void nativeActivitiesSurviveRuntimeCatalogueRefresh() {
+        SocialController c;
+        const QVariantMap native{{"key","sdk:counter"},{"id","sdk:counter"},{"title","Counter"},{"platform","Apps"},{"mode","sdk.records.v1"},{"seats",2}};
+        const QVariantMap emulator{{"key","nes"},{"id","nes"},{"title","NES game"},{"platform","nes"},{"mode","netplay"},{"seats",2}};
+        c.setLobbyActivities({native});c.setLobbyGames({emulator});
+        QCOMPARE(c.lobbyPickerRows().size(),2);
+        c.setLobbyGames({emulator});QCOMPARE(c.lobbyPickerRows().size(),2);
+        c.setLobbyActivities({});QCOMPARE(c.lobbyPickerRows().size(),1);
+        QCOMPARE(c.lobbyPickerRows().first().toMap()["id"].toString(),"nes");
+    }
     void directCallEndsWhenLastRemoteAccountLeaves() {
         FluxerSession s;s.setTransport([](auto,auto,auto,Completion,auto){});bind(s);
         s.voiceChannel_=channel;s.voiceState_="connected";s.voiceMuted_=false;

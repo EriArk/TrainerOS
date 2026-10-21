@@ -1,4 +1,5 @@
 #include "PlatformHost.h"
+#include "SdkNetwork.h"
 #include "features/device/ControlsDashboard.h"
 #include <QDir>
 #include <QFile>
@@ -32,6 +33,13 @@ PlatformHost::PlatformHost(ControlsDashboard& dashboard, QObject* parent)
     connect(&dashboard_, &ControlsDashboard::contributionActivated, this, &PlatformHost::activate);
 }
 PlatformHost::~PlatformHost() { stop(); }
+void PlatformHost::setNetwork(SdkNetwork* service) {
+    if(network_)disconnect(network_,nullptr,this,nullptr);
+    network_=service;
+    if(service)connect(service,&SdkNetwork::event,this,[this](const QString& app,const QJsonObject& packet){
+        for(auto* socket:peers_.keys())if(peers_.value(socket).authenticated&&peers_.value(socket).app==app)send(socket,packet);
+    });
+}
 QString PlatformHost::defaultEndpoint() {
     const auto explicitPath = qEnvironmentVariable("TRAINEROS_SDK_ENDPOINT");
     if (!explicitPath.isEmpty()) return explicitPath;
@@ -154,7 +162,9 @@ void PlatformHost::send(QTcpSocket* socket, const QJsonObject& packet) {
     socket->write(QJsonDocument(packet).toJson(QJsonDocument::Compact) + '\n');
 }
 void PlatformHost::release(QTcpSocket* socket) {
-    if (!peers_.remove(socket)) return;
+    if (!peers_.contains(socket)) return;
+    const auto peer=peers_.take(socket);
+    if(network_&&peer.authenticated)network_->disconnected(peer.app);
     disconnect(socket, nullptr, this, nullptr);
     publishWidgets();
     socket->disconnectFromHost();
@@ -178,12 +188,21 @@ void PlatformHost::request(QTcpSocket* socket, const QJsonObject& packet) {
         if (!identifier(app)) { fail("invalid_app"); return; }
         for (const auto& other : peers_) if (other.authenticated && other.app == app) { fail("app_in_use"); return; }
         peer.authenticated = true; peer.app = app;
-        ok({{"protocol", 1}, {"capabilities", capabilities()}, {"context", snapshot()}});
+        auto caps=capabilities();
+        if(network_&&network_->available()){caps["lobby.activity"]=1;caps["network.records"]=1;}
+        ok({{"protocol", 1}, {"capabilities", caps}, {"context", snapshot()}});
         return;
     }
     if (method == "context.get") { ok({{"context", snapshot()}}); return; }
     if (method == "context.subscribe") { peer.subscribed = true; ok({{"context", snapshot()}}); return; }
     if (method == "context.unsubscribe") { peer.subscribed = false; ok({}); return; }
+    if(network_&&(method.startsWith("activity.")||method.startsWith("network."))) {
+        if(context_["profile"].toString().isEmpty()){fail("no_profile");return;}
+        QJsonObject result;
+        const auto error=network_->request(peer.app,method,args,result);
+        if(error.isEmpty())ok(result);else fail(error);
+        return;
+    }
     if (method == "widget.put") {
         if (context_["profile"].toString().isEmpty()) { fail("no_profile"); return; }
         if (args["revision"].toString() != QString::number(revision_)) { fail("stale_context"); return; }

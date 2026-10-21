@@ -16,6 +16,7 @@ find_package(Qt6 6.9 QUIET COMPONENTS WebEngineQuick)
 
 add_library(trainer_core STATIC
     src/platform/sdk/PlatformHost.cpp
+    src/platform/sdk/SdkNetwork.cpp
     src/features/browser/BrowserController.cpp
     src/features/adventure/LaunchPresentation.cpp
     src/features/adventure/RuntimeIdentity.cpp
@@ -547,12 +548,15 @@ qt_add_qml_module(traineros
 
 if(BUILD_TESTING)
     find_package(Python3 REQUIRED COMPONENTS Interpreter)
-    qt_add_executable(trainer_platform_tests tests/PlatformHostTests.cpp
-        src/platform/sdk/PlatformHost.cpp src/features/device/ControlsDashboard.cpp)
+    qt_add_executable(trainer_platform_tests tests/PlatformHostTests.cpp)
     target_include_directories(trainer_platform_tests PRIVATE src)
-    target_link_libraries(trainer_platform_tests PRIVATE Qt6::Core Qt6::Network Qt6::Test)
+    target_link_libraries(trainer_platform_tests PRIVATE trainer_core Qt6::Test)
     target_compile_definitions(trainer_platform_tests PRIVATE SDK_SOURCE="${CMAKE_SOURCE_DIR}" SDK_PYTHON="${Python3_EXECUTABLE}")
     add_test(NAME platform_sdk COMMAND trainer_platform_tests)
+    qt_add_executable(trainer_sdk_network_tests tests/SdkNetworkTests.cpp)
+    target_link_libraries(trainer_sdk_network_tests PRIVATE trainer_core Qt6::Test)
+    target_compile_definitions(trainer_sdk_network_tests PRIVATE SDK_SOURCE="${CMAKE_SOURCE_DIR}" SDK_PYTHON="${Python3_EXECUTABLE}")
+    add_test(NAME sdk_network COMMAND trainer_sdk_network_tests)
     qt_add_executable(trainer_controls_tests tests/ControlsDashboardTests.cpp src/features/device/ControlsDashboard.cpp)
     target_include_directories(trainer_controls_tests PRIVATE src)
     target_link_libraries(trainer_controls_tests PRIVATE Qt6::Core Qt6::Test)

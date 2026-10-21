@@ -95,6 +95,11 @@ and [evidence/remaining contracts](docs/PLATFORM_SDK.md). Wider SDK/SPI targets
 and handheld delivery remain separate. Extend actual owners through this bridge,
 not placeholder successful APIs.
 
+Native activity / two-peer reliable record integration now uses the existing
+LobbyRuntime and secure record helper; see [the app contract](sdk/NETWORK.md).
+Keep local TLS/process evidence separate from live Fluxer accounts, internet/NAT,
+offline admission, unreliable channels, five-player and handheld acceptance.
+
 [#235 — TrainerOS Platform SDK & Network Fabric](https://github.com/EriArk/TrainerOS/issues/235) and #236–244 define optional service/contribution contracts for games, apps, media/file providers, tools and system modules. They extend existing #231 (system module SPI), #92/#207 (semantic adapters), #179/#216 (Lobby), #233 (Start), #229 (Files) and #144–152 (Crates); **do not implement parallel systems**.
 
 **Freedom by default:** no mandatory new account, special SDK approval, Crates publication, custom server, large manifest or blanket permission prompt just to run an ordinary Linux program, access one's own data/network or show a normal approved widget. Check real trust boundaries: protected saves, other profiles/private messages, voice/capture, device privilege and irreversible operations. Host owns trusted surfaces; untrusted downloaded QML/native code cannot arbitrarily execute inside shell.
@@ -120,6 +125,9 @@ No new SDK epic/child task becomes a blocker for the first early public beta mer
 5. Update relevant current feature docs, actual evidence and acceptance; for meaningful delivered changes/decisions also update [PROJECT_STATUS](PROJECT_STATUS.md) and [CHANGELOG](CHANGELOG.md), **without rewriting historical dates or reporting planned features as installed**.
 6. Commit and push the inspected work; verify the final remote commit. GitHub Actions are deliberately disabled as a release gate — do not recreate workflows or await billing/CI. Report what changed, what was checked and which acceptance conditions remain.
 7. If real hardware, extra accounts/networks or a user decision are required, record the precise remaining dependency, complete safe independent work, then stop; don't manufacture tests to appear busy.
+
+Owner reporting preference: end every final report with an explicit
+**Доделано / Недоделано** status for the requested scope and what comes next.
 
 Never force-push shared history, destroy others' work, suppress failing tests or expose secret account data, ROMs/BIOS, private saves, copyrighted assets or debug support bundles.
 

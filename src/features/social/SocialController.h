@@ -207,6 +207,7 @@ public:
     Q_INVOKABLE void selectRecent(int index);
     Q_INVOKABLE void recentAction(QString action);
     void setLobbyGames(QVariantList games);
+    void setLobbyActivities(QVariantList games);
     LobbyCoordinator* lobbyCoordinator() {return &lobby_;}
     LobbyRuntime* lobbyRuntime() {return &lobbyRuntime_;}
     QString lobbyPreparationStatus() const {return lobbyRuntime_.status();}
@@ -456,6 +457,7 @@ private:
     LobbyRuntime lobbyRuntime_{lobby_,this};
     QTimer lobbyPublishTimer_{this},lobbyHeartbeat_{this};
     QVariantList lobbyGames_;
+    QVariantList runtimeLobbyGames_,activityLobbyGames_;
     QString lobbySearch_,lobbyTopic_,publishedLobby_,presentedLobbyInvite_,lobbySelection_,lobbyPublicationTopic_="other";
     QString lobbyPlatform_,lobbyMode_;
     QString lobbyLastRoom_;

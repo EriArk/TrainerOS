@@ -10,6 +10,7 @@ class QLockFile;
 class QTcpSocket;
 namespace trainer {
 class ControlsDashboard;
+class SdkNetwork;
 
 // Local, optional app-to-host API. This bridge exposes only the services that
 // are actually bound here; it owns neither game execution nor application data.
@@ -23,6 +24,7 @@ public:
     void stop();
     void setContext(const QJsonObject& context);
     void notifyLifecycle(const QString& event);
+    void setNetwork(SdkNetwork*);
     QJsonObject context() const { return context_; }
 private:
     struct Peer {
@@ -37,6 +39,7 @@ private:
     std::unique_ptr<QLockFile> lock_;
     QString endpoint_, token_, instance_;
     QJsonObject context_;
+    QPointer<SdkNetwork> network_;
     quint64 revision_ = 0;
     void accept();
     void read(QTcpSocket*);
