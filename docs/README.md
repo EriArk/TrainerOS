@@ -6,6 +6,7 @@
 | --- | --- |
 | Правила работы | [AGENTS](../AGENTS.md), [workflow](DEVELOPMENT_WORKFLOW.md) |
 | Какой продукт делаем | [продукт и архитектура](PRODUCT_ARCHITECTURE_RU.md), [экранные решения](PRODUCT_SPEC.md), [визуальный язык](DESIGN_LANGUAGE.md) |
+| Владельцы функций и связи | [Карта структуры](STRUCTURE_MAP_RU.md): входы/выходы, зависимости, жизненные циклы и код |
 | Готовность функций и остаток | [Карта с галочками](FEATURE_READINESS.md), [условия проверки](CURRENT_TASKS.md) |
 | Что уже сделано | [PROJECT_STATUS](../PROJECT_STATUS.md) |
 | Как развивалось | [CHANGELOG](../CHANGELOG.md), [коммиты](https://github.com/EriArk/TrainerOS/commits/codex/apps-workspace/) |

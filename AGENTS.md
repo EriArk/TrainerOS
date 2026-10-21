@@ -12,6 +12,15 @@ Record real dependencies beside the feature. Do not create a replacement global 
 The handhelds are with the owner: do not connect, probe or deploy to them.
 Continue independent local work and retain device acceptance as unverified.
 
+**Owner structural map, 21 October 2026:** use [STRUCTURE_MAP_RU](docs/STRUCTURE_MAP_RU.md)
+as the canonical map of console-owned responsibilities, package roles and cross-system
+contracts. Each readiness row links its primary owner and affected systems. Before a
+change, identify the owner, entry/exit contract, consumers and lifecycle consequences;
+reuse its current implementation. Update the map when ownership/contracts change,
+and readiness/evidence when implementation or checks change. This is not a global
+execution plan or an instruction to create new managers/microservices. Public SDK,
+backend targets and installed built-ins remain distinct evidence levels.
+
 ## Read before working
 
 **Owner library size correction, 21 October 2026:** exclude Xbox 360 and PS3
@@ -26,7 +35,7 @@ installer copies and the matched library/12 genre collections are now applied.
 The owner additionally requested thematic genre covers on both devices. Preserve
 the installed library composition and each owner's saves/history while applying art.
 
-1. [Current product and architecture](docs/PRODUCT_ARCHITECTURE_RU.md) — **what TrainerOS is and which components own what**.
+1. [Current product](docs/PRODUCT_ARCHITECTURE_RU.md) and [structural map](docs/STRUCTURE_MAP_RU.md) — **what TrainerOS is, which component owns each function, and how they connect**.
 2. [Documentation index](docs/README.md) — where to find the appropriate current feature contract, implementation evidence and historical source.
 3. [Feature readiness](docs/FEATURE_READINESS.md), [CURRENT_TASKS](docs/CURRENT_TASKS.md) and the **specific GitHub issue** — feature state, task scope and outstanding acceptance.
 4. [DEVELOPMENT_WORKFLOW](docs/DEVELOPMENT_WORKFLOW.md) and [DEVELOPMENT](docs/DEVELOPMENT.md) — reproducible builds, review, tests, device and publication rules.
