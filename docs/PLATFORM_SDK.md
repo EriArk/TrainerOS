@@ -127,6 +127,12 @@ Windows host proof не равен ARM, Gamescope, физическому gamepa
 
 ## Оставшиеся входы по Crates
 
+Первый внешний потребитель — [Session Timer](https://github.com/EriArk/crates/tree/main/widgets/session-timer).
+При managed запуске путь к endpoint теперь берётся из host XDG до изоляции данных
+пакета. `CratesLaunchTests.py` проверяет это настоящим дочерним Linux-процессом,
+включая override endpoint; интеграционный тест самого приложения живёт в Crates.
+Это не установка SDK на ARM и не приёмка физического ввода.
+
 Новый [разбор потребителей](../sdk/README.md) связывает Crates concepts с host
 services. Уже готовый bridge можно расширять по конкретной потребности, сохраняя
 один вход и реального владельца каждой операции. Не нужно выдумывать готовые

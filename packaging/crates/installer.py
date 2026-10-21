@@ -78,7 +78,7 @@ def validate_records(records):
         if not re.fullmatch('[0-9a-f]{64}', r['sha256']) or not 0 < r['size'] < 1024**3:
             raise ValueError('Invalid package integrity record')
         u = urlsplit(r['url'])
-        if u.scheme != 'https' or u.hostname != 'github.com' or u.username or u.password or u.port or u.query or u.fragment or not re.fullmatch(r'/EriArk/TrainerOS/releases/download/[A-Za-z0-9._-]+/[A-Za-z0-9._-]+',u.path):
+        if u.scheme != 'https' or u.hostname != 'github.com' or u.username or u.password or u.port or u.query or u.fragment or not re.fullmatch(r'/EriArk/(?:TrainerOS|crates)/releases/download/[A-Za-z0-9._-]+/[A-Za-z0-9._-]+',u.path):
             raise ValueError('Unapproved package source')
         safe_path(r['entry'])
         safe_path(r.get('icon','icon.svg'))

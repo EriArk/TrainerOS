@@ -18,6 +18,7 @@ from publish_catalogue import publish
 
 def main():
     p=argparse.ArgumentParser()
+    p.add_argument('--repository', choices=('EriArk/TrainerOS','EriArk/crates'), default='EriArk/TrainerOS')
     p.add_argument('tag');p.add_argument('--record',type=Path,action='append',required=True)
     p.add_argument('--asset',type=Path,action='append',required=True)
     p.add_argument('--key',type=Path,required=True);p.add_argument('--ssh-target',required=True)
@@ -34,7 +35,7 @@ def main():
     for record in a.record:
         r=decode(record.read_bytes())
         if r['id'] not in approved:raise SystemExit('Project has not been reviewed for this catalogue')
-        if not r['url'].startswith('https://github.com/EriArk/TrainerOS/releases/download/'+a.tag+'/'):
+        if not r['url'].startswith('https://github.com/'+a.repository+'/releases/download/'+a.tag+'/'):
             raise SystemExit('Record does not refer to this release')
         if any(x['id']==r['id'] and x['version']==r['version'] for x in value['packages']):
             raise SystemExit('Version is already published; choose a new version')
@@ -47,20 +48,20 @@ def main():
     with tempfile.TemporaryDirectory() as directory:
         d=Path(directory);atomic(d/'before.json',previous);atomic(d/'input.json',value)
         publish(d/'input.json',a.key,d/'signed.json',d/'before.json',pub)
-        exists=subprocess.run(['gh','release','view',a.tag,'--repo','EriArk/TrainerOS'],capture_output=True).returncode==0
+        exists=subprocess.run(['gh','release','view',a.tag,'--repo',a.repository],capture_output=True).returncode==0
         if not exists:
-            notes=d/'notes.txt';notes.write_text('Experimental TrainerOS ARM64 example packages. Pinned upstream sources, package recipes and SHA-256 checksums are included. This is not a TrainerOS OS release.\n')
-            run('gh','release','create',a.tag,'--repo','EriArk/TrainerOS','--prerelease','--latest=false','--title','Crates examples · '+a.tag,'--notes-file',str(notes),*[str(f) for f in a.asset])
+            notes=d/'notes.txt';notes.write_text('Experimental Crates packages. See individual package records for architecture and compatibility. Sources, package recipes and SHA-256 checksums are included. This is not a TrainerOS OS release.\n')
+            run('gh','release','create',a.tag,'--repo',a.repository,'--prerelease','--latest=false','--title','Crates · '+a.tag,'--notes-file',str(notes),*[str(f) for f in a.asset])
         else:
-            inventory=json.loads(run('gh','release','view',a.tag,'--repo','EriArk/TrainerOS','--json','assets',capture_output=True).stdout)
+            inventory=json.loads(run('gh','release','view',a.tag,'--repo',a.repository,'--json','assets',capture_output=True).stdout)
             existing={item['name'] for item in inventory['assets']}
             for asset in a.asset:
                 if asset.name in existing:
                     verify=d/'verify';verify.mkdir(exist_ok=True)
-                    run('gh','release','download',a.tag,'--repo','EriArk/TrainerOS','--pattern',asset.name,'--dir',str(verify))
+                    run('gh','release','download',a.tag,'--repo',a.repository,'--pattern',asset.name,'--dir',str(verify))
                     if hashlib.sha256((verify/asset.name).read_bytes()).digest()!=hashlib.sha256(asset.read_bytes()).digest():
                         raise SystemExit('Existing release asset differs; never replace published bytes')
-                else:run('gh','release','upload',a.tag,'--repo','EriArk/TrainerOS',str(asset))
+                else:run('gh','release','upload',a.tag,'--repo',a.repository,str(asset))
         incoming='incoming-'+uuid.uuid4().hex+'.json'
         run('scp',str(d/'signed.json'),a.ssh_target+':'+a.remote_dir+'/'+incoming)
         # The revision comparison and replace happen under the server publication
