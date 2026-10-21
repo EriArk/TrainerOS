@@ -106,10 +106,55 @@
         "qrc:/crates/projects/pocket-artillery.png"
       ],
       "releases": []
+    },
+    {
+      "id": "pong",
+      "title": "Pong",
+      "kind": "game",
+      "creator": "AbyssTail",
+      "license": "GPL-3.0-or-later",
+      "summary": "Two paddles. First to five.",
+      "description": "Keep the ball in play and change its angle with the edge of your paddle. Play against a bot, with two local players or with a friend through TrainerOS Lobby and Platform SDK. Experimental Linux builds; physical controls and live internet play remain unverified.",
+      "hero": "qrc:/crates/projects/pong.png",
+      "screenshots": [
+        "qrc:/crates/projects/pong.png"
+      ],
+      "releases": []
+    },
+    {
+      "id": "snake-arena",
+      "title": "Snake Arena",
+      "kind": "game",
+      "creator": "AbyssTail",
+      "license": "GPL-3.0-or-later",
+      "summary": "Two snakes share one arena.",
+      "description": "Eat fruit, grow and avoid colliding with trails. Play against a bot, with two local players or with a friend through TrainerOS Lobby and Platform SDK. Experimental Linux builds; physical controls and live internet play remain unverified.",
+      "hero": "qrc:/crates/projects/snake-arena.png",
+      "screenshots": [
+        "qrc:/crates/projects/snake-arena.png"
+      ],
+      "releases": []
+    },
+    {
+      "id": "light-cycles",
+      "title": "Light Cycles",
+      "kind": "game",
+      "creator": "AbyssTail",
+      "license": "GPL-3.0-or-later",
+      "summary": "Leave a trail. Stay alive.",
+      "description": "Steer through an arena of permanent trails; the last rider wins. Play against a bot, with two local players or with a friend through TrainerOS Lobby and Platform SDK. Experimental Linux builds; physical controls and live internet play remain unverified.",
+      "hero": "qrc:/crates/projects/light-cycles.png",
+      "screenshots": [
+        "qrc:/crates/projects/light-cycles.png"
+      ],
+      "releases": []
     }
   ],
   "contents": {
     "whats-new": [
+      "pong",
+      "snake-arena",
+      "light-cycles",
       "session-timer",
       "pocket-artillery",
       "2048",
@@ -119,11 +164,17 @@
       "qalculate"
     ],
     "workshop": [
+      "pong",
+      "snake-arena",
+      "light-cycles",
       "session-timer",
       "pocket-artillery"
     ],
     "adventure": [],
     "arcade": [
+      "pong",
+      "snake-arena",
+      "light-cycles",
       "pocket-artillery",
       "hextris",
       "breakout"

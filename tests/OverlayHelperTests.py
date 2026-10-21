@@ -22,6 +22,16 @@ PNG = base64.b64decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQI
 
 
 class OverlayHelperTests(unittest.TestCase):
+    def test_native_crates_close_requires_managed_game_marker(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory);process=root/'42';process.mkdir()
+            (process/'exe').symlink_to('/packages/objects/game/bin/arbitrary-native-game')
+            for env,expected in ((b'',False),(b'TRAINEROS_CRATES_GAME=0\0',False),
+                                 (b'TRAINEROS_CRATES_GAME=10\0',False),
+                                 (b'TRAINEROS_CRATES_GAME=1\0',True)):
+                (process/'environ').write_bytes(env)
+                self.assertEqual(supported_emulator_process(42,root),expected)
+
     def test_ordinary_pc_window_requires_managed_launch_marker(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory); process = root / '42'; process.mkdir()

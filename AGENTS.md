@@ -9,8 +9,9 @@ by the readiness of individual features, using [the readiness map](docs/FEATURE_
 Keep unfinished requirements and unchecked acceptance; there is no deferred category.
 Older sequencing in issues, plans and reports is historical, not an active queue.
 Record real dependencies beside the feature. Do not create a replacement global plan.
-The handhelds are with the owner: do not connect, probe or deploy to them.
-Continue independent local work and retain device acceptance as unverified.
+The owner made both handhelds available again on 21 October 2026. Connections,
+bounded runtime checks and delivery to Odin/Flip are authorized. Preserve each
+device's profiles/saves/settings; physical and different-network acceptance remain separate.
 
 **Owner structural map, 21 October 2026:** use [STRUCTURE_MAP_RU](docs/STRUCTURE_MAP_RU.md)
 as the canonical map of console-owned responsibilities, package roles and cross-system

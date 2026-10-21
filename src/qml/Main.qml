@@ -498,7 +498,7 @@ Window {
         Loader { anchors.fill: screen; active: shell.service === "diagnostics"; visible: active; sourceComponent: DiagnosticsPanel { shell: shellController } }
         Loader { anchors.fill: screen; z: 2.8; active: shell.primaryId === "apps" && shell.appsFace === "crates" && shell.crates.detailOpen && !shell.serviceOpen && !shell.quickAppsOpen && !shell.drawerOpen; visible: active; sourceComponent: CratesProjectPopup { flow: shell.crates } }
         Loader { anchors.fill: screen; z: 3.1; active: shell.scraper.open && !shell.keyboard.open; visible: active; sourceComponent: ScrapePanel { shell: shellController } }
-        Loader { anchors.fill: screen; z: 3.2; active: shell.downloads.open; visible: active; sourceComponent: DownloadsPanel { flow: shell.downloads } }
+        Loader { anchors.fill: screen; z: shell.menuOpen ? 4.2 : 3.2; active: shell.downloads.open; visible: active; sourceComponent: DownloadsPanel { flow: shell.downloads } }
         MyLobbiesPopup { anchors.fill: screen; social: shell.social; z: 3.5 }
         ChatFilePicker { anchors.fill: screen; picker: shell.social.files.picker; z: 4 }
         Loader { anchors.fill: screen; z: 3.4; active: shell.pcGames.open && !shell.keyboard.open && !shell.menuOpen && !shell.homeMenuOpen && !shell.serviceOpen; visible: active; sourceComponent: PcGamePopup { flow: shell.pcGames } }

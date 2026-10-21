@@ -44,7 +44,8 @@ class CatalogueTests(unittest.TestCase):
         add_project_presentations(value,records,self.base['catalogue'],ROOT)
         c.validate(value)
         self.assertEqual(value['catalogue']['projects'][0]['summary'],'Retained live editorial change')
-        self.assertEqual(value['catalogue']['contents']['workshop'],['session-timer','pocket-artillery'])
+        remaining=[id for id in self.base['catalogue']['contents']['workshop'] if id not in ids]
+        self.assertEqual(value['catalogue']['contents']['workshop'],['session-timer','pocket-artillery']+remaining)
         self.assertEqual(len(value['assets']),2)
         self.assertEqual(value['packages'],self.base['packages'])
         for p in value['catalogue']['projects']:

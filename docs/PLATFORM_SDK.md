@@ -8,7 +8,10 @@ widget и lifecycle cleanup. [Старт автора](../sdk/README.md) и
 
 **Продолжение без портативок:** [native activity/records contract](../sdk/NETWORK.md)
 подключает работающий app к существующему Lobby и надёжному каналу на двух игроков.
-Готовой игры в Crates нет; пример и тестовые клиенты проверяют обмен данными.
+Теперь опубликованы экспериментальные Pocket Artillery, Pong, Snake Arena и
+Light Cycles. Их парные SDK/TLS проверки используют локальную сигнализацию;
+живой интернет этим не принят. [Доставка 21 октября](CRATES77_CATALOGUE.md) включает
+SDK/records helper на Odin/Flip, запуск игр и настоящий Timer Start-виджет.
 `SdkNetwork` — `LobbyRuntimeService`, а не новый владелец комнат или протокол шифрования.
 Он использует неизменённый DS/Vita record helper, private runtime signaling и
 существующие prepare/Ready/explicit Start/finish. `SocialController` объединяет

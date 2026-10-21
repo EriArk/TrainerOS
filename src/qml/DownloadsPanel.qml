@@ -50,10 +50,10 @@ Item {
                 PlatformBadge { visible: modelData.provider!=="chat-files"; x: parent.width-70; y: 2; scale: 0.72; transformOrigin: Item.TopLeft; label: modelData.platform || ""; shape: modelData.shape || "console" }
                 Rectangle { x: 74; y: 38; width: 7; height: 7; radius: 4; color: modelData.state==="failed"?"#bd655f":modelData.state==="done"?"#559469":modelData.state==="running"?"#4e8fb5":modelData.state==="paused"||modelData.state==="attention"?"#bc923c":"#90a399" }
                 Text { x: 87; y: 31; width: parent.width-100; text: modelData.detail; textFormat: Text.PlainText; elide: Text.ElideRight; color: Theme.muted; font.pixelSize: 13 }
-                Rectangle { x: 74; y: 54; width: parent.width-88; height: 3; radius: 2; color: "#b8cbbf"
-                    Rectangle { height: parent.height; width: modelData.state==="done"?parent.width: modelData.state==="running"?parent.width*(modelData.progress !== undefined?modelData.progress:0.2):0; radius: 2; color: modelData.state==="done"?"#559469":"#4e8fb5"
+                Rectangle { id: progressTrack; x: 74; y: 54; width: parent.width-88; height: 3; radius: 2; color: "#b8cbbf"
+                    Rectangle { id: progressFill; height: parent.height; width: modelData.state==="done"?parent.width: modelData.state==="running"?parent.width*(modelData.progress !== undefined?modelData.progress:0.2):0; radius: 2; color: modelData.state==="done"?"#559469":"#4e8fb5"
                         SequentialAnimation on opacity { running: modelData.state==="running" && modelData.progress === undefined; loops: Animation.Infinite; NumberAnimation { to: 0.35; duration: 650 } NumberAnimation { to: 1; duration: 650 } }
-                        NumberAnimation on x { running: modelData.state==="running" && modelData.progress === undefined; from: 0; to: parent.width-width; duration: 1700; loops: Animation.Infinite }
+                        NumberAnimation on x { running: modelData.state==="running" && modelData.progress === undefined; from: 0; to: progressTrack.width-progressFill.width; duration: 1700; loops: Animation.Infinite }
                     }
                 }
                 TapHandler { onTapped: root.flow.select(index) }
