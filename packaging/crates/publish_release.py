@@ -79,8 +79,8 @@ def main():
         if r['id'] not in approved:raise SystemExit('Project has not been reviewed for this catalogue')
         if not r['url'].startswith('https://github.com/'+a.repository+'/releases/download/'+a.tag+'/'):
             raise SystemExit('Record does not refer to this release')
-        if any(x['id']==r['id'] and x['version']==r['version'] for x in value['packages']):
-            raise SystemExit('Version is already published; choose a new version')
+        if any((x['id'],x['version'],x['architecture']) == (r['id'],r['version'],r['architecture']) for x in value['packages']):
+            raise SystemExit('Version for this architecture is already published; choose a new version')
         archive=next((f for f in a.asset if f.name==r['url'].rsplit('/',1)[-1]),None)
         if not archive or archive.stat().st_size!=r['size'] or hashlib.sha256(archive.read_bytes()).hexdigest()!=r['sha256']:
             raise SystemExit('Release asset does not match its record')

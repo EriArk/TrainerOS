@@ -7,6 +7,13 @@
 #include <QSaveFile>
 #include <QSysInfo>
 namespace trainer {
+namespace {
+bool canRun(const QVariantMap& record) {
+    const auto cpu=QSysInfo::currentCpuArchitecture();
+    const auto arch=cpu=="arm64"?QString("aarch64"):cpu;
+    return record["architecture"]==arch;
+}
+}
 CratesInstaller::CratesInstaller(QObject* p):QObject(p) {
     persist_.setSingleShot(true);persist_.setInterval(500);
     connect(&persist_,&QTimer::timeout,this,&CratesInstaller::persistJobs);
@@ -57,8 +64,12 @@ void CratesInstaller::useCatalogue(const QVariantList& packages,const QString& r
 void CratesInstaller::setOnline(bool online){if(online_==online)return;online_=online;emit changed();}
 QVariantList CratesInstaller::installed() const {QVariantList out;for(const auto& r:inventory_)out<<r;return out;}
 QVariantMap CratesInstaller::state(const QString& id) const {
-    const auto cpu=QSysInfo::currentCpuArchitecture();const auto arch=cpu=="arm64"?QString("aarch64"):cpu;
-    QVariantList releases;for(const auto& v:packages_)if(v.toMap()["id"]==id && !v.toMap()["withdrawn"].toBool()){auto r=v.toMap();r["sizeBytes"]=r["size"];r["canRun"]=r["architecture"].toString().isEmpty()||r["architecture"]==arch;releases<<r;}
+    QVariantList releases;
+    for(const auto& v:packages_){
+        auto r=v.toMap();
+        if(r["id"]!=id || r["withdrawn"].toBool() || !canRun(r))continue;
+        r["sizeBytes"]=r["size"];r["canRun"]=true;releases<<r;
+    }
     const auto installed=inventory_.value(id);const auto latest=releases.value(0).toMap();
     QVariantMap out{{"installedVersion",installed["version"]},{"availableVersion",latest["version"]},{"packageReleases",releases},
         {"canInstall",online_&&!releases.isEmpty()&&!helper_.isEmpty()&&latest["canRun"].toBool()},
@@ -74,7 +85,7 @@ QVariantList CratesInstaller::tasks() const {
 }
 void CratesInstaller::request(const QString& id,const QString& version,const QString& operation){
     if(operation!="remove"&&!online_)return;
-    QVariantMap record;for(const auto& p:packages_){auto r=p.toMap();if(r["id"]==id&&!r["withdrawn"].toBool()&&(version.isEmpty()||r["version"]==version)){record=r;break;}}
+    QVariantMap record;for(const auto& p:packages_){auto r=p.toMap();if(r["id"]==id&&!r["withdrawn"].toBool()&&canRun(r)&&(version.isEmpty()||r["version"]==version)){record=r;break;}}
     if(operation=="remove")record=inventory_.value(id);
     if(record.isEmpty()||state(id)["busy"].toBool())return;
     for(int i=jobs_.size()-1;i>=0;--i)if(jobs_[i].toMap()["id"]==id)jobs_.removeAt(i);

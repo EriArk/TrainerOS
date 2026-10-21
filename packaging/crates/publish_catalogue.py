@@ -15,9 +15,9 @@ def publish(source,key,output,previous=None,public_key=None):
     if previous:
         old=decode(previous.read_bytes());verified(old,public_key)
         if value['revision']<=old['signed']['revision']: raise ValueError('Publication revision must increase')
-        releases={(r['id'],r['version']):r for r in old['signed']['packages']}
+        releases={(r['id'],r['version'],r['architecture']):r for r in old['signed']['packages']}
         for r in value['packages']:
-            before=releases.get((r['id'],r['version']))
+            before=releases.get((r['id'],r['version'],r['architecture']))
             if before and any(before[k]!=r[k] for k in ('sha256','url','size','unpackedSize','entry','architecture','kind')):
                 raise ValueError('Published versions are immutable; assign a new version')
     envelope={'signed':value,'signature':signature(value,key)}

@@ -32,6 +32,16 @@ the installer verifies the signed snapshot again before accepting its records.
 The public key is installed with the host helper, never taken from a response.
 Do not replace the bootstrap with unverified remote JSON.
 
+One project/version can have separate `aarch64` and `x86_64` records in the same
+server catalogue. Immutable publication identity is `(id, version, architecture)`;
+adding an ARM build does not change the app version or replace desktop bytes.
+The shell lists releases for its own architecture, and the worker independently
+selects that architecture before downloading. A foreign build cannot be enabled
+by accepting an experimental compatibility warning. Architecture is a necessary
+execution constraint, not proof of GPU, controller or complete device compatibility.
+Older helpers that reject duplicate id/version pairs must be updated together
+with the shell; they retain their previous verified cache on validation failure.
+
 The host launches `installer.py` in a separate process. Packages are extracted
 without links/special files into bounded staging. A durable receipt selects a
 content-addressed version; the previous version survives interrupted replacement.

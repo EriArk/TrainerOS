@@ -14,6 +14,7 @@ import catalogue as c
 import catalogue_server as server
 import publish_catalogue as publisher
 from publish_release import add_project_presentations
+from installer import select_release
 
 
 class CatalogueTests(unittest.TestCase):
@@ -111,6 +112,28 @@ class CatalogueTests(unittest.TestCase):
             bad=self.next();bad['packages'][0]['sha256']='0'*64;c.atomic(p/'input.json',bad)
             with self.assertRaises(ValueError):publisher.publish(p/'input.json',self.key,p/'output.json',p/'old.json',self.pub)
             self.assertFalse((p/'output.json').exists())
+
+    def test_same_version_has_independent_architecture_builds(self):
+        value=copy.deepcopy(self.base);value['revision']=2
+        arm=copy.deepcopy(value['packages'][0]);arm['architecture']='aarch64'
+        desktop=dict(arm,architecture='x86_64',sha256='1'*64)
+        value['packages']=[desktop,arm]+value['packages'][1:]
+        c.validate(value)
+        for arch,expected in [('aarch64',arm),('x86_64',desktop)]:
+            self.assertEqual(select_release(value['packages'],arm['id'],arm['version'],arch),expected)
+        with self.assertRaises(ValueError):select_release([desktop],arm['id'],arm['version'],'aarch64')
+        with self.assertRaises(ValueError):select_release([dict(arm,withdrawn=True)],arm['id'],arm['version'],'aarch64')
+        with tempfile.TemporaryDirectory() as d:
+            p=Path(d);c.atomic(p/'old.json',self.signed(self.base));c.atomic(p/'input.json',value)
+            publisher.publish(p/'input.json',self.key,p/'output.json',p/'old.json',self.pub)
+            before=c.load(p/'output.json',self.pub)
+            self.assertEqual(c.apply(c.delta(self.signed(self.base),before),self.signed(self.base),self.pub),before)
+            for index in (0,1):
+                bad=copy.deepcopy(value);bad['revision']=3;bad['packages'][index]['sha256']='2'*64
+                c.atomic(p/'input.json',bad)
+                with self.assertRaises(ValueError):publisher.publish(p/'input.json',self.key,p/'next.json',p/'output.json',self.pub)
+        value['packages'].append(arm)
+        with self.assertRaises(ValueError):c.validate(value)
 
     def test_bounded_hashed_artwork(self):
         data=(ROOT/'assets/crates/examples/2048.png').read_bytes();key=c.hashlib.sha256(data).hexdigest()

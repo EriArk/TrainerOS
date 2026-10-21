@@ -4,6 +4,7 @@
 #include <QTemporaryDir>
 #include <QProcessEnvironment>
 #include <QSettings>
+#include <QSysInfo>
 #include "features/crates/CratesController.h"
 #include "features/device/ControlsDashboard.h"
 #include "platform/sdk/PlatformHost.h"
@@ -32,7 +33,7 @@ private slots:
         QVERIFY(crates.installer()->tasks().isEmpty());
         crates.open(1,true); // Same entry/Download/confirmation actions as the UI.
         QTRY_VERIFY_WITH_TIMEOUT(crates.syncStatus().isEmpty(),30000);
-        QCOMPARE(crates.projectCount(),2);
+        QVERIFY(crates.projectCount()>=2);
         QVERIFY(crates.installer()->tasks().isEmpty()); // Browsing never installs.
         for(const auto& id: {QString("session-timer"),QString("pocket-artillery")}) {
             crates.closeDetail();
@@ -45,6 +46,13 @@ private slots:
             crates.activateAction(0);
             QTRY_COMPARE_WITH_TIMEOUT(crates.installer()->state(id)["installedVersion"].toString(),QString("0.1.0"),60000);
             QCOMPARE(crates.installer()->state(id)["job"].toMap()["state"].toString(),QString("done"));
+            auto arch=QSysInfo::currentCpuArchitecture();if(arch=="arm64")arch="aarch64";
+            bool matchingReceipt=false;
+            for(const auto& item:crates.installer()->installed()) {
+                const auto receipt=item.toMap();
+                if(receipt["id"]==id){QCOMPARE(receipt["architecture"].toString(),arch);matchingReceipt=true;}
+            }
+            QVERIFY(matchingReceipt);
             const bool game=id=="pocket-artillery";
             QCOMPARE(crates.primaryLabel(),game?QString("Play"):QString("Open"));
             QSignalSpy launch(&crates,&CratesController::launchRequested);

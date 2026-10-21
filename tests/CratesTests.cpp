@@ -1,12 +1,36 @@
 #include <QtTest>
 #include <QTemporaryDir>
 #include <QFile>
+#include <QSysInfo>
 #include "features/crates/CratesController.h"
 #include "fixtures/crates/CatalogueFixture.h"
 using namespace trainer;
 class CratesTests: public QObject {
     Q_OBJECT
 private slots:
+    void packageArchitectureSelection() {
+        QTemporaryDir temp;QVERIFY(temp.isValid());
+        const auto cpu=QSysInfo::currentCpuArchitecture();
+        const auto arch=cpu=="arm64"?QString("aarch64"):cpu;
+        const auto foreign=arch=="aarch64"?QString("x86_64"):QString("aarch64");
+        const QVariantMap local{{"id","fixture"},{"title","Local build"},{"version","1"},{"architecture",arch}};
+        auto other=local;other["architecture"]=foreign;other["title"]="Wrong build";
+        auto newer=other;newer["version"]="2";
+        CratesInstaller jobs;jobs.configure("/not-executed",temp.path()+"/registry.json",temp.path());
+        jobs.replacementGuard=[]{return QString("Test holds queue");};
+        jobs.useCatalogue({newer,other,local},{});
+        const auto state=jobs.state("fixture");
+        QVERIFY(state["canInstall"].toBool());QCOMPARE(state["availableVersion"].toString(),QString("1"));
+        QCOMPARE(state["packageReleases"].toList().size(),1);
+        jobs.request("fixture","2");QVERIFY(jobs.tasks().isEmpty());
+        jobs.request("fixture","1");QCOMPARE(jobs.tasks().size(),1);
+        QCOMPARE(jobs.tasks()[0].toMap()["title"].toString(),QString("Local build"));
+        jobs.command("fixture","cancel");
+        auto withdrawn=local;withdrawn["withdrawn"]=true;
+        jobs.useCatalogue({other,withdrawn},{});
+        QVERIFY(!jobs.state("fixture")["canInstall"].toBool());
+        QVERIFY(jobs.state("fixture")["packageReleases"].toList().isEmpty());
+    }
     void catalogueOnlySyncsOnExplicitEntry() {
 #ifndef Q_OS_LINUX
         QSKIP("Host catalogue worker runs on Linux");
@@ -36,7 +60,8 @@ private slots:
         QTemporaryDir temp;QVERIFY(temp.isValid());
         const auto registry=temp.path()+"/registry.json",helper=temp.path()+"/worker.py";
         QFile f(registry);QVERIFY(f.open(QIODevice::WriteOnly));
-        f.write("{\"packages\":[{\"id\":\"fixture\",\"title\":\"Fixture\",\"version\":\"1\"}]}");f.close();
+        auto cpu=QSysInfo::currentCpuArchitecture();if(cpu=="arm64")cpu="aarch64";
+        f.write(("{\"packages\":[{\"id\":\"fixture\",\"title\":\"Fixture\",\"version\":\"1\",\"architecture\":\""+cpu+"\"}]}").toUtf8());f.close();
         f.setFileName(helper);QVERIFY(f.open(QIODevice::WriteOnly));
         f.write("import signal,time,sys\ndef stop(*_):\n print('{\"error\":\"Cancelled\"}',flush=True)\n sys.exit(1)\nsignal.signal(signal.SIGTERM,stop)\nprint('{\"stage\":\"Downloading\"}',flush=True)\ntime.sleep(20)\n");f.close();
         CratesInstaller jobs;jobs.configure(helper,registry,temp.path()+"/store");jobs.request("fixture");
@@ -50,7 +75,8 @@ private slots:
     void packageActionsAndDeduplicatedQueue() {
         QTemporaryDir temp;QVERIFY(temp.isValid());
         const auto registry=temp.path()+"/registry.json";QFile f(registry);QVERIFY(f.open(QIODevice::WriteOnly));
-        f.write("{\"packages\":[{\"id\":\"2048\",\"title\":\"2048\",\"version\":\"1\",\"kind\":\"game\"}]}");f.close();
+        auto cpu=QSysInfo::currentCpuArchitecture();if(cpu=="arm64")cpu="aarch64";
+        f.write(("{\"packages\":[{\"id\":\"2048\",\"title\":\"2048\",\"version\":\"1\",\"kind\":\"game\",\"architecture\":\""+cpu+"\"}]}").toUtf8());f.close();
         CratesController c;c.installer()->replacementGuard=[]{return QString("Game is running");};
         c.installer()->configure("/not-executed",registry,temp.path()+"/store");
         c.open(0,true);

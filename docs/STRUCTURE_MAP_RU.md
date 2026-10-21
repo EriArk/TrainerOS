@@ -112,7 +112,7 @@ flowchart LR
 | Связь | Откуда → куда | Смысл контракта | Завершение / защита от неверного контекста |
 | --- | --- | --- | --- |
 | **E01** | S01 → остальные S | owner, привязанный account, актуальность контекста | Смена Trainer отменяет устаревшие callbacks; чужие данные/токены/права не переносятся. Политика смены при живом сеансе требует явного допуска. |
-| **E02** | S12 или локальный источник → S13 | Намеренная установка: project/package, version, source, compatibility | Открытие каталога не запускает Download/Update. Отмена не создаёт установленный пакет. |
+| **E02** | S12 или локальный источник → S13 | Намеренная установка: project/package, version, architecture, source, compatibility | Серверный каталог описывает варианты сборки; S13 выбирает архитектуру текущего host. Открытие каталога не запускает Download/Update. Отмена не создаёт установленный пакет. |
 | **E03** | S13 → S02/S14 | Успешная активация: installation, version, roles, owned paths | Карточки/вклады регистрируются по факту; ошибка обновления сохраняет пригодную версию и личные данные. |
 | **E04** | S02/S06 → S03 | owner, игра/экземпляр, runtime/mode, return context; при multiplayer — session/seat | Проверка готовности перед запуском; выбранная игра и запущенная игра имеют независимую идентичность. |
 | **E05** | S03 ↔ S04/S15 | session/process, foreground/input ownership, Home/return/exit | Потеря процесса освобождает ввод. Home/Minimize не объявляют pause/save. |
@@ -131,7 +131,7 @@ flowchart LR
 | **E18** | S06 ↔ S05/S07 | Зритель/игрок, разрешения на media/input, текущий поток/место | Spectator через Fluxer и interactive Remote Play через P2P различны; смена роли требует нового допуска. |
 | **E19** | S06/S07/S13 ↔ S08/S03 | Guest-content lease, content identity, временное размещение и допустимый сеанс | Временный контент не регистрируется как постоянная собственная игра; конец lease/сбой имеет отдельную очистку и сохраняет личные saves по принятой политике. |
 
-| **E20** | Автор/издатель → S12 → S13 | Принятый project ID, immutable release assets, подпись и revision; withdrawn | Первый проект курируется; следующая версия через существующий publisher. Отзыв каталога не удаляет установленный пакет; F09. |
+| **E20** | Автор/издатель → S12 → S13 | Принятый project ID, immutable release assets по (id, version, architecture), подпись и revision; withdrawn | Первый проект курируется; следующая версия/архитектура через существующий publisher. Отзыв каталога не удаляет установленный пакет; F09. |
 | **E21** | S12 ↔ S05; S15 → S12 | Provider-owned review ID, project/content identity, stars/text и preview device/arch/version | Edit/delete/report через Fluxer; Top Rated производен от того же источника, без отдельного account/голоса; F10. |
 | **E22** | Программа ↔ S14 ↔ S06/S07/S15 | Versioned discovery/capabilities, service/contribution IDs, owner/session/generation | Local v1 bridge/context/widget реализован; Lobby/reliable records подключены для 2 app peers; полные Network/Files/Media facades ещё target. Host снимает bindings, app владеет данными/симуляцией. F11; не универсальный ABI. |
 | **E23** | S15/перезапуск/provider loss → затронутые владельцы | Причина прерывания, сохранённая operation identity и фактический исход каждого сервиса | Каждый владелец восстанавливает своё состояние; общий экран успеха не доказывает процесс/save/channel/call/job. F12. |

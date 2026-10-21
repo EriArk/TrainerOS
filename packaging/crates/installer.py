@@ -63,8 +63,8 @@ def validate_records(records):
             raise ValueError('Unsupported package fields')
         if not ID.fullmatch(r['id']) or not ID.fullmatch(r['version']):
             raise ValueError('Invalid package identity')
-        key = (r['id'], r['version'])
-        if key in seen: raise ValueError('Duplicate package version')
+        key = (r['id'], r['version'], r['architecture'])
+        if key in seen: raise ValueError('Duplicate package version and architecture')
         seen.add(key)
         if r['kind'] not in ('game', 'app') or r['architecture'] not in ('aarch64','x86_64'):
             raise ValueError('Unsupported package type')
@@ -83,6 +83,13 @@ def validate_records(records):
         safe_path(r['entry'])
         safe_path(r.get('icon','icon.svg'))
         if not 0 < r['unpackedSize'] < 4*1024**3: raise ValueError('Invalid unpacked size')
+
+
+def select_release(records, project, version, architecture):
+    record = next((r for r in records if r['id'] == project and r['version'] == version
+                   and r['architecture'] == architecture and not r.get('withdrawn', False)), None)
+    if record is None: raise ValueError('No package for this version and device architecture')
+    return record
 
 
 class Store:
@@ -233,8 +240,7 @@ def main():
                     if cancelled: raise InterruptedError('Cancelled')
         elif operation == 'install':
             records = read_registry(Path(registry))
-            record = next(r for r in records if r['id']==project and r['version']==version)
-            if os.uname().machine != record['architecture']: raise ValueError('Package architecture cannot run here')
+            record = select_release(records, project, version, os.uname().machine)
             emit('Reserving space')
             if shutil.disk_usage(store.root).free < record['size']+record['unpackedSize']+16*1024**2:
                 raise ValueError('Not enough storage space')

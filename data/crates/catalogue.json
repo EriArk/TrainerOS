@@ -86,7 +86,7 @@
       "creator": "AbyssTail",
       "license": "GPL-3.0-or-later",
       "summary": "A session timer and an optional Start widget.",
-      "description": "Track manual or game-session time and choose gentle visual break reminders. Open the app, then add its widget in Start. Requires the current TrainerOS Platform SDK; Linux x86_64 experimental build. ARM builds and handheld acceptance are pending.",
+      "description": "Track manual or game-session time and choose gentle visual break reminders. Open the app, then add its widget in Start. Requires a compatible TrainerOS Platform SDK. Experimental Linux builds; handheld controls and performance acceptance are pending.",
       "hero": "qrc:/crates/projects/session-timer.png",
       "screenshots": [
         "qrc:/crates/projects/session-timer.png"
@@ -100,7 +100,7 @@
       "creator": "AbyssTail",
       "license": "GPL-3.0-or-later",
       "summary": "Two tanks, destructible hills, one more duel.",
-      "description": "Aim, choose your power and pass the controls for a local two-player duel. Optional friend play uses TrainerOS Lobby and Platform SDK. Linux x86_64 experimental build; ARM, physical controls and live internet play are not yet verified.",
+      "description": "Aim, choose your power and pass the controls for a local two-player duel. Optional friend play uses TrainerOS Lobby and Platform SDK. Experimental Linux builds; handheld controls, performance and live internet play are not yet verified.",
       "hero": "qrc:/crates/projects/pocket-artillery.png",
       "screenshots": [
         "qrc:/crates/projects/pocket-artillery.png"
