@@ -1,6 +1,24 @@
 # Adventure Reviews — #113
 
-**Superseding target #113, 8 October 2026:** writing opens after **7200 seconds
+**Current Crates rule, 15 October 2026; reconciled 21 October:** for every Crates
+project (game, app or module), writing/rating opens after **one actual installation
+at any time**, including after uninstall. There is **no playtime or completion gate
+for Crates games**. Use one effective Fluxer-account + stable-project-ID review
+across versions and Games/Crates surfaces. Reviews/votes and install-history
+eligibility survive uninstall, reinstall, upgrade and downgrade. Reading is open
+before installation. The same Fluxer Reviews service owns author identity and
+mutations; do not add a second review account or vote database.
+
+V2 requires 1–5 stars and optional short text; old V1 text stays visible without
+invented stars. Preview the actually tested version, device model and architecture
+before publication, with no serials, unique hardware IDs or private logs. These
+fields are context, not per-version scores. Top Rated is a combined project list
+opened by a button, ranked with sample-size confidence. Edit/delete must update
+that derived view. See [current #113](https://github.com/EriArk/TrainerOS/issues/113),
+[#151](https://github.com/EriArk/TrainerOS/issues/151) and
+[the complete ownership/return flow F10](STRUCTURE_MAP_RU.md#f10).
+
+**Retained non-Crates target #113, 8 October 2026:** writing opens after **7200 seconds
 of eligible actual gameplay recorded in completed sessions OR verified exact-game
 completion with meaningful local play**. Imported completed saves alone do not
 qualify. Exclude preparing, failed launch, known background/suspend and exit-preview
@@ -8,14 +26,17 @@ time; do not claim universal emulator pause detection. Require 1-5 stars, allow
 optional text up to 800 characters, one effective provider-account/game review,
 edit/delete/spoiler/report and one gentle eligibility prompt outside active play.
 Use existing FluxerReviews + PlayHistory. V2 reads legacy V1 text reviews without
-inventing stars; stable content identity survives rename/move. OddCrate #151 uses
-the same reviews, curated compatible-version mapping and sample-aware ranking.
+inventing stars; stable content identity survives rename/move. Explicit curated
+project/content mapping must prevent a second vote through Crates without merging
+unrelated hacks/remakes by title. Crates eligibility follows the newer rule above.
 See [full target](https://github.com/EriArk/TrainerOS/blob/c6aaac25ba4f55262f3f6418e8d29cac7cdc9aec/docs/PRODUCT_VISION_RU.md#vision-reviews).
 
 **Implementation boundary:** the Emerald-only `champion-v1` policy and V1 format
 described below are the existing bounded implementation, not the revised universal
-target. REVIEW-05 retains eligibility/rating/migration work; no code changed in
-this reconciliation. The old import-only allowance must change during that work.
+targets. Eligibility/rating/migration and Crates install-history proof remain
+unfinished; no code changed in this reconciliation. The old import-only allowance
+must change during non-Crates eligibility work. The historical text below is
+evidence of the bounded V1 implementation, not permission to reuse its gate for Crates.
 
 ## Historical implemented baseline
 
