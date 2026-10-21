@@ -29,6 +29,40 @@ void write(const QString& path, const QByteArray& value) {
 class DeviceTests : public QObject {
     Q_OBJECT
 private slots:
+    void wifiFromStartKeepsTheDashboardAndPasswordScope() {
+        MockLibraryRepository library; MockTrainerRepository profiles; MockAdventureAdapter adapter;
+        DevelopmentPlatformService platform; MockPokedexRepository dex; MockHallOfFameRepository archive; MockAchievementProvider achievements;
+        NetworkProbe service;
+        ShellController shell(library,profiles,adapter,platform,builtinExperiences(dex,dex),archive,achievements);
+        shell.network()->configure(&service);
+        const QJsonObject secure{{"id","ap:secure"},{"title","Test network"},{"security","wpa-psk"},{"saved",false}};
+        shell.dispatch(Action::SystemMenu);shell.controls()->activate("wifi");
+        QVERIFY(shell.menuOpen());QVERIFY(shell.controlsNetworkOpen());
+        QCOMPARE(service.requestValue["op"].toString(),"list");QCOMPARE(service.requestValue["kind"].toString(),"wifi");
+        service.list({secure});shell.dispatch(Action::Confirm);QVERIFY(shell.keyboard()->isOpen());
+        shell.dispatch(Action::Back);QVERIFY(!shell.keyboard()->isOpen());QVERIFY(shell.controlsNetworkOpen());QCOMPARE(service.requests,1);
+        shell.dispatch(Action::Confirm);shell.keyboard()->insertText("test password");
+        for(int k=0;k<shell.keyboard()->keys().size();++k)if(shell.keyboard()->keys()[k].toMap()["id"]=="apply"){shell.keyboard()->activate(k);break;}
+        QCOMPARE(service.requestValue["id"].toString(),"ap:secure");QCOMPARE(service.requestValue["op"].toString(),"connect");
+        auto connected=secure;connected["connected"]=true;connected["saved"]=true;service.list({connected});
+        QVERIFY(!shell.keyboard()->isOpen());shell.dispatch(Action::Back);
+        QVERIFY(!shell.controlsNetworkOpen());QVERIFY(shell.menuOpen());QCOMPARE(shell.controls()->selected(),"wifi");
+        shell.closeControls();shell.setGameControlsOpen(true);shell.controls()->activate("wifi");service.list({secure});
+        shell.dispatchGameControls(Action::Confirm);QVERIFY(shell.keyboard()->isOpen());
+        shell.backControls();QVERIFY(!shell.keyboard()->isOpen());QVERIFY(shell.gameControlsOpen());
+        shell.dispatchGameControls(Action::Back);QVERIFY(!shell.controlsNetworkOpen());QVERIFY(shell.gameControlsOpen());
+        shell.controls()->activate("wifi");service.list({secure});shell.dispatchGameControls(Action::Confirm);
+        QSignalSpy closed(&shell,&ShellController::gameControlsClosed);
+        shell.dispatchGameControls(Action::Home);QVERIFY(!shell.keyboard()->isOpen());QVERIFY(!shell.controlsNetworkOpen());QVERIFY(!shell.gameControlsOpen());
+        QCOMPARE(closed.size(),1);QVERIFY(closed.first().first().toBool());
+    }
+    void wifiPopupWaitsForBluetoothCancellationAndDoesNotSwitchBack() {
+        NetworkProbe service;NetworkController network;network.configure(&service);
+        network.setActive(true);service.list({});network.selectFace(true);QVERIFY(network.busy());
+        network.openWifi();QCOMPARE(service.cancellations,1);emit service.finished("Cancelled");
+        QVERIFY(!network.bluetooth());QCOMPARE(service.requestValue["kind"].toString(),"wifi");
+        service.list({});network.setActive(false);
+    }
     void networkPasswordsCancelAndStableSelection() {
         NetworkProbe service; NetworkController network;network.configure(&service);
         QSignalSpy text(&network,&NetworkController::textRequested);
@@ -211,15 +245,16 @@ private slots:
         shell.device()->configure(&service, true);
         QSignalSpy requested(&shell, &ShellController::modeRequested);
         shell.dispatch(Action::SystemMenu); QTRY_VERIFY(!service.busy());
-        shell.activate(7); QTRY_VERIFY(!service.busy()); QVERIFY(service.snapshot().muted);
+        shell.controls()->activate("volume");
+        shell.dispatch(Action::Secondary); QTRY_VERIFY(!service.busy()); QVERIFY(service.snapshot().muted);
         shell.dispatch(Action::Right); QTRY_VERIFY(!service.busy()); QCOMPARE(service.snapshot().volume, 40);
-        shell.activate(6); QVERIFY(shell.powerMenu()); QCOMPARE(shell.focusIndex(), 2);
-        shell.dispatch(Action::Confirm); QVERIFY(!shell.powerMenu()); QCOMPARE(shell.focusIndex(), 6);
-        shell.dispatch(Action::Confirm); shell.activate(0); QVERIFY(shell.modeConfirmation()); QVERIFY(requested.isEmpty());
+        shell.dispatch(Action::Back); QVERIFY(shell.menuOpen());
+        shell.controls()->activate("power"); QVERIFY(shell.powerMenu()); QVERIFY(requested.isEmpty());
+        shell.dispatch(Action::Back); QVERIFY(!shell.powerMenu()); QVERIFY(shell.menuOpen());
+        shell.controls()->activate("power"); shell.activate(2); QVERIFY(shell.modeConfirmation()); QVERIFY(requested.isEmpty());
         shell.dispatch(Action::Back); QVERIFY(shell.powerMenu()); QVERIFY(requested.isEmpty());
         QCOMPARE(shell.device()->focusIndex(), 0); // Overlay must not move the underlying service focus.
-        shell.activate(1); shell.dispatch(Action::NextPage); QVERIFY(!shell.modeConfirmation()); QVERIFY(!shell.powerMenu());
-        shell.dispatch(Action::SystemMenu); shell.activate(6); shell.activate(1); shell.dispatch(Action::Confirm);
+        shell.activate(2); shell.dispatch(Action::Confirm);
         QCOMPARE(requested.size(), 1); QCOMPARE(requested.first().first().toString(), "reboot");
         shell.dispatch(Action::Back); shell.dispatch(Action::Back); QVERIFY(!shell.menuOpen());
     }

@@ -101,6 +101,7 @@ class ShellController final : public QObject {
     Q_PROPERTY(QString currentAdventureId READ currentAdventureId NOTIFY changed)
     Q_PROPERTY(trainer::ControlsDashboard* controls READ controls CONSTANT)
     Q_PROPERTY(bool gameControlsOpen READ gameControlsOpen NOTIFY changed)
+    Q_PROPERTY(bool controlsNetworkOpen READ controlsNetworkOpen NOTIFY changed)
     Q_PROPERTY(bool menuOpen READ menuOpen NOTIFY changed)
     Q_PROPERTY(bool homeMenuOpen READ homeMenuOpen NOTIFY changed)
     Q_PROPERTY(int homeMenuFocus READ homeMenuFocus NOTIFY changed)
@@ -197,6 +198,9 @@ public:
     SettingsController* settings() { return &settings_; }
     ControlsDashboard* controls(){return &controls_;}
     bool gameControlsOpen() const{return gameControlsOpen_;}
+    bool controlsNetworkOpen() const{return controlsNetworkOpen_;}
+    Q_INVOKABLE void closeControlsNetwork();
+    Q_INVOKABLE void backControls(){dispatchControls(Action::Back);}
     void setGameControlsOpen(bool value);
     void dispatchGameControls(Action action);
     Q_INVOKABLE void systemAction(const QString& id);
@@ -375,6 +379,8 @@ private:
     SettingsController settings_;
     ControlsDashboard controls_;
     bool gameControlsOpen_=false;
+    bool controlsNetworkOpen_=false;
+    void dispatchControls(Action action);
     DeviceController device_;
     NetworkController network_;
     DiagnosticsController diagnostics_;

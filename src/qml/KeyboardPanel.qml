@@ -19,8 +19,10 @@ Item {
     MouseArea { anchors.fill: parent }
     Item {
         id: tray
-        width: parent.width; height: 326
+        width: Math.max(960,parent.width); height: 326
         anchors.bottom: parent.bottom
+        scale: Math.min(1,parent.width/960)
+        transformOrigin: Item.BottomLeft
         // The tray remains joined to the lower frame throughout its short motion.
         property real reveal: root.visible ? 1 : 0
         transform: Translate { y: (1 - tray.reveal) * 38 }

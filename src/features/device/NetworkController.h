@@ -19,6 +19,7 @@ public:
     explicit NetworkController(QObject* parent=nullptr);
     void configure(NetworkService* service);
     void setActive(bool active);
+    void openWifi();
     bool bluetooth() const{return bluetooth_;}
     bool busy() const{return busy_;}
     int focusIndex() const{return focus_;}
@@ -34,6 +35,7 @@ public:
     void leave();
     Q_INVOKABLE void selectFace(bool bluetooth);
     Q_INVOKABLE void activate(int index);
+    Q_INVOKABLE void search(){dispatch(Action::ToggleContinue);}
     Q_INVOKABLE void toggleRadio(){if(!busy_&&prompt_.isEmpty()&&textMode_.isEmpty())emit radioRequested(bluetooth_?3:2);}
 signals:
     void changed();
@@ -51,7 +53,7 @@ private:
     QVariantList rows_;
     QJsonObject pending_;
     QString status_,prompt_,textMode_,confirmation_;
-    bool bluetooth_=false,busy_=false,active_=false;
+    bool bluetooth_=false,busy_=false,active_=false,wifiPending_=false;
     int focus_=0;
 };
 }

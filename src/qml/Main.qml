@@ -535,7 +535,7 @@ Window {
         }
         KeyboardPanel {
             anchors { left: screen.left; right: screen.right; top: screen.top; bottom: footer.top }
-            z: shell.social.lobbyCreateOpen || shell.social.lobbyPickerOpen ? 3.9 : 3; shell: shellController
+            z: shell.controlsNetworkOpen ? 4.5 : shell.social.lobbyCreateOpen || shell.social.lobbyPickerOpen ? 3.9 : 3; takesFocus: shell.keyboard.open && (shell.controlsNetworkOpen || !shell.menuOpen) && !shell.notice.length; shell: shellController
         }
         SystemPanel {
             anchors { left: screen.left; right: parent.right; top: screen.top; bottom: footer.top }

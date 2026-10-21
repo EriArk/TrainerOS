@@ -106,7 +106,7 @@ Window {
             presentation: window.presentation
             shell: shellController
         }
-        ControlsPanel { anchors.centerIn: parent; width: parent.width*.94; height: parent.height*.92; shell: shellController; visible: window.presentation.menuOpen && shellController.gameControlsOpen; enabled: window.presentation.ready }
+        ControlsPanel { anchors.centerIn: parent; width: Math.min(implicitWidth,parent.width-32); height: Math.min(implicitHeight,parent.height-24); shell: shellController; visible: window.presentation.menuOpen && shellController.gameControlsOpen; enabled: window.presentation.ready }
         DownloadsPanel { anchors.fill: parent; flow: shellController.downloads; visible: shellController.gameControlsOpen && shellController.downloads.open; enabled: window.presentation.ready }
         IncomingCall { anchors.fill: parent; z: 100; social: shellController.social; ready: window.presentation.ready; visible: !!call.id && window.presentation.menuOpen && !sessionState.blocked }
         QuickLobbyChat {
@@ -116,7 +116,7 @@ Window {
             visible: playerOverlay.chatOpen && !shellController.keyboard.open
             controller: playerOverlay; social: shellController.social; presentation: window.presentation
         }
-        KeyboardPanel { anchors.fill: parent; shell: shellController; takesFocus: window.presentation.ready; onBackRequested: playerOverlay.back(); visible: playerOverlay.chatOpen && shellController.keyboard.open; enabled: window.presentation.ready }
+        KeyboardPanel { anchors.fill: parent; shell: shellController; takesFocus: window.presentation.ready; onBackRequested: { if(shellController.controlsNetworkOpen) shellController.backControls(); else playerOverlay.back() } visible: (playerOverlay.chatOpen || shellController.controlsNetworkOpen) && shellController.keyboard.open; enabled: window.presentation.ready }
         Row { anchors.horizontalCenter: parent.horizontalCenter; anchors.bottom: parent.bottom; anchors.bottomMargin: 14; spacing: 26; visible: window.presentation.menuOpen && !playerOverlay.chatOpen && !shellController.gameControlsOpen
             Hint { button: "↑↓"; label: "Choose"; tint: Theme.blue }
             Hint { button: "A"; label: "Select"; tint: Theme.yellow; visible: window.presentation.menuCanSelect }

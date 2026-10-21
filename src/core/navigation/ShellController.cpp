@@ -164,12 +164,12 @@ ShellController::ShellController(LibraryRepository& repo, TrainerRepository& pro
     connect(this, &ShellController::changed, this, [this]{ if(service_!="settings" || settings_.category()!=11)settings_.clock()->leave(); });
     connect(settings_.storage(), &LibraryStorageController::changed, &settings_, &SettingsController::changed);
     connect(settings_.storage(), &LibraryStorageController::changed, this, &ShellController::changed);
-    connect(this,&ShellController::changed,this,[this]{network_.setActive(onboardingConnections_ || (service_=="settings" && settings_.category()==10));});
-    connect(&settings_,&SettingsController::changed,this,[this]{network_.setActive(onboardingConnections_ || (service_=="settings" && settings_.category()==10));});
-    connect(&network_,&NetworkController::backRequested,this,[this]{settings_.selectCategory(10,false);});
+    connect(this,&ShellController::changed,this,[this]{network_.setActive(controlsNetworkOpen_ || onboardingConnections_ || (service_=="settings" && settings_.category()==10));});
+    connect(&settings_,&SettingsController::changed,this,[this]{network_.setActive(controlsNetworkOpen_ || onboardingConnections_ || (service_=="settings" && settings_.category()==10));});
+    connect(&network_,&NetworkController::backRequested,this,[this]{if(controlsNetworkOpen_)closeControlsNetwork();else settings_.selectCategory(10,false);});
     connect(&network_,&NetworkController::radioRequested,this,[this](int index){device_.adjustQuick(index,Action::Confirm);});
     connect(&network_,&NetworkController::textRequested,this,[this](const QString& title,int limit,bool secret){
-        textTarget_=TextTarget::Network;keyboard_.begin(title,{},limit,secret);
+        textTarget_=TextTarget::Network;keyboard_.begin(title,{},limit,secret,secret?"Connect":"Confirm");
     });
     connect(&network_,&NetworkController::closeKeyboardRequested,this,[this]{
         if(textTarget_==TextTarget::Network){textTarget_=TextTarget::None;keyboard_.cancel();}
@@ -1008,6 +1008,7 @@ QVariantList ShellController::continueRows(const QList<ContinueEntry>& entries, 
     return result;
 }
 void ShellController::closeControls() {
+    closeControlsNetwork();
     downloads_.close();controls_.leave();
     if(gameControlsOpen_){gameControlsOpen_=false;emit changed();emit gameControlsClosed(false);return;}
     menuOpen_=powerMenu_=false;
@@ -1017,17 +1018,35 @@ void ShellController::closeControls() {
 void ShellController::setGameControlsOpen(bool value){
     if(gameControlsOpen_==value)return;gameControlsOpen_=value;device_.setMonitoring(value || menuOpen_);
     if(value){controls_.setOwner(trainer_.profile()["id"].toString());controls_.begin();}
-    else controls_.leave();emit changed();
+    else {closeControlsNetwork();controls_.leave();}emit changed();
+}
+void ShellController::closeControlsNetwork(){
+    if(!controlsNetworkOpen_)return;
+    controlsNetworkOpen_=false;network_.setActive(false);emit changed();
+}
+void ShellController::dispatchControls(Action action){
+    if(action==Action::SystemMenu||action==Action::Home){closeControls();return;}
+    if(controlsNetworkOpen_){
+        if(keyboard_.isOpen()){
+            keyboard_.dispatch(action);
+            if(action==Action::Back){textTarget_=TextTarget::None;network_.cancelText();}
+        }else if(action!=Action::Left&&action!=Action::Right)network_.dispatch(action);
+        return;
+    }
+    controls_.dispatch(action);
 }
 void ShellController::dispatchGameControls(Action action){
     if(!gameControlsOpen_)return;
     if(action==Action::Home){downloads_.close();setGameControlsOpen(false);emit gameControlsClosed(true);return;}
     if(downloads_.isOpen()){downloads_.dispatch(action);return;}
-    if(action==Action::SystemMenu)closeControls();else controls_.dispatch(action);
+    dispatchControls(action);
 }
 void ShellController::systemAction(const QString& id){
     if(id=="volume"){device_.adjustQuick(0,Action::Confirm);return;}
-    if(id=="wifi"||id=="bluetooth"||id=="airplane"){
+    if(id=="wifi"){
+        controlsNetworkOpen_=true;network_.openWifi();emit changed();return;
+    }
+    if(id=="bluetooth"||id=="airplane"){
         device_.adjustQuick(id=="wifi"?2:id=="bluetooth"?3:4,Action::Confirm);return;
     }
     if(id=="clock"||id=="battery"||id=="storage")return;
@@ -1056,6 +1075,7 @@ void ShellController::openTrainers() {
 void ShellController::goToPage(int page) {
     PerformanceTrace::Scope perf("ShellController.goToPage");
     if(navigationLocked(true))return;
+    closeControlsNetwork();
     const bool enteringApps=page_!=AppsPage;
     // Closing transient controllers emits their local notifications. Publish
     // only the completed shell transition, not every intermediate close, so
@@ -1620,7 +1640,7 @@ void ShellController::dispatch(Action action) {
     if(launchPreparation_.busy() || libraryTools_.busy())return;
     if(navigationLocked(action==Action::PreviousPage || action==Action::NextPage) && (action==Action::Home || action==Action::PreviousPage || action==Action::NextPage || action==Action::SystemMenu || action==Action::PreviousFace || action==Action::NextFace))return;
     if(menuOpen_ && !powerMenu_ && notice_.isEmpty()) {
-        if(action==Action::SystemMenu)closeControls();else controls_.dispatch(action);return;
+        dispatchControls(action);return;
     }
     if (homeMenuOpen_) {
         if(notificationsOpen_) {

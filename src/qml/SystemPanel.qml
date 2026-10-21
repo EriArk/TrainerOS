@@ -10,7 +10,7 @@ Item {
         anchors.leftMargin: -Theme.screenBounds.x
         color: "#70102927"
     }
-    ControlsPanel { anchors.centerIn: parent; width: parent.width-24; height: parent.height-12; shell: root.shell; visible: root.shell.menuOpen && !root.shell.powerMenu && !root.shell.notice.length }
+    ControlsPanel { anchors.centerIn: parent; width: Math.min(implicitWidth,parent.width-32); height: Math.min(implicitHeight,parent.height-24); shell: root.shell; visible: root.shell.menuOpen && !root.shell.powerMenu && !root.shell.notice.length }
     Rectangle {
         id: powerPopup
         visible: root.shell.powerMenu && !root.shell.notice.length
