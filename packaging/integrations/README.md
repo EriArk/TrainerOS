@@ -1,5 +1,16 @@
 # Adventure exit transport
 
+## Wi-Fi latency default
+
+Run `python3 install-network-latency.py` as root with the adjacent
+`90-traineros-network-latency.conf`. It installs NetworkManager's default
+`wifi.powersave=2`, preserves explicit per-connection settings and records the
+previous owned file under `/var/lib/traineros/network-latency-before`.
+It reloads NM configuration without reconnecting and applies `iw` immediately
+only to active Wi-Fi profiles using `default`. It requires `nmcli` and `iw`.
+Rollback and measured scope: [NetPlay stability](../../docs/NETPLAY_STABILITY_2026_10_23.md).
+This is a separately invoked host installer, not a completed image integration.
+
 ## Fluxer voice support
 
 `install-voice.sh` installs `fluxer-voice.py` and its private LiveKit environment

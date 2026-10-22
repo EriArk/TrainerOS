@@ -144,7 +144,8 @@ and selects a private owned BIOS directory. Session-only core options are
 `pcsx_rearmed_bios=auto`, `pcsx_rearmed_memcard1=libretro`,
 `pcsx_rearmed_memcard2=none`, `pcsx_rearmed_multitap=disabled`, the earlier
 `pcsx_rearmed_multitap1/2=disabled` keys and
-`pcsx_rearmed_threaded_rendering=disabled`.
+`pcsx_rearmed_gpu_thread_rendering=disabled` (corrected on 23 October 2026;
+the earlier key `pcsx_rearmed_threaded_rendering` was ignored by the installed core).
 
 RetroArch uses `--sram-mode noload-nosave` and a private save/state directory.
 Even cores predating the newer card options cannot reach the ordinary card
