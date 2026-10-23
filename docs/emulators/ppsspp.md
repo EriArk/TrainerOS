@@ -1,5 +1,57 @@
 # PPSSPP maintenance
 
+## Five-game paired checks — 24 October 2026
+
+The owner requested actual multiplayer checks of all five newly copied games
+before moving to PS2. Both handhelds ran the installed `dec19c9c…` build below,
+with separate diagnostic configuration/SAVEDATA and the same generic Online
+settings: `socom.cc`, relay mode 1, port offset 10000, WLAN enabled, UPnP and
+local Ad Hoc server disabled, `ForceLagSync2=False`, focus/minimize pause disabled.
+No title-specific network workaround was added. These launches exercised native
+game menus and transport directly, not a fresh TrainerOS Lobby invitation cycle.
+
+| Game / internal disc ID | Observed paired result |
+| --- | --- |
+| Ridge Racer / `ULUS10001` | Host discovery, admission, car selection and Seaside Route 765 loading passed. Both cars moved and saw each other. After intentionally closing the guest, the host removed the peer and continued the race with one player. Full race and repeat admission were not completed. |
+| Virtua Tennis: World Tour / `ULUS10037` | Federer/Roddick Singles Exhibition loaded; serves, points and score were shared. Guest Pause affected both. End Game returned both to court positions; a second match on New York instead of Paris loaded and ran in the same emulator processes. |
+| Killzone: Liberation / `UCUS98646` | Combat Zone Deathmatch on Trenches loaded for both. Movement, firing and damage were visible across peers. Guest Quit Game returned to the native menu; host displayed the departure and continued. |
+| Dragon Ball Z: Shin Budokai / `ULUS10081` | Native challenge/accept, character selection and Mountains fight loaded. Movement, attacks and health changes were visible on both. An initial challenge expired while capturing its screen; leaving/re-entering Network Battle and accepting promptly succeeded in the same processes. This is not Another Road. |
+| Sonic Rivals 2 / `ULUS10323` | Discovery and matching admission worked, but three normal-log attempts failed before the race. Two debug-log attempts loaded Blue Coast Zone Act 1; the first included movement and mutual player visibility, the second remained in the race for about eight minutes. **Startup reliability remains broken.** |
+
+### Sonic reproduction and next repair
+
+Flip: Multiplayer → Wireless Play → Create → Single Event → Sonic →
+Blue Coast Zone → Act 1 Race → No Wager. Odin: Join → host → Shadow.
+Normal `--loglevel=4` failed three times; `--loglevel=5` succeeded twice.
+Fast selection also failed at level 4, while delayed selection succeeded at
+level 5: selection delay alone does not explain the defect. Logging is an
+experimental variable, **not a production workaround**.
+
+In the first two failures, both peers reached matching `ESTABLISHED`; the guest
+then called `sceNetAdhocMatchingStop` at game PC `08843314`. The host received
+matching `BYE`, dispatched `DISCONNECT` and showed a network error before its
+own stop call. In successful runs the host stopped matching roughly 42–50 ms
+after the guest and both continued using the separate gameplay PDP socket.
+This localizes a timing-sensitive matching-to-gameplay transition; it does not
+yet prove whether the cause is callback delivery, gameplay packet scheduling,
+or relay ordering across sockets. The third failure showed host error while
+the guest was already loading; it must also be covered by the eventual fix.
+
+Next: instrument that transition with bounded event/packet timestamps, compare
+normal and diagnostic timing through the existing relay, then repair the shared
+PPSSPP path and verify failed-start retry plus the affected matching users.
+Do not suppress disconnect callbacks globally or change only Sonic's timing to
+hide the symptom. The source's existing `sendByePacket`/MatchingStop FIXME is
+an investigation pointer, not sufficient evidence for replacing BYE with DEATH.
+S03/S07 retain ownership; S06 deliberate launch and native manual PSP retry stay
+unchanged. No new emulator patch/build was delivered by this check pass.
+
+All test processes exited, both original SYSTEM/SAVEDATA file hashes matched
+their pre-test baselines, and both device volumes remained zero. Private logs
+and screenshots were retained outside Git; large logs were compressed and their
+decompressed SHA-256 verified. No game content or personal data is published.
+The successful short sessions do not certify every mode or long-session stability.
+
 ## Silent coordination loss — 24 October 2026
 
 The follow-up closes the missing Linux timeout on the coordination TCP socket,
@@ -58,8 +110,9 @@ Rebase by applying both coordination patches after the relay patches and rerunni
 the namespace cases before admitting the new executable hash.
 
 This completes the current relay/coordination repair increment. Wider PSP game
-compatibility and private admission remain in R037; the owner's next selected
-implementation is [PS2 native LAN/Online](../PS2_NATIVE_MULTIPLAYER.md).
+compatibility and private admission remain in R037. The initially selected next
+step, [PS2 native LAN/Online](../PS2_NATIVE_MULTIPLAYER.md), was superseded by the
+owner's five-game check request above; the reproduced Sonic failure remains current.
 
 ## Coordination stream recovery — 24 October 2026
 

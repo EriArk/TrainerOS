@@ -1,12 +1,21 @@
 # Standalone PSP multiplayer research
 
+**24 October five-game follow-up:** all five additional games were exercised on
+Flip/Odin through the public relay. Ridge Racer, Virtua Tennis, Killzone and
+Shin Budokai reached paired gameplay; Tennis also started a second match without
+restarting PPSSPP. Sonic Rivals 2 failed three normal-log starts but ran twice
+with debug logging. Its timing-sensitive matching-to-gameplay failure remains
+unfixed; PS2 is not the immediate continuation.
+[Exact scenarios and next repair](emulators/ppsspp.md#five-game-paired-checks--24-october-2026).
+
 **24 October silent-loss follow-up:** the Linux coordination connection now has
 a 15-second limit for unacknowledged TCP data, matching the relay sockets. Real
 packet-drop checks detected sustained loss in 17.196 seconds; brief loss and a
 quiet connection with TCP ACKs stayed connected. Build `dec19c9c…` and its shell
 admission are installed on both handhelds, superseding `a8489753…` below.
 [Mechanism, measurements and delivery](emulators/ppsspp.md#silent-coordination-loss--24-october-2026).
-Native game retry remains manual; the selected next implementation is PS2 LAN/Online.
+Native game retry remains manual; the later five-game follow-up above supersedes
+the proposed immediate transition to PS2 LAN/Online.
 
 **24 October coordination follow-up:** PPSSPP now recognizes coordination-server
 EOF/fatal receive errors and discards partial packets before a fresh connection.
