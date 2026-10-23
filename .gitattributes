@@ -1,4 +1,6 @@
 *.sh text eol=lf
+# Preserve the owner's original PS2 research CSV attachments byte-for-byte.
+docs/data/ps2/*.csv -text whitespace=cr-at-eol
 *.ttf binary
 # Unified diff context prefixes can precede upstream tabs and blank lines.
 *.patch text eol=lf whitespace=-blank-at-eol,-space-before-tab
