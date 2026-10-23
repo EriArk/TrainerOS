@@ -1,5 +1,13 @@
 # Standalone PSP multiplayer research
 
+**24 October silent-loss follow-up:** the Linux coordination connection now has
+a 15-second limit for unacknowledged TCP data, matching the relay sockets. Real
+packet-drop checks detected sustained loss in 17.196 seconds; brief loss and a
+quiet connection with TCP ACKs stayed connected. Build `dec19c9c…` and its shell
+admission are installed on both handhelds, superseding `a8489753…` below.
+[Mechanism, measurements and delivery](emulators/ppsspp.md#silent-coordination-loss--24-october-2026).
+Native game retry remains manual; the selected next implementation is PS2 LAN/Online.
+
 **24 October coordination follow-up:** PPSSPP now recognizes coordination-server
 EOF/fatal receive errors and discards partial packets before a fresh connection.
 Build `a8489753…` and its shell admission are installed on both handhelds. Actual

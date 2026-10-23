@@ -1,5 +1,66 @@
 # PPSSPP maintenance
 
+## Silent coordination loss — 24 October 2026
+
+The follow-up closes the missing Linux timeout on the coordination TCP socket,
+using the same 15-second `TCP_USER_TIMEOUT` already applied to relay sockets.
+PPSSPP sends its existing ping every two seconds. Previously the coordination
+socket only enabled keepalive (180-second idle, 60-second interval, 20 probes)
+and left outstanding data subject to system TCP retry policy.
+
+[The patch](../../tools/ppsspp-relay/coordination-timeout.patch) changes only that
+socket's maximum unacknowledged/zero-window wait. It does not set a receive-idle
+deadline: the server consumes `OPCODE_PING` without an application reply, so
+ordinary quiet lobbies must remain connected. Linux returns `ETIMEDOUT`, which
+the preceding coordination-stream repair handles through existing cleanup.
+The deadline starts with outstanding data; detection also includes the ping
+interval and kernel scheduling. [Linux TCP contract](https://man7.org/linux/man-pages/man7/tcp.7.html).
+Failure to set the option is logged. Other platforms retain their existing behavior;
+this delivery is Linux ARM64, not a new Windows/Android package.
+
+[Actual-source fixture](../../tools/ppsspp-relay/coordination-timeout-test.py)
+compiles the socket setup, keepalive, ping, receive and cleanup blocks from the
+built PPSSPP source. It uses real TCP and packet dropping in disposable Linux
+network namespaces, refuses the host network namespace, and contacts no public
+service. UI/logging/peer-timeout notification are stubbed. Results on Odin:
+
+- Prior source: after 18.118 seconds of packet loss, still marked connected.
+- Patched source: timeout and cleanup after 17.196 seconds, exactly one peer
+  timeout notification, invalid socket and empty receive buffer.
+- Three-second loss followed by 18 seconds of recovered connectivity: no disconnect.
+- Eighteen seconds without application replies, with normal TCP ACKs: no disconnect.
+- Fresh connections after each patched case received clean data.
+
+`build.sh` compiles the fixture. Its header documents explicit isolated-namespace
+execution (`persistent`, `brief`, `quiet`); it does not alter host firewall rules.
+The earlier receive/stream/retry and 15000-ms production I/O checks passed again
+because the emulator recipe changed. The ARM64 shell build and `standalone` suite
+passed (6.29 seconds); unchanged broader lifecycle suites retain the previous
+delivery's evidence. Adapter export/knowledge checks passed.
+
+Installed PPSSPP SHA-256 on both Flip/Odin:
+`dec19c9c42380155cde9c492f1d998ea6d13701b592d331d4f0073018cee73e6`.
+Admission adds `-coordination-timeout-v4` and retains earlier identities for
+rollback. S03/S07 ownership, S06 explicit launch and native game retry remain
+unchanged. There is no automatic group rejoin, emulator restart or launch from chat.
+
+Flatpak commit: `77de45a6cdf4f29f447a2f74814ce2cc48c8d8d62e826d2d5861c635ecb36bbc`;
+bundle SHA-256: `ac84c7c970dc7bd277f904417735011ae1e5837f504d7bf820106879d865021d`.
+Installed/live shell SHA-256:
+`ee363389b6056d0a730606f3d2292494fcbd7cbbc3fd6752ea1bdc6e5be8a510`.
+Both live PPSSPP processes matched the new hash and rendered Tekken 6 startup
+using copied configuration/SAVEDATA, then closed normally. Original personal
+file hashes were unchanged; shell QML errors were zero and device volume stayed
+zero. This adds installed startup/exit evidence to the isolated socket checks,
+not a new paired-match or native game rejoin result. Stable and earlier bundles
+remain available for rollback; no system-wide TCP/firewall settings changed.
+Rebase by applying both coordination patches after the relay patches and rerunning
+the namespace cases before admitting the new executable hash.
+
+This completes the current relay/coordination repair increment. Wider PSP game
+compatibility and private admission remain in R037; the owner's next selected
+implementation is [PS2 native LAN/Online](../PS2_NATIVE_MULTIPLAYER.md).
+
 ## Coordination stream recovery — 24 October 2026
 
 The follow-up addresses the separate coordination TCP connection in PPSSPP

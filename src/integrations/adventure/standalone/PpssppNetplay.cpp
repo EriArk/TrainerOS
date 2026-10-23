@@ -83,11 +83,13 @@ QJsonObject netplayIdentity(const AdventureRegistration& r,const StandaloneInsta
     const auto runtime=retroarch::fileDigest(i.runtimeFile,256*1024*1024,cancel);
     // Admit the reviewed relay repair and retain the original build for rollback.
     // Wire/settings identity remains independent of the device's executable hash.
-    const bool coordinationRecovery=runtime=="a8489753f9691ab00bd5e7fd1e7c392bd10d3119635e44c598896d76a8ebc5f2";
+    const bool coordinationTimeout=runtime=="dec19c9c42380155cde9c492f1d998ea6d13701b592d331d4f0073018cee73e6";
+    const bool coordinationRecovery=coordinationTimeout||runtime=="a8489753f9691ab00bd5e7fd1e7c392bd10d3119635e44c598896d76a8ebc5f2";
     const bool boundedRecovery=coordinationRecovery||runtime=="b5acbf94ee69f270b55759cc84e22d4ee54798e9e0eb6d438d2ae87cbe5c9906";
     const bool repairedRelay=boundedRecovery||runtime=="6db5a5bc7263b930b29fa6a65348c8a292acdb38306b74bdee071a22c5339834";
     if(!repairedRelay&&runtime!="c99cec693067f8c94ae0d8b5e7299392ed5c0cfae3f8231176ed25ea6c155dfc")return {};
-    const QString relaySettings=coordinationRecovery?QStringLiteral("-coordination-recovery-v3"):
+    const QString relaySettings=coordinationTimeout?QStringLiteral("-coordination-timeout-v4"):
+        coordinationRecovery?QStringLiteral("-coordination-recovery-v3"):
         boundedRecovery?QStringLiteral("-relay-recovery-v2"):
         repairedRelay?QStringLiteral("-relay-recv-v1"):QString();
     QString content;
