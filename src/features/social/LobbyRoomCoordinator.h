@@ -55,6 +55,8 @@ public:
     bool hosting() const;
     bool acknowledgeLaunch(const QString& ticket,bool success);
     bool finishGame(const QString& ticket);
+    bool enableRejoin(const QString& ticket) {return hosting()&&session_.enableRejoin(ticket);}
+    bool canJoinLive() const;
     // Private runtime signaling only; never included in snapshots/checkpoints.
     // Provider authenticates peer; the runtime additionally binds connection ID.
     bool sendRuntimeSignal(const QString& peer,const QString& ticket,const QString& connection,const QJsonObject& payload);

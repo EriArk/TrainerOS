@@ -55,6 +55,7 @@ public:
     void launch(QString operation,QString ticket,QJsonObject context,Completion done) override;
     void cancel(QString operation) override;
     bool supportsLive(const QJsonObject& game) const override;
+    bool supportsRejoin(const QJsonObject& game) const override {return supportsLive(game);}
     bool admitLive(QString ticket,QString peer,QString operation,int seat) override;
     void releaseLive(QString peer,QString operation) override;
     QVariantMap party() const {return party_.state().toVariantMap();}
@@ -129,7 +130,16 @@ private:
     QMap<int,QString> linkedPeers_;
     QMap<int,retroarch::LinkedSavePreparation*> linkedTransfers_;
     bool linked() const { return requiresLinkedSavePreparation(descriptor_); }
-    void fail(QString);
+    void fail(QString,bool connectionLost=false);
+    void recoverConnection();
+    void stopRecovery();
+    QTimer rejoinTimer_{this};
+    QString rejoinRoom_,rejoinTicket_,rejoinOperation_;
+    QJsonObject rejoinGame_;
+    quint64 rejoinAccount_=0;
+    qint64 rejoinUntil_=0,rejoinNext_=0,rejoinAttemptUntil_=0,rejoinProcess_=0;
+    int rejoinAttempts_=0;
+    bool rejoinClosing_=false;
     void pollRelay();
     void output(const QByteArray&);
     LibraryRepository& library_;RetroArchAdapter& adapter_;SocialController& social_;

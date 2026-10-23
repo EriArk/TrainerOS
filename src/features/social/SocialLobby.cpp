@@ -201,7 +201,7 @@ QVariantList SocialController::lobbyActions() const {
         if(!s["vote"].toObject().isEmpty())add("vote","Vote for a game",gathering&&!mine["spectator"].toBool());
         if(!game["id"].toString().isEmpty()) {
             if(mine["spectator"].toBool()&&!viewedLobby().hosting()) {
-                if(&viewedLobby()==lobby_.activeRoom()&&lobbyRuntime_.liveAvailable())add("join-live","Join game now");
+                if(&viewedLobby()==lobby_.activeRoom()&&lobbyRuntime_.liveAvailable())add("join-live",mine["returnSeat"].toInt()>0?"Rejoin game":"Join game now");
                 else add("request-play",lobbyRuntime_.busy()?"Preparing…":"I want to play",!lobbyRuntime_.busy());
             }
             add("seat","Controller: "+(mine["seat"].toInt()?"P"+QString::number(mine["seat"].toInt()):QString("Choose")),gathering);
@@ -427,7 +427,9 @@ void SocialController::lobbyAction(QString action) {
             menuTitle_="Lobby options";add("Access: "+viewedLobby().state()["access"].toString()+" · change","access");
             if(relayEditable)add("Relay: "+netplayRelay::label(room["relay"].toString("auto")),"relay");
             if(&viewedLobby()==lobby_.activeRoom()&&lobbyRuntime_.liveSupported()&&viewedLobby().state()["phase"]!="launching")
-                add(viewedLobby().state()["liveJoining"].toBool()?"Joining during play: On · disable":"Allow joining during play","live-joining");
+                add(viewedLobby().state()["rejoin"].toBool()
+                    ?(viewedLobby().state()["liveJoining"].toBool()?"New players during play: On · disable":"Allow new players during play")
+                    :(viewedLobby().state()["liveJoining"].toBool()?"Joining during play: On · disable":"Allow joining during play"),"live-joining");
             if(viewedLobby().state()["members"].toArray().size()>1)add("Remove a member","remove");
             add("Category: "+lobbyDirectory::topicName(lobbyPublicationTopic_),"publish-topic");
             if(!viewedLobby().requests().isEmpty())add("Join requests","requests");

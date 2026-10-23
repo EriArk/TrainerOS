@@ -254,9 +254,19 @@ bool LobbyRoomCoordinator::finishGame(const QString& ticket) {
     send(host_,"game-finished",{{"ticket",ticket}});return true;
 }
 bool LobbyRoomCoordinator::setLiveJoining(bool enabled) {return hosting()&&session_.setLiveJoining(self_,enabled);}
+bool LobbyRoomCoordinator::canJoinLive() const {
+    if(hosting()||!runtimeAllowed_||!online_||restoring_||!connection_.isEmpty()||remote_["phase"]!="playing")return false;
+    int reserved=0;QJsonObject mine;
+    for(const auto& v:remote_["members"].toArray()) {
+        const auto m=v.toObject();if(m["seat"].toInt()||m["returnSeat"].toInt())++reserved;
+        if(m["id"]==self_)mine=m;
+    }
+    if(!mine["connected"].toBool()||!mine["spectator"].toBool())return false;
+    if(mine["returnSeat"].toInt()>0)return remote_["rejoin"].toBool()&&mine["returnUntil"].toInteger()>now();
+    return remote_["liveJoining"].toBool()&&reserved<remote_["game"].toObject()["seats"].toInt();
+}
 bool LobbyRoomCoordinator::requestLive(QString operation) {
-    if(!runtimeAllowed_)return false;
-    if(hosting()||!online_||restoring_||!connection_.isEmpty()||remote_.value("phase")!="playing"||!remote_.value("liveJoining").toBool()||QUuid(operation).isNull())return false;
+    if(!canJoinLive()||QUuid(operation).isNull())return false;
     liveOperation_=operation;launchTicket_.clear();finishedTicket_.clear();
     send(host_,"live-request",{{"ticket",remote_.value("ticket")},{"operation",operation}});return true;
 }
@@ -297,6 +307,9 @@ bool LobbyRoomCoordinator::validState(const QJsonObject& s,const QString& host) 
         const auto m=value.toObject();const auto id=m["id"].toString();const auto seat=m["seat"].toInt(-1);
         if(!identifier(id)||identities.contains(id)||m["name"].toString().trimmed().isEmpty()||m["name"].toString().size()>100||seat<0||seat>capacity||(seat&&seats.contains(seat)))return false;
         identities.insert(id);if(seat)seats.insert(seat);
+        const auto returning=m["returnSeat"].toInt();
+        if(returning<0||returning>capacity||(returning&&(!s["rejoin"].toBool()||s["phase"]!="playing"||seat||!m["spectator"].toBool()||id==host||returning==1||seats.contains(returning)||m["returnUntil"].toInteger()<=0)))return false;
+        if(returning)seats.insert(returning);
     }
     const auto ballot=s["vote"].toObject();
     if(!ballot.isEmpty()) {
@@ -360,7 +373,11 @@ void LobbyRoomCoordinator::receive(QString peer,QString name,const QJsonObject& 
                 if(!previous.isEmpty()&&previous!=boot) {
                     retiredBoots_[peer+"/"+previous]=now()+180;
                     // A new shell cannot still own the previous game's runtime.
-                    session_.finishPlayer(peer,session_.state()["ticket"].toString());
+                    const auto s=session_.state();QString admission;
+                    for(const auto& m:s["members"].toArray())if(m.toObject()["id"]==peer)admission=m.toObject()["admission"].toString();
+                    const auto ticket=s["ticket"].toString();
+                    const bool released=admission.isEmpty()?session_.finishPlayer(peer,ticket):session_.releaseLive(peer,ticket,admission);
+                    if(released)emit liveReleased(peer,admission.isEmpty()?ticket:admission);
                     session_.connected(peer,false);session_.connected(peer,true);
                 }
                 pendingInvites_.remove(peer);seen_[peer]=now();save();send(peer,"state",session_.state(),probe);
@@ -389,6 +406,7 @@ void LobbyRoomCoordinator::receive(QString peer,QString name,const QJsonObject& 
         if(kind=="vote"&&p["generation"]==session_.state()["generation"]){session_.vote(peer,data["id"].toString(),data["choice"].toInt(-1));return;}
         if(kind=="ping") {session_.connected(peer,true);send(peer,"state",session_.state(),probe);return;}
         if(kind=="live-request"&&p["generation"]==session_.state()["generation"]&&data["ticket"]==session_.state()["ticket"]&&!QUuid(data["operation"].toString()).isNull()) {
+            session_.expireRejoins(now());
             const auto operation=data["operation"].toString();const int seat=session_.liveSeat(peer);
             for(const auto& m:session_.state()["members"].toArray())if(m.toObject()["id"]==peer&&m.toObject()["admission"]==operation) {
                 send(peer,"state",session_.state());return;
@@ -407,7 +425,7 @@ void LobbyRoomCoordinator::receive(QString peer,QString name,const QJsonObject& 
             // A seated player may end their part of the current game, not a
             // spectator or a delayed report from an earlier launch.
             for(const auto& m:session_.state()["members"].toArray())if(m.toObject()["id"]==peer&&m.toObject()["seat"].toInt()>0&&m.toObject()["admission"].toString().isEmpty())
-                session_.finishPlayer(peer,data["ticket"].toString());
+                if(session_.finishPlayer(peer,data["ticket"].toString()))emit liveReleased(peer,data["ticket"].toString());
             return;
         }
         const auto generation=quint64(p["generation"].toInteger());
@@ -485,6 +503,7 @@ void LobbyRoomCoordinator::tick() {
     if(!invitation_.isEmpty()&&invitation_["expires"].toInteger()<=now()) {invitation_={};emit changed();}
     if(!online_)return;
     if(hosting()) {
+        session_.expireRejoins(now());
         for(const auto& peer:pendingInvites_.keys()) {
             if(pendingInvites_.value(peer)["until"].toInteger()<=now())pendingInvites_.remove(peer);
             else sendInvitation(peer);

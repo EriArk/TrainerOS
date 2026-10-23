@@ -34,7 +34,7 @@ QVariantMap SocialController::lobbyPerson(QVariantMap member) const {
     member["host"]=id==viewedLobby().state()["owner"].toString();member["key"]="person:"+id;
     member["speaking"]=!blocked&&member["connected"].toBool()&&voice["state"]=="connected"
         &&voice["channel"].toString()==lobbyChatChannel_&&!lobbyChatChannel_.isEmpty()&&voice["speakers"].toStringList().contains(id);
-    member["status"]=!member["connected"].toBool()?"Reconnecting":member["spectator"].toBool()?"Spectator":member["ready"].toBool()?"Ready":"Preparing";
+    member["status"]=!member["connected"].toBool()?"Reconnecting":member["returnSeat"].toInt()>0?"Can return to P"+QString::number(member["returnSeat"].toInt()):member["spectator"].toBool()?"Spectator":member["ready"].toBool()?"Ready":"Preparing";
     member["technical"]=member["prepared"].toBool()?"verified":QString();
     if(id==self&& &viewedLobby()==lobby_.activeRoom()&&!member["spectator"].toBool())
         member["technical"]=lobbyRuntime_.busy()?"checking":!lobbyRuntime_.problem().isEmpty()?"attention":member["technical"];
@@ -44,8 +44,11 @@ QVariantList SocialController::lobbyPlayers() const {
     QVariantList result,unseated;const auto s=viewedLobby().state();const int seats=s["game"].toObject()["seats"].toInt();
     for(int seat=1;seat<=seats;++seat)result.append(QVariantMap{{"key","seat:"+QString::number(seat)},{"seat",seat},{"empty",true},{"name","Invite"}});
     for(const auto& v:s["members"].toArray()) {
-        auto member=lobbyPerson(v.toObject().toVariantMap());if(member["spectator"].toBool())continue;
-        const int seat=member["seat"].toInt();if(seat>0&&seat<=result.size())result[seat-1]=member;else unseated.append(member);
+        auto member=lobbyPerson(v.toObject().toVariantMap());const int returning=member["returnSeat"].toInt();
+        if(member["spectator"].toBool()&&!returning)continue;
+        const int seat=returning?returning:member["seat"].toInt();
+        if(returning)member["seat"]=returning; // Presentation only: the native port is still disconnected.
+        if(seat>0&&seat<=result.size())result[seat-1]=member;else unseated.append(member);
     }
     std::stable_sort(unseated.begin(),unseated.end(),[](const QVariant& a,const QVariant& b){return a.toMap()["host"].toBool()&&!b.toMap()["host"].toBool();});
     result+=unseated;
@@ -58,7 +61,7 @@ QVariantList SocialController::lobbyPlayers() const {
     return result;
 }
 QVariantList SocialController::lobbySpectators() const {
-    QVariantList result;for(const auto& v:viewedLobby().state()["members"].toArray())if(v.toObject()["spectator"].toBool())result.append(lobbyPerson(v.toObject().toVariantMap()));return result;
+    QVariantList result;for(const auto& v:viewedLobby().state()["members"].toArray())if(v.toObject()["spectator"].toBool()&&!v.toObject()["returnSeat"].toInt())result.append(lobbyPerson(v.toObject().toVariantMap()));return result;
 }
 QVariantMap SocialController::lobbyRoomGame() const {
     auto game=viewedLobby().state()["game"].toObject().toVariantMap();

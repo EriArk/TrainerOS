@@ -49,6 +49,7 @@ public:
     bool hosting() const { return active_->hosting(); }
     bool acknowledgeLaunch(const QString& ticket,bool success) { return active_->acknowledgeLaunch(ticket,success); }
     bool finishGame(const QString& ticket) { return active_->finishGame(ticket); }
+    bool enableRejoin(const QString& ticket) { return active_->enableRejoin(ticket); }
     bool sendRuntimeSignal(const QString& peer,const QString& ticket,const QString& connection,const QJsonObject& payload) { return active_->sendRuntimeSignal(peer,ticket,connection,payload); }
     bool setLiveJoining(bool enabled) { return active_->setLiveJoining(enabled); }
     bool requestLive(QString operation) { return active_->requestLive(operation); }

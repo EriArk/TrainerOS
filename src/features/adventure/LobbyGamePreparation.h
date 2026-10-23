@@ -10,6 +10,7 @@ class LobbyGamePreparation final:public QObject {
 public:
     LobbyGamePreparation(ProcessService&,AdventureLaunchController&,AdventureExitPresentation&,std::function<quint64()> account,QObject* parent=nullptr);
     void prepare(QString operation,LobbyRuntimeService::Completion);
+    void recover(QString operation,qint64 processId,LobbyRuntimeService::Completion);
     void cancel(const QString& operation);
     bool action(const QString&);
     bool pending() const {return bool(completion_);}

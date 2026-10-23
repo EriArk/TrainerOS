@@ -4,15 +4,62 @@
 #include "core/navigation/AdventureLaunchController.h"
 #include "features/adventure/AdventureExitPresentation.h"
 #include <QCryptographicHash>
+#include <QDateTime>
+#include <QUuid>
 #include <utility>
 
 namespace trainer {
-bool RuntimeMultiplayer::opening() const {return active_&&!lifecycle_.active();}
-void RuntimeMultiplayer::cancelOpening() {if(opening())fail("Opening cancelled.");}
+bool RuntimeMultiplayer::opening() const {return (active_||!rejoinTicket_.isEmpty())&&!lifecycle_.active();}
+void RuntimeMultiplayer::cancelOpening() {
+    const bool recovering=!rejoinTicket_.isEmpty();stopRecovery();
+    if(opening())fail("Opening cancelled.");else if(recovering)social_.lobbyRuntime()->cancelPending();
+}
+void RuntimeMultiplayer::stopRecovery() {
+    const auto operation=rejoinOperation_;
+    rejoinTimer_.stop();rejoinRoom_.clear();rejoinTicket_.clear();rejoinGame_={};rejoinOperation_.clear();
+    rejoinUntil_=rejoinNext_=rejoinAttemptUntil_=rejoinProcess_=0;rejoinAttempts_=0;rejoinClosing_=false;
+    if(!operation.isEmpty())preparation_.cancel(operation);
+    if(!operation.isEmpty())emit changed();
+}
+void RuntimeMultiplayer::recoverConnection() {
+    if(rejoinTicket_.isEmpty())return;
+    const auto now=QDateTime::currentSecsSinceEpoch();
+    const auto room=social_.lobbyCoordinator()->state();
+    if(!allowed_||social_.accountGeneration()!=rejoinAccount_||room["id"]!=rejoinRoom_
+       ||room["ticket"]!=rejoinTicket_||room["game"]!=rejoinGame_||room["phase"]!="playing") {stopRecovery();return;}
+    if(now>=rejoinUntil_) {
+        stopRecovery();if(active_)fail("Automatic return timed out. Rejoin from the lobby.");
+        else {social_.lobbyRuntime()->cancelPending();emit notice("Automatic return timed out. Rejoin from the lobby.");}return;
+    }
+    if(active_||social_.lobbyRuntime()->busy()) {
+        if(rejoinAttemptUntil_&&now>=rejoinAttemptUntil_) {
+            if(active_)fail("Retrying the game connection…",true);
+            social_.lobbyRuntime()->cancelPending();
+            rejoinAttemptUntil_=0;rejoinNext_=now+5;
+        }
+        return;
+    }
+    if(rejoinClosing_||now<rejoinNext_)return;
+    if(lifecycle_.active()) {
+        if(process_.processId()!=rejoinProcess_||!lifecycle_.exitController().temporaryProgress()) {stopRecovery();return;}
+        if(!lifecycle_.exitController().available())return;
+        rejoinClosing_=true;
+        const auto operation=rejoinOperation_;
+        preparation_.recover(operation,rejoinProcess_,[this,operation](bool ok,QString error){
+            if(operation!=rejoinOperation_)return;
+            rejoinClosing_=false;rejoinProcess_=0;
+            if(!ok){stopRecovery();emit notice(error);return;}
+        });return;
+    }
+    if(rejoinAttempts_>=3) {stopRecovery();emit notice("Couldn't return automatically. Rejoin from the lobby.");return;}
+    if(!social_.lobbyRuntime()->liveAvailable())return;
+    ++rejoinAttempts_;rejoinNext_=now+5;rejoinAttemptUntil_=now+40;
+    social_.lobbyRuntime()->joinLive();
+}
 bool RuntimeMultiplayer::supportsLive(const QJsonObject& game) const {
     // Reviewed ARM64 RetroArch shared-console builds. Never trust a peer's
     // capability flag or infer support for other cores from their platform.
-    if(!allowed_||game["transport"]=="netpacket"||game["playMode"].toString("separate")!="separate")return false;
+    if(!allowed_||game.value("lateJoin")==false||game["transport"]=="netpacket"||game["playMode"].toString("separate")!="separate")return false;
     const auto id=game["id"].toString();QString core;
     if(id=="runtime.retroarch.nes.fceumm.v1"||id.startsWith("runtime.fceumm."))
         core="1b13b00d4680394dad8000d5175f97be727107e0945bc9b412da91d70c07b267";

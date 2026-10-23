@@ -140,7 +140,7 @@ RuntimeMultiplayer::RuntimeMultiplayer(LibraryRepository& lib,RetroArchAdapter& 
         if(active_&&hotseat()&&(!party_.active()||party_.state()["members"].toArray().size()!=2)) {
             fail("The other player left. The shared-controller game has ended.");return;
         }
-        if(active_&&(!lobbyTicket_.isEmpty()||rmg()||flycast()||ds()||azahar()||vita())&&!party_.active()) {fail("The game invitation ended.");return;}
+        if(active_&&(!lobbyTicket_.isEmpty()||rmg()||flycast()||ds()||azahar()||vita())&&!party_.active()) {fail("The game invitation ended.",true);return;}
         if(active_&&rmg()&&rmgRequest_.privateLan) {
             QSet<int> expected,actual;
             for(const auto& seat:rmgRequest_.seats)expected.insert(seat.toInt());
@@ -175,7 +175,7 @@ RuntimeMultiplayer::RuntimeMultiplayer(LibraryRepository& lib,RetroArchAdapter& 
     });
 
     connect(&client_,&retroarch::NetplayClient::failed,this,[this](QString message){
-        if(active_)fail(std::move(message));
+        if(active_)fail(std::move(message),true);
     });
     connect(&rmgLobby_,&rmg::Lobby::failed,this,[this](QString error){if(active_&&rmg())fail(error);});
     connect(&rmgLobby_,&rmg::Lobby::roomReady,this,[this](int port){
@@ -225,6 +225,9 @@ RuntimeMultiplayer::RuntimeMultiplayer(LibraryRepository& lib,RetroArchAdapter& 
     });
     connect(&overlay_,&AdventureExitPresentation::changed,this,&RuntimeMultiplayer::resumeInvitation);
     connect(&preparation_,&LobbyGamePreparation::optionsRequested,this,&RuntimeMultiplayer::invitationOptionsRequested);
+    connect(&lifecycle_.exitController(),&AdventureExitController::captureRequested,this,[this]{
+        if(!rejoinClosing_)stopRecovery(); // Explicit Home/Exit overrides a pending network return.
+    });
     connect(&lifecycle_.exitController(),&AdventureExitController::confirmationRequested,this,[this]{
         // The invitation's explicit "Saved - join" action supplies exit consent.
         // The capture and owned graceful-close/finalization barriers still run.
@@ -265,6 +268,9 @@ RuntimeMultiplayer::RuntimeMultiplayer(LibraryRepository& lib,RetroArchAdapter& 
         if(host_&&online_&&!dolphin()&&!rmg()&&!flycast()&&!ds()&&!azahar()&&!vita())pollRelay();
     });
     connect(&lifecycle_,&AdventureLaunchController::adventureFinished,this,[this](bool failed){
+        // A disconnected emulator may close itself cleanly. Preserve the
+        // existing recovery intent; explicit Exit cancelled it at capture.
+        if(failed)stopRecovery();
         if(!exitingInvitation_.isEmpty()) {
             const auto request=std::exchange(exitingInvitation_,{});
             const auto account=invitationAccount_;
@@ -294,8 +300,8 @@ RuntimeMultiplayer::RuntimeMultiplayer(LibraryRepository& lib,RetroArchAdapter& 
         if(partySession_&&party_.active()){party_.leave();partySession_=false;}
         update();
         if(!lobbyTicket_.isEmpty()) {
-            const auto ticket=lobbyTicket_;
-            QTimer::singleShot(0,this,[this,ticket]{social_.lobbyRuntime()->finished(ticket);});
+            const auto ticket=lobbyTicket_,operation=lobbyOperation_;
+            QTimer::singleShot(0,this,[this,ticket,operation]{if(lobbyOperation_==operation)social_.lobbyRuntime()->finished(ticket);});
         }
     });
     connect(&lifecycle_,&AdventureLaunchController::changed,this,[this]{
@@ -304,9 +310,11 @@ RuntimeMultiplayer::RuntimeMultiplayer(LibraryRepository& lib,RetroArchAdapter& 
         emit changed();
     });
     connect(&timer_,&QTimer::timeout,this,[this]{
-        if(deadline_&&QDateTime::currentSecsSinceEpoch()>deadline_){fail("Couldn't connect to your friend. Try inviting again.");return;}
+        if(deadline_&&QDateTime::currentSecsSinceEpoch()>deadline_){fail("Couldn't connect to your friend. Try inviting again.",true);return;}
         if(active_&&host_&&online_&&!restarting_&&!launchPending_&&!query_&&!relaySent_)pollRelay();
     });timer_.setInterval(3000);
+    rejoinTimer_.setInterval(1000);
+    connect(&rejoinTimer_,&QTimer::timeout,this,&RuntimeMultiplayer::recoverConnection);
 }
 void RuntimeMultiplayer::refresh(const RetroArchInstallation& installation,QString trainer,bool allowed) {
     PerformanceTrace::Scope perf("RuntimeMultiplayer::refresh");
@@ -415,6 +423,9 @@ bool RuntimeMultiplayer::canInvite() const {
         &&!process_.runtimeControls().contains("netplay");
 }
 void RuntimeMultiplayer::leaveParty(){
+    const bool recovering=!rejoinTicket_.isEmpty();
+    stopRecovery();
+    if(recovering&&!active_)social_.lobbyRuntime()->cancelPending();
     if(active_&&lifecycle_.active()) {
         // Keep a live seat occupied until the owned emulator actually exits.
         // Normal Home exit preserves the save/capture confirmation policy.
@@ -1167,6 +1178,7 @@ void RuntimeMultiplayer::output(const QByteArray& bytes) {
         }
         const auto joined=QRegularExpression("joined as player ([2-4])").match(QString::fromUtf8(line));
         if(joined.hasMatch()&&!hotseat()){
+            if(!host_)stopRecovery();
             deadline_=0;timer_.stop();status_="Playing together";
             if(host_&&!lobbyTicket_.isEmpty()&&supportsLive(descriptor_))emit notice("Player "+joined.captured(1)+" joined");
             emit changed();
@@ -1174,17 +1186,32 @@ void RuntimeMultiplayer::output(const QByteArray& bytes) {
         if(line.contains("Failed")||line.contains("failed")||line.contains("disconnected")){
             if(hotseat()){fail("The shared-controller connection ended. Invite your friend again.");return;}
             if(!lobbyTicket_.isEmpty()&&(!host_||!supportsLive(descriptor_))) {
-                fail("The game connection ended. Prepare again in the same lobby.");return;
+                fail("The game connection ended. Prepare again in the same lobby.",true);return;
             }
             status_="Multiplayer connection ended";emit notice(status_);
         }
     }
     if(output_.size()>16384)output_.clear();
 }
-void RuntimeMultiplayer::fail(QString text) {
+void RuntimeMultiplayer::fail(QString text,bool connectionLost) {
+    const auto room=social_.lobbyCoordinator()->state();
+    const bool recover=connectionLost&&!host_&&!lobbyTicket_.isEmpty()&&supportsRejoin(descriptor_)
+        &&room["ticket"]==lobbyTicket_&&room["phase"]=="playing"&&room["rejoin"].toBool()
+        &&(!lifecycle_.active()||lifecycle_.exitController().temporaryProgress());
+    if(recover) {
+        text="Connection lost. Returning to the match…";
+        if(rejoinTicket_.isEmpty()) {
+            rejoinRoom_=room["id"].toString();rejoinTicket_=lobbyTicket_;rejoinGame_=room["game"].toObject();
+            rejoinAccount_=social_.accountGeneration();rejoinUntil_=QDateTime::currentSecsSinceEpoch()+180;
+            rejoinOperation_=QUuid::createUuid().toString(QUuid::WithoutBraces);rejoinAttempts_=0;
+        }
+        rejoinProcess_=process_.processId();rejoinAttemptUntil_=0;rejoinNext_=QDateTime::currentSecsSinceEpoch()+2;
+        rejoinTimer_.start();
+    } else stopRecovery();
     relaySelector_.stop();relayStarted_=relayWaiting_=false;relayTicket_.clear();selectedRelay_.clear();selectedRelayEndpoint_.clear();
     auto lobbyDone=std::exchange(lobbyCompletion_,{});
     const auto endedLobbyTicket=lobbyTicket_;
+    const auto endedLobbyOperation=lobbyOperation_;
     ++sessionGeneration_;
     const bool wasActive=active_,endHotseat=wasActive&&hotseat();
     const bool cancelPreparation=endHotseat&&!restarting_&&process_.preparing()&&lifecycle_.adventureId()==game_;
@@ -1214,7 +1241,9 @@ void RuntimeMultiplayer::fail(QString text) {
     if(lobbyDone)lobbyDone(false,status_);
     else if(!endedLobbyTicket.isEmpty()) {
         // End the game binding, not membership or the owned child's save flow.
-        QTimer::singleShot(0,this,[this,endedLobbyTicket]{social_.lobbyRuntime()->finished(endedLobbyTicket);});
+        QTimer::singleShot(0,this,[this,endedLobbyTicket,endedLobbyOperation]{
+            if(lobbyOperation_==endedLobbyOperation)social_.lobbyRuntime()->finished(endedLobbyTicket);
+        });
     }
 }
 }
