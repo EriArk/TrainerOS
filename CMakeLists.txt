@@ -202,6 +202,7 @@ add_library(trainer_core STATIC
     src/core/repository/CollectionRepository.h
     src/integrations/adventure/retroarch/RetroArchAdapter.cpp
     src/integrations/adventure/retroarch/RetroArchNetplay.cpp
+    src/integrations/adventure/retroarch/NetplayRelaySelector.cpp
     src/integrations/adventure/retroarch/PS2Netplay.cpp
     src/integrations/adventure/retroarch/RetroArchHandheldLink.cpp
     src/integrations/adventure/retroarch/LinkedSavePreparation.cpp
@@ -741,6 +742,9 @@ if(BUILD_TESTING)
     qt_add_executable(trainer_social_tests tests/SocialTests.cpp)
     qt_add_resources(trainer_social_tests profile_avatar_test_assets PREFIX "/avatars" BASE assets/avatars FILES ${profile_avatars})
     qt_add_executable(trainer_game_party_tests tests/GamePartyTests.cpp)
+    qt_add_executable(trainer_netplay_relay_tests tests/NetplayRelayTests.cpp)
+    target_link_libraries(trainer_netplay_relay_tests PRIVATE trainer_core Qt6::Test)
+    add_test(NAME netplay_relay COMMAND trainer_netplay_relay_tests)
     qt_add_executable(trainer_lobby_tests tests/LobbyTests.cpp)
     qt_add_executable(trainer_contacts_tests tests/TemporaryContactsTests.cpp)
     if(UNIX AND NOT APPLE)

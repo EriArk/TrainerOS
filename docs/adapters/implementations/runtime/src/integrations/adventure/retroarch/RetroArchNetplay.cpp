@@ -361,6 +361,8 @@ QString prepareNetplay(ProcessCommand& cmd,const AdventureRegistration& r,const 
     const auto identity=multiplayerModeProfile(netplayIdentity(r,i,cancel,nullptr,request.expected["players"].toInt(2)),
         request.expected["playMode"].toString("separate"));
     if(identity.isEmpty())return "Multiplayer isn't supported for this game version yet.";
+    if(!request.localExpected.isEmpty()&&(identity["runtime"]!=request.localExpected["runtime"]||
+       identity["core"]!=request.localExpected["core"]))return "Your local emulator changed. Prepare the game again.";
     if(!sameMultiplayerGame(identity,request.expected))return "Your game or emulator changed. Invite your friend again.";
     const bool linked=requiresLinkedSavePreparation(identity);
     const bool handheld=identity["transport"]=="netpacket"||linked;

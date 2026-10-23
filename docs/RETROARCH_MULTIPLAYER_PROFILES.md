@@ -1,5 +1,12 @@
 # Shared RetroArch multiplayer profiles
 
+**Owner correction, 23 October 2026:** peer admission no longer requires identical
+runtime/core binary hashes. Game, firmware, settings and native protocol checks
+remain; local installation integrity stays exact. Lobby relay selection now has
+automatic all-player measurement and a host-selected region. See
+[the current contract and delivery](NETPLAY_RELAY_SELECTION.md). Older exact-peer-
+binary and fixed-Madrid statements below are superseded.
+
 **PS1 preparation, 11 October 2026:** PCSX ReARMed now has a source implementation
 through the existing relay/party flow, with two digital pads, matched CUE/CHD and
 owned BIOS, and temporary memory cards. [Boundaries and pending checks](https://github.com/EriArk/TrainerOS/blob/c6aaac25ba4f55262f3f6418e8d29cac7cdc9aec/docs/MULTIPLAYER_PREPARATION.md#ps1-runtime-decision--11-october-2026).
@@ -26,7 +33,7 @@ three/four seats. Four clients reached the same level with four active players.
 See the final checkpoint below; earlier two-seat findings are historical.
 
 Compatible classic shared-console cores use a versioned local profile, matching
-content/runtime/core/firmware identities and private session settings/saves.
+content/profile/firmware identities and private session settings/saves.
 The initial generic control profile has two independent pads; the established
 exact NES Four Score profile keeps four. More ports require their actual device
 configuration, not an inferred capacity from scraped text. Explicit single-player

@@ -1,5 +1,13 @@
 # RetroArch common ARM64 baseline
 
+## Relay / cross-build admission — 23 October 2026
+
+TrainerOS now selects an official relay using the lobby players' measurements,
+or uses the organizer's manual region. Peer executable hashes no longer block
+admission; local runtime integrity and emulator-native handshake checks remain.
+No RetroArch binary/protocol patch accompanies this change. Implementation,
+verification and rollback: [relay selection](../NETPLAY_RELAY_SELECTION.md).
+
 ## Common sweep repairs — 18 October 2026
 
 - ColecoVision / Gearcoleco on Flip expected `colecovision.rom` at the system

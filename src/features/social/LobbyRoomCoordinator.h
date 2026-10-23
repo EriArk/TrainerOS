@@ -41,6 +41,7 @@ public:
     bool start() {return canStart()&&session_.start(self_);}
     bool readyPending() const {return readyDeadline_.isActive();}
     bool setAccess(QString access);
+    bool setRelay(QString relay);
     bool setDetails(QString title,qint64 startsAt);
     bool setConversation(QString channel);
     void receive(QString peer,QString name,const QJsonObject& packet);

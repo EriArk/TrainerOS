@@ -63,7 +63,7 @@ QJsonObject LobbyRuntime::context() const {
             {"spectator",m["spectator"]},{"connected",m["connected"]}});
     }
     QJsonObject result{{"lobby",s["id"]},{"owner",s["owner"]},{"generation",s["generation"]},
-        {"game",s["game"]},{"vote",s["vote"].toObject()["id"]},{"members",members},{"self",self_}};
+        {"game",s["game"]},{"relay",s["relay"].toString("auto")},{"vote",s["vote"].toObject()["id"]},{"members",members},{"self",self_}};
     if(live_)result["liveAdmission"]=operation_;
     return result;
 }

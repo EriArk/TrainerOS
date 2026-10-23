@@ -103,6 +103,24 @@ class RuntimeMultiplayerTests final : public QObject {
         QTRY_VERIFY(!f.lifecycle.active());
     }
 private slots:
+    void liveJoinCapabilityBelongsToTheLocalInstallation() {
+        Fixture f;f.runtime.allowed_=true;
+        const QJsonObject local{{"id","runtime.retroarch.nes.fceumm.v1"},{"players",2},
+            {"runtime","8d57b47c88d416c05145187c8c906b7ab0013edb7e45af69d9b6bb841aea4a24"},
+            {"core","1b13b00d4680394dad8000d5175f97be727107e0945bc9b412da91d70c07b267"}};
+        auto other=local;other["runtime"]="other-architecture";other["core"]="other-core-binary";
+        f.runtime.games_={{"nes",local}};QVERIFY(f.runtime.supportsLive(other));
+        f.runtime.games_={{"nes",other}};QVERIFY(!f.runtime.supportsLive(local));
+    }
+    void finishedGameClearsRelayForNextInvitation() {
+        Fixture f;QVERIFY(f.start());QTRY_COMPARE(f.lifecycle.state(),"running");
+        f.runtime.relayStarted_=true;f.runtime.relayWaiting_=true;f.runtime.relayTicket_="previous";
+        f.runtime.selectedRelay_="madrid";f.runtime.selectedRelayEndpoint_="old.example|1234";
+        finishOrdinary(f);
+        QVERIFY(!f.runtime.relayStarted_);QVERIFY(!f.runtime.relayWaiting_);
+        QVERIFY(f.runtime.relayTicket_.isEmpty());QVERIFY(f.runtime.selectedRelay_.isEmpty());
+        QVERIFY(f.runtime.selectedRelayEndpoint_.isEmpty());
+    }
     void destructionCannotReenterFromExternalLobbySignals() {
         Fixture f;
         auto* runtime=new RuntimeMultiplayer(f.library,f.retro,f.psp,f.dolphin,f.social,f.process,f.lifecycle,f.view);
@@ -421,9 +439,13 @@ private slots:
         const auto first=host.gameMenuActions().first().toMap()["id"].toString();
         connect(&host,&RuntimeMultiplayer::changed,&a.view,[&]{a.view.setExtraActions(host.gameMenuActions());});
         a.view.setExtraActions(host.gameMenuActions());readyMenu(a);
-        a.view.updateInput(a.view.inputGeneration(),{true,false,false,false,false,false,true});QCOMPARE(a.view.menuFocus(),1);
+        // The current menu uses two columns: Right enters the multiplayer actions.
+        a.view.updateInput(a.view.inputGeneration(),{true,false,false,false,false,false,false,false,true});
+        QCOMPARE(a.view.menuActions().value(a.view.menuFocus()).toMap()["id"].toString(),first);
         host.action("multiplayer-pass:old:0");QVERIFY(host.handoff_.canPass());
-        host.action(first);QVERIFY(!host.handoff_.canPass());QCOMPARE(a.view.menuFocus(),0);QVERIFY(!a.view.ready());
+        host.action(first);QVERIFY(!host.handoff_.canPass());
+        QCOMPARE(a.view.menuActions().value(a.view.menuFocus()).toMap()["id"].toString(),QString("continue"));
+        QVERIFY(!a.view.ready());
         observe(2,0);observe(3,2);
         QVERIFY(guest.handoff_.canPass());QVERIFY(!host.handoff_.canPass());
         const auto second=guest.gameMenuActions().first().toMap()["id"].toString();

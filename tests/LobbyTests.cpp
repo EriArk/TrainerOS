@@ -34,6 +34,18 @@ class LobbyTests final : public QObject {
         QVERIFY(l.claimSeat(peer,seat,l.generation()));QVERIFY(l.prepared(peer,l.generation(),true));
     }
 private slots:
+    void relayPreferenceIsHostOwnedAndInvalidatesReadiness() {
+        LobbySession room;QVERIFY(room.create("host","Host","public"));QVERIFY(room.selectGame("host",game()));
+        QVERIFY(room.join("guest","Guest",100));prepare(room,"host",1);prepare(room,"guest",2);
+        QVERIFY(room.ready("host",room.generation(),true));QVERIFY(room.ready("guest",room.generation(),true));
+        const auto generation=room.generation();QVERIFY(!room.setRelay("guest","nyc"));QVERIFY(!room.setRelay("host","arbitrary-address"));
+        QVERIFY(room.setRelay("host","nyc"));QVERIFY(room.generation()>generation);QVERIFY(!room.canStart("host"));
+        QCOMPARE(room.state()["relay"].toString(),"nyc");
+        for(const auto& m:room.state()["members"].toArray()){QVERIFY(!m.toObject()["prepared"].toBool());QVERIFY(!m.toObject()["ready"].toBool());}
+        LobbySession restored;QVERIFY(restored.restore(room.state()));QCOMPARE(restored.state()["relay"].toString(),"nyc");
+        prepare(room,"host",1);prepare(room,"guest",2);QVERIFY(room.ready("host",room.generation(),true));QVERIFY(room.ready("guest",room.generation(),true));
+        QVERIFY(room.start("host"));QVERIFY(!room.setRelay("host","madrid"));
+    }
     void ownershipObservationPreservesDisconnectedAndClosedRooms() {
         LobbySession room;QVERIFY(!room.ownedBy("host"));QVERIFY(!room.ownedBy(""));
         QVERIFY(room.create("host","Host","public"));QVERIFY(room.ownedBy("host"));QVERIFY(!room.ownedBy("guest"));

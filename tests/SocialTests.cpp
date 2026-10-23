@@ -534,6 +534,16 @@ private slots:
         s.lobby_.room(second)->forgetMembership();QCOMPARE(s.myLobbies().size(),1);
         s.lobby_.room(first)->forgetMembership();QVERIFY(s.homeLobby().isEmpty());
     }
+    void lobbyRelayMenuUsesTheExistingOwnerOptions() {
+        SocialController s;QObject::disconnect(&s,nullptr,s.session_,nullptr);QObject::disconnect(s.session_,nullptr,&s,nullptr);
+        s.receive(0,{{"state","connected"},{"userId","1"},{"name","Mika"}});s.createAnotherLobby();s.submitLobbyDraft();
+        const QJsonObject runtime{{"id","runtime.retroarch.nes.fceumm.v1"},{"content","same"},{"players",2}};
+        QVERIFY(s.viewedLobby().selectGame({"game","Game","nes","runtime.retroarch.nes.fceumm.v1",2,runtime}));
+        s.lobbyAction("relay");QCOMPARE(s.menuCommands_.size(),5);QVERIFY(s.menuCommands_.contains("lobby:relay:auto"));
+        s.selectMenu(s.menuCommands_.indexOf("lobby:relay:nyc"));QCOMPARE(s.viewedLobby().state()["relay"].toString(),"nyc");
+        s.lobbyAction("relay");QVERIFY(s.menu_.join(' ').contains("New York · Selected"));
+        s.closeMenu();s.lobbyAction("relay:arbitrary-address");QCOMPARE(s.viewedLobby().state()["relay"].toString(),"nyc");
+    }
     void playersCannotBecomeSpectatorsFromTheRoom() {
         SocialController s;QObject::disconnect(&s,nullptr,s.session_,nullptr);QObject::disconnect(s.session_,nullptr,&s,nullptr);
         s.receive(0,{{"state","connected"},{"userId","1"},{"name","Mika"}});s.createAnotherLobby();s.submitLobbyDraft();

@@ -38,6 +38,7 @@ RuntimeMultiplayer::~RuntimeMultiplayer() {
     // QObject's own disconnect runs after value members have been destroyed.
     // A network member's close signal must not redraw a menu using freed maps.
     active_=false;
+    relaySelector_.stop();
     for(auto* child:findChildren<QObject*>())QObject::disconnect(child,nullptr,this,nullptr);
     handoff_.stop();timer_.stop();invitationOpenTimer_.stop();scanPublish_.stop();
     if(scanCancel_)scanCancel_->store(true);
@@ -48,6 +49,23 @@ RuntimeMultiplayer::RuntimeMultiplayer(LibraryRepository& lib,RetroArchAdapter& 
     ProcessService& process,AdventureLaunchController& lifecycle,AdventureExitPresentation& overlay)
     :library_(lib),adapter_(adapter),social_(social),ppsspp_(ppsspp),dolphin_(dolphinAdapter),process_(process),lifecycle_(lifecycle),overlay_(overlay),preparation_(process,lifecycle,overlay,[&social]{return social.accountGeneration();},this) {
     setupHotseat();
+    connect(&relaySelector_,&retroarch::NetplayRelaySelector::report,this,[this](QString peer,QJsonObject scores){
+        if(!relayTicket_.isEmpty())social_.lobbyCoordinator()->sendRuntimeSignal(peer,relayTicket_,relayTicket_,
+            {{"channel","retroarch-relay-v1"},{"scores",scores}});
+    });
+    connect(social_.lobbyCoordinator(),&LobbyCoordinator::runtimeSignal,this,
+        [this](QString peer,QString ticket,QString connection,QJsonObject payload){
+            if(!relayTicket_.isEmpty()&&ticket==relayTicket_&&connection==relayTicket_&&
+               payload.size()==2&&payload["channel"]=="retroarch-relay-v1")relaySelector_.receive(peer,payload["scores"].toObject());
+        });
+    connect(&relaySelector_,&retroarch::NetplayRelaySelector::selected,this,[this](QString region,QString endpoint){
+        selectedRelay_=region;selectedRelayEndpoint_=endpoint;
+        qCInfo(multiplayerLog)<<"NetPlay relay selected"<<region;
+        if(relayWaiting_&&active_&&host_&&online_) {relayWaiting_=false;request_.relayEndpoint=endpoint;prepareHost();}
+    });
+    connect(&relaySelector_,&retroarch::NetplayRelaySelector::failed,this,[this](QString message){
+        if(relayStarted_)fail(message);
+    });
     // Register the reviewed integration families even when the guest has no ROM.
     // This admits local verification only; exact runtime/content checks still gate play.
     connect(&social_,&SocialController::changed,this,[this]{
@@ -269,6 +287,7 @@ RuntimeMultiplayer::RuntimeMultiplayer(LibraryRepository& lib,RetroArchAdapter& 
         }
         handoff_.stop();
         active_=false;deadline_=0;timer_.stop();
+        relaySelector_.stop();relayStarted_=relayWaiting_=false;relayTicket_.clear();selectedRelay_.clear();selectedRelayEndpoint_.clear();
         client_.stop();
         rmgLobby_.stop();rmgPreparing_=false;
         // An ordinary game ending must not discard an unanswered invitation.
@@ -679,6 +698,8 @@ void RuntimeMultiplayer::startParty(bool host,const QJsonObject& endpoint) {
     transportPeer_=host?(roster.size()>1?roster.at(1).toObject()["peer"].toString():QString()):party_.hostPeer();
     online_=!lobbyTicket_.isEmpty()||transportPeer_.startsWith("online:");
     request_={};request_.host=host;request_.relay=online_;request_.expected=selected;
+    request_.localExpected=games_.value(game);
+    if(!host)relaySelector_.stop();
     request_.localContent=games_.value(game)["content"].toString();
     request_.slot=host?1:endpoint["slot"].toInt();
     if(linked()) {
@@ -739,21 +760,11 @@ void RuntimeMultiplayer::prepareHost() {
     }else launch();
 }
 void RuntimeMultiplayer::resolveRelay() {
-    status_="Connecting to the online relay…";
-    QNetworkRequest request(QUrl("http://lobby.libretro.com/tunnel?name=madrid"));
-    request.setTransferTimeout(7000);
-    auto* reply=network_.get(request);reply->setReadBufferSize(4097);
-    const auto nickname=request_.nickname;auto bytes=std::make_shared<QByteArray>();
-    connect(reply,&QIODevice::readyRead,reply,[reply,bytes]{bytes->append(reply->readAll());if(bytes->size()>4096)reply->abort();});
-    connect(reply,&QNetworkReply::finished,this,[this,reply,bytes,nickname]{
-        bytes->append(reply->readAll());reply->deleteLater();
-        if(!active_||!host_||!online_||request_.nickname!=nickname)return;
-        const auto endpoint=retroarch::netplayRelayEndpoint(*bytes);
-        if(reply->error()!=QNetworkReply::NoError||endpoint.isEmpty()) {
-            fail("Couldn't reach the online relay. Try inviting again.");return;
-        }
-        request_.relayEndpoint=endpoint;prepareHost();
-    });
+    if(!selectedRelayEndpoint_.isEmpty()) {request_.relayEndpoint=selectedRelayEndpoint_;prepareHost();return;}
+    status_="Choosing a relay for the players…";relayWaiting_=true;
+    // Ordinary GameHub launches start all-player probing before binding the party.
+    // Retain automatic host selection for the legacy non-lobby invitation path.
+    if(!relayStarted_) {relayStarted_=true;relaySelector_.start("host","host",{"host"},"auto");}
 }
 void RuntimeMultiplayer::resolvePspRelay() {
     status_="Connecting to the online relay…";
@@ -1168,6 +1179,7 @@ void RuntimeMultiplayer::output(const QByteArray& bytes) {
     if(output_.size()>16384)output_.clear();
 }
 void RuntimeMultiplayer::fail(QString text) {
+    relaySelector_.stop();relayStarted_=relayWaiting_=false;relayTicket_.clear();selectedRelay_.clear();selectedRelayEndpoint_.clear();
     auto lobbyDone=std::exchange(lobbyCompletion_,{});
     ++sessionGeneration_;
     const bool wasActive=active_,endHotseat=wasActive&&hotseat();

@@ -1,4 +1,5 @@
 #include "LobbyRoomCoordinator.h"
+#include "core/model/NetplayRelay.h"
 #include <QDateTime>
 #include <QJsonArray>
 #include <QSet>
@@ -152,6 +153,7 @@ void LobbyRoomCoordinator::leave() {
 }
 bool LobbyRoomCoordinator::selectGame(const LobbySession::Game& game) {return hosting()&&session_.selectGame(self_,game);}
 bool LobbyRoomCoordinator::setAccess(QString access) {return hosting()&&session_.setAccess(self_,access);}
+bool LobbyRoomCoordinator::setRelay(QString relay) {return hosting()&&session_.setRelay(self_,relay);}
 bool LobbyRoomCoordinator::setConversation(QString channel) {return hosting()&&session_.setConversation(self_,channel);}
 bool LobbyRoomCoordinator::seat(int seat) {
     if(hosting())return session_.claimSeat(self_,seat,session_.generation());
@@ -249,6 +251,7 @@ bool LobbyRoomCoordinator::proposeVote(const QJsonArray& choices){return hosting
 bool LobbyRoomCoordinator::vote(QString id,int choice){if(hosting())return session_.vote(self_,id,choice);if(!online_||restoring_||remote_.value("vote").toObject()["id"]!=id)return false;send(host_,"vote",{{"id",id},{"choice",choice}});return true;}
 bool LobbyRoomCoordinator::confirmVote(QString id,int choice){return hosting()&&session_.confirmVote(self_,id,choice);}
 bool LobbyRoomCoordinator::validState(const QJsonObject& s,const QString& host) {
+    if(!netplayRelay::valid(s["relay"].toString("auto")))return false;
     if(s["title"].toString().size()>80||s["startsAt"].toInteger()<0||s["startsAt"].toInteger()>4102444800LL)return false;
     if(!identifier(host)||!QStringList{"private","public","approval"}.contains(s["access"].toString()))return false;
     if(!s["conversation"].toString().isEmpty()&&!identifier(s["conversation"].toString()))return false;

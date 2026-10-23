@@ -7,6 +7,7 @@
 #include "core/model/GamePlayers.h"
 #include "integrations/adventure/retroarch/RetroArchNetplay.h"
 #include "integrations/adventure/retroarch/RetroArchNetplayClient.h"
+#include "integrations/adventure/retroarch/NetplayRelaySelector.h"
 #include "integrations/adventure/retroarch/LinkedSavePreparation.h"
 #include "integrations/adventure/standalone/PpssppNetplay.h"
 #include "integrations/adventure/standalone/DolphinNetplay.h"
@@ -106,6 +107,9 @@ private:
     void show(QString panel);
     void prepareHost();
     void resolveRelay();
+    retroarch::NetplayRelaySelector relaySelector_{this};
+    QString relayTicket_,selectedRelay_,selectedRelayEndpoint_;
+    bool relayStarted_=false,relayWaiting_=false;
     void resolvePspRelay();
     void prepareRmg();
     bool rmg() const { return descriptor_["id"]=="runtime.rmg.n64.v1"; }

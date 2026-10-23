@@ -286,7 +286,7 @@ private slots:
         left["content"]="a9dec84dfe7f62ab2220bafaef7479da0929d066ece16a6885f6226db19085af";
         right["content"]="3d0c79f1627022e18765766f6cb5ea067f6b5bf7dca115552189ad65a5c3a8ac";
         QVERIFY(sameMultiplayerGame(left,right));
-        right["core"]="updated";QVERIFY(!sameMultiplayerGame(left,right));
+        right["core"]="different-architecture";QVERIFY(sameMultiplayerGame(left,right));
         const auto controls=retroarch::netplayControllers(p,false,2);
         QVERIFY(controls.contains("input_max_users = \"1\""));
         QVERIFY(!controls.contains("netplay_request_device_p2"));
@@ -495,6 +495,19 @@ private slots:
         ProcessCommand rejected;rejected.arguments={r.contentPath};
         QVERIFY(!retroarch::prepareNetplay(rejected,r,i,request,cancel).isEmpty());QCOMPARE(rejected.arguments,QStringList{r.contentPath});
         QFile original(i.configFile);QVERIFY(original.open(QIODevice::ReadOnly));QCOMPARE(original.readAll(),QByteArray("original test fixture"));
+    }
+    void remoteBinaryDiffersButLocalReplacementStillInvalidatesPreparation() {
+        QTemporaryDir dir;std::atomic_bool cancel=false;
+        for(const auto& name:{"game.nes","runtime","core","retroarch.cfg"})touch(dir.filePath(name));
+        RetroArchInstallation i;i.configFile=dir.filePath("retroarch.cfg");i.runtimeFile=dir.filePath("runtime");i.cores["fceumm"]=dir.filePath("core");
+        AdventureRegistration r;r.adventure.platformId="nes";r.contentPath=dir.filePath("game.nes");r.integrationConfig["core"]="fceumm";
+        retroarch::NetplayRequest request;request.password="private";request.nickname="guest";request.address="127.0.0.1";request.slot=2;
+        request.localExpected=retroarch::netplayIdentity(r,i,cancel);request.expected=request.localExpected;
+        request.expected["runtime"]=QString(64,'a');request.expected["core"]=QString(64,'b');
+        ProcessCommand accepted;accepted.arguments={r.contentPath};QVERIFY(retroarch::prepareNetplay(accepted,r,i,request,cancel).isEmpty());accepted.settled({});
+        QFile changed(i.runtimeFile);QVERIFY(changed.open(QIODevice::WriteOnly));changed.write("replaced after preparation");changed.close();
+        ProcessCommand rejected;rejected.arguments={r.contentPath};
+        QVERIFY(retroarch::prepareNetplay(rejected,r,i,request,cancel).contains("local emulator changed"));
     }
     void netplaySessionsKeepOptionsAndCleanupSeparate() {
         QTemporaryDir dir;
