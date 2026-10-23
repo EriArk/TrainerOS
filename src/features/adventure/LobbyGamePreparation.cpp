@@ -37,14 +37,14 @@ void LobbyGamePreparation::show() {
         {QVariantMap{{"id","multiplayer-lobby-saved:"+operation_},{"label","Saved — prepare game"}},
          QVariantMap{{"id","multiplayer-lobby-later:"+operation_},{"label","Keep playing"}}},"multiplayer-lobby-later:"+operation_);
 }
-void LobbyGamePreparation::recover(QString operation,qint64 processId,LobbyRuntimeService::Completion done) {
+void LobbyGamePreparation::prepareReturn(QString operation,qint64 processId,LobbyRuntimeService::Completion done) {
     auto& exit=lifecycle_.exitController();
     // Only the failed, locally owned temporary multiplayer child may close
     // without a save question. Completion still waits for save finalization.
     if(completion_||operation.isEmpty()||processId<=0||processId!=process_.processId()
        ||lifecycle_.state()!="running"||!exit.temporaryProgress()||!exit.available()
        ||exit.phase()!=AdventureExitController::Phase::Idle) {
-        done(false,"Automatic return is unavailable. Close the game safely before rejoining.");return;
+        done(false,"Return is unavailable. Close the game safely before rejoining.");return;
     }
     operation_=operation;processId_=processId;accountId_=account_();completion_=std::move(done);exiting_=true;
     if(!exit.requestExit())complete(false,"The game couldn't close safely. Rejoin from the lobby.");

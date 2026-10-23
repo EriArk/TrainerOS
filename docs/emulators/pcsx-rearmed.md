@@ -158,6 +158,15 @@ remain explicit. Ordinary core options, saves and adapter bindings are unchanged
 
 ## Checks, update and rollback
 
+23 October 2026 follow-up: the installed runtime/core hashes above were freshly
+verified on Flip/Odin. CTR US completed native P2 join, graceful guest exit and
+P2 rejoin while the host PID remained unchanged, with private session progress
+and unchanged personal configuration/save baselines. TrainerOS now admits this
+reviewed local core to the shared **Rejoin game** action; returning to Lobby or
+restoring signaling never launches the guest automatically. No core patch or
+ordinary memory-card migration is involved. See the current
+[return contract and bounded evidence](../LOBBY_LIVE_JOIN.md).
+
 Local fixture checks cover BIOS/content/sidecar changes, private directory cleanup,
 separate controller ports, unsupported descriptor rejection and unchanged ordinary
 cards/settings. See the dated preparation register for final build/test results.

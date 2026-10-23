@@ -130,16 +130,7 @@ private:
     QMap<int,QString> linkedPeers_;
     QMap<int,retroarch::LinkedSavePreparation*> linkedTransfers_;
     bool linked() const { return requiresLinkedSavePreparation(descriptor_); }
-    void fail(QString,bool connectionLost=false);
-    void recoverConnection();
-    void stopRecovery();
-    QTimer rejoinTimer_{this};
-    QString rejoinRoom_,rejoinTicket_,rejoinOperation_;
-    QJsonObject rejoinGame_;
-    quint64 rejoinAccount_=0;
-    qint64 rejoinUntil_=0,rejoinNext_=0,rejoinAttemptUntil_=0,rejoinProcess_=0;
-    int rejoinAttempts_=0;
-    bool rejoinClosing_=false;
+    void fail(QString);
     void pollRelay();
     void output(const QByteArray&);
     LibraryRepository& library_;RetroArchAdapter& adapter_;SocialController& social_;
