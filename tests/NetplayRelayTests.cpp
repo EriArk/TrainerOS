@@ -12,6 +12,61 @@ class NetplayRelayTests : public QObject {
         return {{"madrid",europe},{"nyc",america},{"saopaulo",south},{"singapore",asia}};
     }
 private slots:
+    void transientRegionFailureIsRetried_data() {
+        QTest::addColumn<bool>("tcpFailure");
+        QTest::addColumn<bool>("permanent");
+        QTest::newRow("directory-temporarily-unavailable")<<false<<false;
+        QTest::newRow("relay-temporarily-unreachable")<<true<<false;
+        QTest::newRow("directory-permanently-unavailable")<<false<<true;
+        QTest::newRow("relay-permanently-unreachable")<<true<<true;
+    }
+    void transientRegionFailureIsRetried() {
+        QFETCH(bool,tcpFailure);QFETCH(bool,permanent);
+        QTcpServer directory,relay,closed;
+        QVERIFY(directory.listen(QHostAddress::LocalHost));QVERIFY(relay.listen(QHostAddress::LocalHost));
+        QVERIFY(closed.listen(QHostAddress::LocalHost));const auto closedPort=closed.serverPort();closed.close();
+        int requests=0,connections=0;
+        connect(&relay,&QTcpServer::newConnection,&relay,[&]{while(auto* s=relay.nextPendingConnection()){++connections;s->disconnectFromHost();s->deleteLater();}});
+        connect(&directory,&QTcpServer::newConnection,&directory,[&]{
+            while(auto* socket=directory.nextPendingConnection())connect(socket,&QTcpSocket::readyRead,socket,[&,socket]{
+                const auto request=socket->readAll();QVERIFY(request.startsWith("GET /?name=madrid "));
+                ++requests;
+                const bool unavailable=(requests==1||permanent)&&!tcpFailure;
+                const auto port=(requests==1||permanent)&&tcpFailure?closedPort:relay.serverPort();
+                const QByteArray body=unavailable?QByteArray("temporarily unavailable"):
+                    "status=OK\ntunnel_addr=127.0.0.1\ntunnel_port="+QByteArray::number(port)+"\n";
+                socket->write(QByteArray(unavailable?"HTTP/1.1 503 Unavailable\r\n":"HTTP/1.1 200 OK\r\n")+
+                    "Content-Length: "+QByteArray::number(body.size())+"\r\nConnection: close\r\n\r\n"+body);
+                connect(socket,&QTcpSocket::disconnected,socket,&QObject::deleteLater);socket->disconnectFromHost();
+            });
+        });
+        NetplayRelaySelector selector;selector.directory_="http://127.0.0.1:"+QString::number(directory.serverPort())+"/?name=";
+        QSignalSpy selected(&selector,&NetplayRelaySelector::selected),failed(&selector,&NetplayRelaySelector::failed);
+        selector.start("host","host",{"host"},"madrid");
+        QTRY_VERIFY_WITH_TIMEOUT(!selected.isEmpty()||!failed.isEmpty(),5000);
+        QCOMPARE(selected.size(),permanent?0:1);QCOMPARE(failed.size(),permanent?1:0);
+        QCOMPARE(requests,2);QCOMPARE(connections,permanent?0:3);
+        if(!permanent)QCOMPARE(selected.first()[0].toString(),QString("madrid"));
+        QTest::qWait(300);QCOMPARE(requests,2); // A failed second attempt cannot start a retry loop.
+    }
+    void cancelledRetryCannotProbeTheNextSession() {
+        QTcpServer directory;QVERIFY(directory.listen(QHostAddress::LocalHost));
+        connect(&directory,&QTcpServer::newConnection,&directory,[&]{
+            while(auto* socket=directory.nextPendingConnection()) {
+                connect(socket,&QTcpSocket::readyRead,socket,[socket]{socket->readAll();});
+                connect(socket,&QTcpSocket::disconnected,socket,&QObject::deleteLater);
+            }
+        });
+        NetplayRelaySelector selector;selector.directory_="http://127.0.0.1:"+QString::number(directory.serverPort())+"/?name=";
+        QSignalSpy selected(&selector,&NetplayRelaySelector::selected),failed(&selector,&NetplayRelaySelector::failed);
+        selector.start("host","host",{"host"},"madrid");
+        selector.result("madrid",{},-1,selector.generation_); // Queue the retry, then cancel before it runs.
+        selector.stop();selector.start("host","host",{"host"},"nyc");
+        QTest::qWait(300);
+        QCOMPARE(selector.attempts_.size(),1);QCOMPARE(selector.attempts_.value("nyc"),1);
+        QVERIFY(!selector.attempts_.contains("madrid"));QCOMPARE(selected.size(),0);QCOMPARE(failed.size(),0);
+        selector.stop();QVERIFY(!selector.deadline_.isActive());
+    }
     void allPlayersChooseRegionInsteadOfHostOnly() {
         QMap<QString,QJsonObject> reports{{"host",scores(20,90)},{"guest",scores(220,80)}};
         QCOMPARE(NetplayRelaySelector::choose({"host","guest"},reports,"auto"),"nyc");

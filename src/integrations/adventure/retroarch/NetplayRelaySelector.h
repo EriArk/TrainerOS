@@ -35,6 +35,7 @@ private:
     QJsonObject local_;
     QMap<QString,QJsonObject> reports_;
     QMap<QString,QString> endpoints_;
+    QMap<QString,int> attempts_;
     quint64 generation_=0;
     bool complete_=false;
     // The Libretro tunnel directory serves HTTP; port 443 is not available.

@@ -55,7 +55,7 @@ void NetplayRelaySelector::stop() {
         // stop() may run inside selected/failed, while a socket emits connected.
         old->deleteLater();
     }
-    pending_.clear();players_.clear();reports_.clear();endpoints_.clear();local_={};complete_=false;
+    pending_.clear();players_.clear();reports_.clear();endpoints_.clear();attempts_.clear();local_={};complete_=false;
 }
 void NetplayRelaySelector::start(QString self,QString owner,QStringList players,QString preference) {
     stop();self_=std::move(self);owner_=std::move(owner);players_=std::move(players);preference_=std::move(preference);
@@ -63,11 +63,15 @@ void NetplayRelaySelector::start(QString self,QString owner,QStringList players,
         emit failed("The relay selection context changed. Prepare the lobby again.");return;
     }
     probes_=new QObject(this);pending_=preference_=="auto"?netplayRelay::regions():QStringList{preference_};
-    deadline_.start(self_==owner_?20000:25000);
+    // Two bounded directory/sample attempts need at most 19.2 s per region.
+    // Leave time for the other players' reports; never retry indefinitely.
+    deadline_.start(self_==owner_?25000:30000);
     const auto regions=pending_;const auto generation=generation_;
     for(const auto& region:regions)probe(region,generation);
 }
 void NetplayRelaySelector::probe(QString region,quint64 generation) {
+    if(generation!=generation_||!pending_.contains(region))return;
+    ++attempts_[region];
     QNetworkRequest request{QUrl(directory_+region)};request.setTransferTimeout(5000);
     auto* reply=network_.get(request);reply->setParent(probes_);reply->setReadBufferSize(4097);
     auto data=std::make_shared<QByteArray>();
@@ -81,7 +85,14 @@ void NetplayRelaySelector::probe(QString region,quint64 generation) {
     });
 }
 void NetplayRelaySelector::result(QString region,QString endpoint,int score,quint64 generation) {
-    if(generation!=generation_||!pending_.removeOne(region))return;
+    if(generation!=generation_||!pending_.contains(region))return;
+    if(score<0&&attempts_.value(region)<2&&probes_) {
+        // A single lost request/handshake must not discard an otherwise good
+        // region. Resolve it afresh, including when the host chose it manually.
+        QTimer::singleShot(200,probes_,[this,region,generation]{probe(region,generation);});
+        return;
+    }
+    pending_.removeOne(region);
     local_[region]=score;if(score>=0)endpoints_[region]=endpoint;
     if(!pending_.isEmpty())return;
     if(self_==owner_) {reports_[self_]=local_;decide();}
