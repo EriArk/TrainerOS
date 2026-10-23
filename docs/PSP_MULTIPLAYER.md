@@ -1,5 +1,15 @@
 # Standalone PSP multiplayer research
 
+**23 October long-outage follow-up:** relay recovery now keeps retrying with
+one/five-second cooldowns instead of permanently disabling itself after 15 seconds
+of failure. Blocking handshake/partial I/O waits are bounded; Linux active relay
+TCP connections use a per-socket user timeout. The network can recover while the
+same game remains open; selecting/joining a match remains a native game action.
+Build `b5acbf94…` is installed on both handhelds. Tekken 6 rediscovered its peer
+and loaded a fight in the same processes after an isolated relay outage longer
+than a minute. It supersedes the receive-only installed build described below.
+[Reproduction, exact builds and limits](emulators/ppsspp.md#long-outage-recovery--23-october-2026).
+
 **23 October relay repair:** the repaired PPSSPP build `6db5a5bc…` is installed
 on Flip/Odin in a separate `traineros-relay` Flatpak branch, with stable retained.
 The upstream receive-buffer fix and bounded status/poll integration correct

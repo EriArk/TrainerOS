@@ -1,5 +1,91 @@
 # PPSSPP maintenance
 
+## Long-outage recovery — 23 October 2026
+
+Follow-up to the receive repair below; ownership remains S03/S07 through F04/F12,
+with S06 preserving deliberate launch intent. This changes the existing Ad Hoc
+transport, not native game matchmaking or automatic PSP relaunch.
+
+Two additional failures were localized:
+
+- PPSSPP 1.20.4 permanently sets `relayDisabled` after 15 seconds of repeated
+  relay failures. Only Ad Hoc initialization clears it. On the previously delivered
+  `6db5a5bc…` pair, stopping the isolated relay produced 863/924 failed PDP creates
+  within 15 seconds; after relay restart neither process opened a new relay TCP
+  connection. This is a reproduced recovery defect, not an inferred timing tweak.
+- The pinned library's blocking handshake and partially completed sends/reads
+  have no deadline. A real loopback TCP server that accepted but withheld its
+  handshake kept the old call blocked until the server closed at 900 ms. With
+  the fixture's 300 ms deadline the repaired call returned at 301 ms, released
+  its slot and connected successfully on a subsequent attempt.
+
+[Retry patch](../../tools/ppsspp-relay/relay-retry.patch) replaces permanent
+disable with a shared retry cooldown: one second initially, five seconds after
+15 seconds of failure. Existing handles are usable during cooldown; allocating
+an emulated socket does not fail merely because another socket needs recovery.
+Success/new Ad Hoc initialization resets the cooldown. Retries prepare transport
+only; the player still chooses a native challenge/join action.
+
+[Socket patch](../../tools/ppsspp-relay/socket-timeout.patch) bounds unfinished
+blocking wire operations to 15 seconds and waits using `poll`, replacing the
+busy retry loop. A partially transmitted/received frame fails as a connection
+error; it is never retried as a new frame on the same stream. Existing close and
+slot cleanup paths own recovery. Linux relay sockets also set `TCP_USER_TIMEOUT`
+to 15000 ms for unacknowledged/zero-window data; this is per-socket, not a system
+TCP policy change. It does not time out an otherwise idle connection.
+[Linux socket contract](https://man7.org/linux/man-pages/man7/tcp.7.html).
+
+The pinned TCP protocol and PPSSPP version remain unchanged. The reviewed
+[current upstream PPSSPP source](https://github.com/hrydgard/ppsspp/blob/master/Core/HLE/sceNetAdhoc.cpp)
+still contains the permanent-disable path; newer aemu client work also introduces
+ENet and API changes. These bounded patches avoid importing that wider migration.
+They do not make a disconnected match continue uninterrupted: after a long loss,
+the game may report failure and require a new native challenge.
+
+### Regression and delivery
+
+The build runs the earlier PDP/PTP receive fixture, the real TCP
+[stall/reconnect fixture](../../tools/ppsspp-relay/relay-timeout-test.c), and
+[retry policy checks](../../tools/ppsspp-relay/relay-retry-test.cpp) against the
+header actually applied to PPSSPP. Coverage includes repeated failed handshakes
+followed by success, full send buffers, immediate nonblocking refusal, partial
+receive timeout, cooperative abort, the old 15-second boundary and cooldown reset.
+The production timeout was also measured without the fixture override: 15000 ms.
+`getsockopt` confirms the Linux user timeout on a real created relay socket.
+
+Installed ARM64 binary SHA-256:
+`b5acbf94ee69f270b55759cc84e22d4ee54798e9e0eb6d438d2ae87cbe5c9906`.
+Settings append `-relay-recovery-v2`, separating unverified mixed old/new pairs;
+prior exact hashes remain admitted for rollback. Package commit:
+`21749139b4a4a69726c2f49defec833f1494791ced9b8da9833d0cc98fb2b926`;
+bundle SHA-256:
+`2fd2c7dbbba0ebfcf83155ee539879da6c2b676cd8001172fc751f82850ad79b`.
+
+On both handhelds the repaired build kept the same game processes through an
+isolated relay outage longer than 60 seconds. Each recorded 25 failed PDP creates
+over about 61 seconds, following the one/five-second cooldown instead of the
+baseline's hundreds of requests followed by permanent disable. After relay
+restart both re-established two TCP connections, rediscovered the opponent in
+Tekken 6's native Battle Lobby, and loaded a new fight through challenge/accept.
+The round timer advanced; this is recovery and loading evidence, not a new full
+match or independent physical-input claim. The temporary relay was then stopped.
+This forced local-relay case does not establish WAN or silent packet-blackhole
+recovery; the latter's per-socket timeout is covered by configuration/fixture checks.
+
+The package is installed as the current `traineros-relay` branch on Flip/Odin;
+the original stable package remains available for rollback. Both default package
+resolution and a live installed game process matched the binary hash above.
+Freedesktop Platform packages were retained. Shell SHA-256
+`dfd6e1179c775c6b77e8c48255acdb8c22c02ad9ab3f7ebc4e1b9c1a30c424de`
+is installed and running on both; live hashes match, QML errors are zero.
+The five ARM64 suites (`standalone`, `lobby`, `game_party`, `runtime_multiplayer`,
+`social`) passed in 118.39 seconds; adapter export/knowledge checks also passed.
+Diagnostics used copied private settings/saves. Both games closed normally;
+original SYSTEM/SAVEDATA hashes were unchanged and device output remains zero.
+The receive-only builds below are retained historical evidence, superseded on
+both devices by this recovery build. Coordination-server loss remains a separate
+failure path from the relay outage tested here.
+
 ## Relay receive repair — 23 October 2026
 
 The reported Tekken 6 loading/disconnect problem is being investigated separately

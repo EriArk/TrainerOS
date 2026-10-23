@@ -83,9 +83,11 @@ QJsonObject netplayIdentity(const AdventureRegistration& r,const StandaloneInsta
     const auto runtime=retroarch::fileDigest(i.runtimeFile,256*1024*1024,cancel);
     // Admit the reviewed relay repair and retain the original build for rollback.
     // Wire/settings identity remains independent of the device's executable hash.
-    const bool repairedRelay=runtime=="6db5a5bc7263b930b29fa6a65348c8a292acdb38306b74bdee071a22c5339834";
+    const bool boundedRecovery=runtime=="b5acbf94ee69f270b55759cc84e22d4ee54798e9e0eb6d438d2ae87cbe5c9906";
+    const bool repairedRelay=boundedRecovery||runtime=="6db5a5bc7263b930b29fa6a65348c8a292acdb38306b74bdee071a22c5339834";
     if(!repairedRelay&&runtime!="c99cec693067f8c94ae0d8b5e7299392ed5c0cfae3f8231176ed25ea6c155dfc")return {};
-    const QString relaySettings=repairedRelay?QStringLiteral("-relay-recv-v1"):QString();
+    const QString relaySettings=boundedRecovery?QStringLiteral("-relay-recovery-v2"):
+        repairedRelay?QStringLiteral("-relay-recv-v1"):QString();
     QString content;
     // Preserve the exact installed route independently of the new format probe.
     if(QFileInfo(r.contentPath).size()==209911808) {

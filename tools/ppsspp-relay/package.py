@@ -40,6 +40,10 @@ def main():
     assert run("git", "-C", str(source / "ext/aemu_postoffice"), "rev-parse", "HEAD") == RELAY_REV
     subprocess.run(["git", "-C", str(source), "apply", "--reverse", "--check",
                     str(recipe / "pdp-stat.patch")], check=True)
+    subprocess.run(["git", "-C", str(source), "apply", "--reverse", "--check",
+                    str(recipe / "relay-retry.patch")], check=True)
+    subprocess.run(["git", "-C", str(source / "ext/aemu_postoffice"), "apply", "--reverse", "--check",
+                    str(recipe / "socket-timeout.patch")], check=True)
     base = Path(run("flatpak", "info", "--system", "--show-location",
                     f"app/{APP}/aarch64/stable"))
     assert digest(base / "files/bin/PPSSPPSDL") == BASE_HASH, "Unreviewed base package"
@@ -54,7 +58,8 @@ def main():
     shutil.copy2(binary, target)
     evidence = stage / "files/share/traineros-relay"
     evidence.mkdir(parents=True)
-    for name in ("build.sh", "pdp-stat.patch", "relay-receive-test.c", "package.py"):
+    for name in ("build.sh", "pdp-stat.patch", "relay-receive-test.c", "package.py",
+                 "relay-retry.patch", "socket-timeout.patch", "relay-timeout-test.c", "relay-retry-test.cpp"):
         shutil.copy2(recipe / name, evidence / name)
     licence = recipe / "LICENSE"
     if not licence.is_file():
@@ -69,6 +74,8 @@ def main():
         "sdk": "org.freedesktop.Sdk/aarch64/25.08",
         "branch": BRANCH,
         "patchSha256": digest(recipe / "pdp-stat.patch"),
+        "retryPatchSha256": digest(recipe / "relay-retry.patch"),
+        "timeoutPatchSha256": digest(recipe / "socket-timeout.patch"),
     }, indent=2) + "\n", encoding="utf-8")
     repo = work / "repo"
     subprocess.run(["flatpak", "build-export", "--arch=aarch64",
