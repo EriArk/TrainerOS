@@ -478,11 +478,13 @@ QString prepareNetplay(ProcessCommand& cmd,const AdventureRegistration& r,const 
     bytes+="netplay_start_as_spectator = \""+QByteArray(usesSharedController(identity)&&!request.host?"true":"false")+"\"\n";
     if(usesSharedController(identity))bytes+="netplay_share_analog = \"0\"\nquit_press_twice = \"false\"\nstdin_cmd_enable = \"true\"\n";
     bytes+=controllers;
-    if(!handheld&&!ps2) {
+    if(identity["transport"]!="netpacket"&&!ps2) {
         // Let upstream rollback trade bounded input delay for replay work when
         // late inputs exceed the core's spare frame budget. Inherited 0/0 locks
         // this adaptation off, particularly costly for PS1. This is session-only;
         // the host's native LATENCY command negotiates the same bounds to peers.
+        // Linked SameBoy/mGBA also use rollback; their battery-save policy must
+        // not accidentally disable this adaptation. Netpacket remains separate.
         bytes+="netplay_input_latency_frames_min = \"0\"\n"
                "netplay_input_latency_frames_range = \"6\"\n";
     }

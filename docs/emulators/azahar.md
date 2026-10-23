@@ -1,5 +1,8 @@
 # Azahar: native 3DS wireless rooms
 
+**23 October 2026 ? NetPlay cache repair:** The private user profile now links only `shaders` to a persistent cache keyed by the runtime digest. Own NAND/SDMC and private configuration policies are unchanged.
+[Implementation, installed build and acceptance limits](../NETPLAY_PLATFORM_REPAIR_2026_10_23.md).
+
 ## Handheld delivery — 12 October 2026
 
 Azahar [2126.2](https://github.com/azahar-emu/azahar/releases/tag/2126.2), revision

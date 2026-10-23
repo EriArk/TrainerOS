@@ -1,4 +1,5 @@
 #include "RmgNetplay.h"
+#include "NetplayCache.h"
 #include "core/model/GamePlayers.h"
 #include <QCryptographicHash>
 #include <QDateTime>
@@ -114,7 +115,8 @@ ProcessCommand command(const AdventureRegistration& r,const QJsonObject& expecte
         auto dir=std::make_shared<QTemporaryDir>(QDir::tempPath()+"/trainer-rmg-XXXXXX");
         if(!dir->isValid())return "Couldn't prepare temporary Nintendo 64 progress.";
         const auto root=dir->path();
-        if(!QDir().mkpath(root+"/config/RMG")||!QDir().mkpath(root+"/data")||!QDir().mkpath(root+"/cache"))
+        if(!QDir().mkpath(root+"/config/RMG")||!QDir().mkpath(root+"/data")||
+           !prepareNetplayCache(root+"/cache","rmg",expected["runtime"].toString()))
             return "Couldn't prepare temporary Nintendo 64 progress.";
         const QJsonObject session{{"protocol",1},{"address",address},{"port",port},{"controller",controller},
             {"renderer",expected["settings"].toString().endsWith("-vulkan")?"vulkan":"opengl"}};
@@ -160,8 +162,10 @@ ProcessCommand privateCommand(const AdventureRegistration& r,const Lobby::Reques
         auto dir=std::make_shared<QTemporaryDir>(QDir::tempPath()+"/trainer-rmg-online-XXXXXX");
         if(!dir->isValid())return "Couldn't prepare temporary Nintendo 64 progress.";
         const auto user=dir->path()+"/user";
-        for(const auto& name:{"config/RMG","data","cache"})
+        for(const auto& name:{"config/RMG","data"})
             if(!QDir().mkpath(user+"/"+name))return "Couldn't prepare temporary Nintendo 64 progress.";
+        if(!prepareNetplayCache(user+"/cache","rmg",request.identity["runtime"].toString()))
+            return "Couldn't prepare the graphics cache.";
         QJsonObject channels;
         const auto addChannel=[&](int peer,int guest) {
             const auto key=QString::fromLatin1(QCryptographicHash::hash(

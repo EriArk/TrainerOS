@@ -19,16 +19,25 @@ public:
     virtual QList<ResumePoint> resumePoints() const = 0;
     virtual void refreshResumePoints(const QString& = {}) {}
     virtual QList<PlaySession> recentSessions() const { return {}; }
+    virtual PlayerHistory playerHistory() const { return {}; }
     virtual QList<PlaySession> gameSessions(const QString& id) const {
         QList<PlaySession> result;
         for (const auto& session : recentSessions()) if (session.adventureId == id) result.append(session);
         return result;
     }
     virtual std::optional<ExitMedia> exitMedia(const QString&) const { return {}; }
+    virtual std::optional<QVariantList> screenMedia() const { return {}; }
+    virtual void setScreenFavoriteAsync(const QString&,bool,QObject*,std::function<void(QString)> done) {
+        done("Photo storage is unavailable.");
+    }
     virtual QVariantMap artwork(const QString&) const { return {}; }
+    virtual void setFavoriteAsync(const QString&, bool, QObject*, std::function<void(QString)> done) {
+        done("Favorites cannot be edited in this library.");
+    }
     // Cached presentation identity, independent of visible artwork preferences.
     virtual QVariantMap experienceIdentity(const QString&) const { return {}; }
     virtual std::optional<qint64> recordedSeconds(const QString&) const { return {}; }
+    virtual qint64 gameSessionCount(const QString& id) const { return gameSessions(id).size(); }
     virtual HomeSnapshot home() const = 0;
     virtual bool editable() const { return false; }
     virtual QString storageRootFor(const QString&) const { return {}; }

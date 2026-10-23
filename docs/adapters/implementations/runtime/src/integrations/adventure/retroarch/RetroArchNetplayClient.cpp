@@ -29,6 +29,7 @@ NetplayClient::NetplayClient(QObject* parent) : QObject(parent) {
             socket->setReadBufferSize(BufferLimit);
             socket->setSocketOption(QAbstractSocket::LowDelayOption, 1);
             connect(socket, &QTcpSocket::readyRead, this, &NetplayClient::pumpLocal);
+            connect(socket, &QTcpSocket::bytesWritten, this, [this]{ pumpRemote(); });
             connect(socket, &QTcpSocket::disconnected, this, [this]{
                 if (running_) fail("The game disconnected from multiplayer.");
             });
@@ -42,6 +43,7 @@ NetplayClient::NetplayClient(QObject* parent) : QObject(parent) {
         pumpLocal();
     });
     connect(&remote_, &QTcpSocket::readyRead, this, &NetplayClient::pumpRemote);
+    connect(&remote_, &QTcpSocket::bytesWritten, this, [this]{ pumpLocal(); });
     connect(&remote_, &QTcpSocket::errorOccurred, this, [this]{
         if (running_) fail(authenticated_ ? "The multiplayer connection ended."
                                          : "Couldn't connect to your friend's game.");
@@ -93,7 +95,12 @@ bool NetplayClient::write(QTcpSocket& socket, const QByteArray& bytes) {
 }
 void NetplayClient::pumpLocal() {
     if (!running_ || !local_ || remote_.state() != QAbstractSocket::ConnectedState) return;
-    localBuffer_ += local_->readAll();
+    // A large state or a temporarily slow peer must exert TCP backpressure,
+    // not turn our bounded write queue into a disconnect threshold. Reserve
+    // room for the PASSWORD packet inserted during the native handshake.
+    const auto room = BufferLimit - remote_.bytesToWrite() - localBuffer_.size()
+        - (authenticated_ ? 0 : 112);
+    if (room > 0) localBuffer_ += local_->read(room);
     if (localBuffer_.size() > BufferLimit) { fail("The multiplayer connection stopped responding."); return; }
     // RetroArch 1.22.2 protocol: 24-byte header, then NICK(0x20, 32 bytes).
     if (!localHeader_) {
@@ -128,7 +135,8 @@ void NetplayClient::pumpLocal() {
 void NetplayClient::pumpRemote() {
     if (!running_ || !local_) return;
     const auto generation = generation_;
-    const auto received = remote_.readAll();
+    const auto room = BufferLimit - local_->bytesToWrite() - remoteBuffer_.size();
+    const auto received = room > 0 ? remote_.read(room) : QByteArray();
     if (observeHotseat_ && !observer_.feed(received)) {
         fail("Controller ownership couldn't be confirmed. End this session and invite again."); return;
     }

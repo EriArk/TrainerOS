@@ -107,6 +107,8 @@ private slots:
             QVERIFY(!cmd.runtimeControls["temporaryProgress"].toBool());
             QCOMPARE(cmd.arguments[cmd.arguments.indexOf("--sram-mode")+1],QString("load-save"));
             const auto config=retroarch::readSettings(cmd.arguments[cmd.arguments.indexOf("--appendconfig")+1]);
+            QCOMPARE(config["netplay_input_latency_frames_min"],QString("0"));
+            QCOMPARE(config["netplay_input_latency_frames_range"],QString("6"));
             const auto path=config["savefile_directory"],main=path+"/player-"+QString::number(slot)+saveSuffix(slot),guest=path+"/.netplay/player-"+QString::number(slot)+saveSuffix(slot);
             QCOMPARE(read(main),seed.bytes);
             const auto options=retroarch::readSettings(config["core_options_path"]);
@@ -334,6 +336,7 @@ private slots:
             QCOMPARE(cmd.arguments[cmd.arguments.indexOf("--libretro")+1],i.cores["gpsp"]);
             const auto settings=retroarch::readSettings(cmd.arguments[cmd.arguments.indexOf("--appendconfig")+1].section('|',-1));
             QCOMPARE(settings["input_max_users"],QString("1"));
+            QVERIFY(!settings.contains("netplay_input_latency_frames_range"));
             QCOMPARE(retroarch::readSettings(settings["core_options_path"])["gpsp_serial"],QString("rfu"));
             const auto session=settings["savefile_directory"],output=session+(host?"/":"/.netplay/")+"arbitrary.srm";
             QCOMPARE(read(output),before);QByteArray padded=after;padded.resize(131072);QVERIFY(write(output,padded));

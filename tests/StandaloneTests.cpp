@@ -314,6 +314,45 @@ private slots:
         QVERIFY(dolphin::configureNetplay(rejected,i,"/roms/Game.iso",r,cancel).contains("address"));
     }
 
+    void dolphinReinvitationRetainsShadersButDiscardsSessionProgress() {
+#ifndef Q_OS_UNIX
+        QSKIP("The installed NetPlay runtimes use Unix cache links.");
+#endif
+        QTemporaryDir dir;QVERIFY(dir.isValid());
+        const auto oldCache=qgetenv("XDG_CACHE_HOME");
+        const auto oldMode=QStandardPaths::isTestModeEnabled();
+        QStandardPaths::setTestModeEnabled(false);
+        qputenv("XDG_CACHE_HOME",dir.filePath("cache").toUtf8());
+        const auto restore=qScopeGuard([&]{
+            if(oldCache.isNull())qunsetenv("XDG_CACHE_HOME");else qputenv("XDG_CACHE_HOME",oldCache);
+            QStandardPaths::setTestModeEnabled(oldMode);
+        });
+        write(dir.filePath("Dolphin.ini"),"ordinary settings");
+        write(dir.filePath("GCPadNew.ini"),"[GCPad1]\nDevice = SDL/0/Gamepad\n");
+        StandaloneInstallation installation{probe(),probe(),{},{"gc"},dir.filePath("Dolphin.ini")};
+        dolphin::NetplayRequest request{{{"runtime",QString(64,'a')}},true,false,{},QString(32,'b'),2626,1,{1,2}};
+        ProcessCommand first;std::atomic_bool cancel=false;
+        QVERIFY(dolphin::configureNetplay(first,installation,"/roms/game.iso",request,cancel).isEmpty());
+        const auto session=first.arguments.last();
+        const auto cache=QFileInfo(session+"/Cache/Shaders").canonicalFilePath();
+        QVERIFY(cache.startsWith(dir.filePath("cache/TrainerOS/netplay/")));
+        write(session+"/Cache/Shaders/pipeline.cache","compiled renderer cache");
+        QVERIFY(QDir().mkpath(session+"/GC"));write(session+"/GC/card.raw","temporary progress");
+        first.settled({});QVERIFY(!QFileInfo::exists(session));
+        QVERIFY(QFileInfo::exists(cache+"/pipeline.cache"));
+        ProcessCommand next;
+        QVERIFY(dolphin::configureNetplay(next,installation,"/roms/game.iso",request,cancel).isEmpty());
+        QFile shader(next.arguments.last()+"/Cache/Shaders/pipeline.cache");QVERIFY(shader.open(QIODevice::ReadOnly));
+        QCOMPARE(shader.readAll(),QByteArray("compiled renderer cache"));shader.close();
+        QVERIFY(!QFileInfo::exists(next.arguments.last()+"/GC/card.raw"));next.settled({});
+        request.expected["runtime"]=QString(64,'c');
+        ProcessCommand updated;
+        QVERIFY(dolphin::configureNetplay(updated,installation,"/roms/game.iso",request,cancel).isEmpty());
+        QVERIFY(!QFileInfo::exists(updated.arguments.last()+"/Cache/Shaders/pipeline.cache"));updated.settled({});
+        QFile original(dir.filePath("Dolphin.ini"));QVERIFY(original.open(QIODevice::ReadOnly));
+        QCOMPARE(original.readAll(),QByteArray("ordinary settings"));
+    }
+
     void pspRawDiscProbeRejectsAmbiguityAndOutOfBounds() {
         QTemporaryDir dir;std::atomic_bool cancel=false;
         const auto entry=[](quint32 sector,quint32 bytes,const QByteArray& name,bool directory) {

@@ -3,7 +3,7 @@
   "platform": "psx",
   "romSha256": "",
   "state": "partial",
-  "record": "../MULTIPLAYER_PREPARATION.md",
+  "record": "../NETPLAY_STABILITY_2026_10_23.md",
   "implementationSource": "src/integrations/adventure/retroarch/RetroArchNetplay.cpp",
   "evidence": [
     "upstream-netplay-and-deterministic-state-contract",

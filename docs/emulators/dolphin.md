@@ -1,5 +1,8 @@
 # Dolphin integration checkpoint
 
+**23 October 2026 ? NetPlay cache repair:** The session-owned profile now links only `Cache/Shaders` to a persistent renderer cache keyed by the runtime digest. Two native launches on each handheld retained six cache files; temporary GC/NAND/config paths remain isolated.
+[Implementation, installed build and acceptance limits](../NETPLAY_PLATFORM_REPAIR_2026_10_23.md).
+
 ## Ordinary launch sweep — 18 October 2026
 
 Odin's ordinary GCPad/Wiimote `Device` still named `SDL/0/Steam Virtual Gamepad`,

@@ -15,6 +15,17 @@ inline bool multiplayerConnectionAllowed(const QJsonObject& profile,const QStrin
     for(const auto& value:list)if(value!="nearby"&&value!="online")return false;
     return list.contains(connection);
 }
+// Display only LOCAL admitted runtime profiles. Catalogue player counts cannot
+// create a mode, and an unknown future runtime does not inherit an icon.
+inline QVariantMap multiplayerPresentation(const QJsonObject& profile) {
+    if(profile.isEmpty() || (!multiplayerConnectionAllowed(profile,"nearby") && !multiplayerConnectionAllowed(profile,"online")))return {};
+    const auto id=profile["id"].toString();QString kind,label;
+    if(id.startsWith("runtime.handheld.") && profile["transport"]=="netpacket"){kind="link";label="Link";}
+    else if(id.startsWith("runtime.retroarch.") || id.startsWith("runtime.dolphin.") || id=="runtime.rmg.n64.v1" || id=="runtime.flycast-dojo.dc.v1"){kind="netplay";label="Netplay";}
+    else if(id.startsWith("runtime.ppsspp.") || id=="runtime.azahar.3ds.v1" || id=="runtime.melonds.nds.v1" || id=="runtime.vita3k.lan.v1"){kind="wireless";label="Wireless";}
+    if(kind.isEmpty())return {};
+    return {{"id",kind},{"label",label},{"nearby",multiplayerConnectionAllowed(profile,"nearby")},{"online",multiplayerConnectionAllowed(profile,"online")}};
+}
 // Reviewed paired-machine routes prepare two opaque batteries before launch.
 inline bool requiresLinkedSavePreparation(const QJsonObject& profile) {
     const auto mode=profile.value("settings").toString();

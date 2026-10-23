@@ -1,5 +1,8 @@
 # Nintendo 64 native netplay — 11 October 2026
 
+**23 October 2026 ? NetPlay cache repair:** Both direct and private-LAN commands retain their XDG renderer cache across invitations, keyed by the runtime digest. The earlier statement that every XDG cache is fresh is superseded; config/data/save roots remain private.
+[Implementation, installed build and acceptance limits](../NETPLAY_PLATFORM_REPAIR_2026_10_23.md).
+
 **12 October catalogue compatibility correction:** the installed TrainerOS
 profile explicitly declares the unchanged native four-port ceiling separately
 from its catalogue-derived party limit. Two compatible copies with incomplete
