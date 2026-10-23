@@ -1,10 +1,21 @@
 # Standalone PSP multiplayer research
 
+**23 October relay repair:** the repaired PPSSPP build `6db5a5bc…` is installed
+on Flip/Odin in a separate `traineros-relay` Flatpak branch, with stable retained.
+The upstream receive-buffer fix and bounded status/poll integration correct
+fragmented TCP reads, dead connections and queued-data visibility. Session focus
+loss/minimize no longer inherits solo pause preferences. TrainerOS prepares the
+network and launch; PSP discovery/challenge/reconnection remain native game actions.
+Entering Lobby/chat does not relaunch PSP. A full Tekken 6 match and a new challenge
+after a temporary local relay restart passed on copied game storage, without
+restarting either emulator. This does not identify every reported Tekken failure
+or certify WAN stability. [Pins, reproduction, delivery and rollback](emulators/ppsspp.md).
+
 **11 October source continuation:** the [generic raw-ISO preparation](emulators/ppsspp.md#generic-ad-hoc-preparation--11-october-2026)
 extends invitations and launch beyond exact Lumines using the same native Ad Hoc
 and relay. The records below remain exact Lumines evidence; they do not certify
-new games, four-client play or private game-room admission. Device checks are
-deferred while the handhelds are off.
+new games, four-client play or private game-room admission. The device availability
+statement from that source pass is historical; current evidence is recorded above.
 
 2026-10-03, block 1; **researching, not accepted**. Both handhelds have PPSSPP
 1.20.4. First target: the owner's Lumines - Puzzle Fusion (US) ISO, 209911808 bytes,

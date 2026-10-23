@@ -1,5 +1,124 @@
 # PPSSPP maintenance
 
+## Relay receive repair — 23 October 2026
+
+The reported Tekken 6 loading/disconnect problem is being investigated separately
+from the earlier Lumines acceptance. The reproducible defect is in the relay
+client shipped with PPSSPP 1.20.4, not a demonstrated device-specific clock fix.
+Remote Play and automatic PSP relaunch are outside this change. TrainerOS prepares
+the Ad Hoc transport; native game controls still own finding/rejoining a match.
+
+### Source and bounded change
+
+- PPSSPP stays on tag `v1.20.4`, commit
+  `fa50bb1976065c4f8b1b47af227d367fe9771555`.
+- Replace its aemu_postoffice pin `530fee545c27ffb8524a8f496cbbcfdb687fe8c5`
+  with maintained upstream commit `572de778fabcbda819ab0f677368c3fbc3033e19`.
+  This brings the upstream PDP/PTP receive ring buffers, EOF detection and
+  `pdp_buffered_data_size`; it does not introduce a TrainerOS network protocol.
+- [Integration patch](../../tools/ppsspp-relay/pdp-stat.patch) makes PDP status
+  report complete queued payload bytes, caps the result to the emulated socket
+  buffer and clears a dead handle. Poll receive readiness now consults buffered
+  PDP/PTP data, because a drained OS socket may still have readable library data.
+  Native direct/LAN socket handling is unchanged.
+- Session-only `PauseOnLostFocus=False` and `PauseWhenMinimized=False` prevent
+  ordinary solo preferences from stopping the emulated peer on Home/chat/minimize.
+  Generic settings identity is `ppsspp-adhoc-native-clock-focus-v2`; exact Lumines
+  uses `ppsspp-adhoc-isolated-config-clock-focus-v3`. The repaired binary adds
+  `-relay-recv-v1` to either identity, keeping an unverified mixed old/new pair
+  separate while retaining the original build for rollback. Global/per-game originals,
+  controller bindings, unique MAC and saves remain owned by each device.
+- Generic `ForceLagSync2=False` and exact Lumines `True` remain unchanged. Tekken
+  completed one two-round Online match in each clock mode; that comparison does
+  **not** establish a clock cause or justify a new universal timing override.
+
+Owners remain S03 (runtime/session/save), S06 (Lobby intent) and S07 (connection),
+through existing F04/F12. No new manager, automatic launch trigger or PSP Rejoin
+policy is introduced.
+
+TrainerOS ARM64 build and the five `standalone`, `lobby`, `game_party`,
+`runtime_multiplayer`, `social` suites passed after the final discovery change.
+Tests cover session-only pause overrides/original config preservation, current
+Flatpak branch selection with rollback and user-installation precedence.
+Shell SHA-256 `b0fdbd39f234b8649ab81468c6b4ef15ea8bbe72d0d557caf6e90e0a76968b64`
+is installed and running on both Flip/Odin; live hashes match and QML errors are
+zero. Adapter export/knowledge checks passed. Wi-Fi power save remains off and
+device output volume remains zero. The shell's change selects the installed
+branch; it does not automatically launch or rejoin a PSP game.
+
+### Reproduction and validation
+
+[Local stream-socket fixture](../../tools/ppsspp-relay/relay-receive-test.c) uses
+no public service or game data. Built against the exact old library with
+`-DLEGACY_RELAY`, it reproduces EOF as WOULD_BLOCK (-4) with the handle still alive,
+and a nonblocking receive that waits for the delayed remainder of a packet.
+The old status path reports 72 bytes for queued 72 + 120 byte messages.
+
+Against the new pin it verifies DEAD (-3) on EOF, WOULD_BLOCK for a partial
+message, intact later receipt, all 192 queued bytes, repeated ring wrap, retained
+PTP data across short reads and PTP EOF. It also confirms that an empty OS read
+set can coexist with complete data in the library, requiring the poll integration
+above. The earlier timed probe measured roughly 300 ms waiting in the old read
+versus immediate return in the new read; these are defect reproduction results,
+not game latency benchmarks.
+
+Unmodified-game diagnostics used **copies** of both devices' configuration and
+SAVEDATA. Tekken 6 ULUS10466 completed a Nearby match with a win/loss result, and
+Online two-round draw matches with clock synchronization both on and off. One
+earlier Online run disconnected; a separate Flip `VK_ERROR_DEVICE_LOST` incident
+is a graphics failure, not evidence of a relay fault. Rematch was not established.
+Original SYSTEM/SAVEDATA hashes remained unchanged. The socket defects are proven;
+a causal link to every reported Tekken disconnect is not yet proven.
+
+The repaired ARM64 pair completed a full Tekken 6 match with win/loss results
+through an isolated, forced **local** aemu relay. After stopping/restarting that
+relay in the native opponent lobby, both existing game processes rediscovered
+each other; a new native challenge loaded an arena and the round timer progressed.
+No TrainerOS Rejoin or emulator restart was involved. This is same-network relay
+and native recovery evidence, not different-network reliability certification.
+The temporary relay was stopped afterwards; no permanent service was installed.
+Diagnostic games used copied saves, and original SYSTEM/SAVEDATA hashes matched
+after both processes closed. Rematch-menu timing remains unverified.
+
+### Build and package
+
+[Build recipe](../../tools/ppsspp-relay/build.sh) uses the same Freedesktop SDK
+`aarch64/25.08` as the installed Flatpak generation, pinned submodules, the patch
+and the regression fixture. It builds the SDL executable without replacing the
+installed application. The ARM64 executable built successfully with SHA-256
+`6db5a5bc7263b930b29fa6a65348c8a292acdb38306b74bdee071a22c5339834`.
+Dynamic dependencies and relocations resolve in the installed Flatpak runtime
+on both devices. The repaired package is installed and selected on Flip/Odin;
+default `flatpak run` resolves the exact executable above. The system `stable`
+branch remains installed for rollback. Bundle SHA-256:
+`f3eb92200499e1639e7f4d440c58c5e506d5a243e10846384bb40626a1a03700`;
+OSTree application commit:
+`8fcacc9a8f8578588f376c8503a22b72266f73f12ce34bab326e731a92f87024`.
+Odin's first install also updated its 25.08 Platform/extensions; Flip's install
+used `--no-deps --no-related` to retain its existing runtime. Dependency/relocation
+checks passed under both installed runtime revisions. These are separate from
+the pre-install candidate gameplay checks above. Both installed binaries also
+rendered the Tekken startup screen with matching live executable hashes. One Odin
+diagnostic exit took about 53 seconds while its opt-in debugger waited for HTTP
+startup; it then exited normally. This diagnostic-only delay is not counted as
+an Ad Hoc disconnect or hidden by force-killing the process. Original files
+matched after exit.
+
+[Package recipe](../../tools/ppsspp-relay/package.py) creates a **local**
+`org.ppsspp.PPSSPP/aarch64/traineros-relay` branch. It verifies the exact old
+binary hash, retains the base package's SDL2/libraries/assets/licences, replaces
+only PPSSPPSDL and includes patch/build provenance. It does not install the bundle.
+This is not a public Flatpak release or an x86/Steam Deck build.
+
+Only the reviewed executable hash is admitted. Discovery now resolves Flatpak's
+`current/active` selection when `info APP` fails because both branches are present;
+the user installation takes precedence over the default system installation.
+Rollback stops the owned game through normal exit and selects
+`flatpak make-current --system org.ppsspp.PPSSPP stable` in the same
+installation; do not restore old personal saves. Rebase by checking both upstream
+pins and APIs, reapplying the bounded patch and rerunning the socket fixture before
+candidate-game validation. A branch switch does not certify universal PSP support.
+
 **Owner decision, 12 October 2026:** installed ordinary Nearby/Online multiplayer
 is sufficient for the current milestone. Private-party admission is deferred;
 do not resume its prototype or repeat already passed Lumines checks as current
@@ -84,7 +203,8 @@ Distinct-network, mid-round loss and sustained reliability remain unproven.
   Odin 2. Runtime SHA-256:
   `c99cec693067f8c94ae0d8b5e7299392ed5c0cfae3f8231176ed25ea6c155dfc`.
 - This is the observed netplay allowlist, not a reproducible image package lock.
-  No TrainerOS patch to the PPSSPP binary/source is currently installed.
+  This historical unpatched installation was superseded by the 23 October relay
+  repair above; the original stable branch remains available for rollback.
 
 ## Maintained integration
 

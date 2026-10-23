@@ -81,22 +81,24 @@ QJsonObject netplayIdentity(const AdventureRegistration& r,const StandaloneInsta
     if(r.adventure.platformId!="psp"||r.adventure.adapterId!="ppsspp"||i.program.isEmpty()||
        !i.platforms.contains("psp"))return {};
     const auto runtime=retroarch::fileDigest(i.runtimeFile,256*1024*1024,cancel);
-    // Keep the existing reviewed ARM64 1.20.4 binary; arbitrary installed PSP
-    // runtimes do not establish support for its native aemu relay configuration.
-    if(runtime!="c99cec693067f8c94ae0d8b5e7299392ed5c0cfae3f8231176ed25ea6c155dfc")return {};
+    // Admit the reviewed relay repair and retain the original build for rollback.
+    // Wire/settings identity remains independent of the device's executable hash.
+    const bool repairedRelay=runtime=="6db5a5bc7263b930b29fa6a65348c8a292acdb38306b74bdee071a22c5339834";
+    if(!repairedRelay&&runtime!="c99cec693067f8c94ae0d8b5e7299392ed5c0cfae3f8231176ed25ea6c155dfc")return {};
+    const QString relaySettings=repairedRelay?QStringLiteral("-relay-recv-v1"):QString();
     QString content;
     // Preserve the exact installed route independently of the new format probe.
     if(QFileInfo(r.contentPath).size()==209911808) {
         content=retroarch::fileDigest(r.contentPath,210*1024*1024,cancel);
         if(content=="9b21dd44a2b9ceb746ab9ed9cea4b30de69e63880704c0e34177f1c30c38b82b")
             return {{"id","runtime.ppsspp.lumines-us.v1"},{"label","Lumines - Puzzle Fusion"},
-                {"content",content},{"runtime",runtime},{"settings","ppsspp-adhoc-isolated-config-clock-v2"}};
+                {"content",content},{"runtime",runtime},{"settings","ppsspp-adhoc-isolated-config-clock-focus-v3"+relaySettings}};
     }
     const auto disc=discId(r.contentPath,cancel);if(disc.isEmpty())return {};
     if(content.isEmpty())content=retroarch::fileDigest(r.contentPath,2LL*1024*1024*1024,cancel);
     if(content.isEmpty())return {};
     return {{"id","runtime.ppsspp.adhoc.v1"},{"label",r.adventure.title.left(96)},
-        {"content",content},{"disc",disc},{"runtime",runtime},{"settings","ppsspp-adhoc-native-clock-v1"},
+        {"content",content},{"disc",disc},{"runtime",runtime},{"settings","ppsspp-adhoc-native-clock-focus-v2"+relaySettings},
         {"players",2},{"lateJoin",false}};
 }
 QByteArray networkSettings(const NetplayRequest& request) {
@@ -115,6 +117,9 @@ QByteArray networkSettings(const NetplayRequest& request) {
         "[SystemParam]\nNickName = "+nickname.toUtf8()+
         "\n[General]\nForceLagSync2 = "+QByteArray(request.expected["id"]=="runtime.ppsspp.lumines-us.v1"?"True":"False")+
         "\nAutoLoadSaveState = 0\nEnableCheats = False\nEnablePlugins = False\n"
+        // A solo per-game pause preference must not stop the emulated peer
+        // while the player opens Home/chat or minimizes this online session.
+        "PauseOnLostFocus = False\nPauseWhenMinimized = False\n"
         "[Achievements]\nAchievementsEnable = False\n";
 }
 QString configureNetplay(ProcessCommand& cmd,const StandaloneInstallation& i,const NetplayRequest& request,const std::atomic_bool& cancel) {

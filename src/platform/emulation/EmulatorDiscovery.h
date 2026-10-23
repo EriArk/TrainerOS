@@ -20,4 +20,6 @@ struct EmulatorDiscovery {
 };
 EmulatorEnvironment installedEmulators(const QString& stateDirectory, const QString& libraryRoot, bool readController = true);
 EmulatorDiscovery prepareEmulators(const EmulatorEnvironment&);
+// Resolve Flatpak's selected branch when `info APP` is ambiguous.
+QString currentFlatpakDeployment(const QString& app, const QStringList& installations);
 }

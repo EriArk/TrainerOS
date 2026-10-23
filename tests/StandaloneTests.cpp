@@ -405,6 +405,7 @@ private slots:
         QVERIFY(bytes.contains("[General]\nForceLagSync2 = False\n"));
         QVERIFY(bytes.contains("EnableAdhocServer = False\n"));QVERIFY(bytes.contains("AdhocServerRelayMode = 1\n"));
         QVERIFY(!bytes.contains("MacAddress"));QVERIFY(!bytes.contains("Alice\n"));
+        QVERIFY(bytes.contains("PauseOnLostFocus = False\nPauseWhenMinimized = False\n"));
         r.expected["id"]="runtime.ppsspp.lumines-us.v1";
         QVERIFY(ppsspp::networkSettings(r).contains("[General]\nForceLagSync2 = True\n"));
         r.online=false;r.address="192.168.1.2";
@@ -422,7 +423,7 @@ private slots:
         const QByteArray original="[Network]\nEnableWlan = False\n[Graphics]\nRenderingMode = 1\n"
             "[SystemParam]\nMacAddress = 04:11:22:33:44:55\n";
         const QByteArray originalGame="[SystemParam]\nMacAddress = 04:66:77:88:99:aa\n"
-            "[General]\nForceLagSync2 = False\n";
+            "[General]\nForceLagSync2 = False\nPauseOnLostFocus = True\nPauseWhenMinimized = True\n";
         write(system+"/ppsspp.ini",original);write(system+"/controls.ini","My controller bindings");
         write(system+"/ULUS10002_ppsspp.ini",originalGame);
         write(dir.filePath("PSP/SAVEDATA/existing.bin"),"Existing progress");
@@ -450,6 +451,7 @@ private slots:
         QVERIFY(!settings.contains("MacAddress")); // appended options must not replace either saved identity
         // Upstream reads clock synchronization from General, not Network/CPU.
         QVERIFY(settings.contains("[General]\nForceLagSync2 = True\n"));
+        QVERIFY(settings.contains("PauseOnLostFocus = False\nPauseWhenMinimized = False\n"));
         // Simulate PPSSPP saving merged options, including its per-game INI.
         write(root+"/ppsspp/PSP/SYSTEM/ppsspp.ini","Session changes");
         write(root+"/ppsspp/PSP/SYSTEM/ULUS10002_ppsspp.ini","Session changes");
@@ -519,6 +521,27 @@ private slots:
         auto found=prepareEmulators(env);QCOMPARE(found.profiles["armsx2"],custom);QVERIFY(!found.profiles.contains("ppsspp"));
         QFile f(broken);QVERIFY(f.open(QIODevice::ReadOnly));QCOMPARE(f.readAll(),"broken custom config");
         QVERIFY(!QFileInfo::exists(dir.filePath("state/integrations/discovered/armsx2.json")));
+    }
+    void flatpakCurrentBranchSurvivesRollbackAndUserOverride() {
+#ifdef Q_OS_UNIX
+        QTemporaryDir dir; QVERIFY(dir.isValid());
+        const auto user=dir.filePath("user"), system=dir.filePath("system");
+        const QString app="org.ppsspp.PPSSPP";
+        const auto base=system+"/app/"+app;
+        QVERIFY(QDir().mkpath(base+"/aarch64/stable/active"));
+        QVERIFY(QDir().mkpath(base+"/aarch64/traineros-relay/active"));
+        write(base+"/aarch64/stable/active/metadata","old");
+        write(base+"/aarch64/traineros-relay/active/metadata","new");
+        QVERIFY(QFile::link(base+"/aarch64/traineros-relay",base+"/current"));
+        QCOMPARE(currentFlatpakDeployment(app,{user,system}),base+"/current/active");
+        QVERIFY(QFile::remove(base+"/current"));
+        QVERIFY(QFile::link(base+"/aarch64/stable",base+"/current"));
+        QCOMPARE(QFileInfo(currentFlatpakDeployment(app,{user,system})).canonicalFilePath(),base+"/aarch64/stable/active");
+        QVERIFY(QDir().mkpath(user+"/app/"+app+"/current/active"));
+        write(user+"/app/"+app+"/current/active/metadata","user");
+        QCOMPARE(currentFlatpakDeployment(app,{user,system}),user+"/app/"+app+"/current/active");
+        QVERIFY(currentFlatpakDeployment("missing.app",{user,system}).isEmpty());
+#endif
     }
     void flatpakUpdateRefreshesOnlyRuntimeAndKeepsWrapperAndDataPaths() {
 #ifdef Q_OS_WIN
