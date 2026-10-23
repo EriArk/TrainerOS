@@ -109,8 +109,10 @@ void LobbyRuntime::cancel() {
     deadline_.stop();
     const auto operation=operation_;const auto service=activeService_;
     const bool abandoned=live_&&!playing_;
+    const auto cancelledTicket=playing_?QString():ticket_;
     operation_.clear();ticket_.clear();preparedContext_={};activeService_.clear();busy_=prepared_=playing_=live_=false;status_.clear();
     if(service&&!operation.isEmpty())service->cancel(operation);
+    if(!cancelledTicket.isEmpty())lobby_.acknowledgeLaunch(cancelledTicket,false);
     if(abandoned)lobby_.cancelLive(operation);
 }
 void LobbyRuntime::cancelPending() {
@@ -170,6 +172,9 @@ bool LobbyRuntime::finished(QString ticket) {
     if(ticket.isEmpty()||ticket!=ticket_)return false;
     const bool launching=lobby_.state()["phase"]=="launching";
     const bool played=playing_;
-    cancel();const bool result=launching?lobby_.acknowledgeLaunch(ticket,false):lobby_.finishGame(ticket);emit changed();return played||result;
+    // Report before cancel(), which also reports an unfinished launch. Preserve
+    // the accepted result when the first report synchronously resets the room.
+    const bool result=launching?lobby_.acknowledgeLaunch(ticket,false):lobby_.finishGame(ticket);
+    cancel();emit changed();return played||result;
 }
 }

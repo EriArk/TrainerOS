@@ -1,4 +1,5 @@
 #pragma once
+#include <QDeadlineTimer>
 #include "LobbySession.h"
 #include <QTimer>
 #include <QSet>
@@ -83,6 +84,10 @@ private:
     void tick();
     void clearRemote();
     bool recordLaunchResult(const QString& peer,const QString& ticket,bool success);
+    void retryLaunchResult();
+    QJsonObject pendingLaunchResult_;
+    qint64 launchResultGeneration_=0;
+    QDeadlineTimer launchResultDeadline_;
     QString resultTicket_;
     QString liveOperation_;
     QSet<QString> launchResults_;

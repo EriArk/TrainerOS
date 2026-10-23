@@ -34,6 +34,81 @@ class LobbyTests final : public QObject {
         QVERIFY(l.claimSeat(peer,seat,l.generation()));QVERIFY(l.prepared(peer,l.generation(),true));
     }
 private slots:
+    void earlyRuntimeFinishReturnsToTheSameRoom() {
+        LobbyCoordinator host;TestLobbyRuntime service;LobbyRuntime runtime(host);
+        host.configure("1","Host",true);runtime.configure("1",true);runtime.registerService("netplay",&service);
+        QVERIFY(host.create());QVERIFY(host.selectGame(game()));QVERIFY(runtime.prepare());service.preparation(true,{});
+        QVERIFY(host.ready(true));QVERIFY(host.start());const auto room=host.state()["id"].toString();
+        QVERIFY(runtime.finished(host.state()["ticket"].toString()));
+        QCOMPARE(host.state()["phase"].toString(),QString("gathering"));QCOMPARE(host.state()["id"].toString(),room);
+        QCOMPARE(service.cancels,1);QVERIFY(runtime.prepare());
+    }
+    void launchResultRetryKeepsFailureAndExpiresWithItsContext_data() {
+        QTest::addColumn<QString>("change");
+        for(const auto& name:{"ticket","generation","phase","deadline","membership"})QTest::newRow(name)<<QString(name);
+    }
+    void launchResultRetryKeepsFailureAndExpiresWithItsContext() {
+        QFETCH(QString,change);
+        LobbyRoomCoordinator guest;guest.configure("2","Guest",false);
+        const auto ticket=QUuid::createUuid().toString(QUuid::WithoutBraces);
+        guest.host_="1";guest.launchTicket_=ticket;
+        guest.remote_={{"id",QUuid::createUuid().toString(QUuid::WithoutBraces)},{"owner","1"},
+            {"ticket",ticket},{"phase","launching"},{"generation",4}};
+        QSignalSpy outgoing(&guest,&LobbyRoomCoordinator::outgoing);
+        QVERIFY(guest.acknowledgeLaunch(ticket,true));QCOMPARE(outgoing.size(),0);
+        guest.online_=true;guest.retryLaunchResult();QCOMPARE(outgoing.size(),1);
+        QVERIFY(outgoing.last()[1].toJsonObject()["data"].toObject()["success"].toBool());
+        QVERIFY(guest.acknowledgeLaunch(ticket,false));QCOMPARE(outgoing.size(),2);
+        QVERIFY(!guest.acknowledgeLaunch(ticket,true));
+        guest.retryLaunchResult();QCOMPARE(outgoing.size(),3);
+        QVERIFY(!outgoing.last()[1].toJsonObject()["data"].toObject()["success"].toBool());
+        if(change=="ticket")guest.remote_["ticket"]=QUuid::createUuid().toString(QUuid::WithoutBraces);
+        else if(change=="generation")guest.remote_["generation"]=5;
+        else if(change=="phase")guest.remote_["phase"]="gathering";
+        else if(change=="deadline")guest.launchResultDeadline_.setRemainingTime(0);
+        else guest.clearRemote();
+        guest.retryLaunchResult();QCOMPARE(outgoing.size(),3);QVERIFY(guest.pendingLaunchResult_.isEmpty());
+    }
+    void lostLaunchResultRecoversWithoutLaunchingTwice_data() {
+        QTest::addColumn<bool>("success");
+        QTest::addColumn<bool>("cancelled");
+        QTest::newRow("started")<<true<<false;
+        QTest::newRow("failed")<<false<<false;
+        QTest::newRow("cancelled-before-host-confirmation")<<true<<true;
+    }
+    void lostLaunchResultRecoversWithoutLaunchingTwice() {
+        QFETCH(bool,success);QFETCH(bool,cancelled);
+        LobbyCoordinator host,guest;TestLobbyRuntime hs,gs;LobbyRuntime hr(host),gr(guest);
+        host.configure("1","Host",true);guest.configure("2","Guest",true);hr.configure("1",true);gr.configure("2",true);
+        hr.registerService("netplay",&hs);gr.registerService("netplay",&gs);
+        bool drop=true;int results=0;
+        connect(&host,&LobbyCoordinator::outgoing,&guest,[&](QString,QJsonObject p){guest.receive("1","Host",p);});
+        connect(&guest,&LobbyCoordinator::outgoing,&host,[&](QString,QJsonObject p){
+            if(p["kind"]=="launch-result") {++results;if(drop)return;}
+            host.receive("2","Guest",p);
+        });
+        QVERIFY(host.create("public"));const auto room=host.state()["id"].toString();
+        QVERIFY(guest.join("1",room));QVERIFY(host.selectGame(game()));
+        QVERIFY(hr.prepare());QVERIFY(gr.prepare());hs.preparation(true,{});gs.preparation(true,{});
+        QVERIFY(host.ready(true));QVERIFY(guest.ready(true));QVERIFY(host.start());
+        const auto ticket=host.state()["ticket"].toString();hs.opening(true,{});gs.opening(success,"Test launch failure");
+        QCOMPARE(results,1);QCOMPARE(host.state()["phase"].toString(),QString("launching"));
+        if(cancelled) {
+            gr.configure("2",false);guest.configure("2","Guest",false);
+            QCOMPARE(results,2); // Replace the lost success with a failure before reconnecting.
+            gr.configure("2",true);drop=false;guest.configure("2","Guest",true);
+        }
+        drop=false;guest.activeRoom()->tick();
+        QCOMPARE(host.state()["phase"].toString(),success&&!cancelled?QString("playing"):QString("gathering"));
+        QCOMPARE(hs.launches,1);QCOMPARE(gs.launches,1);QCOMPARE(results,cancelled?3:2);
+        guest.activeRoom()->tick();QCOMPARE(results,cancelled?3:2);
+        if(success&&!cancelled) {QVERIFY(hr.finished(ticket));QVERIFY(gr.finished(ticket));}
+        QCOMPARE(host.state()["id"].toString(),room);QCOMPARE(host.state()["members"].toArray().size(),2);
+        QVERIFY(hr.prepare());QVERIFY(gr.prepare());hs.preparation(true,{});gs.preparation(true,{});
+        QVERIFY(host.ready(true));QVERIFY(guest.ready(true));QVERIFY(host.start());
+        QVERIFY(host.state()["ticket"].toString()!=ticket);hs.opening(true,{});gs.opening(true,{});
+        QCOMPARE(host.state()["phase"].toString(),QString("playing"));QCOMPARE(hs.launches,2);QCOMPARE(gs.launches,2);
+    }
     void relayPreferenceIsHostOwnedAndInvalidatesReadiness() {
         LobbySession room;QVERIFY(room.create("host","Host","public"));QVERIFY(room.selectGame("host",game()));
         QVERIFY(room.join("guest","Guest",100));prepare(room,"host",1);prepare(room,"guest",2);

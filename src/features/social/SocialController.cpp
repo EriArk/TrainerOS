@@ -156,6 +156,9 @@ SocialController::SocialController(QObject* parent):QObject(parent),session_(new
 }
 SocialController::~SocialController() {
     saveDrafts();
+    // Cancelling a pending launch publishes room state. Do it while the UI
+    // members and provider still exist, not from a later member destructor.
+    if(lobbyRuntime_.opening())lobbyRuntime_.cancelPending();
     QMetaObject::invokeMethod(session_,&FluxerSession::stop,Qt::BlockingQueuedConnection);
     thread_.quit();thread_.wait();
 }

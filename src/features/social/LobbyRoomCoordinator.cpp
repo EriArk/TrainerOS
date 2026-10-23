@@ -75,6 +75,7 @@ QJsonArray LobbyRoomCoordinator::requests() const {
 }
 void LobbyRoomCoordinator::clearRemote() {
     readyDeadline_.stop();
+    pendingLaunchResult_={};
     liveOperation_.clear();
     peerBoots_.remove(host_);peerSerials_.remove(host_);
     remote_={};host_.clear();joining_.clear();launchTicket_.clear();finishedTicket_.clear();preparedGeneration_=readyGeneration_=0;joinedAt_=hostSeen_=0;
@@ -210,8 +211,25 @@ bool LobbyRoomCoordinator::acknowledgeLaunch(const QString& ticket,bool success)
         if(!success)send(host_,"live-ended",{{"ticket",ticket},{"operation",liveOperation_}});
         return true;
     }
-    if(!online_||ticket.isEmpty()||ticket!=launchTicket_||remote_.value("ticket")!=ticket||remote_.value("phase")!="launching")return false;
-    send(host_,"launch-result",{{"ticket",ticket},{"success",success}});return true;
+    if(ticket.isEmpty()||ticket!=launchTicket_||remote_.value("ticket")!=ticket||remote_.value("phase")!="launching")return false;
+    // Keep the local result until the host acknowledges it through room state.
+    // A late success cannot undo an already reported cancellation/failure.
+    if(pendingLaunchResult_.value("ticket")==ticket) {
+        const bool previous=pendingLaunchResult_.value("success").toBool();
+        if(previous==success)return true;
+        if(!previous&&success)return false;
+    }
+    pendingLaunchResult_={{"ticket",ticket},{"success",success}};
+    launchResultGeneration_=remote_["generation"].toInteger();launchResultDeadline_.setRemainingTime(180000);
+    retryLaunchResult();return true;
+}
+void LobbyRoomCoordinator::retryLaunchResult() {
+    if(pendingLaunchResult_.isEmpty())return;
+    if(launchResultDeadline_.hasExpired()||remote_["phase"]!="launching"||
+       remote_["ticket"]!=pendingLaunchResult_["ticket"]||remote_["generation"].toInteger()!=launchResultGeneration_) {
+        pendingLaunchResult_={};return;
+    }
+    if(online_&&!restoring_&&connection_.isEmpty())send(host_,"launch-result",pendingLaunchResult_);
 }
 bool LobbyRoomCoordinator::finishGame(const QString& ticket) {
     if(hosting())return session_.finishGame(ticket);
@@ -408,7 +426,7 @@ void LobbyRoomCoordinator::receive(QString peer,QString name,const QJsonObject& 
     if(kind=="problem") {peerSerials_[peer]=serial;emit notice(data["message"].toString().left(160));return;}
     if(kind=="closed"||kind=="rejected"||kind=="removed") {emit membershipEnded(id);clearRemote();emit notice(kind=="closed"?"The lobby was closed.":kind=="removed"?"You are no longer in this lobby.":"The lobby couldn't accept your request.");emit changed();return;}
     if(kind!="state"||data["id"]!=id||!validState(data,peer))return;
-    if(newBoot) {retiredBoots_[peer+"/"+peerBoots_[peer]]=now()+180;preparedGeneration_=readyGeneration_=0;launchTicket_.clear();finishedTicket_.clear();}
+    if(newBoot) {retiredBoots_[peer+"/"+peerBoots_[peer]]=now()+180;preparedGeneration_=readyGeneration_=0;launchTicket_.clear();finishedTicket_.clear();pendingLaunchResult_={};}
     peerBoots_[peer]=boot;peerSerials_[peer]=serial;
     hostSeen_=now();
     if(!newBoot&&!restoring_&&data["revision"].toInteger()<remote_.value("revision").toInteger())return;
@@ -419,6 +437,8 @@ void LobbyRoomCoordinator::receive(QString peer,QString name,const QJsonObject& 
     if(data["generation"]!=remote_.value("generation"))preparedGeneration_=readyGeneration_=0;
     remote_=data;joining_.clear();joinedAt_=0;
     if(data["ticket"]!=finishedTicket_||data["phase"]!="playing")finishedTicket_.clear();
+    if(data["phase"]!="launching"||data["ticket"]!=pendingLaunchResult_["ticket"]||
+       data["generation"].toInteger()!=launchResultGeneration_)pendingLaunchResult_={};
     const auto generation=quint64(data["generation"].toInteger());const auto ticket=data["ticket"].toString();
     if(data["phase"]=="playing"&&!liveOperation_.isEmpty()&&mine["admission"]==liveOperation_&&launchTicket_!=ticket) {
         launchTicket_=ticket;emit liveLaunchRequested(liveOperation_,ticket,data);
@@ -459,6 +479,7 @@ void LobbyRoomCoordinator::tick() {
         if(joinedAt_&&now()-joinedAt_>90) {clearRemote();emit notice("The join request expired.");emit changed();return;}
         if(hostSeen_&&now()-hostSeen_>45)deliveryFailed(host_);
         reconnect();
+        retryLaunchResult();
         if(!liveOperation_.isEmpty()&&launchTicket_.isEmpty()&&finishedTicket_.isEmpty()&&remote_.value("phase")=="playing")
             send(host_,"live-request",{{"ticket",remote_.value("ticket")},{"operation",liveOperation_}});
         if(!finishedTicket_.isEmpty()) {
