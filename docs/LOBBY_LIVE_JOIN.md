@@ -20,7 +20,82 @@
 сохраняется отдельное подтверждение безопасного завершения. Ошибка завершения
 не запускает новый процесс. Отмена и смена контекста отсекают поздние ответы.
 
-### PS1 и Neo Geo
+### Расширение семейств — 23 октября 2026
+
+Ручной поздний вход и возврат используют общую таблицу допустимых пар из
+`retroarch::netplaySupported`, а не перечень отдельных игр. Для разрешения
+нужны проверенная локальная сборка ядра и RetroArch, совместимые content/BIOS/
+settings и явное действие игрока. Доступны 20 пар:
+
+| Ядро | Платформы |
+| --- | --- |
+| FCEUmm | NES, FDS |
+| Snes9x | SNES |
+| Genesis Plus GX | SG-1000, Master System, Mega Drive, Sega CD |
+| PicoDrive | Master System, Mega Drive, Sega CD, Sega 32X |
+| Beetle PCE Fast | PC Engine, PC Engine CD |
+| Beetle SuperGrafx | SuperGrafx, PC Engine, PC Engine CD |
+| Stella | Atari 2600 |
+| PCSX ReARMed | PS1 |
+| FBNeo | Neo Geo, поддерживаемые FBNeo аркадные системы |
+
+Установленные на обоих устройствах дополнительные core SHA-256:
+
+| Ядро | SHA-256 |
+| --- | --- |
+| PicoDrive | `6b0dbe4e21f0e47afbf8a89d59b92e5b48a316dd7c5fae8c74d7351f341de044` |
+| Beetle PCE Fast | `f7686b2bfab6a9ca34d3d48e6eda5c41ae37c430cf5c73b0f256cefd54990a51` |
+| Beetle SuperGrafx | `574c4b61e83b1a4034a42cfceed62e09ae8f0809c85527ca979fe9c5e18865e3` |
+| Stella | `bf2cf27781f9e393079c9a53c71d8676d638025086955498641723a8e121228a` |
+
+Проверка относится к локальной установленной возможности, не к имени устройства,
+адресу или обязательному совпадению бинарных hashes участников. Другой локальный
+build/архитектура требует отдельного подтверждения и регистрации возможности.
+Старые именованные FCEUmm/Snes9x/Genesis profiles сохранены.
+
+Основание расширения — штатная передача состояния RetroArch и deterministic
+save-state metadata ядер: [PicoDrive](https://github.com/libretro/libretro-core-info/blob/master/picodrive_libretro.info),
+[PCE Fast](https://github.com/libretro/libretro-core-info/blob/master/mednafen_pce_fast_libretro.info),
+[SuperGrafx](https://github.com/libretro/libretro-core-info/blob/master/mednafen_supergrafx_libretro.info),
+[Stella](https://github.com/libretro/libretro-core-info/blob/master/stella_libretro.info).
+Эти metadata также сверены в установленном наборе. Нового сетевого протокола
+или патчей эмуляторов нет.
+
+MAME не добавлен в разрешённые builds: его
+[реализация состояния](https://github.com/libretro/mame/blob/master/src/osd/libretro/libretro-internal/libretro.cpp)
+может отказать при отсутствии состояния текущей машины или незавершённых
+anonymous timers. Успешный поздний вход конкретной машины в этой работе не
+подтверждён; это неизвестная возможность, а не утверждение о запрете всех MAME-игр.
+Nestopia отсутствует в установленном наборе. PS2, handheld link/netpacket и
+Hotseat этим расширением позднего входа не получают; `lateJoin=false` сохраняется.
+
+Native-проверка расширения 23 октября: Chaotix EU / PicoDrive (32X), Reflectron /
+Beetle PCE Fast и Beetle SuperGrafx (PC Engine), Battle Circuit / FBNeo (arcade).
+Для каждой пары выполнены первый P2, штатный выход гостя и повторный P2 в тот же
+продолжающийся процесс хозяина. В ограниченном интервале нет NetPlay failed/desync/
+CRC mismatch. Стенд использует production preparation, отдельные временные
+каталоги и выключенный звук. Все его процессы и временные сессии закрыты;
+baseline 90 файлов Flip / 1110 Odin неизменен.
+
+Stella, FDS, Sega CD и остальные дополнительные платформы этих ядер получают
+source/metadata-backed допуск и интеграционные проверки общего жизненного цикла;
+для них в этом проходе не запускалась отдельная native-игра. Проверка SuperGrafx
+ядра использовала PC Engine контент, не SuperGrafx игру. Это разные уровни
+доказательств; поддержка ядра не означает сертификацию каждой игры.
+
+ARM64 shell собран; `lobby`, `game_party`, `runtime_multiplayer`, `social` прошли
+за 113,22 с. Lifecycle fixture покрывает все 20 канонических пар и прежние aliases:
+после потери связи и открытия лобби новый процесс не запускается; явный Rejoin
+запускает ровно одного гостя и сохраняет host PID/ticket. Проверены отказ неверной
+паре платформы/ядра и версии профиля, неизвестному локальному build, несовместимым
+settings и исключённым семействам. Прежние save/finalizer guards сохранены.
+
+Сборка shell
+`c4232eb6d16bf0fbfd9a7e5e8ea238cce15a19c8315d037d269cb82deab62521`
+установлена и запущена на Flip/Odin. SHA-256 работающих процессов совпал,
+QML errors — 0; Wi-Fi power save выключен, громкость оставлена 0%.
+
+### Предыдущая доставка PS1 и Neo Geo
 
 К общему ручному возврату добавлены `runtime.retroarch.psx.pcsx_rearmed.v1` и
 `runtime.retroarch.neogeo.fbneo.v1`. Сохраняются ограничения локальной установленной

@@ -102,6 +102,23 @@ class RuntimeMultiplayerTests final : public QObject {
         QFile stop(f.dir.filePath("control"));QVERIFY(stop.open(QIODevice::WriteOnly));stop.write("exit");stop.close();
         QTRY_VERIFY(!f.lifecycle.active());
     }
+    static QList<QPair<QString,QString>> liveProfiles() {
+        struct Family {const char* core;const char* digest;const char* platforms;};
+        const Family families[]{
+            {"fceumm","1b13b00d4680394dad8000d5175f97be727107e0945bc9b412da91d70c07b267","nes fds"},
+            {"snes9x","e8d8f5cf93898c7be3ca2590d4d75dc8e9a89b891589c2da1a7917fa27411d21","snes"},
+            {"genesis_plus_gx","de8ad971eee89fa5e4e00dd1c048f0a8cc53cd9558b8c143aa022f5d7623d273","sg1000 mastersystem megadrive segacd"},
+            {"picodrive","6b0dbe4e21f0e47afbf8a89d59b92e5b48a316dd7c5fae8c74d7351f341de044","mastersystem megadrive segacd sega32x"},
+            {"mednafen_pce_fast","f7686b2bfab6a9ca34d3d48e6eda5c41ae37c430cf5c73b0f256cefd54990a51","pcengine pcenginecd"},
+            {"mednafen_supergrafx","574c4b61e83b1a4034a42cfceed62e09ae8f0809c85527ca979fe9c5e18865e3","supergrafx pcengine pcenginecd"},
+            {"stella","bf2cf27781f9e393079c9a53c71d8676d638025086955498641723a8e121228a","atari2600"},
+            {"pcsx_rearmed","25bfeb6336d7ef573903775fe53733af974c90edd268cf4fb9afa497e188609d","psx"},
+            {"fbneo","ffb37315a609317e1a00bf32c0e3d66c5a848d052d1260f4ab7f42da0f9fb9c3","neogeo fbneo"}};
+        QList<QPair<QString,QString>> result;
+        for(const auto& family:families)for(const auto& platform:QString(family.platforms).split(' '))
+            result.append({"runtime.retroarch."+platform+"."+family.core+".v1",family.digest});
+        return result;
+    }
 private slots:
     void liveJoinCapabilityBelongsToTheLocalInstallation() {
         Fixture f;f.runtime.allowed_=true;
@@ -114,9 +131,7 @@ private slots:
         excluded=other;excluded["transport"]="netpacket";QVERIFY(!f.runtime.supportsRejoin(excluded));
         excluded=other;excluded["playMode"]="hotseat";QVERIFY(!f.runtime.supportsRejoin(excluded));
         f.runtime.games_={{"nes",other}};QVERIFY(!f.runtime.supportsLive(local));
-        for(const auto& pair:QList<QPair<QString,QString>>{
-            {"runtime.retroarch.psx.pcsx_rearmed.v1","25bfeb6336d7ef573903775fe53733af974c90edd268cf4fb9afa497e188609d"},
-            {"runtime.retroarch.neogeo.fbneo.v1","ffb37315a609317e1a00bf32c0e3d66c5a848d052d1260f4ab7f42da0f9fb9c3"}}) {
+        for(const auto& pair:liveProfiles()) {
             auto installed=local;installed["id"]=pair.first;installed["core"]=pair.second;
             installed["settings"]="reviewed-profile";
             f.runtime.games_={{"game",installed}};QVERIFY(f.runtime.supportsRejoin(installed));
@@ -124,6 +139,21 @@ private slots:
             wrong=installed;wrong["lateJoin"]=false;QVERIFY(!f.runtime.supportsRejoin(wrong));
             wrong=installed;wrong["core"]="unreviewed-build";f.runtime.games_={{"game",wrong}};
             QVERIFY(!f.runtime.supportsRejoin(installed));
+        }
+    }
+    void liveJoinRejectsInvalidPlatformCorePairsAndUnreviewedFamilies() {
+        Fixture f;f.runtime.allowed_=true;
+        for(const auto& id:{"runtime.retroarch.psx.fceumm.v1", "runtime.retroarch.nes.fceumm.v2",
+                           "runtime.retroarch.nes.fceumm.v1.extra", "runtime.retroarch.nes.nestopia.v1",
+                           "runtime.retroarch.mame.mame.v1", "runtime.retroarch.ps2.pcsx2.v1",
+                           "runtime.retroarch.gb.gambatte.v1", "runtime.retroarch.gba.mgba.v1"}) {
+            // Even a locally scanned descriptor and a supported core's hash
+            // cannot grant a different platform, protocol version or family.
+            for(const auto& reviewed:liveProfiles()) {
+                const QJsonObject local{{"id",id},{"players",2},{"core",reviewed.second},{"lateJoin",true},
+                    {"runtime","8d57b47c88d416c05145187c8c906b7ab0013edb7e45af69d9b6bb841aea4a24"}};
+                f.runtime.games_={{"game",local}};QVERIFY(!f.runtime.supportsRejoin(local));
+            }
         }
     }
     void finishedGameClearsRelayForNextInvitation() {
@@ -213,8 +243,8 @@ private slots:
         QTest::newRow("nes-returning-original-player")<<QString("runtime.fceumm.pong-homebrew.v1")<<nes<<true;
         QTest::newRow("snes-returning-original-player")<<QString("runtime.snes9x.test.v1")<<QString("e8d8f5cf93898c7be3ca2590d4d75dc8e9a89b891589c2da1a7917fa27411d21")<<true;
         QTest::newRow("megadrive-returning-original-player")<<QString("runtime.genesis.test.v1")<<QString("de8ad971eee89fa5e4e00dd1c048f0a8cc53cd9558b8c143aa022f5d7623d273")<<true;
-        QTest::newRow("ps1-returning-original-player")<<QString("runtime.retroarch.psx.pcsx_rearmed.v1")<<QString("25bfeb6336d7ef573903775fe53733af974c90edd268cf4fb9afa497e188609d")<<true;
-        QTest::newRow("neogeo-returning-original-player")<<QString("runtime.retroarch.neogeo.fbneo.v1")<<QString("ffb37315a609317e1a00bf32c0e3d66c5a848d052d1260f4ab7f42da0f9fb9c3")<<true;
+        for(const auto& profile:liveProfiles())
+            QTest::newRow(qPrintable(profile.first))<<profile.first<<profile.second<<true;
     }
     void liveLobbyAdmissionPreservesTheOwnedHostProcessAndExactIdentity() {
         QFETCH(QString,profileId);QFETCH(QString,core);QFETCH(bool,together);

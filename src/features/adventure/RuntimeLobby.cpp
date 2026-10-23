@@ -13,17 +13,27 @@ bool RuntimeMultiplayer::supportsLive(const QJsonObject& game) const {
     // Reviewed ARM64 RetroArch shared-console builds. Never trust a peer's
     // capability flag or infer support for other cores from their platform.
     if(!allowed_||game.value("lateJoin")==false||game["transport"]=="netpacket"||game["playMode"].toString("separate")!="separate")return false;
-    const auto id=game["id"].toString();QString core;
-    if(id=="runtime.retroarch.nes.fceumm.v1"||id.startsWith("runtime.fceumm."))
-        core="1b13b00d4680394dad8000d5175f97be727107e0945bc9b412da91d70c07b267";
-    else if(id=="runtime.retroarch.snes.snes9x.v1"||id.startsWith("runtime.snes9x."))
-        core="e8d8f5cf93898c7be3ca2590d4d75dc8e9a89b891589c2da1a7917fa27411d21";
-    else if(id=="runtime.retroarch.megadrive.genesis_plus_gx.v1"||id.startsWith("runtime.genesis."))
-        core="de8ad971eee89fa5e4e00dd1c048f0a8cc53cd9558b8c143aa022f5d7623d273";
-    else if(id=="runtime.retroarch.psx.pcsx_rearmed.v1")
-        core="25bfeb6336d7ef573903775fe53733af974c90edd268cf4fb9afa497e188609d";
-    else if(id=="runtime.retroarch.neogeo.fbneo.v1")
-        core="ffb37315a609317e1a00bf32c0e3d66c5a848d052d1260f4ab7f42da0f9fb9c3";
+    const auto id=game["id"].toString();QString name;
+    const auto parts=id.split('.');
+    if(parts.size()==5&&parts[0]=="runtime"&&parts[1]=="retroarch"&&parts[4]=="v1") {
+        // Reuse the normal NetPlay platform/core contract, including each
+        // core's supported secondary systems. A core name alone is insufficient.
+        if(!retroarch::netplaySupported(parts[2],parts[3]))return false;
+        name=parts[3];
+    } else if(id.startsWith("runtime.fceumm."))name="fceumm";
+    else if(id.startsWith("runtime.snes9x."))name="snes9x";
+    else if(id.startsWith("runtime.genesis."))name="genesis_plus_gx";
+    static const QHash<QString,QString> reviewed{
+        {"fceumm","1b13b00d4680394dad8000d5175f97be727107e0945bc9b412da91d70c07b267"},
+        {"snes9x","e8d8f5cf93898c7be3ca2590d4d75dc8e9a89b891589c2da1a7917fa27411d21"},
+        {"genesis_plus_gx","de8ad971eee89fa5e4e00dd1c048f0a8cc53cd9558b8c143aa022f5d7623d273"},
+        {"picodrive","6b0dbe4e21f0e47afbf8a89d59b92e5b48a316dd7c5fae8c74d7351f341de044"},
+        {"mednafen_pce_fast","f7686b2bfab6a9ca34d3d48e6eda5c41ae37c430cf5c73b0f256cefd54990a51"},
+        {"mednafen_supergrafx","574c4b61e83b1a4034a42cfceed62e09ae8f0809c85527ca979fe9c5e18865e3"},
+        {"stella","bf2cf27781f9e393079c9a53c71d8676d638025086955498641723a8e121228a"},
+        {"pcsx_rearmed","25bfeb6336d7ef573903775fe53733af974c90edd268cf4fb9afa497e188609d"},
+        {"fbneo","ffb37315a609317e1a00bf32c0e3d66c5a848d052d1260f4ab7f42da0f9fb9c3"}};
+    const auto core=reviewed.value(name);
     if(core.isEmpty())return false;
     for(const auto& local:games_)if(local["runtime"]=="8d57b47c88d416c05145187c8c906b7ab0013edb7e45af69d9b6bb841aea4a24"
         &&local["core"]==core&&supportsMultiplayerSession(local,game))return true;

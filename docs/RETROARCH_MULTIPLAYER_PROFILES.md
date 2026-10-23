@@ -1,5 +1,13 @@
 # Shared RetroArch multiplayer profiles
 
+**Manual return expansion, 23 October 2026:** late admission/rejoin now reuses
+this family's platform/core table with separately reviewed local build hashes:
+FCEUmm, Snes9x, Genesis Plus GX, PicoDrive, Beetle PCE Fast/SuperGrafx, Stella,
+PCSX ReARMed and FBNeo (20 pairs). Entering the room or recovering signaling
+never launches a game; the player explicitly chooses **Rejoin game**. See
+[coverage, evidence and excluded routes](LOBBY_LIVE_JOIN.md). This does not
+promote MAME, Nestopia, PS2 or linked handhelds to reviewed live-join builds.
+
 **Owner correction, 23 October 2026:** peer admission no longer requires identical
 runtime/core binary hashes. Game, firmware, settings and native protocol checks
 remain; local installation integrity stays exact. Lobby relay selection now has
