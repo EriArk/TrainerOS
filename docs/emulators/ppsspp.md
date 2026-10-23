@@ -1,5 +1,61 @@
 # PPSSPP maintenance
 
+## Coordination stream recovery — 24 October 2026
+
+The follow-up addresses the separate coordination TCP connection in PPSSPP
+1.20.4 `friendFinder`, retaining the same upstream and relay pins. Owners remain
+S03/S07 through F04/F12; S06 launch intent and native PSP matchmaking are unchanged.
+
+The original receive block processes positive reads but ignores EOF and fatal
+receive errors. A server can therefore close its connection while PPSSPP still
+considers it connected, until a later ping/send fails. Its partial receive buffer
+also survives into the next TCP connection. Neither symptom establishes that all
+reported Tekken 6 failures have this cause.
+
+[The bounded patch](../../tools/ppsspp-relay/coordination-stream.patch) handles EOF
+and fatal receive errors through the existing disconnect/peer-timeout policy,
+clears partial bytes on disconnect and before a new login, and retains temporary
+EAGAIN/EWOULDBLOCK/EINTR reads. A full buffer is parsed before another read, avoiding
+a zero-length read being mistaken for EOF. It does not reconnect to a game group,
+restart the emulator or launch from chat/presence; native game actions still own
+rejoining. Silent packet loss without EOF/error remains a different failure mode.
+
+[The regression fixture](../../tools/ppsspp-relay/coordination-stream-test.py)
+compiles the actual patched FriendFinder receive/cleanup blocks with real local
+TCP sockets; UI/logging and peer-timeout notifications are stubbed. The unpatched
+baseline reproduces EOF leaving the connection and partial bytes alive. The
+repaired block covers partial data, transient errors, full receive buffer, EOF,
+TCP reset, clean data after reconnect and 20 repeated disconnect/reconnect cycles.
+This is socket-level evidence, not a native game rejoin claim.
+
+Build/package recipes apply and retain the patch and fixture with provenance.
+The earlier receive, retry and production-timeout fixtures also passed in the
+ARM64 build. TrainerOS `standalone` and `runtime_multiplayer` suites passed in
+116.60 seconds; adapter export/knowledge checks passed.
+
+Installed on both Flip/Odin, with the stable Flatpak retained:
+
+- PPSSPP SHA-256: `a8489753f9691ab00bd5e7fd1e7c392bd10d3119635e44c598896d76a8ebc5f2`.
+- Flatpak commit: `29350de9f7d761cbfc6feb1f21d330f235e8bb47582b7cd09a1ef8a0f562e2f3`.
+- Bundle SHA-256: `02c86bff6dfa1bbc7532dccc6bee0d747be8374eded7d556c4ce958bdbbe0c77`.
+- TrainerOS SHA-256: `0b37538532e2646e2e55115c0da6fe43ce70248f7a0c2effd6384e4300edc779`.
+
+Exact admission adds `-coordination-recovery-v3`; earlier hashes remain available
+for rollback and mixed unverified revisions remain separated. Both running shells
+matched the installed hash with zero QML errors. Both installed PPSSPP processes
+matched their hash and rendered Tekken 6 using copied configuration/SAVEDATA.
+They closed normally; original SYSTEM/SAVEDATA hashes were unchanged and volume
+remained zero. The diagnostic native-menu traversal did not reach a coordination
+login, so it adds startup/exit evidence only, not a new native reconnect result.
+The temporary loopback listeners were stopped; no service was installed.
+
+Rollback uses the retained stable branch or the previous recovery bundle together
+with an admitted shell. To rebase, apply the patch to the pinned PPSSPP source,
+rerun the extracted-source TCP fixture and ordinary relay checks, then rebuild and
+record the new executable identity. Do not transplant whole networking rewrites
+merely to carry this receive correction. Silent coordination loss without an
+EOF/error and native game retry behavior remain distinct follow-ups.
+
 ## Long-outage recovery — 23 October 2026
 
 Follow-up to the receive repair below; ownership remains S03/S07 through F04/F12,

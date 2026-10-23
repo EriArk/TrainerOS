@@ -29,12 +29,17 @@ if ! git -C "$work/source" apply --reverse --check "$recipe/relay-retry.patch" 2
     git -C "$work/source" apply --check "$recipe/relay-retry.patch"
     git -C "$work/source" apply "$recipe/relay-retry.patch"
 fi
+if ! git -C "$work/source" apply --reverse --check "$recipe/coordination-stream.patch" 2>/dev/null; then
+    git -C "$work/source" apply --check "$recipe/coordination-stream.patch"
+    git -C "$work/source" apply "$recipe/coordination-stream.patch"
+fi
 if ! git -C "$work/source/ext/aemu_postoffice" apply --reverse --check "$recipe/socket-timeout.patch" 2>/dev/null; then
     git -C "$work/source/ext/aemu_postoffice" apply --check "$recipe/socket-timeout.patch"
     git -C "$work/source/ext/aemu_postoffice" apply "$recipe/socket-timeout.patch"
 fi
 cp "$recipe/relay-receive-test.c" "$work/relay-receive-test.c"
 cp "$recipe/relay-timeout-test.c" "$recipe/relay-retry-test.cpp" "$work/"
+cp "$recipe/coordination-stream-test.py" "$work/"
 flatpak run --command=sh --filesystem="$work" org.freedesktop.Sdk/aarch64/25.08 -eu -c '
     work=$1
     mkdir -p "$work/relay-test"
@@ -60,6 +65,7 @@ flatpak run --command=sh --filesystem="$work" org.freedesktop.Sdk/aarch64/25.08 
     timeout 20 ./relay-production-timeout --production
     g++ -std=c++17 -O2 -I"$work/source" "$work/relay-retry-test.cpp" -o relay-retry-test
     ./relay-retry-test
+    python3 "$work/coordination-stream-test.py" "$work/source/Core/HLE/proAdhoc.cpp"
     cmake -S "$work/source" -B "$work/build" -G Ninja \
         -DCMAKE_BUILD_TYPE=Release -DUSING_QT_UI=OFF -DUSING_GLES2=ON \
         -DUSING_EGL=ON -DUSE_WAYLAND_WSI=ON -DUSE_SYSTEM_FFMPEG=OFF \

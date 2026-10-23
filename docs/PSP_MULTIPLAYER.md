@@ -1,5 +1,13 @@
 # Standalone PSP multiplayer research
 
+**24 October coordination follow-up:** PPSSPP now recognizes coordination-server
+EOF/fatal receive errors and discards partial packets before a fresh connection.
+Build `a8489753…` and its shell admission are installed on both handhelds. Actual
+TCP regressions reproduce the old failure and cover the fix; installed startup
+and exit passed. Native retry remains a game action, without automatic PSP launch.
+[Evidence and remaining paths](emulators/ppsspp.md#coordination-stream-recovery--24-october-2026).
+This supersedes the installed build named in the 23 October entry below.
+
 **23 October long-outage follow-up:** relay recovery now keeps retrying with
 one/five-second cooldowns instead of permanently disabling itself after 15 seconds
 of failure. Blocking handshake/partial I/O waits are bounded; Linux active relay

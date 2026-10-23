@@ -4,6 +4,8 @@ docs/data/ps2/*.csv -text whitespace=cr-at-eol
 *.ttf binary
 # Unified diff context prefixes can precede upstream tabs and blank lines.
 *.patch text eol=lf whitespace=-blank-at-eol,-space-before-tab
+# Preserve the final blank context line in the PPSSPP coordination patch.
+tools/ppsspp-relay/coordination-stream.patch whitespace=-blank-at-eol,-space-before-tab,-blank-at-eof
 # Keep the upstream git-format-patch export byte-for-byte, including its final blank line.
 packaging/kernel/iris/0001-upstream-request-keyframe.patch whitespace=-blank-at-eol,-space-before-tab,-blank-at-eof
 # Preserve the reused patch's trailing context and the upstream license text.
