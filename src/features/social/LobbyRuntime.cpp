@@ -134,7 +134,8 @@ void LobbyRuntime::reconcile() {
     // Home/save return ends an acknowledged game, even if its room disappears.
     if(playing_&&activeService_) {deadline_.stop();status_=s["ticket"]==ticket_?"Playing":"Game continues · close it from Game Options";emit changed();return;}
     auto current=context(),prepared=preparedContext_;
-    if(!operation_.isEmpty()&&(current!=prepared||!activeService_||(!ticket_.isEmpty()&&s["ticket"]!=ticket_))) {
+    const bool lostPreparation=prepared_&&!busy_&&ticket_.isEmpty()&&!lobby_.activeRoom()->locallyPrepared();
+    if(!operation_.isEmpty()&&(current!=prepared||!activeService_||lostPreparation||s["recovering"].toBool()||!s["connection"].toString().isEmpty()||(!ticket_.isEmpty()&&s["ticket"]!=ticket_))) {
         cancel();
         if(lobby_.state()["phase"]=="gathering")lobby_.prepared(quint64(lobby_.state()["generation"].toInteger()),false);
     }

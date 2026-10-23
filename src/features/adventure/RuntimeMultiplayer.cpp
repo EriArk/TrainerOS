@@ -140,7 +140,7 @@ RuntimeMultiplayer::RuntimeMultiplayer(LibraryRepository& lib,RetroArchAdapter& 
         if(active_&&hotseat()&&(!party_.active()||party_.state()["members"].toArray().size()!=2)) {
             fail("The other player left. The shared-controller game has ended.");return;
         }
-        if(active_&&(rmg()||flycast()||ds()||azahar()||vita())&&!party_.active()) {fail("The game invitation ended.");return;}
+        if(active_&&(!lobbyTicket_.isEmpty()||rmg()||flycast()||ds()||azahar()||vita())&&!party_.active()) {fail("The game invitation ended.");return;}
         if(active_&&rmg()&&rmgRequest_.privateLan) {
             QSet<int> expected,actual;
             for(const auto& seat:rmgRequest_.seats)expected.insert(seat.toInt());
@@ -1173,6 +1173,9 @@ void RuntimeMultiplayer::output(const QByteArray& bytes) {
         }
         if(line.contains("Failed")||line.contains("failed")||line.contains("disconnected")){
             if(hotseat()){fail("The shared-controller connection ended. Invite your friend again.");return;}
+            if(!lobbyTicket_.isEmpty()&&(!host_||!supportsLive(descriptor_))) {
+                fail("The game connection ended. Prepare again in the same lobby.");return;
+            }
             status_="Multiplayer connection ended";emit notice(status_);
         }
     }
@@ -1181,6 +1184,7 @@ void RuntimeMultiplayer::output(const QByteArray& bytes) {
 void RuntimeMultiplayer::fail(QString text) {
     relaySelector_.stop();relayStarted_=relayWaiting_=false;relayTicket_.clear();selectedRelay_.clear();selectedRelayEndpoint_.clear();
     auto lobbyDone=std::exchange(lobbyCompletion_,{});
+    const auto endedLobbyTicket=lobbyTicket_;
     ++sessionGeneration_;
     const bool wasActive=active_,endHotseat=wasActive&&hotseat();
     const bool cancelPreparation=endHotseat&&!restarting_&&process_.preparing()&&lifecycle_.adventureId()==game_;
@@ -1208,5 +1212,9 @@ void RuntimeMultiplayer::fail(QString text) {
     if(overlay_.menuOpen())show("multiplayer-wait");else emit notice(status_);
     emit changed();
     if(lobbyDone)lobbyDone(false,status_);
+    else if(!endedLobbyTicket.isEmpty()) {
+        // End the game binding, not membership or the owned child's save flow.
+        QTimer::singleShot(0,this,[this,endedLobbyTicket]{social_.lobbyRuntime()->finished(endedLobbyTicket);});
+    }
 }
 }

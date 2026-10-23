@@ -60,7 +60,9 @@ void FluxerSession::lobbyChatCommand(const QVariantMap& args) {
         if(reply.status!=200||c["id"]!=channel||c["type"]!=3||!c["guild_id"].toString().isEmpty()) {
             // A new guest can probe before the organizer's recipient-add completes.
             // Only previously verified access can be revoked by this response.
-            if((reply.status==403||reply.status==404)&&lobbyChatChannels_.value(lobby)==channel)emit partyFailed(generation_,"company:"+channel);
+            if((reply.status==403||reply.status==404)&&lobbyChatChannels_.value(lobby)==channel) {
+                emit groupMembershipEnded(generation_,channel);emit partyFailed(generation_,"company:"+channel);
+            }
             failed("Conversation unavailable. The host can check its members and retry.");return;
         }
         channels_[channel]=c;++channelRevision_;lobbyChatChannels_[lobby]=channel;

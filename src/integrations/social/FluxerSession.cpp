@@ -667,7 +667,7 @@ void FluxerSession::refreshChannels() {
         QStringList previousPrivate;
         for(auto it=channels_.begin();it!=channels_.end();) {if(it.value()["guild_id"].toString().isEmpty()){previousPrivate.append(it.key());it=channels_.erase(it);}else ++it;}
         for(const auto& v:r.body.array()) {auto o=v.toObject();auto id=o["id"].toString();if(idValid(id)&&channels_.size()<500)channels_[id]=o;}
-        for(const auto& id:previousPrivate)if(!channels_.contains(id)){historyCache_.remove(id);historyLru_.removeAll(id);callNotices_.remove(id);emit partyFailed(generation_,"company:"+id);}
+        for(const auto& id:previousPrivate)if(!channels_.contains(id)){historyCache_.remove(id);historyLru_.removeAll(id);callNotices_.remove(id);emit groupMembershipEnded(generation_,id);emit partyFailed(generation_,"company:"+id);}
         if(!channel_.isEmpty()&&!channels_.contains(channel_)) {channel_.clear();messages_.clear();messageOrder_.clear();}
         for(auto it=channels_.cbegin();it!=channels_.cend();++it)updateUnread(it.key());
         channelsLoaded_=true;status_="Connected";checkLobbyGroups();ensureConversation();publish();
@@ -1813,14 +1813,16 @@ void FluxerSession::gatewayEvent(const QJsonObject& event) {
             }
             if(type=="CHANNEL_RECIPIENT_REMOVE") {
                 const auto channel=d["channel_id"].toString();const auto user=d["user"].toObject()["id"].toString(d["user_id"].toString());
-                if(user==self_){channels_.remove(channel);emit partyFailed(generation_,"company:"+channel);}
+                if(user==self_){channels_.remove(channel);emit groupMembershipEnded(generation_,channel);emit partyFailed(generation_,"company:"+channel);}
                 else {
                     auto c=channels_.value(channel);auto recipients=c["recipients"].toArray();
                     for(qsizetype i=recipients.size();i>0;--i)if(recipients[i-1].toObject()["id"]==user)recipients.removeAt(i-1);
                     c["recipients"]=recipients;channels_[channel]=c;emit partyFailed(generation_,"company:"+channel+":"+user);
                 }
             }
-            if(type=="CHANNEL_DELETE"&&channels_.value(d["id"].toString())["type"]==3)emit partyFailed(generation_,"company:"+d["id"].toString());
+            if(type=="CHANNEL_DELETE"&&channels_.value(d["id"].toString())["type"]==3) {
+                emit groupMembershipEnded(generation_,d["id"].toString());emit partyFailed(generation_,"company:"+d["id"].toString());
+            }
             if(type=="CHANNEL_RECIPIENT_REMOVE"&&d["channel_id"]==voiceChannel_){
                 if(d["user"].toObject()["id"]==self_||d["user_id"]==self_){leaveVoice();voiceStatus_="You left the call";}
                 else reconcileVoice();

@@ -196,7 +196,7 @@ bool LobbySession::acknowledgeLaunch(const QString& ticket,bool success) {
     if(phase_!="launching"||ticket.isEmpty()||ticket!=ticket_)return false;
     // A launch intent is not evidence that the runtime has started.
     phase_=success?"playing":"gathering";
-    if(!success) {ticket_.clear();for(auto& m:members_) {m.prepared=false;m.ready=false;}}
+    if(!success) {ticket_.clear();++generation_;for(auto& m:members_) {m.prepared=false;m.ready=false;}}
     publish();return true;
 }
 bool LobbySession::finishGame(const QString& ticket) {

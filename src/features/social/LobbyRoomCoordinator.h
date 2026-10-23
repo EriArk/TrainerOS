@@ -37,6 +37,7 @@ public:
     bool requestPlay();
     bool answerPlay(const QString& peer,const QString& answer);
     bool prepared(quint64 generation,bool value);
+    bool locallyPrepared() const;
     bool ready(bool value);
     bool canStart() const {return online_&&runtimeAllowed_&&hosting()&&session_.canStart(self_);}
     bool start() {return canStart()&&session_.start(self_);}
@@ -124,5 +125,8 @@ private:
     qint64 joinedAt_=0,hostSeen_=0;
     quint64 preparedGeneration_=0,readyGeneration_=0;
     bool preparationAwaitingAck_=false;
+    quint64 preparationRequestGeneration_=0;
+    bool preparationTarget_=false;
+    QDeadlineTimer preparationDeadline_;
 };
 }

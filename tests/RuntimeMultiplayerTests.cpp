@@ -277,7 +277,12 @@ private slots:
         host.leave();QVERIFY(f.runtime.invitationId().isEmpty());QVERIFY(!f.runtime.invitationBadge());
         f.runtime.openInvitation(invitation);QVERIFY(f.social.face()!="lobby");
     }
+    void lobbyReadyRunsBothOwnedChildrenAndReturnsToTheSameRoom_data() {
+        QTest::addColumn<QString>("ending");
+        for(const auto& name:{"normal","connection-failure","party-left"})QTest::newRow(name)<<QString(name);
+    }
     void lobbyReadyRunsBothOwnedChildrenAndReturnsToTheSameRoom() {
+        QFETCH(QString,ending);
         Fixture a,b;
         const QJsonObject profile{{"id","runtime.test"},{"content","exact"},{"players",2},{"label","Game"}};
         const auto digest=QString::fromLatin1(QCryptographicHash::hash(QByteArray("runtime.test/exact"),QCryptographicHash::Sha256).toHex());
@@ -316,6 +321,12 @@ private slots:
         QTRY_VERIFY2_WITH_TIMEOUT(h->state()["phase"]=="playing",qPrintable(a.social.lobbyRuntime()->status()+" / "+b.social.lobbyRuntime()->status()+" / "+a.lifecycle.state()+" / "+b.lifecycle.state()),5000);
         QCOMPARE(g->state()["phase"].toString(),QString("playing"));
         QVERIFY(a.process.active());QVERIFY(b.process.active());QVERIFY(a.runtime.party_.pending().isEmpty());QVERIFY(b.runtime.party_.pending().isEmpty());
+        if(ending!="normal") {
+            if(ending=="party-left")b.runtime.party_.leave();else b.runtime.fail("Connection lost after suspend");
+            QTRY_COMPARE(h->state()["phase"].toString(),QString("gathering"));
+            QVERIFY(a.process.active());QVERIFY(b.process.active()); // Save/exit remains owned.
+            QCOMPARE(g->state()["id"].toString(),room);QVERIFY(!b.runtime.active_);
+        }
         finishOrdinary(a);finishOrdinary(b);QTRY_COMPARE(h->state()["phase"].toString(),QString("gathering"));
         QCOMPARE(h->state()["id"].toString(),room);QCOMPARE(g->state()["id"].toString(),room);QCOMPARE(h->state()["members"].toArray().size(),2);
         // Automatic preparation may already have finished again. It must never

@@ -20,6 +20,7 @@ LobbyRoomCoordinator::LobbyRoomCoordinator(QObject* parent):QObject(parent) {
     connect(&readyDeadline_,&QTimer::timeout,this,[this]{
         readyGeneration_=0;
         send(host_,"ready",{{"value",false}});
+        prepared(quint64(remote_["generation"].toInteger()),false);
         emit notice("Ready confirmation timed out. Please try again.");emit changed();
     });
     boot_=QUuid::createUuid().toString(QUuid::WithoutBraces);
@@ -75,6 +76,7 @@ QJsonArray LobbyRoomCoordinator::requests() const {
 }
 void LobbyRoomCoordinator::clearRemote() {
     readyDeadline_.stop();
+    preparationAwaitingAck_=false;
     pendingLaunchResult_={};
     liveOperation_.clear();
     peerBoots_.remove(host_);peerSerials_.remove(host_);
@@ -92,7 +94,7 @@ void LobbyRoomCoordinator::configure(QString self,QString name,bool online) {
     }
     name_=name;const bool changed=online_!=online;online_=online;
     if(hosting()&&changed)session_.connected(self_,online_);
-    if(!online_) {readyDeadline_.stop();preparedGeneration_=readyGeneration_=0;if(!host_.isEmpty())connection_="Reconnecting to communication…";}
+    if(!online_) {readyDeadline_.stop();preparationAwaitingAck_=false;preparedGeneration_=readyGeneration_=0;if(!host_.isEmpty())connection_="Reconnecting to communication…";}
     emit this->changed();
     if(changed&&online_)tick();
 }
@@ -159,11 +161,13 @@ bool LobbyRoomCoordinator::setConversation(QString channel) {return hosting()&&s
 bool LobbyRoomCoordinator::seat(int seat) {
     if(hosting())return session_.claimSeat(self_,seat,session_.generation());
     if(!online_||remote_.isEmpty()||restoring_||!connection_.isEmpty())return false;
+    readyDeadline_.stop();preparationAwaitingAck_=false;
     preparedGeneration_=readyGeneration_=0;send(host_,"seat",{{"seat",seat}});return true;
 }
 bool LobbyRoomCoordinator::spectate(bool value) {
     if(hosting())return session_.spectate(self_,value,session_.generation());
     if(!online_||remote_.isEmpty()||restoring_||!connection_.isEmpty())return false;
+    readyDeadline_.stop();preparationAwaitingAck_=false;
     preparedGeneration_=readyGeneration_=0;send(host_,"spectate",{{"value",value}});return true;
 }
 bool LobbyRoomCoordinator::requestPlay() {
@@ -178,11 +182,18 @@ bool LobbyRoomCoordinator::answerPlay(const QString& peer,const QString& answer)
     playRequests_.remove(peer);
     send(peer,"play-response",{{"answer",answer}});emit changed();return true;
 }
+bool LobbyRoomCoordinator::locallyPrepared() const {
+    if(!hosting())return preparedGeneration_&&preparedGeneration_==quint64(remote_["generation"].toInteger());
+    for(const auto& v:session_.state()["members"].toArray())if(v.toObject()["id"]==self_)return v.toObject()["prepared"].toBool();
+    return false;
+}
 bool LobbyRoomCoordinator::prepared(quint64 generation,bool value) {
     if(value&&!runtimeAllowed_)return false;
     if(hosting())return session_.prepared(self_,generation,value);
     if(!online_||remote_.isEmpty()||restoring_||!connection_.isEmpty()||remote_.value("generation").toInteger()!=qint64(generation))return false;
-    preparedGeneration_=value?generation:0;preparationAwaitingAck_=value;
+    readyDeadline_.stop();
+    preparedGeneration_=value?generation:0;preparationAwaitingAck_=true;
+    preparationRequestGeneration_=generation;preparationTarget_=value;preparationDeadline_.setRemainingTime(45000);
     readyGeneration_=0;send(host_,"prepared",{{"value",value}});return true;
 }
 bool LobbyRoomCoordinator::ready(bool value) {
@@ -347,7 +358,10 @@ void LobbyRoomCoordinator::receive(QString peer,QString name,const QJsonObject& 
             peerBoots_[peer]=boot;peerSerials_[peer]=serial;
             if(session_.join(peer,name.left(100),now(),data["watch"].toBool())) {
                 if(!previous.isEmpty()&&previous!=boot) {
-                    retiredBoots_[peer+"/"+previous]=now()+180;session_.connected(peer,false);session_.connected(peer,true);
+                    retiredBoots_[peer+"/"+previous]=now()+180;
+                    // A new shell cannot still own the previous game's runtime.
+                    session_.finishPlayer(peer,session_.state()["ticket"].toString());
+                    session_.connected(peer,false);session_.connected(peer,true);
                 }
                 pendingInvites_.remove(peer);seen_[peer]=now();save();send(peer,"state",session_.state(),probe);
             }
@@ -434,7 +448,7 @@ void LobbyRoomCoordinator::receive(QString peer,QString name,const QJsonObject& 
     if(!recovered&&data["revision"]==remote_.value("revision"))return;
     QJsonObject mine;for(const auto& v:data["members"].toArray())if(v.toObject()["id"]==self_)mine=v.toObject();
     if(mine.isEmpty()) {emit membershipEnded(id);clearRemote();emit notice("You left the lobby.");emit changed();return;}
-    if(data["generation"]!=remote_.value("generation"))preparedGeneration_=readyGeneration_=0;
+    if(data["generation"]!=remote_.value("generation")) {preparedGeneration_=readyGeneration_=0;preparationAwaitingAck_=false;}
     remote_=data;joining_.clear();joinedAt_=0;
     if(data["ticket"]!=finishedTicket_||data["phase"]!="playing")finishedTicket_.clear();
     if(data["phase"]!="launching"||data["ticket"]!=pendingLaunchResult_["ticket"]||
@@ -453,14 +467,18 @@ void LobbyRoomCoordinator::receive(QString peer,QString name,const QJsonObject& 
     // A host snapshot already in transit may precede our preparation request.
     // Keep the local proof until its acknowledgement, without allowing a remote
     // prepared flag to create local proof after reconnect/generation changes.
-    if(mine["prepared"].toBool())preparationAwaitingAck_=false;
-    else if(!preparationAwaitingAck_)preparedGeneration_=readyGeneration_=0;
+    if(preparationAwaitingAck_&&(generation!=preparationRequestGeneration_||data["phase"]!="gathering"||mine["prepared"].toBool()==preparationTarget_))preparationAwaitingAck_=false;
+    if(!mine["prepared"].toBool()&&!preparationAwaitingAck_)preparedGeneration_=readyGeneration_=0;
     if(!mine["ready"].toBool()&&!readyPending())readyGeneration_=0;
     emit changed();
+    // Reconnection must reconcile the host's old Ready with actual local proof.
+    // Never reconstruct local preparation from a remote snapshot.
+    if(remote_["phase"]=="gathering"&&mine["prepared"].toBool()&&!preparedGeneration_&&!preparationAwaitingAck_)
+        prepared(quint64(remote_["generation"].toInteger()),false);
 }
 void LobbyRoomCoordinator::deliveryFailed(const QString& peer) {
     if(hosting()) {if(!session_.connected(peer,false))emit notice("Couldn't deliver the lobby invitation. Try again.");}
-    else if(peer==host_) {readyDeadline_.stop();preparedGeneration_=readyGeneration_=0;connection_="Host unavailable. Reconnecting…";emit changed();}
+    else if(peer==host_) {readyDeadline_.stop();preparationAwaitingAck_=false;preparedGeneration_=readyGeneration_=0;connection_="Host unavailable. Reconnecting…";emit changed();}
 }
 void LobbyRoomCoordinator::tick() {
     for(auto it=retiredBoots_.begin();it!=retiredBoots_.end();)if(it.value()<=now())it=retiredBoots_.erase(it);else ++it;
@@ -479,6 +497,15 @@ void LobbyRoomCoordinator::tick() {
         if(joinedAt_&&now()-joinedAt_>90) {clearRemote();emit notice("The join request expired.");emit changed();return;}
         if(hostSeen_&&now()-hostSeen_>45)deliveryFailed(host_);
         reconnect();
+        if(online_&&!restoring_&&connection_.isEmpty()&&remote_["phase"]=="gathering") {
+            if(preparationAwaitingAck_&&preparationRequestGeneration_==quint64(remote_["generation"].toInteger())) {
+                if(preparationDeadline_.hasExpired()) {
+                    preparationAwaitingAck_=false;preparedGeneration_=readyGeneration_=0;
+                    emit notice("Preparation confirmation timed out. Try setup again.");emit changed();
+                } else send(host_,"prepared",{{"value",preparationTarget_}});
+            }
+            if(readyPending()&&readyRequestGeneration_==quint64(remote_["generation"].toInteger()))send(host_,"ready",{{"value",readyTarget_}});
+        }
         retryLaunchResult();
         if(!liveOperation_.isEmpty()&&launchTicket_.isEmpty()&&finishedTicket_.isEmpty()&&remote_.value("phase")=="playing")
             send(host_,"live-request",{{"ticket",remote_.value("ticket")},{"operation",liveOperation_}});

@@ -630,6 +630,37 @@ private slots:
         QCOMPARE(runtime.launches,1);QVERIFY(!s.lobbyRoomGame()["canStart"].toBool());
         s.activateLobbyRoom("start");QCOMPARE(runtime.launches,1);
     }
+    void deliveryFailureDoesNotRevokeLobbyMembership() {
+        SocialController s;s.receive(0,{{"state","connected"},{"userId","1"},{"name","Host"}});
+        QObject::disconnect(&s,nullptr,s.session_,nullptr);
+        QVERIFY(s.lobby_.create("public"));QVERIFY(s.lobby_.setConversation("123"));const QJsonValue room=s.lobby_.state()["id"];
+        emit s.session_->partyFailed(0,"company:123");QCOMPARE(s.lobby_.state()["id"],room);
+        emit s.session_->partyFailed(0,"company:123:2");QCOMPARE(s.lobby_.state()["id"],room);
+        emit s.session_->groupMembershipEnded(1,"123");QCOMPARE(s.lobby_.state()["id"],room);
+        emit s.session_->groupMembershipEnded(0,"456");QCOMPARE(s.lobby_.state()["id"],room);
+        emit s.session_->groupMembershipEnded(0,"123");QVERIFY(s.lobby_.state().isEmpty());
+    }
+    void lobbyNavigationAndReconnectKeepRoomAndRecoverSetup() {
+        class Runtime final : public LobbyRuntimeService { public: int attempts=0,cancels=0;
+            void prepare(QString,QJsonObject,Completion done) override {++attempts;done(true,{});}
+            void launch(QString,QString,QJsonObject,Completion done) override {done(true,{});}
+            void cancel(QString) override {++cancels;} } runtime;
+        SocialController s;QObject::disconnect(&s,nullptr,s.session_,nullptr);QObject::disconnect(s.session_,nullptr,&s,nullptr);
+        QVariantMap snapshot{{"state","connected"},{"userId","1"},{"name","Host"}};
+        s.receive(0,snapshot);QVERIFY(s.lobby_.create("public"));const QJsonValue room=s.lobby_.state()["id"];
+        s.lobbyRuntime_.registerService("netplay",&runtime);QVERIFY(s.lobby_.selectGame({"game","Game","snes","netplay",2,{}}));
+        s.reconcileLobbyPreparation();QCOMPARE(runtime.attempts,1);QVERIFY(s.lobby_.ready(true));
+        s.setSurfaceAvailable(false);s.setConversationVisible(false);s.setFace("communities");s.setFace("chats");
+        s.setSurfaceAvailable(true);s.chooseMyLobby(room.toString());s.reconcileLobbyPreparation();
+        QCOMPARE(runtime.attempts,1);QCOMPARE(runtime.cancels,0);QVERIFY(s.lobby_.activeRoom()->canStart());
+        snapshot["state"]="reconnecting";s.receive(0,snapshot);s.reconcileLobbyPreparation();
+        snapshot["state"]="connected";s.receive(0,snapshot);s.reconcileLobbyPreparation();
+        QCOMPARE(runtime.attempts,2);QCOMPARE(s.lobby_.state()["id"],room);QVERIFY(!s.lobby_.activeRoom()->canStart());
+        QVERIFY(s.lobby_.ready(true));QVERIFY(s.lobby_.start());
+        QVERIFY(s.lobbyRuntime_.finished(s.lobby_.state()["ticket"].toString()));
+        QVERIFY(s.lobby_.selectGame({"next","Next","snes","netplay",2,{}}));s.reconcileLobbyPreparation();
+        QCOMPARE(runtime.attempts,3);QCOMPARE(s.lobby_.state()["id"],room);
+    }
     void lobbyAutomaticPreparationIsBoundedAndNeverInterruptsGame() {
         class Runtime final : public LobbyRuntimeService { public: int attempts=0; void prepare(QString,QJsonObject,Completion done) override {++attempts;done(false,"Missing local game");}
             void launch(QString,QString,QJsonObject,Completion done) override {done(false,"unused");} void cancel(QString) override {} } runtime;

@@ -184,13 +184,14 @@ void SocialController::reconcileLobbyPreparation() {
             readySwitch_.clear();lobbyAutoPreparation_.clear();
         } else return;
     }
-    if(gameActive_||snapshot_["state"]!="connected"||!lobbyRuntime_.available()||lobbyRuntime_.busy())return;
+    if(gameActive_||snapshot_["state"]!="connected"||!lobbyRuntime_.available()) {lobbyAutoPreparation_.clear();return;}
+    if(lobbyRuntime_.busy())return;
     const auto s=lobby_.state();QJsonArray people;
     for(const auto& v:s["members"].toArray()){const auto m=v.toObject();if(m["id"]==snapshot_["userId"].toString()&&m["prepared"].toBool()) {
             return;
         }
         people.append(QJsonObject{{"id",m["id"]},{"seat",m["seat"]},{"connected",m["connected"]},{"spectator",m["spectator"]}});}
-    const auto key=QString::fromUtf8(QJsonDocument(QJsonObject{{"room",s["id"]},{"owner",s["owner"]},{"game",s["game"]},{"generation",s["generation"]},{"members",people}}).toJson(QJsonDocument::Compact));
+    const auto key=QString::fromUtf8(QJsonDocument(QJsonObject{{"room",s["id"]},{"owner",s["owner"]},{"game",s["game"]},{"relay",s["relay"]},{"generation",s["generation"]},{"members",people}}).toJson(QJsonDocument::Compact));
     if(key==lobbyAutoPreparation_)return;
     lobbyAutoPreparation_=key;lobbyRuntime_.prepare();
 }
