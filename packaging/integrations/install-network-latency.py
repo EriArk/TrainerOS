@@ -6,6 +6,7 @@ Requires root. Existing per-connection overrides are preserved. The running
 interface is changed only when its active profile uses NetworkManager defaults.
 """
 import os
+import configparser
 from pathlib import Path
 import shutil
 import subprocess
@@ -19,13 +20,13 @@ def run(*args):
 def main():
     if os.geteuid() != 0:
         raise SystemExit("Root required")
-    name = "90-traineros-network-latency.conf"
+    name = "99-zz-traineros-network-latency.conf"
     data = Path(__file__).with_name(name).read_bytes().replace(b"\r\n", b"\n")
     target = Path("/etc/NetworkManager/conf.d") / name
     target.parent.mkdir(parents=True, exist_ok=True)
     if target.is_symlink():
         raise RuntimeError("Refusing a symlinked configuration")
-    backup = Path("/var/lib/traineros/network-latency-before")
+    backup = Path("/var/lib/traineros/network-latency-v2-before")
     backup.mkdir(parents=True, exist_ok=True, mode=0o700)
     if not (backup / "recorded").exists():
         if target.exists():
@@ -39,6 +40,10 @@ def main():
         os.fsync(stream.fileno())
     os.replace(temporary, target)
     subprocess.run(["nmcli", "general", "reload", "conf"], check=True)
+    effective = configparser.ConfigParser(interpolation=None, strict=False)
+    effective.read_string(run("NetworkManager", "--print-config"))
+    if effective.get("connection", "wifi.powersave", fallback="") != "2":
+        raise RuntimeError("Another NetworkManager configuration overrides the latency default")
     # Do not bounce the connection, change its saved profile, or override an
     # explicit on/off/ignore preference. Reading one field avoids SSID parsing.
     for device in run("nmcli", "-g", "DEVICE", "device").splitlines():

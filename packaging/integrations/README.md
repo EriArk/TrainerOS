@@ -3,9 +3,14 @@
 ## Wi-Fi latency default
 
 Run `python3 install-network-latency.py` as root with the adjacent
-`90-traineros-network-latency.conf`. It installs NetworkManager's default
+`99-zz-traineros-network-latency.conf`. It installs NetworkManager's default
 `wifi.powersave=2`, preserves explicit per-connection settings and records the
-previous owned file under `/var/lib/traineros/network-latency-before`.
+previous owned file under `/var/lib/traineros/network-latency-v2-before`.
+The name sorts after Armada's `99-valve-wifi-backend.conf`; the installer checks
+NetworkManager's merged configuration, not only the file it just wrote. The older
+`90-traineros-network-latency.conf` may remain: its lower precedence is harmless.
+To roll back v2, restore its backed-up file (or remove the new file if originally
+absent), then reload NetworkManager configuration. The v1 backup stays separate.
 It reloads NM configuration without reconnecting and applies `iw` immediately
 only to active Wi-Fi profiles using `default`. It requires `nmcli` and `iw`.
 Rollback and measured scope: [NetPlay stability](../../docs/NETPLAY_STABILITY_2026_10_23.md).

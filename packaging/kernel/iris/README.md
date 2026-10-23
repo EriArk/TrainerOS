@@ -1,11 +1,106 @@
 # Armada Iris encoder maintenance
 
-This is a **diagnostic kernel-module build**, separate from TrainerOS's installed
-application and image. It repairs the two encoder defects recorded in
-[the device evidence](../../../docs/ARMADA_IRIS_ENCODER.md). No autoload, system
-module replacement, firmware change or full kernel installation is performed.
+This directory maintains the two encoder fixes recorded in
+[the device evidence](../../../docs/ARMADA_IRIS_ENCODER.md). The current delivery
+recipe builds a **complete, separately named Armada kernel and bootc image**.
+The earlier module-only experiment is retained below as historical evidence;
+it is not an installation procedure. None of these helpers switches the host,
+writes its boot partition, unloads a driver or reboots it.
 
-## Exact source and changes
+## Full system image: current recipe
+
+The system build targets Armada `20261017.64207e6`, source
+`64207e61a3c5b485815466533e14ac8a2b4ae76a`, Linux 7.2.6 and the exact native ARM64
+compiler `gcc (GCC) 16.2.1 20260819 (Red Hat 16.2.1-2)`. It applies all **214**
+upstream kernel patches followed by the same two Iris patches below. The
+upstream builder retains its configuration, device trees, full modpost/BTF and
+module staging. Its concurrency is bounded and the release becomes
+`7.2.6-traineros-iris1`; module trees cannot be mixed with the original kernel.
+
+Use a disposable ARM64 build container with Python 3.12+, git, make, binutils,
+patch, flex, bison, bc, elfutils/OpenSSL development headers, dwarves, zstd and
+depmod. Keep at least 20 GiB free for the kernel build and additional space for
+the complete base image. The builder stops below 6 GiB free. Fetch the exact
+source object; a checkout is unnecessary:
+
+```sh
+git init armada-source
+git -C armada-source fetch --depth=1 https://github.com/armada-os/armada.git 64207e61a3c5b485815466533e14ac8a2b4ae76a
+curl -fLO https://cdn.kernel.org/pub/linux/kernel/v7.x/linux-7.2.6.tar.xz
+python3 packaging/kernel/iris/build-system-kernel.py \
+  --linux-tarball linux-7.2.6.tar.xz --armada armada-source \
+  --output full-build --jobs 4
+python3 packaging/kernel/iris/prepare-system-image.py \
+  --kernel-output full-build/out --armada armada-source --output image-context
+podman pull ghcr.io/armada-os/armada@sha256:1f1f1996ec473517d9cd9831be20582e1938226152983241aa98f5588800924e
+podman build --network=none --pull=never --layers=false \
+  --tag localhost/traineros-armada:iris1 image-context
+```
+
+Output directories must be new. `build-receipt.json` records the source,
+compiler, patch, configuration, Module.symvers and artifact hashes; only a
+completed, matching receipt passes image preparation. The image is based on
+`ghcr.io/armada-os/armada@sha256:1f1f1996ec473517d9cd9831be20582e1938226152983241aa98f5588800924e`.
+Its installer refuses an OSTree host, validates the entire kernel archive before
+replacing the image's kernel tree, and requires all 27 Armada DTBs. Armada's
+pinned initramfs generator preserves and checks its splash and OSTree fallback;
+`bootc container lint` must pass. `test-system-image.py` checks artifact admission
+and rejects foreign paths, links and incomplete builds without touching a host.
+
+Before delivery, inspect the complete build/image receipts, compare the resolved
+configuration with the target and verify available storage. On the current
+builder the resolved differences are the intentional local version, disabled
+automatic local version and detected `CONFIG_OPENSSL_SUPPORTS_ML_DSA=y` build
+tool capability. No device feature has been deliberately removed. This is not
+a claim of a bit-identical rebuild.
+
+Deploy through bootc only after the image passes validation. Preserve the
+current deployment with an OSTree pin and verify Armada's existing ESP
+`KERNEL.BAK` and boot-image finalization hooks. Keep an additional private backup
+of the current boot files outside the ESP. Stage and inspect the candidate,
+then reboot one handheld at a time; do not hot-replace Iris. After each boot,
+verify the actual kernel release, module hash, TrainerOS startup and the
+geometry/requested-IDR probe. Ordinary netplay does not use this encoder.
+
+The installed bootc/OSTree tools support this explicit staging sequence (replace
+the example layout path with the checksum-verified export). Prefer an OCI
+directory on a volume with sufficient free space: importing an OCI archive can
+also require temporary extraction space on the target's smaller internal disk.
+
+```sh
+podman save --format oci-dir --output traineros-iris.oci localhost/traineros-armada:iris1
+# Record and verify index.json, oci-layout and every blob checksum after copying.
+# On the target, after backups and checking there is no active game:
+sudo ostree admin pin booted
+sudo bootc switch --download-only --transport oci /path/to/traineros-iris.oci
+sudo bootc status --json
+# Inspect the staged kernel/modules/initramfs before unlocking it:
+sudo bootc switch --from-downloaded
+# Announce the restart; only then reboot and check the actual running build.
+sudo systemctl reboot
+```
+
+`--download-only` retains a locked deployment which is not applied by a reboot.
+Do not use `--apply` as a substitute for inspecting the staged image. For a
+running candidate, `sudo bootc rollback`, inspection of `bootc status --json`
+and a separately announced reboot select the prior deployment. Rollback reuses
+that deployment's `/etc`; it does not merge later configuration changes back.
+
+Armada's existing shutdown/finalization hooks build the device boot image from
+the staged deployment. A previous deployment and backup image are recovery
+mechanisms, not proof of a successful recovery test. If boot fails, use Armada's
+retained fallback/recovery path; never blindly overwrite boot partitions. A
+working candidate can return to the pinned original with `bootc rollback` and
+the same inspected reboot path. Switching to a local image changes bootc's
+tracked source: record that source and explicitly switch back to the accepted
+Armada channel when ending the experiment. Ordinary Armada updates can replace
+the patched kernel until the patches are integrated upstream.
+
+Build, installed boot, encoder checks and gameplay acceptance remain separate.
+See the device evidence for the actual delivery state; generating this recipe
+does not mean either handheld is running the new kernel.
+
+## Historical module experiment: exact source and changes
 
 - Linux [v7.2.6](https://github.com/gregkh/linux/tree/500df175a7f9e6bc1a9c328590ca5150f84f9ff0),
   kernel.org `linux-7.2.6.tar.xz`, SHA256
@@ -59,15 +154,16 @@ recorded devices the import sets were identical and all imports were exported.
 Keep the installed dependencies loaded; a production build must use the full
 Armada kernel build and its actual `Module.symvers`.
 
-## Temporary verification and rollback
+## Historical temporary verification and rollback
 
-Stop only the owned diagnostic streams. Confirm no process holds `/dev/video0`
-or `/dev/video1` and `/sys/module/qcom_iris/refcnt` is zero. Keep the original
-module on disk unchanged and record both hashes. Unload `qcom_iris` normally and
-load the verified candidate with `insmod`; **never force unload or bypass version
-checks**. If loading fails, immediately `modprobe qcom_iris` from the unchanged
-system module tree. A successful external build sets the kernel's out-of-tree
-taint flag; it is recorded, not treated as a kernel failure.
+The following describes the earlier experiment, **not a supported update
+procedure**. Owned diagnostic streams were stopped and both video-device users
+and `/sys/module/qcom_iris/refcnt` were checked. The original module remained on
+disk, both hashes were recorded, and the verified candidate was temporarily
+loaded with `insmod` after a normal unload. No force unload or version-check
+bypass was used. The external build set the kernel's out-of-tree taint flag;
+that flag was recorded separately from kernel failures. The later Odin failure
+below invalidated hot replacement as a delivery path.
 
 Run `python3 tools/probe-iris-encoder.py`: it checks all visible band boundaries
 and requires a real H.264 IDR/SPS within 15 frames after a requested keyframe.
