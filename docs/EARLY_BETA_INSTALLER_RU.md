@@ -36,6 +36,152 @@ consumer и остаток — [FIRST_RUN](FIRST_RUN.md).
   должны поставляться восстанавливаемо поверх Armada. Не повторять горячую
   выгрузку зависавшего драйвера Odin ради обхода; собственный образ не навязывать.
 
+## Managed installer и OTA — продолжение 24 октября 2026
+
+Это **исходники и локальные проверки**, не выпущенная бета и не проверенная
+установка на Armada. Описания прежних этапов ниже сохраняют датированную
+историю; их фразы «ещё нет activation/host binding» заменены этим разделом.
+
+### Установка и владение
+
+- `host.py` читает ОС, ARM64 и реальные Armada capabilities; `findmnt /usr` и
+  inverse `lsblk` определяют физический ОС-диск. Для MMC учитывается SD/MMC из
+  sysfs, потому что removable flag не всегда различает карту и eMMC. Неизвестная
+  или неоднозначная топология не выдаётся за поддержанную. Библиотека игр для
+  определения ОС-диска не используется; форматирования/переноса ОС нет.
+- `installer.py --gui` использует штатные KDE kdialog/qdbus: канал, версия,
+  download size, место/ОС-диск, подтверждение, прогресс/отмена и повтор. Проверяются
+  существующие system prerequisites и зависимости signed executable через ldd.
+  **Автоматической установки недостающих host packages пока нет**: отсутствующая
+  зависимость останавливает путь до активации с ошибкой. Qt plugins, runtime-набор,
+  ABI и лицензии полного ARM64 payload требуют release-проверки.
+- Личный root `~/.local/share/traineros-software`: доверенные config/key,
+  фиксированный `bootstrap/packaging`, `versions/<signed-digest>`, cache/channels
+  и один атомарный `receipt.json` с active/previous/health. Пользовательская БД,
+  first-run state, аккаунты, ROMs и saves находятся **вне** этого root.
+- `initialize` не заменяет существующую trust/data identity. Каждая установка
+  проверяет подпись, inventory и текущие SQLite/first-run schemas, копирует в
+  неактивную версию и fsync/rename публикует receipt. Повтор той же версии безопасен;
+  другая версия не может переопределить тот же sequence. Прерывание до receipt
+  оставляет старую активную версию; после него — новую с unconfirmed health.
+- Собственные ярлыки и системные session-файлы имеют отдельные журналы хешей.
+  Системная часть запрашивает обычную pkexec-авторизацию. Все её назначения
+  проверяются до первой записи. `--managed` добавляет выбор сессии и сохраняет
+  boot/sleep defaults; старые helper-only/default режимы остаются отдельными.
+  Нельзя молча присвоить файлы существующей ручной установки или чужие изменения.
+- Repair повторно получает **точный подписанный установленный manifest**, лечит
+  повреждённые application/cache files и сохраняет карантин при прерывании.
+  Rollback выбирает предыдущую собственную версию только при совместимости с
+  текущей БД/настройками. Он не восстанавливает старые пользовательские данные.
+- Uninstall проверяет ownership всех удаляемых ярлыков/системных файлов и удаляет
+  собственные версии/кэш. Перед удалением сессии выбранный TrainerOS boot default
+  нужно штатно сменить на Desktop/Steam. Изменённые чужим владельцем файлы
+  сохраняются с отказом операции. Данные, trust и recovery bootstrap сохраняются;
+  для повторной установки остаётся исходный архив Setup.
+- `audit` проверяет **software files/data compatibility**, не сертифицирует весь
+  host. Состояние session integration отражается отдельно как recorded/not recorded;
+  полнота привилегированной установки должна проверяться на Armada.
+
+### Применение из Settings
+
+Обычная source-сборка остаётся без обновлений. Managed launcher передаёт свой
+root; Settings асинхронно читает реальный receipt, путь текущего executable,
+личную папку, target и схемы. Только совпавшая managed installation получает
+источник/кнопки Apply, Previous version, Repair, Check installed files и Clear cache.
+
+Apply/rollback/repair требуют отдельного подтверждения и повторной проверки
+существующих runtime/save/file/service guards. Запрос содержит выбранную версию,
+исходный active digest и время. Shell выполняет обычный защищённый выход;
+только специальный exit 75 разрешает launcher выполнить запрос. Отмена выхода
+возвращает UI, обычный выход/сбой не применяет оставленный запрос. Перед применением
+снова проверяются канал/совместимость/подписи; старый запрос не переигрывается.
+
+Linux launcher удерживает межпроцессную runtime lease и становится
+[subreaper](https://www.man7.org/linux/man-pages/man2/PR_SET_CHILD_SUBREAPER.2const.html).
+Он ждёт завершения дочерних игр даже после выхода оболочки, не посылая им kill.
+Первый реальный QML frame подтверждается через READY_FD и записывается отдельно
+от факта установки. Падение shell/launcher оставляет boot fence: без доказательства
+освобождения runtime обслуживание до нового boot запрещено. Автоматического
+отката или watchdog crash-loop recovery нет; ручной Recovery остаётся отдельным
+путём. Реальные внешние service-launched процессы требуют проверки на Armada.
+
+Downloads хранит локальный job (`channels/ui-job.json`), выбранный канал и дату
+проверки. После перезапуска задача возвращается **Paused**, даже если раньше была
+Prepared: явный Resume заново проверяет канал и кэш. Поиск обновления не качает
+payload, фон не возобновляет пользовательскую задачу. Очистка download cache не
+удаляет installed versions/данные; неизвестные файлы кэша сохраняются. Исторические
+неактивные версии пока не удаляются автоматически.
+
+KDE progress/cancel использует [официальный DBus интерфейс kdialog](https://develop.kde.org/docs/administration/kdialog/).
+Пропавшее окно считается отменой загрузки; в фазе commit Cancel скрыт. На длинных
+проверках/системной авторизации показан этап без выдуманного процента. Фактический
+KDE/dialog/Polkit путь здесь не запускался.
+
+### Подготовка публикации GitHub
+
+`publisher.py build` создаёт **локальные** assets: signed `release.json`,
+`traineros.tar.gz`, channel JSON, `TrainerOS-Setup.tar.gz` с публичным ключом,
+corresponding source, notices/LICENSE, provenance и `publication.json` с хешами.
+Нет автопубликации, генерации production key или GitHub Actions. Закрытый ключ
+не входит в Setup. Entry script имеет Unix line endings и executable bit,
+в том числе при сборке архива на Windows.
+
+Издатель передаёт reviewed ARM64 ELF payload и provenance с точным source commit,
+командой сборки, версиями зависимостей, путями corresponding-source archive/notices
+и `redistributionReviewed: true`. Это явное утверждение издателя; инструмент не
+может сам доказать лицензии/полноту исходников или пригодность бинарника на железе.
+
+```sh
+python3 packaging/software/publisher.py build \
+  --payload /reviewed/payload --output /new/release-assets \
+  --private-key /private/signing.pem --public-key /reviewed/trusted-public.pem \
+  --version "$VERSION" --sequence "$SEQUENCE" --source "$COMMIT" \
+  --repository EriArk/TrainerOS --tag "$TAG" --channel beta \
+  --channel-sequence "$CHANNEL_SEQUENCE" --issued "$ISSUED" --expires "$EXPIRES" \
+  --sqlite-min 0 --sqlite-max "$SQLITE_SCHEMA" --first-run-min 0 --first-run-max 2 \
+  --provenance /reviewed/provenance.json --notes /reviewed/notes.txt
+```
+
+После проверки contents/хешей издатель загружает immutable assets в GitHub Release,
+проверяет анонимные скачивания через `publisher.py verify-remote --directory ...`,
+и **только затем** обновляет соответствующий signed channel в ветке `updates`.
+Зеркало JSON в Release само по себе не обновляет канал. Verify-remote проверяет
+assets, отдельно сообщает, что channel branch ещё не проверена. Не публиковать
+обещание работающей беты до аппаратной приёмки. Большие файлы и маленькие feeds
+размещаются на GitHub, сервер владельца не используется для их раздачи.
+
+### Локальная проверка текущего продолжения
+
+Windows/UCRT64 Qt 6.11.1: native build; 19 updater QtTest checks (включая
+init/cleanup) и QML-сценарий Settings/Downloads/подтверждения Apply прошли.
+17 first-run checks и QML до Home подтверждают новый офлайн-путь. Сборка
+`BUILD_TESTING=OFF` прошла: first-run/OTA smoke options отклоняются, тестовые
+строки отсутствуют в executable. Две целевые
+проверки ScreenScraper identity/credentials прошли; прежние несвязанные failures
+расширенного набора сохранены в FIRST_RUN, весь проект не объявляется зелёным.
+
+19 release + 29 channel tests переиспользуют настоящие OpenSSL ключи, tar,
+файлы, межпроцессные locks и локальный HTTPS. Новый `SoftwareInstallationTests.py`:
+22 passed, 2 Linux-only skipped. Покрыты interrupted copy/receipt/retry, schemas/WAL,
+compatible rollback, tampering/repair cache, ownership/drift/uninstall, реальный
+запрет CLI maintenance при занятой lease, boot fence, stale request, публикационный
+архив без закрытого ключа, отмена progress и ОС-диск SD/eMMC. Linux fsync/power loss,
+subreaper, root install и настоящий KDE не выводятся из этих Windows результатов.
+
+### Что ещё не принято
+
+- Production public key/rotation, реальные Beta/Preview feeds и public Release.
+- Полный ARM64 payload с совместимыми Qt/runtime dependencies и redistribution
+  acceptance. Неавтоматизированные недостающие host packages и миграция ручных
+  установок. Bootstrap/root helpers не обновляются через Software OTA: новая
+  версия bootstrap требует отдельно проверенного установщика/миграции ownership.
+- Linux subreaper/flock/first-frame и отказ по service-launched runtime; две
+  настоящие subprocess-проверки добавлены, но на Windows пропускаются явно.
+  Локальный Linux runtime в этом проходе недоступен; это не зелёная Linux-приёмка.
+- Чистая microSD/internal Armada, KDE/Polkit, реальные игры/защищённые saves,
+  обрыв питания/носителя, повтор/repair/uninstall/rollback и физическое управление.
+  Никаких подключений к портативкам в этом проходе не выполняется.
+
 ## Общая подготовка Software-пакета — 24 октября 2026
 
 [packaging/software/releases.py](../packaging/software/releases.py) реализует

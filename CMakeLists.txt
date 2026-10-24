@@ -563,6 +563,7 @@ if(BUILD_TESTING)
     find_package(Python3 REQUIRED COMPONENTS Interpreter)
     add_test(NAME software_release COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/SoftwareReleaseTests.py)
     add_test(NAME software_channel COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/SoftwareChannelTests.py)
+    add_test(NAME software_installation COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/SoftwareInstallationTests.py)
     qt_add_executable(trainer_software_update_tests tests/SoftwareUpdateTests.cpp
         src/features/settings/SoftwareUpdateController.cpp src/features/settings/SoftwareUpdateController.h
         src/features/downloads/DownloadsController.cpp src/features/downloads/DownloadsController.h)

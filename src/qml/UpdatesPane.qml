@@ -6,8 +6,14 @@ Item {
     property bool takesFocus: false
     readonly property bool compact: width<460
     Text { id: heading; x: 5; y: 12; text: root.flow.notesOpen ? "What's new" : "System · Updates"; color: Theme.ink; font.family: Theme.displayFamily; font.pixelSize: 25 }
+    Rectangle {
+        id: confirmation; x: 4; y: 52; width: parent.width-12; height: Math.max(54,question.height+20)
+        visible: root.flow.confirming && !root.flow.notesOpen; color: "#fff0be"; radius: 8
+        Text { id: question; x: 10; y: 10; width: parent.width-116; text: root.flow.message; textFormat: Text.PlainText; wrapMode: Text.WordWrap; color: Theme.ink; font.pixelSize: 14 }
+        CapButton { anchors.right: parent.right; anchors.rightMargin: 8; anchors.verticalCenter: parent.verticalCenter; width: 88; height: 34; label: "Cancel"; tint: Theme.pink; onActivated: root.flow.activate(root.flow.actions.length-1) }
+    }
     Flickable {
-        id: page; x: 0; y: 52; width: parent.width; height: parent.height-y-10; clip: true
+        id: page; x: 0; y: confirmation.visible ? confirmation.y+confirmation.height+8 : 52; width: parent.width; height: parent.height-y-10; clip: true
         visible: !root.flow.notesOpen; contentHeight: content.height+12; boundsBehavior: Flickable.StopAtBounds
         function followFocus() {
             if (!root.takesFocus || !visible) return

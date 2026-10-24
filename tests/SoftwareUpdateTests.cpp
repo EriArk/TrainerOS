@@ -73,6 +73,45 @@ private slots:
         QTemporaryDir root;SoftwareUpdateController flow;auto source=softwareUpdateFixture(root.path(),"/nonexistent/python");flow.configure(source);flow.check();
         QTRY_VERIFY(!flow.busy());QCOMPARE(flow.status(),"error");QVERIFY(flow.actions()[2].toMap()["enabled"].toBool());
     }
+    void downloadSurvivesRestartButMustBeVerifiedAgain(){
+        QTemporaryDir root;const auto source=softwareUpdateFixture(root.path(),UPDATE_PYTHON);
+        {
+            SoftwareUpdateController flow;flow.configure(source);flow.check();QTRY_VERIFY(!flow.busy());
+            flow.activate(3);QTRY_VERIFY(flow.progress()>0);flow.command("pause");QTRY_VERIFY(!flow.busy());
+        }
+        SoftwareUpdateController resumed;resumed.configure(source);QCOMPARE(resumed.status(),"paused");
+        QCOMPARE(resumed.version(),"fixture-7");QVERIFY(!resumed.lastChecked().isEmpty());
+        QVERIFY(!resumed.actions()[8].toMap()["enabled"].toBool());
+        resumed.command("resume");QTRY_VERIFY_WITH_TIMEOUT(!resumed.busy(),7000);QCOMPARE(resumed.status(),"prepared");
+        auto installed=source;installed.installedSequence=7;
+        SoftwareUpdateController current;current.configure(installed);QVERIFY(current.tasks().isEmpty());
+    }
+    void maintenanceRequiresConfirmationAndRechecksRuntimeGuard(){
+        QTemporaryDir root;auto source=softwareUpdateFixture(root.path(),UPDATE_PYTHON);
+        source.manager=source.helper;source.installationRoot=root.path();source.rollbackAvailable=true;
+        SoftwareUpdateController flow;flow.configure(source);QSignalSpy restart(&flow,&SoftwareUpdateController::restartRequested);
+        QString blocked="Finish game";flow.maintenanceGuard=[&]{return blocked;};
+        flow.activate(9);QVERIFY(!flow.busy());QVERIFY(flow.message().contains("previous compatible"));
+        flow.dispatch(Action::Back);QVERIFY(!flow.busy());QCOMPARE(restart.size(),0);
+        flow.activate(9);flow.activate(9);QVERIFY(!flow.busy());QCOMPARE(flow.message(),blocked);
+        blocked.clear();flow.activate(9);flow.activate(9);QVERIFY(flow.transitionPending());
+        flow.command("cancel-all");QVERIFY(flow.busy()); // Downloads cannot cancel a maintenance request.
+        blocked="New save operation";QTRY_VERIFY(!flow.busy());QCOMPARE(restart.size(),0);QCOMPARE(flow.message(),blocked);
+        blocked.clear();flow.activate(9);flow.activate(9);QTRY_VERIFY(!flow.busy());QCOMPARE(restart.size(),1);
+        QVERIFY(flow.transitionPending());flow.activate(0);QCOMPARE(flow.channel(),"beta");
+        flow.cancelRestart();QVERIFY(!flow.transitionPending());QVERIFY(flow.message().contains("cancelled"));
+    }
+    void managedApplyAuditAndCacheUseTheirOwnCommands(){
+        QTemporaryDir root;auto source=softwareUpdateFixture(root.path(),UPDATE_PYTHON);
+        source.manager=source.helper;source.installationRoot=root.path();
+        SoftwareUpdateController flow;flow.configure(source);flow.maintenanceGuard=[] {return QString();};
+        flow.check();QTRY_VERIFY(!flow.busy());flow.activate(3);QTRY_VERIFY_WITH_TIMEOUT(!flow.busy(),7000);
+        QCOMPARE(flow.status(),"prepared");QVERIFY(flow.actions()[8].toMap()["enabled"].toBool());
+        QSignalSpy restart(&flow,&SoftwareUpdateController::restartRequested);
+        flow.activate(8);QVERIFY(!flow.busy());flow.activate(8);QTRY_VERIFY(!flow.busy());QCOMPARE(restart.size(),1);
+        flow.cancelRestart();flow.activate(11);QTRY_VERIFY(!flow.busy());QCOMPARE(flow.status(),"audit-ready");
+        flow.activate(12);QTRY_VERIFY(!flow.busy());QCOMPARE(flow.status(),"cache-cleared");QVERIFY(flow.tasks().isEmpty());
+    }
     void noSpaceHasActionableMessage(){
         QTemporaryDir root;SoftwareUpdateController flow;flow.configure(softwareUpdateFixture(root.path(),UPDATE_PYTHON));flow.check();QTRY_VERIFY(!flow.busy());
         softwareUpdateMode(root.path(),"space");flow.activate(3);QTRY_VERIFY(!flow.busy());QCOMPARE(flow.status(),"error");QVERIFY(flow.message().contains("Free some space"));

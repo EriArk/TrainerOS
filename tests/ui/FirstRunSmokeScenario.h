@@ -9,7 +9,6 @@
 #include <QStorageInfo>
 #include <QImage>
 #include <memory>
-#include "../FirstRunAccountFixture.h"
 
 inline void prepareFirstRunSmoke(trainer::SessionState& session, trainer::ShellController& shell, const QString& directory) {
     const auto root=directory+"/roms";
@@ -19,7 +18,7 @@ inline void prepareFirstRunSmoke(trainer::SessionState& session, trainer::ShellC
         const QStorageInfo disk(directory);
         return QList<trainer::LibraryLocation>{{"Test storage",root,disk.rootPath(),QString::fromUtf8(disk.device()),disk.bytesAvailable()}};
     };
-    if(!trainer::FirstRunAccountFixture::prepareScraper(shell,directory))qFatal("Cannot prepare local scraper fixture");
+    Q_UNUSED(shell);
 }
 
 inline void startFirstRunSmoke(QQuickWindow* window, trainer::ShellController& shell, trainer::SessionState& session,
@@ -66,33 +65,12 @@ inline void startFirstRunSmoke(QQuickWindow* window, trainer::ShellController& s
             shell.trainerSetup()->applyName("Setup Test");shell.trainerSetup()->activate(3);++*step;break;
         case 8: capture("trainer-review-960");shell.trainerSetup()->activate(0);++*step;break;
         case 9:
-            if(flow->stage()!="accounts" || store.pending())break;
-            check(store.trainers().size()==1,"Setup did not create exactly one Trainer");capture("accounts-960");
-            flow->activate(4);check(flow->stage()=="accounts" && !flow->accountsReady(),"Mandatory accounts were skipped");
+            if(flow->stage()!="preferences" || store.pending())break;
+            check(store.trainers().size()==1,"Setup did not create exactly one Trainer");
+            check(shell.social()->account()["userId"].toString().isEmpty() && !shell.scraper()->accountVerified(),"Offline setup signed into a provider");
             press(SDL_CONTROLLER_BUTTON_RIGHTSHOULDER);press(SDL_CONTROLLER_BUTTON_START);
             check(shell.page()==0 && !shell.menuOpen(),"Setup allowed a global escape");
-            flow->activate(1);++*step;break;
-        case 10: capture("ra-960");session.activateSetupService(1);++*step;break;
-        case 11:
-            check(shell.keyboard()->isOpen(),"RA did not reuse keyboard");capture("ra-keyboard-960");
-            press(trainer::ControllerInput::BackButton);session.backInSetup();++*step;break;
-        case 12:
-            check(flow->service().isEmpty() && flow->focusIndex()==1,"RA return lost account focus");
-            flow->activate(2);++*step;break;
-        case 13: capture("scraper-960");shell.scraper()->activateSetting(12);check(!shell.scraper()->isOpen(),"Setup started hidden scrape job");tap("setup-back");++*step;break;
-        case 14: check(flow->service().isEmpty(),"Touch Back did not return");flow->activate(0);++*step;break;
-        case 15:
-            capture("fluxer-960");session.backInSetup();
-            trainer::FirstRunAccountFixture::connectSocial(shell);
-            shell.scraper()->activateSetting(2);*step=151;break;
-        case 151:
-            if(shell.scraper()->busy())break;
-            check(flow->accountsReady(),"Confirmed providers did not unlock setup");
-            for(int i=0;i<4;++i)press(SDL_CONTROLLER_BUTTON_DPAD_DOWN);*step=152;break;
-        case 152:
-            check(flow->focusIndex()==4,"Controller did not reach required-account Continue");
-            capture("accounts-verified-960");tap("setup-choice-4");
-            check(flow->stage()=="preferences","Touch Continue did not accept verified providers");*step=16;break;
+            *step=16;break;
         case 16:
             capture("comfort-960");for(int i=0;i<5;++i)press(SDL_CONTROLLER_BUTTON_DPAD_DOWN);*step=160;break;
         case 160: {

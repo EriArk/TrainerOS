@@ -5,6 +5,7 @@
 #include <QTimer>
 #include <QVariantList>
 #include <QJsonObject>
+#include <functional>
 
 namespace trainer {
 // Supplied by trusted installation/bootstrap composition, never by a feed or QML.
@@ -15,6 +16,8 @@ struct SoftwareUpdateSource {
     qint64 installedSequence = -1;
     int sqliteSchema = -1, firstRunSchema = -1;
     qint64 minimumFeedSequence = 0, minimumReleaseSequence = 0;
+    QString installationRoot, manager;
+    bool rollbackAvailable = false;
 };
 
 class SoftwareUpdateController final : public QObject {
@@ -32,10 +35,17 @@ class SoftwareUpdateController final : public QObject {
     Q_PROPERTY(bool notesOpen READ notesOpen NOTIFY changed)
     Q_PROPERTY(int focusIndex READ focusIndex NOTIFY changed)
     Q_PROPERTY(QVariantList actions READ actions NOTIFY changed)
+    Q_PROPERTY(bool transitionPending READ transitionPending NOTIFY changed)
+    Q_PROPERTY(bool confirming READ confirming NOTIFY changed)
 public:
     explicit SoftwareUpdateController(QObject* parent = nullptr);
     ~SoftwareUpdateController() override;
     void configure(const SoftwareUpdateSource& source);
+    void cancelRestart();
+    void attachInstallation(const QString& root, const QString& dataDirectory, const QString& executable);
+    bool transitionPending() const { return operation_=="request" || status_=="restart-required"; }
+    bool confirming() const { return !confirmation_.isEmpty(); }
+    std::function<QString()> maintenanceGuard;
     bool configured() const { return configured_; }
     QString installedVersion() const;
     QString channel() const { return channel_; }
@@ -65,6 +75,7 @@ signals:
     void cratesRequested();
     void notesScrollRequested(int direction);
     void updateAvailable(const QString& version);
+    void restartRequested();
 private:
     void start(bool prepare, bool background = false);
     void stop(const QString& reason);
@@ -72,12 +83,16 @@ private:
     void finish(int code, QProcess::ExitStatus status);
     void fail(const QString& message);
     void publish();
+    void saveState();
+    void restoreState();
+    void maintenance(const QString& command);
     SoftwareUpdateSource source_;
     QProcess worker_;
-    QTimer periodic_, killTimer_, deadline_;
+    QTimer periodic_, killTimer_, deadline_, persistTimer_;
     QByteArray output_;
     QJsonObject result_, candidate_;
     QString channel_, status_ = "unconfigured", phase_, error_, lastChecked_, stopReason_, notifiedVersion_, notificationVersion_;
+    QString operation_, confirmation_, expectedData_, expectedExecutable_, persistenceError_;
     qint64 done_ = 0, total_ = 0;
     int focus_ = 0;
     bool configured_ = false, busy_ = false, preparing_ = false, background_ = false;

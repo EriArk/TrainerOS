@@ -5,7 +5,7 @@ Item {
     required property var flow
     property bool takesFocus: false
     Text { id: heading; x: 5; y: 12; text: "ScreenScraper"; color: Theme.ink; font.family: Theme.displayFamily; font.pixelSize: 25 }
-    Text { id: subtitle; x: 5; y: 45; width: parent.width-10; text: "Account, downloads & game artwork"; color: Theme.muted; font.pixelSize: 14 }
+    Text { id: subtitle; x: 5; y: 45; width: parent.width-10; text: root.flow.accountVerified ? "Download covers and game information." : "Sign in to download covers and game information."; color: Theme.muted; font.pixelSize: 14; wrapMode: Text.WordWrap }
     ListView {
         id: list; x: 0; y: 73; width: parent.width; height: parent.height-y-61; clip: true; spacing: 7
         model: root.flow.settingsRows; currentIndex: root.flow.settingsFocus; keyNavigationEnabled: false

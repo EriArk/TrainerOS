@@ -12,7 +12,7 @@ QString AchievementAccountController::status() const {
     if (confirmSignOut_) return "Sign out of RetroAchievements?";
     if (!provider_.accountMessage().isEmpty()) return provider_.accountMessage();
     return connected() ? "Connected as " + provider_.context().accountId
-                       : "Connect your RetroAchievements account.";
+                       : "Sign in to earn achievements in supported games.";
 }
 QVariantList AchievementAccountController::rows() const {
     if (connected()) return {
@@ -23,7 +23,7 @@ QVariantList AchievementAccountController::rows() const {
     return {
         QVariantMap{{"label", "Account name"}, {"detail", username_.isEmpty() ? "Enter name" : username_}, {"enabled", !busy()}},
         QVariantMap{{"label", "Password"}, {"detail", password_.isEmpty() ? "Enter password" : QString(password_.size(), QChar(0x2022))}, {"enabled", !busy()}},
-        QVariantMap{{"label", busy() ? "Connecting…" : "Connect account"}, {"detail", ""}, {"enabled", !busy()}},
+        QVariantMap{{"label", busy() ? "Connecting…" : "Sign in"}, {"detail", ""}, {"enabled", !busy()}},
         QVariantMap{{"label", "Back"}, {"detail", ""}, {"enabled", true}}};
 }
 void AchievementAccountController::begin() {

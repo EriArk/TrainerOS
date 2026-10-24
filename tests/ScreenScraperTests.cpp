@@ -40,7 +40,7 @@ class ScreenScraperTests:public QObject {
             QJsonObject{{"type","video"},{"region","us"},{"url","https://untrusted.test/video.mp4"}}}}};}
     static Reply response(const QJsonObject& value){return {200,QJsonDocument(QJsonObject{{"response",value}}).toJson(),0};}
 private slots:
-    void setupRequiresTheAuthenticatedScraperIdentity() {
+    void savedAccountRequiresTheAuthenticatedScraperIdentity() {
         QTemporaryDir dir;ScrapeLibrary library;ScrapeController flow(library);
         QVERIFY(writeCredentials(dir.filePath("secrets/screenscraper.json"),{"dev","secret","SetupUser","password"}));
         flow.configure(dir.path());flow.setSetupMode(true);
@@ -60,7 +60,7 @@ private slots:
         flow.setTransport([&](const QUrl&,qint64,const Cancellation&){return response({{"ssuser",QJsonObject{{"id",returnedUser}}}});});
         flow.activateSetting(2);QTRY_VERIFY(!flow.busy());QVERIFY(flow.accountVerified());
         flow.activateSetting(3);QVERIFY(!flow.accountVerified());
-        // Developer-only/guest access can scrape but cannot satisfy the required user account.
+        // Developer-only/guest access does not establish a signed-in user identity.
         flow.activateSetting(2);QTRY_VERIFY(!flow.busy());QVERIFY(!flow.accountVerified());
     }
     void editionChoicesDoNotBlockWorkerOrStealAnOpenChoice() {

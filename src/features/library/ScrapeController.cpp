@@ -76,9 +76,9 @@ void ScrapeController::configure(const QString& directory) {
 void ScrapeController::setTransport(Transport t,Delay d){if(!busy()){transport_=std::move(t);delay_=std::move(d);}}
 QVariantList ScrapeController::settingsRows() const {
     const bool enabled=!busy();
-    return {row("Login",credentials_.username.isEmpty()?(setupMode_?"Required to complete setup":"ScreenScraper account"):credentials_.username,enabled),
+    return {row("Login",credentials_.username.isEmpty()?"ScreenScraper account":credentials_.username,enabled),
         row("Password",credentials_.password.isEmpty()?"Not set":"Saved privately on this device",enabled),
-        row("Save & check connection","ScreenScraper.fr account",enabled),
+        row(accountVerified()?"Check connection":"Sign in","Download covers and game information",enabled),
         row("Sign out","Remove the saved user login and password",enabled&&!credentials_.username.isEmpty()),
         row("Language",preferences_.language+" (English fallback)",enabled),row("Preferred region",preferences_.region,enabled),
         row("Game information",preferences_.metadata?"On · description, genre, players, date, studio":"Off",enabled),
@@ -133,8 +133,8 @@ bool ScrapeController::accountVerified() const {
 void ScrapeController::savePreferences(){auto settings=preferences_.json();settings["display"]=display_;if(directory_.isEmpty()||!saveJson(QDir(directory_).filePath("screenscraper-settings.json"),settings))status_="Could not save ScreenScraper preferences.";}
 void ScrapeController::applyText(const QString& text) {
     const auto target=std::exchange(textTarget_,{});
-    if(target=="login"){credentials_.username=text.trimmed().left(256);status_="Use Save & check connection to apply this account.";}
-    else if(target=="password"){credentials_.password=text.left(256);status_="Use Save & check connection to apply this account.";}
+    if(target=="login"){credentials_.username=text.trimmed().left(256);status_="Use Sign in to save and check this account.";}
+    else if(target=="password"){credentials_.password=text.left(256);status_="Use Sign in to save and check this account.";}
     else if(target=="search"&&active_&&choices_.contains(searchId_)&&!text.trimmed().isEmpty()) {
         searches_[searchId_]=text.trimmed().left(256);taskStates_[searchId_]="queued";
         choosing_=false;choiceId_.clear();searchId_.clear();focus_=0;

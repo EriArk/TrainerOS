@@ -1061,6 +1061,19 @@ int main(int argc, char* argv[]) {
                 && !shell.libraryManager()->saving() && !shell.libraryTools()->busy()
                 && !shell.settings()->storage()->busy() && !(saveBackups && saveBackups->busy());
         };
+        auto* softwareUpdates=shell.settings()->updates();
+        if(!smoke && personalLibrary && qEnvironmentVariable("TRAINEROS_SOFTWARE_MANAGED")=="1") {
+            softwareUpdates->maintenanceGuard=[&]() -> QString {
+                if(adventureLaunch.active() || session.blocked() || shell.launchPreparation().busy()
+                    || shell.moduleServiceBusy() || folders.busy() || folders.writing() || !store || store->pending() || store->opening()
+                    || session.writesPending() || shell.scraper()->busy() || shell.libraryManager()->saving() || shell.libraryTools()->busy()
+                    || shell.settings()->storage()->busy() || deviceService.busy() || shell.network()->busy()
+                    || (saveBackups && saveBackups->busy()))
+                    return "Finish the game and current save, file or download operation before restarting TrainerOS.";
+                return {};
+            };
+            softwareUpdates->attachInstallation(qEnvironmentVariable("TRAINEROS_SOFTWARE_ROOT"),stateDirectory,QCoreApplication::applicationFilePath());
+        }
         ControllerInput input(nullptr, preferred);
         remotePlay.ownerDevice=[&]{return input.kernelDeviceName();};
         const auto updateTextInput=[&]{input.setTextEntryEnabled(shell.social()->incomingCall().isEmpty()&&shell.keyboard()->isOpen()&&(playerOverlay.chatOpen()?exitPresentation.ready():!shell.menuOpen()&&shell.notice().isEmpty()&&!shell.homeMenuOpen()));};
@@ -1109,14 +1122,18 @@ int main(int argc, char* argv[]) {
         });
         QString pendingMode;
         bool transitionStarted = false;
+        bool softwareRestart=false;
+        if(!smoke)QObject::connect(softwareUpdates,&SoftwareUpdateController::restartRequested,&session,[&]{softwareRestart=true;session.requestExit();});
         QObject::connect(&shell, &ShellController::modeRequested, &session, [&](const QString& mode) {
             if (adventureLaunch.active()) return;
             pendingMode = mode; session.requestExit();
         });
         QObject::connect(&session, &SessionState::changed, &session, [&] {
             if (!session.blocked() && !transitionStarted) pendingMode.clear();
+            if(!session.blocked() && softwareRestart){softwareRestart=false;softwareUpdates->cancelRestart();}
         });
         QObject::connect(&session, &SessionState::exitReady, &app, [&] {
+            if(softwareRestart){app.exit(75);return;}
             if (pendingMode.isEmpty()) { app.exit(); return; }
             if (transitionStarted) return;
             transitionStarted = true;
@@ -1199,7 +1216,7 @@ int main(int argc, char* argv[]) {
 #ifdef Q_OS_LINUX
             bool readyDescriptorValid = false;
             const int readyDescriptor = qEnvironmentVariableIntValue("TRAINEROS_READY_FD", &readyDescriptorValid);
-            if (!sessionReadyNotified && platform.dedicatedSession() && readyDescriptorValid && readyDescriptor >= 3) {
+            if (!sessionReadyNotified && (platform.dedicatedSession() || qEnvironmentVariable("TRAINEROS_SOFTWARE_MANAGED")=="1") && readyDescriptorValid && readyDescriptor >= 3) {
                 auto notified = std::make_shared<bool>(false);
                 QObject::connect(window, &QQuickWindow::frameSwapped, window, [readyDescriptor, notified, &sessionReadyNotified] {
                     if (*notified) return;
@@ -1249,7 +1266,7 @@ int main(int argc, char* argv[]) {
                         return {false, "Reconnect with your friend to finish the exchange before playing."};
                     if (pokemonModule(shell).party()->activities()->link()->active())
                         return {false, "Leave Together before starting a game."};
-                    if (session.blocked() || adventureLaunch.active())
+                    if (session.blocked() || adventureLaunch.active() || softwareUpdates->transitionPending())
                         return {false, "An Adventure is already opening. Try again after returning."};
                     if (saveBackups && saveBackups->busy())
                         return {false, "Wait for the save operation to finish before playing."};

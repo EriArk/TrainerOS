@@ -11,17 +11,20 @@
 аппаратные проверки не считать выполненными. Прежние результаты повторять только
 при изменении затронутого кода, сбое или конкретном незакрытом результате.
 
-Текущая отдельная работа `codex/first-run-installer-ota`: обязательные Fluxer и
-ScreenScraper в новом [визарде](FIRST_RUN.md), общий signed Software preparation
-для [Armada installer/OTA](EARLY_BETA_INSTALLER_RU.md), получение подписанных
-Beta/Preview по HTTPS и явный `check` → `prepare` без сервера раздачи владельца.
-Добавлен consumer в Settings → System → Updates и общем Downloads; обычная сборка
-ещё без production source и не выполняет проверку/загрузку. Тестовое подключение
-изолировано от пользовательских данных и отключено в production build.
-Следующее недоделанное этой функции — production key/bootstrap/публикация GitHub feed,
-host/OS-storage/receipt probe и lifecycle-safe
-production binding и activation/repair/совместимый rollback. Подготовленный cache не
-считается установленной версией; это не новая глобальная очередь.
+Текущая отдельная работа `codex/first-run-installer-ota`: [визард](FIRST_RUN.md)
+завершается офлайн без аккаунтов; вход расположен на экранах соответствующих
+сервисов. Для [Armada installer/OTA](EARLY_BETA_INSTALLER_RU.md) добавлены host/OS-disk
+probe, owned versions/receipt, managed launcher, repair/uninstall, совместимый
+ручной rollback, сохранение заданий и подготовка GitHub assets. Settings → System →
+Updates использует этот механизм только для реально managed-установки; исходная
+сборка остаётся без источника. Тяжёлые файлы не раздаются сервером владельца.
+
+Незакрытые условия: reviewed ARM64 payload с зависимостями/лицензиями, production
+ключ/feed/bootstrap и публикация, Linux subreaper/привилегированная интеграция,
+чистая Armada microSD/internal установка/повтор/repair/uninstall, аппаратный
+ввод и реальные runtime/save lifecycle. Новый bootstrap не обновляется Software
+OTA; миграция старых ручных установок требует отдельной проверки ownership.
+Это условия функций, не новая глобальная очередь. Портативки не трогать.
 
 ## Сохранённые условия внешней проверки
 

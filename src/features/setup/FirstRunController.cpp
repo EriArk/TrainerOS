@@ -8,8 +8,7 @@
 
 namespace trainer {
 namespace {
-const QStringList stages{"welcome", "controls", "network", "clock", "storage", "trainer", "accounts", "preferences", "ready", "complete"};
-const QString requiredAccountsMessage="Connect Fluxer and verify ScreenScraper to continue.";
+const QStringList stages{"welcome", "controls", "network", "clock", "storage", "trainer", "preferences", "ready", "complete"};
 QString stateFile(const QString& directory) { return QDir(directory).filePath("first-run.json"); }
 }
 FirstRunController::FirstRunController(QObject* parent) : QObject(parent) {
@@ -34,7 +33,7 @@ void FirstRunController::configure(const QString& directory, const QString& root
     if (file.open(QIODevice::ReadOnly) && file.size() <= 32768) {
         const auto doc = QJsonDocument::fromJson(file.readAll());
         if (doc.isObject() && (doc.object()["version"].toInt() == 1 || doc.object()["version"].toInt() == 2)
-            && stages.contains(doc.object()["stage"].toString())) {
+            && (stages.contains(doc.object()["stage"].toString()) || doc.object()["stage"].toString()=="accounts")) {
             state_ = doc.object(); return;
         }
     }
@@ -69,7 +68,8 @@ void FirstRunController::begin(bool hasTrainers) {
     if (loadFailed_) { emit changed(); return; }
     // Profile creation may have committed just before the process stopped.
     // Resume at completion instead of creating a duplicate Trainer.
-    if (hasTrainers && stage() == "trainer") move("accounts");
+    if (stage()=="accounts") move(hasTrainers?"preferences":"trainer");
+    else if (hasTrainers && stage() == "trainer") move("preferences");
     else if (requiresTrainer() && !hasTrainers) move("trainer");
     else if (state_.isEmpty()) move("welcome");
     else {
@@ -81,13 +81,7 @@ void FirstRunController::begin(bool hasTrainers) {
 }
 void FirstRunController::loadLocations() { locations_ = locations(root_); focus_ = 0; }
 void FirstRunController::trainerOpened() {
-    if (active_ && stage() == "trainer") move("accounts");
-}
-void FirstRunController::setAccountStatus(const QString& social, const QString& achievements, bool socialConnected, bool scraperVerified) {
-    if(socialStatus_==social && achievementStatus_==achievements && socialConnected_==socialConnected && scraperVerified_==scraperVerified)return;
-    socialStatus_=social;achievementStatus_=achievements;socialConnected_=socialConnected;scraperVerified_=scraperVerified;
-    if(accountsReady() && error_==requiredAccountsMessage)error_.clear();
-    emit changed();
+    if (active_ && stage() == "trainer") { hasTrainers_=true; move("preferences"); }
 }
 void FirstRunController::closeService() {
     if(service_.isEmpty())return;
@@ -113,17 +107,15 @@ QString FirstRunController::title() const {
     if (stage() == "clock") return "Your local time.";
     if (stage() == "storage") return "Room for adventure.";
     if (stage() == "trainer") return "Meet your Trainer";
-    if (stage() == "accounts") return "Your accounts.";
     if (stage() == "preferences") return "Make yourself at home.";
     return "Make it your journey.";
 }
 QString FirstRunController::description() const {
     if (stage() == "welcome") return "A few little things, and your next adventure is ready to begin.";
     if (stage() == "controls") return "Try each direction, then the two buttons.";
-    if (stage() == "network") return "An internet connection is needed to finish setup. You can prepare the local steps first.";
+    if (stage() == "network") return "Connect now, or finish setup offline and connect later.";
     if (stage() == "clock") return "Keep this time, or make a quick adjustment.";
     if (stage() == "storage") return "Choose a home for your games.";
-    if (stage() == "accounts") return "Fluxer and ScreenScraper are required to finish setup. RetroAchievements is optional.";
     if (stage() == "preferences") return "A few personal touches. Keep the current settings or adjust them here.";
     if (stage() == "ready") return "Your Trainer and game storage are saved. Find your games in Games, or discover downloads in Apps > Crates.";
     return {};
@@ -135,16 +127,10 @@ QVariantList FirstRunController::rows() const {
     };
     if (loadFailed_) { add("Retry"); return result; }
     if (stage() == "welcome") add("Let's begin");
-    else if (stage() == "network") { add("Wi-Fi", "Find a network"); add("Continue", "Prepare local steps; connect before finishing setup"); }
+    else if (stage() == "network") { add("Wi-Fi", "Find a network"); add("Continue", "Wi-Fi is optional; you can finish offline"); }
     else if (stage() == "storage") {
         for (const auto& entry : locations_)result.append(libraryLocationRow(entry,root_));
         add("Refresh", "Find connected storage");
-    } else if (stage() == "accounts") {
-        add("Fluxer", socialConnected_?socialStatus_:"Required · sign in for friends and invitations");
-        add("RetroAchievements", achievementStatus_.isEmpty()?"Optional · achievements for supported games":achievementStatus_);
-        add("ScreenScraper", scraperVerified_?"Verified · shared device account":"Required · save and check your shared device account");
-        add("Wi-Fi & connections", "Connect or repair your internet connection");
-        result.append(QVariantMap{{"label","Continue"},{"detail",accountsReady()?"Both required accounts are connected":requiredAccountsMessage},{"enabled",accountsReady()}});
     } else if(stage()=="preferences") {
         add("Screen & appearance", "Brightness, size, theme and reduced motion");
         add("Sound", "System volume and achievement sounds");
@@ -182,23 +168,17 @@ void FirstRunController::activate(int index) {
                     if (!failure.isEmpty()) { error_ = failure; emit changed(); return; }
                 }
                 root_ = location.path;
-                move("trainer");
+                move(hasTrainers_?"preferences":"trainer");
             }, Qt::QueuedConnection);
         });
         worker_->start();
-    } else if(stage()=="accounts" || stage()=="preferences") {
-        if(index==rows().size()-1){
-            if(stage()=="accounts" && !accountsReady()){error_=requiredAccountsMessage;emit changed();return;}
-            move(stage()=="accounts"?"preferences":"ready");return;
-        }
-        if(stage()=="accounts" && index==3){connections_=true;emit changed();return;}
-        const QStringList accounts{"social","achievements","scraper"};
+    } else if(stage()=="preferences") {
+        if(index==rows().size()-1){move("ready");return;}
         const QStringList preferences{"display","sound","media","communication","nearby"};
-        service_=(stage()=="accounts"?accounts:preferences)[index];
+        service_=preferences[index];
         emit serviceRequested(service_);emit changed();
     } else if (stage() == "ready") {
         if(index==1) { emit protectTrainerRequested(); return; }
-        if(!accountsReady()){if(move("accounts")){error_=requiredAccountsMessage;emit changed();}return;}
         auto next = state_; next.remove("trainerDraft"); next["stage"] = "complete";
         if (!persist(next)) return;
         active_ = false; emit changed(); emit finished();
@@ -221,7 +201,7 @@ void FirstRunController::dispatch(Action action) {
     if (action == Action::Back) {
         if (stage() == "network") { checked_ = 0; move("controls"); }
         else if (stage() == "storage") move("clock");
-        else if (stage() == "preferences") move("accounts");
+        else if (stage() == "preferences") move("storage");
         else if (stage() == "ready") move("preferences");
     } else if (action == Action::Confirm) activate(focus_);
     else if (action == Action::Up) { focus_ = std::max(0, focus_ - 1); emit changed(); }

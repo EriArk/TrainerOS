@@ -413,7 +413,7 @@ bool ShellController::chooseAdventureAvailable() {
         && !localModalOpen() && !moduleActivityBusy() && !navigationLocked();
 }
 bool ShellController::navigationLocked(bool primaryRecovery) const {
-    return modulesBlocked(primaryRecovery) || launchPreparation_.busy() || settings_.clock()->busy() || settings_.storage()->busy() || libraryTools_.busy();
+    return settings_.updates()->transitionPending() || modulesBlocked(primaryRecovery) || launchPreparation_.busy() || settings_.clock()->busy() || settings_.storage()->busy() || libraryTools_.busy();
 }
 bool ShellController::modulesBlocked(bool recovery) const {for(const auto& module:modules_)if(module->navigationBlocked(recovery))return true;return false;}
 bool ShellController::moduleWriting() const {for(const auto& module:modules_)if(module->writing())return true;return false;}

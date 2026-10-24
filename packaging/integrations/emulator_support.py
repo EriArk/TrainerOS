@@ -57,7 +57,7 @@ def migrate_stock_bridge(account, data, previous=None):
     return True
 
 
-def install_support(account, install):
+def install_support(account, install, activate=True):
     prerequisites()
     source = Path(__file__).resolve().parent
     contents = {name: (source / name).read_bytes().replace(b'\r\n', b'\n') for name in HELPERS}
@@ -73,8 +73,9 @@ def install_support(account, install):
     # Old integration JSON can keep its exact path while future helper updates
     # use the canonical installation. Never redirect a customized user bridge.
     trampoline = b"#!/usr/bin/python3\nimport runpy\nrunpy.run_path('/var/opt/traineros/integrations/controller-bridge.py', run_name='__main__')\n"
-    migrate_stock_bridge(account, trampoline, previous)
-    subprocess.run(['/usr/bin/systemctl', 'daemon-reload'], check=True, timeout=15)
+    if activate: migrate_stock_bridge(account, trampoline, previous)
+    if activate: subprocess.run(['/usr/bin/systemctl', 'daemon-reload'], check=True, timeout=15)
     # Apply read-only ACL now without restarting InputPlumber or the session.
-    subprocess.run(['/usr/bin/python3', '/var/opt/traineros/integrations/grant-input-read.py', account.pw_name],
-                   check=True, timeout=15)
+    if activate:
+        subprocess.run(['/usr/bin/python3', '/var/opt/traineros/integrations/grant-input-read.py', account.pw_name],
+                       check=True, timeout=15)

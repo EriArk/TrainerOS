@@ -1,5 +1,32 @@
 # TrainerOS — история изменений
 
+## 2026-10-24 — офлайн-визард и подготовка managed installer/OTA
+
+- По последнему решению владельца аккаунты не требуются для первого запуска.
+  Accounts удалён; Social/ScreenScraper/RetroAchievements предлагают вход там,
+  где он используется, и объясняют назначение. Старый незавершённый шаг
+  продолжается без повторного создания Trainer; сохраняются PIN и библиотека.
+- Подготовлены Armada/ОС-диск probe, KDE Setup, собственные версии/receipt и
+  журналы ярлыков/системных файлов, repair, безопасное удаление и совместимый
+  ручной rollback. Личные данные не переключаются вместе с executable.
+- Managed Settings получают реальную installed identity; Apply проходит
+  подтверждение и protected exit. Launcher удерживает runtime lease, ждёт
+  потомков и отдельно отмечает первый кадр. Отмена/обычный выход не применяет
+  оставленный запрос; автоматического отката нет.
+- Задание загрузки сохраняется между запусками с обязательной повторной
+  проверкой; добавлена очистка кэша. Локальный publisher готовит GitHub assets,
+  публичный bootstrap и provenance; ничего автоматически не публикует.
+- Локально прошли native build, 17 first-run и 19 updater QtTest checks,
+  QML-пути до Home/подтверждения OTA, 2 целевых ScreenScraper checks,
+  19 release + 29 channel + 22 installation Python checks. Два Linux lifecycle
+  теста пропущены на Windows и не считаются доказательством работы на Armada.
+- Сборка с `BUILD_TESTING=OFF` прошла; first-run/OTA smoke-опции отвергаются
+  обычным CLI, тестовые маркеры отсутствуют в executable.
+- Портативки не затрагивались. Public key/feed/Release, полный ARM64 payload,
+  автоматическая подготовка отсутствующих host dependencies, bootstrap upgrade,
+  миграция ручных установок и реальная аппаратная приёмка ещё открыты.
+  [First run](docs/FIRST_RUN.md), [installer/OTA](docs/EARLY_BETA_INSTALLER_RU.md).
+
 ## 2026-10-24 — OTA consumer в Settings → System → Updates
 
 - Добавлена страница установленной версии, Beta/Preview, ручной проверки,

@@ -1,5 +1,33 @@
 # TrainerOS — состояние проекта
 
+**24 октября — офлайн-визард и managed installer/OTA, исходники.** Последнее
+решение владельца отменяет обязательный Accounts: после Trainer идут Comfort и
+Ready, входы с объяснениями находятся в Social, ScreenScraper и RetroAchievements.
+Незавершённый старый Accounts сохраняет профиль/библиотеку и продолжается дальше;
+готовая локальная настройка работает без сети. [Первый запуск](docs/FIRST_RUN.md).
+
+Подготовлены определение Armada/ОС-диска, собственные versioned files/receipt,
+KDE installer и ownership системной интеграции, repair/uninstall и совместимый
+ручной rollback. Settings → System → Updates привязан к реальной managed
+установке: подтверждение применения, protected exit, runtime lease/ожидание
+потомков, первый QML frame, восстановление download job и очистка cache.
+Добавлен локальный сборщик GitHub release assets с публичным bootstrap,
+corresponding source/notices и проверкой анонимных скачиваний после публикации.
+[Механизм и точные ограничения](docs/EARLY_BETA_INSTALLER_RU.md).
+
+Windows/UCRT64: 17 first-run и 19 updater QtTest checks, QML-сценарии и две
+целевые проверки аккаунта ScreenScraper прошли. Python: 19 release, 29 channel,
+22 installation/host/ownership/publication checks прошли; 2 Linux subprocess
+теста явно пропущены. Входов в настоящие аккаунты и подключений к портативкам
+не было. Production key/feed/Release, полный ARM64 payload/dependencies,
+Linux/Armada install/restore/runtime и аппаратная приёмка **не закрыты**.
+Bootstrap self-update и миграция старой ручной установки ещё не реализованы.
+Сборка с `BUILD_TESTING=OFF` прошла; оба тестовых first-run/OTA входа
+отклоняются, их маркеры отсутствуют в executable.
+
+Следующие три записи 24 октября — предыдущие этапы этой же работы; их
+требование обязательных аккаунтов и отсутствие managed binding заменены выше.
+
 **24 октября — подготовлена страница OTA внутри Settings, исходники.** System →
 Updates показывает Software version/channel, результат проверки, размер и notes;
 отдельный Download связан с общим Downloads, паузой/продолжением/отменой.

@@ -42,7 +42,11 @@ inline void startSoftwareUpdateSmoke(QQuickWindow* window,trainer::ShellControll
         case 2:
             check(shell.settings()->updatesOpen(),"Controller did not open System Updates");
             check(flow->status()=="unconfigured","Source build pretended to be OTA configured");capture("unconfigured-960");
-            flow->configure(softwareUpdateFixture(fixture,SDK_PYTHON));++*step;break;
+            {
+                auto source=softwareUpdateFixture(fixture,SDK_PYTHON);source.manager=source.helper;source.installationRoot=fixture;
+                source.rollbackAvailable=true;flow->maintenanceGuard=[] {return QString();};flow->configure(source);
+            }
+            ++*step;break;
         case 3: press(SDL_CONTROLLER_BUTTON_DPAD_DOWN);press(SDL_CONTROLLER_BUTTON_DPAD_DOWN);++*step;break;
         case 4: tap("updates-check");++*step;break;
         case 5:
@@ -78,11 +82,19 @@ inline void startSoftwareUpdateSmoke(QQuickWindow* window,trainer::ShellControll
             shell.downloads()->close();window->resize(1920,1080);++*step;break;
         case 16:
             for(int i=0;i<6;++i)press(SDL_CONTROLLER_BUTTON_DPAD_UP);++*step;break;
-        case 17: capture("prepared-1080");flow->activate(0);softwareUpdateMode(fixture,"error");flow->check();++*step;break;
+        case 17:
+            capture("prepared-1080");window->resize(960,540);
+            for(int i=0;i<8;++i)press(SDL_CONTROLLER_BUTTON_DPAD_DOWN);*step=170;break;
+        case 170: tap("updates-apply");*step=171;break;
+        case 171:
+            check(!flow->busy() && flow->status()=="prepared" && flow->message().contains("Confirm"),"Apply skipped confirmation");
+            capture("apply-confirm-960");press(trainer::ControllerInput::BackButton);
+            check(!flow->message().contains("Confirm") && flow->status()=="prepared","Back did not cancel apply confirmation");
+            window->resize(1920,1080);flow->activate(0);softwareUpdateMode(fixture,"error");flow->check();*step=18;break;
         case 18:
             if(flow->busy())break;
             check(flow->status()=="error","Offline error was reported as success");capture("error-1080");
-            for(int i=0;i<8;++i)press(SDL_CONTROLLER_BUTTON_DPAD_DOWN);++*step;break;
+            for(int i=flow->focusIndex();i<flow->actions().size()-1;++i)press(SDL_CONTROLLER_BUTTON_DPAD_DOWN);++*step;break;
         case 19: tap("updates-back");check(!shell.settings()->updatesOpen(),"Touch Back failed");++*step;break;
         default:
             check(warnings==0,"QML warnings in Software Updates");timer->stop();completed=true;
