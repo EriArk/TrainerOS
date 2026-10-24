@@ -766,6 +766,28 @@ private slots:
         s.lobbyAction("clear-filters");s.selectLobby(0);s.submitLobbyDraft();QCOMPARE(s.lobbyState()["phase"].toString(),QString("choosing"));
     }
 
+    void lobbySnapshotsNeverOvertakeQueuedRuntimeCommands() {
+        FluxerSession s;bind(s);s.lobbySending_=true;
+        const auto lobby=QUuid::createUuid().toString(QUuid::WithoutBraces),boot=QUuid::createUuid().toString(QUuid::WithoutBraces);
+        const auto expires=QDateTime::currentSecsSinceEpoch()+60;
+        auto packet=[&](int serial,const QString& kind){return QJsonObject{{"ns","org.traineros.lobby"},{"v",1},
+            {"lobby",lobby},{"boot",boot},{"serial",serial},{"generation",1},{"kind",kind},{"expires",expires},{"data",QJsonObject{}}};};
+        s.sendLobby(remote,packet(1,"state")); // Head may already be in flight.
+        s.sendLobby(remote,packet(2,"state"));
+        s.sendLobby(remote,packet(3,"runtime-signal"));
+        s.sendLobby(remote,packet(4,"state"));
+        QCOMPARE(s.lobbyDeliveries_.size(),4);
+        s.sendLobby(remote,packet(5,"state"));
+        QCOMPARE(s.lobbyDeliveries_.size(),4); // Coalesce only the trailing snapshot.
+        QList<int> serials;
+        for(const auto& delivery:s.lobbyDeliveries_) {
+            LobbyWire decoder;QJsonObject decoded;
+            for(const auto& frame:delivery.frames)decoded=decoder.receive(remote,LobbyWire::frame(frame),QDateTime::currentSecsSinceEpoch());
+            serials.append(decoded["serial"].toInt());
+        }
+        QCOMPARE(serials,(QList<int>{1,2,3,5}));
+    }
+
     void streamFramesAreBoundedAndExitClearsTheVideoSink() {
         SocialStream stream;QVideoSink sink;stream.setVideoSink(&sink);
         QSignalSpy frames(&sink,&QVideoSink::videoFrameChanged),ended(&stream,&SocialStream::ended);

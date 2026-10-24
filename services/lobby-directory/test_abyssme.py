@@ -51,12 +51,16 @@ class AbyssME(unittest.TestCase):
             self.assertEqual(self.accept(**change), 'invalid')
         self.assertIsNone(decode(encode(self.command | {'v': 3})))
 
-    def test_one_account_one_room_across_products(self):
+    def test_multiple_rooms_keep_product_ownership_and_shared_limit(self):
         self.assertEqual(self.accept(), 'accepted')
         legacy = {k: v for k, v in self.command.items() if k not in ('product', 'protocol')}
         legacy.update(v=1, lobby=str(uuid.uuid4()))
-        self.assertEqual(self.directory.accept('123', 'Host', legacy, 101), 'already-listed')
-        self.assertEqual(self.directory.accept('456', 'Other', legacy, 101), 'accepted')
+        self.assertEqual(self.directory.accept('123', 'Host', legacy, 101), 'accepted')
+        self.assertEqual(self.directory.accept('456', 'Other', legacy, 101), 'forbidden')
+        for _ in range(30):
+            self.assertEqual(self.accept(lobby=str(uuid.uuid4())), 'accepted')
+        self.assertEqual(self.accept(lobby=str(uuid.uuid4())), 'too-many-listed')
+        self.assertEqual(self.directory.accept('456', 'Other', legacy | {'lobby': str(uuid.uuid4())}, 101), 'accepted')
 
     def test_product_identity_survives_withdraw_close_and_restart(self):
         self.assertEqual(self.accept(), 'accepted')

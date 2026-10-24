@@ -32,6 +32,7 @@ int main(int argc,char** argv) {
     parser.addOption({"frame-output","Save one received frame as private diagnostic evidence.","path"});
     parser.addOption({"rom","Owner-supplied NES test game, using isolated NetPlay progress.","path"});
     parser.addOption({"remote-play","Use the installed Remote Play service and no guest ROM."});
+    parser.addOption({"remote-root","Explicit diagnostic media bundle directory.","path","/var/opt/traineros/integrations/remote-play"});
     parser.addOption({"runtime-config","Local RetroArch installation JSON.","path"});parser.process(app);
     if(parser.value("owner").isEmpty())return 2;
     trainer::SocialController social;QByteArray last,input;
@@ -46,7 +47,7 @@ int main(int argc,char** argv) {
     trainer::RemotePlayRuntime remote(library,adapter,social,process,lifecycle,runtime.gamePreparation());
     QString remoteError;
     if(parser.isSet("remote-play")) {
-        if(!remote.configure("/var/opt/traineros/integrations/remote-play"))return 4;
+        if(!remote.configure(parser.value("remote-root")))return 4;
         remote.allowed=[]{return true;};remote.ownerDevice=[&]{return controller.kernelDeviceName();};
         remote.hostSupported=[&](const QJsonObject& profile){return runtime.supportsLive(profile);};
         remote.requestGuestLaunch=[&](const trainer::ProcessCommand& command,const QString& id){return trainer::AdventureResult{lifecycle.launch(command,{},id),lifecycle.error()};};

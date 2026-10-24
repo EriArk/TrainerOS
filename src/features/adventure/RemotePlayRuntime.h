@@ -1,6 +1,7 @@
 #pragma once
 #include "features/social/LobbyConnection.h"
 #include "LobbyGamePreparation.h"
+#include "RemotePlayHost.h"
 #include "integrations/adventure/retroarch/RetroArchAdapter.h"
 
 namespace trainer {
@@ -33,21 +34,32 @@ private:
     bool validPlayers(const QJsonObject&) const;
     bool hostUnchanged() const;
     void connected(QString);
+    struct Peer {
+        QPointer<LobbyConnection> connection;
+        QPointer<QTimer> deadline;
+        QString admission,config;
+        int port=0;
+        bool registered=false;
+    };
+    using PeerPtr=std::shared_ptr<Peer>;
+    PeerPtr addPeer(const QString&,const QString&,int);
+    void hostConnected(const QString&,const PeerPtr&,QString);
+    void peerFailed(const QString&,const PeerPtr&,QString);
+    void launchHost();
     void reconcile();
-    void capture();
+    void capture(const QString&,const PeerPtr&);
     void startGuestMedia();
-    void mediaOutput();
     void disconnectMedia();
     void failed(QString);
     void complete(bool,QString={});
     LibraryRepository& library_;RetroArchAdapter& adapter_;SocialController& social_;
     ProcessService& process_;AdventureLaunchController& lifecycle_;LobbyGamePreparation& preparation_;
-    LobbyConnection connection_;QProcess media_{this};QTimer deadline_{this};
-    QString root_,operation_,ticket_,game_,device_,config_,connectionId_;QJsonArray ice_;
-    QString remotePeer_,admission_;
+    LobbyConnection connection_;RemotePlayHost media_{this};QTimer deadline_{this};
+    QMap<QString,PeerPtr> peers_;
+    QString root_,operation_,ticket_,game_,device_;QJsonArray ice_;
     QJsonObject context_,profile_;QMap<QString,QJsonObject> games_;
     int revision_=0;QString contentPath_;quint64 account_=0;
-    qint64 ownedPid_=0;Completion completion_;QByteArray output_;
+    qint64 ownedPid_=0;Completion completion_;
     bool host_=false,opening_=false,started_=false,stopping_=false,announced_=false;
     bool mediaReady_=false,failing_=false;
 };

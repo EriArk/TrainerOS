@@ -202,7 +202,8 @@ class TransportTests(unittest.TestCase):
         self.pair = Pair()
         self.assertTrue(self.pair.connect())
         fields = []
-        for path in self.pair.ready.values():
+        for i in (0,1):
+            path=self.pair.ready[i]
             self.assertEqual(path.stat().st_mode & 0o777, 0o600)
             self.assertEqual(path.parent.stat().st_mode & 0o777, 0o700)
             self.assertEqual(path.stat().st_uid, os.getuid())
@@ -212,30 +213,30 @@ class TransportTests(unittest.TestCase):
             self.assertNotIn(fields[0][name], json.dumps(self.pair.output))
         for port in (49011, 49012, 49013):
             with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as server, socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as client:
-                server.bind(('127.0.0.1', port));server.settimeout(3)
+                server.bind((fields[0]['address'], port));server.settimeout(3)
                 client.bind(('127.0.0.1', 0));client.settimeout(3)
                 request = os.urandom(1392)
-                client.sendto(request, ('127.0.0.2', port))
+                client.sendto(request, (fields[1]['address'], port))
                 data, sender = server.recvfrom(8192)
-                self.assertEqual(sender[0], '127.0.0.2')
+                self.assertEqual(sender[0], fields[0]['peer'])
                 self.assertEqual(data, request)
                 server.sendto(data, sender)
                 self.assertEqual(client.recvfrom(8192)[0], request)
                 # An unrelated local socket cannot replace the selected client.
                 with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as other:
-                    other.bind(('127.0.0.1', 0));other.sendto(b'wrong peer', ('127.0.0.2', port))
+                    other.bind(('127.0.0.1', 0));other.sendto(b'wrong peer', (fields[1]['address'], port))
                 server.settimeout(.1)
                 with self.assertRaises(socket.timeout):server.recvfrom(8192)
         with socket.socket() as server:
             server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-            server.bind(('127.0.0.1', 49010));server.listen();server.settimeout(3)
+            server.bind((fields[0]['address'], 49010));server.listen();server.settimeout(3)
             request = b'OPTIONS rtsp://127.0.0.2 RTSP/1.0\r\nCSeq: 1\r\n\r\n'
             response = b'RTSP/1.0 200 OK\r\nCSeq: 1\r\n\r\n'
-            with socket.create_connection(('127.0.0.2', 49010), timeout=3) as client:
+            with socket.create_connection((fields[1]['address'], 49010), timeout=3) as client:
                 client.sendall(request)
                 connection, sender = server.accept()
                 with connection:
-                    self.assertEqual(sender[0], '127.0.0.2')
+                    self.assertEqual(sender[0], fields[0]['peer'])
                     self.assertEqual(connection.recv(8192), request)
                     connection.sendall(response)
                 self.assertEqual(client.recv(8192), response)
@@ -251,6 +252,29 @@ class TransportTests(unittest.TestCase):
         self.pair = Pair(different_identity=True)
         self.assertFalse(self.pair.connect())
         self.assertFalse(self.pair.ready)
+
+    def test_concurrent_guests_have_independent_local_endpoints(self):
+        self.pair = Pair();other = Pair()
+        try:
+            self.assertTrue(self.pair.connect());self.assertTrue(other.connect())
+            configs = [[dict(line.split('=', 1) for line in pair.ready[i].read_text().splitlines())
+                        for i in (0, 1)] for pair in (self.pair, other)]
+            self.assertEqual(len({c['address'] for pair in configs for c in pair}), 4)
+            client_ports = {}
+            def exchange(index):
+                host, guest = configs[index]
+                with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as server, socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as client:
+                    server.bind((host['address'], 49013));server.settimeout(2)
+                    client.bind(('127.0.0.1', client_ports.get(index, 0)));client.settimeout(2)
+                    client_ports[index] = client.getsockname()[1]
+                    packet = os.urandom(32);client.sendto(packet, (guest['address'], 49013))
+                    value, address = server.recvfrom(100);self.assertEqual(value, packet)
+                    server.sendto(value, address);self.assertEqual(client.recvfrom(100)[0], packet)
+            exchange(0);exchange(1)
+            self.pair.close();self.pair = None
+            exchange(1)
+        finally:
+            other.close()
 
     def test_wrong_certificate_fingerprint_never_admitted(self):
         self.pair = Pair(bad_fingerprint=True)

@@ -15,63 +15,60 @@ LobbyInput::LobbyInput(LobbyCoordinator& lobby,QObject* parent):QObject(parent),
     timer_.setInterval(50);timer_.setTimerType(Qt::PreciseTimer);
     connect(&timer_,&QTimer::timeout,this,&LobbyInput::heartbeat);
 }
-LobbyInput::~LobbyInput() {revoke();}
-bool LobbyInput::matches() const {
+LobbyInput::~LobbyInput() {for(const auto& id:grants_.keys())revoke(id);}
+bool LobbyInput::matches(const Grant& grant) const {
     const auto s=lobby_.state();
-    if(!active()||!lobby_.hosting()||lobby_.recoveryUncertain()||s["recovering"].toBool()
-       ||!s["connection"].toString().isEmpty()||s["id"]!=lobbyId_||s["ticket"]!=ticket_
-       ||s["generation"].toInteger()!=generation_||s["phase"]!="playing"||s["game"].toObject()!=game_
-       ||game_["mode"]!="remoteplay.v1"||game_["seats"].toInt()<port_)return false;
+    if(!lobby_.hosting()||lobby_.recoveryUncertain()||s["recovering"].toBool()
+       ||!s["connection"].toString().isEmpty()||s["id"]!=grant.lobby||s["ticket"]!=grant.ticket
+       ||s["generation"].toInteger()!=grant.generation||s["phase"]!="playing"||s["game"].toObject()!=grant.game
+       ||grant.game["mode"]!="remoteplay.v1"||grant.game["seats"].toInt()<grant.port)return false;
     bool owner=false,guest=false;
     for(const auto& v:s["members"].toArray()) {
         const auto m=v.toObject();const auto seat=m["seat"].toInt();
         if(m["id"]==s["owner"])owner=m["connected"].toBool()&&!m["spectator"].toBool()&&seat==1;
-        if(m["id"]==peer_)guest=m["connected"].toBool()&&!m["spectator"].toBool()
-            &&seat==port_&&m["admission"].toString()==admission_;
-        else if(seat==port_)return false;
+        if(m["id"]==grant.peer)guest=m["connected"].toBool()&&!m["spectator"].toBool()
+            &&seat==grant.port&&m["admission"].toString()==grant.admission;
+        else if(seat==grant.port)return false;
     }
-    return owner&&guest&&peer_!=s["owner"].toString();
+    return owner&&guest&&grant.peer!=s["owner"].toString();
 }
-bool LobbyInput::authorize(QString peer,QString connection,QString ticket,int reservedPort) {
-    // One guest in the current minimal transport. Do not silently replace a
-    // running connection or pretend its fixed UDP endpoints support more guests.
-    if(active()||peer.isEmpty()||QUuid(connection).isNull()||ticket.isEmpty()||reservedPort!=2)return false;
-    const auto s=lobby_.state();peer_=peer;connection_=connection;ticket_=ticket;port_=reservedPort;
-    lobbyId_=s["id"].toString();generation_=s["generation"].toInteger();game_=s["game"].toObject();
-    for(const auto& v:s["members"].toArray())if(v.toObject()["id"]==peer_)admission_=v.toObject()["admission"].toString();
-    if(!matches()) {revoke();return false;}
+bool LobbyInput::authorize(QString peer,QString connection,QString ticket,int port) {
+    if(grants_.contains(connection)||peer.isEmpty()||QUuid(connection).isNull()||ticket.isEmpty()||port<2||port>4)return false;
+    for(const auto& grant:grants_)if(grant.peer==peer||grant.port==port)return false;
+    const auto s=lobby_.state();Grant grant;grant.peer=peer;grant.ticket=ticket;grant.port=port;
+    grant.lobby=s["id"].toString();grant.generation=s["generation"].toInteger();grant.game=s["game"].toObject();
+    for(const auto& v:s["members"].toArray())if(v.toObject()["id"]==peer)grant.admission=v.toObject()["admission"].toString();
+    if(!matches(grant))return false;
 #ifdef Q_OS_LINUX
-    int pair[2];
-    if(socketpair(AF_UNIX,SOCK_SEQPACKET|SOCK_CLOEXEC|SOCK_NONBLOCK,0,pair)) {revoke();return false;}
-    writer_=pair[0];reader_=pair[1];
+    int pair[2];if(socketpair(AF_UNIX,SOCK_SEQPACKET|SOCK_CLOEXEC|SOCK_NONBLOCK,0,pair))return false;
+    grant.writer=pair[0];grant.reader=pair[1];
 #endif
-    timer_.start();heartbeat();return active();
+    grants_.insert(connection,grant);timer_.start();heartbeat();return grants_.contains(connection);
 }
 int LobbyInput::takeDescriptor(const QString& connection) {
-    if(connection!=connection_||!matches())return -1;
-    const auto fd=reader_;reader_=-1;return fd;
+    auto it=grants_.find(connection);if(it==grants_.end()||!matches(*it))return -1;
+    const int fd=it->reader;it->reader=-1;return fd;
 }
-void LobbyInput::release(const QString& connection) {if(connection==connection_)revoke();}
-void LobbyInput::reconcile() {if(active()&&!matches())revoke();}
+void LobbyInput::release(const QString& connection) {revoke(connection);}
+void LobbyInput::reconcile() {for(const auto& id:grants_.keys())if(!matches(grants_[id]))revoke(id);}
 void LobbyInput::heartbeat() {
     reconcile();
 #ifdef Q_OS_LINUX
-    if(writer_<0)return;
     const uint64_t now=std::chrono::duration_cast<std::chrono::nanoseconds>(
         std::chrono::steady_clock::now().time_since_epoch()).count();
     char packet[9];packet[0]='1';std::memcpy(packet+1,&now,sizeof(now));
-    const auto sent=send(writer_,packet,sizeof(packet),MSG_DONTWAIT|MSG_NOSIGNAL);
-    if(sent<0&&errno!=EAGAIN&&errno!=EWOULDBLOCK&&errno!=EINTR)revoke();
+    for(const auto& id:grants_.keys()) {
+        const auto sent=send(grants_[id].writer,packet,sizeof(packet),MSG_DONTWAIT|MSG_NOSIGNAL);
+        if(sent<0&&errno!=EAGAIN&&errno!=EWOULDBLOCK&&errno!=EINTR)revoke(id);
+    }
 #endif
 }
-void LobbyInput::revoke() {
-    timer_.stop();const auto old=connection_;connection_.clear();peer_.clear();ticket_.clear();admission_.clear();
-    game_={};lobbyId_.clear();generation_=0;port_=0;
+void LobbyInput::revoke(const QString& id) {
+    auto it=grants_.find(id);if(it==grants_.end())return;
 #ifdef Q_OS_LINUX
-    if(writer_>=0)close(writer_);
-    if(reader_>=0)close(reader_);
+    if(it->writer>=0)close(it->writer);
+    if(it->reader>=0)close(it->reader);
 #endif
-    writer_=reader_=-1;
-    if(!old.isEmpty())emit revoked(old);
+    grants_.erase(it);if(grants_.isEmpty())timer_.stop();emit revoked(id);
 }
 }

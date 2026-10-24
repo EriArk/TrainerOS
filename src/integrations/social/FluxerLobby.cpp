@@ -28,7 +28,12 @@ void FluxerSession::sendLobby(QString peer,QJsonObject packet) {
                 LobbyWire decoder;QJsonObject previous;
                 for(const auto& frame:delivery.frames)previous=decoder.receive(peer,LobbyWire::frame(frame),QDateTime::currentSecsSinceEpoch());
                 if(previous["kind"]=="state"&&previous["lobby"]==packet["lobby"]) {delivery.frames=frames;return;}
+                // Serial numbers cover every packet for this peer. Moving a
+                // newer snapshot ahead of an intervening command makes that
+                // command look stale at the receiver (including ICE connect).
+                break;
             }
+            if(delivery.peer==peer)break;
         }
     }
     lobbyDeliveries_.append({peer,frames,0});

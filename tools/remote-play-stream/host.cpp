@@ -4,6 +4,7 @@
 // Control V2 nonce layout follows moonlight-common-c ControlStream.c.
 #include "common.hpp"
 #include "remote_pad.hpp"
+#include "shared_source.hpp"
 #include <atomic>
 #include <array>
 #include <cstdio>
@@ -35,13 +36,15 @@ struct Host {
     std::atomic<unsigned> inputs{0}, rejected{0}, idrs{0}, videoPackets{0}, audioPackets{0};
     std::atomic<unsigned> dropped{0}, encodedIdrs{0}, encodedSps{0};
     std::atomic<int> listeners{0};
-    void listening() {if(++listeners==4&&cfg.game){std::puts("{\"event\":\"ready\"}");std::fflush(stdout);}}
+    SharedSource* shared=nullptr;std::string connection;int port=2;
+    void listening() {if(++listeners==4&&cfg.game){
+        if(shared)std::printf("{\"event\":\"ready\",\"connection\":\"%s\"}\n",connection.c_str());else std::puts("{\"event\":\"ready\"}");std::fflush(stdout);}}
     std::mutex mediaLock;
     GstElement* video=nullptr;
     int audioFd=-1;
     int padFd=-1;
-    explicit Host(const Config& c):cfg(c) {
-        if(cfg.game) {
+    explicit Host(const Config& c,SharedSource* source=nullptr,int fd=-1,int slot=2,std::string id={}):cfg(c),shared(source),connection(std::move(id)),port(slot),padFd(fd) {
+        if(cfg.game&&!shared) {
             const char* value=std::getenv("TRAINEROS_GAME_AUDIO_FD");
             if(!value)throw std::runtime_error("Game mode requires the owned-game audio producer");
             const auto end=value+std::strlen(value);
@@ -141,7 +144,7 @@ struct Host {
     }
     void control() {
         std::unique_ptr<RemotePad> remote;
-        if(padFd>=0)remote=std::make_unique<RemotePad>(padFd);
+        if(padFd>=0)remote=std::make_unique<RemotePad>(padFd,port);
         ENetAddress addr{};enet_address_set_host(&addr,cfg.address.c_str());enet_address_set_port(&addr,ControlPort);
         auto host=enet_host_create(AF_INET,&addr,1,0,0,0);
         if(!host)throw std::runtime_error("ENet host failed");
@@ -177,8 +180,9 @@ struct Host {
                     authenticated=true;
                     memcpy(&type,plain.data(),2);type=le16toh(type);
                     if(type==0x0302 || type==0x0301) {
+                        if(shared){shared->requestKeyframe();++idrs;}
                         std::lock_guard lock(mediaLock);
-                        if(video){auto enc=gst_bin_get_by_name(GST_BIN(video),"encoder");
+                        if(video&&!shared){auto enc=gst_bin_get_by_name(GST_BIN(video),"encoder");
                             gst_element_send_event(enc,gst_video_event_new_upstream_force_key_unit(GST_CLOCK_TIME_NONE,TRUE,0));gst_object_unref(enc);++idrs;}
                     } else if(type==0x0206 && plain.size()>=4+sizeof(NV_MULTI_CONTROLLER_PACKET)) {
                         NV_MULTI_CONTROLLER_PACKET pad{};memcpy(&pad,plain.data()+4,sizeof(pad));
@@ -282,6 +286,9 @@ struct Host {
             const auto begin=desc.find(" ! opusenc");
             desc="appsrc name=gameaudio is-live=true format=time do-timestamp=true block=false max-buffers=4 leaky-type=downstream caps=\"audio/x-raw,format=S16LE,rate=48000,channels=2,layout=interleaved\""+desc.substr(begin);
         }
+        if(shared)desc=audio?
+            "appsrc name=encoded is-live=true format=time do-timestamp=true block=false max-buffers=8 leaky-type=downstream caps=\"audio/x-opus,rate=48000,channels=2,channel-mapping-family=0\" ! rtpmoonlightpay_audio name=pay ! appsink name=out sync=false buffer-list=true max-buffers=4 drop=true":
+            "appsrc name=encoded is-live=true format=time do-timestamp=true block=false max-buffers=8 leaky-type=downstream caps=\"video/x-h264,stream-format=byte-stream,alignment=au,width=1280,height=720,framerate=60/1\" ! rtpmoonlightpay_video name=pay payload-size=1024 fec-percentage=20 ! appsink name=out sync=false buffer-list=true max-buffers=4 drop=true";
         GError* error=nullptr;auto pipeline=gst_parse_launch(desc.c_str(),&error);
         if(error){std::fprintf(stderr,"pipeline %s\n",error->message);g_error_free(error);stop=true;if(pipeline)gst_object_unref(pipeline);close(fd);return;}
         if(audio){auto pay=gst_bin_get_by_name(GST_BIN(pipeline),"pay");g_object_set(pay,"aes-key",cfg.keyHex.c_str(),"aes-iv","1",nullptr);gst_object_unref(pay);}
@@ -308,22 +315,28 @@ struct Host {
         gst_app_sink_set_callbacks(GST_APP_SINK(sink),&cb,&ctx,nullptr);
         gst_element_set_state(pipeline,GST_STATE_PLAYING);auto bus=gst_element_get_bus(pipeline);
         std::thread captureWorker;
-        if(!audio&&cfg.game)captureWorker=std::thread([&]{capture(pipeline);});
-        if(audio&&cfg.game)captureWorker=std::thread([&]{captureAudio(pipeline);});
+        GstElement* encoded=shared?gst_bin_get_by_name(GST_BIN(pipeline),"encoded"):nullptr;
+        if(encoded)shared->attach(encoded,audio);
+        if(!shared&&!audio&&cfg.game)captureWorker=std::thread([&]{capture(pipeline);});
+        if(!shared&&audio&&cfg.game)captureWorker=std::thread([&]{captureAudio(pipeline);});
         while(!stop){auto msg=gst_bus_timed_pop_filtered(bus,100*GST_MSECOND,GstMessageType(GST_MESSAGE_ERROR|GST_MESSAGE_EOS));
             if(msg){if(GST_MESSAGE_TYPE(msg)==GST_MESSAGE_ERROR){gchar* debug=nullptr;gst_message_parse_error(msg,&error,&debug);
                 std::fprintf(stderr,"media error %s (%s)\n",error->message,debug?debug:"");g_error_free(error);g_free(debug);}gst_message_unref(msg);stop=true;}}
         if(captureWorker.joinable())captureWorker.join();
+        if(encoded){shared->detach(encoded);gst_object_unref(encoded);}
         {std::lock_guard lock(mediaLock);if(!audio)video=nullptr;}
         gst_element_set_state(pipeline,GST_STATE_NULL);gst_object_unref(bus);gst_object_unref(sink);gst_object_unref(pipeline);close(fd);
     }
 };
+#include "host_group.hpp"
 int main(int argc,char** argv) {
     if(argc!=2)return 2;
     try {
-        Config cfg(argv[1]);gst_init(nullptr,nullptr);moonlight::fec::init();if(enet_initialize())return 3;
+        gst_init(nullptr,nullptr);moonlight::fec::init();if(enet_initialize())return 3;
         gst_element_register(nullptr,"rtpmoonlightpay_video",GST_RANK_NONE,gst_TYPE_rtp_moonlight_pay_video);
         gst_element_register(nullptr,"rtpmoonlightpay_audio",GST_RANK_NONE,gst_TYPE_rtp_moonlight_pay_audio);
+        if(std::string(argv[1])=="--group") {const int result=groupMain();enet_deinitialize();return result;}
+        Config cfg(argv[1]);
         Host host(cfg);
         auto guarded=[&](auto fn){try{fn();}catch(const std::exception& e){std::fprintf(stderr,"host error: %s\n",e.what());host.stop=true;}};
         std::thread rtsp([&]{guarded([&]{host.rtsp();});}),control([&]{guarded([&]{host.control();});});

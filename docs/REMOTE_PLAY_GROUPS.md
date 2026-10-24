@@ -93,8 +93,7 @@ SSH: команды и SFTP зависают. Владелец уведомлё�
    и обновление статуса. PS3/Switch, собственный TURN и сложные NAT вне шага.
 
 Исходники: [организатор](../src/features/adventure/RemotePlayRuntime.cpp),
+[медиахост](../src/features/adventure/RemotePlayHost.cpp),
+[кодировщик](../tools/remote-play-stream/shared_source.hpp),
+[супервизор](../tools/remote-play-stream/run-group.py),
 [очередь Fluxer](../src/integrations/social/FluxerLobby.cpp).
-
-`RemotePlayHost.cpp`, `shared_source.hpp` и `run-group.py` описывали отдельный
-незавершённый кандидат ветки `codex/remote-play-shared-host`. В текущем дереве
-этих файлов нет; прежние ссылки на них не подтверждали слитую реализацию.
