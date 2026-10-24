@@ -8,6 +8,7 @@
 #include <QTemporaryDir>
 #include "platform/sdk/PlatformHost.h"
 #include "features/device/ControlsDashboard.h"
+#include "features/trainer/AvatarAssets.h"
 using namespace trainer;
 namespace {
 struct Client {
@@ -65,6 +66,35 @@ private slots:
         QVERIFY(!result["capabilities"].toObject().contains("wallet"));
         client.send("wallet.credit",{{"amount",50}});QCOMPARE(client.receive()["error"].toObject()["code"].toString(),"unsupported_method");
         f.host.stop();QVERIFY(!QFile::exists(f.endpoint));
+    }
+    void localAvatarSubscriptionAndRevocation(){
+        Fixture f;f.host.setAvatar({},true);QVERIFY(f.start());Client c(f.endpoint);
+        QCOMPARE(c.hello()["result"].toObject()["capabilities"].toObject()["avatar.local"].toInt(),1);
+        c.send("avatar.subscribe");QCOMPARE(c.receive()["error"].toObject()["code"].toString(),"avatar_not_ready");
+        QJsonObject avatar{{"schema",1},{"revision","one"},{"glb","/console/cache/one.glb"},{"profile","alice"}};
+        f.host.setAvatar(avatar,true);QCOMPARE(c.receive()["avatar"].toObject(),avatar);
+        c.send("avatar.get");QCOMPARE(c.receive()["result"].toObject()["avatar"].toObject(),avatar);
+        c.send("avatar.set",{{"hair","bob"}});QCOMPARE(c.receive()["error"].toObject()["code"].toString(),"unsupported_method");
+        f.host.setContext(context("bob"));QCOMPARE(c.receive()["event"].toString(),"context.revoked");
+        Client b(f.endpoint);b.hello("org.test.bob");b.send("avatar.get");QCOMPARE(b.receive()["error"].toObject()["code"].toString(),"avatar_not_ready");
+        f.host.setAvatar({},false);b.send("avatar.get");QCOMPARE(b.receive()["error"].toObject()["code"].toString(),"unsupported_method");
+    }
+    void realGodotAvatarConsumer(){
+        const auto godot=qEnvironmentVariable("TRAINER_AVATAR_GODOT");
+        if(godot.isEmpty()||!AvatarAssets::available())QSKIP("External Godot and local pack required");
+        Fixture f;auto appearance=AvatarAssets::defaults();
+        auto avatar=AvatarAssets::resolve(appearance,{},f.dir.filePath("cache"));
+        QVERIFY(!avatar.contains("error"));avatar["profile"]="alice";
+        f.host.setAvatar(avatar,true);QVERIFY(f.start());
+        QProcess child;auto env=QProcessEnvironment::systemEnvironment();env.insert("TRAINEROS_SDK_ENDPOINT",f.endpoint);child.setProcessEnvironment(env);
+        child.start(godot,{"--headless","--path",QString::fromUtf8(SDK_SOURCE)+"/sdk/godot","--script","client_probe.gd"});
+        QVERIFY(child.waitForStarted());QByteArray output;
+        QTRY_VERIFY_WITH_TIMEOUT((output+=child.readAllStandardOutput()).contains("AVATAR_RECEIVED 1"),30000);
+        appearance["hair"]="bob";avatar=AvatarAssets::resolve(appearance,{},f.dir.filePath("cache"));avatar["profile"]="alice";f.host.setAvatar(avatar,true);
+        QTRY_VERIFY_WITH_TIMEOUT((output+=child.readAllStandardOutput()).contains("AVATAR_RECEIVED 2"),30000);
+        f.host.setContext(context("bob"));QTRY_COMPARE_WITH_TIMEOUT(child.state(),QProcess::NotRunning,10000);
+        output+=child.readAllStandardOutput();const auto errors=child.readAllStandardError();
+        QVERIFY2(child.exitCode()==0,errors.constData());QVERIFY2(!errors.contains("ERROR"),errors.constData());QVERIFY(output.contains("AVATAR_REVOKED"));
     }
     void authVersionAndMalformedInput(){
         Fixture f;QVERIFY(f.start());

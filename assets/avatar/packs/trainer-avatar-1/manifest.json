@@ -1,0 +1,64 @@
+{
+  "schema": 1,
+  "pack": "trainer-avatar-1",
+  "revision": 1,
+  "template": "template.glb",
+  "bodyImage": 0,
+  "almondPatches": [
+    {
+      "file": "almond-position.bin",
+      "offset": 0,
+      "length": 702168
+    },
+    {
+      "file": "almond-normal.bin",
+      "offset": 702168,
+      "length": 702168
+    }
+  ],
+  "hairNodes": {
+    "swept": 58,
+    "ponytail": 59,
+    "crop": 60,
+    "bob": 61
+  },
+  "materialRoles": {
+    "1": "shirtColor",
+    "6": "hairColor",
+    "7": "hairColor",
+    "8": "hairColor",
+    "9": "hairColor"
+  },
+  "rig": "trainer-humanoid-54-v1",
+  "units": "metres",
+  "forward": "+Z",
+  "eyeHeight": 0.8,
+  "actions": {
+    "wave": "Wave",
+    "sit": "Sit",
+    "squat": "Squat",
+    "step": "Step",
+    "raise_arms": "Arms_Up"
+  },
+  "licenseStatus": "local-review-only",
+  "sourceSha256": {
+    "body-almond.glb": "2ee4e67df65bd55555f408d1bfef80eb94d7b509cccc3411587761e32478db46",
+    "body-round.glb": "a51b450be12a88d5f0c09f0c758f862c227e79bd2ae8b63474b93b351fff5ccd",
+    "hair-bob.glb": "f73223c1928de9f5648532aa7eef2ff697746268b34f361ad02dc5d5009e37d4",
+    "hair-crop.glb": "f9323d8dba0140a5fb1f7be60d59d544b16285da337eee5ed561bf8aa0885c2d",
+    "hair-ponytail.glb": "962fad76152b18f0e2dbb05cfecb41d7b3c871177ad31e6b83ee9e889993b47c",
+    "hair-swept.glb": "7ad2418c79668d9dc576f9ed2f336615f6b71aefe90dbe8c8a075bdce98bbf0a",
+    "shirt.glb": "4711490816b004399e01d03efa104b3930640686117030c87fbbf2de345d4bd5",
+    "shoes.glb": "4ec53c367a84e2243135c013714227213d7ec65e789e6220c4e3e23d8b77e019"
+  },
+  "atlasVersion": 2,
+  "files": {
+    "almond-normal.bin": "c37794c9e5ac3435e62217c13527faeb9f6d2968115dd5ae2e16b39b159ed8c2",
+    "almond-position.bin": "1e9c07dc5ddce988f619627e85756898a27f7f738ca7ca76690e0a994b8bbb40",
+    "face-almond.png": "374ff3067e9a7b9622fb80bdcdb39f0b172ab1384b2186dac477f784ff6b0d99",
+    "face-round.png": "ab8d363c7a0fafe920f38d6636f9e7163dc5b8f27e0990f9a2e9e6fc673abc5e",
+    "mask-almond.png": "06cbd8cef7656bf906acf3707e2e989b49de580353292829514f89ca52a40ffa",
+    "mask-round.png": "c10d8575189afcf21654acddcb97d01b28658e295398bd10cca43c260a71cd00",
+    "template.glb": "9f2048bbbc1b02efa868be7bdf676b658705720bf70692b8ac9076c9357e40bc"
+  }
+}

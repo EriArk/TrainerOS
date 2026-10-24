@@ -23,7 +23,7 @@
 
 namespace trainer {
 namespace {
-constexpr int SchemaVersion = 16;
+constexpr int SchemaVersion = 17;
 QString failedWrite() { return "Couldn't save changes. Check free space or storage access, then try again."; }
 struct LoadedState {
     QVariantList achievementMoments;
@@ -227,6 +227,16 @@ public:
             if(openError.isEmpty() && query.value(0).toInt()<15){query.finish();openError=migrateScreens(db);}
             if(openError.isEmpty() && (!query.exec("PRAGMA user_version") || !query.next()))openError=failedWrite();
             if(openError.isEmpty() && query.value(0).toInt()<16){query.finish();openError=migrateAchievementMoments(db);}
+            if(openError.isEmpty() && (!query.exec("PRAGMA user_version") || !query.next()))openError=failedWrite();
+            if(openError.isEmpty() && query.value(0).toInt()<17){
+                query.finish();
+                if(!db.transaction())openError=failedWrite();
+                else {
+                    if(!query.exec("ALTER TABLE trainer_profile ADD COLUMN avatar TEXT NOT NULL DEFAULT '{}' ") || !query.exec("PRAGMA user_version=17"))openError=failedWrite();
+                    if(openError.isEmpty()&&!db.commit())openError=failedWrite();
+                    if(!openError.isEmpty())db.rollback();
+                }
+            }
             if (openError.isEmpty()) {
                 ownerId_ = localOwner(db);
                 if (ownerId_.isEmpty()) openError = "Your Trainer ownership needs recovery. Existing data has been kept.";
@@ -238,12 +248,13 @@ public:
             query.finish();
             if (openError.isEmpty()) openError = recoverLibraryFileMove(db);
             if (openError.isEmpty()) {
-                if (!query.exec("SELECT id,name,emblem,favorite,created_at FROM trainer_profile ORDER BY created_at,id")) openError = "Your Trainer data couldn't be read. The existing file has been kept.";
+                if (!query.exec("SELECT id,name,emblem,favorite,created_at,avatar FROM trainer_profile ORDER BY created_at,id")) openError = "Your Trainer data couldn't be read. The existing file has been kept.";
                 else while (query.next()) {
                     TrainerProfile profile;
                     profile.id = query.value(0).toString(); profile.name = query.value(1).toString();
                     profile.emblemId = query.value(2).toString(); profile.favoritePokemonId = query.value(3).toString();
                     profile.createdAt = QDateTime::fromString(query.value(4).toString(), Qt::ISODateWithMs);
+                    profile.avatar=QJsonDocument::fromJson(query.value(5).toByteArray()).object();
                     if (profile.id.isEmpty() || profile.name.trimmed().isEmpty() || !profile.createdAt.isValid())
                         openError = "Your Trainer data needs recovery. The existing file has been kept.";
                     else { state.profiles.append(profile); if(profile.id==ownerId_)state.profile=profile; }
@@ -340,10 +351,11 @@ public:
             query.finish();
             if (error.isEmpty() && creating) error = adoptInitialOwner(db, ownerId_, profile.id);
             if (error.isEmpty()) {
-                query.prepare("INSERT INTO trainer_profile VALUES(?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET name=excluded.name,emblem=excluded.emblem,favorite=excluded.favorite");
+                query.prepare("INSERT INTO trainer_profile(id,name,emblem,favorite,created_at,avatar) VALUES(?,?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET name=excluded.name,emblem=excluded.emblem,favorite=excluded.favorite,avatar=excluded.avatar");
                 query.addBindValue(profile.id); query.addBindValue(profile.name); query.addBindValue(profile.emblemId);
                 query.addBindValue(profile.favoritePokemonId.isNull() ? QString("") : profile.favoritePokemonId);
                 query.addBindValue(profile.createdAt.toUTC().toString(Qt::ISODateWithMs));
+                query.addBindValue(QString::fromUtf8(QJsonDocument(profile.avatar).toJson(QJsonDocument::Compact)));
                 if (!query.exec()) error = failedWrite();
             }
         }
@@ -366,8 +378,9 @@ public:
             if(!q.exec())error=failedWrite();
         }
         if(error.isEmpty()) {
-            q.prepare("INSERT INTO trainer_profile VALUES(?,?,?,?,?)");
+            q.prepare("INSERT INTO trainer_profile(id,name,emblem,favorite,created_at,avatar) VALUES(?,?,?,?,?,?)");
             for(const auto& value:QStringList{profile.id,profile.name,profile.emblemId,profile.favoritePokemonId.isNull()?QString(""):profile.favoritePokemonId,profile.createdAt.toUTC().toString(Qt::ISODateWithMs)})q.addBindValue(value);
+            q.addBindValue(QString::fromUtf8(QJsonDocument(profile.avatar).toJson(QJsonDocument::Compact)));
             if(!q.exec())error=failedWrite();
         }
         q.finish();

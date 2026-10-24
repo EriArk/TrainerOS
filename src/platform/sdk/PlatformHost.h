@@ -25,12 +25,14 @@ public:
     void setContext(const QJsonObject& context);
     void notifyLifecycle(const QString& event);
     void setNetwork(SdkNetwork*);
+    void setAvatar(const QJsonObject& descriptor, bool available);
     QJsonObject context() const { return context_; }
 private:
     struct Peer {
         QByteArray input;
         QString app;
         bool authenticated = false, subscribed = false;
+        bool avatarSubscribed = false;
         QJsonObject widgets;
     };
     ControlsDashboard& dashboard_;
@@ -39,6 +41,8 @@ private:
     std::unique_ptr<QLockFile> lock_;
     QString endpoint_, token_, instance_;
     QJsonObject context_;
+    QJsonObject avatar_;
+    bool avatarAvailable_ = false;
     QPointer<SdkNetwork> network_;
     quint64 revision_ = 0;
     void accept();

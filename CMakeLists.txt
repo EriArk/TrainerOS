@@ -13,8 +13,10 @@ find_package(Qt6Keychain REQUIRED)
 find_package(OpenSSL 3 REQUIRED COMPONENTS Crypto)
 find_package(SDL2 2.0.14 REQUIRED CONFIG)
 find_package(Qt6 6.9 QUIET COMPONENTS WebEngineQuick)
+find_package(Qt6 QUIET COMPONENTS Quick3D)
 
 add_library(trainer_core STATIC
+    src/features/trainer/AvatarAssets.cpp
     src/platform/sdk/PlatformHost.cpp
     src/platform/sdk/SdkNetwork.cpp
     src/features/browser/BrowserController.cpp
@@ -355,6 +357,10 @@ qt_add_resources(traineros display_fonts PREFIX "/fonts" BASE assets/fonts
           assets/fonts/ChakraPetch-Bold.ttf assets/fonts/ChakraPetch-OFL.txt
           assets/fonts/Bungee-Regular.ttf assets/fonts/Bungee-OFL.txt)
 target_link_libraries(traineros PRIVATE trainer_core Qt6::Quick Qt6::Multimedia)
+if(TARGET Qt6::Quick3D)
+    target_link_libraries(traineros PRIVATE Qt6::Quick3D)
+    set_source_files_properties(src/features/trainer/TrainerController.cpp PROPERTIES COMPILE_DEFINITIONS TRAINER_AVATAR_QUICK3D=1)
+endif()
 file(GLOB social_icons CONFIGURE_DEPENDS assets/icons/phosphor/*.svg)
 qt_add_resources(traineros social_icons PREFIX "/social-icons" BASE assets/icons/phosphor
     FILES ${social_icons} assets/icons/phosphor/LICENSE)
@@ -456,6 +462,7 @@ qt_add_qml_module(traineros
         src/qml/MenuGlyph.qml
         src/qml/WorkspacePlaceholder.qml
         src/qml/PlayerProfilePanel.qml
+        src/qml/AvatarPreview3D.qml
         src/qml/ShellOptions.qml
         src/qml/GameOptions.qml
         src/qml/GameActivity.qml
@@ -558,6 +565,9 @@ qt_add_qml_module(traineros
 if(BUILD_TESTING)
     find_package(Python3 REQUIRED COMPONENTS Interpreter)
     qt_add_executable(trainer_platform_tests tests/PlatformHostTests.cpp)
+    qt_add_executable(trainer_avatar_tests tests/AvatarTests.cpp)
+    target_link_libraries(trainer_avatar_tests PRIVATE trainer_core Qt6::Test)
+    add_test(NAME avatar COMMAND trainer_avatar_tests)
     target_include_directories(trainer_platform_tests PRIVATE src)
     target_link_libraries(trainer_platform_tests PRIVATE trainer_core Qt6::Test)
     target_compile_definitions(trainer_platform_tests PRIVATE SDK_SOURCE="${CMAKE_SOURCE_DIR}" SDK_PYTHON="${Python3_EXECUTABLE}")
@@ -869,6 +879,9 @@ if(BUILD_TESTING)
 endif()
 
 include(GNUInstallDirs)
+set_source_files_properties(src/features/trainer/AvatarAssets.cpp PROPERTIES COMPILE_DEFINITIONS TRAINER_AVATAR_SOURCE_PACK="${CMAKE_SOURCE_DIR}/assets/avatar/packs/trainer-avatar-1")
+install(DIRECTORY assets/avatar/packs DESTINATION ${CMAKE_INSTALL_DATADIR}/traineros/avatar)
+install(FILES assets/avatar/README.md DESTINATION ${CMAKE_INSTALL_DATADIR}/traineros/avatar)
 if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
     find_package(PkgConfig QUIET)
     if(PkgConfig_FOUND)

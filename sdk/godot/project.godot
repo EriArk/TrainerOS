@@ -1,0 +1,9 @@
+config_version=5
+[application]
+config/name="TrainerOS Avatar SDK example"
+[display]
+window/size/viewport_width=800
+window/size/viewport_height=800
+[rendering]
+renderer/rendering_method="gl_compatibility"
+environment/defaults/default_clear_color=Color(0.88,0.9,0.92,1)

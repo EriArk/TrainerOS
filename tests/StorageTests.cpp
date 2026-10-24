@@ -7,6 +7,7 @@
 #include <QSqlQuery>
 #include <QFile>
 #include <QUuid>
+#include "features/trainer/AvatarAssets.h"
 
 using namespace trainer;
 namespace {
@@ -39,6 +40,18 @@ QByteArray bytes(const QString& path) { QFile file(path); if (!file.open(QIODevi
 class StorageTests final : public QObject {
     Q_OBJECT
 private slots:
+    void appearanceSurvivesRestart(){
+        QTemporaryDir dir;QString owner;
+        {
+            Fixture f(dir.path());f.session.start();QTRY_VERIFY(f.store.ready());
+            auto* c=f.shell.trainer();c->beginEdit();c->setDraftName("Avatar owner");c->activate(2);QTRY_VERIFY(c->exists());
+            auto p=*f.store.load();owner=p.id;p.avatar=AvatarAssets::defaults();p.avatar["hair"]="bob";
+            bool saved=false;f.store.saveAsync(p,&f.shell,[&](const auto& result){saved=result.success;});QTRY_VERIFY(saved);
+        }
+        {
+            Fixture f(dir.path());f.session.start();QTRY_VERIFY(f.store.ready());QCOMPARE(f.store.load()->id,owner);QCOMPARE(f.store.load()->avatar["hair"].toString(),"bob");
+        }
+    }
     void shellCannotExitOrNavigateWhileAdventureOwnsPresentation() {
         QTemporaryDir dir; Fixture f(dir.path()); f.session.start(); QTRY_VERIFY(!f.session.blocked());
         QSignalSpy exited(&f.session, &SessionState::exitReady);

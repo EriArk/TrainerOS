@@ -56,6 +56,9 @@ private:
             {"game", QJsonObject{{"id", launch_.adventureId()}, {"session", session_},
                 {"state", launch_.state()}, {"minimized", launch_.minimized()}}},
             {"app", QJsonObject{{"id", shell_.apps()->current()}}}});
+        auto avatar=shell_.trainer()->avatarDescriptor();
+        if(!avatar.isEmpty())avatar["profile"]=owner;
+        host_.setAvatar(avatar,shell_.trainer()->avatarAvailable());
     }
 };
 }

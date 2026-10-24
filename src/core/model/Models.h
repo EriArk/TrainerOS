@@ -122,6 +122,7 @@ struct TrainerProfile {
     QString emblemId = "compass";
     QString favoritePokemonId;
     QDateTime createdAt;
+    QJsonObject avatar;
 };
 enum class ArchiveSource { Manual, Imported };
 struct HallOfFameMember {

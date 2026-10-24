@@ -274,6 +274,13 @@ A save mutation records operation identity, original revision, verified protecti
 
 ## TrainerProfile
 
+24 October 2026: SQLite schema 17 adds `trainer_profile.avatar` (JSON, default
+`{}` for existing profiles). The versioned appearance stores pack/hair/eye IDs
+and five colors. Existing profiles resolve to the default appearance. Draft
+editor values stay private until the ordinary profile save succeeds. Resolved
+GLB cache paths are derived files, not persisted identity. See [shared avatar
+contract](../sdk/AVATAR.md).
+
 Suggested fields:
 
 ```text

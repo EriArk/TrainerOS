@@ -28,6 +28,9 @@ material; preserve its author, license text and attribution when redistributing.
 The default software grant does not relicense separately supplied materials:
 
 - Fonts in `assets/fonts/` retain their SIL Open Font License notices.
+- The shared Trainer character and wardrobe retain their [asset provenance and
+  separate license boundaries](assets/avatar/README.md); they are not relicensed
+  under the software GPL grant.
 - Crates example screenshots retain their [upstream terms and attribution](assets/crates/examples/README.md).
 - PokeAPI-derived reference data retains `data/licenses/PokeAPI.txt`.
 - Badge recreations retain the author/license/provenance in `assets/badges/`.

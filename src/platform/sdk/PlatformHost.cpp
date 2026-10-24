@@ -33,6 +33,13 @@ PlatformHost::PlatformHost(ControlsDashboard& dashboard, QObject* parent)
     connect(&dashboard_, &ControlsDashboard::contributionActivated, this, &PlatformHost::activate);
 }
 PlatformHost::~PlatformHost() { stop(); }
+void PlatformHost::setAvatar(const QJsonObject& descriptor,bool available) {
+    avatarAvailable_=available;
+    if(descriptor==avatar_)return;
+    avatar_=descriptor;
+    for(auto* socket:peers_.keys())if(peers_.value(socket).authenticated&&peers_.value(socket).avatarSubscribed)
+        send(socket,{{"event","avatar.changed"},{"avatar",avatar_}});
+}
 void PlatformHost::setNetwork(SdkNetwork* service) {
     if(network_)disconnect(network_,nullptr,this,nullptr);
     network_=service;
@@ -101,6 +108,7 @@ void PlatformHost::setContext(const QJsonObject& value) {
     const bool ownerChanged = value["profile"] != context_["profile"];
     context_ = value; ++revision_;
     if (ownerChanged) {
+        avatar_={};
         // An old process must not automatically adopt the next player's context.
         // Clear all contributions together: releasing peers one by one must not
         // republish another old owner's widget into the new profile's layout.
@@ -189,6 +197,7 @@ void PlatformHost::request(QTcpSocket* socket, const QJsonObject& packet) {
         for (const auto& other : peers_) if (other.authenticated && other.app == app) { fail("app_in_use"); return; }
         peer.authenticated = true; peer.app = app;
         auto caps=capabilities();
+        if(avatarAvailable_)caps["avatar.local"]=1;
         if(network_&&network_->available()){caps["lobby.activity"]=1;caps["network.records"]=1;}
         ok({{"protocol", 1}, {"capabilities", caps}, {"context", snapshot()}});
         return;
@@ -196,6 +205,15 @@ void PlatformHost::request(QTcpSocket* socket, const QJsonObject& packet) {
     if (method == "context.get") { ok({{"context", snapshot()}}); return; }
     if (method == "context.subscribe") { peer.subscribed = true; ok({{"context", snapshot()}}); return; }
     if (method == "context.unsubscribe") { peer.subscribed = false; ok({}); return; }
+    if(method=="avatar.get"||method=="avatar.subscribe"||method=="avatar.unsubscribe") {
+        if(!avatarAvailable_){fail("unsupported_method");return;}
+        if(context_["profile"].toString().isEmpty()){fail("no_profile");return;}
+        if(method=="avatar.unsubscribe"){peer.avatarSubscribed=false;ok({});return;}
+        if(method=="avatar.subscribe")peer.avatarSubscribed=true;
+        if(avatar_.isEmpty()){fail("avatar_not_ready");return;}
+        auto descriptor=avatar_;descriptor["profile"]=context_["profile"];
+        ok({{"avatar",descriptor}});return;
+    }
     if(network_&&(method.startsWith("activity.")||method.startsWith("network."))) {
         if(context_["profile"].toString().isEmpty()){fail("no_profile");return;}
         QJsonObject result;

@@ -124,6 +124,14 @@ class Client:
     def subscribe(self):
         return self.call("context.subscribe")["context"]
 
+    def avatar(self, subscribe=False):
+        """Console-owned local avatar. GLB stays outside the game's installation.
+
+        avatar_not_ready after subscribe still establishes the subscription;
+        consume avatar.changed. Clear the visual on context.revoked/disconnect.
+        """
+        return self.call("avatar.subscribe" if subscribe else "avatar.get")["avatar"]
+
     def poll(self, timeout=0.0):
         """One event or None; call from the app event loop. Single-threaded client."""
         if self._events:

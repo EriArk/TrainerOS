@@ -1282,7 +1282,7 @@ void ShellController::activate(int index, const QString& area) {
     else if (service_ == "library") { libraryManager_.activate(index, area); return; }
     else if (service_ == "trainer-settings") { trainerSettingsAction(index); return; }
     else if (service_ == "trainer-setup") { trainerSetup_.activate(index); return; }
-    else if(service_=="profile") {if(trainer_.editing())trainer_.activate(index);else trainer_.beginEdit();return;}
+    else if(service_=="profile") {trainer_.activate(index);return;}
     else if (service_ == "settings") { if(hall_.account()->isOpen()) { hall_.account()->activate(index); return; } if(trainer_.editing()) { trainer_.activate(index); return; } if(settings_.controlsFocused()) {if(settings_.category()==10)network_.activate(index);else settings_.activateRow(index);} else settings_.selectCategory(index,true); return; }
     else if (service_ == "device") { device_.activate(index); return; }
     else if (service_ == "diagnostics") { diagnostics_.activate(index); return; }
@@ -1781,7 +1781,7 @@ void ShellController::dispatch(Action action) {
         if(service_=="profile") {
             if(trainer_.editing())trainer_.dispatch(action,true);
             else if(action==Action::Back){service_.clear();homeMenuOpen_=true;homeMenuSelection_="profile";}
-            else if(action==Action::Confirm)trainer_.beginEdit();
+            else trainer_.dispatch(action,true);
             emit changed();return;
         }
         if (service_ == "trainer-settings") {

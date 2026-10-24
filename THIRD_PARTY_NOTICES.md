@@ -7,6 +7,7 @@ remain in force. Distribution/image obligations need a separate review before re
 
 | Material | Existing record / terms |
 | --- | --- |
+| Shared Trainer avatar pack | [Per-part sources, CC BY attribution and owner-supplied inputs](assets/avatar/README.md); art is separate from the code licence; remaining public redistribution records are explicit |
 | Crates example project screenshots | [Attribution, upstream sources and included notices](assets/crates/examples/README.md); MIT, GPL-3.0 and GPL-2.0-or-later as recorded per project; no project binaries included |
 | Fredoka, Chakra Petch, Bungee fonts | [Font provenance](assets/fonts/README.md); included SIL OFL 1.1 texts |
 | PokeAPI reference data | [BSD notice](data/licenses/PokeAPI.txt); names/design rights are separate |

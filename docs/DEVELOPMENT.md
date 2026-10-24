@@ -17,6 +17,9 @@ The authoritative list is [CMakeLists.txt](../CMakeLists.txt):
 - Linux Files: Qt Widgets, pkg-config, GIO (`gio-2.0`) and libfm-qt6 development library.
 - Browser: matching Qt WebEngine Quick 6.9+; without it the build explicitly lacks
   the embedded browser. See [runtime packaging](../packaging/linux/BROWSER_RUNTIME.md).
+- Avatar preview: matching Qt Quick 3D, Quick Timeline, AssetUtils and the Assimp
+  importer plugins/dependencies. The shared GLB service is independent of the
+  preview renderer; see [the avatar contract](../sdk/AVATAR.md).
 - Qt6Keychain and a working platform keychain for real account credentials.
 - OpenSSL 3 Crypto and SDL2 2.0.14+, including development headers/CMake packages.
 - The QSQLITE driver and Qt Quick, Controls, Window, Shapes, QML WorkerScript/Models and
