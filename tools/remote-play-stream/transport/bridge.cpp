@@ -25,6 +25,7 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include "psp_sockets.hpp"
+#include "ps2_sockets.hpp"
 
 namespace {
 constexpr int FirstPort=49010, MaxDatagram=4096, MaxRecord=65536;
@@ -115,10 +116,11 @@ private:
     void configure(const QJsonObject& value) {
         game=value.size()==5&&value["mode"]=="game";
         psp=value.size()==5&&value["mode"]=="psp";
+        ps2=value.size()==5&&value["mode"]=="ps2";
         const int lifetime=value["seconds"].toInt(-1);
-        if((value.size()!=4&&!game&&!psp)||!value["host"].isBool()||!hex(value["identity"].toString(),64)
+        if((value.size()!=4&&!game&&!psp&&!ps2)||!value["host"].isBool()||!hex(value["identity"].toString(),64)
            ||!value["ice"].isArray()||!value["seconds"].isDouble()||value["seconds"].toDouble()!=lifetime
-           ||!((lifetime>=5&&lifetime<=120)||((game||psp)&&lifetime==0)))throw std::runtime_error("config");
+           ||!((lifetime>=5&&lifetime<=120)||((game||psp||ps2)&&lifetime==0)))throw std::runtime_error("config");
         host=value["host"].toBool();identity=value["identity"].toString();seconds=value["seconds"].toInt();
         rtc::Configuration config;config.maxMessageSize=MaxRecord;config.mtu=1200;config.disableAutoNegotiation=true;
         const auto servers=value["ice"].toArray();if(servers.size()>4)throw std::runtime_error("ice bounds");
@@ -179,6 +181,7 @@ private:
         greeted=true;
         QJsonObject hello{{"identity",identity},{"host",host}};
         if(psp)hello["mode"]="psp";
+        if(ps2)hello["mode"]="ps2";
         control(hello);
         material();
     }
@@ -191,8 +194,9 @@ private:
     void receive(int channel,const QByteArray& bytes) {
         if(channel==1){admission(QJsonDocument::fromJson(bytes).object());return;}
         if(!ready){fail();return;}
-        if(channel==2){if(psp)pspSockets->receive(bytes);else rtsp(bytes);return;}
+        if(channel==2){if(ps2){fail();return;}if(psp)pspSockets->receive(bytes);else rtsp(bytes);return;}
         if(psp){fail();return;}
+        if(ps2){ps2Sockets->receive(bytes);return;}
         if(bytes.size()<2){fail();return;}
         const int index=static_cast<unsigned char>(bytes[0]);if(index<1||index>3){fail();return;}
         auto& socket=udp[index-1];
@@ -203,7 +207,7 @@ private:
     void admission(const QJsonObject& value) {
         if(ready&&value==QJsonObject{{"close",true}}){closing=true;QCoreApplication::quit();return;}
         if(!verified) {
-            if(value.size()!=(psp?3:2)||(psp&&value["mode"]!="psp")||value["identity"]!=identity||!value["host"].isBool()||value["host"].toBool()==host)throw std::runtime_error("identity");
+            if(value.size()!=((psp||ps2)?3:2)||(psp&&value["mode"]!="psp")||(ps2&&value["mode"]!="ps2")||value["identity"]!=identity||!value["host"].isBool()||value["host"].toBool()==host)throw std::runtime_error("identity");
             verified=true;
             material();
             return;
@@ -221,6 +225,17 @@ private:
         event({{"event","ready"},{"config",directory.path()+"/session.conf"}});
     }
     void startSockets() {
+        if(ps2) {
+            ps2Sockets=new Ps2Sockets(host,[this](const QByteArray& bytes){return send(0,bytes);},this);
+            if(!ps2Sockets->start()||!directory.isValid())throw std::runtime_error("ps2 bind");
+            QFile file(directory.path()+"/session.conf");
+            const QByteArray config="mode=ps2\naddress=127.0.0.1\nhost="+QByteArray(host?"true":"false")
+                +"\nport="+QByteArray::number(ps2Sockets->port())+"\npeer="+QByteArray(host?"1":"2")
+                +"\nroom="+key.left(12)+"\n";
+            if(!file.open(QIODevice::WriteOnly|QIODevice::NewOnly)||!file.setPermissions(QFile::ReadOwner|QFile::WriteOwner)
+               ||file.write(config)!=config.size()||!file.flush())throw std::runtime_error("private PS2 config");
+            key.fill(0);key.clear();return;
+        }
         if(psp) {
             pspSockets=new PspSockets(host,[this](const QByteArray& bytes){return send(2,bytes);},[this]{fail();},this);
             if(!pspSockets->start()||!directory.isValid())throw std::runtime_error("psp bind");
@@ -302,7 +317,7 @@ private:
     std::array<bool,3> opened{};std::array<QUdpSocket,3> udp;std::array<quint16,3> peerPorts{};
     QTcpServer tcpServer;QPointer<QTcpSocket> tcp;QByteArray tcpBytes,key,ping;uint32_t token=0;
     bool host=false,remoteDescription=false,greeted=false,verified=false,ready=false,requestSent=false,materialSent=false,closing=false;
-    QString identity;int seconds=0;bool game=false,psp=false;PspSockets* pspSockets=nullptr;quint64 sent=0,received=0,dropped=0;
+    QString identity;int seconds=0;bool game=false,psp=false,ps2=false;PspSockets* pspSockets=nullptr;Ps2Sockets* ps2Sockets=nullptr;quint64 sent=0,received=0,dropped=0;
 };
 }
 int main(int argc,char** argv) {

@@ -7,6 +7,7 @@ from pathlib import Path
 import queue
 import re
 import socket
+import struct
 import subprocess
 import sys
 import threading
@@ -96,6 +97,49 @@ class TransportTests(unittest.TestCase):
             self.pair.close()
             for path in self.pair.paths:
                 self.assertFalse(path.exists(), 'private material survived transport exit')
+
+    def test_ps2_native_envelopes_and_private_material(self):
+        self.pair = Pair(modes=['ps2', 'ps2'])
+        self.assertTrue(self.pair.connect())
+        configs = [dict(line.split('=', 1) for line in self.pair.ready[i].read_text().splitlines()) for i in range(2)]
+        for i, config in enumerate(configs):
+            self.assertEqual(config['mode'], 'ps2')
+            self.assertEqual(config['address'], '127.0.0.1')
+            self.assertEqual(config['host'], 'true' if i == 0 else 'false')
+            self.assertEqual(config['peer'], str(i+1))
+            self.assertRegex(config['room'], r'^[a-f0-9]{12}$')
+            self.assertEqual(self.pair.ready[i].stat().st_mode & 0o777, 0o600)
+            self.assertEqual(self.pair.ready[i].parent.stat().st_mode & 0o777, 0o700)
+        self.assertEqual(configs[0]['room'], configs[1]['room'])
+        self.assertNotIn(configs[0]['room'], json.dumps(self.pair.output))
+        def envelope(kind, peer, payload=b'', index=0, count=1):
+            return struct.pack('!4sBBHIIIHHHHQQ', b'ECLX', 1, kind, 44, peer, 1, 1,
+                               index, count, len(payload), 0, 1, 1)+payload
+        with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as host, socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as guest:
+            host.bind(('127.0.0.1', 19072));host.settimeout(3)
+            guest.bind(('127.0.0.1', 0));guest.settimeout(3)
+            address = ('127.0.0.1', int(configs[1]['port']))
+            hello = envelope(1, 2)
+            guest.sendto(hello, address)
+            received, local_bridge = host.recvfrom(2048)
+            self.assertEqual(received, hello)
+            ack = envelope(2, 1);host.sendto(ack, local_bridge)
+            self.assertEqual(guest.recvfrom(2048)[0], ack)
+            for packet in (envelope(3, 2, b'a'*1000, 0, 2), envelope(3, 2, b'b'*514, 1, 2)):
+                guest.sendto(packet, address)
+                self.assertEqual(host.recvfrom(2048)[0], packet)
+                host.sendto(packet, local_bridge)
+                self.assertEqual(guest.recvfrom(2048)[0], packet)
+
+    def test_ps2_cannot_be_admitted_as_psp_or_media(self):
+        for modes in (['ps2', 'psp'], ['psp', 'ps2'], ['ps2', None], [None, 'ps2']):
+            with self.subTest(modes=modes):
+                pair = Pair(modes=modes)
+                try:
+                    self.assertFalse(pair.connect())
+                    self.assertFalse(pair.ready)
+                finally:
+                    pair.close()
 
     def test_psp_multiple_streams_native_close_and_reconnect(self):
         self.pair = Pair(modes=['psp', 'psp'])
