@@ -78,7 +78,7 @@ class API:
             page = self.call('GET', f'/v1/channels/{channel}/messages?limit=100' + ('&before='+before if before else ''))
             for message in page:
                 value = decode(message.get('content'))
-                if message.get('author', {}).get('id') == self.bot and value and value.get('lobby') == lobby:
+                if message.get('author', {}).get('id') == self.bot and value and value.get('listing', value.get('lobby')) == lobby:
                     if self.edit(channel, message['id'], content):
                         return message['id']
             if len(page) < 100:
@@ -176,7 +176,7 @@ def run(config, state_path):
                                     stamp = 0
                                 now = int(time.time())
                                 if abs(now-stamp) <= 120 and api.authorized(author['id'], data['channel_id']):
-                                    result = directory.accept(author['id'], author.get('global_name') or author.get('username'), command, now)
+                                    result = directory.accept(author['id'], author.get('global_name') or author.get('username'), command, now, author.get('avatar'))
                                     LOG.info('Directory update: %s', result)
                                     # Confirm the durable command result privately, not public visibility.
                                     response = command_result(author['id'], command, result, now)

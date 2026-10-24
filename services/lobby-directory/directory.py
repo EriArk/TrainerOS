@@ -48,7 +48,7 @@ class Directory:
             self.db.execute("ALTER TABLE lobbies ADD COLUMN product TEXT NOT NULL DEFAULT 'traineros'")
         self.db.commit()
 
-    def accept(self, author, name, command, now):
+    def accept(self, author, name, command, now, avatar=None):
         """author/name come from Fluxer, never the command's claimed owner."""
         if not re.fullmatch(r'[0-9]{1,20}', author):
             return 'invalid'
@@ -87,10 +87,13 @@ class Directory:
                         revision=excluded.revision,closed=excluded.closed,dirty=1,expires=excluded.expires''',
                         (lobby, author, revision, now, int(op == 'close'), product))
                 return 'closed' if op == 'close' else 'withdrawn'
-            active = self.db.execute('SELECT id FROM lobbies WHERE owner=? AND closed=0 AND expires>? AND id<>?',
-                                     (author, now, lobby)).fetchone()
-            if active:
+            active = self.db.execute('''SELECT COUNT(*) AS count FROM lobbies
+                WHERE owner=? AND product=? AND closed=0 AND expires>? AND id<>?''',
+                (author, product, now, lobby)).fetchone()['count']
+            if product == 'abyssme' and active:
                 return 'already-listed'
+            if product == 'traineros' and active >= 32:
+                return 'too-many-listed'
             topic = command.get('topic', 'choosing')
             if topic not in self.channels:
                 return 'invalid'
@@ -115,6 +118,23 @@ class Directory:
                 if streams:
                     return 'invalid'
                 payload.update(product=product, protocol=1)
+            else:
+                # Preserve the deployed TrainerOS listing/session distinction and
+                # scheduled-meeting metadata; v2 remains a single live room.
+                room = command.get('room', lobby)
+                if str(uuid.UUID(room)) != room:
+                    return 'invalid'
+                payload.update(lobby=room, listing=lobby, listedAt=now)
+                if command.get('title'):
+                    payload['title'] = text(command['title'], 80)
+                starts = command.get('startsAt', 0)
+                members = command.get('members', seats - available)
+                if (type(starts) is not int or not 0 <= starts <= 4102444800
+                        or type(members) is not int or not 0 <= members <= 32):
+                    return 'invalid'
+                payload.update(startsAt=starts, members=members)
+                if isinstance(avatar, str) and re.fullmatch(r'(?:a_)?[0-9a-f]{32}', avatar):
+                    payload['avatar'] = avatar
             if status != 'choosing':
                 game = command['game']
                 payload['game'] = {key: text(game[key], limit) for key, limit in

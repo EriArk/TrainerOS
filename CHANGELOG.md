@@ -11,6 +11,11 @@
 
 ## 2026-10-24 — разделение каталога TrainerOS и AbyssME (отдельная ветка)
 
+- Later owner decision replaces the shared single-room quota: retain 32 TrainerOS
+  listings and one independent AbyssME room per account. Read-only inspection of
+  the deployed service exposed newer v1 meeting metadata missing from the initial
+  PR; preserve it, including listing/session aliases and provider avatars. Pass
+  22 local tests. PR #260 remains source-only; no service/device deployment.
 - Добавлен приватный ответ бота на команды AbyssME: принятие объявления,
   конфликт с другой комнатой аккаунта и снятие публикации теперь различимы
   клиентом. Ответ привязан к аккаунту, комнате и конкретному запросу; это
