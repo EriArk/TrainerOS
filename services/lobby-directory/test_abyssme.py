@@ -45,6 +45,18 @@ class AbyssME(unittest.TestCase):
         for changes in ({'id': 'title-only'}, {'platform': 'ps1'}, {'adapter': ''}, {'mode': 'invalid mode'}):
             self.assertEqual(self.accept(revision=2, status='gathering', seats=2, available=1, game=game | changes), 'invalid')
 
+    def test_legacy_meeting_fields_cannot_alias_or_leak_into_v2(self):
+        command = self.command | dict(room=str(uuid.uuid4()), title='Legacy-only title',
+                                      startsAt=2000, members=12, listing=str(uuid.uuid4()))
+        self.assertEqual(self.directory.accept('123', 'Host', command, 100, 'a' * 32), 'accepted')
+        self.directory.reconcile(self.api, 100)
+        value = decode(next(iter(self.api.messages.values())))
+        self.assertEqual(value['lobby'], self.command['lobby'])
+        for field in ('room', 'listing', 'listedAt', 'title', 'startsAt', 'members', 'avatar'):
+            self.assertNotIn(field, value)
+        # Unused v1 extension fields cannot invalidate an otherwise valid v2 command.
+        self.assertEqual(self.accept(revision=2, room=False, startsAt=-1, members='unused'), 'accepted')
+
     def test_rejects_unknown_versions_scopes_private_and_streams(self):
         for change in ({'v': 3}, {'v': True}, {'product': 'traineros'}, {'protocol': 2}, {'protocol': True},
                        {'access': 'private'}, {'streams': 1}, {'v': 1}):

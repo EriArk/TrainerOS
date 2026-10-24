@@ -1,9 +1,11 @@
 # Каталог лобби Fluxer
 
-24 октября 2026: в отдельной ветке подготовлено [расширение AbyssME v2](ABYSSME_V2.md).
-Старый v1 сохранён, комнаты разделены по версии/приложению, квота остаётся общей:
-одна публичная комната на аккаунт. 15 локальных тестов прошли. На сервер это
-расширение пока не установлено; сведения о живом сервисе ниже исторические.
+**24 October 2026:** the [AbyssME v2 extension](ABYSSME_V2.md) is deployed on the
+existing service. TrainerOS retains **32 active listings per account**; AbyssME
+has **one independent active public room**. These are not a shared one-room quota.
+The update backed up code and SQLite and checked all 12 existing records through
+migration. Configuration, credentials and channel identities are unchanged.
+26 service tests pass. See [rollout evidence and limits](ROLLOUT_20261024.md).
 
 Бот отображает публичные лобби в тематических каналах одного комьюнити.
 Запись привязана к комнате и организатору; один организатор может опубликовать
@@ -44,12 +46,22 @@ traineros-lobby-directory.service`. Для работы после выхода 
 Администраторские права ему не выдаются. Объявления в категории доступны для
 чтения участникам; запись разрешена боту. Создание каналов выполняет владелец.
 
-Остановка: `systemctl --user stop traineros-lobby-directory`. Для отката остановить
-службу, вернуть предыдущие файлы кода и запустить её. Сохранять `directory.db` и
-закрытые конфигурации: там находятся связи объявлений и запреты восстановления
-закрытых записей. Обновление кода не требует сброса токена.
+Deploy all three files: `bot.py`, `directory.py`, **`result.py`**. Check deployed
+hashes first; stage tests and back up source plus consistent SQLite/WAL state.
+Stop only `traineros-lobby-directory.service`, replace code, restart and verify
+Gateway readiness. No token rotation, database reset or second bot is required.
+
+**Rollback must restore matching code and database together.** Old code does not
+understand v2 ownership. While stopped, restore the saved source and SQLite snapshot
+using SQLite backup or correctly handle WAL/SHM. Keep private configuration intact.
+The snapshot may lag later commands: reconcile any post-snapshot public messages
+explicitly and do not silently discard newer user state.
 
 ## Протокол и ограничения
+
+The following legacy description covers TrainerOS v1. AbyssME v2 has a separate
+[scope and field allowlist](ABYSSME_V2.md); v1 meeting fields must not alias v2
+room identities. Both readers reject the other version.
 
 LOBBY-57 добавляет необязательные `title` (до 80 символов), `startsAt` (UTC Unix
 seconds, 0 — без времени), `members` (0–32) и хэш `avatar`. Имя и аватар берутся
@@ -65,7 +77,8 @@ seconds, 0 — без времени), `members` (0–32) и хэш `avatar`. И
 (public/approval), `seats`, `available`, `streams` (целое 0–32, по умолчанию 0), `topic` и публичный `game`
 (id/title/platform/mode). Для choosing игровой объект отсутствует, места равны нулю.
 Приватные лобби не публикуются. `withdraw` скрывает запись и допускает новую
-публикацию того же UUID с большей ревизией; `close` оставляет постоянное закрытие. Владелец имеет не более одной действующей записи.
+публикацию того же UUID с большей ревизией; `close` оставляет постоянное закрытие.
+Current per-account limits: 32 TrainerOS listings plus one independent AbyssME room.
 Клиент обновляет запись новой ревизией до истечения 180 секунд; устаревший повтор
 не продлевает срок. Публичные поля ограничены явным перечнем, упоминания отключены.
 Счётчик мест является объявлением: фактический вход подтверждает организатор.

@@ -1,7 +1,8 @@
 # AbyssME directory extension (v2)
 
-2026-10-24. Source implementation for #257, not a deployed service or a claim of
-playable AbyssME multiplayer. No new bot, community, credentials or relay.
+2026-10-24. Deployed service extension for #257, not a claim of playable AbyssME
+multiplayer. No new bot, community, credentials or relay.
+[Rollout, source hashes and rollback](ROLLOUT_20261024.md).
 
 ## Isolation
 
@@ -66,10 +67,10 @@ rotation is needed. Back up the service code/database before deployment.
 Rollback must restore the matching code/database snapshot together: an old
 service cannot safely update existing v2 records and would not understand their
 ownership scope. Do not deploy over a live service just because unit tests pass.
-Before production rollout, exercise v1/v2 publication and withdrawal with two
-authorized identities, verify the one-account collision message and old-client
-isolation, then keep service rollback available. Android publication is now bound
-in unreleased source. Neither this branch nor the earlier v2 patch is deployed.
+The 24 October rollout retains a matching rollback snapshot and verifies v1/v2
+publication separately from Android host admission. Android publication is bound
+in unreleased source; the service itself is now deployed.
+[Current verification and limits](ROLLOUT_20261024.md).
 
 ### Private command acknowledgements
 
@@ -92,11 +93,12 @@ The bot is still not a room authority, invitation relay or gameplay server.
 
 `py -3 -m unittest discover -s services/lobby-directory -p test_*.py`
 
-22 tests pass: ten legacy cases plus eight v2 cases covering scope/private-field
+26 tests pass: thirteen legacy cases plus nine v2 cases covering scope/private-field
 projection, game validation, unknown versions, independent quotas, persistent
 ownership, out-of-order close, quota release and legacy database migration, plus four correlated
 result tests (private allowlist, legacy isolation, invalid scope/correlation).
-Legacy checks include scheduled metadata, provider-authoritative avatars and
-lost-create recovery with distinct listing/session IDs.
-Local SQLite/API
-fixtures only; no live bot, Fluxer account, device, media or gameplay acceptance.
+Legacy checks include scheduled metadata, provider-authoritative avatars,
+category moves, independent organizer listings and lost-create recovery with
+distinct listing/session IDs. A regression also prevents v1 meeting fields from
+aliasing a v2 room or leaking into its payload. These counts cover SQLite/API
+fixtures only; [live rollout evidence](ROLLOUT_20261024.md) is recorded separately.
