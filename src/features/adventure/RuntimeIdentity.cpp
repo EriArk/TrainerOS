@@ -7,12 +7,16 @@
 #include "integrations/adventure/standalone/MelonDsNetplay.h"
 #include "integrations/adventure/standalone/AzaharNetplay.h"
 #include "integrations/adventure/standalone/VitaNetplay.h"
+#include "integrations/adventure/standalone/Ps2LanNetplay.h"
 namespace trainer {
 QJsonObject runtimeIdentity(const AdventureRegistration& r,const RetroArchInstallation& installation,
  const StandaloneInstallation& pspInstallation,const StandaloneInstallation& dolphinInstallation,
  const std::atomic_bool& cancel,int capacity,retroarch::NetplayDigestCache* digests) {
     const auto platform=r.adventure.platformId;
-    if(platform=="ps2")return ps2::netplayIdentity(r,installation,cancel);
+    if(platform=="ps2") {
+        const auto native=ps2lan::netplayIdentity(r,cancel);
+        return native.isEmpty()?ps2::netplayIdentity(r,installation,cancel):native;
+    }
     if(platform=="psvita")return vita::netplayIdentity(r,cancel);
     if(platform=="n3ds")return azahar::netplayIdentity(r,cancel);
     if(platform=="nds")return melonds::netplayIdentity(r,cancel);

@@ -1,5 +1,77 @@
 # ARMSX2: native LAN preparation
 
+## Continuation evidence — 24 October 2026
+
+The earlier build rejection below is historical: the owner continued, builder
+startup succeeded and the changed Linux transport/shell were built and checked.
+Current source binds PS2 to the existing two-player Lobby explicit Start through
+`Ps2LanNetplay`, RuntimeMultiplayer and LobbyConnection. Native game launch is
+deliberate; transport loss keeps the owned game and never automatically rejoins.
+
+The package and shell were installed and restarted on both handhelds. Shell SHA:
+`dc42c7c1371f811a55a5e85279e79ee467ae7c93fc44f48259944032c6c51b80`.
+Flip remains a desktop application; Odin retains its existing session service.
+
+The host-network endpoint is now a private AF_UNIX pathname socket, with 0600
+access in a 0700 session directory. `ps2_endpoint` runs beside ARMSX2 in a bwrap
+network namespace containing only loopback. Its UDP endpoint retains the bounded
+ECLX forwarding below. The config now has seven fields, adding `socket`.
+Namespace checks passed on both handhelds, including the same UDP port occupied
+outside, real IPC/UDP exchange, ordinary-network refusal and game survival on loss.
+`--dev-bind /dev /dev` preserves GPU/input access; a plain bind is nodev.
+
+The native probe exposed and corrected three preparation errors:
+
+- The persisted enum is `EthApi = Local Link`, including the space, as defined in
+  [Pcsx2Config.cpp](https://github.com/ARMSX2/ARMSX2/blob/90126bdfea/pcsx2/Pcsx2Config.cpp).
+  The initial `LocalLink` spelling left Ethernet disabled.
+- Even `-batch` scans configured library paths. Odin waited on an old NFS path.
+  A private base INI copy now removes only GameList Paths/RecursivePaths; personal
+  settings stay unchanged. The private INI directory is mounted at its usual path.
+- Passing the expanded ARMSX2 directory to `-datapath` created a nested first-run
+  setup. The launcher now sets the configuration base through XDG_CONFIG_HOME,
+  preserving ordinary BIOS/card locations. The unused probe folder was moved aside.
+
+`tools/ps2-lan` contains the reproducible package recipe and bounded ISO9660/CHD
+reader. libchdr is pinned to `47d794151b2b64f6aba60304e6480f4f5a2bc24b`.
+CHDv5 2048/2448-byte standalone layouts are supported; parent CHDs are rejected.
+The CHD raw SHA-1 is a declared image identity, not a full-file integrity check.
+Exact SYSTEM.CNF serial and upstream ELF XOR CRC select per-title settings.
+One candidate: Battlefront II USA, `SLUS-21240`, CRC `02F4B541`; both copies match.
+The 56-game list is not blanket compatibility.
+
+Odin had updated to 2.8.4-433 / `90126bdfea` before this launch. Its AppImage SHA
+is `1c40028a0464bcfab57826518500dcd11ceb472bea16d0900d7146abb11a4224`.
+The version guard first rejected it; comparison confirmed the same LocalLink
+source blobs as below before admission. Flip remains on 2.8.4-390.
+
+Checks passed: full Linux transport CTest (PS2 plus prior PSP/media boundaries),
+six config and five synthetic-disc checks, shell standalone/relay/Lobby/GameParty/
+RuntimeMultiplayer suites. Real-helper Lobby checks additionally passed all seven
+PS2/PSP/media scenarios, with zero skips. Native games booted, menus accepted input,
+and the host logged `Local Link peer 2 joined`. Both exited gracefully; the final
+private-settings probe left personal INIs and pre-existing card bytes unchanged.
+The initial ordinary startup updated Flip's INI through ARMSX2 itself; no existing
+card was replaced or formatted. PSP helper/PPSSPP remain separate.
+
+**Still incomplete:** neither card contains a PS2 network configuration. The
+game's built-in Network Configuration Utility opens but stops responding to input
+after its ELF transition on both devices; foreground ownership, input descriptors
+and rendering persist. Native peer admission is not a completed LAN match.
+Next: isolate that input transition, finish native setup/discovery/match and the
+installed Lobby/Home/Exit cycle. Offline admission remains separate unfinished work.
+No VPN, difficult NAT or new relay infrastructure was added.
+
+Build the two CMake projects under tools/remote-play-stream/transport and
+tools/ps2-lan; run transport CTest, check_config.py, check_disc.py and host-side
+check_namespace.py. package.py collects helpers/scripts and dependency notices.
+The private installed manifest adds absolute runtime/configRoot/runtimeSha256;
+the bundle lives at XDG_DATA_HOME/TrainerOS/emulators/ps2-lan. No ROM/BIOS/emulator
+binary or personal settings enter this repository. Retain previous shell/package
+for rollback, settle the game first and remove only session-owned settings.
+
+## Historical foundation before this continuation
+
 **24 October 2026 — partial source implementation; not installed or exposed in
 Lobby.** R035 and #259 remain open. The chosen route reuses ARMSX2 DEV9 Local Link
 and TrainerOS's existing authenticated unordered ICE/DTLS datagram channel.

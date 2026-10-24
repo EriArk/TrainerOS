@@ -1,0 +1,12 @@
+cmake_minimum_required(VERSION 3.24)
+project(traineros_ps2_lan LANGUAGES C CXX)
+set(CMAKE_CXX_STANDARD 17)
+find_package(Qt6 REQUIRED COMPONENTS Core Network)
+add_executable(ps2_endpoint endpoint.cpp)
+target_link_libraries(ps2_endpoint PRIVATE Qt6::Core Qt6::Network)
+include(FetchContent)
+set(BUILD_SHARED_LIBS ON CACHE BOOL "" FORCE)
+set(CHDR_WANT_TESTS OFF CACHE BOOL "" FORCE)
+FetchContent_Declare(chdr GIT_REPOSITORY https://github.com/rtissera/libchdr.git
+  GIT_TAG 47d794151b2b64f6aba60304e6480f4f5a2bc24b)
+FetchContent_MakeAvailable(chdr)

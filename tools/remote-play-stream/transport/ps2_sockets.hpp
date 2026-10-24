@@ -16,9 +16,9 @@ public:
     using Sender = std::function<bool(const QByteArray&)>;
     Ps2Sockets(bool host, Sender send, QObject* parent = nullptr)
         : QObject(parent), host_(host), send_(std::move(send)), socket_(this) {}
-    bool start() {
+    bool start(quint16 guestPort=0) {
         if(socket_.state() != QAbstractSocket::UnconnectedState) return false;
-        if(!socket_.bind(QHostAddress::LocalHost, 0, QUdpSocket::DontShareAddress)) return false;
+        if(!socket_.bind(QHostAddress::LocalHost, host_?0:guestPort, QUdpSocket::DontShareAddress)) return false;
         connect(&socket_, &QUdpSocket::readyRead, this, [this]{ drain(); });
         return true;
     }

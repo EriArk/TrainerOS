@@ -78,6 +78,7 @@ print(f"Adapter source snapshot {'checked' if args.check else 'exported'}: {len(
 dest = root / "docs/adapters/implementations/runtime"
 files = {}
 for relative in ("src/integrations/adventure/standalone/AzaharNetplay.cpp",
+                 "src/integrations/adventure/standalone/Ps2LanNetplay.cpp",
                  "src/integrations/adventure/standalone/VitaNetplay.cpp",
                  "src/integrations/adventure/standalone/DolphinNetplay.cpp",
                  "src/integrations/adventure/standalone/MelonDsSession.cpp",
@@ -102,13 +103,18 @@ for relative in ("src/integrations/adventure/standalone/AzaharNetplay.cpp",
 for profile in registry.get("runtimeProfiles", []):
     exported_profile = dict(profile, evidenceBase="../../../")
     files[f"profiles/{profile['id']}.json"] = (json.dumps(exported_profile, indent=2) + "\n").encode()
+for path in sorted((root / "tools/ps2-lan").iterdir()):
+    if path.is_file():
+        files[path.relative_to(root).as_posix()] = path.read_text(encoding="utf-8").encode("utf-8")
+path = root / "tools/remote-play-stream/transport/ps2_sockets.hpp"
+files[path.relative_to(root).as_posix()] = path.read_text(encoding="utf-8").encode("utf-8")
 for directory in ("dolphin", "handheld", "rmg", "flycast", "melonds", "azahar", "vita3k", "native-lan", "lrps2"):
     for path in sorted((root / "packaging/emulators" / directory).iterdir()):
         if path.is_file():
             files[path.relative_to(root).as_posix()] = path.read_text(encoding="utf-8").encode("utf-8")
 manifest = {name: hashlib.sha256(data).hexdigest() for name, data in sorted(files.items())}
 files["manifest.json"] = (json.dumps({"hash": "SHA-256 of UTF-8/LF export", "files": manifest}, indent=2) + "\n").encode()
-managed = {p.relative_to(dest).as_posix() for folder in ("src", "profiles", "packaging")
+managed = {p.relative_to(dest).as_posix() for folder in ("src", "profiles", "packaging", "tools")
            for p in (dest / folder).rglob("*") if p.is_file()}
 if managed - set(files):
     raise SystemExit(f"Review stale runtime export files explicitly: {sorted(managed - set(files))}")

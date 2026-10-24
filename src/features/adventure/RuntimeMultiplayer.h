@@ -17,6 +17,7 @@
 #include "integrations/adventure/standalone/MelonDsNetplay.h"
 #include "integrations/adventure/standalone/AzaharNetplay.h"
 #include "integrations/adventure/standalone/VitaNetplay.h"
+#include "integrations/adventure/standalone/Ps2LanNetplay.h"
 #include "platform/network/LocalLinkPeer.h"
 #include <QFutureWatcher>
 #include <memory>
@@ -118,6 +119,7 @@ private:
     bool flycast() const { return descriptor_["id"]=="runtime.flycast-dojo.dc.v1"; }
     bool azahar() const { return descriptor_["id"]=="runtime.azahar.3ds.v1"; }
     bool vita() const { return descriptor_["id"]=="runtime.vita3k.lan.v1"; }
+    bool ps2Lan() const { return descriptor_["id"]=="runtime.armsx2.lan.v1"; }
     bool ds() const { return descriptor_["id"]=="runtime.melonds.nds.v1"; }
     bool psp() const { return descriptor_["id"].toString().startsWith("runtime.ppsspp."); }
     bool dolphin() const { return descriptor_["id"].toString().startsWith("runtime.dolphin."); }
@@ -146,12 +148,14 @@ private:
     bool rmgPreparing_=false;
     ProcessService& process_;AdventureLaunchController& lifecycle_;AdventureExitPresentation& overlay_;
     LobbyGamePreparation preparation_;
-    LobbyConnection pspConnection_;
+    LobbyConnection nativeConnection_;
     QProcess pspRelay_{this};
     bool pspDirect_=false;
-    QJsonObject pspLaunchContext_;
+    bool ps2Connection_=false;
+    QString ps2ConnectionConfig_;
+    QJsonObject nativeLaunchContext_;
     void bindLobbyPlayers(const QJsonObject&);
-    void stopPspConnection();
+    void stopNativeConnection();
     LocalLinkPeer nearby_{this,47855,47856,"trainerosRuntime",true};
     GameParty party_{this};
     HotseatHandoff handoff_{this};

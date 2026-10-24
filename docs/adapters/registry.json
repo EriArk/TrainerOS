@@ -3,6 +3,21 @@
   "updated": "2026-10-12",
   "runtimeProfiles": [
     {
+      "id": "runtime.armsx2.lan.v1",
+      "platform": "ps2",
+      "romSha256": "",
+      "state": "partial",
+      "record": "../emulators/armsx2-lan.md",
+      "persistentSaveWrites": true,
+      "evidence": ["exact-disc-serial-elf-crc-and-declared-chd-content-identity", "linux-ice-dtls-and-lobby-revocation-checks", "two-handheld-network-namespace-and-native-peer-admission"],
+      "remaining": ["native-game-network-configuration-and-match", "complete-installed-lobby-home-exit-cycle", "offline-admission-and-broader-lan-editions"],
+      "savePolicy": "Each native game uses its owner's original cards. No peer card transfer, semantic save editing or automatic game rejoin. Base launch settings are a private copy.",
+      "implementationSource": "src/integrations/adventure/standalone/Ps2LanNetplay.cpp",
+      "implementation": "implementations/runtime",
+      "profile": "implementations/runtime/profiles/runtime.armsx2.lan.v1.json",
+      "recipe": "tools/ps2-lan/package.py"
+    },
+    {
       "id": "runtime.vita3k.lan.v1",
       "platform": "psvita",
       "romSha256": "",

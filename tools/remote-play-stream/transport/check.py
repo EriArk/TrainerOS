@@ -115,21 +115,27 @@ class TransportTests(unittest.TestCase):
         def envelope(kind, peer, payload=b'', index=0, count=1):
             return struct.pack('!4sBBHIIIHHHHQQ', b'ECLX', 1, kind, 44, peer, 1, 1,
                                index, count, len(payload), 0, 1, 1)+payload
-        with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as host, socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as guest:
-            host.bind(('127.0.0.1', 19072));host.settimeout(3)
-            guest.bind(('127.0.0.1', 0));guest.settimeout(3)
-            address = ('127.0.0.1', int(configs[1]['port']))
+        def exact(s, n):
+            result=b''
+            while len(result)<n:
+                data=s.recv(n-len(result));self.assertTrue(data);result+=data
+            return result
+        def send(s, data):s.sendall(struct.pack('!H',len(data))+data)
+        def receive(s):return exact(s,struct.unpack('!H',exact(s,2))[0])
+        with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as host, socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as guest:
+            host.settimeout(3);guest.settimeout(3)
+            host.connect(configs[0]['socket']);guest.connect(configs[1]['socket'])
+            time.sleep(.05)
             hello = envelope(1, 2)
-            guest.sendto(hello, address)
-            received, local_bridge = host.recvfrom(2048)
-            self.assertEqual(received, hello)
-            ack = envelope(2, 1);host.sendto(ack, local_bridge)
-            self.assertEqual(guest.recvfrom(2048)[0], ack)
+            send(guest,hello)
+            self.assertEqual(receive(host), hello)
+            ack = envelope(2, 1);send(host,ack)
+            self.assertEqual(receive(guest), ack)
             for packet in (envelope(3, 2, b'a'*1000, 0, 2), envelope(3, 2, b'b'*514, 1, 2)):
-                guest.sendto(packet, address)
-                self.assertEqual(host.recvfrom(2048)[0], packet)
-                host.sendto(packet, local_bridge)
-                self.assertEqual(guest.recvfrom(2048)[0], packet)
+                send(guest,packet)
+                self.assertEqual(receive(host), packet)
+                send(host,packet)
+                self.assertEqual(receive(guest), packet)
 
     def test_ps2_cannot_be_admitted_as_psp_or_media(self):
         for modes in (['ps2', 'psp'], ['psp', 'ps2'], ['ps2', None], [None, 'ps2']):

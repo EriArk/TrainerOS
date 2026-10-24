@@ -17,7 +17,7 @@ a second execution plan or a claim that all installed runtimes are validated.
 
 | Emulator | Record | Scope |
 |---|---|---|
-| ARMSX2 | [Native LAN preparation](armsx2-lan.md) | Partial source: local socket endpoint and private gamecfg; Lobby binding and handheld delivery unfinished |
+| ARMSX2 | [Native LAN integration](armsx2-lan.md) | Lobby binding, isolated native network, exact disc identity and own-card launch; paired native admission passed, network utility input/match and full Lobby cycle unfinished |
 | xemu | [Original Xbox launch](xemu.md) | Common launch/discovery/Home; Odin Mojo! launch and menu input, existing firmware/HDD/controller retained |
 | RPCS3 | [PS3 homebrew launch](rpcs3.md) | Existing Odin runtime/firmware, shared launch and separate SDL input profile; device cycle recorded in LAUNCH-80 |
 | Eden | [Switch homebrew launch](eden.md) | Official ARM64 0.2.1, shared launch and fresh SDL defaults; device cycle recorded in LAUNCH-80 |

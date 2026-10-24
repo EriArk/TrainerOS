@@ -3,12 +3,20 @@
 from pathlib import Path
 import tempfile
 import unittest
-from session_config import connection, overlay, prepare
+from session_config import connection, overlay, prepare, launch_settings
 
-MATERIAL = b'mode=ps2\naddress=127.0.0.1\nhost=true\nport=19072\npeer=1\nroom=abcdef123456\n'
+MATERIAL = b'mode=ps2\naddress=127.0.0.1\nhost=true\nport=19072\npeer=1\nroom=abcdef123456\nsocket=/tmp/traineros-test/ps2.sock\n'
 
 
 class ConfigurationTests(unittest.TestCase):
+    def test_private_launch_skips_library_scanning_preserving_other_settings(self):
+        original=b'[GameList]\nPaths = /mnt/share\nRecursivePaths=/mnt/nfs\nExcludedPaths=/skip\n[Pad1]\nPaths=keep\n[MemoryCards]\nSlot1_Filename=Own.ps2\n'
+        result=launch_settings(original)
+        self.assertNotIn(b'/mnt/',result)
+        self.assertIn(b'ExcludedPaths=/skip',result)
+        self.assertIn(b'[Pad1]\nPaths=keep',result)
+        self.assertIn(b'Slot1_Filename=Own.ps2',result)
+
     def test_existing_game_settings_and_personal_cards_remain_unchanged(self):
         original = (b'[MemoryCards]\nSlot1_Filename = My\\x20Card.ps2\n'
                     b'[DEV9/Eth]\nEthEnable = false\nEthApi = Sockets\nLocalLinkRoomCode = old\n'
@@ -23,18 +31,19 @@ class ConfigurationTests(unittest.TestCase):
             self.assertIn(b'[Pad1]\nCross = SDL-0/A\n', result)
             self.assertIn(b'PS2IP = 192.0.2.2\n', result)
             self.assertNotIn(b' = old', result)
-            self.assertEqual(result.count(b'EthApi = LocalLink'), 1)
+            # Pcsx2Config.cpp NetApiNames is the persisted enum, including space.
+            self.assertEqual(result.count(b'EthApi = Local Link'), 1)
             self.assertIn(b'LocalLinkRoomCode = abcdef123456', result)
             with self.assertRaises(FileExistsError): prepare(source, output, MATERIAL)
             with self.assertRaises(FileExistsError): prepare(source, source, MATERIAL)
             self.assertEqual(source.read_bytes(), original)
 
     def test_guest_and_missing_game_override(self):
-        guest = MATERIAL.replace(b'host=true', b'host=false').replace(b'peer=1', b'peer=2').replace(b'19072', b'45000')
+        guest = MATERIAL.replace(b'host=true', b'host=false').replace(b'peer=1', b'peer=2').replace(b'19072', b'19073')
         result = overlay(b'', guest)
         self.assertIn(b'LocalLinkHost = false', result)
         self.assertIn(b'LocalLinkPeerId = 2', result)
-        self.assertIn(b'LocalLinkPort = 45000', result)
+        self.assertIn(b'LocalLinkPort = 19073', result)
 
     def test_unterminated_lines_and_section_after_network(self):
         result = overlay(b'[DEV9/Eth]\nEthEnable=false\n[Graphics]\nRenderer=14', MATERIAL)

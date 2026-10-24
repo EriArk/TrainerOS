@@ -53,8 +53,9 @@ bool LobbyConnection::start(QString self,QString ticket,QString helper,QJsonArra
     const auto s=lobby_.state();const auto game=s["game"].toObject();
     const bool live=s["phase"]=="playing";
     const bool psp=mode=="psp"&&game["mode"].toString().startsWith("runtime.ppsspp.")&&s["relay"]=="psp-host"&&!live;
+    const bool ps2=mode=="ps2"&&game["mode"]=="runtime.armsx2.lan.v1"&&s["relay"].toString("auto")=="auto"&&!live;
     if((s["phase"]!="launching"&&!live)||s["ticket"]!=ticket||ticket.isEmpty()
-       ||(!(mode=="game"&&game["mode"]=="remoteplay.v1")&&!psp)||game["seats"]!=2)return false;
+       ||(!(mode=="game"&&game["mode"]=="remoteplay.v1")&&!psp&&!ps2)||game["seats"]!=2)return false;
     mode_=mode;
     int players=0;QString owner,guest,admission;
     for(const auto& v:s["members"].toArray()) {

@@ -1,0 +1,13 @@
+{
+  "version": 1,
+  "games": [
+    {
+      "serial": "SLUS-21240",
+      "crc": "02F4B541",
+      "title": "Star Wars Battlefront II (USA)",
+      "mode": "lan",
+      "players": 2,
+      "source": "https://www.teamxlink.co.uk/wiki/PCSX2_XLink_Kai_Setup"
+    }
+  ]
+}

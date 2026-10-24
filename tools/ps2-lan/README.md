@@ -1,4 +1,4 @@
-# PS2 LAN session preparation (not installed)
+# PS2 LAN session preparation and isolated launch
 
 This module prepares a private ARMSX2 `-gamecfg <session.ini>` using the accepted
 PS2 connection's local `session.conf`. It preserves the exact game's existing
@@ -17,12 +17,23 @@ an owner-only directory. Output is exclusive, mode 0600. Failed validation write
 nothing. `material` comes from the owned transport child, never a remote path.
 
 The source interface is checked against ARMSX2 revisions recorded in
-[the maintenance record](../../docs/emulators/armsx2-lan.md). This helper is not
-yet wired into `RuntimeMultiplayer`, game discovery, Lobby or offline admission.
-No package is installed and no PS2 title is newly advertised as compatible.
+`docs/emulators/armsx2-lan.md` at the repository root. The bundle is wired into
+`RuntimeMultiplayer`, exact-disc discovery and explicit Lobby Start, and installed
+on Flip/Odin. Offline admission remains unfinished. The initial profile covers
+Battlefront II SLUS-21240 / 02F4B541; native Local Link joined, but a match remains
+blocked by controller input loss in the game's Network Configuration Utility.
+
+`launcher.py` copies settings into the private session, removes library scanning
+from that copy and launches ARMSX2 plus `ps2_endpoint` in a loopback-only network
+namespace. An owner-only Unix socket connects the endpoint to the existing
+authenticated ICE/DTLS transport. Memory cards remain owned by each player.
+`package.py` assembles the helpers, pinned libchdr and notices; it includes no
+emulator, BIOS, disc or personal settings. The private installation manifest
+supplies the local runtime and configuration paths.
 
 ```sh
 python3 tools/ps2-lan/check_config.py
+python3 tools/ps2-lan/check_disc.py
 cmake -S tools/remote-play-stream/transport -B build-ps2-sockets -DSOCKET_CHECK_ONLY=ON
 cmake --build build-ps2-sockets
 ctest --test-dir build-ps2-sockets --output-on-failure

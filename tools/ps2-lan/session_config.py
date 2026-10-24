@@ -7,14 +7,14 @@ the private session directory and retain it until the emulator exits. This is
 not game admission, an emulator launcher or a replacement for Lobby lifecycle.
 """
 import os
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 import re
 import stat
 
 
 def connection(data: bytes) -> dict[str, str]:
     """Read only the private configuration emitted by stream_transport ps2."""
-    if len(data) > 1024:
+    if len(data) > 4096:
         raise ValueError('Invalid PS2 connection size')
     values = {}
     for line in data.decode('ascii').splitlines():
@@ -22,7 +22,7 @@ def connection(data: bytes) -> dict[str, str]:
         if not separator or key in values:
             raise ValueError('Invalid PS2 connection fields')
         values[key] = value
-    if set(values) != {'mode', 'address', 'host', 'port', 'peer', 'room'}:
+    if set(values) != {'mode', 'address', 'host', 'port', 'peer', 'room', 'socket'}:
         raise ValueError('Invalid PS2 connection fields')
     if values['mode'] != 'ps2' or values['address'] != '127.0.0.1':
         raise ValueError('Invalid PS2 connection mode')
@@ -34,6 +34,11 @@ def connection(data: bytes) -> dict[str, str]:
         raise ValueError('Invalid PS2 host port')
     if not re.fullmatch(r'[a-f0-9]{12}', values['room']):
         raise ValueError('Invalid PS2 room material')
+    path=PurePosixPath(values['socket'])
+    if not path.is_absolute() or path.name!='ps2.sock' or '..' in path.parts:
+        raise ValueError('Invalid private PS2 socket')
+    if values['host']=='false' and values['port']!='19073':
+        raise ValueError('Invalid PS2 guest port')
     return values
 
 
@@ -43,7 +48,7 @@ def overlay(original: bytes, material: bytes) -> bytes:
         raise ValueError('Invalid PS2 game settings')
     text = original.decode('utf-8-sig')
     settings = {
-        'EthEnable': 'true', 'EthApi': 'LocalLink',
+        'EthEnable': 'true', 'EthApi': 'Local Link',
         'LocalLinkHost': values['host'], 'LocalLinkAddress': values['address'],
         'LocalLinkPort': values['port'], 'LocalLinkPeerId': values['peer'],
         'LocalLinkRoomCode': values['room'],
@@ -71,6 +76,23 @@ def overlay(original: bytes, material: bytes) -> bytes:
         result.append('\n[DEV9/Eth]\n')
     if in_network or not seen_network:
         result.extend(f'{key} = {value}\n' for key, value in settings.items())
+    return ''.join(result).encode('utf-8')
+
+
+def launch_settings(original: bytes) -> bytes:
+    """Disable library enumeration only in the private launch settings copy.
+
+    Even ARMSX2 -batch scans configured library folders; an unavailable network
+    mount can stall before the selected local game boots. Retain every other key.
+    """
+    if len(original)>1024*1024 or b'\0' in original:raise ValueError('Invalid PS2 base settings')
+    result=[];game_list=False
+    for line in original.decode('utf-8-sig').splitlines(keepends=True):
+        stripped=line.strip()
+        if stripped.startswith('[') and stripped.endswith(']'):game_list=stripped=='[GameList]'
+        key,equals,_=stripped.partition('=')
+        if game_list and equals and key.strip() in ('Paths','RecursivePaths'):continue
+        result.append(line)
     return ''.join(result).encode('utf-8')
 
 

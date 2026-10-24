@@ -169,13 +169,29 @@ private slots:
         Fixture f;QVERIFY(f.start());QTRY_COMPARE(f.lifecycle.state(),"running");
         const auto pid=f.process.processId();
         f.runtime.active_=true;f.runtime.pspDirect_=true;
-        f.runtime.pspLaunchContext_={{"ticket","old"}};
+        f.runtime.nativeLaunchContext_={{"ticket","old"}};
         int completions=0;f.runtime.lobbyCompletion_=[&](bool ok,QString){QVERIFY(!ok);++completions;};
-        emit f.runtime.pspConnection_.ended("Lost connection");
-        QCOMPARE(completions,1);QVERIFY(!f.runtime.pspDirect_);QVERIFY(f.runtime.pspLaunchContext_.isEmpty());
+        emit f.runtime.nativeConnection_.ended("Lost connection");
+        QCOMPARE(completions,1);QVERIFY(!f.runtime.pspDirect_);QVERIFY(f.runtime.nativeLaunchContext_.isEmpty());
         QCOMPARE(f.process.processId(),pid);QVERIFY(f.lifecycle.active());
-        emit f.runtime.pspConnection_.connected("late private config");
+        emit f.runtime.nativeConnection_.connected("late private config");
         QCOMPARE(completions,1);QVERIFY(!f.runtime.party_.active());QCOMPARE(f.process.processId(),pid);
+        finishOrdinary(f);
+    }
+    void ps2TransportLossKeepsOwnedGameAndCannotRelaunch() {
+        Fixture f;QVERIFY(f.start());QTRY_COMPARE(f.lifecycle.state(),"running");
+        const auto pid=f.process.processId();
+        f.runtime.active_=true;f.runtime.ps2Connection_=true;
+        f.runtime.descriptor_={{"id","runtime.armsx2.lan.v1"},{"lateJoin",false}};
+        QVERIFY(!f.runtime.supportsRejoin(f.runtime.descriptor_));
+        f.runtime.ps2ConnectionConfig_="private connection";
+        f.runtime.nativeLaunchContext_={{"ticket","old"}};
+        int completions=0;f.runtime.lobbyCompletion_=[&](bool ok,QString){QVERIFY(!ok);++completions;};
+        emit f.runtime.nativeConnection_.ended("Lost connection");
+        QCOMPARE(completions,1);QVERIFY(!f.runtime.ps2Connection_);QVERIFY(f.runtime.ps2ConnectionConfig_.isEmpty());
+        QVERIFY(f.runtime.nativeLaunchContext_.isEmpty());QCOMPARE(f.process.processId(),pid);
+        emit f.runtime.nativeConnection_.connected("stale config");
+        QVERIFY(f.runtime.ps2ConnectionConfig_.isEmpty());QVERIFY(!f.runtime.party_.active());QCOMPARE(f.process.processId(),pid);
         finishOrdinary(f);
     }
     void destructionCannotReenterFromExternalLobbySignals() {

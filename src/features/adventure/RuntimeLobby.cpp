@@ -123,12 +123,18 @@ void RuntimeMultiplayer::launch(QString operation,QString ticket,QJsonObject con
         relaySelector_.start(lobbyContext_["self"].toString(),context["owner"].toString(),peers,context["relay"].toString("auto"));
         if(!relayStarted_)return; // Synchronous context rejection already completed the launch.
     }
+    if(selected["id"]=="runtime.armsx2.lan.v1") {
+        ps2Connection_=true;nativeLaunchContext_=context;
+        if(!nativeConnection_.start(lobbyContext_["self"].toString(),ticket,ps2lan::bundleRoot()+"/stream_transport",{"stun:stun.l.google.com:19302"},"ps2"))
+            fail("Couldn't prepare the PS2 LAN connection. Reopen this game in the lobby.");
+        return;
+    }
     if(context["relay"]=="psp-host") {
         const auto root=ppsspp::hostRelayRoot();
         if(root.isEmpty()){fail("The PSP connection package is unavailable. Choose the standard relay.");return;}
-        pspDirect_=true;pspLaunchContext_=context;
+        pspDirect_=true;nativeLaunchContext_=context;
         if(context["owner"]==lobbyContext_["self"])pspRelay_.start(root+"/psp_relay",{});
-        if(!pspConnection_.start(lobbyContext_["self"].toString(),ticket,root+"/stream_transport",{"stun:stun.l.google.com:19302"},"psp"))
+        if(!nativeConnection_.start(lobbyContext_["self"].toString(),ticket,root+"/stream_transport",{"stun:stun.l.google.com:19302"},"psp"))
             fail("Couldn't prepare the direct PSP connection. Choose the standard relay in Connection settings.");
         return;
     }
@@ -138,20 +144,21 @@ void RuntimeMultiplayer::bindLobbyPlayers(const QJsonObject& context) {
     QJsonArray players;for(const auto& m:context["members"].toArray())if(!m.toObject()["spectator"].toBool())players.append(m);
     auto selected=context["game"].toObject()["runtime"].toObject();if(selected.isEmpty())selected=lobbyDescriptor_;
     if(!party_.bindLobby(lobbyTicket_,selected,players,lobbyContext_["self"].toString(),context["owner"].toString(),lobbyContext_["liveAdmission"].toString())) {
-        stopPspConnection();
+        stopNativeConnection();
         relaySelector_.stop();relayStarted_=relayWaiting_=false;relayTicket_.clear();
         auto completion=std::exchange(lobbyCompletion_,{});lobbyTicket_.clear();if(completion)completion(false,"The player seats changed. Prepare again.");
     }
 }
-void RuntimeMultiplayer::stopPspConnection() {
-    pspDirect_=false;pspLaunchContext_={};pspConnection_.stop();
+void RuntimeMultiplayer::stopNativeConnection() {
+    ps2Connection_=false;ps2ConnectionConfig_.clear();
+    pspDirect_=false;nativeLaunchContext_={};nativeConnection_.stop();
     if(pspRelay_.state()!=QProcess::NotRunning) {
         pspRelay_.terminate();if(!pspRelay_.waitForFinished(1500)){pspRelay_.kill();pspRelay_.waitForFinished(1000);}
     }
 }
 void RuntimeMultiplayer::cancel(QString operation) {
     if(operation!=lobbyOperation_)return;
-    stopPspConnection();
+    stopNativeConnection();
     relaySelector_.stop();relayStarted_=relayWaiting_=false;relayTicket_.clear();selectedRelay_.clear();selectedRelayEndpoint_.clear();
     preparation_.cancel(operation);
     lobbyOperation_.clear();lobbyContext_={};lobbyGame_.clear();lobbyDescriptor_={};lobbyCompletion_={};lobbyTicket_.clear();

@@ -25,7 +25,7 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include "psp_sockets.hpp"
-#include "ps2_sockets.hpp"
+#include "ps2_channel.hpp"
 
 namespace {
 constexpr int FirstPort=49010, MaxDatagram=4096, MaxRecord=65536;
@@ -196,7 +196,7 @@ private:
         if(!ready){fail();return;}
         if(channel==2){if(ps2){fail();return;}if(psp)pspSockets->receive(bytes);else rtsp(bytes);return;}
         if(psp){fail();return;}
-        if(ps2){ps2Sockets->receive(bytes);return;}
+        if(ps2){ps2Channel->receive(bytes);return;}
         if(bytes.size()<2){fail();return;}
         const int index=static_cast<unsigned char>(bytes[0]);if(index<1||index>3){fail();return;}
         auto& socket=udp[index-1];
@@ -226,12 +226,12 @@ private:
     }
     void startSockets() {
         if(ps2) {
-            ps2Sockets=new Ps2Sockets(host,[this](const QByteArray& bytes){return send(0,bytes);},this);
-            if(!ps2Sockets->start()||!directory.isValid())throw std::runtime_error("ps2 bind");
+            ps2Channel=new Ps2Channel([this](const QByteArray& bytes){return send(0,bytes);},[this]{fail();},this);
+            if(!directory.isValid()||!ps2Channel->start(directory.path()+"/ps2.sock"))throw std::runtime_error("ps2 bind");
             QFile file(directory.path()+"/session.conf");
             const QByteArray config="mode=ps2\naddress=127.0.0.1\nhost="+QByteArray(host?"true":"false")
-                +"\nport="+QByteArray::number(ps2Sockets->port())+"\npeer="+QByteArray(host?"1":"2")
-                +"\nroom="+key.left(12)+"\n";
+                +"\nport="+QByteArray(host?"19072":"19073")+"\npeer="+QByteArray(host?"1":"2")
+                +"\nroom="+key.left(12)+"\nsocket="+directory.path().toUtf8()+"/ps2.sock\n";
             if(!file.open(QIODevice::WriteOnly|QIODevice::NewOnly)||!file.setPermissions(QFile::ReadOwner|QFile::WriteOwner)
                ||file.write(config)!=config.size()||!file.flush())throw std::runtime_error("private PS2 config");
             key.fill(0);key.clear();return;
@@ -317,7 +317,7 @@ private:
     std::array<bool,3> opened{};std::array<QUdpSocket,3> udp;std::array<quint16,3> peerPorts{};
     QTcpServer tcpServer;QPointer<QTcpSocket> tcp;QByteArray tcpBytes,key,ping;uint32_t token=0;
     bool host=false,remoteDescription=false,greeted=false,verified=false,ready=false,requestSent=false,materialSent=false,closing=false;
-    QString identity;int seconds=0;bool game=false,psp=false,ps2=false;PspSockets* pspSockets=nullptr;Ps2Sockets* ps2Sockets=nullptr;quint64 sent=0,received=0,dropped=0;
+    QString identity;int seconds=0;bool game=false,psp=false,ps2=false;PspSockets* pspSockets=nullptr;Ps2Channel* ps2Channel=nullptr;quint64 sent=0,received=0,dropped=0;
 };
 }
 int main(int argc,char** argv) {
