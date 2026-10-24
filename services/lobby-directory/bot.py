@@ -13,6 +13,7 @@ import urllib.request
 
 import websocket
 from directory import Directory, decode
+from result import command_result
 
 LOG = logging.getLogger('traineros-lobby')
 
@@ -177,6 +178,10 @@ def run(config, state_path):
                                 if abs(now-stamp) <= 120 and api.authorized(author['id'], data['channel_id']):
                                     result = directory.accept(author['id'], author.get('global_name') or author.get('username'), command, now, author.get('avatar'))
                                     LOG.info('Directory update: %s', result)
+                                    # Confirm the durable command result privately, not public visibility.
+                                    response = command_result(author['id'], command, result, now)
+                                    if response:
+                                        api.call('POST', f"/v1/channels/{data['channel_id']}/messages", api.body(response))
                         # Persist command state before acknowledging this Dispatch.
                         sequence = event.get('s', sequence)
                 except websocket.WebSocketTimeoutException:
