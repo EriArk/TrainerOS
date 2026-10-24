@@ -122,7 +122,7 @@ def pin(root, envelope, feed, public_key, minimum_feed, minimum_release):
 
 
 def resolve(feed_url, public_key, channel, state, installed_sequence, target, data,
-            *, cache=None, minimum_feed=0, minimum_release=0, now=None, opener=None, progress=sw.event):
+            *, cache=None, minimum_feed=0, minimum_release=0, expected_sequence=None, now=None, opener=None, progress=sw.event):
     """Check or explicitly prepare; installation identity comes from the caller.
 
     check downloads only metadata. prepare rechecks current signed metadata and
@@ -130,6 +130,8 @@ def resolve(feed_url, public_key, channel, state, installed_sequence, target, da
     """
     if channel not in CHANNELS or any(not sw.integer(v, 0, MAX_SEQUENCE) for v in (installed_sequence, minimum_feed, minimum_release)):
         raise ValueError('Invalid bootstrap channel/sequence')
+    if expected_sequence is not None and not sw.integer(expected_sequence, 1, MAX_SEQUENCE):
+        raise ValueError('Invalid selected release sequence')
     fields(data, 'sqlite firstRun')
     if any(not sw.integer(v, 0, 10000) for v in data.values()):
         raise ValueError('Actual data schema versions are required')
@@ -148,6 +150,8 @@ def resolve(feed_url, public_key, channel, state, installed_sequence, target, da
         candidate = feed['release']
         result = {'channel': channel, 'version': candidate['version'], 'sequence': candidate['sequence'],
                   'notes': feed['notes'], 'installed': False}
+        if expected_sequence is not None and candidate['sequence'] != expected_sequence:
+            return {**result, 'status': 'blocked', 'reason': 'release-changed'}
         if candidate['minimumUpdater'] > PROTOCOL:
             return {**result, 'status': 'blocked', 'reason': 'updater-required'}
         if candidate['target'] != target:
@@ -210,6 +214,7 @@ def main():
             p.add_argument('--' + field, type=int, default=0)
         if name == 'prepare':
             p.add_argument('--cache', required=True)
+            p.add_argument('--expected-sequence', type=int)
     p = commands.add_parser('build')
     for field in ('manifest', 'public-key', 'signing-key', 'output', 'manifest-url', 'issued-at', 'expires-at'):
         p.add_argument('--' + field, required=True)
@@ -227,7 +232,8 @@ def main():
         else:
             result = resolve(args.feed_url, args.key, args.channel, args.state, args.installed_sequence,
                 args.target, {'sqlite': args.sqlite, 'firstRun': args.first_run}, cache=getattr(args, 'cache', None),
-                minimum_feed=args.minimum_feed_sequence, minimum_release=args.minimum_release_sequence)
+                minimum_feed=args.minimum_feed_sequence, minimum_release=args.minimum_release_sequence,
+                expected_sequence=getattr(args, 'expected_sequence', None))
         print(json.dumps(result, ensure_ascii=True))
         return 2 if result.get('status') == 'blocked' else 0
     except (OSError, ValueError, RuntimeError, KeyError, TypeError, RecursionError, http.client.HTTPException,

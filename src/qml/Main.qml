@@ -427,6 +427,7 @@ Window {
                     const flow = shell.settings.communication
                     return [h("←→","Adjust"),h("A","Select"),h("B",flow.choosingAvatar ? "Cancel" : "Categories")]
                 }
+                if (shell.service === "settings" && shell.settings.updatesOpen) return [h("↑↓",shell.settings.updates.notesOpen ? "Read" : "Choose"),h("A","Select"),h("B",shell.settings.updates.notesOpen ? "Updates" : "System")]
                 if (shell.service === "settings") return [h("←→","Adjust"),h("A",shell.settings.controlsFocused ? "Select" : "Open"),h("B",shell.settings.controlsFocused ? "Categories" : "Back")]
                 if (shell.service === "device") return [h("←→","Adjust"),h("Y","Refresh"),h("A","Select"),h("B","Back")]
                 if (shell.serviceOpen) return [h("A","Select"),h("B","Back")]

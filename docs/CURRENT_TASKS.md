@@ -15,9 +15,12 @@
 ScreenScraper в новом [визарде](FIRST_RUN.md), общий signed Software preparation
 для [Armada installer/OTA](EARLY_BETA_INSTALLER_RU.md), получение подписанных
 Beta/Preview по HTTPS и явный `check` → `prepare` без сервера раздачи владельца.
+Добавлен consumer в Settings → System → Updates и общем Downloads; обычная сборка
+ещё без production source и не выполняет проверку/загрузку. Тестовое подключение
+изолировано от пользовательских данных и отключено в production build.
 Следующее недоделанное этой функции — production key/bootstrap/публикация GitHub feed,
 host/OS-storage/receipt probe и lifecycle-safe
-activation/repair/совместимый rollback с реальным UI. Подготовленный cache не
+production binding и activation/repair/совместимый rollback. Подготовленный cache не
 считается установленной версией; это не новая глобальная очередь.
 
 ## Сохранённые условия внешней проверки

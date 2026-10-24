@@ -91,6 +91,7 @@
 #include "AppsSmokeScenario.h"
 #include "PlatformSmokeScenario.h"
 #include "FirstRunSmokeScenario.h"
+#include "SoftwareUpdateSmokeScenario.h"
 #include "CratesSmokeScenario.h"
 #include "ExperienceSmokeScenario.h"
 #include "LobbySmokeScenario.h"
@@ -212,6 +213,7 @@ int main(int argc, char* argv[]) {
 #ifdef TRAINEROS_UI_TESTS
     parser.addOption({"platform-smoke-test", "Render and exercise the host-owned SDK widget with isolated data."});
     parser.addOption({"first-run-smoke-test", "Exercise first setup with disposable profiles and local service fixtures."});
+    parser.addOption({"updates-smoke-test", "Exercise Settings Updates with disposable local process fixtures."});
     parser.addOption({"player-overlay-smoke-test", "Verify player bubbles and mini chat with isolated provider and input fixtures."});
     parser.addOption({"lobby-smoke-test", "Verify lobby and keyboard QML with isolated provider fixtures."});
     parser.addOption({"experience-smoke-test", "Verify independent experience modules in the real QML host."});
@@ -235,13 +237,14 @@ int main(int argc, char* argv[]) {
     bool hallSmoke = false;
     bool diagnosticsSmoke = false;
     bool exitSmoke = false;
-    bool downloadsSmoke = false, appsSmoke = false, cratesSmoke = false, platformSmoke = false, firstRunSmoke = false;
+    bool downloadsSmoke = false, appsSmoke = false, cratesSmoke = false, platformSmoke = false, firstRunSmoke = false, updatesSmoke = false;
     bool experienceSmoke = false;
     bool lobbySmoke = false, playerOverlaySmoke = false;
     QString persistencePhase;
 #ifdef TRAINEROS_UI_TESTS
     platformSmoke = parser.isSet("platform-smoke-test");
     firstRunSmoke = parser.isSet("first-run-smoke-test");
+    updatesSmoke = parser.isSet("updates-smoke-test");
     playerOverlaySmoke = parser.isSet("player-overlay-smoke-test");
     lobbySmoke = parser.isSet("lobby-smoke-test");
     experienceSmoke = parser.isSet("experience-smoke-test");
@@ -258,9 +261,9 @@ int main(int argc, char* argv[]) {
     if (parser.isSet("persistence-smoke-test") && (!QStringList{"seed", "verify", "error", "library-seed", "library-verify", "library-final", "library-launch", "library-home", "library-home-reopen", "library-center", "collection"}.contains(persistencePhase)
             || parser.value("data-dir").isEmpty() || parser.isSet("ephemeral"))) return 2;
 #endif
-    const bool smoke = firstRunSmoke || platformSmoke || cratesSmoke || appsSmoke || playerOverlaySmoke || lobbySmoke || experienceSmoke || parser.isSet("smoke-test") || downloadsSmoke || artSmoke || exitSmoke || worldsSmoke || pokedexSmoke || hallSmoke || diagnosticsSmoke || !persistencePhase.isEmpty();
+    const bool smoke = updatesSmoke || firstRunSmoke || platformSmoke || cratesSmoke || appsSmoke || playerOverlaySmoke || lobbySmoke || experienceSmoke || parser.isSet("smoke-test") || downloadsSmoke || artSmoke || exitSmoke || worldsSmoke || pokedexSmoke || hallSmoke || diagnosticsSmoke || !persistencePhase.isEmpty();
     std::unique_ptr<QTemporaryDir> setupTestData;
-    if(firstRunSmoke) {
+    if(firstRunSmoke || updatesSmoke) {
         setupTestData=std::make_unique<QTemporaryDir>();
         if(!setupTestData->isValid())return 2;
         QSettings::setDefaultFormat(QSettings::IniFormat);
@@ -1371,6 +1374,8 @@ int main(int argc, char* argv[]) {
 #ifdef TRAINEROS_UI_TESTS
                 if(firstRunSmoke) {
                     startFirstRunSmoke(window,shell,session,*store,input,joystick,screenshotDir,smokeCompleted,qmlWarnings,diagnostics);
+                } else if(updatesSmoke) {
+                    startSoftwareUpdateSmoke(window,shell,input,joystick,setupTestData->path(),screenshotDir,smokeCompleted,qmlWarnings,diagnostics);
                 } else if(platformSmoke) {
                     startPlatformSmoke(window,shell,adventureLaunch,screenshotDir,smokeCompleted,qmlWarnings,diagnostics);
                 } else if(playerOverlaySmoke) {

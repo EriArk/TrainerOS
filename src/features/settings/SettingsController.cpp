@@ -6,6 +6,11 @@
 #include <QSettings>
 
 namespace trainer {
+SettingsController::SettingsController(QObject* parent):QObject(parent),updates_(this) {
+    connect(&updates_,&SoftwareUpdateController::changed,this,&SettingsController::changed);
+    connect(&updates_,&SoftwareUpdateController::backRequested,this,[this]{updatesOpen_=false;row_=3;pane_=true;emit changed();});
+}
+void SettingsController::openUpdates() {category_=5;pane_=true;updatesOpen_=true;updates_.closeNotes();emit changed();}
 QString SettingsController::displayProfile() const {
     const auto value = QSettings().value("display/profile", "handheld").toString();
     return QStringList{"auto", "handheld", "tv"}.contains(value) ? value : "handheld";
@@ -82,7 +87,7 @@ QVariantList SettingsController::controls() const {
     case 2: return {row("Video previews","toggle",videoPreviews()?"On · silent playback":"Off"),row("Adventure pictures","status","Clean exit pictures on Home and in Choose Adventure"),row("Field Guide illustrations","status","Illustrations and animated companions")};
     case 3: return {row("Charger vibration","unavailable","Patterns have not been verified on this handheld"),row("Device lighting","unavailable","Lighting support has not been verified")};
     case 4: return {row("Your profile","action","Name and emblem"),row("RetroAchievements","action","Manage your account"), trainersAvailable_ ? row("Trainers","action","Choose a player or create a Trainer") : row("Separate Trainers & PIN","unavailable","Not available yet"),row("Trainer PIN",trainersAvailable_?"action":"unavailable","Set, change or remove your PIN"),row("Family code",trainersAvailable_?"action":"unavailable","A parent can reset forgotten PINs")};
-    case 5: return {row("Refresh status","action",""),row("Restart","action",""),row("Power off","action","")};
+    case 5: return {row("Refresh status","action",""),row("Restart","action",""),row("Power off","action",""),row("Updates","action","TrainerOS, operating system and Crates")};
     case 7: return {row("Check controller","action","Test buttons, sticks and triggers"),row("Button layout","status","Right A confirms; bottom B goes back"),row("Page navigation","status","L1 / R1 pages; L2 / R2 secondary pages")};
     case 8: {
         QVariantList result{row("Collections","action","Create and edit your game collections")};
@@ -105,6 +110,7 @@ QVariantList SettingsController::controls() const {
 }
 void SettingsController::selectCategory(int index, bool enter) {
     if(storage_.busy() || clock_.busy())return;
+    updatesOpen_=false;updates_.closeNotes();
     clock_.leave();
     if(index!=13)communication_.leave();
     storage_.close();
@@ -114,6 +120,7 @@ void SettingsController::selectCategory(int index, bool enter) {
     emit changed();
 }
 void SettingsController::activateRow(int index) {
+    if(updatesOpen_){updates_.activate(index);return;}
     if(category_==14&&scraper_){scraper_->activateSetting(index);return;}
     if(category_==13){communication_.activate(index);return;}
     if(category_==11){clock_.activate(index);return;}
@@ -128,6 +135,7 @@ void SettingsController::activateRow(int index) {
     else if(category_==1 && row_==1) {adjustDisplay(1,1);return;}
     else if(category_==2 && row_==0) activate(3);
     else if(category_==4) emit trainerRequested(row_);
+    else if(category_==5 && row_==3)openUpdates();
     else if(category_==5) emit deviceRequested(row_);
     else if(category_==7 && row_==0) emit controllerRequested();
     else if(category_==8 && row_==0) emit collectionsRequested();
@@ -152,6 +160,7 @@ void SettingsController::cycleTheme(int direction) {
     if(repository_) repository_->savePreferences(candidate,this,completed); else completed({});
 }
 void SettingsController::dispatch(Action action) {
+    if(updatesOpen_){updates_.dispatch(action);return;}
     if(category_==14&&pane_&&scraper_){scraper_->dispatchSettings(action);return;}
     if(category_==13 && pane_){communication_.dispatch(action);return;}
     if(clock_.busy())return;

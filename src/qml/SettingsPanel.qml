@@ -4,7 +4,7 @@ Item {
     id: root
     required property var shell
     readonly property var settings: shell.settings
-    readonly property bool takesFocus: visible && !shell.menuOpen && !shell.notice.length && !shell.keyboard.open && !shell.libraryTools.open && !shell.scraper.open
+    readonly property bool takesFocus: visible && !shell.menuOpen && !shell.notice.length && !shell.keyboard.open && !shell.libraryTools.open && !shell.scraper.open && !shell.downloads.open
     readonly property string localError: settings.category===4 && shell.trainer.editing ? shell.trainer.error
         : (settings.category===0 || settings.category===8 || settings.category===9) && settings.error.length ? settings.error
         : [0,1,5,10].includes(settings.category) ? shell.device.error : ""
@@ -45,6 +45,7 @@ Item {
             }
             }
             Item { x: 260; width: parent.width-x-16; height: parent.height
+                UpdatesPane { anchors.fill: parent; flow: root.settings.updates; visible: root.settings.updatesOpen; takesFocus: root.takesFocus && root.settings.controlsFocused }
                 ScrapeSettingsPane { anchors.fill: parent; flow: root.shell.scraper; visible: root.settings.category===14; takesFocus: root.takesFocus && root.settings.controlsFocused }
                 CommunicationPane { anchors.fill: parent; flow: root.settings.communication; visible: root.settings.category===13; takesFocus: root.takesFocus && root.settings.controlsFocused }
                 ClockPane { anchors.fill: parent; clock: root.settings.clock; visible: root.settings.category===11; takesFocus: root.takesFocus && root.settings.controlsFocused }
@@ -57,7 +58,7 @@ Item {
                     Text { x: 5; y: parent.height-37; width: parent.width-10; height: 33; text: root.settings.storage.busy ? "Preparing your library…" : root.settings.storage.error || root.settings.storage.rows[root.settings.storage.focusIndex]?.path || ""; textFormat: Text.PlainText; color: root.settings.storage.error.length ? "#853b24" : Theme.muted; font.pixelSize: 12; wrapMode: Text.WrapAnywhere; maximumLineCount: 2; elide: Text.ElideMiddle }
                 }
                 Flickable {
-                    id: controlsViewport; visible: root.settings.category!==6 && root.settings.category!==10 && root.settings.category!==11 && root.settings.category!==13 && root.settings.category!==14 && !root.settings.storage.open; x: 0; y: root.settings.category===5 ? 158 : 13
+                    id: controlsViewport; visible: !root.settings.updatesOpen && root.settings.category!==6 && root.settings.category!==10 && root.settings.category!==11 && root.settings.category!==13 && root.settings.category!==14 && !root.settings.storage.open; x: 0; y: root.settings.category===5 ? 158 : 13
                     width: parent.width; height: Math.max(0,parent.height-y-62); clip: true
                     contentHeight: controlsColumn.height+8; boundsBehavior: Flickable.StopAtBounds
                     function followFocus() {
@@ -94,7 +95,7 @@ Item {
                     }
                 }
                 }
-                Column { x: 0; y: 10; width: parent.width; spacing: 4; visible: root.settings.category===5
+                Column { x: 0; y: 10; width: parent.width; spacing: 4; visible: root.settings.category===5 && !root.settings.updatesOpen
                     Repeater { model: root.shell.device.status
                         Rectangle {
                             required property var modelData
@@ -117,7 +118,7 @@ Item {
                 }
                 Text {
                     objectName: "settings-status"
-                    visible: root.settings.category!==10 && root.settings.category!==11 && root.settings.category!==13 && root.settings.category!==14 && !root.settings.storage.open
+                    visible: !root.settings.updatesOpen && root.settings.category!==10 && root.settings.category!==11 && root.settings.category!==13 && root.settings.category!==14 && !root.settings.storage.open
                     x: 5; y: parent.height-58; width: parent.width-10; height: 52
                     text: root.statusText; textFormat: Text.PlainText
                     font.pixelSize: 14; color: root.localError.length ? "#853b24" : Theme.muted

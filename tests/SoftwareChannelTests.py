@@ -86,6 +86,15 @@ class SoftwareChannelTests(unittest.TestCase):
         self.assertNotIn(self.archive_url, self.requests)
         self.assertFalse((self.state / 'active.json').exists())
 
+    def test_ui_selection_change_requires_review_before_payload_download(self):
+        result = self.resolve(cache=self.cache, expected_sequence=6)
+        self.assertEqual(result['status'], 'blocked')
+        self.assertEqual(result['reason'], 'release-changed')
+        self.assertEqual(self.requests, [self.feed_url])
+        self.assertFalse(self.cache.exists())
+        result = self.resolve(cache=self.cache, expected_sequence=7)
+        self.assertEqual(result['status'], 'prepared')
+
     def test_check_does_not_authorize_later_expired_preparation(self):
         self.resolve(); self.requests.clear()
         with self.assertRaisesRegex(ValueError, 'expired'):
@@ -282,7 +291,7 @@ class SoftwareChannelTests(unittest.TestCase):
             args = ['--feed-url', base + '/beta.json', '--key', str(self.public), '--channel', 'beta',
                     '--state', str(self.state), '--installed-sequence', '6', '--target', 'linux-aarch64', '--sqlite', '16', '--first-run', '2']
             for command in ('check', 'prepare'):
-                extra = ['--cache', str(self.cache)] if command == 'prepare' else []
+                extra = ['--cache', str(self.cache), '--expected-sequence', '7'] if command == 'prepare' else []
                 result = subprocess.run([sys.executable, str(SOURCE / 'packaging/software/channels.py'), command, *args, *extra],
                     env=env, capture_output=True, text=True, timeout=30)
                 self.assertEqual(result.returncode, 0, result.stdout + result.stderr)

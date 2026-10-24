@@ -232,6 +232,8 @@ add_library(trainer_core STATIC
     src/features/library/LibraryManagementController.cpp
     src/features/library/LibraryManagementController.h
     src/features/settings/SettingsController.cpp
+    src/features/settings/SoftwareUpdateController.cpp
+    src/features/settings/SoftwareUpdateController.h
     src/features/settings/SettingsController.h
     src/core/storage/SqliteLibrary.cpp
     src/core/storage/SqliteLibrary.h
@@ -499,6 +501,7 @@ qt_add_qml_module(traineros
         src/qml/StorageChoices.qml
         src/qml/SettingControl.qml
         src/qml/SettingsPanel.qml
+        src/qml/UpdatesPane.qml
         src/qml/CommunicationPane.qml
         src/qml/ClockPane.qml
         src/qml/DevicePanel.qml
@@ -560,6 +563,14 @@ if(BUILD_TESTING)
     find_package(Python3 REQUIRED COMPONENTS Interpreter)
     add_test(NAME software_release COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/SoftwareReleaseTests.py)
     add_test(NAME software_channel COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/SoftwareChannelTests.py)
+    qt_add_executable(trainer_software_update_tests tests/SoftwareUpdateTests.cpp
+        src/features/settings/SoftwareUpdateController.cpp src/features/settings/SoftwareUpdateController.h
+        src/features/downloads/DownloadsController.cpp src/features/downloads/DownloadsController.h)
+    target_include_directories(trainer_software_update_tests PRIVATE src)
+    target_link_libraries(trainer_software_update_tests PRIVATE Qt6::Core Qt6::Test)
+    set_target_properties(trainer_software_update_tests PROPERTIES WIN32_EXECUTABLE FALSE)
+    target_compile_definitions(trainer_software_update_tests PRIVATE UPDATE_PYTHON="${Python3_EXECUTABLE}")
+    add_test(NAME software_update COMMAND trainer_software_update_tests -o -,txt)
     qt_add_executable(trainer_platform_tests tests/PlatformHostTests.cpp)
     target_include_directories(trainer_platform_tests PRIVATE src)
     target_link_libraries(trainer_platform_tests PRIVATE trainer_core Qt6::Test)
@@ -728,6 +739,9 @@ if(BUILD_TESTING)
     target_sources(traineros PRIVATE tests/ui/AppsSmokeScenario.cpp tests/ui/AppsSmokeScenario.h)
     target_sources(traineros PRIVATE tests/ui/PlatformSmokeScenario.h)
     target_sources(traineros PRIVATE tests/ui/FirstRunSmokeScenario.h)
+    target_sources(traineros PRIVATE tests/ui/SoftwareUpdateSmokeScenario.h)
+    add_test(NAME software_update_qml_smoke COMMAND traineros --updates-smoke-test --screenshot-dir "${CMAKE_CURRENT_BINARY_DIR}/screenshots/software-updates")
+    set_tests_properties(software_update_qml_smoke PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software;QT_FORCE_STDERR_LOGGING=1" TIMEOUT 65)
     add_test(NAME first_run_qml_smoke COMMAND traineros --first-run-smoke-test --screenshot-dir "${CMAKE_CURRENT_BINARY_DIR}/screenshots/first-run")
     set_tests_properties(first_run_qml_smoke PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software;QT_FORCE_STDERR_LOGGING=1" TIMEOUT 60)
     add_test(NAME platform_qml_smoke COMMAND traineros --ephemeral --platform-smoke-test --screenshot-dir "${CMAKE_CURRENT_BINARY_DIR}/screenshots/platform")
