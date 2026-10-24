@@ -36,6 +36,18 @@ class GamePartyTests : public QObject {
         }
     };
 private slots:
+    void emulatorAdmissionLocksEveryBuildAndSyncSetting() {
+        for(const auto& id:QStringList{"runtime.retroarch.psx.pcsx_rearmed.v1","runtime.handheld.gba.v1",
+                "runtime.ppsspp.psp.v1","runtime.dolphin.gc.v1","runtime.rmg.n64.v1","runtime.flycast-dojo.dc.v1",
+                "runtime.melonds.nds.v1","runtime.azahar.3ds.v1","runtime.vita3k.lan.v1","runtime.armsx2.lan.v1"}) {
+            const QJsonObject local{{"id",id},{"runtime","build"},{"core","core-build"},{"content","disc"},{"settings","locked"},{"firmware","bios"}};
+            QVERIFY(sameMultiplayerGame(local,local));
+            for(const auto& field:{"runtime","core","settings","firmware"}) {
+                auto changed=local;changed[field]="other";QVERIFY(!sameMultiplayerGame(local,changed));
+                changed.remove(field);QVERIFY(!sameMultiplayerGame(local,changed));
+            }
+        }
+    }
     void firstLiveGuestAndRejoinNeverRestartTheSoloHost() {
         GameParty host,guest;const auto profile=game(2);host.configure("Host",{profile},profile,true);guest.configure("Guest",{profile},{},true);
         connect(&host,&GameParty::outgoing,&guest,[&](QString,QJsonObject p){guest.receive("online:1","Host",p);});
@@ -73,7 +85,7 @@ private slots:
     }
     void lobbyAdmissionIsBilateralAndKeepsTheChosenSeats() {
         GameParty host,guest;const auto profile=game();
-        auto otherBuild=profile;otherBuild["runtime"]="different-architecture";otherBuild["core"]="different-binary";
+        auto otherBuild=profile;
         host.configure("Host",{profile},profile,true);guest.configure("Guest",{otherBuild},{},true);
         const auto ticket=QUuid::createUuid().toString(QUuid::WithoutBraces);
         const QJsonArray roster{QJsonObject{{"id","2"},{"name","Guest"},{"seat",3},{"connected",true},{"prepared",true},{"ready",true}},
@@ -143,7 +155,7 @@ private slots:
         for(const auto& field:{"content","settings"}) {
             changed=host;changed[field]="different";QVERIFY(!supportsMultiplayerSession(guest,changed));
         }
-        changed=host;changed["runtime"]="different-architecture";QVERIFY(supportsMultiplayerSession(guest,changed));
+        changed=host;changed["runtime"]="different-architecture";QVERIFY(!supportsMultiplayerSession(guest,changed));
         QVERIFY(!sameMultiplayerGame(game(4),game(2))); // No inferred native capacity.
         r.a.configure("a",{host},host,true);r.b.configure("b",{guest},{},true);
         r.a.invite("b");QCOMPARE(r.b.pending()["game"].toObject(),host);r.b.answer(true);

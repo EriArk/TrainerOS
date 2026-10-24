@@ -1,4 +1,5 @@
 #include "features/adventure/RuntimeMultiplayer.h"
+#include "integrations/adventure/MultiplayerRoute.h"
 #include "features/adventure/LobbyImportController.h"
 #include "features/adventure/LaunchPresentation.h"
 #include "core/navigation/LaunchPreparation.h"
@@ -120,14 +121,51 @@ class RuntimeMultiplayerTests final : public QObject {
         return result;
     }
 private slots:
+    void lobbyRoutesIgnoreOrdinaryEmulatorPreferences() {
+        const QHash<QString,QString> routes{{"psp","ppsspp"},{"gc","dolphin"},{"wii","dolphin"},
+            {"nds","melonds"},{"n3ds","azahar"},{"psvita","vita3k"},{"ps2","armsx2"},
+            {"n64","retroarch"},{"dreamcast","retroarch"}};
+        for(auto it=routes.cbegin();it!=routes.cend();++it) {
+            AdventureRegistration original;original.adventure.platformId=it.key();original.adventure.adapterId="personal-emulator";
+            original.contentPath="/owned/game";original.integrationConfig["librarySaveBase"]="/owned/saves";
+            const auto routed=multiplayerRegistration(original);
+            QCOMPARE(routed.adventure.adapterId,it.value());QCOMPARE(routed.contentPath,original.contentPath);
+            QCOMPARE(routed.integrationConfig,original.integrationConfig);QCOMPARE(original.adventure.adapterId,QString("personal-emulator"));
+        }
+        for(const auto& platform:QStringList{"nes","fds","snes","sg1000","mastersystem","megadrive","segacd","sega32x",
+                "pcengine","pcenginecd","supergrafx","atari2600","psx","fbneo","neogeo","mame","gb","gbc","gba"}) {
+            AdventureRegistration original;original.adventure.platformId=platform;original.adventure.adapterId="personal-emulator";
+            original.integrationConfig={{"core","personal-core"},{"librarySaveBase","/owned/saves"}};
+            const auto routed=multiplayerRegistration(original);
+            QCOMPARE(routed.adventure.adapterId,QString("retroarch"));QCOMPARE(routed.integrationConfig["core"].toString(),romCore(platform));
+            QVERIFY(retroarch::netplaySupported(platform,routed.integrationConfig["core"].toString()));
+            QCOMPARE(routed.integrationConfig["librarySaveBase"],original.integrationConfig["librarySaveBase"]);
+            QCOMPARE(original.integrationConfig["core"].toString(),QString("personal-core"));
+        }
+    }
+    void installedGameWithDifferentRuntimeIsNotAnImportProblem() {
+        Fixture f;f.runtime.allowed_=true;
+        const QJsonObject local{{"id","runtime.retroarch.psx.pcsx_rearmed.v1"},{"content","same-disc"},
+            {"runtime","installed-runtime"},{"core","installed-core"},{"firmware","bios"},{"settings","fixed"},{"players",2}};
+        f.runtime.games_={{"owned-ps1",local}};
+        for(const auto& field:{"runtime","core","firmware","settings"}) {
+            auto offered=local;offered[field]="different";
+            const auto id=QString::fromLatin1(QCryptographicHash::hash((offered["id"].toString()+"/same-disc").toUtf8(),QCryptographicHash::Sha256).toHex());
+            bool completed=false;QString message;
+            f.runtime.prepare("check",{{"self",f.social.account()["userId"].toString()},{"game",QJsonObject{{"id",id},{"mode",offered["id"]},{"runtime",offered}}}},
+                [&](bool ok,QString error){QVERIFY(!ok);completed=true;message=error;});
+            QVERIFY(completed);QCOMPARE(f.runtime.lobbyProblem_,QString("runtime-mismatch"));
+            QVERIFY(message.contains("installed"));QCOMPARE(f.library.writes,0);
+        }
+    }
     void liveJoinCapabilityBelongsToTheLocalInstallation() {
         Fixture f;f.runtime.allowed_=true;
         const QJsonObject local{{"id","runtime.retroarch.nes.fceumm.v1"},{"players",2},
             {"runtime","8d57b47c88d416c05145187c8c906b7ab0013edb7e45af69d9b6bb841aea4a24"},
             {"core","1b13b00d4680394dad8000d5175f97be727107e0945bc9b412da91d70c07b267"}};
         auto other=local;other["runtime"]="other-architecture";other["core"]="other-core-binary";
-        f.runtime.games_={{"nes",local}};QVERIFY(f.runtime.supportsLive(other));
-        QVERIFY(f.runtime.supportsRejoin(other));auto excluded=other;excluded["lateJoin"]=false;QVERIFY(!f.runtime.supportsRejoin(excluded));
+        f.runtime.games_={{"nes",local}};QVERIFY(!f.runtime.supportsLive(other));
+        QVERIFY(!f.runtime.supportsRejoin(other));QVERIFY(f.runtime.supportsRejoin(local));auto excluded=other;excluded["lateJoin"]=false;QVERIFY(!f.runtime.supportsRejoin(excluded));
         excluded=other;excluded["transport"]="netpacket";QVERIFY(!f.runtime.supportsRejoin(excluded));
         excluded=other;excluded["playMode"]="hotseat";QVERIFY(!f.runtime.supportsRejoin(excluded));
         f.runtime.games_={{"nes",other}};QVERIFY(!f.runtime.supportsLive(local));

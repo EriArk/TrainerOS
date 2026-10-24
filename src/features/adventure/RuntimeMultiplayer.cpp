@@ -200,7 +200,8 @@ RuntimeMultiplayer::RuntimeMultiplayer(LibraryRepository& lib,RetroArchAdapter& 
     });
     connect(&rmgLobby_,&rmg::Lobby::launchReady,this,[this](QString address,int port,int controller){
         if(!active_||!rmg()||lifecycle_.active())return;
-        const auto record=library_.registration(game_);
+        auto record=library_.registration(game_);
+        if(record)*record=retroarch::netplayRegistration(*record);
         if(!record||!requestRuntimeLaunch){fail("Nintendo 64 launch is unavailable.");return;}
         QStringList inputPrefix;
         // Reuse only the device's controller launcher, before its '--'. Never
@@ -337,7 +338,8 @@ void RuntimeMultiplayer::refresh(const RetroArchInstallation& installation,QStri
         if(!multiplayerGames_.isEmpty() || !gameModes_.isEmpty()){gameModes_.clear();onlineGames_.clear();nearbyGames_.clear();multiplayerGames_.clear();emit availabilityChanged();}
         update();return;
     }
-    const auto records=library_.registrations();
+    auto records=library_.registrations();
+    for(auto& record:records)record=retroarch::netplayRegistration(record);
     const auto pspInstallation=ppsspp_.installation();
     const auto dolphinInstallation=dolphin_.installation();
     const auto stamp=[](const QString& path){const QFileInfo f(path);return qHashMulti(0,path,f.size(),f.lastModified().toMSecsSinceEpoch());};
@@ -811,7 +813,8 @@ void RuntimeMultiplayer::launch() {
     launchPending_=false;
     if(!active_)return; // A cancelled invitation must not launch a queued game.
     deadline_=QDateTime::currentSecsSinceEpoch()+((ds()||azahar()||vita()||(rmg()&&online_))?180:dolphin()?150:75);timer_.start();
-    const auto record=library_.registration(game_);
+    auto record=library_.registration(game_);
+    if(record)*record=retroarch::netplayRegistration(*record);
     if(!record){fail("The game is no longer in your library.");return;}
     if(!permitsMultiplayer(library_.artwork(game_),descriptor_)){fail("Multiplayer isn't available for this game.");return;}
     if(ps2Lan()) {
@@ -880,7 +883,8 @@ void RuntimeMultiplayer::prepareRmg() {
         rmgRequest_.identity=descriptor_;rmgRequest_.host=host_;
         if(online_&&((host_&&installed["privateLanVersion"]==1)||rmgRequest_.privateLan)) {
             if(installed["privateLanVersion"]!=1||!requestRuntimeLaunch){fail("Nintendo 64 Online isn't ready on this device.");return;}
-            const auto record=library_.registration(game_);
+            auto record=library_.registration(game_);
+            if(record)*record=retroarch::netplayRegistration(*record);
             if(!record){fail("The game is no longer in your library.");return;}
             rmgRequest_.privateLan=true;
             QStringList inputPrefix;const auto end=installation_.prefixArguments.indexOf("--");
@@ -906,7 +910,8 @@ void RuntimeMultiplayer::prepareLinked(const QJsonObject& endpoint) {
        endpoint["preparation"].toObject()["mode"]!=(online_?"online":"nearby"))) {
         fail("This linked-game invitation is invalid.");return;
     }
-    const auto record=library_.registration(game_);
+    auto record=library_.registration(game_);
+    if(record)*record=retroarch::netplayRegistration(*record);
     if(!record){fail("The game is no longer in your library.");return;}
     linkedPreparing_=true;launchPending_=true;status_="Preparing your linked game...";
     deadline_=QDateTime::currentSecsSinceEpoch()+90;timer_.start();emit changed();

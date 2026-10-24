@@ -286,7 +286,7 @@ private slots:
         left["content"]="a9dec84dfe7f62ab2220bafaef7479da0929d066ece16a6885f6226db19085af";
         right["content"]="3d0c79f1627022e18765766f6cb5ea067f6b5bf7dca115552189ad65a5c3a8ac";
         QVERIFY(sameMultiplayerGame(left,right));
-        right["core"]="different-architecture";QVERIFY(sameMultiplayerGame(left,right));
+        right["core"]="different-architecture";QVERIFY(!sameMultiplayerGame(left,right));
         const auto controls=retroarch::netplayControllers(p,false,2);
         QVERIFY(controls.contains("input_max_users = \"1\""));
         QVERIFY(!controls.contains("netplay_request_device_p2"));
@@ -496,7 +496,7 @@ private slots:
         QVERIFY(!retroarch::prepareNetplay(rejected,r,i,request,cancel).isEmpty());QCOMPARE(rejected.arguments,QStringList{r.contentPath});
         QFile original(i.configFile);QVERIFY(original.open(QIODevice::ReadOnly));QCOMPARE(original.readAll(),QByteArray("original test fixture"));
     }
-    void remoteBinaryDiffersButLocalReplacementStillInvalidatesPreparation() {
+    void remoteAndLocalBinaryReplacementBothInvalidatePreparation() {
         QTemporaryDir dir;std::atomic_bool cancel=false;
         for(const auto& name:{"game.nes","runtime","core","retroarch.cfg"})touch(dir.filePath(name));
         RetroArchInstallation i;i.configFile=dir.filePath("retroarch.cfg");i.runtimeFile=dir.filePath("runtime");i.cores["fceumm"]=dir.filePath("core");
@@ -504,6 +504,9 @@ private slots:
         retroarch::NetplayRequest request;request.password="private";request.nickname="guest";request.address="127.0.0.1";request.slot=2;
         request.localExpected=retroarch::netplayIdentity(r,i,cancel);request.expected=request.localExpected;
         request.expected["runtime"]=QString(64,'a');request.expected["core"]=QString(64,'b');
+        ProcessCommand mismatch;mismatch.arguments={r.contentPath};QVERIFY(!retroarch::prepareNetplay(mismatch,r,i,request,cancel).isEmpty());
+        QCOMPARE(mismatch.arguments,QStringList{r.contentPath});
+        request.expected=request.localExpected;
         ProcessCommand accepted;accepted.arguments={r.contentPath};QVERIFY(retroarch::prepareNetplay(accepted,r,i,request,cancel).isEmpty());accepted.settled({});
         QFile changed(i.runtimeFile);QVERIFY(changed.open(QIODevice::WriteOnly));changed.write("replaced after preparation");changed.close();
         ProcessCommand rejected;rejected.arguments={r.contentPath};
@@ -736,6 +739,12 @@ private slots:
         QVERIFY(write("bios/scph5501.bin",QByteArray(512*1024,'a')));
         const auto identity=retroarch::netplayIdentity(r,i,cancel);QVERIFY(!identity.isEmpty());
         QVERIFY(!identity.contains("controllerModes")); // Unknown runtime builds cannot opt into native handoff.
+        auto standalone=r;standalone.adventure.adapterId="duckstation";standalone.integrationConfig={};
+        QCOMPARE(retroarch::netplayIdentity(retroarch::netplayRegistration(standalone),i,cancel),identity);
+        QCOMPARE(standalone.adventure.adapterId,QString("duckstation"));
+        QVERIFY(standalone.integrationConfig.isEmpty());
+        auto wrongPlatform=standalone;wrongPlatform.adventure.platformId="neogeocd";
+        QCOMPARE(retroarch::netplayRegistration(wrongPlatform).adventure.adapterId,QString("duckstation"));
         QVERIFY(retroarch::netplayIdentity(r,i,cancel,nullptr,4).isEmpty()); // No inferred Multitap.
         QVERIFY(write("bios/unknown.bin",QByteArray(512*1024,'u')));
         QCOMPARE(retroarch::netplayIdentity(r,i,cancel),identity); // Not visible in private BIOS directory.
@@ -973,6 +982,35 @@ private slots:
         touch(content);QVERIFY(QFile::remove(core));cmd=*invocation;QVERIFY(!cmd.prepare(cmd,cancel).isEmpty());
         auto other=r;other.adventure.adapterId="custom";adapter.prepareInstallation(other);QCOMPARE(other.adventure.adapterId,QString("custom"));
         other=r;other.contentPath=dir.filePath("wrong.gba");adapter.prepareInstallation(other);QCOMPARE(other.adventure.adapterId,QString("unconfigured"));
+    }
+    void standalonePlayStationUsesSessionOnlyNetplayRoute() {
+        QTemporaryDir dir;std::atomic_bool cancel=false;
+        const auto write=[&](const QString& name,const QByteArray& bytes) {
+            QFile f(dir.filePath(name));return f.open(QIODevice::WriteOnly)&&f.write(bytes)==bytes.size();
+        };
+        QVERIFY(QDir().mkpath(dir.filePath("bios")));
+        QVERIFY(write("retroarch.cfg","system_directory = \""+dir.filePath("bios").toUtf8()+"\"\n"));
+        QVERIFY(write("bios/scph5501.bin",QByteArray(512*1024,'a')));
+        QVERIFY(write("game.chd","MComprHDfixture"));QVERIFY(write("core","core"));
+        LocalStateStore store(dir.filePath("state"));store.open();QTRY_VERIFY(store.ready());
+        RetroArchInstallation installation{probe(),{},dir.filePath("retroarch.cfg")};
+        installation.runtimeFile=probe();installation.cores["pcsx_rearmed"]=dir.filePath("core");
+        AdventureRegistration r;r.adventure.id="standalone-ps1";r.adventure.title="PS1";r.adventure.domain="multiverse";
+        r.adventure.platformId="psx";r.adventure.adapterId="duckstation";r.contentPath=dir.filePath("game.chd");
+        bool saved=false;store.saveAdventureAsync(r,this,[&](auto result){QVERIFY(result.success);saved=true;});QTRY_VERIFY(saved);
+        RetroArchAdapter adapter(store,installation);std::optional<ProcessCommand> invocation;
+        adapter.requestLaunch=[&](const auto& cmd,const auto&){invocation=cmd;return AdventureResult{true,{},true};};
+        QVERIFY(!adapter.launch(r.adventure).success); // Ordinary launch belongs to DuckStation.
+        retroarch::NetplayRequest request;request.host=true;request.slot=1;request.password="private";request.nickname="host";
+        request.expected=retroarch::netplayIdentity(retroarch::netplayRegistration(r),installation,cancel);QVERIFY(!request.expected.isEmpty());
+        QVERIFY(adapter.launchNetplay(r.adventure,request).success);QVERIFY(invocation&&invocation->prepare);
+        auto cmd=*invocation;const auto error=cmd.prepare(cmd,cancel);QVERIFY2(error.isEmpty(),qPrintable(error));
+        QCOMPARE(cmd.arguments.value(cmd.arguments.indexOf("--libretro")+1),dir.filePath("core"));
+        QVERIFY(cmd.runtimeControls["temporaryProgress"].toBool());
+        const auto retained=store.registration(r.adventure.id);QVERIFY(retained);
+        QCOMPARE(retained->adventure.adapterId,QString("duckstation"));QVERIFY(retained->integrationConfig.isEmpty());
+        cmd.settled({true,0,false,false});
+        QVERIFY(QFile::remove(dir.filePath("core")));cmd=*invocation;QVERIFY(!cmd.prepare(cmd,cancel).isEmpty());
     }
     void platformRegistryIsConsistent() {
         QSet<QString> ids,folders;

@@ -70,8 +70,10 @@ public:
     // The application supplies checkpoint/window/lifecycle coordination.
     std::function<AdventureResult(const ProcessCommand&, const QString& adventureId)> requestLaunch;
 private:
-    AdventureResult launchConfigured(const Adventure&, std::function<QString(ProcessCommand&, const std::atomic_bool&)>);
+    AdventureResult launchConfigured(const Adventure&, std::function<QString(ProcessCommand&, const std::atomic_bool&)>,
+                                    std::optional<AdventureRegistration> overrideRecord = {});
     std::optional<ProcessCommand> command(const Adventure&) const;
+    std::optional<ProcessCommand> command(const AdventureRegistration&) const;
     LibraryRepository& repository_;
     RetroArchInstallation installation_;
 };

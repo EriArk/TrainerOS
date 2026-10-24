@@ -57,8 +57,10 @@ void RuntimeMultiplayer::prepare(QString operation,QJsonObject context,Completio
         const auto digest=QString::fromLatin1(QCryptographicHash::hash((offered["id"].toString()+"/"+offered["content"].toString()).toUtf8(),QCryptographicHash::Sha256).toHex());
         if(digest!=wanted["id"]||offered["id"]!=wanted["mode"]) {done(false,"The selected game identity changed. Choose the game again.");return;}
     }
+    bool installedContent=false;
     for(auto it=games_.cbegin();it!=games_.cend();++it) {
         const auto p=it.value();
+        if(!offered.isEmpty()&&p["content"]==offered["content"]&&p["id"]==offered["id"])installedContent=true;
         const auto digest=QString::fromLatin1(QCryptographicHash::hash((p["id"].toString()+"/"+p["content"].toString()).toUtf8(),QCryptographicHash::Sha256).toHex());
         const bool compatible=offered.isEmpty()?digest==wanted["id"]:supportsMultiplayerSession(p,offered);
         if(compatible&&p["id"]==wanted["mode"]&&multiplayerConnectionAllowed(p,"online")) {
@@ -67,6 +69,10 @@ void RuntimeMultiplayer::prepare(QString operation,QJsonObject context,Completio
         }
     }
     const auto record=library_.registration(local);
+    if(!record&&installedContent) {
+        lobbyProblem_="runtime-mismatch";
+        done(false,"Your game is installed, but the multiplayer emulator, BIOS or settings differ. Update the play setup on both devices and retry.");return;
+    }
     if(!record||record->removed||!record->contentAvailable) {lobbyProblem_="local-content";done(false,"This game is missing or differs from the lobby's edition. Choose your local file to verify it.");return;}
     if(!permitsMultiplayer(library_.artwork(local),profile)){done(false,"This local game's metadata excludes multiplayer.");return;}
     int players=0;QSet<int> seats;bool hostReady=false;

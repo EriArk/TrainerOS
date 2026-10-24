@@ -148,7 +148,11 @@ std::optional<ProcessCommand> RetroArchAdapter::command(const Adventure& adventu
     // drawing a page must not touch a missing/slow removable filesystem.
     if (adventure.collectionOnly || adventure.adapterId != id() || installation_.program.isEmpty()) return {};
     const auto record = repository_.registration(adventure.id);
-    if (!record || record->adventure.adapterId != id() || !QDir::isAbsolutePath(record->contentPath)) return {};
+    return record ? command(*record) : std::nullopt;
+}
+std::optional<ProcessCommand> RetroArchAdapter::command(const AdventureRegistration& registration) const {
+    const auto* record=&registration;
+    if (record->adventure.collectionOnly || installation_.program.isEmpty() || record->adventure.adapterId != id() || !QDir::isAbsolutePath(record->contentPath)) return {};
     const auto core = record->integrationConfig.value("core").toString();
     if (!installation_.cores.contains(core)
             || (!record->adventure.platformId.isEmpty() && romCore(record->adventure.platformId) != core)
@@ -171,29 +175,34 @@ AdventureCapabilities RetroArchAdapter::capabilities(const Adventure& adventure)
     return {command(adventure).has_value(), false, false};
 }
 AdventureResult RetroArchAdapter::launch(const Adventure& adventure) {
+    if(adventure.adapterId!=id()||adventure.collectionOnly)return {false,"This game's file or emulator is unavailable."};
     return launchConfigured(adventure,{});
 }
 AdventureResult RetroArchAdapter::launchNetplay(const Adventure& adventure,const retroarch::NetplayRequest& request) {
     const auto record=repository_.registration(adventure.id);
     if(!record)return {false,"This game is no longer in your library."};
-    return launchConfigured(adventure,[record=*record,installation=installation_,request](ProcessCommand& cmd,const std::atomic_bool& cancel){
+    const auto routed=retroarch::netplayRegistration(*record);
+    return launchConfigured(adventure,[record=routed,installation=installation_,request](ProcessCommand& cmd,const std::atomic_bool& cancel){
         return retroarch::prepareNetplay(cmd,record,installation,request,cancel);
-    });
+    },routed);
 }
 AdventureResult RetroArchAdapter::launchRemotePlay(const Adventure& adventure,const retroarch::RemotePlayRequest& request) {
+    const auto record=repository_.registration(adventure.id);
+    if(!record)return {false,"This game is no longer in your library."};
     return launchConfigured(adventure,[installation=installation_,request](ProcessCommand& cmd,const std::atomic_bool& cancel){
         return retroarch::prepareRemotePlay(cmd,installation,request,cancel);
-    });
+    },retroarch::netplayRegistration(*record));
 }
-AdventureResult RetroArchAdapter::launchConfigured(const Adventure& adventure,std::function<QString(ProcessCommand&, const std::atomic_bool&)> extra) {
-    auto invocation = command(adventure);
+AdventureResult RetroArchAdapter::launchConfigured(const Adventure& adventure,std::function<QString(ProcessCommand&, const std::atomic_bool&)> extra,
+                                                   std::optional<AdventureRegistration> overrideRecord) {
+    const auto registration = overrideRecord ? overrideRecord : repository_.registration(adventure.id);
+    auto invocation = registration ? command(*registration) : std::nullopt;
     if (!invocation) return {false, "This game's file or emulator is unavailable."};
-    const auto registration = repository_.registration(adventure.id);
     if(registration && registration->integrationConfig["core"].toString()=="mgba" && installation_.saves && !installation_.saveBackups)
         return {false,"This Adventure's save setup needs verification before opening."};
     if (registration && registration->integrationConfig["core"].toString() == "mgba"
         && (installation_.saveBackups || !installation_.resumeDirectory.isEmpty())) {
-        const auto record = *repository_.registration(adventure.id);
+        const auto record = *registration;
         invocation->prepare = [record, installation = installation_](ProcessCommand& cmd, const std::atomic_bool& cancel) {
             return prepareRetroArchLaunch(cmd, record, installation, cancel);
         };

@@ -1,5 +1,17 @@
 # ARMSX2: native LAN preparation
 
+## Paired runtime alignment — 24 October 2026
+
+Both handhelds now use 2.8.4-433 / `90126bdfea`, SHA
+`1c40028a0464bcfab57826518500dcd11ceb472bea16d0900d7146abb11a4224`.
+Flip's old AppImage and each previous helper/manifest were backed up locally.
+The launcher no longer drops `runtime` when checking the admitted identity;
+seven config tests pass. Both installed manifests and their files match.
+Personal INIs and memory cards were checked unchanged during this alignment.
+No emulator source patch was replaced; PPSSPP remains separate and unchanged.
+This delivery does not resolve the Network Configuration Utility input problem
+below or prove a PS2 LAN match. [Shared evidence](../LOBBY_RUNTIME_ALIGNMENT.md).
+
 ## Continuation evidence — 24 October 2026
 
 The earlier build rejection below is historical: the owner continued, builder
@@ -43,7 +55,8 @@ The 56-game list is not blanket compatibility.
 Odin had updated to 2.8.4-433 / `90126bdfea` before this launch. Its AppImage SHA
 is `1c40028a0464bcfab57826518500dcd11ceb472bea16d0900d7146abb11a4224`.
 The version guard first rejected it; comparison confirmed the same LocalLink
-source blobs as below before admission. Flip remains on 2.8.4-390.
+source blobs as below before admission. At that checkpoint Flip was on 2.8.4-390;
+the alignment above supersedes that installation state.
 
 Checks passed: full Linux transport CTest (PS2 plus prior PSP/media boundaries),
 six config and five synthetic-disc checks, shell standalone/relay/Lobby/GameParty/

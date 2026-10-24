@@ -47,7 +47,7 @@ def identify(path):
 
 
 def stable(value):
-    return {k:v for k,v in value.items() if k not in ('label','runtime','connections','controllerModes')}
+    return {k:v for k,v in value.items() if k not in ('label','connections','controllerModes')}
 
 
 def request(path):

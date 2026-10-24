@@ -35,7 +35,7 @@ public:
     std::function<AdventureResult(const ProcessCommand&, const QString&)> requestLaunch;
 private:
     bool supports(const QString& platform, const QString& path) const;
-    std::optional<ProcessCommand> command(const Adventure&) const;
+    std::optional<ProcessCommand> command(const Adventure&,bool multiplayer=false) const;
     QString id_;
     LibraryRepository& library_;
     StandaloneInstallation installation_;

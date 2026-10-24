@@ -1,4 +1,5 @@
 #include "StandaloneAdapter.h"
+#include "integrations/adventure/MultiplayerRoute.h"
 #include "core/model/GamePlayers.h"
 #include "PpssppNetplay.h"
 #include "DolphinNetplay.h"
@@ -109,9 +110,10 @@ void StandaloneAdapter::prepareInstallation(AdventureRegistration& record) const
     if (supports(adventure.platformId, record.contentPath)) adventure.adapterId = id_;
     else if (adventure.adapterId == id_) adventure.adapterId = "unconfigured";
 }
-std::optional<ProcessCommand> StandaloneAdapter::command(const Adventure& adventure) const {
-    if (adventure.collectionOnly || adventure.adapterId != id_) return {};
-    const auto record = library_.registration(adventure.id);
+std::optional<ProcessCommand> StandaloneAdapter::command(const Adventure& adventure,bool multiplayer) const {
+    if (adventure.collectionOnly || (!multiplayer&&adventure.adapterId != id_)) return {};
+    auto record = library_.registration(adventure.id);
+    if(record&&multiplayer)*record=multiplayerRegistration(*record);
     if (!record || record->adventure.adapterId != id_ || !QDir::isAbsolutePath(record->contentPath)
         || !supports(record->adventure.platformId, record->contentPath)) return {};
     auto arguments = installation_.prefixArguments;
@@ -157,7 +159,8 @@ AdventureResult StandaloneAdapter::resume(const Adventure&, const ResumePoint&) 
     return {false, "Open this Adventure normally and choose your save inside it. Direct resume is not configured."};
 }
 AdventureResult StandaloneAdapter::launchNetplay(const Adventure& adventure,const ppsspp::NetplayRequest& request) {
-    auto invocation=command(adventure);const auto record=library_.registration(adventure.id);
+    auto invocation=command(adventure,true);auto record=library_.registration(adventure.id);
+    if(record)*record=multiplayerRegistration(*record);
     if(id_!="ppsspp"||!invocation||!record||!requestLaunch)return {false,"This game's file or emulator is unavailable."};
     const auto prepare=invocation->prepare;
     invocation->prepare=[prepare,record=*record,installation=installation_,request](ProcessCommand& cmd,const std::atomic_bool& cancel){
@@ -169,7 +172,8 @@ AdventureResult StandaloneAdapter::launchNetplay(const Adventure& adventure,cons
     return requestLaunch(*invocation,adventure.id);
 }
 AdventureResult StandaloneAdapter::launchNetplay(const Adventure& adventure,const dolphin::NetplayRequest& request) {
-    auto invocation=command(adventure);const auto record=library_.registration(adventure.id);
+    auto invocation=command(adventure,true);auto record=library_.registration(adventure.id);
+    if(record)*record=multiplayerRegistration(*record);
     if(id_!="dolphin"||!invocation||!record||!requestLaunch)return {false,"This game's file or emulator is unavailable."};
     const auto prepare=invocation->prepare;
     const int players=qBound(2,gamePlayers(library_.artwork(adventure.id)).maximum,4);

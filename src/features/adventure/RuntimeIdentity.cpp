@@ -9,9 +9,10 @@
 #include "integrations/adventure/standalone/VitaNetplay.h"
 #include "integrations/adventure/standalone/Ps2LanNetplay.h"
 namespace trainer {
-QJsonObject runtimeIdentity(const AdventureRegistration& r,const RetroArchInstallation& installation,
+QJsonObject runtimeIdentity(const AdventureRegistration& original,const RetroArchInstallation& installation,
  const StandaloneInstallation& pspInstallation,const StandaloneInstallation& dolphinInstallation,
  const std::atomic_bool& cancel,int capacity,retroarch::NetplayDigestCache* digests) {
+    const auto r=retroarch::netplayRegistration(original);
     const auto platform=r.adventure.platformId;
     if(platform=="ps2") {
         const auto native=ps2lan::netplayIdentity(r,cancel);

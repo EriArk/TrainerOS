@@ -369,6 +369,13 @@ Lobby/netplay F04. Разрыв связи или показ успешной а
 через `acknowledgeLaunch`. [Контракт service](../src/features/social/LobbyRuntime.h),
 [prepare/launch/finished](../src/features/social/LobbyRuntime.cpp).
 
+Для эмуляторов S03 строит сетевую копию регистрации через
+[`MultiplayerRoute`](../src/integrations/adventure/MultiplayerRoute.h): профиль
+и запуск используют один стандартный adapter/core без записи в solo-привязку S02.
+Допуск сравнивает сборку, контент, настройки и требуемый firmware; найденная
+игра с несовместимым профилем не считается отсутствующим локальным файлом.
+[Поставка и проверка](LOBBY_RUNTIME_ALIGNMENT.md).
+
 После начала игры `reconcile()` сохраняет активный service даже при исчезновении
 комнаты: окончание живого процесса и сохранность определяет обычный игровой выход.
 Восстановление messenger presence не должно само разрывать подтверждённый игровой
