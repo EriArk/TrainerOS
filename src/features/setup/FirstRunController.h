@@ -15,6 +15,8 @@ class FirstRunController final : public QObject {
     Q_PROPERTY(trainer::ClockController* clock READ clock CONSTANT)
     Q_PROPERTY(bool busy READ busy NOTIFY changed)
     Q_PROPERTY(bool connections READ connections NOTIFY changed)
+    Q_PROPERTY(QString service READ service NOTIFY changed)
+    Q_PROPERTY(QStringList stepLabels READ stepLabels CONSTANT)
     Q_PROPERTY(QString stage READ stage NOTIFY changed)
     Q_PROPERTY(QString title READ title NOTIFY changed)
     Q_PROPERTY(QString description READ description NOTIFY changed)
@@ -36,6 +38,9 @@ public:
     bool active() const { return active_; }
     bool busy() const { return busy_ || clock_.busy(); }
     bool connections() const { return connections_; }
+    QString service() const { return service_; }
+    bool requiresTrainer() const { return stage()=="accounts" || stage()=="preferences" || stage()=="ready"; }
+    QStringList stepLabels() const { return {"Welcome", "Controls", "Connection", "Time", "Games", "Trainer", "Accounts", "Comfort", "Ready"}; }
     QString stage() const { return state_["stage"].toString("welcome"); }
     QString title() const;
     QString description() const;
@@ -47,6 +52,9 @@ public:
     void dispatch(Action action);
     void closeConnections();
     void backFromTrainer();
+    void setAccountStatus(const QString& social, const QString& achievements);
+    void closeService();
+    Q_INVOKABLE void useTouch();
     Q_INVOKABLE void activate(int index);
     std::function<QString(const QString&)> useLibraryRoot;
     // Injected by tests; production uses the mounted-volume service.
@@ -56,6 +64,8 @@ signals:
     void changed();
     void trainerRequested();
     void protectTrainerRequested();
+    void serviceRequested(QString service);
+    void serviceClosed(QString service);
     void finished();
 private:
     ClockController clock_;
@@ -63,6 +73,7 @@ private:
     bool move(const QString& next);
     void loadLocations();
     QString directory_, root_, error_;
+    QString service_, socialStatus_, achievementStatus_;
     QJsonObject state_;
     QList<LibraryLocation> locations_;
     bool active_ = false, busy_ = false, connections_ = false, configured_ = false;

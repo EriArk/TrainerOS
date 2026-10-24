@@ -24,7 +24,7 @@ public:
     TrainerAccessController* access() {return &access_;}
     bool entryGate() const {return entryGate_;}
     FirstRunController* firstRun() { return &firstRun_; }
-    bool firstRunPage() const { return firstRun_.active() && !(entryGate_ && store_ && !store_->trainers().isEmpty() && firstRun_.stage()=="ready"); }
+    bool firstRunPage() const { return firstRun_.active() && !(entryGate_ && store_ && !store_->trainers().isEmpty() && firstRun_.requiresTrainer()); }
     QString restartGrant() const {return nextTrainer_;}
     bool persistent() const { return store_ != nullptr; }
     bool blocked() const { return firstRun_.active() || entryGate_ || access_.active() || creating_ || switching_ || closing_ || (store_ && (!restored_ || !error_.isEmpty())); }
@@ -48,6 +48,8 @@ public:
     void cancelPendingExit() { if(switching_)return; closing_=false; nextTrainer_.clear(); emit changed(); }
     Q_INVOKABLE void activate(int index);
     Q_INVOKABLE void requestExit();
+    Q_INVOKABLE void backInSetup();
+    Q_INVOKABLE void activateSetupService(int index);
 signals:
     void changed();
     void exitReady();

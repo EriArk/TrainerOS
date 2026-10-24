@@ -85,7 +85,7 @@ QVariantList ScrapeController::settingsRows() const {
         row("Game logos",preferences_.logos?"On":"Off",enabled),row("Screenshots",preferences_.screenshots?"On":"Off",enabled),
         row("Background artwork",preferences_.fanart?"On":"Off",enabled),
         row("Existing information",preferences_.refresh?"Replace selected fields · keep game names":"Fill empty fields only",enabled),
-        row("Scrape library","Choose and review the job before starting",enabled),
+        row("Scrape library",setupMode_?"Available from Settings after setup":"Choose and review the job before starting",enabled&&!setupMode_),
         row("Display · main image",display_["picture"].toString()=="cover"?"Cover first":"Screenshot first",enabled),
         row("Display · logos",display_["logos"].toBool(true)?"Game logos":"Text titles",enabled),
         row("Display · background",display_["background"].toBool(false)?"Downloaded artwork":"TrainerOS theme",enabled),
@@ -94,6 +94,7 @@ QVariantList ScrapeController::settingsRows() const {
 }
 void ScrapeController::activateSetting(int index) {
     if(busy()||index<0||index>=settingsRows().size())return;
+    if(setupMode_ && index==12)return;
     settingsFocus_=index;
     const auto cycle=[](const QStringList& list,const QString& value){return list[(list.indexOf(value)+1)%list.size()];};
     if(index<2){textTarget_=index==0?"login":"password";emit textRequested(index==0?"ScreenScraper login":"ScreenScraper password",index==0?credentials_.username:QString(),index==1);return;}
@@ -114,6 +115,12 @@ void ScrapeController::activateSetting(int index) {
     if(index==16)display_["facts"]=!display_["facts"].toBool(true);
     if(index==17)display_["description"]=!display_["description"].toBool(true);
     if(index>=4){savePreferences();if(index>=13)emit displayChanged();}
+    emit changed();
+}
+void ScrapeController::setSetupMode(bool enabled) {
+    setupMode_=enabled;settingsFocus_=0;textTarget_.clear();
+    // Discard unsubmitted password drafts. The explicit Save action owns credentials.
+    credentials_=readCredentials(credentialsPath_);
     emit changed();
 }
 void ScrapeController::savePreferences(){auto settings=preferences_.json();settings["display"]=display_;if(directory_.isEmpty()||!saveJson(QDir(directory_).filePath("screenscraper-settings.json"),settings))status_="Could not save ScreenScraper preferences.";}

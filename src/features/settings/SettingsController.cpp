@@ -96,7 +96,10 @@ QVariantList SettingsController::controls() const {
     }
     case 9: return {row("Read-only saves",savePolicy_?"toggle":"unavailable",readOnlySaves()?"On - reading and backups only":"Off - allow confirmed save changes")};
     case 10: return {}; // NetworkController owns the inline connections pane.
-    case 12: return {row("Visible to nearby Trainers",nearby_?"toggle":"unavailable",nearby_ && nearby_->visibleNearby()?"On":"Off")};
+    case 12: {
+        auto value=row("Visible to nearby Trainers",nearby_?"toggle":"unavailable",nearby_ && nearby_->visibleNearby()?"On":"Off");
+        value["checked"]=nearby_ && nearby_->visibleNearby();return {value};
+    }
     default: return {};
     }
 }

@@ -153,6 +153,7 @@ public:
     void reloadModules() { for(auto& module:modules_)module->reload(); }
     TrainerSetupPresentation* trainerSetup() { return &trainerSetup_; }
     void setOnboardingConnections(bool active) { if(onboardingConnections_==active)return; onboardingConnections_=active; emit changed(); }
+    void setOnboardingSettings(bool active) { if(onboardingSettings_==active)return; onboardingSettings_=active; emit changed(); }
     SocialController* social() { return &social_; }
     TextEntryController* keyboard() { return &keyboard_; }
     Q_PROPERTY(bool unobstructed READ canReceiveNearby NOTIFY changed)
@@ -359,6 +360,7 @@ private:
     TrainerController trainer_;
     TrainerSetupPresentation trainerSetup_;
     bool onboardingConnections_ = false;
+    bool onboardingSettings_ = false;
     int trainerSettingsFocus_ = 0;
     bool trainerChooserFromPower_ = false;
     WorldsController worlds_;

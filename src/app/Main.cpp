@@ -74,6 +74,7 @@
 #include <QFontDatabase>
 #include <QStandardPaths>
 #include <memory>
+#include <QTemporaryDir>
 #ifdef TRAINEROS_UI_TESTS
 #include "WorldsSmokeScenario.h"
 #include "PokedexSmokeScenario.h"
@@ -89,6 +90,7 @@
 #include "DownloadsSmokeScenario.h"
 #include "AppsSmokeScenario.h"
 #include "PlatformSmokeScenario.h"
+#include "FirstRunSmokeScenario.h"
 #include "CratesSmokeScenario.h"
 #include "ExperienceSmokeScenario.h"
 #include "LobbySmokeScenario.h"
@@ -209,6 +211,7 @@ int main(int argc, char* argv[]) {
     parser.addOption({"smoke-test", "Verify the QML shell with an isolated SDL virtual controller, then exit."});
 #ifdef TRAINEROS_UI_TESTS
     parser.addOption({"platform-smoke-test", "Render and exercise the host-owned SDK widget with isolated data."});
+    parser.addOption({"first-run-smoke-test", "Exercise first setup with disposable profiles and local service fixtures."});
     parser.addOption({"player-overlay-smoke-test", "Verify player bubbles and mini chat with isolated provider and input fixtures."});
     parser.addOption({"lobby-smoke-test", "Verify lobby and keyboard QML with isolated provider fixtures."});
     parser.addOption({"experience-smoke-test", "Verify independent experience modules in the real QML host."});
@@ -232,12 +235,13 @@ int main(int argc, char* argv[]) {
     bool hallSmoke = false;
     bool diagnosticsSmoke = false;
     bool exitSmoke = false;
-    bool downloadsSmoke = false, appsSmoke = false, cratesSmoke = false, platformSmoke = false;
+    bool downloadsSmoke = false, appsSmoke = false, cratesSmoke = false, platformSmoke = false, firstRunSmoke = false;
     bool experienceSmoke = false;
     bool lobbySmoke = false, playerOverlaySmoke = false;
     QString persistencePhase;
 #ifdef TRAINEROS_UI_TESTS
     platformSmoke = parser.isSet("platform-smoke-test");
+    firstRunSmoke = parser.isSet("first-run-smoke-test");
     playerOverlaySmoke = parser.isSet("player-overlay-smoke-test");
     lobbySmoke = parser.isSet("lobby-smoke-test");
     experienceSmoke = parser.isSet("experience-smoke-test");
@@ -254,7 +258,14 @@ int main(int argc, char* argv[]) {
     if (parser.isSet("persistence-smoke-test") && (!QStringList{"seed", "verify", "error", "library-seed", "library-verify", "library-final", "library-launch", "library-home", "library-home-reopen", "library-center", "collection"}.contains(persistencePhase)
             || parser.value("data-dir").isEmpty() || parser.isSet("ephemeral"))) return 2;
 #endif
-    const bool smoke = platformSmoke || cratesSmoke || appsSmoke || playerOverlaySmoke || lobbySmoke || experienceSmoke || parser.isSet("smoke-test") || downloadsSmoke || artSmoke || exitSmoke || worldsSmoke || pokedexSmoke || hallSmoke || diagnosticsSmoke || !persistencePhase.isEmpty();
+    const bool smoke = firstRunSmoke || platformSmoke || cratesSmoke || appsSmoke || playerOverlaySmoke || lobbySmoke || experienceSmoke || parser.isSet("smoke-test") || downloadsSmoke || artSmoke || exitSmoke || worldsSmoke || pokedexSmoke || hallSmoke || diagnosticsSmoke || !persistencePhase.isEmpty();
+    std::unique_ptr<QTemporaryDir> setupTestData;
+    if(firstRunSmoke) {
+        setupTestData=std::make_unique<QTemporaryDir>();
+        if(!setupTestData->isValid())return 2;
+        QSettings::setDefaultFormat(QSettings::IniFormat);
+        QSettings::setPath(QSettings::IniFormat,QSettings::UserScope,setupTestData->path());
+    }
     auto smokeBattery = std::make_shared<std::atomic_int>(65);
     PowerStatus powerStatus([smoke, smokeBattery] {
         if (!smoke) return systemBatteryStatus();
@@ -306,16 +317,17 @@ int main(int argc, char* argv[]) {
         if (pokedexSmoke) dex.failNextLoad();
         MockHallOfFameRepository shellArchive;
         MockAchievementProvider shellAchievements;
-        if (hallSmoke || diagnosticsSmoke) shellAchievements.enableAccountPreview();
+        if (hallSmoke || diagnosticsSmoke || firstRunSmoke) shellAchievements.enableAccountPreview();
+        if(firstRunSmoke)shellAchievements.setAccount({});
         std::unique_ptr<LocalStateStore> store;
         QString stateDirectory;
-        if ((!smoke && !parser.isSet("ephemeral")) || !persistencePhase.isEmpty()) {
-            const auto directory = parser.isSet("data-dir") ? QDir(parser.value("data-dir")).absolutePath()
+        if (firstRunSmoke || (!smoke && !parser.isSet("ephemeral")) || !persistencePhase.isEmpty()) {
+            const auto directory = firstRunSmoke ? setupTestData->path() : parser.isSet("data-dir") ? QDir(parser.value("data-dir")).absolutePath()
                 : QStandardPaths::writableLocation(QStandardPaths::AppLocalDataLocation);
             stateDirectory = directory;
             store = std::make_unique<LocalStateStore>(directory, nullptr, smoke && !persistencePhase.startsWith("library-") ? "prototype-library-v1" : "user-library-v1");
         }
-        if(store && !smoke)store->enforceAccess(trainerGrant,chooseTrainer);
+        if(store && (!smoke || firstRunSmoke))store->enforceAccess(trainerGrant,chooseTrainer);
         chooseTrainer=false;
         trainerGrant.clear();
         const bool personalLibrary = store && (!smoke || persistencePhase.startsWith("library-") || persistencePhase == "collection");
@@ -456,6 +468,9 @@ int main(int argc, char* argv[]) {
             if (success) realAchievements->bind(store->accountDirectory());
         });
         SessionState session(shell, store.get());
+#ifdef TRAINEROS_UI_TESTS
+        if(firstRunSmoke)prepareFirstRunSmoke(session,shell,stateDirectory);
+#endif
         if(personalLibrary && !smoke) {
             session.firstRun()->configure(stateDirectory,libraryRoot);
             const auto applyLibraryRoot=[&](const QString& root)->QString {
@@ -1354,7 +1369,9 @@ int main(int argc, char* argv[]) {
                 const QString screenshotDir = parser.value("screenshot-dir");
                 if (!screenshotDir.isEmpty() && !QDir().mkpath(screenshotDir)) return 2;
 #ifdef TRAINEROS_UI_TESTS
-                if(platformSmoke) {
+                if(firstRunSmoke) {
+                    startFirstRunSmoke(window,shell,session,*store,input,joystick,screenshotDir,smokeCompleted,qmlWarnings,diagnostics);
+                } else if(platformSmoke) {
                     startPlatformSmoke(window,shell,adventureLaunch,screenshotDir,smokeCompleted,qmlWarnings,diagnostics);
                 } else if(playerOverlaySmoke) {
                     PlayerOverlaySmokeScenario::start(window,shell,exitPresentation,adventureLaunch.exitController(),playerOverlay,screenshotDir,smokeCompleted,qmlWarnings,diagnostics);

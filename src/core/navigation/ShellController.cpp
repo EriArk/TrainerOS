@@ -245,7 +245,7 @@ ShellController::ShellController(LibraryRepository& repo, TrainerRepository& pro
     connect(&settings_, &SettingsController::deviceRequested, this, [this](int index) { device_.activate(index + 2); emit changed(); });
     connect(&settings_, &SettingsController::controllerRequested, this, [this] { service_ = "diagnostics"; diagnostics_.begin(); emit changed(); });
     connect(&device_, &DeviceController::changed, this, &ShellController::changed);
-    connect(this, &ShellController::changed, this, [this] { device_.setMonitoring(onboardingConnections_ || menuOpen_ || gameControlsOpen_ || service_ == "device" || service_ == "settings"); });
+    connect(this, &ShellController::changed, this, [this] { device_.setMonitoring(onboardingConnections_ || onboardingSettings_ || menuOpen_ || gameControlsOpen_ || service_ == "device" || service_ == "settings"); });
     connect(&device_, &DeviceController::closeRequested, this, [this] { service_ = "settings"; emit changed(); });
     connect(&device_, &DeviceController::messageRequested, this, &ShellController::showNotice);
     connect(&powerControl_, &PowerControl::changed, this, &ShellController::changed);
@@ -282,7 +282,7 @@ ShellController::ShellController(LibraryRepository& repo, TrainerRepository& pro
     connect(&settings_, &SettingsController::changed, this, &ShellController::changed);
     connect(&settings_, &SettingsController::quickAdjustment, &device_, &DeviceController::adjustQuick);
     connect(&settings_, &SettingsController::messageRequested, this, [this](const QString& message) {
-        if (service_ != "settings" || menuOpen_) { notice_ = message; emit changed(); }
+        if ((!onboardingSettings_ && service_ != "settings") || menuOpen_) { notice_ = message; emit changed(); }
     });
     connect(settings_.communication(),&CommunicationSettings::trainerSwitchRequested,this,[this]{
         if(!liveGame_.isEmpty() || scraper_.busy()){showNotice("Finish the current game and downloads before switching Trainer.");return;}

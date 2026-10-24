@@ -9,7 +9,7 @@ Item {
         id: list
         anchors.fill: parent; anchors.margins: 5
         model: root.flow.rows; currentIndex: root.flow.focusIndex
-        clip: true; interactive: false; spacing: root.compact ? 7 : 10
+        clip: true; interactive: true; boundsBehavior: Flickable.StopAtBounds; spacing: root.compact ? 7 : 10
         onCurrentIndexChanged: positionViewAtIndex(currentIndex,ListView.Contain)
         onCountChanged: positionViewAtIndex(currentIndex,ListView.Contain)
         delegate: CapButton {

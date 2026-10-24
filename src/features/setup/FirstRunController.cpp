@@ -4,10 +4,11 @@
 #include <QJsonDocument>
 #include <QSaveFile>
 #include <algorithm>
+#include <utility>
 
 namespace trainer {
 namespace {
-const QStringList stages{"welcome", "controls", "network", "clock", "storage", "trainer", "ready", "complete"};
+const QStringList stages{"welcome", "controls", "network", "clock", "storage", "trainer", "accounts", "preferences", "ready", "complete"};
 QString stateFile(const QString& directory) { return QDir(directory).filePath("first-run.json"); }
 }
 FirstRunController::FirstRunController(QObject* parent) : QObject(parent) {
@@ -22,7 +23,7 @@ QString FirstRunController::libraryRoot(const QString& directory, const QString&
     if (!file.open(QIODevice::ReadOnly) || file.size() > 32768) return readLibraryRoot(directory,fallback);
     const auto value = QJsonDocument::fromJson(file.readAll()).object();
     const auto path = value["libraryRoot"].toString();
-    return readLibraryRoot(directory,value["version"].toInt() == 1 && QDir::isAbsolutePath(path) ? path : fallback);
+    return readLibraryRoot(directory,(value["version"].toInt() == 1 || value["version"].toInt() == 2) && QDir::isAbsolutePath(path) ? path : fallback);
 }
 void FirstRunController::configure(const QString& directory, const QString& root) {
     directory_ = directory; root_ = root; configured_ = !directory.isEmpty();
@@ -31,7 +32,7 @@ void FirstRunController::configure(const QString& directory, const QString& root
     if (!file.exists()) return;
     if (file.open(QIODevice::ReadOnly) && file.size() <= 32768) {
         const auto doc = QJsonDocument::fromJson(file.readAll());
-        if (doc.isObject() && doc.object()["version"].toInt() == 1
+        if (doc.isObject() && (doc.object()["version"].toInt() == 1 || doc.object()["version"].toInt() == 2)
             && stages.contains(doc.object()["stage"].toString())) {
             state_ = doc.object(); return;
         }
@@ -50,7 +51,7 @@ bool FirstRunController::persist(const QJsonObject& next) {
     state_ = next; error_.clear(); return true;
 }
 bool FirstRunController::move(const QString& next) {
-    auto value = state_; value["version"] = 1; value["stage"] = next;
+    auto value = state_; value["version"] = 2; value["stage"] = next;
     if (!persist(value)) return false;
     focus_ = 0; connections_ = false;
     clock_.leave();
@@ -67,8 +68,8 @@ void FirstRunController::begin(bool hasTrainers) {
     if (loadFailed_) { emit changed(); return; }
     // Profile creation may have committed just before the process stopped.
     // Resume at completion instead of creating a duplicate Trainer.
-    if (hasTrainers && stage() == "trainer") move("ready");
-    else if (stage() == "ready" && !hasTrainers) move("trainer");
+    if (hasTrainers && stage() == "trainer") move("accounts");
+    else if (requiresTrainer() && !hasTrainers) move("trainer");
     else if (state_.isEmpty()) move("welcome");
     else {
         if (stage() == "clock") clock_.begin(true);
@@ -79,7 +80,21 @@ void FirstRunController::begin(bool hasTrainers) {
 }
 void FirstRunController::loadLocations() { locations_ = locations(root_); focus_ = 0; }
 void FirstRunController::trainerOpened() {
-    if (active_ && stage() == "trainer") move("ready");
+    if (active_ && stage() == "trainer") move("accounts");
+}
+void FirstRunController::setAccountStatus(const QString& social, const QString& achievements) {
+    if(socialStatus_==social && achievementStatus_==achievements)return;
+    socialStatus_=social;achievementStatus_=achievements;emit changed();
+}
+void FirstRunController::closeService() {
+    if(service_.isEmpty())return;
+    const auto previous=std::exchange(service_,{});
+    emit serviceClosed(previous);emit changed();
+}
+void FirstRunController::useTouch() {
+    if(!active_ || busy() || loadFailed_ || stage()!="controls")return;
+    auto next=state_;next["inputChoice"]="touch";
+    if(persist(next))move("network");
 }
 void FirstRunController::saveTrainerDraft(const QJsonObject& draft) {
     if (!active_ || stage() != "trainer" || state_["trainerDraft"].toObject() == draft) return;
@@ -95,6 +110,8 @@ QString FirstRunController::title() const {
     if (stage() == "clock") return "Your local time.";
     if (stage() == "storage") return "Room for adventure.";
     if (stage() == "trainer") return "Meet your Trainer";
+    if (stage() == "accounts") return "Your accounts.";
+    if (stage() == "preferences") return "Make yourself at home.";
     return "Make it your journey.";
 }
 QString FirstRunController::description() const {
@@ -103,7 +120,9 @@ QString FirstRunController::description() const {
     if (stage() == "network") return "Connect now, or enjoy your games offline.";
     if (stage() == "clock") return "Keep this time, or make a quick adjustment.";
     if (stage() == "storage") return "Choose a home for your games.";
-    if (stage() == "ready") return "Pick an Adventure in Worlds. Your journey starts on Home.";
+    if (stage() == "accounts") return "Connect the services you use, or continue offline. You can change these in Settings.";
+    if (stage() == "preferences") return "A few personal touches. Keep the current settings or adjust them here.";
+    if (stage() == "ready") return "Your Trainer and game storage are saved. Find your games in Games, or discover downloads in Apps > Crates.";
     return {};
 }
 QVariantList FirstRunController::rows() const {
@@ -117,12 +136,24 @@ QVariantList FirstRunController::rows() const {
     else if (stage() == "storage") {
         for (const auto& entry : locations_)result.append(libraryLocationRow(entry,root_));
         add("Refresh", "Find connected storage");
-    } else if (stage() == "ready") { add("Let's go", "Open Home"); add("Trainer PIN", "Optional"); }
+    } else if (stage() == "accounts") {
+        add("Fluxer", socialStatus_.isEmpty()?"Optional · friends, messages and invitations":socialStatus_);
+        add("RetroAchievements", achievementStatus_.isEmpty()?"Optional · achievements for supported games":achievementStatus_);
+        add("ScreenScraper", "Optional · shared device account and game artwork");
+        add("Continue", "Connected accounts stay saved; everything else can wait");
+    } else if(stage()=="preferences") {
+        add("Screen & appearance", "Brightness, size, theme and reduced motion");
+        add("Sound", "System volume and achievement sounds");
+        add("Media", "Silent video previews");
+        add("Communication", "Account, microphone, call audio and notifications");
+        add("Nearby visibility", "Choose whether nearby players can see you");
+        add("Continue", "Keep your current settings");
+    } else if (stage() == "ready") { add("Let's go", "Open Home"); add("Trainer PIN", "Optional · protect this local profile"); }
     return result;
 }
 void FirstRunController::activate(int index) {
     if(active_ && stage()=="clock"){clock_.activate(index);return;}
-    if (!active_ || busy_ || connections_ || index < 0 || index >= rows().size()) return;
+    if (!active_ || busy_ || connections_ || !service_.isEmpty() || index < 0 || index >= rows().size()) return;
     if (loadFailed_) { const bool hasTrainers=hasTrainers_; configure(directory_, root_); begin(hasTrainers); return; }
     focus_ = index;
     if (stage() == "welcome") { checked_ = 0; move("controls"); }
@@ -151,6 +182,12 @@ void FirstRunController::activate(int index) {
             }, Qt::QueuedConnection);
         });
         worker_->start();
+    } else if(stage()=="accounts" || stage()=="preferences") {
+        if(index==rows().size()-1){move(stage()=="accounts"?"preferences":"ready");return;}
+        const QStringList accounts{"social","achievements","scraper"};
+        const QStringList preferences{"display","sound","media","communication","nearby"};
+        service_=(stage()=="accounts"?accounts:preferences)[index];
+        emit serviceRequested(service_);emit changed();
     } else if (stage() == "ready") {
         if(index==1) { emit protectTrainerRequested(); return; }
         auto next = state_; next.remove("trainerDraft"); next["stage"] = "complete";
@@ -160,18 +197,23 @@ void FirstRunController::activate(int index) {
 }
 void FirstRunController::dispatch(Action action) {
     if(active_ && stage()=="clock"){clock_.dispatch(action);return;}
-    if (!active_ || busy_ || connections_) return;
+    if (!active_ || busy_ || connections_ || !service_.isEmpty()) return;
     if (loadFailed_) { if (action == Action::Confirm) activate(0); return; }
     if (stage() == "controls") {
         const auto bit = action == Action::Up ? 1 : action == Action::Down ? 2 : action == Action::Left ? 4
             : action == Action::Right ? 8 : action == Action::Confirm ? 16 : action == Action::Back ? 32 : 0;
         checked_ |= bit;
-        if (checked_ == 63) move("network");
+        if (checked_ == 63) {
+            auto next=state_;next["inputChoice"]="controller";
+            if(persist(next))move("network");
+        }
         emit changed(); return;
     }
     if (action == Action::Back) {
         if (stage() == "network") { checked_ = 0; move("controls"); }
         else if (stage() == "storage") move("clock");
+        else if (stage() == "preferences") move("accounts");
+        else if (stage() == "ready") move("preferences");
     } else if (action == Action::Confirm) activate(focus_);
     else if (action == Action::Up) { focus_ = std::max(0, focus_ - 1); emit changed(); }
     else if (action == Action::Down) { focus_ = std::min(std::max(0, int(rows().size()) - 1), focus_ + 1); emit changed(); }

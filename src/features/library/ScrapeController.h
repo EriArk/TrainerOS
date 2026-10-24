@@ -55,6 +55,7 @@ public:
     void downloadCommand(const QString& task,const QString& command);
     void dispatch(Action);
     void dispatchSettings(Action);
+    void setSetupMode(bool enabled);
     Q_INVOKABLE void activate(int);
     Q_INVOKABLE void activateSetting(int);
     void applyText(const QString&);
@@ -93,6 +94,7 @@ private:
     scraper::Credentials credentials_;
     scraper::Preferences preferences_, jobPreferences_;
     bool missingOnly_=false;
+    bool setupMode_=false;
     QJsonObject display_;
     scraper::Transport transport_=scraper::httpsTransport();
     scraper::Delay delay_;

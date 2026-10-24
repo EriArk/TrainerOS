@@ -585,7 +585,7 @@ Window {
             ChassisFrame { anchors.fill: parent }
             ChassisTopRim { }
             Text { x: 12; y: 0; width: Theme.brandWidth-24; height: Theme.brandHeight; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter; text: "TRAINER OS"; color: "#edf5e9"; font.family: Theme.brandFamily; font.pixelSize: 25; font.bold: true }
-            FirstRunPanel { anchors.fill: parent; shell: shellController; flow: sessionState.firstRun; visible: sessionState.firstRunPage }
+            FirstRunPanel { anchors.fill: parent; shell: shellController; flow: sessionState.firstRun; session: sessionState; visible: sessionState.firstRunPage }
             Loader { x: 0; y: 43; width: parent.width; height: parent.height-63; active: parent.visible && (!sessionState.firstRunPage || sessionState.firstRun.stage === "trainer"); visible: active; sourceComponent: TrainerSetupPanel { entry: true; shell: shellController } }
             Text {
                 x: 48; y: parent.height-62; width: parent.width-96; height: 24

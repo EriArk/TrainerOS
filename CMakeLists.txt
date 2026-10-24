@@ -494,6 +494,7 @@ qt_add_qml_module(traineros
         src/qml/TrainerSettingsPanel.qml
         src/qml/TrainerSetupPanel.qml
         src/qml/FirstRunPanel.qml
+        src/qml/FirstRunServicePanel.qml
         src/qml/SetupIllustration.qml
         src/qml/StorageChoices.qml
         src/qml/SettingControl.qml
@@ -724,6 +725,9 @@ if(BUILD_TESTING)
     target_sources(traineros PRIVATE tests/ui/ExitSmokeScenario.cpp tests/ui/ExitSmokeScenario.h)
     target_sources(traineros PRIVATE tests/ui/AppsSmokeScenario.cpp tests/ui/AppsSmokeScenario.h)
     target_sources(traineros PRIVATE tests/ui/PlatformSmokeScenario.h)
+    target_sources(traineros PRIVATE tests/ui/FirstRunSmokeScenario.h)
+    add_test(NAME first_run_qml_smoke COMMAND traineros --first-run-smoke-test --screenshot-dir "${CMAKE_CURRENT_BINARY_DIR}/screenshots/first-run")
+    set_tests_properties(first_run_qml_smoke PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software;QT_FORCE_STDERR_LOGGING=1" TIMEOUT 60)
     add_test(NAME platform_qml_smoke COMMAND traineros --ephemeral --platform-smoke-test --screenshot-dir "${CMAKE_CURRENT_BINARY_DIR}/screenshots/platform")
     set_tests_properties(platform_qml_smoke PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software;QT_FORCE_STDERR_LOGGING=1" TIMEOUT 30)
     target_sources(traineros PRIVATE tests/ui/CratesSmokeScenario.cpp tests/ui/CratesSmokeScenario.h)
