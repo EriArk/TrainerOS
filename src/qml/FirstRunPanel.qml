@@ -78,7 +78,7 @@ Item {
                         label: modelData.label; detail: modelData.detail; textSize: 18
                         tint: index===choices.count-1?Theme.yellow:Theme.blue
                         selected: root.takesFocus && index===choices.currentIndex && !root.flow.busy
-                        enabled: !root.flow.busy; onActivated: root.flow.activate(index)
+                        enabled: !root.flow.busy && modelData.enabled !== false; onActivated: root.flow.activate(index)
                     }
                 }
             }

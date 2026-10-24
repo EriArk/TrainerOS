@@ -11,6 +11,13 @@
 аппаратные проверки не считать выполненными. Прежние результаты повторять только
 при изменении затронутого кода, сбое или конкретном незакрытом результате.
 
+Текущая отдельная работа `codex/first-run-installer-ota`: обязательные Fluxer и
+ScreenScraper в новом [визарде](FIRST_RUN.md), общий signed Software preparation
+для [Armada installer/OTA](EARLY_BETA_INSTALLER_RU.md). Следующее недоделанное этой
+функции — trusted feed/bootstrap, host/OS-storage probe и lifecycle-safe
+activation/repair/совместимый rollback с реальным UI. Подготовленный cache не
+считается установленной версией; это не новая глобальная очередь.
+
 ## Сохранённые условия внешней проверки
 
 Это подробности к строкам карты, а не этапы глобального плана.

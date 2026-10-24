@@ -40,6 +40,29 @@ class ScreenScraperTests:public QObject {
             QJsonObject{{"type","video"},{"region","us"},{"url","https://untrusted.test/video.mp4"}}}}};}
     static Reply response(const QJsonObject& value){return {200,QJsonDocument(QJsonObject{{"response",value}}).toJson(),0};}
 private slots:
+    void setupRequiresTheAuthenticatedScraperIdentity() {
+        QTemporaryDir dir;ScrapeLibrary library;ScrapeController flow(library);
+        QVERIFY(writeCredentials(dir.filePath("secrets/screenscraper.json"),{"dev","secret","SetupUser","password"}));
+        flow.configure(dir.path());flow.setSetupMode(true);
+        QVERIFY(!flow.accountVerified()); // Stored credentials are not authentication.
+        QString returnedUser;
+        flow.setTransport([&](const QUrl&,qint64,const Cancellation&){return response({{"ssuser",QJsonObject{{"id",returnedUser}}}});});
+        for(const auto& name:QStringList{"","guest","AnotherUser","setupuser"}) {
+            returnedUser=name;flow.activateSetting(2);QTRY_VERIFY(!flow.busy());
+            QCOMPARE(flow.accountVerified(),name=="setupuser");
+        }
+        flow.activateSetting(1);flow.applyText("wrong");QVERIFY(!flow.accountVerified());
+        flow.setSetupMode(false);QVERIFY(flow.accountVerified()); // Discard an unsubmitted draft.
+        flow.setTransport([](const QUrl&,qint64,const Cancellation&){return Reply{401,{},0};});
+        flow.activateSetting(2);QTRY_VERIFY(!flow.busy());QVERIFY(!flow.accountVerified());
+        flow.configure(dir.path());QVERIFY(!flow.accountVerified());
+        returnedUser="SetupUser";
+        flow.setTransport([&](const QUrl&,qint64,const Cancellation&){return response({{"ssuser",QJsonObject{{"id",returnedUser}}}});});
+        flow.activateSetting(2);QTRY_VERIFY(!flow.busy());QVERIFY(flow.accountVerified());
+        flow.activateSetting(3);QVERIFY(!flow.accountVerified());
+        // Developer-only/guest access can scrape but cannot satisfy the required user account.
+        flow.activateSetting(2);QTRY_VERIFY(!flow.busy());QVERIFY(!flow.accountVerified());
+    }
     void editionChoicesDoNotBlockWorkerOrStealAnOpenChoice() {
         QTemporaryDir dir;ScrapeLibrary library;library.root=dir.filePath("roms");
         for(const auto& id:QStringList{"first","second","third","fourth"})library.add(id);

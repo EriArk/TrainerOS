@@ -7,6 +7,7 @@
 #include <QTemporaryDir>
 #include <QStorageInfo>
 #include <QJsonDocument>
+#include "FirstRunAccountFixture.h"
 
 using namespace trainer;
 namespace {
@@ -81,7 +82,7 @@ private slots:
         FirstRunController resumed;resumed.configure(dir.path(),"unused");resumed.begin(false);
         QVERIFY(resumed.active());QCOMPARE(resumed.stage(),"trainer");QCOMPARE(resumed.trainerDraft()["name"].toString(),"River");
         QCOMPARE(FirstRunController::libraryRoot(dir.path(),"fallback"),root);
-        resumed.trainerOpened();QCOMPARE(resumed.stage(),"accounts");resumed.activate(3);
+        resumed.trainerOpened();QCOMPARE(resumed.stage(),"accounts");resumed.setAccountStatus("Connected",{},true,true);resumed.activate(4);
         QCOMPARE(resumed.stage(),"preferences");resumed.activate(5);resumed.activate(0);QVERIFY(!resumed.active());
         QVERIFY(!read(dir.path()+"/first-run.json").contains("trainerDraft"));
         FirstRunController finished;finished.configure(dir.path(),root);finished.begin(true);QVERIFY(!finished.active());
@@ -143,7 +144,10 @@ private slots:
         session.backInSetup();QVERIFY(flow->service().isEmpty());
         QCOMPARE(shell.scraper()->settingsRows()[1].toMap()["detail"].toString(),"Not set");
         QVERIFY(!read(dir.path()+"/first-run.json").contains("temporary-only-secret"));
-        flow->activate(3);QCOMPARE(flow->stage(),"preferences");
+        flow->activate(4);QCOMPARE(flow->stage(),"accounts");QVERIFY(!flow->accountsReady());
+        FirstRunAccountFixture::connectSocial(shell);QVERIFY(FirstRunAccountFixture::prepareScraper(shell,dir.path()));
+        shell.scraper()->activateSetting(2);QTRY_VERIFY(flow->accountsReady());
+        flow->activate(4);QCOMPARE(flow->stage(),"preferences");
         flow->activate(0);QCOMPARE(shell.settings()->category(),0);
         emit shell.settings()->messageRequested("Settings error shown inline");QVERIFY(shell.notice().isEmpty());
         const bool reduced=shell.settings()->reducedMotion();session.activateSetupService(1);
@@ -171,7 +175,7 @@ private slots:
         flow.activate(0);flow.useTouch();QCOMPARE(flow.stage(),"network");QCOMPARE(flow.checkedControls(),0);
         QCOMPARE(QJsonDocument::fromJson(read(dir.path()+"/first-run.json")).object()["inputChoice"].toString(),"touch");
     }
-    void legacyCompleteAndReadyAreNotForcedThroughNewServices() {
+    void legacyCompleteStaysCompleteButUnfinishedReadyRequiresAccounts() {
         QTemporaryDir dir;
         for(const auto stage:{"complete","ready"}) {
             QFile file(dir.path()+"/first-run.json");QVERIFY(file.open(QIODevice::WriteOnly));
@@ -179,6 +183,9 @@ private slots:
             FirstRunController flow;flow.configure(dir.path(),"fallback");flow.begin(true);
             QCOMPARE(flow.stage(),stage);QCOMPARE(flow.active(),QString(stage)!="complete");
             QCOMPARE(FirstRunController::libraryRoot(dir.path(),"fallback"),dir.path()+"/roms");
+            if(QString(stage)=="ready") {
+                flow.activate(0);QCOMPARE(flow.stage(),"accounts");QVERIFY(flow.active());
+            }
         }
     }
     void serviceResumeRequiresProfileAndKeepsPanelTransient() {
@@ -218,6 +225,23 @@ private slots:
         session.access()->activate(12);
         QTRY_VERIFY(reopened.ready());QTRY_VERIFY(session.firstRunPage());
         QVERIFY(!session.entryGate());QCOMPARE(session.firstRun()->stage(),"accounts");
+    }
+    void mandatoryAccountsCannotBeSkippedOrRestoredFromProgress() {
+        QTemporaryDir dir;QFile marker(dir.path()+"/first-run.json");QVERIFY(marker.open(QIODevice::WriteOnly));
+        marker.write(R"({"version":2,"stage":"accounts"})");marker.close();
+        FirstRunController flow;flow.configure(dir.path(),dir.path()+"/roms");flow.begin(true);
+        for(const auto pair:{qMakePair(false,false),qMakePair(true,false),qMakePair(false,true)}) {
+            flow.setAccountStatus("Signed in",{},pair.first,pair.second);
+            flow.activate(4);QCOMPARE(flow.stage(),"accounts");QVERIFY(!flow.accountsReady());
+            QVERIFY(!flow.rows().last().toMap()["enabled"].toBool());
+        }
+        flow.activate(3);QVERIFY(flow.connections());flow.closeConnections();QCOMPARE(flow.focusIndex(),3);
+        flow.setAccountStatus("Signed in",{},true,true);flow.activate(4);QCOMPARE(flow.stage(),"preferences");
+        flow.activate(5);QCOMPARE(flow.stage(),"ready");
+        FirstRunController reopened;reopened.configure(dir.path(),dir.path()+"/roms");reopened.begin(true);
+        reopened.activate(0);QCOMPARE(reopened.stage(),"accounts");QVERIFY(reopened.active());
+        flow.setAccountStatus({}, {},false,true);flow.activate(0);QCOMPARE(flow.stage(),"accounts");
+        flow.setAccountStatus("Signed in",{},true,true);flow.activate(4);flow.activate(5);flow.activate(0);QVERIFY(!flow.active());
     }
 };
 QTEST_GUILESS_MAIN(FirstRunTests)

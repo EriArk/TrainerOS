@@ -18,6 +18,7 @@ class ScrapeController final : public QObject {
     Q_PROPERTY(QString title READ title NOTIFY changed)
     Q_PROPERTY(QString detail READ detail NOTIFY changed)
     Q_PROPERTY(QString status READ status NOTIFY changed)
+    Q_PROPERTY(bool accountVerified READ accountVerified NOTIFY changed)
     Q_PROPERTY(QVariantList rows READ rows NOTIFY changed)
     Q_PROPERTY(int focusIndex READ focusIndex NOTIFY changed)
     Q_PROPERTY(QVariantList settingsRows READ settingsRows NOTIFY changed)
@@ -26,6 +27,7 @@ class ScrapeController final : public QObject {
     Q_PROPERTY(QVariantList systemRows READ systemRows NOTIFY changed)
     Q_PROPERTY(int selectedGameCount READ selectedGameCount NOTIFY changed)
 public:
+    bool accountVerified() const;
     explicit ScrapeController(LibraryRepository&,QObject* parent=nullptr);
     ~ScrapeController() override;
     void configure(const QString& stateDirectory);
@@ -75,6 +77,7 @@ private:
         QList<scraper::Game> games;
         QMap<QString,QString> local;
         QString error,cache,cachedId;
+        QString accountUsername;
         bool cached=false,success=false;
         scraper::Quota quota;
     };
@@ -92,6 +95,7 @@ private:
     LibraryRepository& library_;
     QString directory_,credentialsPath_,status_,phase_,gameId_,worldId_,textTarget_;
     scraper::Credentials credentials_;
+    scraper::Credentials verifiedCredentials_;
     scraper::Preferences preferences_, jobPreferences_;
     bool missingOnly_=false;
     bool setupMode_=false;

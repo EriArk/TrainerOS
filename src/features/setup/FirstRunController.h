@@ -16,6 +16,7 @@ class FirstRunController final : public QObject {
     Q_PROPERTY(bool busy READ busy NOTIFY changed)
     Q_PROPERTY(bool connections READ connections NOTIFY changed)
     Q_PROPERTY(QString service READ service NOTIFY changed)
+    Q_PROPERTY(bool accountsReady READ accountsReady NOTIFY changed)
     Q_PROPERTY(QStringList stepLabels READ stepLabels CONSTANT)
     Q_PROPERTY(QString stage READ stage NOTIFY changed)
     Q_PROPERTY(QString title READ title NOTIFY changed)
@@ -39,6 +40,7 @@ public:
     bool busy() const { return busy_ || clock_.busy(); }
     bool connections() const { return connections_; }
     QString service() const { return service_; }
+    bool accountsReady() const { return socialConnected_ && scraperVerified_; }
     bool requiresTrainer() const { return stage()=="accounts" || stage()=="preferences" || stage()=="ready"; }
     QStringList stepLabels() const { return {"Welcome", "Controls", "Connection", "Time", "Games", "Trainer", "Accounts", "Comfort", "Ready"}; }
     QString stage() const { return state_["stage"].toString("welcome"); }
@@ -52,7 +54,7 @@ public:
     void dispatch(Action action);
     void closeConnections();
     void backFromTrainer();
-    void setAccountStatus(const QString& social, const QString& achievements);
+    void setAccountStatus(const QString& social, const QString& achievements, bool socialConnected, bool scraperVerified);
     void closeService();
     Q_INVOKABLE void useTouch();
     Q_INVOKABLE void activate(int index);
@@ -74,6 +76,7 @@ private:
     void loadLocations();
     QString directory_, root_, error_;
     QString service_, socialStatus_, achievementStatus_;
+    bool socialConnected_ = false, scraperVerified_ = false;
     QJsonObject state_;
     QList<LibraryLocation> locations_;
     bool active_ = false, busy_ = false, connections_ = false, configured_ = false;

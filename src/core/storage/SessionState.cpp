@@ -50,10 +50,13 @@ SessionState::SessionState(ShellController& shell, LocalStateStore* store, QObje
     const auto accountStatus=[this] {
         const auto social=shell_.social()->account();
         firstRun_.setAccountStatus(social["userId"].toString().isEmpty()?QString():"Signed in · "+social["name"].toString(),
-            shell_.hall()->account()->status());
+            shell_.hall()->account()->status(), social["state"]=="connected" && !social["userId"].toString().isEmpty(),
+            shell_.scraper()->accountVerified());
     };
     connect(shell_.social(), &SocialController::changed, this, accountStatus);
     connect(shell_.hall()->account(), &AchievementAccountController::changed, this, accountStatus);
+    connect(shell_.scraper(), &ScrapeController::changed, this, accountStatus);
+    accountStatus();
     connect(&firstRun_, &FirstRunController::protectTrainerRequested, this, [this] {
         if(!canChangeTrainer())return;
         const bool needsFamily=!store_->familyProtected();
