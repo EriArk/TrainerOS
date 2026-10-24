@@ -1,5 +1,17 @@
 # TrainerOS — история изменений
 
+## 2026-10-24 - Shared AbyssME Directory Rollout
+
+- Deploy the existing shared service with independent limits: 32 TrainerOS
+  listings and one AbyssME public room per account. Preserve meeting metadata,
+  credentials, channel configuration and all 12 original database records.
+- Keep matching source/SQLite rollback material. Pass 26 service tests on Windows
+  and Linux, including a regression for merged v1 metadata leaking into v2 and
+  changing its room identity. The deployed version did not contain that defect.
+- Android/device and public-provider evidence is separate from service unit tests;
+  no TrainerOS application or gameplay support is released by this change.
+  [Rollout record](services/lobby-directory/ROLLOUT_20261024.md).
+
 ## 2026-10-24 — вход в редактор внешности
 
 - В меню пользователя добавлен Appearance. Работает без аккаунта общения;
