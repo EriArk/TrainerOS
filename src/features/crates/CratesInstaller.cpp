@@ -6,6 +6,7 @@
 #include <QJsonObject>
 #include <QSaveFile>
 #include <QSysInfo>
+#include <QRegularExpression>
 namespace trainer {
 namespace {
 bool canRun(const QVariantMap& record) {
@@ -63,6 +64,23 @@ void CratesInstaller::readInventory(){
 void CratesInstaller::useCatalogue(const QVariantList& packages,const QString& registry){packages_=packages;registry_=registry;emit changed();}
 void CratesInstaller::setOnline(bool online){if(online_==online)return;online_=online;emit changed();}
 QVariantList CratesInstaller::installed() const {QVariantList out;for(const auto& r:inventory_)out<<r;return out;}
+QVariantList CratesInstaller::activities() const {
+    QVariantList out;QSet<QString> seen,ambiguous;
+    const QRegularExpression id("^[a-z0-9][a-z0-9._-]{0,79}$"),appId("^[a-zA-Z0-9_.-]{1,128}$"),protocol("^[a-zA-Z0-9_.-]{1,64}$"),hash("^[0-9a-f]{64}$");
+    for(const auto& r:inventory_) {
+        const auto project=r["id"].toString(),sha=r["sha256"].toString(),object=r["object"].toString();
+        if(r["kind"]!="game"||!id.match(project).hasMatch()||!hash.match(sha).hasMatch()||object!=project+"-"+sha)continue;
+        const QDir base(root_+"/objects/"+object);
+        QFile f(base.filePath("traineros-activity.json"));
+        if(QFileInfo(base.path()).isSymLink()||QFileInfo(f).isSymLink()||f.size()>4096||!f.open(QIODevice::ReadOnly))continue;
+        const auto m=QJsonDocument::fromJson(f.readAll()).object();const auto app=m["app"].toString();
+        if(m["schema"]!=1||m["seats"]!=2||!appId.match(app).hasMatch()||!protocol.match(m["protocol"].toString()).hasMatch())continue;
+        if(seen.contains(app)){ambiguous.insert(app);continue;}seen.insert(app);
+        out<<QVariantMap{{"app",app},{"protocol",m["protocol"].toString()},{"title",r["title"]},{"local","crates:"+project}};
+    }
+    for(qsizetype i=out.size();i-->0;)if(ambiguous.contains(out[i].toMap()["app"].toString()))out.removeAt(i);
+    return out;
+}
 QVariantMap CratesInstaller::state(const QString& id) const {
     QVariantList releases;
     for(const auto& v:packages_){

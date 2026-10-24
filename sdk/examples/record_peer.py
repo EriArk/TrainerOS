@@ -14,8 +14,7 @@ try:
         if not host.supports('network.records'):
             raise HostUnavailable('The shared record helper is not installed on this host')
         host.call('activity.register', title='Record channel example', protocol='example-1')
-        host.call('activity.open')
-        print('Organizer: choose Record channel example in the ordinary Lobby. Both players: Ready. Organizer: Start.', flush=True)
+        print('Attached to TrainerOS; waiting for the admitted Lobby session.', flush=True)
         while True:
             event = host.poll(1)
             if not event:

@@ -37,10 +37,20 @@ SdkNetwork::SdkNetwork(LobbyCoordinator& lobby,LobbyRuntime& runtime,QString pyt
 }
 SdkNetwork::~SdkNetwork(){stop();}
 bool SdkNetwork::available() const {return QFileInfo(python_).isExecutable()&&QFileInfo(helper_).isFile();}
+void SdkNetwork::setInstalledActivities(const QVariantList& rows) {
+    QMap<QString,QJsonObject> next;QMap<QString,QString> ids;
+    for(const auto& v:rows){const auto r=v.toMap();const auto app=r["app"].toString();
+        next[app]={{"title",r["title"].toString()},{"runtime",QJsonObject{{"app",app},{"protocol",r["protocol"].toString()}}}};
+        ids[app]=r["local"].toString();}
+    if(next==installed_&&ids==launchIds_)return;
+    installed_=next;launchIds_=ids;
+    if(!app_.isEmpty()&&!apps_.contains(app_)&&!installed_.contains(app_))end("app_removed");
+    emit activitiesChanged();
+}
 QVariantList SdkNetwork::activities() const {
     QVariantList rows;
     if(!available())return rows;
-    for(auto i=apps_.begin();i!=apps_.end();++i) {
+    for(auto i=installed_.begin();i!=installed_.end();++i) {
         const auto descriptor=i.value();const auto id="sdk:"+i.key();
         rows.append(QVariantMap{{"id",id},{"key",id},{"local",id},{"title",descriptor["title"].toString()},
             {"platform","Apps"},{"mode",Mode},{"modeLabel","App · reliable messages"},{"seats",2},
@@ -61,8 +71,11 @@ QString SdkNetwork::request(const QString& app,const QString& method,const QJson
         static const QRegularExpression version("^[a-zA-Z0-9_.-]{1,64}$");
         if(title.isEmpty()||title.size()>64||!version.match(protocol).hasMatch())return "invalid_activity";
         const QJsonObject descriptor{{"title",title},{"runtime",QJsonObject{{"app",app},{"protocol",protocol}}}};
-        if(app==app_&&!operation_.isEmpty()&&apps_.value(app)!=descriptor)return "activity_busy";
-        apps_[app]=descriptor;emit activitiesChanged();result={{"id","sdk:"+app},{"mode",Mode},{"seats",2}};return {};
+        if(installed_.contains(app)&&installed_[app]["runtime"]!=descriptor["runtime"])return "invalid_activity";
+        if(app==app_&&!operation_.isEmpty()&&prepared_["game"].toObject()["runtime"]!=descriptor["runtime"])return "activity_busy";
+        apps_[app]=descriptor;emit activitiesChanged();result={{"id","sdk:"+app},{"mode",Mode},{"seats",2}};
+        // Deliver the registration response before ready events for this client.
+        QTimer::singleShot(0,this,&SdkNetwork::completeLaunch);return {};
     }
     if(method=="activity.unregister"){disconnected(app);return {};}
     if(method=="activity.open") {if(!apps_.contains(app))return "activity_missing";emit openLobbyRequested();return {};}
@@ -91,8 +104,9 @@ void SdkNetwork::disconnected(const QString& app) {
 void SdkNetwork::prepare(QString operation,QJsonObject context,Completion done) {
     const auto game=context["game"].toObject(),descriptor=game["runtime"].toObject();
     const auto app=descriptor["app"].toString();
-    if(!available()||!apps_.contains(app)||apps_[app]["runtime"]!=descriptor||game["mode"]!=Mode
-        ||game["id"]!="sdk:"+app||game["seats"]!=2) {done(false,"Open the matching app and protocol version on this device.");return;}
+    const auto local=installed_.value(app);
+    if(!available()||local.isEmpty()||local["runtime"]!=descriptor||game["mode"]!=Mode
+        ||game["id"]!="sdk:"+app||game["seats"]!=2) {done(false,"Install the matching game version from Crates on this device.");return;}
     int players=0;bool mine=false;QSet<int> seats;
     for(const auto& v:context["members"].toArray()) {const auto m=v.toObject();if(m["spectator"].toBool())continue;
         ++players;seats.insert(m["seat"].toInt());mine|=m["id"]==context["self"];
@@ -103,14 +117,19 @@ void SdkNetwork::prepare(QString operation,QJsonObject context,Completion done) 
 void SdkNetwork::launch(QString operation,QString ticket,QJsonObject state,Completion done) {
     if(operation!=operation_||ticket.isEmpty()||state["phase"]!="launching"||state["ticket"]!=ticket
        ||state["id"]!=prepared_["lobby"]||state["generation"]!=prepared_["generation"]||state["game"]!=prepared_["game"]
-       ||!apps_.contains(app_)){done(false,"The app session changed. Prepare again.");return;}
+       ||(!apps_.contains(app_)&&!installed_.contains(app_))){done(false,"The app session changed. Prepare again.");return;}
     ticket_=ticket;binding_=binding(state);completion_=std::move(done);host_=state["owner"]==self_;stopping_=false;
     for(const auto& v:binding_["members"].toArray())if(v.toObject()["id"]!=self_)peer_=v.toObject()["id"].toString();
     deadline_.start();
+    if(!apps_.contains(app_)&&(!launchInstalled||!launchInstalled(launchIds_.value(app_)))){end("launch_unavailable");return;}
     if(!host_) {
         connection_=QUuid::createUuid().toString(QUuid::WithoutBraces);
         QTimer::singleShot(0,this,[this]{if(!ticket_.isEmpty()&&!lobby_.sendRuntimeSignal(peer_,ticket_,connection_,{{"kind","sdk-connect"}}))end("signaling_unavailable");});
     }
+}
+void SdkNetwork::completeLaunch() {
+    if(!connected_||!apps_.contains(app_)||apps_[app_]["runtime"]!=prepared_["game"].toObject()["runtime"]||!matches())return;
+    deadline_.stop();auto done=std::exchange(completion_,{});if(done)done(true,{});reconcile();
 }
 bool SdkNetwork::matches() const {
     const auto state=lobby_.state();
@@ -121,7 +140,7 @@ bool SdkNetwork::matches() const {
 void SdkNetwork::reconcile() {
     if(ticket_.isEmpty())return;
     if(!matches()){end("membership_changed");return;}
-    if(connected_&&!announced_&&lobby_.state()["phase"]=="playing") {
+    if(connected_&&apps_.contains(app_)&&!announced_&&lobby_.state()["phase"]=="playing") {
         announced_=true;const auto channel=channel_;const auto pending=std::exchange(pendingData_,{});
         emit event(app_,{{"event","network.ready"},{"session",channelState()}});
         for(const auto& packet:pending)if(announced_&&channel_==channel)emit event(app_,packet);
@@ -173,8 +192,8 @@ void SdkNetwork::read() {
             const auto endpoint=nearbyAddress_.isEmpty()?QJsonObject{{"code",packet["code"]}}:packet["endpoint"].toObject();
             if(!lobby_.sendRuntimeSignal(peer_,ticket_,connection_,{{"kind","sdk-endpoint"},{"endpoint",endpoint}})){end("signaling_unavailable");return;}
         }else if(type=="connected"&&!connected_) {
-            connected_=true;channel_=QUuid::createUuid().toString(QUuid::WithoutBraces);deadline_.stop();
-            auto done=std::exchange(completion_,{});if(done)done(true,{});reconcile();
+            connected_=true;channel_=QUuid::createUuid().toString(QUuid::WithoutBraces);
+            completeLaunch();
         }else if(type=="data"&&connected_&&packet["sequence"].toInteger(-1)==qint64(received_)&&received_-consumed_<64) {
             ++received_;const QJsonObject data{{"event","network.data"},{"channel",channel_},{"peer",peer_},
                 {"sequence",QString::number(received_-1)},{"data",packet["data"]}};

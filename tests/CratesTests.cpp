@@ -8,6 +8,25 @@ using namespace trainer;
 class CratesTests: public QObject {
     Q_OBJECT
 private slots:
+    void installedActivityDoesNotRequireRunningGame() {
+        QTemporaryDir temp;QVERIFY(temp.isValid());QDir root(temp.path());
+        QVERIFY(root.mkpath("active"));
+        const QString sha(64,'a'),object="fixture-"+sha;
+        QVERIFY(root.mkpath("objects/"+object));
+        auto write=[&](QString name,QJsonObject data){QFile f(root.filePath(name));if(!f.open(QIODevice::WriteOnly))return false;return f.write(QJsonDocument(data).toJson())>0;};
+        const QJsonObject receipt{{"id","fixture"},{"kind","game"},{"title","Fixture"},{"sha256",sha},{"object",object}};
+        QVERIFY(write("active/fixture.json",receipt));
+        const QJsonObject activity{{"schema",1},{"app","org.test.game"},{"protocol","game.1"},{"seats",2}};
+        QVERIFY(write("objects/"+object+"/traineros-activity.json",activity));
+        CratesInstaller installer;installer.configure({}, {},temp.path());
+        QCOMPARE(installer.activities().size(),1);
+        QCOMPARE(installer.activities()[0].toMap()["local"].toString(),QString("crates:fixture"));
+        auto invalid=activity;invalid["protocol"]="bad protocol";
+        QVERIFY(write("objects/"+object+"/traineros-activity.json",invalid));QVERIFY(installer.activities().isEmpty());
+        QVERIFY(write("objects/"+object+"/traineros-activity.json",activity));
+        auto escaped=receipt;escaped["object"]="../outside";QVERIFY(write("active/fixture.json",escaped));
+        installer.configure({}, {},temp.path());QVERIFY(installer.activities().isEmpty());
+    }
     void packageArchitectureSelection() {
         QTemporaryDir temp;QVERIFY(temp.isValid());
         const auto cpu=QSysInfo::currentCpuArchitecture();

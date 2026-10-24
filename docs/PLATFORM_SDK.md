@@ -6,8 +6,13 @@ widget и lifecycle cleanup. [Старт автора](../sdk/README.md) и
 [wire contract](../sdk/PROTOCOL.md) — документация для использования; этот файл
 фиксирует владение, реализацию и границы проверки. Это не завершение #231/#235–244.
 
-**Продолжение без портативок:** [native activity/records contract](../sdk/NETWORK.md)
-подключает работающий app к существующему Lobby и надёжному каналу на двух игроков.
+**Уточнение 24 октября:** [native activity/records contract](../sdk/NETWORK.md)
+начинается в Lobby: установленная игра видна через декларацию пакета, Ready
+не запускает процесс, явный Start организатора запускает игру через обычный
+защищённый launch. `activity.register` подключает клиент к выбранной сессии.
+Прежний порядок «сначала открыть игру» отменён для всех SDK-игр.
+Старым пакетам Artillery/Pong/Snake Arena/Light Cycles нужны новые декларации
+и подключение клиента при старте; их прежние релизы этим изменением не мигрированы.
 Теперь опубликованы экспериментальные Pocket Artillery, Pong, Snake Arena и
 Light Cycles. Их парные SDK/TLS проверки используют локальную сигнализацию;
 живой интернет этим не принят. [Доставка 21 октября](CRATES77_CATALOGUE.md) включает
@@ -22,8 +27,8 @@ app contributions и runtime catalogue без взаимного перезап�
 24 октября: добавлен [минимальный общий персонаж](SHARED_AVATAR_MINIMUM.md).
 `avatar.local:1` выдаёт внешний GLB активного Trainer и события сохранённой
 внешности; модель не входит в пакет игры. Редактор/SQLite принадлежат профилю,
-Godot-клиент использует этот же локальный bridge. Новая возможность ещё не
-доставлена на Odin/Flip. Добавлены `avatar.recipe:1` и фоновый `avatar.resolve`:
+Godot-клиент использует этот же локальный bridge. Редактор, SDK и пакет revision 3
+доставлены на Odin/Flip. Добавлены `avatar.recipe:1` и фоновый `avatar.resolve`:
 Golf обменивается компактными рецептами через существующий канал и привязывает
 их к допущенным участникам. Парная локальная TLS-проверка пройдена; живой Fluxer,
 интернет и эмоции остаются за пределами этой проверки.
@@ -49,8 +54,9 @@ Edit/Add; одно нажатие приходит как событие при�
 
 ## Вход / работа / выход
 
-1. Самостоятельно запущенный процесс читает приватный local endpoint, согласует
-   protocol version и стабильный app ID. Установка/публикация не обязательны.
+1. Процесс читает приватный local endpoint, согласует protocol version и стабильный
+   app ID. Для обычных widgets установка/публикация не обязательны. Мультиплеерная
+   игра предварительно объявляется установленным пакетом и запускается из Lobby.
 2. Получает snapshot и подписывается на нужные изменения; библиотечная selection
    и live game/session имеют разные поля. Приложение само выбирает capabilities.
 3. Регистрирует ограниченный текстовый widget с актуальной context revision.
@@ -152,7 +158,7 @@ endpoints для отсутствующего backend.
 
 | Функция | Что ещё нужно подключить / проверить |
 | --- | --- |
-| Lobby + Network Fabric | Реализованы running-app registration, admission, reliable 2-peer records и возврат; offline admission, direct ICE/unreliable fast path, 5 peers, installer/start/rejoin и real-account/internet/ARM proof открыты |
+| Lobby + Network Fabric | Реализованы installed-game discovery, запуск из Lobby, attach, reliable 2-peer records и возврат; Windows/ARM cold-start и повторная сессия проверены локально. Offline admission, direct ICE/unreliable fast path, 5 peers и полный real-account/internet цикл открыты |
 | GameHub tools / live overlays | Registry/placement/context/input lease для этих slots; Start widget не заменяет их |
 | Media / Files / Downloads | Service facade к действующим owners, provider registration, реальные операции/error/cancel; не второй worker или музыкальный сервер |
 | System module packages | Проверенная installed identity, lifecycle/autostart/uninstall/update, scopes к чувствительным операциям; app ID пока только namespacing |

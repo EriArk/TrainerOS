@@ -1,11 +1,45 @@
 # Native activity + reliable records, protocol v1 preview
 
-This optional contract joins a running app to the **existing** TrainerOS Lobby.
-It does not install or launch an executable, implement game rules or provide a
-second account/room system. Two players start compatible app clients, choose the
-activity in GameHub → Lobby, prepare, Ready, and the organizer presses Start.
-The existing runtime coordinator performs admission. A successful registration
-alone does not create a room, invite a person or authorize traffic.
+Multiplayer starts in the **existing GameHub Lobby**, for every SDK game:
+choose an installed game, prepare, Ready, then the organizer presses Start.
+Only Start launches each local game through TrainerOS's existing protected
+launch lifecycle. The client attaches to that admitted session after startup.
+Do not require players to open the game first or build a second room system.
+Registration alone never creates a room, launches a game or authorizes traffic.
+
+## Installed game declaration
+
+A Crates game includes `traineros-activity.json` at its package root:
+
+```json
+{"schema":1,"app":"org.example.game","protocol":"game.1","seats":2}
+```
+
+This file is covered by the package archive hash. TrainerOS discovers it from
+the active installed receipt; neither a running process nor an Internet catalogue
+refresh is needed to show the game in Lobby. Title and local launch identity come
+from that receipt. The declaration cannot supply a command, executable path or
+remote URL. Duplicate app IDs, invalid declarations and removed packages are not
+advertised. Both devices must install matching protocol versions.
+
+After startup the game calls `activity.register` with the declared app/protocol,
+then waits for `network.ready`. That event is sent only after both local clients
+have attached, the secure channel is connected and Lobby acknowledges both
+launches. A normal solo launch may attach to the SDK for avatars; registration
+alone must leave the local menu intact. Keep game menus free of compulsory
+"open the game, then go to Lobby" steps. `activity.open` is only an optional
+return shortcut, not multiplayer admission or the normal launch entry.
+
+Initialize expensive scene resources before opening IPC. In a rendering client,
+wait for the first drawn frame so shader compilation does not consume the bounded
+hello deadline. Send hello in the same network-pump turn that observes TCP
+connected, rather than waiting for another rendered frame.
+
+The host's `SdkNetwork::setInstalledActivities` and `launchInstalled` composition
+hooks accept trusted local inventory/launch bindings. Crates supplies these in
+TrainerOS; an external peer cannot call them. Ordinary emulated games keep their
+existing Lobby runtime adapters. Older native packages without the declaration
+need a package update; running `activity.register` no longer advertises them.
 
 The hello capabilities include `lobby.activity: 1` and `network.records: 1` only
 when the local secure record helper is present. Apps should keep their standalone
@@ -19,10 +53,10 @@ Use the [base JSON-lines protocol](PROTOCOL.md). All calls require a local Train
 
 | Method | Parameters | Result |
 | --- | --- | --- |
-| `activity.register` | `title` (1–64), `protocol` (1–64 ASCII letters/digits/underscore/dot/hyphen) | `id`, `mode`, `seats: 2`; adds this connection's app to the ordinary Lobby picker |
+| `activity.register` | `title` (1–64), `protocol` (1–64 ASCII letters/digits/underscore/dot/hyphen) | `id`, `mode`, `seats: 2`; attaches this connection to its declared activity; does not populate the picker |
 | `activity.get` | `{}` | `registered`, `session` (empty until ready) |
 | `activity.open` | `{}` | Opens the existing GameHub Lobby; membership is unchanged |
-| `activity.unregister` | `{}` | Removes the app's contribution and closes its channel |
+| `activity.unregister` | `{}` | Detaches the running client and closes its channel; installed game stays in Lobby |
 | `network.send` | `channel`, `data` (base64, 1–16384 decoded bytes) | Accepted local `sequence` string; **not** a delivery receipt |
 | `network.consume` | `channel`, next received `sequence` string | Returns receive credit after the app has handled a message |
 | `network.close` | `channel` | Ends this app session; the app process and persistent Lobby membership remain |
@@ -98,9 +132,11 @@ isolated interpreter and that same helper. These are host configuration, never
 fields supplied by an SDK app or a remote peer. Windows uses the venv's
 `Scripts/python.exe` and Qt's local application data directory.
 
-Start [record_peer.py](examples/record_peer.py) on both hosts, open ordinary Lobby,
-choose **Record channel example**, Ready and Start. It exchanges `hello` and
-`hello back`; it is a runnable channel example, **not a game**. A communication
+The [record_peer.py](examples/record_peer.py) example exchanges `hello` and
+`hello back` after the host launches it. Package it with the accompanying
+`record-activity.json` renamed to `traineros-activity.json`, or use the trusted
+inventory/launch hooks in a test host. Choose it in Lobby, Ready, then Start;
+there is no manual client-first step. It is a channel example, **not a game**. A communication
 account is still required by the current normal Lobby implementation. Offline
 discovery/admission without Fluxer is a remaining SDK feature.
 

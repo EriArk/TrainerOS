@@ -16,6 +16,8 @@ public:
     QString request(const QString& app,const QString& method,const QJsonObject&,QJsonObject& result);
     void disconnected(const QString& app);
     QVariantList activities() const;
+    void setInstalledActivities(const QVariantList&);
+    std::function<bool(QString)> launchInstalled;
     void prepare(QString,QJsonObject,Completion) override;
     void launch(QString,QString,QJsonObject,Completion) override;
     void cancel(QString) override;
@@ -28,6 +30,8 @@ private:
     LobbyRuntime& runtime_;
     QString python_,helper_,nearbyAddress_;
     QMap<QString,QJsonObject> apps_;
+    QMap<QString,QJsonObject> installed_;
+    QMap<QString,QString> launchIds_;
     QProcess process_;
     QTimer deadline_;
     QByteArray buffer_;
@@ -40,6 +44,7 @@ private:
     QJsonObject channelState() const;
     bool matches() const;
     void reconcile();
+    void completeLaunch();
     void signal(QString,QString,QString,QJsonObject);
     void startHelper(const QJsonObject&);
     bool write(const QJsonObject&);

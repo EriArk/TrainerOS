@@ -1,9 +1,11 @@
 # Карта готовности функций TrainerOS
 
-**24 октября — общий персонаж, S01/S04/S14:** реализован и проверен на хосте
-принятый минимум редактора профиля и внешнего GLB через SDK/Godot. [Результаты и границы](SHARED_AVATAR_MINIMUM.md):
-реальная сцена гольфа и парный обмен рецептами через локальный TLS проверены.
-Художественная/портативная приёмка, живой интернет и анимация удара открыты.
+**24 октября — общий персонаж, S01/S04/S14:** редактор и общий пакет установлены
+на Odin/Flip; внешний GLB и парный обмен рецептами проверены на хосте.
+[Результаты и границы](SHARED_AVATAR_MINIMUM.md): Golf 0.1.13 запускается из Lobby,
+холодный вход Flip, обмен ударами и возврат в комнату проверены на устройствах.
+Персонаж с клюшкой виден на Flip; на Odin не отобразился образ соперника.
+Художественная оценка, физическое управление и разные сети остаются открытыми.
 
 **21 октября 2026.** Глобальные планы и обязательная очередь сняты по решению
 владельца. Работа ведётся по готовности конкретных функций. Порядок строк не
@@ -153,7 +155,7 @@ R-ID не перенумеровывать; новая функция получ
 | ☐ | <a id="r098"></a>**R098** SDK core: service discovery, bridge и lifecycle | **[S14]**; [S01], [S03], [S15] | Недоделано | Protocol v1 preview: discovery/context/events/cleanup и managed launch; [SDK](PLATFORM_SDK.md). Доставлен на Odin/Flip вместе с pinned records helper; Timer подключается, внешний Start-виджет работает. Остальные service facades, живой парный сетевой цикл, Timer app-requested return и физическая приёмка открыты. |
 | ☐ | <a id="r099"></a>**R099** UI contributions: slots, widgets, actions и overlays | **[S14]**; [S04], [S03] | Недоделано | Plain-text Start widget, activation callback, текущий dashboard и снятие вклада реализованы; [SDK](PLATFORM_SDK.md). Полные slots/GameHub/overlays/TV/package lifecycle #237 не закрыты. |
 | ☐ | <a id="r100"></a>**R100** Network Fabric: API peer channels поверх текущих transport | **[S07]**; [S14], [S06] | Недоделано | [Reliable records preview](../sdk/NETWORK.md) для двух app peers поверх существующего защищённого helper; bounded send/consume/ack и session cleanup. Offline admission, ICE/unreliable/direct fast path, 5 peers, real internet/ARM ещё открыты. |
-| ☐ | <a id="r101"></a>**R101** Social Activities: приложение из разговора через тот же Lobby | **[S06]**; [S05], [S14], [S13] | Недоделано | Работающий app регистрируется в обычном Lobby, проходит prepare/Ready/Start/return. #239: полный conversation/install/start/rejoin и persistent reference ещё не реализованы; [SDK](PLATFORM_SDK.md). |
+| ☐ | <a id="r101"></a>**R101** Social Activities: приложение из разговора через тот же Lobby | **[S06]**; [S05], [S14], [S13] | Недоделано | 24.10: SDK обнаруживает установленную игру, Lobby/Ready/Start запускает процесс, клиент подключается к сессии; локальные Windows/ARM cold-start/rejoin проверки пройдены. #239: полный conversation/install/start/rejoin на реальных аккаунтах и persistent reference не приняты; старым нативным пакетам нужна миграция. [SDK](PLATFORM_SDK.md). |
 | ☐ | <a id="r102"></a>**R102** SDK: owner-scoped shared objects и remote actions | **[S14]**; [S07], [S01], [S08] | Не сделано | #240: приложение владеет схемой/данными; revoke/replay/receipt без обязательной общей БД. [F11](STRUCTURE_MAP_RU.md#f11). |
 | ☐ | <a id="r103"></a>**R103** File Provider SDK: источник в Files/Picker/Downloads | **[S15]**; [S14], [S13] | Не сделано | #241: provider interface, auth/capabilities/job lifecycle; существующий Files не является публичным SDK. [F11](STRUCTURE_MAP_RU.md#f11). |
 | ☐ | <a id="r104"></a>**R104** Media Session SDK: playback, metadata и audio focus | **[S15]**; [S14], [S05], [S04] | Не сделано | #242: один app process/widget, voice coexistence, logout/crash cleanup; не новый music service. [F11](STRUCTURE_MAP_RU.md#f11). |

@@ -17,6 +17,7 @@ public:
     QVariantMap state(const QString& id) const;
     QVariantList tasks() const;
     QVariantList installed() const;
+    QVariantList activities() const;
     void request(const QString& id,const QString& version={},const QString& operation="install");
     void command(const QString& id,const QString& command);
     QString root() const {return root_;}

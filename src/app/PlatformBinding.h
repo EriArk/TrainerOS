@@ -32,8 +32,16 @@ public:
             qEnvironmentVariable("TRAINEROS_RECORD_PYTHON",interpreter),
             qEnvironmentVariable("TRAINEROS_RECORD_HELPER",root+"/secure-channel.py"));
         host_.setNetwork(network_.get());
+        network_->launchInstalled=[this](const QString& local){
+            if(local.isEmpty()||launch_.active()||shell_.launchPreparation().busy())return false;
+            shell_.launchPreparation().launch(local);return true;
+        };
         connect(network_.get(),&SdkNetwork::activitiesChanged,this,[this]{shell_.social()->setLobbyActivities(network_->activities());});
-        connect(network_.get(),&SdkNetwork::openLobbyRequested,this,[this]{shell_.openGameHubFace("lobby");});
+        connect(shell_.crates()->installer(),&CratesInstaller::inventoryChanged,this,[this]{network_->setInstalledActivities(shell_.crates()->installer()->activities());});
+        network_->setInstalledActivities(shell_.crates()->installer()->activities());
+        // Use the same route as shell invitations: it also requests a safe
+        // game-to-shell handoff, rather than changing a page behind the game.
+        connect(network_.get(),&SdkNetwork::openLobbyRequested,this,[this]{shell_.social()->openLobby();});
         sync();
         QString error;
         if (!host_.start(endpoint, &error)) qWarning().noquote() << "Platform SDK unavailable:" << error;
