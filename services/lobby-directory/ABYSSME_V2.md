@@ -16,12 +16,20 @@ projection remains unchanged. AbyssME must reject v1 and other product/protocol
 values. Do not merely append product fields to a v1 advertisement: old clients
 would still display it. Other v2 product/protocol combinations are rejected.
 
-The owner explicitly retained **one active public room per account across both
-products**. A competing UUID gets `already-listed`; it never replaces the
-existing room. The room UUID is bound to its original product as well as owner,
+The owner's updated decision on 2026-10-24 preserves **32 active TrainerOS
+listings per account** and permits **one active AbyssME room independently**.
+A competing AbyssME UUID gets `already-listed`; a 33rd TrainerOS listing gets
+`too-many-listed`. Neither replaces an existing room. Updates to an existing
+listing do not consume another slot. The room UUID is bound to its original product as well as owner,
 including withdrawal/close tombstones. Mismatched-product operations return
 `wrong-product`. This prevents accidental client crossover, not a claim that a
 user cannot write a custom command for their own account.
+
+Read-only inspection found the deployed v1 service newer than the original PR
+baseline. Preserve its separate `listing`/`lobby` identifiers, `listedAt`, optional
+title, scheduled `startsAt`, member count and provider-authoritative avatar.
+Lost-create recovery searches the listing ID, not its optional room alias.
+These v1 fields are not automatically projected into v2.
 
 ## Wire fields
 
@@ -75,7 +83,7 @@ credential or arbitrary command field is reflected.
 
 `accepted` means the command is stored, not that reconciliation has made it visible
 or that the host admitted anyone. `already-listed` lets the client explain the
-cross-product quota. Lost acknowledgement is not silently converted into success:
+AbyssME quota. Lost acknowledgement is not silently converted into success:
 the Android client offers retry with a higher durable revision. Replayed commands
 can receive `stale`; this is not an acknowledgement journal or exactly-once delivery.
 The bot is still not a room authority, invitation relay or gameplay server.
@@ -84,9 +92,11 @@ The bot is still not a room authority, invitation relay or gameplay server.
 
 `py -3 -m unittest discover -s services/lobby-directory -p test_*.py`
 
-19 tests pass: eight legacy cases plus seven v2 cases covering scope/private-field
-projection, game validation, unknown versions, cross-product quota, persistent
-ownership, out-of-order close and legacy database migration, plus four correlated
+22 tests pass: ten legacy cases plus eight v2 cases covering scope/private-field
+projection, game validation, unknown versions, independent quotas, persistent
+ownership, out-of-order close, quota release and legacy database migration, plus four correlated
 result tests (private allowlist, legacy isolation, invalid scope/correlation).
+Legacy checks include scheduled metadata, provider-authoritative avatars and
+lost-create recovery with distinct listing/session IDs.
 Local SQLite/API
 fixtures only; no live bot, Fluxer account, device, media or gameplay acceptance.

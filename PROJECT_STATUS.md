@@ -1,5 +1,9 @@
 # TrainerOS — состояние проекта
 
+**24 октября — вход в редактор внешности.** В меню пользователя добавлен Appearance,
+доступный также без аккаунта общения. Сенсорный ввод и контроллер открывают
+существующий редактор общего персонажа. Четыре направленные проверки на ARM проходят.
+
 **24 октября — простая одежда и объединение веток.** Майка подогнана в исходной
 позе и привязана к торсу без симуляции ткани; убраны зазор за спиной и перенос
 корректировок рук/ног на ткань. Тело, лицо и их исходные данные сохранены.
@@ -51,28 +55,29 @@ Remote Play. Оболочка и согласованные support files уст
 функций и реестр задач GitHub, сверенный 13 октября. Это текущий срез; история
 изменений находится в [CHANGELOG.md](CHANGELOG.md).
 
-В следующем срезе той же ветки добавлены приватные подтверждения команд бота
-для Android-клиента: результат принятия, конфликт общей квоты и снятие объявления.
-Проверены 19 локальных тестов. PR #260 остаётся отдельным исходным изменением;
-живой сервис и устройства TrainerOS не обновлялись.
+Updated owner decision: preserve 32 active TrainerOS listings per account and
+allow one independent AbyssME room. PR #260 now preserves the actual deployed
+v1 service's scheduled meetings, separate listing/session IDs, titles, member
+counts and provider-authoritative avatars. UUID ownership/product isolation and
+private correlated AbyssME command acknowledgements remain in place.
 
-В `codex/abyssme-lobby-directory-v2` подготовлено [расширение существующего бота](services/lobby-directory/ABYSSME_V2.md)
-для объявлений AbyssME. Старый формат TrainerOS сохранён; его клиент игнорирует
-новый формат по версии. Подтверждена общая квота одной публичной комнаты на
-аккаунт и защита от случайного изменения комнаты другим приложением. Пройдены
-15 локальных тестов, включая миграцию базы. **Сервис не развёрнут**, клиентские
-сборки TrainerOS/устройства не менялись, живой двухаккаунтный цикл не проверен.
-Это отдельная исходная доработка #257, не обновление исторического среза ниже.
-**В разработке, ещё не поставка:** в рабочей ветке подготовлен
-[общий Remote Play для нескольких гостей](docs/REMOTE_PLAY_GROUPS.md): одна игра
-и один кодировщик, независимые P2/P3/P4. ARM — 8/8, транспорт — 10 проверок,
-media — 4/4; первый клиент на локальном стенде получил 285/285 кадров.
-Парная проверка нескольких гостей не пройдена: штатный Iris Flip не выдаёт
-новый полноценный стартовый кадр. Системное исправление Iris стало зависимостью
-этого шага. Odin требуется перезагрузка после нестабильной работы SSH; причина
-зависания ещё не установлена. Установленные сборки не заменялись, L07 открыт.
-В кандидате также исправлен порядок команд в очереди лобби Fluxer; это пока
-исходники, не установленное исправление.
+22 local Python tests pass, including legacy migration, quota coexistence,
+metadata validation and recovery after a lost create response.
+[Contract and rollout limits](services/lobby-directory/ABYSSME_V2.md).
+**Source branch only, not deployed.** The live service and TrainerOS devices have
+not been changed; live v1/v2 publication acceptance remains open. This is the
+isolated #257 worktree, not an update to the historical snapshot below.
+
+> **Status/evidence boundary (19 October 2026):** The cumulative **implementation and device snapshot below is dated 14 October**; it is not a claim that the major 15–19 October interface/SDK targets were shipped. The accepted **future** product layout and system/API direction are summarized in [current product architecture](docs/PRODUCT_ARCHITECTURE_RU.md), with issues [#206](https://github.com/EriArk/TrainerOS/issues/206), [#224](https://github.com/EriArk/TrainerOS/issues/224), [#233](https://github.com/EriArk/TrainerOS/issues/233), [#234](https://github.com/EriArk/TrainerOS/issues/234), and **[#235–244](https://github.com/EriArk/TrainerOS/issues/235)**. Do not interpret the older public text or captures below as final UI evidence. Documentation maintenance itself introduces no new runtime capabilities.
+
+---
+
+Обновлено: **14 октября 2026**. Сводка охватывает работу с начала проекта
+5 сентября по подключение Remote Play к лобби 14 октября. Источники — история `main`, документы
+функций и реестр задач GitHub, сверенный 13 октября. Это текущий срез; история
+изменений находится в [CHANGELOG.md](CHANGELOG.md).
+
+## Короткое описание для сайта и постов
 
 Ближайшая цель — **публичная ранняя бета**, пока не выпущенная. По уточнению
 владельца Remote Play использует прямой P2P между портативками; зрители смотрят

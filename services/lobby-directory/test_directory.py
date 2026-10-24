@@ -14,7 +14,8 @@ class API:
 
     def ensure(self, channel, lobby, content):
         for (c, m), value in self.messages.items():
-            if c == channel and decode(value).get('listing', decode(value)['lobby']) == lobby:
+            entry = decode(value)
+            if c == channel and entry.get('listing', entry['lobby']) == lobby:
                 self.messages[c, m] = content
                 return m
         self.serial += 1
@@ -110,6 +111,36 @@ class Tests(unittest.TestCase):
         for _ in range(32):
             self.assertEqual(self.accept('3', lobby=str(uuid.uuid4())), 'accepted')
         self.assertEqual(self.accept('3', lobby=str(uuid.uuid4())), 'too-many-listed')
+
+    def test_deployed_scheduled_listing_metadata_and_authoritative_avatar(self):
+        room = str(uuid.uuid4())
+        command = self.command | dict(room=room, title='Evening race', startsAt=2000,
+                                      members=3, avatar='spoofed', token='private')
+        avatar = 'a_' + 'a' * 32
+        self.assertEqual(self.directory.accept('1', 'Host', command, 100, avatar), 'accepted')
+        self.api.lose_response = True
+        with self.assertRaises(TimeoutError):
+            self.directory.reconcile(self.api, 100)
+        self.directory.reconcile(self.api, 101)
+        self.assertEqual(len(self.api.messages), 1)
+        entry = decode(next(iter(self.api.messages.values())))
+        self.assertEqual(entry['lobby'], room)
+        self.assertEqual(entry['listing'], command['lobby'])
+        self.assertEqual(entry['listedAt'], 100)
+        self.assertEqual(entry['title'], 'Evening race')
+        self.assertEqual(entry['startsAt'], 2000)
+        self.assertEqual(entry['members'], 3)
+        self.assertEqual(entry['avatar'], avatar)
+        self.assertNotIn('token', entry)
+        self.assertEqual(self.directory.accept('1', 'Host', command | {'revision': 2}, 102, 'invalid'), 'accepted')
+        self.directory.reconcile(self.api, 102)
+        self.assertNotIn('avatar', decode(next(iter(self.api.messages.values()))))
+
+    def test_scheduled_listing_validation(self):
+        for values in ({'room': 'bad'}, {'title': 'x' * 81}, {'startsAt': True},
+                       {'startsAt': -1}, {'startsAt': 4102444801},
+                       {'members': True}, {'members': -1}, {'members': 33}):
+            self.assertEqual(self.accept(**values), 'invalid')
 
     def test_close_is_permanent_even_out_of_order(self):
         self.assertEqual(self.accept(op='close', revision=5), 'closed')
