@@ -1640,7 +1640,9 @@ private slots:
         social.receive(0,state);QSignalSpy commands(&social,&SocialController::commandRequested);
         QSignalSpy text(&flow,&CommunicationSettings::textRequested);QSignalSpy back(&flow,&CommunicationSettings::backRequested);
         flow.beginProfile();QCOMPARE(commands.last()[0].toString(),QString("profile-refresh"));QVERIFY(!flow.refresh_.isActive());
-        QCOMPARE(flow.rows().size(),7);QVERIFY(flow.rows()[1].toMap()["selected"].toBool());
+        QCOMPARE(flow.rows().size(),8);QVERIFY(flow.rows()[1].toMap()["selected"].toBool());
+        QSignalSpy appearance(&flow,&CommunicationSettings::appearanceRequested);
+        auto commandCount=commands.size();flow.activate(6);QCOMPARE(appearance.size(),1);QCOMPARE(commands.size(),commandCount);
         flow.activate(3);QCOMPARE(commands.last()[1].toMap()["value"].toString(),QString("invisible"));
         flow.activate(4);QCOMPARE(text.last()[1].toString(),QString("Playing"));flow.applyText("New status");
         QCOMPARE(commands.last()[1].toMap()["field"].toString(),QString("custom_status"));
@@ -1650,6 +1652,14 @@ private slots:
         flow.activate(1);QVERIFY(flow.choosingAvatar());flow.dispatch(Action::Back);QVERIFY(!flow.choosingAvatar());QVERIFY(flow.profileEditing());
         flow.activate(2);state["userId"]="other";social.receive(0,state);auto before=commands.size();flow.applyText("Old account draft");QCOMPARE(commands.size(),before);QVERIFY(!flow.profileEditing());
         flow.dispatch(Action::Back);QCOMPARE(back.size(),1);flow.leave();
+    }
+    void appearanceRemainsAvailableWithoutCommunicationAccount() {
+        SocialController social;CommunicationSettings flow;flow.configure(&social);flow.beginProfile();
+        QSignalSpy appearance(&flow,&CommunicationSettings::appearanceRequested);
+        QSignalSpy commands(&social,&SocialController::commandRequested);
+        QCOMPARE(flow.rows()[1].toMap()["kind"].toString(),QString("appearance"));
+        flow.dispatch(Action::Down);flow.dispatch(Action::Confirm);
+        QCOMPARE(appearance.size(),1);QVERIFY(commands.isEmpty());
     }
     void providerStatusIsConfirmedAndRejectsStaleReads() {
         FluxerSession session;QList<Completion> replies;QStringList paths;QList<QJsonObject> bodies;

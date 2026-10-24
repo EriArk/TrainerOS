@@ -288,6 +288,10 @@ ShellController::ShellController(LibraryRepository& repo, TrainerRepository& pro
         if(!liveGame_.isEmpty() || scraper_.busy()){showNotice("Finish the current game and downloads before switching Trainer.");return;}
         settings_.communication()->leave();if(trainerSetup_.live())emit trainersRequested();else openTrainers();
     });
+    connect(settings_.communication(),&CommunicationSettings::appearanceRequested,this,[this]{
+        openProfile();
+        if(service_=="profile") { settings_.communication()->leave(); trainer_.beginAvatarEdit(); }
+    });
     connect(&controls_,&ControlsDashboard::actionRequested,this,&ShellController::systemAction);
     connect(&controls_,&ControlsDashboard::adjustRequested,this,[this](const QString& id,int delta){
         const int index=id=="volume"?0:1;

@@ -100,7 +100,7 @@ QVariantList CommunicationSettings::rows() const{
         for(const auto& item:pictures_){auto value=row(item.toMap()["name"].toString(),"","picture");value["image"]=item.toMap().contains("builtin")?item.toMap()["image"]:QVariant(QUrl::fromLocalFile(item.toMap()["path"].toString()));result.append(value);}
         result.append(row("Remove picture","","action"));result.append(row("Cancel","","action"));return result;
     }
-    if(state["userId"].toString().isEmpty()){auto login=row(state["code"].toString().isEmpty()?"Sign in":"Cancel sign-in",state["code"].toString().isEmpty()?state["status"].toString():"Open fluxer.app/handoff · "+state["code"].toString());if(profileOnly_)return {login,row("Switch Trainer","Use another local profile","trainer-switch")};return {login};}
+    if(state["userId"].toString().isEmpty()){auto login=row(state["code"].toString().isEmpty()?"Sign in":"Cancel sign-in",state["code"].toString().isEmpty()?state["status"].toString():"Open fluxer.app/handoff · "+state["code"].toString());if(profileOnly_)return {login,row("Appearance","Your character in games","appearance"),row("Switch Trainer","Use another local profile","trainer-switch")};return {login};}
     if(profileOnly_ && !profileEditing_) {
         const auto presence=state["presence"].toString();
         QVariantList result;
@@ -110,6 +110,7 @@ QVariantList CommunicationSettings::rows() const{
         }
         result.append(row("Set a status",state["customStatus"].toString().isEmpty()?"What are you up to?":state["customStatus"].toString()));
         result.append(row("Edit profile","Name, picture and about me"));
+        result.append(row("Appearance","Your character in games","appearance"));
         result.append(row("Switch Trainer","Use another local profile","trainer-switch"));
         return result;
     }
@@ -156,6 +157,7 @@ void CommunicationSettings::activate(int index){
     if(index<0||index>=rows().size()||pendingAvatar_||account()["profileBusy"].toBool())return;
     focus_=index;error_.clear();
     if(rows()[index].toMap()["kind"]=="trainer-switch"){emit trainerSwitchRequested();return;}
+    if(rows()[index].toMap()["kind"]=="appearance"){emit appearanceRequested();return;}
     if(profileOnly_ && !choosingAvatar_ && !account()["userId"].toString().isEmpty()) {
         if(!profileEditing_) {
             if(index<4)send("profile-update",{{"field","status"},{"value",rows()[index].toMap()["presence"]}});
