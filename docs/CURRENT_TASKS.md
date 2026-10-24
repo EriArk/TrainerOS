@@ -13,8 +13,10 @@
 
 Текущая отдельная работа `codex/first-run-installer-ota`: обязательные Fluxer и
 ScreenScraper в новом [визарде](FIRST_RUN.md), общий signed Software preparation
-для [Armada installer/OTA](EARLY_BETA_INSTALLER_RU.md). Следующее недоделанное этой
-функции — trusted feed/bootstrap, host/OS-storage probe и lifecycle-safe
+для [Armada installer/OTA](EARLY_BETA_INSTALLER_RU.md), получение подписанных
+Beta/Preview по HTTPS и явный `check` → `prepare` без сервера раздачи владельца.
+Следующее недоделанное этой функции — production key/bootstrap/публикация GitHub feed,
+host/OS-storage/receipt probe и lifecycle-safe
 activation/repair/совместимый rollback с реальным UI. Подготовленный cache не
 считается установленной версией; это не новая глобальная очередь.
 

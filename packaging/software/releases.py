@@ -57,6 +57,8 @@ def integer(value, minimum, maximum):
 
 
 def https(url):
+    if not isinstance(url, str):
+        raise ValueError('Release URL must be a string')
     u = urllib.parse.urlsplit(url)
     if u.scheme != 'https' or not u.hostname or u.username or u.password or u.fragment:
         raise ValueError('Release downloads require HTTPS without embedded credentials')
@@ -106,6 +108,11 @@ def validate(release):
 def verified(path, public_key):
     with Path(path).open('rb') as stream:
         raw = stream.read(MAX_MANIFEST + 1)
+    return verified_bytes(raw, public_key)
+
+
+def verified_bytes(raw, public_key):
+    """Same trust boundary for local media and remotely fetched manifests."""
     if len(raw) > MAX_MANIFEST:
         raise ValueError('Release envelope too large')
     envelope = decode(raw)

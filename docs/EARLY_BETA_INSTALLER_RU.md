@@ -55,7 +55,7 @@ consumer и остаток — [FIRST_RUN](FIRST_RUN.md).
   в их текущем дереве `packaging/`. Это не отдельный скопированный crypto-stack.
 - Доверенный публичный ключ передаётся bootstrap-стороной. Подпись и структура
   проверяются **до** скачивания; ключ из скачанного manifest не принимается.
-  Production key, его ротация и release feed ещё не настроены. Тестовые ключи
+  Production key, его ротация и публикация release feed ещё не настроены. Тестовые ключи
   создаются только во временных каталогах теста и не публикуются.
 - Загрузка HTTPS, включая проверку redirect, продолжает `.part` через Range.
   Ответ 200 вместо 206 начинает файл заново; неверный диапазон, превышение
@@ -70,8 +70,8 @@ consumer и остаток — [FIRST_RUN](FIRST_RUN.md).
   удаляет временную распаковку и сохраняет частичную загрузку для повторения.
   После аварийного завершения процесса может остаться неактивный `.extract-*`;
   автоматическая очистка таких каталогов и repair повреждённого cache ещё нужны.
-  Manifest следует получать/повторно проверять через доверенный bootstrap;
-  `prepare` сейчас получает **локальный** подписанный manifest.
+  Низкоуровневый `releases.py prepare` получает **локальный** подписанный manifest;
+  получение через удалённый канал и проверка выбора теперь описаны ниже.
 
 Пример для разработчика (пути/ключ — локальные параметры, не URL выпуска):
 
@@ -83,8 +83,8 @@ python3 packaging/software/releases.py prepare --manifest /path/release.json --k
 `prepared` означает только целостный кандидат. Здесь ещё нет active pointer,
 активации, rollback, миграции данных, root-helper или смены загрузочной сессии.
 Поле target не является проверкой текущего host; SQLite/first-run ranges —
-подписанный контракт издателя, ещё не проверка совместимости реальной базы.
-Защита от отката release feed также относится к будущему выбору/активации.
+подписанный контракт издателя. Новый channel consumer сравнивает их с переданными
+bootstrap значениями; чтение фактического host/БД и lifecycle binding ещё нужны.
 Инсталлятор должен определить реальную Armada/ОС-диск, использовать существующий
 `packaging/session/install.py` для системной интеграции и получить разрешение
 на безопасную активацию у владельцев runtime/save. Игра может пережить падение
@@ -98,6 +98,102 @@ python3 packaging/software/releases.py prepare --manifest /path/release.json --k
 и encoded body, CLI, идентичная упаковка при другом системном времени.
 HTTP-ответы — fixtures; живой CDN,
 Linux durability/power loss, ARM64, настоящая установка и runtime пока не проверены.
+
+## Каналы GitHub и получение кандидата — 24 октября 2026
+
+По решению владельца тяжёлые Software-пакеты/установщики хранятся в **GitHub
+Releases**, скачивание идёт напрямую оттуда. Сервер владельца не раздаёт OTA.
+Небольшие подписанные `beta.json`/`preview.json` также хранятся на GitHub;
+для изменяемого указателя предусмотрена отдельная ветка `updates` с raw HTTPS URL.
+Ветка/публичные endpoints пока **не созданы**, ключ и release assets не опубликованы.
+Это отделяет обновляемый указатель от неизменяемых пакетов конкретного тега.
+Прямые ссылки поддерживаются [GitHub](https://docs.github.com/en/repositories/releasing-projects-on-github/linking-to-releases).
+GitHub `latest`, порядок commits/main и наличие prerelease сами не выбирают версию.
+Ни GitHub-аккаунт игрока, ни API token, ни GitHub Actions этому пути не требуются.
+Actions по прежнему решению владельца остаётся выключен.
+
+[channels.py](../packaging/software/channels.py) — общий CLI consumer для будущего
+установщика и Settings → System → Updates, в том же S13, что и `releases.py`:
+
+- `build` создаёт локальный подписанный файл канала из проверенного release
+  manifest. Канал содержит Beta/Preview, отдельный возрастающий номер публикации,
+  время выпуска/истечения, текст изменений, точную версию/sequence/архитектуру,
+  минимальную версию протокола updater, URL/размер/SHA-256 manifest. Сам manifest
+  отдельно подписан и закрепляет архив. Встроенного production key нет.
+- `check` получает только небольшие метаданные; проверяет обе подписи,
+  точное совпадение manifest и канала, target, minimum updater и диапазоны данных.
+  Результаты: `available`, `up-to-date`, `blocked`; при сетевой/проверочной ошибке
+  возвращается ошибка, а не ложное «обновлений нет». Архив не скачивается.
+- Только явный `prepare` после свежей повторной проверки канала вызывает общий
+  HTTPS/Range/download/extract механизм. Получаем `prepared`, всегда
+  `installed: false`. Ошибка, отмена или несовместимость не активируют программу.
+  Артефакт из прежнего `check` не разрешает обойти истёкший/изменённый канал.
+- Подписанное состояние канала атомарно сохраняется отдельно от cache пакетов,
+  под межпроцессной блокировкой. Более старый номер канала, изменение содержимого
+  под тем же номером, снижение номера Software или замена manifest той же версии
+  отвергаются. Для Beta/Preview история независима; установленная более новая
+  версия при переходе Preview → Beta остаётся установленной без загрузки старой.
+  Повреждение состояния — ошибка, не молчаливый сброс защиты.
+- Срок действия канала ограничен 31 днём: издатель должен обновить подпись/номер
+  даже без нового пакета. Истечение блокирует новое получение OTA, **не запуск
+  установленного TrainerOS**. Неверные часы объясняются ошибкой; свежесть без
+  доверенных часов не гарантируется. Bootstrap может задать минимальные feed/release
+  sequences; удаление локального состояния теряет локальную историю защиты.
+- HTTPS redirects допускаются (включая GitHub CDN), downgrade к HTTP, credentials
+  в URL, неожиданные статусы/кодирование, oversized/truncated metadata запрещены.
+  JSON с duplicate keys отвергается. Доверие остаётся у bootstrap-ключа, не CDN.
+
+Действующий #154 разрешает фоновые проверки, но **скачивание и установка только
+по действию пользователя**. Ранее обсуждавшееся автоматическое скачивание не
+включено. Планировщик/Settings/Downloads ещё не подключены; CLI не создаёт таймеров.
+
+Пример для разработчика (environment содержит **явно выбранные доверенные**
+параметры; это не готовая команда установки публичной версии):
+
+```sh
+python3 packaging/software/channels.py check \
+  --feed-url "$FEED_URL" --key "$PUBLIC_KEY" --channel beta \
+  --state "$CHANNEL_STATE" --installed-sequence "$INSTALLED_SEQUENCE" \
+  --target linux-aarch64 --sqlite "$SQLITE_SCHEMA" --first-run "$FIRST_RUN_SCHEMA"
+
+# Только по явному Download; все проверки канала повторяются.
+python3 packaging/software/channels.py prepare \
+  --feed-url "$FEED_URL" --key "$PUBLIC_KEY" --channel beta \
+  --state "$CHANNEL_STATE" --installed-sequence "$INSTALLED_SEQUENCE" \
+  --target linux-aarch64 --sqlite "$SQLITE_SCHEMA" --first-run "$FIRST_RUN_SCHEMA" \
+  --cache "$SOFTWARE_CACHE"
+```
+
+`installed-sequence=0` означает отсутствие Software-установки, не разрешение
+игнорировать существующую. Target/schema/installed sequence пока явно передаёт
+caller; будущий bootstrap обязан читать их из проверенного host/receipt/данных.
+Cache и channel state — разные каталоги. Издатель использует `channels.py build
+--help`: отдельные public/signing key, уникальный output, UTC issued/expires,
+номер канала, manifest URL и optional UTF-8 notes. Команда ничего не загружает в GitHub.
+
+Порядок будущей публикации: собрать/проверить точный ARM64 payload и notices/source,
+подписать manifest с URL конкретного release tag, загрузить архив/manifest в Releases,
+проверить анонимное чтение и целостность, затем опубликовать подписанный канал.
+Не менять байты опубликованного пакета под тем же release sequence. Новый hotfix
+получает новый sequence; обновление срока канала увеличивает только channel sequence.
+Ключ подписи остаётся вне GitHub/устройства; bootstrap содержит только доверенный
+публичный ключ и источник. Ротация/отзыв, снятие плохого кандидата без замены,
+производственный bootstrap и проверенная процедура публикации ещё нужны.
+
+**Проверено локально:** 28 `SoftwareChannelTests` + 19 `SoftwareReleaseTests`
+прошли на Windows/UCRT64. Кроме подписей, файлов, persistence/lock и HTTP fixtures,
+новый тест запускает настоящий loopback HTTPS server с временным TLS certificate,
+проверяет redirect и отдельные CLI subprocess `check` → `prepare` без Authorization;
+архив отсутствует среди запросов `check`. Это не проверка GitHub CDN или портативок.
+
+**Остаток:** публичный ключ/bootstrap/feed и реальные ARM64 release assets,
+host/storage/receipt probe, компонентные/инкрементальные пакеты, UI/Downloads,
+безопасная активация/health check/repair/совместимый rollback и ARM64 приёмка.
+Сейчас schema 1 содержит один application bundle; она не выдаёт поддержку всех
+будущих runtime/policy/adapter-компонентов. `minimumUpdater` позволяет явно
+отказать старому клиенту, но self-update этого клиента ещё не реализован.
+Перед активацией потребуются повторная актуальность/совместимость и S03/S08 guard;
+подготовленный cache сам по себе не даёт права менять работающую установку.
 
 ## Приёмка перед выпуском
 

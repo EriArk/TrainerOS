@@ -559,6 +559,7 @@ qt_add_qml_module(traineros
 if(BUILD_TESTING)
     find_package(Python3 REQUIRED COMPONENTS Interpreter)
     add_test(NAME software_release COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/SoftwareReleaseTests.py)
+    add_test(NAME software_channel COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/SoftwareChannelTests.py)
     qt_add_executable(trainer_platform_tests tests/PlatformHostTests.cpp)
     target_include_directories(trainer_platform_tests PRIVATE src)
     target_link_libraries(trainer_platform_tests PRIVATE trainer_core Qt6::Test)
