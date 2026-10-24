@@ -34,7 +34,7 @@ def torso_weights(joints, weights, names):
 def bind(pack):
     manifest_path = pack / 'manifest.json'
     manifest = json.loads(manifest_path.read_text(encoding='utf-8'))
-    if manifest.get('clothing', {}).get('fit') == 1:
+    if manifest.get('clothing', {}).get('fit') == 2:
         print('Torso skin and rest fit already applied.')
         return
     path = pack / 'template.glb'
@@ -66,6 +66,9 @@ def bind(pack):
     for primitive in mesh['primitives']:
         a = primitive['attributes']
         pos = src.acc(a['POSITION']).copy()
+        clearance_depth = pos[:, 2].copy()
+        panel_side = np.sign(pos[:, 2])
+        panel = abs(pos[:, 2]) > .025
         # Bring the front/back panels close to the torso in the bind pose.
         # Keep a loose hem; a large rear air gap used to look like a second back.
         for side in [-1, 1]:
@@ -78,6 +81,7 @@ def bind(pack):
             clearance = .010 + .008 * np.clip((.60 - points[:, 1]) / .17, 0, 1)
             influence = np.clip(abs(points[:, 2]) / .035, 0, 1)
             pos[selected, 2] = points[:, 2] * (1 - influence) + (depth + side * clearance) * influence
+            clearance_depth[selected] = depth + side * clearance
         faces = src.acc(primitive['indices']).reshape(-1, 3)
         # Smooth the fitted depth across the actual surface, including UV seams.
         # Preserve the garment's width, neckline and hem rather than shrinking it.
@@ -93,6 +97,10 @@ def bind(pack):
         for _ in range(24):
             depth = np.bincount(weld, weights=pos[:, 2]) / multiplicity
             pos[:, 2] = .55 * pos[:, 2] + .45 * (adjacency @ depth / degree)[weld]
+            # Relaxation must not pull the panel back through the chest. Keep
+            # its fitted clearance as a constraint, not only an initial offset.
+            crossing = panel & ((pos[:, 2] - clearance_depth) * panel_side < 0)
+            pos[crossing, 2] = clearance_depth[crossing]
         replace(a['POSITION'], pos.astype('<f4'))
         changed.add(a['POSITION'])
         g['accessors'][a['POSITION']].update(min=pos.min(0).tolist(), max=pos.max(0).tolist())
@@ -124,8 +132,8 @@ def bind(pack):
     for index in range(len(g['accessors'])):
         if index not in changed:
             assert np.array_equal(src.acc(index), result.acc(index)), index
-    manifest['revision'] = 2
-    manifest['clothing'] = {'deformation': 'torso-skin', 'simulation': False, 'fit': 1}
+    manifest['revision'] = 3
+    manifest['clothing'] = {'deformation': 'torso-skin', 'simulation': False, 'fit': 2}
     manifest['files']['template.glb'] = hashlib.sha256(path.read_bytes()).hexdigest()
     manifest_path.write_text(json.dumps(manifest, indent=2) + '\n', encoding='utf-8')
     print('Torso skin bound; all non-garment accessors preserved.')
