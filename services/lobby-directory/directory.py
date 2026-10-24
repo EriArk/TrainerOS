@@ -15,7 +15,7 @@ def decode(content):
         value = json.loads(content[len(PREFIX):-4])
     except (ValueError, TypeError):
         return None
-    return value if isinstance(value, dict) and type(value.get('v')) is int and value['v'] == 1 else None
+    return value if isinstance(value, dict) and type(value.get('v')) is int and value['v'] in (1, 2) else None
 
 
 def encode(value):
@@ -44,6 +44,8 @@ class Directory:
             channel TEXT, message TEXT)''')
         self.db.execute('''CREATE TABLE IF NOT EXISTS obsolete (
             channel TEXT NOT NULL, message TEXT NOT NULL, PRIMARY KEY(channel,message))''')
+        if 'product' not in {row['name'] for row in self.db.execute('PRAGMA table_info(lobbies)')}:
+            self.db.execute("ALTER TABLE lobbies ADD COLUMN product TEXT NOT NULL DEFAULT 'traineros'")
         self.db.commit()
 
     def accept(self, author, name, command, now):
@@ -51,6 +53,14 @@ class Directory:
         if not re.fullmatch(r'[0-9]{1,20}', author):
             return 'invalid'
         try:
+            version = command.get('v')
+            if type(version) is not int or version not in (1, 2):
+                return 'invalid'
+            product = 'traineros' if version == 1 else command.get('product')
+            if version == 2 and (product != 'abyssme' or type(command.get('protocol')) is not int or command['protocol'] != 1):
+                return 'invalid'
+            if version == 1 and ('product' in command or 'protocol' in command):
+                return 'invalid'
             lobby = command['lobby']
             if str(uuid.UUID(lobby)) != lobby:
                 return 'invalid'
@@ -63,6 +73,8 @@ class Directory:
             old = self.db.execute('SELECT * FROM lobbies WHERE id=?', (lobby,)).fetchone()
             if old and old['owner'] != author:
                 return 'forbidden'
+            if old and old['product'] != product:
+                return 'wrong-product'
             if old and old['closed']:
                 return 'closed'
             if old and old['revision'] >= revision:
@@ -70,10 +82,10 @@ class Directory:
             if op in ('close', 'withdraw'):
                 # Retain a tombstone even if close arrives before a delayed upsert.
                 with self.db:
-                    self.db.execute('''INSERT INTO lobbies(id,owner,revision,payload,topic,expires,closed)
-                        VALUES(?,?,?,'{}','choosing',?,?) ON CONFLICT(id) DO UPDATE SET
+                    self.db.execute('''INSERT INTO lobbies(id,owner,revision,payload,topic,expires,closed,product)
+                        VALUES(?,?,?,'{}','choosing',?,?,?) ON CONFLICT(id) DO UPDATE SET
                         revision=excluded.revision,closed=excluded.closed,dirty=1,expires=excluded.expires''',
-                        (lobby, author, revision, now, int(op == 'close')))
+                        (lobby, author, revision, now, int(op == 'close'), product))
                 return 'closed' if op == 'close' else 'withdrawn'
             active = self.db.execute('SELECT id FROM lobbies WHERE owner=? AND closed=0 AND expires>? AND id<>?',
                                      (author, now, lobby)).fetchone()
@@ -96,23 +108,35 @@ class Directory:
                 return 'invalid'
             # Explicit allowlist: never reflect ROM paths, IPs, keys, libraries or
             # arbitrary embedded fields into a public community message.
-            payload = {'v': 1, 'lobby': lobby, 'owner': author, 'name': text(name, 100),
+            payload = {'v': version, 'lobby': lobby, 'owner': author, 'name': text(name, 100),
                        'revision': revision, 'status': status, 'access': access,
                        'seats': seats, 'available': available, 'streams': streams, 'expires': now + TTL}
+            if version == 2:
+                if streams:
+                    return 'invalid'
+                payload.update(product=product, protocol=1)
             if status != 'choosing':
                 game = command['game']
                 payload['game'] = {key: text(game[key], limit) for key, limit in
                                    [('id', 128), ('title', 160), ('platform', 32), ('mode', 64)]}
                 if not seats:
                     return 'invalid'
+                if version == 2:
+                    if (not re.fullmatch(r'[a-f0-9]{64}', game['id'])
+                            or game['platform'] not in ('j2me', 'mophun', 'symbian')
+                            or not re.fullmatch(r'[a-z0-9._-]{1,64}', game['mode'])
+                            or not re.fullmatch(r'[A-Za-z0-9._-]{1,64}', game.get('adapter', ''))
+                            or seats < 2):
+                        return 'invalid'
+                    payload['game']['adapter'] = game['adapter']
             elif seats or available:
                 return 'invalid'
             encode(payload)
             with self.db:
-                self.db.execute('''INSERT INTO lobbies(id,owner,revision,payload,topic,expires)
-                    VALUES(?,?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET revision=excluded.revision,
+                self.db.execute('''INSERT INTO lobbies(id,owner,revision,payload,topic,expires,product)
+                    VALUES(?,?,?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET revision=excluded.revision,
                     payload=excluded.payload,topic=excluded.topic,expires=excluded.expires,dirty=1''',
-                    (lobby, author, revision, json.dumps(payload, ensure_ascii=False), topic, now + TTL))
+                    (lobby, author, revision, json.dumps(payload, ensure_ascii=False), topic, now + TTL, product))
             return 'accepted'
         except (ValueError, TypeError, KeyError, AttributeError):
             return 'invalid'

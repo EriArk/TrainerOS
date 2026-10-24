@@ -1,5 +1,15 @@
 # TrainerOS — состояние проекта
 
+## Отдельная ветка: каталог AbyssME, 24 октября 2026
+
+В `codex/abyssme-lobby-directory-v2` подготовлено [расширение существующего бота](services/lobby-directory/ABYSSME_V2.md)
+для объявлений AbyssME. Старый формат TrainerOS сохранён; его клиент игнорирует
+новый формат по версии. Подтверждена общая квота одной публичной комнаты на
+аккаунт и защита от случайного изменения комнаты другим приложением. Пройдены
+15 локальных тестов, включая миграцию базы. **Сервис не развёрнут**, клиентские
+сборки TrainerOS/устройства не менялись, живой двухаккаунтный цикл не проверен.
+Это отдельная исходная доработка #257, не обновление исторического среза ниже.
+
 > **Status/evidence boundary (19 October 2026):** The cumulative **implementation and device snapshot below is dated 14 October**; it is not a claim that the major 15–19 October interface/SDK targets were shipped. The accepted **future** product layout and system/API direction are summarized in [current product architecture](docs/PRODUCT_ARCHITECTURE_RU.md), with issues [#206](https://github.com/EriArk/TrainerOS/issues/206), [#224](https://github.com/EriArk/TrainerOS/issues/224), [#233](https://github.com/EriArk/TrainerOS/issues/233), [#234](https://github.com/EriArk/TrainerOS/issues/234), and **[#235–244](https://github.com/EriArk/TrainerOS/issues/235)**. Do not interpret the older public text or captures below as final UI evidence. Documentation maintenance itself introduces no new runtime capabilities.
 
 ---
