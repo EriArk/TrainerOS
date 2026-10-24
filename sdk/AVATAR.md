@@ -97,6 +97,17 @@ before replacing appearance. No handheld delivery is implied.
 
 ## Local preparation
 
+### Static player portraits
+
+Games can capture the resolved model once into a 256px transparent portrait.
+Use [Qt cards](qt/README.md) or `godot/avatar_portrait.gd`; the portrait retains
+the saved appearance and requires no copied model assets or new host method.
+Use the existing recipe exchange for a peer, the admitted session identity for
+seat mapping, and an anonymous fallback for bots, local guests or unavailable
+avatars. Clear on withdrawal/revocation and fence asynchronous completion.
+The renderer must be released after capture rather than running behind each card.
+
+
 The checked-in pack lives in `assets/avatar/packs/trainer-avatar-1` and installs
 once under `share/traineros/avatar/packs`. A development build also finds that
 source pack. `TRAINEROS_AVATAR_PACK` explicitly overrides discovery.
