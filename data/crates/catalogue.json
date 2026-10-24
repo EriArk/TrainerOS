@@ -218,10 +218,25 @@
         "qrc:/crates/projects/tanks.png"
       ],
       "releases": []
+    },
+    {
+      "id": "pocket-golf",
+      "title": "Pocket Golf",
+      "kind": "game",
+      "creator": "AbyssTail",
+      "license": "GPL-3.0-or-later",
+      "summary": "Small greens, gentle putts, one more round.",
+      "description": "Three mini-golf courses with slopes and bank shots. Play solo, pass the controls, or join a friend through TrainerOS Lobby. Uses your shared TrainerOS character when available. Experimental release.",
+      "hero": "qrc:/crates/projects/pocket-golf.png",
+      "screenshots": [
+        "qrc:/crates/projects/pocket-golf.png"
+      ],
+      "releases": []
     }
   ],
   "contents": {
     "whats-new": [
+      "pocket-golf",
       "falling-blocks",
       "minesweeper-race",
       "chain-reaction",
@@ -239,6 +254,7 @@
       "qalculate"
     ],
     "workshop": [
+      "pocket-golf",
       "falling-blocks",
       "minesweeper-race",
       "chain-reaction",
@@ -252,6 +268,7 @@
     ],
     "adventure": [],
     "arcade": [
+      "pocket-golf",
       "tanks",
       "mini-racing",
       "falling-blocks",
