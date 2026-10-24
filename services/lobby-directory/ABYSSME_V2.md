@@ -60,14 +60,33 @@ service cannot safely update existing v2 records and would not understand their
 ownership scope. Do not deploy over a live service just because unit tests pass.
 Before production rollout, exercise v1/v2 publication and withdrawal with two
 authorized identities, verify the one-account collision message and old-client
-isolation, then keep service rollback available. Client publishing is not bound
-yet; server acceptance codes currently go to service logs, not DM acknowledgements.
+isolation, then keep service rollback available. Android publication is now bound
+in unreleased source. Neither this branch nor the earlier v2 patch is deployed.
+
+### Private command acknowledgements
+
+An AbyssME command may include a UUID `request`. After authenticated DM and guild
+membership checks and the durable database operation, the bot replies in that DM
+with prefix `TrainerOS lobby directory result\n```json\n` and a closing code fence.
+The allowlisted result has `v: 2`, `product: abyssme`, `protocol: 1`, authenticated
+`owner`, original `request`, `lobby`, `revision`, `op`, a bounded `result` code and
+`expires: now + 90`. Legacy v1 commands receive no new reply. No diagnostic body,
+credential or arbitrary command field is reflected.
+
+`accepted` means the command is stored, not that reconciliation has made it visible
+or that the host admitted anyone. `already-listed` lets the client explain the
+cross-product quota. Lost acknowledgement is not silently converted into success:
+the Android client offers retry with a higher durable revision. Replayed commands
+can receive `stale`; this is not an acknowledgement journal or exactly-once delivery.
+The bot is still not a room authority, invitation relay or gameplay server.
 
 ## Verification
 
 `py -3 -m unittest discover -s services/lobby-directory -p test_*.py`
 
-15 tests pass: eight legacy cases plus seven v2 cases covering scope/private-field
+19 tests pass: eight legacy cases plus seven v2 cases covering scope/private-field
 projection, game validation, unknown versions, cross-product quota, persistent
-ownership, out-of-order close and legacy database migration. Local SQLite/API
+ownership, out-of-order close and legacy database migration, plus four correlated
+result tests (private allowlist, legacy isolation, invalid scope/correlation).
+Local SQLite/API
 fixtures only; no live bot, Fluxer account, device, media or gameplay acceptance.
