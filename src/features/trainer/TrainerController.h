@@ -56,6 +56,7 @@ public:
     QJsonObject avatarDescriptor() const { return liveAvatar_; }
     Q_INVOKABLE void beginAvatarEdit();
     Q_INVOKABLE void cycleAvatar(int index, int delta = 1);
+    Q_INVOKABLE void chooseAvatar(int index, const QString& value);
     Q_INVOKABLE void finishAvatar(bool saveChanges);
 signals:
     void changed();

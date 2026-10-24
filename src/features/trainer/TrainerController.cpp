@@ -166,7 +166,7 @@ QString TrainerController::avatarPreview() const {
 QVariantList TrainerController::avatarRows() const {
     const auto a=draft_.avatar.isEmpty()?AvatarAssets::defaults():draft_.avatar;
     const QStringList labels{"Hairstyle","Eyes","Hair colour","Eye colour","Skin colour","Shirt colour","Shorts colour"};
-    QVariantList rows;int i=0;for(const auto& key:AvatarAssets::keys())rows.append(QVariantMap{{"title",labels[i++]},{"detail",a[key].toString()},{"colour",key.endsWith("Color")?a[key].toString():QString()}});
+    QVariantList rows;int i=0;for(const auto& key:AvatarAssets::keys())rows.append(QVariantMap{{"title",labels[i++]},{"detail",a[key].toString()},{"choices",AvatarAssets::choices(key)},{"colour",key.endsWith("Color")?a[key].toString():QString()}});
     rows.append(QVariantMap{{"title",saving_?"Saving…":"Save appearance"}});rows.append(QVariantMap{{"title","Cancel"}});return rows;
 }
 void TrainerController::beginAvatarEdit() {
@@ -177,7 +177,15 @@ void TrainerController::beginAvatarEdit() {
 void TrainerController::cycleAvatar(int index,int delta) {
     if(!avatarEditing_||saving_||index<0||index>=7)return;
     const auto key=AvatarAssets::keys()[index];const auto values=AvatarAssets::choices(key);
-    const int old=values.indexOf(draft_.avatar[key].toString());draft_.avatar[key]=values[(std::max(0,old)+delta+values.size())%values.size()];focus_=index;refreshAvatar();emit changed();
+    const int old=values.indexOf(draft_.avatar[key].toString());chooseAvatar(index,values[(std::max(0,old)+delta+values.size())%values.size()]);
+}
+void TrainerController::chooseAvatar(int index,const QString& value) {
+    if(!avatarEditing_||saving_||index<0||index>=7)return;
+    const auto key=AvatarAssets::keys()[index];
+    if(!AvatarAssets::choices(key).contains(value))return;
+    focus_=index;
+    if(draft_.avatar[key]!=value){draft_.avatar[key]=value;refreshAvatar();}
+    emit changed();
 }
 void TrainerController::finishAvatar(bool saveChanges) {
     if(!avatarEditing_||saving_)return;

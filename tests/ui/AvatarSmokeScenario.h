@@ -41,7 +41,7 @@ inline void startAvatarSmoke(QQuickWindow* window,trainer::ShellController& shel
                 if(item->objectName()=="avatar-field-1"&&item->isVisible())return item;
                 for(auto* c:item->childItems())if(auto* r=find(c))return r;return nullptr;};
             auto* row=find(window->contentItem());check(row,"Eye touch row missing");
-            if(row){auto point=row->mapToScene({row->width()/2,row->height()/2});auto global=QPointF(window->mapToGlobal(point.toPoint()));
+            if(row){auto point=row->mapToScene({row->width()*.75,row->height()-10});auto global=QPointF(window->mapToGlobal(point.toPoint()));
                 QMouseEvent down(QEvent::MouseButtonPress,point,global,Qt::LeftButton,Qt::LeftButton,Qt::NoModifier),up(QEvent::MouseButtonRelease,point,global,Qt::LeftButton,Qt::NoButton,Qt::NoModifier);
                 QCoreApplication::sendEvent(window,&down);QCoreApplication::sendEvent(window,&up);}
             ++*stage;break;
@@ -49,8 +49,21 @@ inline void startAvatarSmoke(QQuickWindow* window,trainer::ShellController& shel
         case 4:
             if(controller->avatarBusy())break;
             check(controller->avatarRows()[1].toMap()["detail"]=="almond","Eye touch did not change appearance");
-            controller->finishAvatar(true);++*stage;break;
+            for(int i=0;i<5;++i)shell.dispatch(trainer::Action::Down);
+            ++*stage;break;
         case 5:
+        {
+            const std::function<QQuickItem*(QQuickItem*,const QString&)> find=[&](QQuickItem* item,const QString& name)->QQuickItem*{
+                if(item->objectName()==name&&item->isVisible())return item;
+                for(auto* c:item->childItems())if(auto* r=find(c,name))return r;return nullptr;};
+            auto* colour=find(window->contentItem(),"avatar-field-6");
+            auto* save=find(window->contentItem(),"avatar-field-7");
+            check(controller->focusIndex()==6,"Controller did not reach shorts palette");
+            check(colour&&save&&colour->mapToScene({0,colour->height()}).y()<=save->mapToScene({0,0}).y(),"Palette overlaps footer in compact editor");
+            shell.dispatch(trainer::Action::Down);shell.dispatch(trainer::Action::Confirm);
+            ++*stage;break;
+        }
+        case 6:
             if(controller->saving()||controller->avatarBusy())break;
             check(controller->avatarDescriptor()["appearance"].toObject()["eyes"]=="almond","Saved appearance not live");
             if(!directory.isEmpty())check(window->grabWindow().save(directory+"/avatar-profile.png"),"Profile screenshot failed");

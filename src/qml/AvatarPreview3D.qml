@@ -8,6 +8,15 @@ View3D {
     readonly property bool ready: avatar.status===RuntimeLoader.Success
     property url modelSource
     property real yaw: 0
+    readonly property real displayScale: Math.max(1, Window.window ? Window.window.uiScale || 1 : 1)
+    Component.onCompleted: {
+        // The shell scales its logical canvas. Render at that physical size too;
+        // older Qt versions keep their supported default texture allocation.
+        if ("explicitTextureWidth" in root) {
+            root.explicitTextureWidth = Qt.binding(function() { return Math.ceil(root.width * root.displayScale) })
+            root.explicitTextureHeight = Qt.binding(function() { return Math.ceil(root.height * root.displayScale) })
+        }
+    }
     environment: SceneEnvironment {
         backgroundMode: SceneEnvironment.Transparent
         antialiasingMode: SceneEnvironment.MSAA

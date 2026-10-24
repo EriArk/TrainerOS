@@ -17,6 +17,9 @@ private slots:
         QTRY_VERIFY_WITH_TIMEOUT(!c.avatarDescriptor().isEmpty(),30000);
         const auto original=c.avatarDescriptor();c.reload();QCOMPARE(c.avatarDescriptor(),original);
         c.beginAvatarEdit();c.cycleAvatar(0);QCOMPARE(c.avatarDescriptor(),original);
+        c.chooseAvatar(2,"#d1ab68");QCOMPARE(c.avatarRows()[2].toMap()["colour"].toString(),"#d1ab68");
+        c.chooseAvatar(0,"missing");QCOMPARE(c.avatarRows()[0].toMap()["detail"].toString(),"ponytail");
+        QCOMPARE(c.avatarDescriptor(),original);
         c.finishAvatar(false);QCOMPARE(repo.load()->avatar,p.avatar);
         c.beginAvatarEdit();c.cycleAvatar(1);c.finishAvatar(true);
         QCOMPARE(repo.load()->avatar["eyes"].toString(),"almond");
