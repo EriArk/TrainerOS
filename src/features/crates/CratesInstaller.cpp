@@ -16,6 +16,9 @@ bool canRun(const QVariantMap& record) {
 }
 }
 CratesInstaller::CratesInstaller(QObject* p):QObject(p) {
+    inventoryRefresh_.setSingleShot(true);inventoryRefresh_.setInterval(100);
+    connect(&inventoryWatch_,&QFileSystemWatcher::directoryChanged,this,[this]{inventoryRefresh_.start();});
+    connect(&inventoryRefresh_,&QTimer::timeout,this,[this]{watchInventory();readInventory();});
     persist_.setSingleShot(true);persist_.setInterval(500);
     connect(&persist_,&QTimer::timeout,this,&CratesInstaller::persistJobs);
     connect(this,&CratesInstaller::changed,this,[this]{if(!persist_.isActive())persist_.start();});
@@ -47,19 +50,30 @@ void CratesInstaller::persistJobs(){
     if(file.open(QIODevice::WriteOnly)){file.write(QJsonDocument(QJsonArray::fromVariantList(jobs_)).toJson(QJsonDocument::Compact));file.commit();}
 }
 void CratesInstaller::configure(const QString& helper,const QString& registry,const QString& root) {
+    inventoryRefresh_.stop();
+    if(!inventoryWatch_.directories().isEmpty())inventoryWatch_.removePaths(inventoryWatch_.directories());
     helper_=helper;registry_=registry;root_=root;
     QFile f(registry);if(f.size()<1024*1024&&f.open(QIODevice::ReadOnly))packages_=QJsonDocument::fromJson(f.readAll()).object()["packages"].toArray().toVariantList();
     QFile jobs(root_+"/jobs.json");if(jobs.size()<1024*1024&&jobs.open(QIODevice::ReadOnly)){
         jobs_=QJsonDocument::fromJson(jobs.readAll()).array().toVariantList();
         for(auto& v:jobs_){auto r=v.toMap();if(!r["terminal"].toBool()){r["terminal"]=true;r["state"]="failed";r["detail"]="Interrupted · Retry to continue";v=r;}}
     }
-    readInventory();emit changed();
+    watchInventory();readInventory();emit changed();
+}
+void CratesInstaller::watchInventory(){
+    if(root_.isEmpty())return;
+    // Watch directories: the external installer atomically replaces receipts.
+    // The store parent also covers first installation / recreation of active/.
+    for(const auto& path:QStringList{QFileInfo(root_).absolutePath(),root_,root_+"/active"})
+        if(QFileInfo(path).isDir()&&!inventoryWatch_.directories().contains(path))inventoryWatch_.addPath(path);
 }
 void CratesInstaller::readInventory(){
-    inventory_.clear();QDir dir(root_+"/active");
+    QMap<QString,QVariantMap> next;QDir dir(root_+"/active");
+    if(root_.isEmpty()){inventory_.clear();return;}
     for(const auto& name:dir.entryList({"*.json"},QDir::Files)){QFile f(dir.filePath(name));if(f.size()>1024*1024||!f.open(QIODevice::ReadOnly))continue;
-        const auto r=QJsonDocument::fromJson(f.readAll()).object().toVariantMap();inventory_[r["id"].toString()]=r;}
-    emit inventoryChanged();
+        const auto r=QJsonDocument::fromJson(f.readAll()).object().toVariantMap();next[r["id"].toString()]=r;}
+    if(next==inventory_)return;
+    inventory_=next;emit inventoryChanged();emit changed();
 }
 void CratesInstaller::useCatalogue(const QVariantList& packages,const QString& registry){packages_=packages;registry_=registry;emit changed();}
 void CratesInstaller::setOnline(bool online){if(online_==online)return;online_=online;emit changed();}

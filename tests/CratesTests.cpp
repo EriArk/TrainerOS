@@ -2,12 +2,43 @@
 #include <QTemporaryDir>
 #include <QFile>
 #include <QSysInfo>
+#include <QSaveFile>
 #include "features/crates/CratesController.h"
 #include "fixtures/crates/CatalogueFixture.h"
 using namespace trainer;
 class CratesTests: public QObject {
     Q_OBJECT
 private slots:
+    void externalAtomicUpgradeRefreshesLobbyInventory() {
+        QTemporaryDir temp;QVERIFY(temp.isValid());QDir root(temp.path());
+        CratesInstaller installer;installer.configure({}, {},temp.path());
+        QSignalSpy updated(&installer,&CratesInstaller::inventoryChanged);
+        auto activate=[&](QString project,QString protocol,QChar digit){
+            const QString sha(64,digit),object=project+"-"+sha;
+            if(!root.mkpath("objects/"+object)||!root.mkpath("active"))return false;
+            QFile descriptor(root.filePath("objects/"+object+"/traineros-activity.json"));
+            if(!descriptor.open(QIODevice::WriteOnly))return false;
+            descriptor.write(QJsonDocument(QJsonObject{{"schema",1},{"app","org.test."+project},{"protocol",protocol},{"seats",2}}).toJson());descriptor.close();
+            QSaveFile receipt(root.filePath("active/"+project+".json"));
+            if(!receipt.open(QIODevice::WriteOnly))return false;
+            receipt.write(QJsonDocument(QJsonObject{{"id",project},{"kind","game"},{"title",project},{"sha256",sha},{"object",object}}).toJson());
+            return receipt.commit();
+        };
+        QVERIFY(activate("golf","game.5",'a'));
+        QTRY_COMPARE(installer.activities().size(),1);
+        QCOMPARE(installer.activities()[0].toMap()["protocol"].toString(),QString("game.5"));
+        QVERIFY(activate("golf","game.6",'b'));
+        QTRY_COMPARE(installer.activities()[0].toMap()["protocol"].toString(),QString("game.6"));
+        QVERIFY(activate("arcade","arcade.2",'c'));
+        QTRY_COMPARE(installer.activities().size(),2);
+        QVERIFY(QFile::remove(root.filePath("active/golf.json")));
+        QTRY_COMPARE(installer.activities().size(),1);
+        QCOMPARE(installer.activities()[0].toMap()["app"].toString(),QString("org.test.arcade"));
+        QVERIFY(updated.size()>=4);
+        const auto count=updated.size();QFile unrelated(root.filePath("unrelated.txt"));
+        QVERIFY(unrelated.open(QIODevice::WriteOnly));unrelated.write("unchanged inventory");unrelated.close();
+        QTest::qWait(250);QCOMPARE(updated.size(),count);
+    }
     void installedActivityDoesNotRequireRunningGame() {
         QTemporaryDir temp;QVERIFY(temp.isValid());QDir root(temp.path());
         QVERIFY(root.mkpath("active"));

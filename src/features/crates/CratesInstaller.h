@@ -4,6 +4,7 @@
 #include <QVariantList>
 #include <QTimer>
 #include <QMap>
+#include <QFileSystemWatcher>
 #include <functional>
 namespace trainer {
 class CratesInstaller final : public QObject {
@@ -29,6 +30,7 @@ signals:
 private:
     void pump();
     void readInventory();
+    void watchInventory();
     void event(const QByteArray&);
     void persistJobs();
     QString helper_,registry_,root_,active_;
@@ -38,6 +40,8 @@ private:
     QByteArray buffer_;
     QTimer retry_;
     QTimer persist_;
+    QFileSystemWatcher inventoryWatch_;
+    QTimer inventoryRefresh_;
     bool online_=true;
 };
 }
