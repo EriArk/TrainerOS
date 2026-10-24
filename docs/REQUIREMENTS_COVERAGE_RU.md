@@ -297,6 +297,7 @@ S-владельцу [структуры](STRUCTURE_MAP_RU.md) и F-цепочк
 
 | Требование / источник | Готовность | Владельцы / цепочка |
 | --- | --- | --- |
+| Общие настройки VPN с информационным блоком; решение в чате 24.10, сейчас не реализовывать | [R145](FEATURE_READINESS.md#r145) | S15/S07/S04/S06; F04/F11/F12 |
 | TrainerOS ID и recovery — [решение](TRAINEROS_ACCOUNT_ECONOMY_RU.md) | [R089](FEATURE_READINESS.md#r089) | S01; F08/F12 |
 | Матчи, wins/losses/unique opponents — [backend](TRAINEROS_BACKEND_PLAN_RU.md) | [R107](FEATURE_READINESS.md#r107) | S10; F05 |
 | Ledger, награды, магазин, инвентарь, подписка | [R108](FEATURE_READINESS.md#r108), [R109](FEATURE_READINESS.md#r109), [R110](FEATURE_READINESS.md#r110) | S11; F05/F06 |
