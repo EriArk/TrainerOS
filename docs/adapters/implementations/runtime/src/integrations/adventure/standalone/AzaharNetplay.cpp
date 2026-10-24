@@ -1,4 +1,5 @@
 #include "AzaharNetplay.h"
+#include "NetplayCache.h"
 #include "core/model/GamePlayers.h"
 #include <QCryptographicHash>
 #include <QDir>
@@ -81,6 +82,8 @@ ProcessCommand command(const AdventureRegistration& record,const Request& reques
         if(!directory->isValid())return "Couldn't prepare the 3DS session.";
         const auto path=QFileInfo(directory->path()).canonicalFilePath(),user=path+"/user";
         if(!QDir().mkpath(user+"/config"))return "Couldn't prepare private 3DS settings.";
+        if(!prepareNetplayCache(user+"/shaders","azahar",request.expected["runtime"].toString()))
+            return "Couldn't prepare the graphics cache.";
         QSettings original(QStandardPaths::writableLocation(QStandardPaths::GenericConfigLocation)+"/azahar-emu/qt-config.ini",QSettings::IniFormat);
         const int graphics=original.value("Renderer/graphics_api",2).toInt();
         if(graphics!=0&&graphics!=2)return "This 3DS renderer isn't available in the multiplayer build.";

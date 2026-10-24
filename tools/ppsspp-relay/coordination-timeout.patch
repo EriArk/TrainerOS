@@ -1,0 +1,17 @@
+--- a/Core/HLE/proAdhoc.cpp
++++ b/Core/HLE/proAdhoc.cpp
+@@ -2202,6 +2202,14 @@
+ 		return SOCKET_ERROR;
+ 	}
+ 	setSockKeepAlive((int)metasocket, true);
++#if defined(__linux__) && defined(TCP_USER_TIMEOUT)
++	// Existing two-second pings expose a lost route even when no FIN/RST arrives.
++	// This bounds unacknowledged/zero-window data, not an idle lobby or match.
++	unsigned int userTimeout = 15000;
++	if (setsockopt((int)metasocket, IPPROTO_TCP, TCP_USER_TIMEOUT, &userTimeout, sizeof(userTimeout)) != 0) {
++		WARN_LOG(Log::sceNet, "AdhocServer TCP_USER_TIMEOUT unavailable (%i)", socket_errno);
++	}
++#endif
+ 	// Disable Nagle Algo to prevent delaying small packets
+ 	setSockNoDelay((int)metasocket, 1);
+ 	// Switch to Nonblocking Behaviour

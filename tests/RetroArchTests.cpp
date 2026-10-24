@@ -107,6 +107,8 @@ private slots:
             QVERIFY(!cmd.runtimeControls["temporaryProgress"].toBool());
             QCOMPARE(cmd.arguments[cmd.arguments.indexOf("--sram-mode")+1],QString("load-save"));
             const auto config=retroarch::readSettings(cmd.arguments[cmd.arguments.indexOf("--appendconfig")+1]);
+            QCOMPARE(config["netplay_input_latency_frames_min"],QString("0"));
+            QCOMPARE(config["netplay_input_latency_frames_range"],QString("6"));
             const auto path=config["savefile_directory"],main=path+"/player-"+QString::number(slot)+saveSuffix(slot),guest=path+"/.netplay/player-"+QString::number(slot)+saveSuffix(slot);
             QCOMPARE(read(main),seed.bytes);
             const auto options=retroarch::readSettings(config["core_options_path"]);
@@ -284,7 +286,7 @@ private slots:
         left["content"]="a9dec84dfe7f62ab2220bafaef7479da0929d066ece16a6885f6226db19085af";
         right["content"]="3d0c79f1627022e18765766f6cb5ea067f6b5bf7dca115552189ad65a5c3a8ac";
         QVERIFY(sameMultiplayerGame(left,right));
-        right["core"]="updated";QVERIFY(!sameMultiplayerGame(left,right));
+        right["core"]="different-architecture";QVERIFY(sameMultiplayerGame(left,right));
         const auto controls=retroarch::netplayControllers(p,false,2);
         QVERIFY(controls.contains("input_max_users = \"1\""));
         QVERIFY(!controls.contains("netplay_request_device_p2"));
@@ -334,6 +336,7 @@ private slots:
             QCOMPARE(cmd.arguments[cmd.arguments.indexOf("--libretro")+1],i.cores["gpsp"]);
             const auto settings=retroarch::readSettings(cmd.arguments[cmd.arguments.indexOf("--appendconfig")+1].section('|',-1));
             QCOMPARE(settings["input_max_users"],QString("1"));
+            QVERIFY(!settings.contains("netplay_input_latency_frames_range"));
             QCOMPARE(retroarch::readSettings(settings["core_options_path"])["gpsp_serial"],QString("rfu"));
             const auto session=settings["savefile_directory"],output=session+(host?"/":"/.netplay/")+"arbitrary.srm";
             QCOMPARE(read(output),before);QByteArray padded=after;padded.resize(131072);QVERIFY(write(output,padded));
@@ -493,13 +496,27 @@ private slots:
         QVERIFY(!retroarch::prepareNetplay(rejected,r,i,request,cancel).isEmpty());QCOMPARE(rejected.arguments,QStringList{r.contentPath});
         QFile original(i.configFile);QVERIFY(original.open(QIODevice::ReadOnly));QCOMPARE(original.readAll(),QByteArray("original test fixture"));
     }
+    void remoteBinaryDiffersButLocalReplacementStillInvalidatesPreparation() {
+        QTemporaryDir dir;std::atomic_bool cancel=false;
+        for(const auto& name:{"game.nes","runtime","core","retroarch.cfg"})touch(dir.filePath(name));
+        RetroArchInstallation i;i.configFile=dir.filePath("retroarch.cfg");i.runtimeFile=dir.filePath("runtime");i.cores["fceumm"]=dir.filePath("core");
+        AdventureRegistration r;r.adventure.platformId="nes";r.contentPath=dir.filePath("game.nes");r.integrationConfig["core"]="fceumm";
+        retroarch::NetplayRequest request;request.password="private";request.nickname="guest";request.address="127.0.0.1";request.slot=2;
+        request.localExpected=retroarch::netplayIdentity(r,i,cancel);request.expected=request.localExpected;
+        request.expected["runtime"]=QString(64,'a');request.expected["core"]=QString(64,'b');
+        ProcessCommand accepted;accepted.arguments={r.contentPath};QVERIFY(retroarch::prepareNetplay(accepted,r,i,request,cancel).isEmpty());accepted.settled({});
+        QFile changed(i.runtimeFile);QVERIFY(changed.open(QIODevice::WriteOnly));changed.write("replaced after preparation");changed.close();
+        ProcessCommand rejected;rejected.arguments={r.contentPath};
+        QVERIFY(retroarch::prepareNetplay(rejected,r,i,request,cancel).contains("local emulator changed"));
+    }
     void netplaySessionsKeepOptionsAndCleanupSeparate() {
         QTemporaryDir dir;
         const auto rom=dir.filePath("new-game.nes");touch(rom);
         const auto write=[&](const QString& name,const QByteArray& bytes){
             QFile f(dir.filePath(name));return f.open(QIODevice::WriteOnly)&&f.write(bytes)==bytes.size();
         };
-        const QByteArray original="global_core_options = \"false\"\ngame_specific_options = \"true\"\n";
+        const QByteArray original="global_core_options = \"false\"\ngame_specific_options = \"true\"\n"
+            "netplay_input_latency_frames_min = \"0\"\nnetplay_input_latency_frames_range = \"0\"\n";
         QVERIFY(write("retroarch.cfg",original));QVERIFY(write("core", "core fixture"));QVERIFY(write("runtime", "runtime fixture"));
         RetroArchInstallation i;i.configFile=dir.filePath("retroarch.cfg");
         i.cores["fceumm"]=dir.filePath("core");i.runtimeFile=dir.filePath("runtime");
@@ -516,6 +533,8 @@ private slots:
             const auto settings=retroarch::readSettings(path);
             QCOMPARE(settings.value("global_core_options"),QString("true"));
             QCOMPARE(settings.value("game_specific_options"),QString("false"));
+            QCOMPARE(settings.value("netplay_input_latency_frames_min"),QString("0"));
+            QCOMPARE(settings.value("netplay_input_latency_frames_range"),QString("6"));
             const auto options=settings.value("core_options_path");
             QCOMPARE(QFileInfo(options).absolutePath(),QFileInfo(path).absolutePath());
             QVERIFY(QFileInfo(options).exists());QCOMPARE(QFileInfo(options).size(),0);
@@ -729,6 +748,14 @@ private slots:
         QCOMPARE(read(settings.value("system_directory")+"/scph5501.bin"),QByteArray(512*1024,'a'));
         QVERIFY(!QFileInfo::exists(settings.value("system_directory")+"/unknown.bin"));
         QCOMPARE(retroarch::readSettings(settings.value("core_options_path")).value("pcsx_rearmed_memcard2"),QString("none"));
+        const auto coreOptions=retroarch::readSettings(settings.value("core_options_path"));
+        QCOMPARE(coreOptions.value("pcsx_rearmed_gpu_thread_rendering"),QString("disabled"));
+        QVERIFY(!coreOptions.contains("pcsx_rearmed_threaded_rendering"));
+        QCOMPARE(settings.value("netplay_input_latency_frames_range"),QString("6"));
+        auto old=request;old.expected["settings"]="pcsx-two-digital-private-bios-no-sram-v1";
+        ProcessCommand incompatible;incompatible.arguments={r.contentPath};
+        QVERIFY(!retroarch::prepareNetplay(incompatible,r,i,old,cancel).isEmpty());
+        QCOMPARE(incompatible.arguments,QStringList{r.contentPath});
         QVERIFY(cmd.runtimeControls["temporaryProgress"].toBool());
         cmd.settled({true,0,false,false});QVERIFY(!QFileInfo::exists(session));
         QCOMPARE(read(i.configFile),original);QCOMPARE(read(dir.filePath("game.srm")),QByteArray("personal first card"));

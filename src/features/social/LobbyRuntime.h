@@ -16,6 +16,7 @@ public:
     virtual void cancel(QString operation)=0;
     virtual QString preparationProblem() const {return {};}
     virtual bool supportsLive(const QJsonObject&) const {return false;}
+    virtual bool supportsRejoin(const QJsonObject&) const {return false;}
     virtual bool admitLive(QString,QString,QString,int) {return false;}
     virtual void releaseLive(QString,QString) {}
 };
@@ -56,5 +57,6 @@ private:
     QJsonObject problemContext_;
     QTimer deadline_{this};
     bool online_=false,busy_=false,prepared_=false,playing_=false,live_=false;
+    bool started_=false;
 };
 }

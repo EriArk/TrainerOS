@@ -120,6 +120,14 @@ void controllerDefaults(const Route& route, const QString& configDir, const Emul
     }
 }
 }
+QString currentFlatpakDeployment(const QString& app, const QStringList& installations) {
+    for (const auto& installation : installations) {
+        const auto active = QDir(installation).filePath("app/" + app + "/current/active");
+        if (QFileInfo(active).isDir() && QFileInfo(QDir(active).filePath("metadata")).isFile())
+            return active;
+    }
+    return {};
+}
 EmulatorEnvironment installedEmulators(const QString& stateDirectory, const QString& libraryRoot, bool readController) {
     EmulatorEnvironment env;
     env.home = QDir::homePath(); env.configHome = QStandardPaths::writableLocation(QStandardPaths::GenericConfigLocation);
@@ -139,7 +147,15 @@ EmulatorEnvironment installedEmulators(const QString& stateDirectory, const QStr
             if (route.app.isEmpty() || deadline.elapsed() >= 2000) continue;
             QProcess process; process.start(flatpak, {"info", "--show-location", route.app});
             if (!process.waitForFinished(qMax(1, 2000 - int(deadline.elapsed())))) { process.kill(); process.waitForFinished(100); continue; }
-            if (process.exitStatus() != QProcess::NormalExit || process.exitCode() != 0) continue;
+            if (process.exitStatus() != QProcess::NormalExit || process.exitCode() != 0) {
+                // `run APP` uses current, but `info APP` rejects multiple branches.
+                // Preserve the rollback branch and follow the user's selection.
+                const auto location = currentFlatpakDeployment(route.app, {
+                    qEnvironmentVariable("FLATPAK_USER_DIR", QDir(QStandardPaths::writableLocation(QStandardPaths::GenericDataLocation)).filePath("flatpak")),
+                    qEnvironmentVariable("FLATPAK_SYSTEM_DIR", "/var/lib/flatpak")});
+                if (!location.isEmpty()) env.flatpaks.insert(route.app, location);
+                continue;
+            }
             auto location = QString::fromUtf8(process.readAllStandardOutput()).trimmed();
             if (!QDir::isAbsolutePath(location) || location.contains('\n')) continue;
             // Keep Flatpak's stable active link where available. No hash-specific

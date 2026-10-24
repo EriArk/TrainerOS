@@ -121,8 +121,8 @@ flowchart LR
 | **E03** | S13 → S02/S14 | Успешная активация: installation, version, roles, owned paths | Карточки/вклады регистрируются по факту; ошибка обновления сохраняет пригодную версию и личные данные. |
 | **E04** | S02/S06 → S03 | owner, игра/экземпляр, runtime/mode, return context; при multiplayer — session/seat | Проверка готовности перед запуском; выбранная игра и запущенная игра имеют независимую идентичность. |
 | **E05** | S03 ↔ S04/S15 | session/process, foreground/input ownership, Home/return/exit | Потеря процесса освобождает ввод. Home/Minimize не объявляют pause/save. |
-| **E06** | S05 → S06 | Приглашение/намеренный Join с комнатой, actor и условиями доступа | Presence не запускает игру. Отказ/истечение приглашения не меняет голос или save. |
-| **E07** | S06 → S07/S03 | Состав/места, подтверждённый режим, runtime/content compatibility, состояние подготовки | Ready разрешает отдельный Start хозяина. Потеря связи/rejoin повторно проверяет допуск; не восстанавливает место по одному старому кешу. |
+| **E06** | S05 → S06 | Приглашение/намеренный Join с комнатой, actor и условиями доступа | Presence не запускает игру. Отказ/истечение приглашения не меняет голос или save. Ошибка доставки сохраняет членство; только подтверждённое `groupMembershipEnded` отзывает его. |
+| **E07** | S06 → S07/S03 | Состав/места, подтверждённый режим, runtime/content compatibility, состояние подготовки, relay preference хозяина | Ready разрешает отдельный Start хозяина. Выбор relay использует оценки участников текущего ticket/generation; смена региона/способа подключения сбрасывает подготовку. Шестерёнка S06 показывает совместимые варианты; ручной PSP host-relay запускается S03 на время сессии через существующий S07 LobbyConnection/Fluxer signaling и прямой ICE/DTLS. Обычное реле остаётся default, автоматического fallback/запуска нет. Разные runtime/core binary hashes не запрещают сетевой допуск, локальная целостность и save/build guards отдельны. [Контракт](NETPLAY_RELAY_SELECTION.md). Результат запуска повторяется до подтверждения хозяина в пределах ticket/generation и срока; отмена заменяет неподтверждённый успех на отказ. [Доставка результата](LOBBY63_PREPARATION.md). Потеря связи/rejoin повторно проверяет допуск; не восстанавливает место по одному старому кешу. |
 | **E08** | S03 ↔ S08 | owner/game/build/session, runtime save paths, наблюдаемый исход | Пока игра владеет save, внешняя семантическая запись запрещена. Краш не считается успешным сохранением. |
 | **E09** | Адаптер через S14 → S08 | Точная операция, build/source revision, owner, входные данные | Backup → разрешённая запись → readback/recovery. Presentation match не даёт write capability. |
 | **E10** | S03/S08/RA → S09 | Факт, источник, owner/game/session, время/достоверность | Проекция сохраняет unknown; историческое событие не выдаётся за новую проверку. |
@@ -139,7 +139,7 @@ flowchart LR
 | **E20** | Автор/издатель → S12 → S13 | Принятый project ID, immutable release assets по (id, version, architecture), подпись и revision; withdrawn | Первый проект курируется; следующая версия/архитектура через существующий publisher. Отзыв каталога не удаляет установленный пакет; F09. |
 | **E21** | S12 ↔ S05; S15 → S12 | Provider-owned review ID, project/content identity, stars/text и preview device/arch/version | Edit/delete/report через Fluxer; Top Rated производен от того же источника, без отдельного account/голоса; F10. |
 | **E22** | Программа ↔ S14 ↔ S06/S07/S15 | Versioned discovery/capabilities, service/contribution IDs, owner/session/generation | Local v1 bridge/context/widget реализован; Lobby/reliable records подключены для 2 app peers; полные Network/Files/Media facades ещё target. Host снимает bindings, app владеет данными/симуляцией. F11; не универсальный ABI. |
-| **E23** | S15/перезапуск/provider loss → затронутые владельцы | Причина прерывания, сохранённая operation identity и фактический исход каждого сервиса | Каждый владелец восстанавливает своё состояние; общий экран успеха не доказывает процесс/save/channel/call/job. F12. |
+| **E23** | S15/перезапуск/provider loss → затронутые владельцы | Причина прерывания, сохранённая operation identity и фактический исход каждого сервиса | Каждый владелец восстанавливает своё состояние; общий экран успеха не доказывает процесс/save/channel/call/job. F12. Для [NetPlay rejoin](LOBBY_LIVE_JOIN.md) S06 резервирует прежний Pn в пределах ticket; S03 проверяет пару платформы/ядра через общий профиль RetroArch и проверенную локальную сборку, закрывает собственный временный процесс через штатный exit/finalizer и запускает возврат только после явного Rejoin game. Восстановление signaling/открытие лобби не запускает игру; смена аккаунта/игры отменяет неподтверждённый вход. |
 
 ## 4. Подключаемое содержимое: вход, работа, выход
 
@@ -179,7 +179,7 @@ Built-in Experience реализован; внешние SPI/SDK-вклады т
 | Событие | Что обязано завершиться или измениться | Что сохраняется / отдельное условие |
 | --- | --- | --- |
 | Обычный Exit / crash игры | S03 фиксирует реальный исход, освобождает session-bound ввод/вклады; S08 различает успешный возврат и recovery | Профиль, комната, разговор; crash не создаёт фиктивный save/результат. |
-| Смена игры в комнате | Новый выбор/места/readiness и проверки E07 | Членство комнаты и независимый call; нельзя без проверки переносить старый допуск. |
+| Смена игры в комнате | Новый выбор/места/readiness и проверки E07 | Членство комнаты и независимый call; нельзя без проверки переносить старый допуск. Ошибка игровой пати завершает ticket через S06, сохраняя защищённый выход процесса в S03. |
 | Отключение/обновление адаптера | Старые вклады и callbacks больше не действуют; активная save-транзакция учитывается | Игра, обычные saves/история; generic fallback. |
 | Update/remove пакета | Замена только принадлежащих пакету файлов, снятие регистрации по ролям, обработка busy use | Личные данные отдельно; удаление данных требует отдельного намерения. |
 | Потеря provider/backend | Явная недоступность зависимых операций, ограниченный reconnect/retry | Обычный локальный запуск; экономический кеш не разрешает самовольные покупки. |
@@ -207,7 +207,7 @@ Built-in Experience реализован; внешние SPI/SDK-вклады т
 | S12 | [CratesCatalogue](../src/features/crates/CratesCatalogue.h), [CratesController](../src/features/crates/CratesController.h), [FluxerReviews](../src/integrations/social/FluxerReviews.cpp), [поставка](CRATES77_CATALOGUE.md) | Полные reviews/Top Rated, публикации и donation UX не закрыты. |
 | S13 | [CratesInstaller](../src/features/crates/CratesInstaller.h), [DownloadsController](../src/features/downloads/DownloadsController.h), [FilesService](../src/platform/files/FilesService.h), [PC](../packaging/pc/README.md) | Разные исполнители корректно публикуют свои задания через общий интерфейс. Полный набор команд/providers, software updater и installer/recovery не завершены; централизация всех очередей не требуется. |
 | S14 | [ExperienceModule](../src/core/experience/ExperienceModule.h), [manifest](../src/core/experience/ExperienceManifest.h), [composition](../src/adapters/BuiltinExperiences.cpp), [правила](../src/adapters/AGENTS.md), [PlatformHost](../src/platform/sdk/PlatformHost.cpp) | Trusted built-ins, local SDK context/widget и app Lobby/records существуют; #92, SPI и остальные service facades #235–244 остаются незавершёнными контрактами. |
-| S15 | [PlatformService](../src/platform/PlatformService.h), [device](../src/platform/device), [FilesService](../src/platform/files/FilesService.h), [power](../src/platform/power), [Apps](../src/features/apps/AppsController.h), [Browser](../src/features/browser/BrowserController.h) | Микшер, сон/recovery, providers и все host/device profiles не завершены. Apps/Browser — потребители общих служб, не отдельные владельцы профиля. |
+| S15 | [PlatformService](../src/platform/PlatformService.h), [device](../src/platform/device), [FilesService](../src/platform/files/FilesService.h), [power](../src/platform/power), [Apps](../src/features/apps/AppsController.h), [Browser](../src/features/browser/BrowserController.h) | Микшер, сон/recovery, providers и все host/device profiles не завершены. [Восстановление ADSP/батареи после rootfs](POWER86.md#прочерк-батареи-odin--24-октября-2026) принадлежит S15; S04 только показывает системные данные. Apps/Browser — потребители общих служб, не отдельные владельцы профиля. |
 
 ## 7. Внешние системы и пределы их роли
 
@@ -222,6 +222,20 @@ Built-in Experience реализован; внешние SPI/SDK-вклады т
 | Backend TrainerOS | Целевые серверные части S01/S10/S11, метаданные S12 и directory | Обычные локальные игры работают независимо; тяжёлый owner-hosted media relay не становится обязательным. |
 
 ## 8. Открытые структурные вопросы
+
+**Дополнение issues 24.10:** #259 — PS2 DEV9 как потребитель существующего
+транспорта S07/#106, runtime/карты памяти остаются S03/S08, Lobby — S06 (F04/F12).
+После сравнения реализован Local Link как выход DEV9 и существующий unordered
+ICE/DTLS helper S07. Приватный AF_UNIX соединяет транспорт с endpoint внутри
+сетевого namespace; S03 запускает ARMSX2 с временными INI и личными картами S08.
+Потеря транспорта оставляет игру запущенной, повторный запуск требует действия
+пользователя. Нативная настройка/матч и полный цикл ещё не завершены. XLink
+сохранён как альтернатива, не подтверждённый NAT-fallback. Общая VPN-страница R145
+принадлежит S15 с участием S07/S04/S06; по решению владельца сейчас её не делать,
+PS2 LAN от неё не зависит. #257 расширяет существующий
+directory bot S06/S05 для AbyssME; #258 задаёт будущий Linux runtime S03 через
+Games S02 и Lobby S06 (F01/F04), без второго лаунчера или аккаунта.
+[R035/R143/R144 и точные требования](REQUIREMENTS_COVERAGE_RU.md).
 
 Это пробелы контрактов с указанными владельцами, без очереди исполнения:
 

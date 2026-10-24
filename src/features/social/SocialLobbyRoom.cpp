@@ -1,4 +1,5 @@
 #include "SocialController.h"
+#include "core/model/NetplayRelay.h"
 #include <QJsonDocument>
 #include <QDateTime>
 #include <algorithm>
@@ -34,7 +35,7 @@ QVariantMap SocialController::lobbyPerson(QVariantMap member) const {
     member["host"]=id==viewedLobby().state()["owner"].toString();member["key"]="person:"+id;
     member["speaking"]=!blocked&&member["connected"].toBool()&&voice["state"]=="connected"
         &&voice["channel"].toString()==lobbyChatChannel_&&!lobbyChatChannel_.isEmpty()&&voice["speakers"].toStringList().contains(id);
-    member["status"]=!member["connected"].toBool()?"Reconnecting":member["spectator"].toBool()?"Spectator":member["ready"].toBool()?"Ready":"Preparing";
+    member["status"]=!member["connected"].toBool()?"Reconnecting":member["returnSeat"].toInt()>0?"Can return to P"+QString::number(member["returnSeat"].toInt()):member["spectator"].toBool()?"Spectator":member["ready"].toBool()?"Ready":"Preparing";
     member["technical"]=member["prepared"].toBool()?"verified":QString();
     if(id==self&& &viewedLobby()==lobby_.activeRoom()&&!member["spectator"].toBool())
         member["technical"]=lobbyRuntime_.busy()?"checking":!lobbyRuntime_.problem().isEmpty()?"attention":member["technical"];
@@ -44,8 +45,11 @@ QVariantList SocialController::lobbyPlayers() const {
     QVariantList result,unseated;const auto s=viewedLobby().state();const int seats=s["game"].toObject()["seats"].toInt();
     for(int seat=1;seat<=seats;++seat)result.append(QVariantMap{{"key","seat:"+QString::number(seat)},{"seat",seat},{"empty",true},{"name","Invite"}});
     for(const auto& v:s["members"].toArray()) {
-        auto member=lobbyPerson(v.toObject().toVariantMap());if(member["spectator"].toBool())continue;
-        const int seat=member["seat"].toInt();if(seat>0&&seat<=result.size())result[seat-1]=member;else unseated.append(member);
+        auto member=lobbyPerson(v.toObject().toVariantMap());const int returning=member["returnSeat"].toInt();
+        if(member["spectator"].toBool()&&!returning)continue;
+        const int seat=returning?returning:member["seat"].toInt();
+        if(returning)member["seat"]=returning; // Presentation only: the native port is still disconnected.
+        if(seat>0&&seat<=result.size())result[seat-1]=member;else unseated.append(member);
     }
     std::stable_sort(unseated.begin(),unseated.end(),[](const QVariant& a,const QVariant& b){return a.toMap()["host"].toBool()&&!b.toMap()["host"].toBool();});
     result+=unseated;
@@ -58,11 +62,14 @@ QVariantList SocialController::lobbyPlayers() const {
     return result;
 }
 QVariantList SocialController::lobbySpectators() const {
-    QVariantList result;for(const auto& v:viewedLobby().state()["members"].toArray())if(v.toObject()["spectator"].toBool())result.append(lobbyPerson(v.toObject().toVariantMap()));return result;
+    QVariantList result;for(const auto& v:viewedLobby().state()["members"].toArray())if(v.toObject()["spectator"].toBool()&&!v.toObject()["returnSeat"].toInt())result.append(lobbyPerson(v.toObject().toVariantMap()));return result;
 }
 QVariantMap SocialController::lobbyRoomGame() const {
     auto game=viewedLobby().state()["game"].toObject().toVariantMap();
     game["canStart"]=&viewedLobby()==lobby_.activeRoom()&&viewedLobby().canStart();
+    game["canConfigureConnection"]=viewedLobby().hosting()
+        &&viewedLobby().state()["phase"]=="gathering"
+        &&!netplayRelay::choices(QJsonObject::fromVariantMap(game["runtime"].toMap())).isEmpty();
     for(const auto& v:lobbyGames_) {const auto local=v.toMap();if(local["id"]==game["id"]&&local["mode"]==game["mode"]) {
         game["cover"]=local["cover"];game["modeLabel"]=local.value("modeLabel",QString("Emulator multiplayer"));break;
     }}
@@ -98,7 +105,7 @@ QVariantList SocialController::lobbyRoomActions() const {
 }
 QString SocialController::lobbyRoomFocus() const {
     if(lobbyRoomFocus_=="start"&&lobbyRoomGame()["canStart"].toBool())return "start";
-    if(lobbyRoomFocus_=="game")return lobbyRoomFocus_;
+    if(lobbyRoomFocus_=="game"||(lobbyRoomFocus_=="connection"&&lobbyRoomGame()["canConfigureConnection"].toBool()))return lobbyRoomFocus_;
     for(const auto& rows:{lobbyPlayers(),lobbyRoomActions()})for(const auto& v:rows)if(v.toMap()["key"]==lobbyRoomFocus_)return lobbyRoomFocus_;
     return "game";
 }
@@ -108,12 +115,13 @@ void SocialController::expandLobbyChat() {
 }
 void SocialController::activateLobbyRoom(QString key) {
     if(!lobbyDetailFocused_||viewedLobby().state().isEmpty())return;
-    bool found=key=="game"||(key=="start"&&lobbyRoomGame()["canStart"].toBool());for(const auto& rows:{lobbyPlayers(),lobbyRoomActions()})for(const auto& v:rows)
+    bool found=key=="game"||(key=="connection"&&lobbyRoomGame()["canConfigureConnection"].toBool())||(key=="start"&&lobbyRoomGame()["canStart"].toBool());for(const auto& rows:{lobbyPlayers(),lobbyRoomActions()})for(const auto& v:rows)
         if(v.toMap()["key"]==key)found=true;
     if(!found)return;
     lobbyRoomFocus_=key;lobbyChatFocused_=false;emit changed();
     if(key=="start"){viewedLobby().start();return;}
     if(key=="game"){if(lobbyRoomGame()["canImport"].toBool())emit lobbyImportRequested();else if(viewedLobby().hosting())lobbyAction("game");return;}
+    if(key=="connection"){lobbyAction("relay");return;}
     if(key=="invite"){if(viewedLobby().hosting())lobbyAction("invite");return;}
     if(key.startsWith("invited:")){profile(key.mid(8));return;}
     if(key=="action:microphone"||key=="action:audio") {
@@ -165,7 +173,10 @@ void SocialController::dispatchLobbyRoom(Action action) {
     if(action==Action::ToggleContinue&&lobbyChatVisible()){focusLobbyChat();call();return;}
     if(action==Action::ContextMenu||action==Action::LocalAction){if(lobbyRoomFocus().startsWith("person:"))activateLobbyRoom(lobbyRoomFocus());else lobbyAction("room-menu");return;}
     if(action==Action::Confirm){activateLobbyRoom(lobbyRoomFocus());return;}
-    QList<QStringList> groups;groups.append(lobbyRoomGame()["canStart"].toBool()?QStringList{"game","start"}:QStringList{"game"});
+    QList<QStringList> groups;QStringList gameKeys{"game"};
+    if(lobbyRoomGame()["canConfigureConnection"].toBool())gameKeys.append("connection");
+    if(lobbyRoomGame()["canStart"].toBool())gameKeys.append("start");
+    groups.append(gameKeys);
     for(const auto& rows:{lobbyPlayers(),lobbyRoomActions()}) {QStringList keys;for(const auto& v:rows)keys.append(v.toMap()["key"].toString());if(!keys.isEmpty())groups.append(keys);}
     int group=0,index=0;for(int i=0;i<groups.size();++i)if(groups[i].contains(lobbyRoomFocus())){group=i;index=groups[i].indexOf(lobbyRoomFocus());break;}
     if(action==Action::Up||action==Action::Down){group=qBound(0,group+(action==Action::Down?1:-1),int(groups.size())-1);lobbyRoomFocus_=groups[group][qMin(index,int(groups[group].size())-1)];}
@@ -184,13 +195,14 @@ void SocialController::reconcileLobbyPreparation() {
             readySwitch_.clear();lobbyAutoPreparation_.clear();
         } else return;
     }
-    if(gameActive_||snapshot_["state"]!="connected"||!lobbyRuntime_.available()||lobbyRuntime_.busy())return;
+    if(gameActive_||snapshot_["state"]!="connected"||!lobbyRuntime_.available()) {lobbyAutoPreparation_.clear();return;}
+    if(lobbyRuntime_.busy())return;
     const auto s=lobby_.state();QJsonArray people;
     for(const auto& v:s["members"].toArray()){const auto m=v.toObject();if(m["id"]==snapshot_["userId"].toString()&&m["prepared"].toBool()) {
             return;
         }
         people.append(QJsonObject{{"id",m["id"]},{"seat",m["seat"]},{"connected",m["connected"]},{"spectator",m["spectator"]}});}
-    const auto key=QString::fromUtf8(QJsonDocument(QJsonObject{{"room",s["id"]},{"owner",s["owner"]},{"game",s["game"]},{"generation",s["generation"]},{"members",people}}).toJson(QJsonDocument::Compact));
+    const auto key=QString::fromUtf8(QJsonDocument(QJsonObject{{"room",s["id"]},{"owner",s["owner"]},{"game",s["game"]},{"relay",s["relay"]},{"generation",s["generation"]},{"members",people}}).toJson(QJsonDocument::Compact));
     if(key==lobbyAutoPreparation_)return;
     lobbyAutoPreparation_=key;lobbyRuntime_.prepare();
 }

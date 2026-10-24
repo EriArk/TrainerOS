@@ -38,6 +38,7 @@ bool ProcessService::start(const ProcessCommand& command) {
     if (command.prepare) {
         preparing_ = true;
         cancelled_ = std::make_shared<std::atomic_bool>(false);
+        launchStage_="Preparing game files and runtime…";emit launchStageChanged();
         QMetaObject::invokeMethod(worker_, [this, token, command, cancel = cancelled_]() mutable {
             auto prepared = command;
             const auto error = prepared.prepare(prepared, *cancel);
@@ -60,15 +61,17 @@ void ProcessService::execute(const ProcessCommand& command) {
     inspectOutput_ = command.inspectOutput;
     runtimeControls_=command.runtimeControls;
     process_.setProcessChannelMode(QProcess::MergedChannels);
-    process_.setStandardOutputFile(inspectOutput_ || runtimeControls_.contains("netplay") ? QString() : QProcess::nullDevice());
+    process_.setStandardOutputFile(inspectOutput_ || runtimeControls_.contains("netplay") || runtimeControls_.contains("achievements") ? QString() : QProcess::nullDevice());
     process_.setProgram(command.program); process_.setArguments(command.arguments);
     process_.setWorkingDirectory(command.workingDirectory);
+    launchStage_="Starting emulator…";emit launchStageChanged();
+    if(stopRequested_){complete(0,false,{});return;}
     process_.start(); // No shell, no interpolated command string, no blocking wait.
 }
 void ProcessService::drainOutput() {
     while (process_.bytesAvailable() > 0) {
         const auto bytes = process_.read(16384);
-        if(runtimeControls_.contains("netplay"))emit runtimeOutput(bytes);
+        if(runtimeControls_.contains("netplay") || runtimeControls_.contains("achievements"))emit runtimeOutput(bytes);
         if (!inspectOutput_ || !validationError_.isEmpty()) continue;
         validationError_ = inspectOutput_(bytes);
         if (!validationError_.isEmpty()) { process_.kill(); }
@@ -76,6 +79,10 @@ void ProcessService::drainOutput() {
 }
 bool ProcessService::runtimeCommand(const QString& action,const QString& text) {
     if(!active_||stopRequested_||process_.state()!=QProcess::Running||process_.bytesToWrite()>4096)return false;
+    if(runtimeControls_["kind"]=="remoteplay"&&text.isEmpty()) {
+        const QByteArray packet=action=="remoteplay-start"?"{\"start\":true}\n":action=="remoteplay-close"?"{\"close\":true}\n":QByteArray();
+        return !packet.isEmpty()&&process_.write(packet)==packet.size();
+    }
     if(runtimeControls_["kind"]=="dolphin"&&runtimeControls_["hotseat"]=="dolphin-golf-p1-v1") {
         QJsonObject packet;
         if(action=="hotseat-end")packet={{"action","quit"}};

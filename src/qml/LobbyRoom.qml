@@ -40,7 +40,7 @@ Item {
                 Image { anchors.fill: parent; anchors.margins: 3; source: root.game.cover || ""; asynchronous: true; fillMode: Image.PreserveAspectFit }
                 MenuGlyph { anchors.centerIn: parent; width: 29; height: 29; glyph: "game-controller"; visible: !root.game.cover }
             }
-            Column { x: cover.x+cover.width+14; y: root.compact ? 3 : root.game.id ? 5 : 11; width: parent.width-x-(root.game.canStart ? 144 : 14); spacing: root.compact ? 1 : 2
+            Column { x: cover.x+cover.width+14; y: root.compact ? 3 : root.game.id ? 5 : 11; width: parent.width-x-(root.game.canStart ? 144 : 14)-(root.game.canConfigureConnection ? 36 : 0); spacing: root.compact ? 1 : 2
                 Text { width: parent.width; text: root.game.title || "Choosing Together"; color: Theme.ink; font.family: Theme.displayFamily; font.pixelSize: root.compact ? 17 : 20; elide: Text.ElideRight; textFormat: Text.PlainText }
                 Text { width: parent.width; visible: !!root.game.id; text: (root.game.platform || "")+"  ·  "+root.game.modeLabel
                     color: Theme.muted; font.pixelSize: root.compact ? 9 : 11; elide: Text.ElideRight; textFormat: Text.PlainText }
@@ -48,6 +48,10 @@ Item {
                     color: Theme.muted; font.pixelSize: root.compact ? 9 : 10; elide: Text.ElideRight; textFormat: Text.PlainText }
             }
             MouseArea { anchors.fill: parent; onClicked: root.social.activateLobbyRoom("game") }
+            SocialIconButton { objectName: "lobby-connection-settings"; visible: !!root.game.canConfigureConnection
+                anchors.right: parent.right; anchors.rightMargin: root.game.canStart ? 145 : 9; anchors.verticalCenter: parent.verticalCenter
+                icon: "gear"; label: "Connection settings"; highlighted: root.selected("connection")
+                onClicked: { root.menuAnchored(this); root.social.activateLobbyRoom("connection") } }
             CapButton { objectName: "lobby-start"; visible: !!root.game.canStart
                 anchors.right: parent.right; anchors.rightMargin: 9; anchors.verticalCenter: parent.verticalCenter
                 width: 128; height: root.compact ? 40 : 48; label: "Start"; textSize: 23; centered: true

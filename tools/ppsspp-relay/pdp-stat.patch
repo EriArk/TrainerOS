@@ -1,0 +1,44 @@
+--- a/Core/HLE/sceNetAdhoc.cpp
++++ b/Core/HLE/sceNetAdhoc.cpp
+@@ -2892,8 +2892,20 @@
+ 						fd = sock->data.pdp.id;
+ 					}
+ 				}
+-				if ((sds[i].events & ADHOC_EV_RECV) && FD_ISSET(fd, &readfds))
+-					sds[i].revents |= ADHOC_EV_RECV;
++				if (sds[i].events & ADHOC_EV_RECV) {
++					bool canReceive = FD_ISSET(fd, &readfds);
++					if (serverHasRelay) {
++						// TCP may already be drained into the library ring buffer.
++						// Conversely, a partial TCP packet is not a readable PDP message.
++						if (sock->type == SOCK_PDP) {
++							canReceive = pdp_peek_next_size_postoffice(sds[i].id - 1) > 0;
++						} else if (sock->data.ptp.state == ADHOC_PTP_STATE_ESTABLISHED) {
++							canReceive = sock->postofficeHandle != NULL && ptp_peek_next_size(sock->postofficeHandle) > 0;
++						}
++					}
++					if (canReceive)
++						sds[i].revents |= ADHOC_EV_RECV;
++				}
+ 				if ((sds[i].events & ADHOC_EV_SEND) && FD_ISSET(fd, &writefds))
+ 					sds[i].revents |= ADHOC_EV_SEND;
+ 				if (sock->alerted_flags)
+@@ -3942,9 +3954,17 @@
+ 					// It seems real PSP respecting the socket buffer size arg, so we may need to cap the value up to the buffer size arg since we use larger buffer, for PDP/UDP the total size must not contains partial/truncated message to avoid data loss.
+ 					// TODO: We may need to manage PDP messages ourself by reading each msg 1-by-1 and moving it to our internal buffer(msg array) in order to calculate the correct messages size that can fit into buffer size when there are more than 1 messages in the recv buffer (simulate FIONREAD)
+ 					if (serverHasRelay) {
++						sock->data.pdp.rcv_sb_cc = 0;
+ 						void *postofficeHandle = pdp_postoffice_recover(j);
+ 						if (postofficeHandle != NULL) {
+-							sock->data.pdp.rcv_sb_cc = pdp_peek_next_size(postofficeHandle);
++							// Report complete queued payload bytes, not just the next packet.
++							const int available = pdp_buffered_data_size(postofficeHandle);
++							if (available == AEMU_POSTOFFICE_CLIENT_SESSION_DEAD) {
++								pdp_delete(postofficeHandle);
++								sock->postofficeHandle = NULL;
++							} else if (available > 0) {
++								sock->data.pdp.rcv_sb_cc = std::min((u32)available, sock->buffer_size);
++							}
+ 						}
+ 					} else {
+ 						sock->data.pdp.rcv_sb_cc = getAvailToRecv(sock->data.pdp.id, sock->buffer_size);

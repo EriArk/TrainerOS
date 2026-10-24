@@ -1,0 +1,70 @@
+--- a/Core/HLE/proAdhoc.cpp
++++ b/Core/HLE/proAdhoc.cpp
+@@ -1395,6 +1395,19 @@
+ 	}
+ 	g_adhocServerIP.in.sin_port = htons(SERVER_PORT);
+ 
++	// A new TCP stream must never inherit a partial packet from its predecessor.
++	auto disconnectServer = [&](int error) {
++		g_adhocServerConnected = false;
++		shutdown((int)metasocket, SD_BOTH);
++		closesocket((int)metasocket);
++		metasocket = (int)INVALID_SOCKET;
++		rxpos = 0;
++		g_OSD.Show(OSDType::MESSAGE_ERROR, std::string(n->T("Disconnected from AdhocServer")) + " (" + std::string(n->T("Error")) + ": " + std::to_string(error) + ")");
++		// Keep the existing peer timeout policy. Native game actions own rejoining.
++		std::lock_guard<std::recursive_mutex> guard(peerlock);
++		timeoutFriendsRecursive(friends);
++	};
++
+ 	// Finder Loop
+ 	friendFinderRunning = true;
+ 	while (friendFinderRunning) {
+@@ -1404,6 +1417,7 @@
+ 		// Reconnect when disconnected while Adhocctl is still inited
+ 		if (metasocket == (int)INVALID_SOCKET && netAdhocctlInited && isAdhocctlNeedLogin) {
+ 			if (g_Config.bEnableWlan) {
++				rxpos = 0;
+ 				// Not really initNetwork.
+ 				if (initNetwork(&product_code) == 0) {
+ 					g_adhocServerConnected = true;
+@@ -1441,15 +1455,7 @@
+ 					if (iResult == SOCKET_ERROR) {
+ 						ERROR_LOG(Log::sceNet, "FriendFinder: Socket Error (%i) when sending OPCODE_PING", error);
+ 						if (error != EAGAIN && error != EWOULDBLOCK) {
+-							g_adhocServerConnected = false;
+-							shutdown((int)metasocket, SD_BOTH);
+-							closesocket((int)metasocket);
+-							metasocket = (int)INVALID_SOCKET;
+-							g_OSD.Show(OSDType::MESSAGE_ERROR, std::string(n->T("Disconnected from AdhocServer")) + " (" + std::string(n->T("Error")) + ": " + std::to_string(error) + ")");
+-							// Mark all friends as timedout since we won't be able to detects disconnected friends anymore without being connected to Adhoc Server
+-							peerlock.lock();
+-							timeoutFriendsRecursive(friends);
+-							peerlock.unlock();
++							disconnectServer(error);
+ 						}
+ 					}
+ 					else {
+@@ -1461,8 +1467,9 @@
+ 			}
+ 
+ 			// Check for Incoming Data
+-			if (IsSocketReady((int)metasocket, true, false) > 0) {
++			if (rxpos < (int)sizeof(rx) && IsSocketReady((int)metasocket, true, false) > 0) {
+ 				int received = (int)recv((int)metasocket, (char*)(rx + rxpos), sizeof(rx) - rxpos, MSG_NOSIGNAL);
++				const int error = received == SOCKET_ERROR ? socket_errno : 0;
+ 
+ 				// Free Network Lock
+ 				//_freeNetworkLock();
+@@ -1475,6 +1482,11 @@
+ 					// Log Incoming Traffic
+ 					//printf("Received %d Bytes of Data from Server\n", received);
+ 					INFO_LOG(Log::sceNet, "Received %d Bytes of Data from Adhoc Server", received);
++				}
++				else if (received == 0 || (received == SOCKET_ERROR && error != EAGAIN && error != EWOULDBLOCK && error != EINTR)) {
++					// EOF is readable too; leaving it connected prevents a fresh native login.
++					INFO_LOG(Log::sceNet, "FriendFinder: AdhocServer stream closed (%i)", error);
++					disconnectServer(error);
+ 				}
+ 			}
+ 

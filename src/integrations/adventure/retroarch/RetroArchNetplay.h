@@ -14,6 +14,7 @@ struct NetplayRequest {
     quint16 clientPort = 0; // Owned loopback authentication bridge, relay guests only.
     int slot = 0; // Party-assigned controller; never inferred from arrival order.
     QJsonObject expected;
+    QJsonObject localExpected; // Frozen local scan; never supplied by a peer.
     QString localContent; // Own cartridge fingerprint for compatible-edition links.
     QByteArray ownSram; QMap<int,QByteArray> peerSrams; // Opaque batteries; no semantic save capability.
     bool ownSramExisted = false;

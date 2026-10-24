@@ -1,0 +1,85 @@
+--- a/client/sock_impl_linux.c
++++ b/client/sock_impl_linux.c
+@@ -5,6 +5,7 @@
+ #include <unistd.h>
+ #include <fcntl.h>
+ #include <time.h>
++#include <poll.h>
+ 
+ #include <string.h>
+ #include <stdio.h>
+@@ -108,6 +109,12 @@
+ 	// Set socket options
+ 	int sockopt = 1;
+ 	setsockopt(sock, IPPROTO_TCP, TCP_NODELAY, &sockopt, sizeof(sockopt));
++#ifdef __linux__
++    // Bound active black-holed connections without changing system-wide TCP policy.
++    unsigned int user_timeout = 15000;
++    if (setsockopt(sock, IPPROTO_TCP, TCP_USER_TIMEOUT, &user_timeout, sizeof(user_timeout)) < 0)
++        LOG("%s: TCP_USER_TIMEOUT unavailable: %s\n", __func__, strerror(errno));
++#endif
+ 	int flags = fcntl(sock, F_GETFL, 0);
+ 	flags |= O_NONBLOCK;
+ 	fcntl(sock, F_SETFL, flags);
+@@ -147,8 +154,28 @@
+ 	return sock;
+ }
+ 
++// Bound an unfinished wire operation; partial frames must fail, never be retried
++// as a fresh packet. The caller already closes failed sessions and frees slots.
++#ifndef RELAY_IO_TIMEOUT_MS
++#define RELAY_IO_TIMEOUT_MS 15000
++#endif
++static long long relay_now_ms(void) {
++    struct timespec now;
++    clock_gettime(CLOCK_MONOTONIC, &now);
++    return (long long)now.tv_sec * 1000 + now.tv_nsec / 1000000;
++}
++static int relay_wait_io(int fd, short events, long long deadline) {
++    long long remaining = deadline - relay_now_ms();
++    if (remaining <= 0) { errno = ETIMEDOUT; return -1; }
++    struct pollfd pfd = {.fd = fd, .events = events};
++    // Short waits retain the existing cooperative abort path without busy-spinning.
++    int result = poll(&pfd, 1, remaining < 10 ? (int)remaining : 10);
++    return result < 0 && errno != EINTR ? -1 : 0;
++}
++
+ int native_send_till_done(int fd, const char *buf, int len, bool non_block, bool *abort){
+ 	int write_offset = 0;
++	const long long deadline = relay_now_ms() + RELAY_IO_TIMEOUT_MS;
+ 	while(write_offset != len){
+ 		if (*abort){
+ 			return NATIVE_SOCK_ABORTED;
+@@ -165,13 +192,14 @@
+ 					return AEMU_POSTOFFICE_CLIENT_SESSION_WOULD_BLOCK;
+ 				}
+ 				// Continue block sending, either in block mode or we already received part of the message
+-				sleep(0);
++				if (relay_wait_io(fd, POLLOUT, deadline) < 0) return -1;
+ 				continue;
+ 			}
+ 			// Other errors
+ 			LOG("%s: failed sending, %s\n", __func__, strerror(errno));
+ 			return write_status;
+ 		}
++		if (write_status == 0) { errno = EPIPE; return -1; }
+ 		write_offset += write_status;
+ 	}
+ 	return write_offset;
+@@ -196,6 +224,7 @@
+ 
+ int native_recv_till_done(int fd, char *buf, int len, bool non_block, bool *abort){
+ 	int read_offset = 0;
++	const long long deadline = relay_now_ms() + RELAY_IO_TIMEOUT_MS;
+ 	while(read_offset != len){
+ 		if (*abort){
+ 			return NATIVE_SOCK_ABORTED;
+@@ -210,7 +239,7 @@
+ 					return AEMU_POSTOFFICE_CLIENT_SESSION_WOULD_BLOCK;
+ 				}
+ 				// Continue block receving, either in block mode or we already sent part of the message
+-				sleep(0);
++				if (relay_wait_io(fd, POLLIN, deadline) < 0) return -1;
+ 				continue;
+ 			}
+ 			return recv_status;

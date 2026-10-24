@@ -49,6 +49,7 @@ signals:
     void onlineEnded(quint64 generation);
     void partyPacket(quint64 generation, QString peer, QString name, QJsonObject packet);
     void partyFailed(quint64 generation, QString peer);
+    void groupMembershipEnded(quint64 generation, QString channel);
     void partyReset(quint64 generation);
     void lobbyPacket(quint64 generation,QString peer,QString name,QJsonObject packet);
     void lobbyFailed(quint64 generation,QString peer);

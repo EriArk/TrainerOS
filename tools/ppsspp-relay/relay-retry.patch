@@ -1,0 +1,197 @@
+--- a/Core/HLE/sceNetAdhoc.cpp
++++ b/Core/HLE/sceNetAdhoc.cpp
+@@ -54,6 +54,7 @@
+ #include "Core/HLE/sceKernelModule.h"
+ #include "Core/HLE/sceKernelInterrupt.h"
+ #include "Core/HLE/sceNetAdhoc.h"
++#include "Core/HLE/AdhocRelayRetry.h"
+ #include "Core/HLE/sceNet.h"
+ #include "Core/HLE/proAdhocServer.h"
+ #include "Core/HLE/KernelWaitHelpers.h"
+@@ -91,9 +92,7 @@
+ std::map<u64, AdhocSocketRequest> adhocSocketRequests;
+ std::map<u64, AdhocSendTargets> sendTargetPeers;
+ bool serverHasRelay = false;
+-std::chrono::time_point<std::chrono::steady_clock> relayLastFailure;
+-bool trackingRelayFailure = false;
+-bool relayDisabled = false;
++AdhocRelayRetry relayRetry;
+ bool relayFirstConnect = true;
+ bool g_serverListLoaded = false;
+ 
+@@ -101,7 +100,6 @@
+ 
+ #define AEMU_POSTOFFICE_PORT 27313
+ #define AEMU_POSTOFFICE_ID_BASE 2048
+-#define RELAY_FAILURE_DISABLE_THRESHOLD_SEC 15
+ 
+ static const char *AdhocDataModeToString(AdhocDataMode mode) {
+ 	switch (mode) {
+@@ -667,41 +665,29 @@
+ }
+ 
+ static void handle_relay_connect_failure() {
++	relayRetry.Failed();
+ 	auto n = GetI18NCategory(I18NCat::NETWORKING);
+-	if (!trackingRelayFailure) {
+-		trackingRelayFailure = true;
+-		relayLastFailure = std::chrono::steady_clock::now();
+-	}
+-	int been_failing_since_sec = (std::chrono::steady_clock::now() - relayLastFailure) / std::chrono::seconds(1);
+-	if (been_failing_since_sec < RELAY_FAILURE_DISABLE_THRESHOLD_SEC) {
+-		g_OSD.Show(OSDType::MESSAGE_ERROR, n->T("Failed connecting to relay server"), 4.0f, "relay_status");
+-	} else {
+-		g_OSD.Show(OSDType::MESSAGE_ERROR, ApplySafeSubstitutions(n->T("Failed connecting to relay server for %1 seconds, relay disabled"), RELAY_FAILURE_DISABLE_THRESHOLD_SEC), 10.0f, "relay_status");
+-		relayDisabled = true;
+-	}
++	g_OSD.Show(OSDType::MESSAGE_ERROR, n->T("Failed connecting to relay server"), 4.0f, "relay_status");
+ }
+ 
+ static void handle_relay_connect_success() {
+ 	auto n = GetI18NCategory(I18NCat::NETWORKING);
+-	if (trackingRelayFailure) {
++	if (relayRetry.Failing()) {
+ 		g_OSD.Show(OSDType::MESSAGE_SUCCESS, n->T("Connection to relay has recovered"), 2.0f, "relay_status");
+ 	}
+ 	if (relayFirstConnect) {
+ 		g_OSD.Show(OSDType::MESSAGE_SUCCESS, n->T("Connected to relay"), 2.0f, "relay_status");
+ 		relayFirstConnect = false;
+ 	}
+-	trackingRelayFailure = false;
++	relayRetry.Reset();
+ }
+ 
+ static void *pdp_postoffice_recover(int idx) {
+-	if (relayDisabled) {
+-		return NULL;
+-	}
+-
+ 	AdhocSocket *internal = adhocSockets[idx];
+ 	if (internal->postofficeHandle != NULL) {
+ 		return internal->postofficeHandle;
+ 	}
++	if (!relayRetry.Ready()) return NULL;
+ 
+ 	INFO_LOG(Log::sceNet, "%s: recovering pdp socket id %d", __func__, idx + 1);
+ 
+@@ -1027,10 +1013,6 @@
+ }
+ 
+ static int ptp_send_postoffice(int idx, const void *data, int *len) {
+-	if (relayDisabled) {
+-		return SOCKET_ERROR;
+-	}
+-
+ 	AdhocSocket *internal = adhocSockets[idx];
+ 
+ 	if (internal->postofficeHandle == NULL) {
+@@ -1143,10 +1125,6 @@
+ }
+ 
+ static int ptp_recv_postoffice(int idx, void *data, int *len) {
+-	if (relayDisabled) {
+-		return SOCKET_ERROR;
+-	}
+-
+ 	AdhocSocket *internal = adhocSockets[idx];
+ 
+ 	if (internal->postofficeHandle == NULL) {
+@@ -1260,14 +1238,11 @@
+ }
+ 
+ static void *ptp_listen_postoffice_recover(int idx) {
+-	if (relayDisabled) {
+-		return NULL;
+-	}
+-
+ 	AdhocSocket *internal = adhocSockets[idx];
+ 	if (internal->postofficeHandle != NULL) {
+ 		return internal->postofficeHandle;
+ 	}
++	if (!relayRetry.Ready()) return NULL;
+ 
+ 	INFO_LOG(Log::sceNet, "%s: recovering ptp listen socket id %d", __func__, idx + 1);
+ 
+@@ -1429,10 +1404,6 @@
+ }
+ 
+ static int ptp_connect_postoffice(int idx, const char *caller) {
+-	if (relayDisabled) {
+-		return SCE_NET_ADHOC_ERROR_CONNECTION_REFUSED;
+-	}
+-
+ 	AdhocSocket *internal = adhocSockets[idx];
+ 
+ 	struct aemu_post_office_sock_addr addr;
+@@ -1444,6 +1415,7 @@
+ 	}
+ 
+ 	if (internal->connectThreadDone) {
++		if (!relayRetry.Ready()) return SCE_NET_ADHOC_ERROR_WOULD_BLOCK;
+ 		if (internal->connectThread != NULL) {
+ 			internal->connectThread->join();
+ 			delete internal->connectThread;
+@@ -1953,15 +1925,13 @@
+ 			// Fetch data mode from server list
+ 			if (AdhocGetServerDataMode(g_Config.sProAdhocServer) == AdhocDataMode::AemuPostoffice) {
+ 				serverHasRelay = true;
+-				trackingRelayFailure = false;
+-				relayDisabled = false;
++				relayRetry.Reset();
+ 				relayFirstConnect = true;
+ 			}
+ 			break;
+ 		case AdhocServerRelayMode::AlwaysOn:
+ 			serverHasRelay = true;
+-			trackingRelayFailure = false;
+-			relayDisabled = false;
++			relayRetry.Reset();
+ 			relayFirstConnect = true;
+ 			break;
+ 		default:
+@@ -2051,10 +2021,6 @@
+ }
+ 
+ static int pdp_create_postoffice(const SceNetEtherAddr *saddr, int sport, int bufsize) {
+-	if (relayDisabled) {
+-		return hleLogDebug(Log::sceNet, ERROR_NET_NO_SPACE, "relay disabled");
+-	}
+-
+ 	AdhocSocket *internal = (AdhocSocket*)malloc(sizeof(AdhocSocket));
+ 	if (internal == NULL) {
+ 		return hleLogDebug(Log::sceNet, ERROR_NET_NO_SPACE, "net no space");
+@@ -4926,10 +4892,6 @@
+ }
+ 
+ static int ptp_listen_postoffice(const SceNetEtherAddr *saddr, uint16_t sport, uint32_t bufsize) {
+-	if (relayDisabled) {
+-		return ERROR_NET_NO_SPACE;
+-	}
+-
+ 	// server connect delegated to accept
+ 	AdhocSocket *internal = (AdhocSocket *)malloc(sizeof(AdhocSocket));
+ 	if (internal == NULL) {
+--- /dev/null
++++ b/Core/HLE/AdhocRelayRetry.h
+@@ -0,0 +1,21 @@
++// Copyright (c) 2026 TrainerOS contributors. SPDX-License-Identifier: GPL-3.0-or-later
++#pragma once
++#include <chrono>
++
++// Retry transport preparation without restarting the game or selecting a match.
++// One failed socket must not disable relay access for the lifetime of Ad Hoc.
++class AdhocRelayRetry {
++public:
++    using Clock = std::chrono::steady_clock;
++    bool Ready(Clock::time_point now = Clock::now()) const { return now >= next_; }
++    bool Failing() const { return failing_; }
++    void Failed(Clock::time_point now = Clock::now()) {
++        if (!failing_) { first_ = now; failing_ = true; }
++        next_ = now + (now - first_ < std::chrono::seconds(15)
++            ? std::chrono::seconds(1) : std::chrono::seconds(5));
++    }
++    void Reset() { failing_ = false; first_ = {}; next_ = {}; }
++private:
++    bool failing_ = false;
++    Clock::time_point first_{}, next_{};
++};

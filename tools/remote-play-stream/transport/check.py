@@ -7,6 +7,7 @@ from pathlib import Path
 import queue
 import re
 import socket
+import struct
 import subprocess
 import sys
 import threading
@@ -17,7 +18,7 @@ BINARY = str(Path(sys.argv.pop(1)).resolve())
 
 
 class Pair:
-    def __init__(self, different_identity=False, bad_fingerprint=False, ice=None):
+    def __init__(self, different_identity=False, bad_fingerprint=False, ice=None, modes=None):
         self.events = queue.Queue()
         self.ready, self.paths, self.output = {}, [], []
         self.processes = [subprocess.Popen([BINARY], stdin=subprocess.PIPE,
@@ -27,7 +28,10 @@ class Pair:
         self.bad_fingerprint = bad_fingerprint
         for i, p in enumerate(self.processes):
             threading.Thread(target=self.read, args=(i, p), daemon=True).start()
-            self.send(i, {'host': i == 0, 'identity': self.identity[i], 'seconds': 30, 'ice': ice or []})
+            config = {'host': i == 0, 'identity': self.identity[i], 'seconds': 30, 'ice': ice or []}
+            if modes and modes[i]:
+                config['mode'] = modes[i]
+            self.send(i, config)
 
     def send(self, i, value):
         self.processes[i].stdin.write(json.dumps(value)+'\n')
@@ -93,6 +97,95 @@ class TransportTests(unittest.TestCase):
             self.pair.close()
             for path in self.pair.paths:
                 self.assertFalse(path.exists(), 'private material survived transport exit')
+
+    def test_ps2_native_envelopes_and_private_material(self):
+        self.pair = Pair(modes=['ps2', 'ps2'])
+        self.assertTrue(self.pair.connect())
+        configs = [dict(line.split('=', 1) for line in self.pair.ready[i].read_text().splitlines()) for i in range(2)]
+        for i, config in enumerate(configs):
+            self.assertEqual(config['mode'], 'ps2')
+            self.assertEqual(config['address'], '127.0.0.1')
+            self.assertEqual(config['host'], 'true' if i == 0 else 'false')
+            self.assertEqual(config['peer'], str(i+1))
+            self.assertRegex(config['room'], r'^[a-f0-9]{12}$')
+            self.assertEqual(self.pair.ready[i].stat().st_mode & 0o777, 0o600)
+            self.assertEqual(self.pair.ready[i].parent.stat().st_mode & 0o777, 0o700)
+        self.assertEqual(configs[0]['room'], configs[1]['room'])
+        self.assertNotIn(configs[0]['room'], json.dumps(self.pair.output))
+        def envelope(kind, peer, payload=b'', index=0, count=1):
+            return struct.pack('!4sBBHIIIHHHHQQ', b'ECLX', 1, kind, 44, peer, 1, 1,
+                               index, count, len(payload), 0, 1, 1)+payload
+        def exact(s, n):
+            result=b''
+            while len(result)<n:
+                data=s.recv(n-len(result));self.assertTrue(data);result+=data
+            return result
+        def send(s, data):s.sendall(struct.pack('!H',len(data))+data)
+        def receive(s):return exact(s,struct.unpack('!H',exact(s,2))[0])
+        with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as host, socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as guest:
+            host.settimeout(3);guest.settimeout(3)
+            host.connect(configs[0]['socket']);guest.connect(configs[1]['socket'])
+            time.sleep(.05)
+            hello = envelope(1, 2)
+            send(guest,hello)
+            self.assertEqual(receive(host), hello)
+            ack = envelope(2, 1);send(host,ack)
+            self.assertEqual(receive(guest), ack)
+            for packet in (envelope(3, 2, b'a'*1000, 0, 2), envelope(3, 2, b'b'*514, 1, 2)):
+                send(guest,packet)
+                self.assertEqual(receive(host), packet)
+                send(host,packet)
+                self.assertEqual(receive(guest), packet)
+
+    def test_ps2_cannot_be_admitted_as_psp_or_media(self):
+        for modes in (['ps2', 'psp'], ['psp', 'ps2'], ['ps2', None], [None, 'ps2']):
+            with self.subTest(modes=modes):
+                pair = Pair(modes=modes)
+                try:
+                    self.assertFalse(pair.connect())
+                    self.assertFalse(pair.ready)
+                finally:
+                    pair.close()
+
+    def test_psp_multiple_streams_native_close_and_reconnect(self):
+        self.pair = Pair(modes=['psp', 'psp'])
+        self.assertTrue(self.pair.connect())
+        listeners, peers, clients = [], [], []
+        def exact(s, n):
+            result = b''
+            while len(result) < n:
+                part = s.recv(n-len(result))
+                self.assertTrue(part, 'unexpected TCP EOF')
+                result += part
+            return result
+        try:
+            for port in (27312, 27313):
+                server = socket.socket();listeners.append(server)
+                server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+                server.bind(('127.0.0.1', port));server.listen();server.settimeout(3)
+            # A coordination stream stays alive while gameplay sockets come
+            # and go. Reusing a native port must not reuse an old stream ID.
+            for i in range(6):
+                client = socket.create_connection(('127.0.0.2', 27312 if i == 0 else 27313), timeout=3)
+                clients.append(client)
+                peer, address = listeners[0 if i == 0 else 1].accept();peers.append(peer);peer.settimeout(3)
+                self.assertEqual(address[0], '127.0.0.2')
+                payload = bytes([i])*262144
+                client.sendall(payload);self.assertEqual(exact(peer, len(payload)), payload)
+                peer.sendall(payload[::-1]);self.assertEqual(exact(client, len(payload)), payload[::-1])
+                if i:
+                    # Last bytes before EOF must arrive before native close.
+                    peer.sendall(b'final');peer.close()
+                    self.assertEqual(exact(client, 5), b'final')
+                    self.assertEqual(client.recv(1), b'');client.close()
+                peers[0].sendall(b'live');self.assertEqual(exact(clients[0], 4), b'live')
+        finally:
+            for s in clients+peers+listeners:s.close()
+
+    def test_psp_cannot_negotiate_as_remote_play(self):
+        self.pair = Pair(modes=['psp', None])
+        self.assertFalse(self.pair.connect())
+        self.assertFalse(self.pair.ready)
 
     def test_unresponsive_stun_does_not_remove_direct_local_candidates(self):
         # An actual bound but silent UDP endpoint, independent of public DNS or

@@ -144,7 +144,8 @@ and selects a private owned BIOS directory. Session-only core options are
 `pcsx_rearmed_bios=auto`, `pcsx_rearmed_memcard1=libretro`,
 `pcsx_rearmed_memcard2=none`, `pcsx_rearmed_multitap=disabled`, the earlier
 `pcsx_rearmed_multitap1/2=disabled` keys and
-`pcsx_rearmed_threaded_rendering=disabled`.
+`pcsx_rearmed_gpu_thread_rendering=disabled` (corrected on 23 October 2026;
+the earlier key `pcsx_rearmed_threaded_rendering` was ignored by the installed core).
 
 RetroArch uses `--sram-mode noload-nosave` and a private save/state directory.
 Even cores predating the newer card options cannot reach the ordinary card
@@ -156,6 +157,15 @@ sidecar hashes are rechecked before launch; the private BIOS copy is rechecked t
 remain explicit. Ordinary core options, saves and adapter bindings are unchanged.
 
 ## Checks, update and rollback
+
+23 October 2026 follow-up: the installed runtime/core hashes above were freshly
+verified on Flip/Odin. CTR US completed native P2 join, graceful guest exit and
+P2 rejoin while the host PID remained unchanged, with private session progress
+and unchanged personal configuration/save baselines. TrainerOS now admits this
+reviewed local core to the shared **Rejoin game** action; returning to Lobby or
+restoring signaling never launches the guest automatically. No core patch or
+ordinary memory-card migration is involved. See the current
+[return contract and bounded evidence](../LOBBY_LIVE_JOIN.md).
 
 Local fixture checks cover BIOS/content/sidecar changes, private directory cleanup,
 separate controller ports, unsupported descriptor rejection and unchanged ordinary

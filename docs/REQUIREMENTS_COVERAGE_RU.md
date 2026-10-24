@@ -1,5 +1,10 @@
 # Покрытие требований картой структуры
 
+**Дополнение 24 октября:** через GitHub прочитаны новые #257, #258 и #259,
+все три открыты, комментариев нет. Добавлены три строки: теперь в реестре
+256 issue. Снимок состояний прежних 253 ниже остаётся датированным 21 октября;
+эта сверка не означает повторную проверку реализации всех старых требований.
+
 **Снимок GitHub EriArk/TrainerOS: 21 октября 2026.** 253 issue: **243 открытых,
 10 закрытых**; pull requests не входят. Номера #66/#67 отсутствуют в выдаче issues,
 это не потерянные строки. Получено через `gh issue list --state all --limit 500`;
@@ -276,12 +281,23 @@ S-владельцу [структуры](STRUCTURE_MAP_RU.md) и F-цепочк
 | [#254](https://github.com/EriArk/TrainerOS/issues/254) · открыт | Lobby Game Picker: compact multiplayer-mode popup after game selection | [R023](FEATURE_READINESS.md#r023), [R022](FEATURE_READINESS.md#r022) | [S06](STRUCTURE_MAP_RU.md#s06) | [F04](STRUCTURE_MAP_RU.md#f04) | Поправка picker проверена отдельно; default PC LAN/gameplay ещё не принят. |
 | [#255](https://github.com/EriArk/TrainerOS/issues/255) · открыт | Remote Play: support any runnable game/process, not only RetroArch profiles | [R053](FEATURE_READINESS.md#r053), [R054](FEATURE_READINESS.md#r054) | [S03](STRUCTURE_MAP_RU.md#s03) | [F04](STRUCTURE_MAP_RU.md#f04) | Детали и остаток — в связанных R-строках и issue. |
 
+## Дополнение GitHub — 24 октября
+
+Новые issues после исходного снимка:
+
+| Issue | Требование | Готовность | Владельцы | Цепочки | Границы |
+| --- | --- | --- | --- | --- | --- |
+| [#257](https://github.com/EriArk/TrainerOS/issues/257) · открыт | Общий Lobby Directory для TrainerOS и AbyssME | [R143](FEATURE_READINESS.md#r143) | [S06](STRUCTURE_MAP_RU.md#s06), [S05](STRUCTURE_MAP_RU.md#s05) | [F04](STRUCTURE_MAP_RU.md#f04) | Тот же бот; различение продуктов, совместимость протокола и общая квота. Без нового игрового relay. |
+| [#258](https://github.com/EriArk/TrainerOS/issues/258) · открыт | Linux-порт AbyssME и штатная интеграция runtime | [R144](FEATURE_READINESS.md#r144) | [S03](STRUCTURE_MAP_RU.md#s03), [S02](STRUCTURE_MAP_RU.md#s02), [S06](STRUCTURE_MAP_RU.md#s06), [S07](STRUCTURE_MAP_RU.md#s07) | [F01](STRUCTURE_MAP_RU.md#f01), [F04](STRUCTURE_MAP_RU.md#f04) | Сначала Android multiplayer; переносимость каждого движка отдельно, без второго лаунчера и обещания crossplay. |
+| [#259](https://github.com/EriArk/TrainerOS/issues/259) · открыт | PS2 DEV9 LAN через общий P2P и сессионный агент | [R035](FEATURE_READINESS.md#r035) | [S03](STRUCTURE_MAP_RU.md#s03), [S06](STRUCTURE_MAP_RU.md#s06), [S07](STRUCTURE_MAP_RU.md#s07), [S08](STRUCTURE_MAP_RU.md#s08) | [F04](STRUCTURE_MAP_RU.md#f04), [F12](STRUCTURE_MAP_RU.md#f12) | Сначала точный интерфейс ARMSX2; повторное использование #106, LAN отдельно от серверного Online. |
+
 ## Требования из решений владельца без отдельного issue
 
 Карта не ограничивается GitHub. Эти требования остаются самостоятельными строками:
 
 | Требование / источник | Готовность | Владельцы / цепочка |
 | --- | --- | --- |
+| Общие настройки VPN с информационным блоком; решение в чате 24.10, сейчас не реализовывать | [R145](FEATURE_READINESS.md#r145) | S15/S07/S04/S06; F04/F11/F12 |
 | TrainerOS ID и recovery — [решение](TRAINEROS_ACCOUNT_ECONOMY_RU.md) | [R089](FEATURE_READINESS.md#r089) | S01; F08/F12 |
 | Матчи, wins/losses/unique opponents — [backend](TRAINEROS_BACKEND_PLAN_RU.md) | [R107](FEATURE_READINESS.md#r107) | S10; F05 |
 | Ledger, награды, магазин, инвентарь, подписка | [R108](FEATURE_READINESS.md#r108), [R109](FEATURE_READINESS.md#r109), [R110](FEATURE_READINESS.md#r110) | S11; F05/F06 |

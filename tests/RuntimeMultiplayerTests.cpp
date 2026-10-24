@@ -64,7 +64,7 @@ class RuntimeMultiplayerTests final : public QObject {
             ProcessCommand command{QDir(QCoreApplication::applicationDirPath()).filePath(name),
                 {"controlled",dir.filePath("control"),dir.filePath("pid")},{}};
             if(!game.isEmpty())command.runtimeControls={{"game",game}};
-            if(!netplay.isEmpty())command.runtimeControls["netplay"]=netplay.toVariantMap();
+            if(!netplay.isEmpty()) {command.runtimeControls["netplay"]=netplay.toVariantMap();command.runtimeControls["temporaryProgress"]=true;}
             if(hotseat) {
                 command.arguments[0]="stdin-control";
                 command.runtimeControls={{"game",game},{"kind",kind},{"netplay",true},{"netplayHost",runtime.host_},
@@ -102,7 +102,98 @@ class RuntimeMultiplayerTests final : public QObject {
         QFile stop(f.dir.filePath("control"));QVERIFY(stop.open(QIODevice::WriteOnly));stop.write("exit");stop.close();
         QTRY_VERIFY(!f.lifecycle.active());
     }
+    static QList<QPair<QString,QString>> liveProfiles() {
+        struct Family {const char* core;const char* digest;const char* platforms;};
+        const Family families[]{
+            {"fceumm","1b13b00d4680394dad8000d5175f97be727107e0945bc9b412da91d70c07b267","nes fds"},
+            {"snes9x","e8d8f5cf93898c7be3ca2590d4d75dc8e9a89b891589c2da1a7917fa27411d21","snes"},
+            {"genesis_plus_gx","de8ad971eee89fa5e4e00dd1c048f0a8cc53cd9558b8c143aa022f5d7623d273","sg1000 mastersystem megadrive segacd"},
+            {"picodrive","6b0dbe4e21f0e47afbf8a89d59b92e5b48a316dd7c5fae8c74d7351f341de044","mastersystem megadrive segacd sega32x"},
+            {"mednafen_pce_fast","f7686b2bfab6a9ca34d3d48e6eda5c41ae37c430cf5c73b0f256cefd54990a51","pcengine pcenginecd"},
+            {"mednafen_supergrafx","574c4b61e83b1a4034a42cfceed62e09ae8f0809c85527ca979fe9c5e18865e3","supergrafx pcengine pcenginecd"},
+            {"stella","bf2cf27781f9e393079c9a53c71d8676d638025086955498641723a8e121228a","atari2600"},
+            {"pcsx_rearmed","25bfeb6336d7ef573903775fe53733af974c90edd268cf4fb9afa497e188609d","psx"},
+            {"fbneo","ffb37315a609317e1a00bf32c0e3d66c5a848d052d1260f4ab7f42da0f9fb9c3","neogeo fbneo"}};
+        QList<QPair<QString,QString>> result;
+        for(const auto& family:families)for(const auto& platform:QString(family.platforms).split(' '))
+            result.append({"runtime.retroarch."+platform+"."+family.core+".v1",family.digest});
+        return result;
+    }
 private slots:
+    void liveJoinCapabilityBelongsToTheLocalInstallation() {
+        Fixture f;f.runtime.allowed_=true;
+        const QJsonObject local{{"id","runtime.retroarch.nes.fceumm.v1"},{"players",2},
+            {"runtime","8d57b47c88d416c05145187c8c906b7ab0013edb7e45af69d9b6bb841aea4a24"},
+            {"core","1b13b00d4680394dad8000d5175f97be727107e0945bc9b412da91d70c07b267"}};
+        auto other=local;other["runtime"]="other-architecture";other["core"]="other-core-binary";
+        f.runtime.games_={{"nes",local}};QVERIFY(f.runtime.supportsLive(other));
+        QVERIFY(f.runtime.supportsRejoin(other));auto excluded=other;excluded["lateJoin"]=false;QVERIFY(!f.runtime.supportsRejoin(excluded));
+        excluded=other;excluded["transport"]="netpacket";QVERIFY(!f.runtime.supportsRejoin(excluded));
+        excluded=other;excluded["playMode"]="hotseat";QVERIFY(!f.runtime.supportsRejoin(excluded));
+        f.runtime.games_={{"nes",other}};QVERIFY(!f.runtime.supportsLive(local));
+        for(const auto& pair:liveProfiles()) {
+            auto installed=local;installed["id"]=pair.first;installed["core"]=pair.second;
+            installed["settings"]="reviewed-profile";
+            f.runtime.games_={{"game",installed}};QVERIFY(f.runtime.supportsRejoin(installed));
+            auto wrong=installed;wrong["settings"]="different-profile";QVERIFY(!f.runtime.supportsRejoin(wrong));
+            wrong=installed;wrong["lateJoin"]=false;QVERIFY(!f.runtime.supportsRejoin(wrong));
+            wrong=installed;wrong["core"]="unreviewed-build";f.runtime.games_={{"game",wrong}};
+            QVERIFY(!f.runtime.supportsRejoin(installed));
+        }
+    }
+    void liveJoinRejectsInvalidPlatformCorePairsAndUnreviewedFamilies() {
+        Fixture f;f.runtime.allowed_=true;
+        for(const auto& id:{"runtime.retroarch.psx.fceumm.v1", "runtime.retroarch.nes.fceumm.v2",
+                           "runtime.retroarch.nes.fceumm.v1.extra", "runtime.retroarch.nes.nestopia.v1",
+                           "runtime.retroarch.mame.mame.v1", "runtime.retroarch.ps2.pcsx2.v1",
+                           "runtime.retroarch.gb.gambatte.v1", "runtime.retroarch.gba.mgba.v1"}) {
+            // Even a locally scanned descriptor and a supported core's hash
+            // cannot grant a different platform, protocol version or family.
+            for(const auto& reviewed:liveProfiles()) {
+                const QJsonObject local{{"id",id},{"players",2},{"core",reviewed.second},{"lateJoin",true},
+                    {"runtime","8d57b47c88d416c05145187c8c906b7ab0013edb7e45af69d9b6bb841aea4a24"}};
+                f.runtime.games_={{"game",local}};QVERIFY(!f.runtime.supportsRejoin(local));
+            }
+        }
+    }
+    void finishedGameClearsRelayForNextInvitation() {
+        Fixture f;QVERIFY(f.start());QTRY_COMPARE(f.lifecycle.state(),"running");
+        f.runtime.relayStarted_=true;f.runtime.relayWaiting_=true;f.runtime.relayTicket_="previous";
+        f.runtime.selectedRelay_="madrid";f.runtime.selectedRelayEndpoint_="old.example|1234";
+        finishOrdinary(f);
+        QVERIFY(!f.runtime.relayStarted_);QVERIFY(!f.runtime.relayWaiting_);
+        QVERIFY(f.runtime.relayTicket_.isEmpty());QVERIFY(f.runtime.selectedRelay_.isEmpty());
+        QVERIFY(f.runtime.selectedRelayEndpoint_.isEmpty());
+    }
+    void pspTransportLossKeepsGameAndRevokesPendingLaunch() {
+        Fixture f;QVERIFY(f.start());QTRY_COMPARE(f.lifecycle.state(),"running");
+        const auto pid=f.process.processId();
+        f.runtime.active_=true;f.runtime.pspDirect_=true;
+        f.runtime.nativeLaunchContext_={{"ticket","old"}};
+        int completions=0;f.runtime.lobbyCompletion_=[&](bool ok,QString){QVERIFY(!ok);++completions;};
+        emit f.runtime.nativeConnection_.ended("Lost connection");
+        QCOMPARE(completions,1);QVERIFY(!f.runtime.pspDirect_);QVERIFY(f.runtime.nativeLaunchContext_.isEmpty());
+        QCOMPARE(f.process.processId(),pid);QVERIFY(f.lifecycle.active());
+        emit f.runtime.nativeConnection_.connected("late private config");
+        QCOMPARE(completions,1);QVERIFY(!f.runtime.party_.active());QCOMPARE(f.process.processId(),pid);
+        finishOrdinary(f);
+    }
+    void ps2TransportLossKeepsOwnedGameAndCannotRelaunch() {
+        Fixture f;QVERIFY(f.start());QTRY_COMPARE(f.lifecycle.state(),"running");
+        const auto pid=f.process.processId();
+        f.runtime.active_=true;f.runtime.ps2Connection_=true;
+        f.runtime.descriptor_={{"id","runtime.armsx2.lan.v1"},{"lateJoin",false}};
+        QVERIFY(!f.runtime.supportsRejoin(f.runtime.descriptor_));
+        f.runtime.ps2ConnectionConfig_="private connection";
+        f.runtime.nativeLaunchContext_={{"ticket","old"}};
+        int completions=0;f.runtime.lobbyCompletion_=[&](bool ok,QString){QVERIFY(!ok);++completions;};
+        emit f.runtime.nativeConnection_.ended("Lost connection");
+        QCOMPARE(completions,1);QVERIFY(!f.runtime.ps2Connection_);QVERIFY(f.runtime.ps2ConnectionConfig_.isEmpty());
+        QVERIFY(f.runtime.nativeLaunchContext_.isEmpty());QCOMPARE(f.process.processId(),pid);
+        emit f.runtime.nativeConnection_.connected("stale config");
+        QVERIFY(f.runtime.ps2ConnectionConfig_.isEmpty());QVERIFY(!f.runtime.party_.active());QCOMPARE(f.process.processId(),pid);
+        finishOrdinary(f);
+    }
     void destructionCannotReenterFromExternalLobbySignals() {
         Fixture f;
         auto* runtime=new RuntimeMultiplayer(f.library,f.retro,f.psp,f.dolphin,f.social,f.process,f.lifecycle,f.view);
@@ -174,12 +265,23 @@ private slots:
         QTRY_COMPARE(callbacks,1);QCOMPARE(prepared,!saveFails);QVERIFY(f.library.records.isEmpty());
         remote.cancel(operation);
     }
+    void liveLobbyAdmissionPreservesTheOwnedHostProcessAndExactIdentity_data() {
+        QTest::addColumn<QString>("profileId");QTest::addColumn<QString>("core");QTest::addColumn<bool>("together");
+        const QString nes="1b13b00d4680394dad8000d5175f97be727107e0945bc9b412da91d70c07b267";
+        QTest::newRow("first-late-guest")<<QString("runtime.fceumm.pong-homebrew.v1")<<nes<<false;
+        QTest::newRow("nes-returning-original-player")<<QString("runtime.fceumm.pong-homebrew.v1")<<nes<<true;
+        QTest::newRow("snes-returning-original-player")<<QString("runtime.snes9x.test.v1")<<QString("e8d8f5cf93898c7be3ca2590d4d75dc8e9a89b891589c2da1a7917fa27411d21")<<true;
+        QTest::newRow("megadrive-returning-original-player")<<QString("runtime.genesis.test.v1")<<QString("de8ad971eee89fa5e4e00dd1c048f0a8cc53cd9558b8c143aa022f5d7623d273")<<true;
+        for(const auto& profile:liveProfiles())
+            QTest::newRow(qPrintable(profile.first))<<profile.first<<profile.second<<true;
+    }
     void liveLobbyAdmissionPreservesTheOwnedHostProcessAndExactIdentity() {
+        QFETCH(QString,profileId);QFETCH(QString,core);QFETCH(bool,together);
         Fixture a,b;
         // Historical two-pad profiles omit players; the established default is 2.
-        const QJsonObject profile{{"id","runtime.fceumm.pong-homebrew.v1"},{"label","NES Pong"},{"content","exact"},
+        const QJsonObject profile{{"id",profileId},{"label","Test game"},{"content","exact"},
             {"runtime","8d57b47c88d416c05145187c8c906b7ab0013edb7e45af69d9b6bb841aea4a24"},
-            {"core","1b13b00d4680394dad8000d5175f97be727107e0945bc9b412da91d70c07b267"}};
+            {"core",core}};
         const auto digest=QString::fromLatin1(QCryptographicHash::hash((profile["id"].toString()+"/exact").toUtf8(),QCryptographicHash::Sha256).toHex());
         for(auto* f:{&a,&b}) {
             const auto id=f==&a?QString("1"):QString("2");
@@ -192,24 +294,67 @@ private slots:
             disconnect(&f->runtime.party_,&GameParty::startRequested,&f->runtime,&RuntimeMultiplayer::startParty);
             connect(&f->runtime.party_,&GameParty::startRequested,&f->runtime,[f](bool host,QJsonObject){
                 const auto selected=f->runtime.party_.game();f->runtime.active_=true;f->runtime.host_=host;f->runtime.descriptor_=selected;f->runtime.game_="local";
+                QFile::remove(f->dir.filePath("control"));
                 QVERIFY(f->start(false,"local",false,"retroarch",selected));
                 if(host)f->runtime.party_.ready({{"kind","ready"},{"identity",selected}});
             });
         }
         auto* h=a.social.lobbyCoordinator();auto* g=b.social.lobbyCoordinator();
         connect(h,&LobbyCoordinator::outgoing,g,[&](QString,QJsonObject p){g->receive("1","Host",p);});
-        connect(g,&LobbyCoordinator::outgoing,h,[&](QString,QJsonObject p){h->receive("2","Guest",p);});
+        connect(g,&LobbyCoordinator::outgoing,h,[&](QString,QJsonObject p){
+            h->receive("2","Guest",p);
+        });
         connect(&a.runtime.party_,&GameParty::outgoing,&b.runtime,[&](QString,QJsonObject p){b.runtime.party_.receive("online:1","Host",p);});
         connect(&b.runtime.party_,&GameParty::outgoing,&a.runtime,[&](QString,QJsonObject p){a.runtime.party_.receive("online:2","Guest",p);});
         QVERIFY(h->create("public"));QVERIFY(h->selectGame({digest,"Game","nes",profile["id"].toString(),2,profile}));
-        QVERIFY(a.social.lobbyRuntime()->setLiveJoining(true));QVERIFY(a.social.lobbyRuntime()->prepare());QVERIFY(h->ready(true));QVERIFY(h->start());
+        if(together)QVERIFY(g->join("1",h->state()["id"].toString()));else QVERIFY(a.social.lobbyRuntime()->setLiveJoining(true));
+        QVERIFY(a.social.lobbyRuntime()->prepare());
+        if(together) {QVERIFY(b.social.lobbyRuntime()->prepare());QVERIFY(g->ready(true));}
+        QVERIFY(h->ready(true));QVERIFY(h->start());
         QTRY_COMPARE(h->state()["phase"].toString(),"playing");const auto pid=a.process.processId();const auto ticket=h->state()["ticket"].toString();
-        QVERIFY(g->join("1",h->state()["id"].toString()));QVERIFY(b.social.lobbyRuntime()->joinLive());
+        if(!together) {QVERIFY(g->join("1",h->state()["id"].toString()));QVERIFY(b.social.lobbyRuntime()->joinLive());}
         QTRY_COMPARE(b.lifecycle.state(),"running");QCOMPARE(a.process.processId(),pid);QCOMPARE(a.runtime.descriptor_,profile);
+        if(together) {
+            const auto guestPid=b.process.processId();
+            b.lifecycle.exitController().setAvailable(true);
+            b.runtime.output("[Netplay] disconnected\n");
+            QTRY_VERIFY(b.social.lobbyRuntime()->liveAvailable());QVERIFY(b.process.active());
+            QCOMPARE(a.process.processId(),pid);QCOMPARE(h->state()["ticket"].toString(),ticket);
+            QVERIFY(!h->state()["liveJoining"].toBool());
+            bool action=false;for(const auto& v:b.social.lobbyActions())if(v.toMap()["id"]=="join-live"&&v.toMap()["label"]=="Rejoin game")action=true;
+            QVERIFY(action);
+            const auto reserved=b.social.lobbyPlayers().value(1).toMap();QCOMPARE(reserved["id"].toString(),QString("2"));
+            QVERIFY(!reserved["empty"].toBool());QCOMPARE(reserved["status"].toString(),QString("Can return to P2"));
+            QSignalSpy launches(&b.lifecycle,&AdventureLaunchController::adventureStarted);
+            b.social.lobbyRuntime()->configure("2",false);b.social.lobbyRuntime()->configure("2",true);
+            b.social.chooseMyLobby(g->state()["id"].toString());g->activeRoom()->reconnect();
+            QTest::qWait(3100); // The former automatic retry ran after two seconds.
+            QCOMPARE(launches.size(),0);QCOMPARE(b.process.processId(),guestPid);QVERIFY(!b.runtime.opening());
+            QVERIFY(b.social.lobbyRuntime()->joinLive());
+            QTRY_VERIFY_WITH_TIMEOUT(b.process.processId()>0&&b.process.processId()!=guestPid&&b.lifecycle.state()=="running",8000);
+            QCOMPARE(launches.size(),1);QCOMPARE(a.process.processId(),pid);QCOMPARE(h->state()["ticket"].toString(),ticket);
+        }
         finishOrdinary(b);QTRY_VERIFY(b.social.lobbyRuntime()->liveAvailable());QCOMPARE(h->state()["ticket"].toString(),ticket);
+        QCoreApplication::processEvents();QVERIFY(!b.process.active()); // Returning to the room is not Join.
         QVERIFY(QFile::remove(b.dir.filePath("control")));QVERIFY(b.social.lobbyRuntime()->joinLive());
         QTRY_COMPARE(b.lifecycle.state(),"running");QCOMPARE(a.process.processId(),pid);
         finishOrdinary(b);finishOrdinary(a);
+    }
+    void confirmedReturnRequiresTemporaryProgressAndSuccessfulFinalization_data() {
+        QTest::addColumn<bool>("temporary");QTest::addColumn<bool>("saveFails");
+        QTest::newRow("ordinary-manual-save")<<false<<false;
+        QTest::newRow("isolated-progress")<<true<<false;
+        QTest::newRow("finalization-failure")<<true<<true;
+    }
+    void confirmedReturnRequiresTemporaryProgressAndSuccessfulFinalization() {
+        QFETCH(bool,temporary);QFETCH(bool,saveFails);Fixture f;
+        QVERIFY(f.start(saveFails,"local",false,"retroarch",temporary?QJsonObject{{"id","test"}}:QJsonObject{}));
+        QTRY_COMPARE(f.lifecycle.state(),"running");f.lifecycle.exitController().setAvailable(true);
+        int calls=0;bool ready=false;
+        f.runtime.gamePreparation().prepareReturn("retry",f.process.processId(),[&](bool ok,QString){++calls;ready=ok;});
+        QTRY_COMPARE(calls,1);QCOMPARE(ready,temporary&&!saveFails);
+        if(!temporary){QVERIFY(f.process.active());finishOrdinary(f);}
+        else QVERIFY(!f.process.active());
     }
     void contentOverlaySharesTheLeaseAndNeverReplaysHeldGameButtons() {
         Fixture f;AdventureOverlayService overlay(f.process,f.lifecycle,f.view,{});
@@ -259,7 +404,12 @@ private slots:
         host.leave();QVERIFY(f.runtime.invitationId().isEmpty());QVERIFY(!f.runtime.invitationBadge());
         f.runtime.openInvitation(invitation);QVERIFY(f.social.face()!="lobby");
     }
+    void lobbyReadyRunsBothOwnedChildrenAndReturnsToTheSameRoom_data() {
+        QTest::addColumn<QString>("ending");
+        for(const auto& name:{"normal","connection-failure","party-left"})QTest::newRow(name)<<QString(name);
+    }
     void lobbyReadyRunsBothOwnedChildrenAndReturnsToTheSameRoom() {
+        QFETCH(QString,ending);
         Fixture a,b;
         const QJsonObject profile{{"id","runtime.test"},{"content","exact"},{"players",2},{"label","Game"}};
         const auto digest=QString::fromLatin1(QCryptographicHash::hash(QByteArray("runtime.test/exact"),QCryptographicHash::Sha256).toHex());
@@ -298,6 +448,12 @@ private slots:
         QTRY_VERIFY2_WITH_TIMEOUT(h->state()["phase"]=="playing",qPrintable(a.social.lobbyRuntime()->status()+" / "+b.social.lobbyRuntime()->status()+" / "+a.lifecycle.state()+" / "+b.lifecycle.state()),5000);
         QCOMPARE(g->state()["phase"].toString(),QString("playing"));
         QVERIFY(a.process.active());QVERIFY(b.process.active());QVERIFY(a.runtime.party_.pending().isEmpty());QVERIFY(b.runtime.party_.pending().isEmpty());
+        if(ending!="normal") {
+            if(ending=="party-left")b.runtime.party_.leave();else b.runtime.fail("Connection lost after suspend");
+            QTRY_COMPARE(h->state()["phase"].toString(),QString("gathering"));
+            QVERIFY(a.process.active());QVERIFY(b.process.active()); // Save/exit remains owned.
+            QCOMPARE(g->state()["id"].toString(),room);QVERIFY(!b.runtime.active_);
+        }
         finishOrdinary(a);finishOrdinary(b);QTRY_COMPARE(h->state()["phase"].toString(),QString("gathering"));
         QCOMPARE(h->state()["id"].toString(),room);QCOMPARE(g->state()["id"].toString(),room);QCOMPARE(h->state()["members"].toArray().size(),2);
         // Automatic preparation may already have finished again. It must never
@@ -421,9 +577,13 @@ private slots:
         const auto first=host.gameMenuActions().first().toMap()["id"].toString();
         connect(&host,&RuntimeMultiplayer::changed,&a.view,[&]{a.view.setExtraActions(host.gameMenuActions());});
         a.view.setExtraActions(host.gameMenuActions());readyMenu(a);
-        a.view.updateInput(a.view.inputGeneration(),{true,false,false,false,false,false,true});QCOMPARE(a.view.menuFocus(),1);
+        // The current menu uses two columns: Right enters the multiplayer actions.
+        a.view.updateInput(a.view.inputGeneration(),{true,false,false,false,false,false,false,false,true});
+        QCOMPARE(a.view.menuActions().value(a.view.menuFocus()).toMap()["id"].toString(),first);
         host.action("multiplayer-pass:old:0");QVERIFY(host.handoff_.canPass());
-        host.action(first);QVERIFY(!host.handoff_.canPass());QCOMPARE(a.view.menuFocus(),0);QVERIFY(!a.view.ready());
+        host.action(first);QVERIFY(!host.handoff_.canPass());
+        QCOMPARE(a.view.menuActions().value(a.view.menuFocus()).toMap()["id"].toString(),QString("continue"));
+        QVERIFY(!a.view.ready());
         observe(2,0);observe(3,2);
         QVERIFY(guest.handoff_.canPass());QVERIFY(!host.handoff_.canPass());
         const auto second=guest.gameMenuActions().first().toMap()["id"].toString();

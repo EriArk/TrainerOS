@@ -1,4 +1,5 @@
 #include "LobbyRoomCoordinator.h"
+#include "core/model/NetplayRelay.h"
 #include <QDateTime>
 #include <QJsonArray>
 #include <QSet>
@@ -19,6 +20,7 @@ LobbyRoomCoordinator::LobbyRoomCoordinator(QObject* parent):QObject(parent) {
     connect(&readyDeadline_,&QTimer::timeout,this,[this]{
         readyGeneration_=0;
         send(host_,"ready",{{"value",false}});
+        prepared(quint64(remote_["generation"].toInteger()),false);
         emit notice("Ready confirmation timed out. Please try again.");emit changed();
     });
     boot_=QUuid::createUuid().toString(QUuid::WithoutBraces);
@@ -74,6 +76,8 @@ QJsonArray LobbyRoomCoordinator::requests() const {
 }
 void LobbyRoomCoordinator::clearRemote() {
     readyDeadline_.stop();
+    preparationAwaitingAck_=false;
+    pendingLaunchResult_={};
     liveOperation_.clear();
     peerBoots_.remove(host_);peerSerials_.remove(host_);
     remote_={};host_.clear();joining_.clear();launchTicket_.clear();finishedTicket_.clear();preparedGeneration_=readyGeneration_=0;joinedAt_=hostSeen_=0;
@@ -90,7 +94,7 @@ void LobbyRoomCoordinator::configure(QString self,QString name,bool online) {
     }
     name_=name;const bool changed=online_!=online;online_=online;
     if(hosting()&&changed)session_.connected(self_,online_);
-    if(!online_) {readyDeadline_.stop();preparedGeneration_=readyGeneration_=0;if(!host_.isEmpty())connection_="Reconnecting to communication…";}
+    if(!online_) {readyDeadline_.stop();preparationAwaitingAck_=false;preparedGeneration_=readyGeneration_=0;if(!host_.isEmpty())connection_="Reconnecting to communication…";}
     emit this->changed();
     if(changed&&online_)tick();
 }
@@ -152,15 +156,18 @@ void LobbyRoomCoordinator::leave() {
 }
 bool LobbyRoomCoordinator::selectGame(const LobbySession::Game& game) {return hosting()&&session_.selectGame(self_,game);}
 bool LobbyRoomCoordinator::setAccess(QString access) {return hosting()&&session_.setAccess(self_,access);}
+bool LobbyRoomCoordinator::setRelay(QString relay) {return hosting()&&session_.setRelay(self_,relay);}
 bool LobbyRoomCoordinator::setConversation(QString channel) {return hosting()&&session_.setConversation(self_,channel);}
 bool LobbyRoomCoordinator::seat(int seat) {
     if(hosting())return session_.claimSeat(self_,seat,session_.generation());
     if(!online_||remote_.isEmpty()||restoring_||!connection_.isEmpty())return false;
+    readyDeadline_.stop();preparationAwaitingAck_=false;
     preparedGeneration_=readyGeneration_=0;send(host_,"seat",{{"seat",seat}});return true;
 }
 bool LobbyRoomCoordinator::spectate(bool value) {
     if(hosting())return session_.spectate(self_,value,session_.generation());
     if(!online_||remote_.isEmpty()||restoring_||!connection_.isEmpty())return false;
+    readyDeadline_.stop();preparationAwaitingAck_=false;
     preparedGeneration_=readyGeneration_=0;send(host_,"spectate",{{"value",value}});return true;
 }
 bool LobbyRoomCoordinator::requestPlay() {
@@ -175,11 +182,18 @@ bool LobbyRoomCoordinator::answerPlay(const QString& peer,const QString& answer)
     playRequests_.remove(peer);
     send(peer,"play-response",{{"answer",answer}});emit changed();return true;
 }
+bool LobbyRoomCoordinator::locallyPrepared() const {
+    if(!hosting())return preparedGeneration_&&preparedGeneration_==quint64(remote_["generation"].toInteger());
+    for(const auto& v:session_.state()["members"].toArray())if(v.toObject()["id"]==self_)return v.toObject()["prepared"].toBool();
+    return false;
+}
 bool LobbyRoomCoordinator::prepared(quint64 generation,bool value) {
     if(value&&!runtimeAllowed_)return false;
     if(hosting())return session_.prepared(self_,generation,value);
     if(!online_||remote_.isEmpty()||restoring_||!connection_.isEmpty()||remote_.value("generation").toInteger()!=qint64(generation))return false;
-    preparedGeneration_=value?generation:0;preparationAwaitingAck_=value;
+    readyDeadline_.stop();
+    preparedGeneration_=value?generation:0;preparationAwaitingAck_=true;
+    preparationRequestGeneration_=generation;preparationTarget_=value;preparationDeadline_.setRemainingTime(45000);
     readyGeneration_=0;send(host_,"prepared",{{"value",value}});return true;
 }
 bool LobbyRoomCoordinator::ready(bool value) {
@@ -208,8 +222,25 @@ bool LobbyRoomCoordinator::acknowledgeLaunch(const QString& ticket,bool success)
         if(!success)send(host_,"live-ended",{{"ticket",ticket},{"operation",liveOperation_}});
         return true;
     }
-    if(!online_||ticket.isEmpty()||ticket!=launchTicket_||remote_.value("ticket")!=ticket||remote_.value("phase")!="launching")return false;
-    send(host_,"launch-result",{{"ticket",ticket},{"success",success}});return true;
+    if(ticket.isEmpty()||ticket!=launchTicket_||remote_.value("ticket")!=ticket||remote_.value("phase")!="launching")return false;
+    // Keep the local result until the host acknowledges it through room state.
+    // A late success cannot undo an already reported cancellation/failure.
+    if(pendingLaunchResult_.value("ticket")==ticket) {
+        const bool previous=pendingLaunchResult_.value("success").toBool();
+        if(previous==success)return true;
+        if(!previous&&success)return false;
+    }
+    pendingLaunchResult_={{"ticket",ticket},{"success",success}};
+    launchResultGeneration_=remote_["generation"].toInteger();launchResultDeadline_.setRemainingTime(180000);
+    retryLaunchResult();return true;
+}
+void LobbyRoomCoordinator::retryLaunchResult() {
+    if(pendingLaunchResult_.isEmpty())return;
+    if(launchResultDeadline_.hasExpired()||remote_["phase"]!="launching"||
+       remote_["ticket"]!=pendingLaunchResult_["ticket"]||remote_["generation"].toInteger()!=launchResultGeneration_) {
+        pendingLaunchResult_={};return;
+    }
+    if(online_&&!restoring_&&connection_.isEmpty())send(host_,"launch-result",pendingLaunchResult_);
 }
 bool LobbyRoomCoordinator::finishGame(const QString& ticket) {
     if(hosting())return session_.finishGame(ticket);
@@ -223,9 +254,19 @@ bool LobbyRoomCoordinator::finishGame(const QString& ticket) {
     send(host_,"game-finished",{{"ticket",ticket}});return true;
 }
 bool LobbyRoomCoordinator::setLiveJoining(bool enabled) {return hosting()&&session_.setLiveJoining(self_,enabled);}
+bool LobbyRoomCoordinator::canJoinLive() const {
+    if(hosting()||!runtimeAllowed_||!online_||restoring_||!connection_.isEmpty()||remote_["phase"]!="playing")return false;
+    int reserved=0;QJsonObject mine;
+    for(const auto& v:remote_["members"].toArray()) {
+        const auto m=v.toObject();if(m["seat"].toInt()||m["returnSeat"].toInt())++reserved;
+        if(m["id"]==self_)mine=m;
+    }
+    if(!mine["connected"].toBool()||!mine["spectator"].toBool())return false;
+    if(mine["returnSeat"].toInt()>0)return remote_["rejoin"].toBool()&&mine["returnUntil"].toInteger()>now();
+    return remote_["liveJoining"].toBool()&&reserved<remote_["game"].toObject()["seats"].toInt();
+}
 bool LobbyRoomCoordinator::requestLive(QString operation) {
-    if(!runtimeAllowed_)return false;
-    if(hosting()||!online_||restoring_||!connection_.isEmpty()||remote_.value("phase")!="playing"||!remote_.value("liveJoining").toBool()||QUuid(operation).isNull())return false;
+    if(!canJoinLive()||QUuid(operation).isNull())return false;
     liveOperation_=operation;launchTicket_.clear();finishedTicket_.clear();
     send(host_,"live-request",{{"ticket",remote_.value("ticket")},{"operation",operation}});return true;
 }
@@ -249,6 +290,7 @@ bool LobbyRoomCoordinator::proposeVote(const QJsonArray& choices){return hosting
 bool LobbyRoomCoordinator::vote(QString id,int choice){if(hosting())return session_.vote(self_,id,choice);if(!online_||restoring_||remote_.value("vote").toObject()["id"]!=id)return false;send(host_,"vote",{{"id",id},{"choice",choice}});return true;}
 bool LobbyRoomCoordinator::confirmVote(QString id,int choice){return hosting()&&session_.confirmVote(self_,id,choice);}
 bool LobbyRoomCoordinator::validState(const QJsonObject& s,const QString& host) {
+    if(!netplayRelay::valid(s["relay"].toString("auto")))return false;
     if(s["title"].toString().size()>80||s["startsAt"].toInteger()<0||s["startsAt"].toInteger()>4102444800LL)return false;
     if(!identifier(host)||!QStringList{"private","public","approval"}.contains(s["access"].toString()))return false;
     if(!s["conversation"].toString().isEmpty()&&!identifier(s["conversation"].toString()))return false;
@@ -259,12 +301,16 @@ bool LobbyRoomCoordinator::validState(const QJsonObject& s,const QString& host) 
     QSet<QString> identities;QSet<int> seats;const auto capacity=s["game"].toObject()["seats"].toInt(-1);
     if(capacity<0||capacity>16)return false;
     const auto game=s["game"].toObject();
+    if(s["relay"]=="psp-host"&&!netplayRelay::compatible(game["runtime"].toObject(),"psp-host"))return false;
     if(game["id"].toString().size()>128||game["title"].toString().size()>160||game["platform"].toString().size()>32||game["mode"].toString().size()>64)return false;
     if(!game["id"].toString().isEmpty()&&(capacity<1||game["title"].toString().trimmed().isEmpty()||game["mode"].toString().isEmpty()||game["platform"].toString().isEmpty()))return false;
     for(const auto& value:members) {
         const auto m=value.toObject();const auto id=m["id"].toString();const auto seat=m["seat"].toInt(-1);
         if(!identifier(id)||identities.contains(id)||m["name"].toString().trimmed().isEmpty()||m["name"].toString().size()>100||seat<0||seat>capacity||(seat&&seats.contains(seat)))return false;
         identities.insert(id);if(seat)seats.insert(seat);
+        const auto returning=m["returnSeat"].toInt();
+        if(returning<0||returning>capacity||(returning&&(!s["rejoin"].toBool()||s["phase"]!="playing"||seat||!m["spectator"].toBool()||id==host||returning==1||seats.contains(returning)||m["returnUntil"].toInteger()<=0)))return false;
+        if(returning)seats.insert(returning);
     }
     const auto ballot=s["vote"].toObject();
     if(!ballot.isEmpty()) {
@@ -326,7 +372,14 @@ void LobbyRoomCoordinator::receive(QString peer,QString name,const QJsonObject& 
             peerBoots_[peer]=boot;peerSerials_[peer]=serial;
             if(session_.join(peer,name.left(100),now(),data["watch"].toBool())) {
                 if(!previous.isEmpty()&&previous!=boot) {
-                    retiredBoots_[peer+"/"+previous]=now()+180;session_.connected(peer,false);session_.connected(peer,true);
+                    retiredBoots_[peer+"/"+previous]=now()+180;
+                    // A new shell cannot still own the previous game's runtime.
+                    const auto s=session_.state();QString admission;
+                    for(const auto& m:s["members"].toArray())if(m.toObject()["id"]==peer)admission=m.toObject()["admission"].toString();
+                    const auto ticket=s["ticket"].toString();
+                    const bool released=admission.isEmpty()?session_.finishPlayer(peer,ticket):session_.releaseLive(peer,ticket,admission);
+                    if(released)emit liveReleased(peer,admission.isEmpty()?ticket:admission);
+                    session_.connected(peer,false);session_.connected(peer,true);
                 }
                 pendingInvites_.remove(peer);seen_[peer]=now();save();send(peer,"state",session_.state(),probe);
             }
@@ -354,6 +407,7 @@ void LobbyRoomCoordinator::receive(QString peer,QString name,const QJsonObject& 
         if(kind=="vote"&&p["generation"]==session_.state()["generation"]){session_.vote(peer,data["id"].toString(),data["choice"].toInt(-1));return;}
         if(kind=="ping") {session_.connected(peer,true);send(peer,"state",session_.state(),probe);return;}
         if(kind=="live-request"&&p["generation"]==session_.state()["generation"]&&data["ticket"]==session_.state()["ticket"]&&!QUuid(data["operation"].toString()).isNull()) {
+            session_.expireRejoins(now());
             const auto operation=data["operation"].toString();const int seat=session_.liveSeat(peer);
             for(const auto& m:session_.state()["members"].toArray())if(m.toObject()["id"]==peer&&m.toObject()["admission"]==operation) {
                 send(peer,"state",session_.state());return;
@@ -372,7 +426,7 @@ void LobbyRoomCoordinator::receive(QString peer,QString name,const QJsonObject& 
             // A seated player may end their part of the current game, not a
             // spectator or a delayed report from an earlier launch.
             for(const auto& m:session_.state()["members"].toArray())if(m.toObject()["id"]==peer&&m.toObject()["seat"].toInt()>0&&m.toObject()["admission"].toString().isEmpty())
-                session_.finishPlayer(peer,data["ticket"].toString());
+                if(session_.finishPlayer(peer,data["ticket"].toString()))emit liveReleased(peer,data["ticket"].toString());
             return;
         }
         const auto generation=quint64(p["generation"].toInteger());
@@ -405,7 +459,7 @@ void LobbyRoomCoordinator::receive(QString peer,QString name,const QJsonObject& 
     if(kind=="problem") {peerSerials_[peer]=serial;emit notice(data["message"].toString().left(160));return;}
     if(kind=="closed"||kind=="rejected"||kind=="removed") {emit membershipEnded(id);clearRemote();emit notice(kind=="closed"?"The lobby was closed.":kind=="removed"?"You are no longer in this lobby.":"The lobby couldn't accept your request.");emit changed();return;}
     if(kind!="state"||data["id"]!=id||!validState(data,peer))return;
-    if(newBoot) {retiredBoots_[peer+"/"+peerBoots_[peer]]=now()+180;preparedGeneration_=readyGeneration_=0;launchTicket_.clear();finishedTicket_.clear();}
+    if(newBoot) {retiredBoots_[peer+"/"+peerBoots_[peer]]=now()+180;preparedGeneration_=readyGeneration_=0;launchTicket_.clear();finishedTicket_.clear();pendingLaunchResult_={};}
     peerBoots_[peer]=boot;peerSerials_[peer]=serial;
     hostSeen_=now();
     if(!newBoot&&!restoring_&&data["revision"].toInteger()<remote_.value("revision").toInteger())return;
@@ -413,9 +467,11 @@ void LobbyRoomCoordinator::receive(QString peer,QString name,const QJsonObject& 
     if(!recovered&&data["revision"]==remote_.value("revision"))return;
     QJsonObject mine;for(const auto& v:data["members"].toArray())if(v.toObject()["id"]==self_)mine=v.toObject();
     if(mine.isEmpty()) {emit membershipEnded(id);clearRemote();emit notice("You left the lobby.");emit changed();return;}
-    if(data["generation"]!=remote_.value("generation"))preparedGeneration_=readyGeneration_=0;
+    if(data["generation"]!=remote_.value("generation")) {preparedGeneration_=readyGeneration_=0;preparationAwaitingAck_=false;}
     remote_=data;joining_.clear();joinedAt_=0;
     if(data["ticket"]!=finishedTicket_||data["phase"]!="playing")finishedTicket_.clear();
+    if(data["phase"]!="launching"||data["ticket"]!=pendingLaunchResult_["ticket"]||
+       data["generation"].toInteger()!=launchResultGeneration_)pendingLaunchResult_={};
     const auto generation=quint64(data["generation"].toInteger());const auto ticket=data["ticket"].toString();
     if(data["phase"]=="playing"&&!liveOperation_.isEmpty()&&mine["admission"]==liveOperation_&&launchTicket_!=ticket) {
         launchTicket_=ticket;emit liveLaunchRequested(liveOperation_,ticket,data);
@@ -430,20 +486,25 @@ void LobbyRoomCoordinator::receive(QString peer,QString name,const QJsonObject& 
     // A host snapshot already in transit may precede our preparation request.
     // Keep the local proof until its acknowledgement, without allowing a remote
     // prepared flag to create local proof after reconnect/generation changes.
-    if(mine["prepared"].toBool())preparationAwaitingAck_=false;
-    else if(!preparationAwaitingAck_)preparedGeneration_=readyGeneration_=0;
+    if(preparationAwaitingAck_&&(generation!=preparationRequestGeneration_||data["phase"]!="gathering"||mine["prepared"].toBool()==preparationTarget_))preparationAwaitingAck_=false;
+    if(!mine["prepared"].toBool()&&!preparationAwaitingAck_)preparedGeneration_=readyGeneration_=0;
     if(!mine["ready"].toBool()&&!readyPending())readyGeneration_=0;
     emit changed();
+    // Reconnection must reconcile the host's old Ready with actual local proof.
+    // Never reconstruct local preparation from a remote snapshot.
+    if(remote_["phase"]=="gathering"&&mine["prepared"].toBool()&&!preparedGeneration_&&!preparationAwaitingAck_)
+        prepared(quint64(remote_["generation"].toInteger()),false);
 }
 void LobbyRoomCoordinator::deliveryFailed(const QString& peer) {
     if(hosting()) {if(!session_.connected(peer,false))emit notice("Couldn't deliver the lobby invitation. Try again.");}
-    else if(peer==host_) {readyDeadline_.stop();preparedGeneration_=readyGeneration_=0;connection_="Host unavailable. Reconnecting…";emit changed();}
+    else if(peer==host_) {readyDeadline_.stop();preparationAwaitingAck_=false;preparedGeneration_=readyGeneration_=0;connection_="Host unavailable. Reconnecting…";emit changed();}
 }
 void LobbyRoomCoordinator::tick() {
     for(auto it=retiredBoots_.begin();it!=retiredBoots_.end();)if(it.value()<=now())it=retiredBoots_.erase(it);else ++it;
     if(!invitation_.isEmpty()&&invitation_["expires"].toInteger()<=now()) {invitation_={};emit changed();}
     if(!online_)return;
     if(hosting()) {
+        session_.expireRejoins(now());
         for(const auto& peer:pendingInvites_.keys()) {
             if(pendingInvites_.value(peer)["until"].toInteger()<=now())pendingInvites_.remove(peer);
             else sendInvitation(peer);
@@ -456,6 +517,16 @@ void LobbyRoomCoordinator::tick() {
         if(joinedAt_&&now()-joinedAt_>90) {clearRemote();emit notice("The join request expired.");emit changed();return;}
         if(hostSeen_&&now()-hostSeen_>45)deliveryFailed(host_);
         reconnect();
+        if(online_&&!restoring_&&connection_.isEmpty()&&remote_["phase"]=="gathering") {
+            if(preparationAwaitingAck_&&preparationRequestGeneration_==quint64(remote_["generation"].toInteger())) {
+                if(preparationDeadline_.hasExpired()) {
+                    preparationAwaitingAck_=false;preparedGeneration_=readyGeneration_=0;
+                    emit notice("Preparation confirmation timed out. Try setup again.");emit changed();
+                } else send(host_,"prepared",{{"value",preparationTarget_}});
+            }
+            if(readyPending()&&readyRequestGeneration_==quint64(remote_["generation"].toInteger()))send(host_,"ready",{{"value",readyTarget_}});
+        }
+        retryLaunchResult();
         if(!liveOperation_.isEmpty()&&launchTicket_.isEmpty()&&finishedTicket_.isEmpty()&&remote_.value("phase")=="playing")
             send(host_,"live-request",{{"ticket",remote_.value("ticket")},{"operation",liveOperation_}});
         if(!finishedTicket_.isEmpty()) {

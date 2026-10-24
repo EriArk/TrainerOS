@@ -1,4 +1,5 @@
 #include "DolphinNetplay.h"
+#include "NetplayCache.h"
 #include "core/model/GamePlayers.h"
 #include "integrations/adventure/retroarch/RetroArchConfiguration.h"
 #include <QDir>
@@ -88,6 +89,8 @@ QString configureNetplay(ProcessCommand& cmd,const StandaloneInstallation& i,con
     auto directory=std::make_shared<QTemporaryDir>();
     if(!directory->isValid())return "Couldn't prepare multiplayer settings.";
     const auto root=directory->path();
+    if(!prepareNetplayCache(root+"/Cache/Shaders","dolphin",request.expected["runtime"].toString()))
+        return "Couldn't prepare the graphics cache.";
     QDir().mkpath(root+"/Config");
     // Copy only input mapping. All NetPlay/game settings are session-owned;
     // no memory-card path, per-game override or ordinary save is writable here.

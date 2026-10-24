@@ -3,7 +3,7 @@
   "platform": "gc",
   "romSha256": "",
   "state": "partial",
-  "record": "../MULTIPLAYER_PREPARATION.md",
+  "record": "../emulators/dolphin.md",
   "implementationSource": "src/integrations/adventure/standalone/DolphinNetplay.cpp",
   "evidence": [
     "existing-native-bridge-source",

@@ -98,10 +98,12 @@ SocialController::SocialController(QObject* parent):QObject(parent),session_(new
     connect(&stream_,&SocialStream::changed,this,&SocialController::changed);
     connect(session_,&FluxerSession::partyPacket,this,[this](quint64 g,QString peer,QString name,QJsonObject p){if(g==generation_)emit partyPacket(peer,name,p);});
     connect(session_,&FluxerSession::partyFailed,this,[this](quint64 g,QString peer){if(g==generation_){
-        if(peer.startsWith("company:")&&peer.count(':')==1)
-            for(auto* r:lobby_.rooms())if(r->state()["conversation"]==peer.mid(8)&&!lobbyLeaving_.contains(r->state()["id"].toString()))r->forgetMembership();
         emit partyFailed(peer);
     }});
+    connect(session_,&FluxerSession::groupMembershipEnded,this,[this](quint64 g,QString channel){
+        if(g!=generation_)return;
+        for(auto* r:lobby_.rooms())if(r->state()["conversation"]==channel&&!lobbyLeaving_.contains(r->state()["id"].toString()))r->forgetMembership();
+    });
     connect(session_,&FluxerSession::partyReset,this,[this](quint64 g){if(g==generation_){gameActivities_.clear();companyParties_.clear();partyFocus_=false;emit partyReset();}});
     connect(session_,&FluxerSession::runtimeProbeFailed,this,[this](quint64 generation,QString peer,QString message){
         if(generation==generation_)emit runtimeProbeFailed(peer,message);
@@ -156,6 +158,9 @@ SocialController::SocialController(QObject* parent):QObject(parent),session_(new
 }
 SocialController::~SocialController() {
     saveDrafts();
+    // Cancelling a pending launch publishes room state. Do it while the UI
+    // members and provider still exist, not from a later member destructor.
+    if(lobbyRuntime_.opening())lobbyRuntime_.cancelPending();
     QMetaObject::invokeMethod(session_,&FluxerSession::stop,Qt::BlockingQueuedConnection);
     thread_.quit();thread_.wait();
 }

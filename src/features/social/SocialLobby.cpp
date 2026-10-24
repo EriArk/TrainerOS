@@ -1,4 +1,5 @@
 #include "SocialController.h"
+#include "core/model/NetplayRelay.h"
 #include "integrations/social/LobbyDirectory.h"
 #include <QDateTime>
 #include <QUuid>
@@ -200,7 +201,7 @@ QVariantList SocialController::lobbyActions() const {
         if(!s["vote"].toObject().isEmpty())add("vote","Vote for a game",gathering&&!mine["spectator"].toBool());
         if(!game["id"].toString().isEmpty()) {
             if(mine["spectator"].toBool()&&!viewedLobby().hosting()) {
-                if(&viewedLobby()==lobby_.activeRoom()&&lobbyRuntime_.liveAvailable())add("join-live","Join game now");
+                if(&viewedLobby()==lobby_.activeRoom()&&lobbyRuntime_.liveAvailable())add("join-live",mine["returnSeat"].toInt()>0?"Rejoin game":"Join game now");
                 else add("request-play",lobbyRuntime_.busy()?"Preparing…":"I want to play",!lobbyRuntime_.busy());
             }
             add("seat","Controller: "+(mine["seat"].toInt()?"P"+QString::number(mine["seat"].toInt()):QString("Choose")),gathering);
@@ -389,7 +390,11 @@ void SocialController::lobbyAction(QString action) {
         }
         return;
     }
-    bool allowed=viewedLobby().hosting()&&(action=="requests"||action=="publish-topic"||action=="remove"||(action=="live-joining"&&lobbyRuntime_.liveSupported()));for(const auto& v:lobbyActions())if(v.toMap()["id"]==action&&v.toMap()["enabled"].toBool())allowed=true;
+    const auto room=viewedLobby().state();
+    const bool relayEditable=viewedLobby().hosting()&&(room["phase"]=="choosing"||room["phase"]=="gathering")&&
+        !netplayRelay::choices(room["game"].toObject()["runtime"].toObject()).isEmpty();
+    if(action.startsWith("relay:")&&relayEditable) {viewedLobby().setRelay(action.mid(6));emit changed();return;}
+    bool allowed=(relayEditable&&action=="relay")||(viewedLobby().hosting()&&(action=="requests"||action=="publish-topic"||action=="remove"||(action=="live-joining"&&lobbyRuntime_.liveSupported())));for(const auto& v:lobbyActions())if(v.toMap()["id"]==action&&v.toMap()["enabled"].toBool())allowed=true;
     if(!allowed)return;
     if(action=="create") {createAnotherLobby();lobbySelection_.clear();}
     else if(action=="community")emit commandRequested("lobby-directory-join",{});
@@ -420,8 +425,11 @@ void SocialController::lobbyAction(QString action) {
         else if(action=="seat") {menuTitle_="Choose your controller";for(int i=1;i<=viewedLobby().state()["game"].toObject()["seats"].toInt();++i)add("P"+QString::number(i),"seat:"+QString::number(i));}
         else if(action=="options") {
             menuTitle_="Lobby options";add("Access: "+viewedLobby().state()["access"].toString()+" · change","access");
+            if(relayEditable)add("Connection settings","relay");
             if(&viewedLobby()==lobby_.activeRoom()&&lobbyRuntime_.liveSupported()&&viewedLobby().state()["phase"]!="launching")
-                add(viewedLobby().state()["liveJoining"].toBool()?"Joining during play: On · disable":"Allow joining during play","live-joining");
+                add(viewedLobby().state()["rejoin"].toBool()
+                    ?(viewedLobby().state()["liveJoining"].toBool()?"New players during play: On · disable":"Allow new players during play")
+                    :(viewedLobby().state()["liveJoining"].toBool()?"Joining during play: On · disable":"Allow joining during play"),"live-joining");
             if(viewedLobby().state()["members"].toArray().size()>1)add("Remove a member","remove");
             add("Category: "+lobbyDirectory::topicName(lobbyPublicationTopic_),"publish-topic");
             if(!viewedLobby().requests().isEmpty())add("Join requests","requests");
@@ -429,6 +437,14 @@ void SocialController::lobbyAction(QString action) {
             add("Conversation members","chat-people");
             add("Rename lobby","rename");add("Set gathering time","schedule");
             if(viewedLobby().state()["startsAt"].toInteger())add("Cancel gathering time","unschedule");
+        }
+        else if(action=="relay") {
+            const auto profile=room["game"].toObject()["runtime"].toObject();
+            menuTitle_="Connection settings";
+            menuDetail_=profile["id"].toString().startsWith("runtime.ppsspp.")
+                ?"Try the host relay if standard fails. Needs direct connectivity; resets Ready."
+                :"Automatic chooses a relay region using every player's connection. Changing it resets Ready.";
+            for(const auto& region:netplayRelay::choices(profile))add(netplayRelay::connectionLabel(profile,region)+(room["relay"].toString("auto")==region?" · Selected":""),"relay:"+region);
         }
         else if(action=="publish-topic") {menuTitle_="Lobby category";for(const auto& topic:lobbyDirectory::publicationTopics())add(lobbyDirectory::topicName(topic),"publish-topic:"+topic);}
         if(menu_.isEmpty()) {menu_.append("Close");menuCommands_.append("cancel");}

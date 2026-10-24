@@ -15,16 +15,35 @@ inline bool multiplayerConnectionAllowed(const QJsonObject& profile,const QStrin
     for(const auto& value:list)if(value!="nearby"&&value!="online")return false;
     return list.contains(connection);
 }
+// Display only LOCAL admitted runtime profiles. Catalogue player counts cannot
+// create a mode, and an unknown future runtime does not inherit an icon.
+inline QVariantMap multiplayerPresentation(const QJsonObject& profile) {
+    if(profile.isEmpty() || (!multiplayerConnectionAllowed(profile,"nearby") && !multiplayerConnectionAllowed(profile,"online")))return {};
+    const auto id=profile["id"].toString();QString kind,label;
+    if(id=="runtime.armsx2.lan.v1"){kind="netplay";label="LAN (in-game)";}
+    else if(id.startsWith("runtime.handheld.") && profile["transport"]=="netpacket"){kind="link";label="Link";}
+    else if(id.startsWith("runtime.retroarch.") || id.startsWith("runtime.dolphin.") || id=="runtime.rmg.n64.v1" || id=="runtime.flycast-dojo.dc.v1"){kind="netplay";label="Netplay";}
+    else if(id.startsWith("runtime.ppsspp.") || id=="runtime.azahar.3ds.v1" || id=="runtime.melonds.nds.v1" || id=="runtime.vita3k.lan.v1"){kind="wireless";label="Wireless";}
+    if(kind.isEmpty())return {};
+    return {{"id",kind},{"label",label},{"nearby",multiplayerConnectionAllowed(profile,"nearby")},{"online",multiplayerConnectionAllowed(profile,"online")}};
+}
 // Reviewed paired-machine routes prepare two opaque batteries before launch.
 inline bool requiresLinkedSavePreparation(const QJsonObject& profile) {
     const auto mode=profile.value("settings").toString();
     return mode=="sameboy-linked-pair-battery-v1"||mode=="mgba-linked-party-v2";
 }
-// Local naming is presentation; all content/settings/runtime fields still match.
+// Network admission compares game/protocol/settings, not architecture-specific
+// executable bytes. Local installation integrity and save guards stay exact.
 inline bool sameMultiplayerGame(QJsonObject left,QJsonObject right) {
     if(left.isEmpty()||right.isEmpty())return false;
     left.remove("label");right.remove("label");
     left.remove("connections");right.remove("connections");
+    if(left["id"]==right["id"]&&left["id"].toString().startsWith("runtime.")) {
+        for(const auto& key:{"runtime","core"}) {left.remove(key);right.remove(key);}
+        if(left["playMode"].toString("separate")=="separate"&&right["playMode"].toString("separate")=="separate") {
+            left.remove("controllerModes");right.remove("controllerModes");
+        }
+    }
     // A runtime may declare a fixed native port ceiling separately from its
     // catalogue-derived party limit. Local metadata must not split identical
     // games into incompatible builds. Both peers must declare the same ceiling;
@@ -55,7 +74,7 @@ inline bool sameMultiplayerGame(QJsonObject left,QJsonObject right) {
 }
 // A selected controller mode is part of the strict session identity. Derive
 // variants only from a LOCAL runtime's declared capability; a peer's mode field
-// alone never enables another launch route or weakens exact-build matching.
+// alone never enables another launch route or grants a local runtime capability.
 inline QJsonObject multiplayerModeProfile(QJsonObject local,const QString& mode) {
     if(local.isEmpty())return {};
     if(mode=="separate") {local.remove("playMode");return local;}

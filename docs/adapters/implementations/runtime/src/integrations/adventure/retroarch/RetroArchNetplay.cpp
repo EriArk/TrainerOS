@@ -165,7 +165,7 @@ QJsonObject netplayProfile(QString platform,QString core,QString content,int pla
     const auto layout=players>2?multiPadLayout(platform,core):QString("two-pad");
     if(layout.isEmpty())return {};
     if(core=="pcsx_rearmed")return {{"id","runtime.retroarch.psx.pcsx_rearmed.v1"},{"content",content},
-        {"settings","pcsx-two-digital-private-bios-no-sram-v1"},{"players",2}};
+        {"settings","pcsx-two-digital-private-bios-no-sram-v2"},{"players",2}};
     if(core=="pcsx2")return {{"id","runtime.retroarch.ps2.pcsx2.v1"},{"content",content},
         {"settings","lrps2-two-digital-private-bios-no-cards-v1"},{"players",2}};
     return {{"id","runtime.retroarch."+platform+'.'+core+".v1"},{"content",content},
@@ -361,6 +361,8 @@ QString prepareNetplay(ProcessCommand& cmd,const AdventureRegistration& r,const 
     const auto identity=multiplayerModeProfile(netplayIdentity(r,i,cancel,nullptr,request.expected["players"].toInt(2)),
         request.expected["playMode"].toString("separate"));
     if(identity.isEmpty())return "Multiplayer isn't supported for this game version yet.";
+    if(!request.localExpected.isEmpty()&&(identity["runtime"]!=request.localExpected["runtime"]||
+       identity["core"]!=request.localExpected["core"]))return "Your local emulator changed. Prepare the game again.";
     if(!sameMultiplayerGame(identity,request.expected))return "Your game or emulator changed. Invite your friend again.";
     const bool linked=requiresLinkedSavePreparation(identity);
     const bool handheld=identity["transport"]=="netpacket"||linked;
@@ -413,7 +415,7 @@ QString prepareNetplay(ProcessCommand& cmd,const AdventureRegistration& r,const 
         options="pcsx_rearmed_bios = \"auto\"\npcsx_rearmed_memcard1 = \"libretro\"\n"
             "pcsx_rearmed_memcard2 = \"none\"\npcsx_rearmed_multitap = \"disabled\"\n"
             "pcsx_rearmed_multitap1 = \"disabled\"\npcsx_rearmed_multitap2 = \"disabled\"\n"
-            "pcsx_rearmed_threaded_rendering = \"disabled\"\n";
+            "pcsx_rearmed_gpu_thread_rendering = \"disabled\"\n";
     }
     if(ps2) {
         const auto target=path+"/system/pcsx2/bios/bios.bin";
@@ -478,6 +480,16 @@ QString prepareNetplay(ProcessCommand& cmd,const AdventureRegistration& r,const 
     bytes+="netplay_start_as_spectator = \""+QByteArray(usesSharedController(identity)&&!request.host?"true":"false")+"\"\n";
     if(usesSharedController(identity))bytes+="netplay_share_analog = \"0\"\nquit_press_twice = \"false\"\nstdin_cmd_enable = \"true\"\n";
     bytes+=controllers;
+    if(identity["transport"]!="netpacket"&&!ps2) {
+        // Let upstream rollback trade bounded input delay for replay work when
+        // late inputs exceed the core's spare frame budget. Inherited 0/0 locks
+        // this adaptation off, particularly costly for PS1. This is session-only;
+        // the host's native LATENCY command negotiates the same bounds to peers.
+        // Linked SameBoy/mGBA also use rollback; their battery-save policy must
+        // not accidentally disable this adaptation. Netpacket remains separate.
+        bytes+="netplay_input_latency_frames_min = \"0\"\n"
+               "netplay_input_latency_frames_range = \"6\"\n";
+    }
     if(playStation)bytes+="system_directory = \""+path.toUtf8()+"/bios\"\n";
     if(ps2)bytes+="system_directory = \""+path.toUtf8()+"/system\"\nvideo_driver = \"vulkan\"\nvideo_shader_enable = \"false\"\nstdin_cmd_enable = \"true\"\n";
 #ifdef Q_OS_LINUX

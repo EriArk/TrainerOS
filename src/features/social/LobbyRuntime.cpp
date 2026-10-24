@@ -8,7 +8,7 @@ LobbyRuntime::LobbyRuntime(LobbyCoordinator& lobby,QObject* parent):QObject(pare
     connect(&lobby_,&LobbyCoordinator::launchRequested,this,&LobbyRuntime::launch);
     connect(&lobby_,&LobbyCoordinator::liveJoinRequested,this,[this](QString peer,QString operation,int seat){
         const auto s=lobby_.state();
-        if(playing_&&activeService_&&ticket_==s["ticket"].toString()&&liveSupported()&&s["liveJoining"].toBool()
+        if(playing_&&activeService_&&ticket_==s["ticket"].toString()&&liveSupported()
            &&activeService_->admitLive(ticket_,peer,operation,seat)) {
             if(lobby_.admitLive(peer,operation,seat))return;
             activeService_->releaseLive(peer,operation);
@@ -63,7 +63,7 @@ QJsonObject LobbyRuntime::context() const {
             {"spectator",m["spectator"]},{"connected",m["connected"]}});
     }
     QJsonObject result{{"lobby",s["id"]},{"owner",s["owner"]},{"generation",s["generation"]},
-        {"game",s["game"]},{"vote",s["vote"].toObject()["id"]},{"members",members},{"self",self_}};
+        {"game",s["game"]},{"relay",s["relay"].toString("auto")},{"vote",s["vote"].toObject()["id"]},{"members",members},{"self",self_}};
     if(live_)result["liveAdmission"]=operation_;
     return result;
 }
@@ -75,12 +75,7 @@ bool LobbyRuntime::setLiveJoining(bool enabled) {
     return (!enabled||liveSupported())&&lobby_.setLiveJoining(enabled);
 }
 bool LobbyRuntime::liveAvailable() const {
-    const auto s=lobby_.state();if(playing_||busy_||!online_||lobby_.hosting()||s["phase"]!="playing"||!s["liveJoining"].toBool()
-        ||s["recovering"].toBool()||!s["connection"].toString().isEmpty()||!liveSupported())return false;
-    int players=0;bool spectator=false;
-    for(const auto& v:s["members"].toArray()) {const auto m=v.toObject();if(m["seat"].toInt())++players;
-        if(m["id"]==self_)spectator=m["spectator"].toBool()&&m["connected"].toBool();}
-    return spectator&&players<s["game"].toObject()["seats"].toInt();
+    return !playing_&&!busy_&&online_&&liveSupported()&&lobby_.activeRoom()->canJoinLive();
 }
 bool LobbyRuntime::joinLive() {
     if(!liveAvailable())return false;
@@ -109,8 +104,10 @@ void LobbyRuntime::cancel() {
     deadline_.stop();
     const auto operation=operation_;const auto service=activeService_;
     const bool abandoned=live_&&!playing_;
-    operation_.clear();ticket_.clear();preparedContext_={};activeService_.clear();busy_=prepared_=playing_=live_=false;status_.clear();
+    const auto cancelledTicket=playing_?QString():ticket_;
+    operation_.clear();ticket_.clear();preparedContext_={};activeService_.clear();busy_=prepared_=playing_=live_=started_=false;status_.clear();
     if(service&&!operation.isEmpty())service->cancel(operation);
+    if(!cancelledTicket.isEmpty())lobby_.acknowledgeLaunch(cancelledTicket,false);
     if(abandoned)lobby_.cancelLive(operation);
 }
 void LobbyRuntime::cancelPending() {
@@ -124,15 +121,16 @@ void LobbyRuntime::cancelPending() {
 void LobbyRuntime::reconcile() {
     if(!problemContext_.isEmpty()&&problemContext_!=context()){problem_.clear();problemContext_={};status_.clear();}
     const auto s=lobby_.state();
-    if(live_&&ticket_.isEmpty()&&!s["liveJoining"].toBool()) {
+    if(live_&&ticket_.isEmpty()&&!lobby_.activeRoom()->canJoinLive()) {
         cancel();status_="The host paused new joins. You can keep watching.";emit changed();return;
     }
-    if(!ticket_.isEmpty()&&s["phase"]=="playing"&&s["ticket"]==ticket_)playing_=true;
+    if(started_&&!ticket_.isEmpty()&&s["phase"]=="playing"&&s["ticket"]==ticket_)playing_=true;
     // Membership and the game process have separate lifetimes. Only the ordinary
     // Home/save return ends an acknowledged game, even if its room disappears.
     if(playing_&&activeService_) {deadline_.stop();status_=s["ticket"]==ticket_?"Playing":"Game continues · close it from Game Options";emit changed();return;}
     auto current=context(),prepared=preparedContext_;
-    if(!operation_.isEmpty()&&(current!=prepared||!activeService_||(!ticket_.isEmpty()&&s["ticket"]!=ticket_))) {
+    const bool lostPreparation=prepared_&&!busy_&&ticket_.isEmpty()&&!lobby_.activeRoom()->locallyPrepared();
+    if(!operation_.isEmpty()&&(current!=prepared||!activeService_||lostPreparation||s["recovering"].toBool()||!s["connection"].toString().isEmpty()||(!ticket_.isEmpty()&&s["ticket"]!=ticket_))) {
         cancel();
         if(lobby_.state()["phase"]=="gathering")lobby_.prepared(quint64(lobby_.state()["generation"].toInteger()),false);
     }
@@ -160,9 +158,11 @@ void LobbyRuntime::launch(QString ticket,QJsonObject party) {
     const auto operation=operation_;const QPointer<LobbyRuntime> guard(this);
     activeService_->launch(operation,ticket,party,[guard,operation,ticket](bool ok,QString error){
         if(!guard||guard->operation_!=operation||!guard->busy_||guard->ticket_!=ticket||(!guard->live_&&guard->context()!=guard->preparedContext_))return;
-        guard->busy_=false;guard->status_=ok?QString("Waiting for players…"):error.left(180);
+        guard->busy_=false;guard->started_=ok;guard->status_=ok?QString("Waiting for players…"):error.left(180);
+        if(ok&&guard->lobby_.hosting()&&guard->activeService_&&guard->activeService_->supportsRejoin(guard->lobby_.state()["game"].toObject()["runtime"].toObject()))guard->lobby_.enableRejoin(ticket);
         guard->lobby_.acknowledgeLaunch(ticket,ok);
         if(!ok) {guard->cancel();guard->status_=error.isEmpty()?QString("Couldn't open the game. Prepare again."):error.left(180);}
+        else if(guard->operation_==operation&&guard->ticket_==ticket)guard->reconcile();
         emit guard->changed();
     });
 }
@@ -170,6 +170,9 @@ bool LobbyRuntime::finished(QString ticket) {
     if(ticket.isEmpty()||ticket!=ticket_)return false;
     const bool launching=lobby_.state()["phase"]=="launching";
     const bool played=playing_;
-    cancel();const bool result=launching?lobby_.acknowledgeLaunch(ticket,false):lobby_.finishGame(ticket);emit changed();return played||result;
+    // Report before cancel(), which also reports an unfinished launch. Preserve
+    // the accepted result when the first report synchronously resets the room.
+    const bool result=launching?lobby_.acknowledgeLaunch(ticket,false):lobby_.finishGame(ticket);
+    cancel();emit changed();return played||result;
 }
 }

@@ -20,6 +20,7 @@ public:
     explicit AdventureExitController(QObject* parent = nullptr);
     Phase phase() const { return phase_; }
     bool verifiedAutosave() const { return policy_ == AdventureSavePolicy::VerifiedAutosave; }
+    bool temporaryProgress() const { return sessionActive_ && policy_ == AdventureSavePolicy::NoPersistentProgress; }
     QString captureError() const { return captureError_; }
     bool available() const { return available_; }
     QImage capturedFrame() const { return pendingFrame_; }

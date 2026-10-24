@@ -1,10 +1,67 @@
 # Standalone PSP multiplayer research
 
+**24 October owner update:** maintain the [tested-games table](MULTIPLAYER_TESTED_GAMES.md).
+Sonic's startup failure stays open, but its investigation is paused at the owner's
+request. The earlier immediate Sonic repair below is superseded; PS2 remains the
+owner's subsequent direction after this PSP delivery.
+
+**24 October manual alternative:** the game card's Connection settings retains
+standard public relay by default and offers a host-handheld relay for PSP only.
+It reuses Lobby/Fluxer signaling and direct ICE/DTLS; launch and native rejoin stay
+explicit. A concurrent PDP-buffer defect is repaired, but Sonic's transition
+failure remains reproducible through both routes. [Implementation and evidence](emulators/ppsspp.md#host-relay-and-pdp-threading--24-october-2026).
+
+**24 October five-game follow-up:** all five additional games were exercised on
+Flip/Odin through the public relay. Ridge Racer, Virtua Tennis, Killzone and
+Shin Budokai reached paired gameplay; Tennis also started a second match without
+restarting PPSSPP. Sonic Rivals 2 failed three normal-log starts but ran twice
+with debug logging. Its timing-sensitive matching-to-gameplay failure remains
+unfixed; the later owner update above stops further Sonic work for now.
+[Exact scenarios and retained findings](emulators/ppsspp.md#five-game-paired-checks--24-october-2026).
+
+**24 October silent-loss follow-up:** the Linux coordination connection now has
+a 15-second limit for unacknowledged TCP data, matching the relay sockets. Real
+packet-drop checks detected sustained loss in 17.196 seconds; brief loss and a
+quiet connection with TCP ACKs stayed connected. Build `dec19c9c…` and its shell
+admission are installed on both handhelds, superseding `a8489753…` below.
+[Mechanism, measurements and delivery](emulators/ppsspp.md#silent-coordination-loss--24-october-2026).
+Native game retry remains manual; the later five-game follow-up above supersedes
+the proposed immediate transition to PS2 LAN/Online.
+
+**24 October coordination follow-up:** PPSSPP now recognizes coordination-server
+EOF/fatal receive errors and discards partial packets before a fresh connection.
+Build `a8489753…` and its shell admission are installed on both handhelds. Actual
+TCP regressions reproduce the old failure and cover the fix; installed startup
+and exit passed. Native retry remains a game action, without automatic PSP launch.
+[Evidence and remaining paths](emulators/ppsspp.md#coordination-stream-recovery--24-october-2026).
+This supersedes the installed build named in the 23 October entry below.
+
+**23 October long-outage follow-up:** relay recovery now keeps retrying with
+one/five-second cooldowns instead of permanently disabling itself after 15 seconds
+of failure. Blocking handshake/partial I/O waits are bounded; Linux active relay
+TCP connections use a per-socket user timeout. The network can recover while the
+same game remains open; selecting/joining a match remains a native game action.
+Build `b5acbf94…` is installed on both handhelds. Tekken 6 rediscovered its peer
+and loaded a fight in the same processes after an isolated relay outage longer
+than a minute. It supersedes the receive-only installed build described below.
+[Reproduction, exact builds and limits](emulators/ppsspp.md#long-outage-recovery--23-october-2026).
+
+**23 October relay repair:** the repaired PPSSPP build `6db5a5bc…` is installed
+on Flip/Odin in a separate `traineros-relay` Flatpak branch, with stable retained.
+The upstream receive-buffer fix and bounded status/poll integration correct
+fragmented TCP reads, dead connections and queued-data visibility. Session focus
+loss/minimize no longer inherits solo pause preferences. TrainerOS prepares the
+network and launch; PSP discovery/challenge/reconnection remain native game actions.
+Entering Lobby/chat does not relaunch PSP. A full Tekken 6 match and a new challenge
+after a temporary local relay restart passed on copied game storage, without
+restarting either emulator. This does not identify every reported Tekken failure
+or certify WAN stability. [Pins, reproduction, delivery and rollback](emulators/ppsspp.md).
+
 **11 October source continuation:** the [generic raw-ISO preparation](emulators/ppsspp.md#generic-ad-hoc-preparation--11-october-2026)
 extends invitations and launch beyond exact Lumines using the same native Ad Hoc
 and relay. The records below remain exact Lumines evidence; they do not certify
-new games, four-client play or private game-room admission. Device checks are
-deferred while the handhelds are off.
+new games, four-client play or private game-room admission. The device availability
+statement from that source pass is historical; current evidence is recorded above.
 
 2026-10-03, block 1; **researching, not accepted**. Both handhelds have PPSSPP
 1.20.4. First target: the owner's Lumines - Puzzle Fusion (US) ISO, 209911808 bytes,

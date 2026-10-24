@@ -1,4 +1,5 @@
 #pragma once
+#include <QDeadlineTimer>
 #include "LobbySession.h"
 #include <QTimer>
 #include <QSet>
@@ -36,11 +37,13 @@ public:
     bool requestPlay();
     bool answerPlay(const QString& peer,const QString& answer);
     bool prepared(quint64 generation,bool value);
+    bool locallyPrepared() const;
     bool ready(bool value);
     bool canStart() const {return online_&&runtimeAllowed_&&hosting()&&session_.canStart(self_);}
     bool start() {return canStart()&&session_.start(self_);}
     bool readyPending() const {return readyDeadline_.isActive();}
     bool setAccess(QString access);
+    bool setRelay(QString relay);
     bool setDetails(QString title,qint64 startsAt);
     bool setConversation(QString channel);
     void receive(QString peer,QString name,const QJsonObject& packet);
@@ -52,6 +55,8 @@ public:
     bool hosting() const;
     bool acknowledgeLaunch(const QString& ticket,bool success);
     bool finishGame(const QString& ticket);
+    bool enableRejoin(const QString& ticket) {return hosting()&&session_.enableRejoin(ticket);}
+    bool canJoinLive() const;
     // Private runtime signaling only; never included in snapshots/checkpoints.
     // Provider authenticates peer; the runtime additionally binds connection ID.
     bool sendRuntimeSignal(const QString& peer,const QString& ticket,const QString& connection,const QJsonObject& payload);
@@ -82,6 +87,10 @@ private:
     void tick();
     void clearRemote();
     bool recordLaunchResult(const QString& peer,const QString& ticket,bool success);
+    void retryLaunchResult();
+    QJsonObject pendingLaunchResult_;
+    qint64 launchResultGeneration_=0;
+    QDeadlineTimer launchResultDeadline_;
     QString resultTicket_;
     QString liveOperation_;
     QSet<QString> launchResults_;
@@ -118,5 +127,8 @@ private:
     qint64 joinedAt_=0,hostSeen_=0;
     quint64 preparedGeneration_=0,readyGeneration_=0;
     bool preparationAwaitingAck_=false;
+    quint64 preparationRequestGeneration_=0;
+    bool preparationTarget_=false;
+    QDeadlineTimer preparationDeadline_;
 };
 }

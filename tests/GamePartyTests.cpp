@@ -66,14 +66,15 @@ private slots:
         QSignalSpy starts(&host,&GameParty::startRequested);
         QVERIFY(host.bindLobby(ticket,profile,{QJsonObject{{"id","1"},{"seat",1},{"connected",true},{"prepared",true},{"ready",true}}},"1","1"));
         host.ready({{"kind","ready"}});QVERIFY(host.admitLobby(ticket,"online:2","Guest",admission,2));
-        auto wrong=profile;wrong["runtime"]="wrong";
+        auto wrong=profile;wrong["settings"]="wrong";
         host.receive("online:2","Guest",{{"ns","org.traineros.party"},{"v",1},{"kind","lobby-armed"},{"target",ticket},{"party",ticket},
             {"boot",admission},{"expires",QDateTime::currentSecsSinceEpoch()+60},{"game",wrong}});
         QVERIFY(host.running());QCOMPARE(starts.size(),1);QCOMPARE(host.state()["members"].toArray().size(),1);
     }
     void lobbyAdmissionIsBilateralAndKeepsTheChosenSeats() {
         GameParty host,guest;const auto profile=game();
-        host.configure("Host",{profile},profile,true);guest.configure("Guest",{profile},{},true);
+        auto otherBuild=profile;otherBuild["runtime"]="different-architecture";otherBuild["core"]="different-binary";
+        host.configure("Host",{profile},profile,true);guest.configure("Guest",{otherBuild},{},true);
         const auto ticket=QUuid::createUuid().toString(QUuid::WithoutBraces);
         const QJsonArray roster{QJsonObject{{"id","2"},{"name","Guest"},{"seat",3},{"connected",true},{"prepared",true},{"ready",true}},
             QJsonObject{{"id","1"},{"name","Host"},{"seat",1},{"connected",true},{"prepared",true},{"ready",true}}};
@@ -92,8 +93,8 @@ private slots:
         auto unready=roster;auto m=unready[0].toObject();m["ready"]=false;unready[0]=m;
         QVERIFY(!host.bindLobby(ticket,profile,unready,"1","1"));
     }
-    void lobbyAdmissionRejectsDifferentRuntimeAndRecoversLostFirstHello() {
-        GameParty host,guest;auto profile=game();auto different=profile;different["runtime"]="different-build";
+    void lobbyAdmissionRejectsDifferentSettingsAndRecoversLostFirstHello() {
+        GameParty host,guest;auto profile=game();auto different=profile;different["settings"]="different-settings";
         host.configure("Host",{profile},profile,true);guest.configure("Guest",{different},different,true);
         const auto ticket=QUuid::createUuid().toString(QUuid::WithoutBraces);
         const QJsonArray roster{QJsonObject{{"id","1"},{"seat",1},{"connected",true},{"prepared",true},{"ready",true}},QJsonObject{{"id","2"},{"seat",2},{"connected",true},{"prepared",true},{"ready",true}}};
@@ -139,9 +140,10 @@ private slots:
         auto changed=host;changed["runtimePlayers"]=2;QVERIFY(!supportsMultiplayerSession(guest,changed));
         changed=host;changed.remove("runtimePlayers");QVERIFY(!supportsMultiplayerSession(guest,changed));
         for(int value:{0,1,5}) {changed=host;changed["players"]=value;QVERIFY(!supportsMultiplayerSession(guest,changed));}
-        for(const auto& field:{"content","runtime","settings"}) {
+        for(const auto& field:{"content","settings"}) {
             changed=host;changed[field]="different";QVERIFY(!supportsMultiplayerSession(guest,changed));
         }
+        changed=host;changed["runtime"]="different-architecture";QVERIFY(supportsMultiplayerSession(guest,changed));
         QVERIFY(!sameMultiplayerGame(game(4),game(2))); // No inferred native capacity.
         r.a.configure("a",{host},host,true);r.b.configure("b",{guest},{},true);
         r.a.invite("b");QCOMPARE(r.b.pending()["game"].toObject(),host);r.b.answer(true);

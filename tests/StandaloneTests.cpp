@@ -314,6 +314,45 @@ private slots:
         QVERIFY(dolphin::configureNetplay(rejected,i,"/roms/Game.iso",r,cancel).contains("address"));
     }
 
+    void dolphinReinvitationRetainsShadersButDiscardsSessionProgress() {
+#ifndef Q_OS_UNIX
+        QSKIP("The installed NetPlay runtimes use Unix cache links.");
+#endif
+        QTemporaryDir dir;QVERIFY(dir.isValid());
+        const auto oldCache=qgetenv("XDG_CACHE_HOME");
+        const auto oldMode=QStandardPaths::isTestModeEnabled();
+        QStandardPaths::setTestModeEnabled(false);
+        qputenv("XDG_CACHE_HOME",dir.filePath("cache").toUtf8());
+        const auto restore=qScopeGuard([&]{
+            if(oldCache.isNull())qunsetenv("XDG_CACHE_HOME");else qputenv("XDG_CACHE_HOME",oldCache);
+            QStandardPaths::setTestModeEnabled(oldMode);
+        });
+        write(dir.filePath("Dolphin.ini"),"ordinary settings");
+        write(dir.filePath("GCPadNew.ini"),"[GCPad1]\nDevice = SDL/0/Gamepad\n");
+        StandaloneInstallation installation{probe(),probe(),{},{"gc"},dir.filePath("Dolphin.ini")};
+        dolphin::NetplayRequest request{{{"runtime",QString(64,'a')}},true,false,{},QString(32,'b'),2626,1,{1,2}};
+        ProcessCommand first;std::atomic_bool cancel=false;
+        QVERIFY(dolphin::configureNetplay(first,installation,"/roms/game.iso",request,cancel).isEmpty());
+        const auto session=first.arguments.last();
+        const auto cache=QFileInfo(session+"/Cache/Shaders").canonicalFilePath();
+        QVERIFY(cache.startsWith(dir.filePath("cache/TrainerOS/netplay/")));
+        write(session+"/Cache/Shaders/pipeline.cache","compiled renderer cache");
+        QVERIFY(QDir().mkpath(session+"/GC"));write(session+"/GC/card.raw","temporary progress");
+        first.settled({});QVERIFY(!QFileInfo::exists(session));
+        QVERIFY(QFileInfo::exists(cache+"/pipeline.cache"));
+        ProcessCommand next;
+        QVERIFY(dolphin::configureNetplay(next,installation,"/roms/game.iso",request,cancel).isEmpty());
+        QFile shader(next.arguments.last()+"/Cache/Shaders/pipeline.cache");QVERIFY(shader.open(QIODevice::ReadOnly));
+        QCOMPARE(shader.readAll(),QByteArray("compiled renderer cache"));shader.close();
+        QVERIFY(!QFileInfo::exists(next.arguments.last()+"/GC/card.raw"));next.settled({});
+        request.expected["runtime"]=QString(64,'c');
+        ProcessCommand updated;
+        QVERIFY(dolphin::configureNetplay(updated,installation,"/roms/game.iso",request,cancel).isEmpty());
+        QVERIFY(!QFileInfo::exists(updated.arguments.last()+"/Cache/Shaders/pipeline.cache"));updated.settled({});
+        QFile original(dir.filePath("Dolphin.ini"));QVERIFY(original.open(QIODevice::ReadOnly));
+        QCOMPARE(original.readAll(),QByteArray("ordinary settings"));
+    }
+
     void pspRawDiscProbeRejectsAmbiguityAndOutOfBounds() {
         QTemporaryDir dir;std::atomic_bool cancel=false;
         const auto entry=[](quint32 sector,quint32 bytes,const QByteArray& name,bool directory) {
@@ -366,12 +405,30 @@ private slots:
         QVERIFY(bytes.contains("[General]\nForceLagSync2 = False\n"));
         QVERIFY(bytes.contains("EnableAdhocServer = False\n"));QVERIFY(bytes.contains("AdhocServerRelayMode = 1\n"));
         QVERIFY(!bytes.contains("MacAddress"));QVERIFY(!bytes.contains("Alice\n"));
+        QVERIFY(bytes.contains("PauseOnLostFocus = False\nPauseWhenMinimized = False\n"));
         r.expected["id"]="runtime.ppsspp.lumines-us.v1";
         QVERIFY(ppsspp::networkSettings(r).contains("[General]\nForceLagSync2 = True\n"));
         r.online=false;r.address="192.168.1.2";
         bytes=ppsspp::networkSettings(r);QVERIFY(bytes.contains("EnableAdhocServer = True\n"));
         QVERIFY(bytes.contains("AdhocServerRelayMode = 2\n"));
         r.host=false;QVERIFY(ppsspp::networkSettings(r).contains("EnableAdhocServer = False\n"));
+    }
+    void pspHostRelayOnlyUsesItsOwnLoopbackEndpoints() {
+        ppsspp::NetplayRequest r{{{"id","runtime.ppsspp.adhoc.v1"}},true,true,"127.0.0.1","Host",true};
+        auto bytes=ppsspp::networkSettings(r);
+        QVERIFY(bytes.contains("EnableAdhocServer = True\n"));
+        QVERIFY(bytes.contains("AdhocServerRelayMode = 1\n"));
+        r.host=false;r.address="127.0.0.2";
+        QVERIFY(ppsspp::networkSettings(r).contains("EnableAdhocServer = False\n"));
+        ProcessCommand command;StandaloneInstallation installation;std::atomic_bool cancel=false;
+        for(const auto& address:{"socom.cc","192.168.1.1","127.0.0.1"}) {
+            r.address=address;
+            QCOMPARE(ppsspp::configureNetplay(command,installation,r,cancel),"This multiplayer address is invalid.");
+        }
+        r.address="127.0.0.2";r.online=false;
+        QCOMPARE(ppsspp::configureNetplay(command,installation,r,cancel),"This multiplayer address is invalid.");
+        r.online=true;r.hostRelay=false;
+        QCOMPARE(ppsspp::configureNetplay(command,installation,r,cancel),"This multiplayer address is invalid.");
     }
     void pspMultiplayerKeepsSettingsPrivateAndOrdinarySavesShared() {
 #ifdef Q_OS_WIN
@@ -383,7 +440,7 @@ private slots:
         const QByteArray original="[Network]\nEnableWlan = False\n[Graphics]\nRenderingMode = 1\n"
             "[SystemParam]\nMacAddress = 04:11:22:33:44:55\n";
         const QByteArray originalGame="[SystemParam]\nMacAddress = 04:66:77:88:99:aa\n"
-            "[General]\nForceLagSync2 = False\n";
+            "[General]\nForceLagSync2 = False\nPauseOnLostFocus = True\nPauseWhenMinimized = True\n";
         write(system+"/ppsspp.ini",original);write(system+"/controls.ini","My controller bindings");
         write(system+"/ULUS10002_ppsspp.ini",originalGame);
         write(dir.filePath("PSP/SAVEDATA/existing.bin"),"Existing progress");
@@ -411,6 +468,7 @@ private slots:
         QVERIFY(!settings.contains("MacAddress")); // appended options must not replace either saved identity
         // Upstream reads clock synchronization from General, not Network/CPU.
         QVERIFY(settings.contains("[General]\nForceLagSync2 = True\n"));
+        QVERIFY(settings.contains("PauseOnLostFocus = False\nPauseWhenMinimized = False\n"));
         // Simulate PPSSPP saving merged options, including its per-game INI.
         write(root+"/ppsspp/PSP/SYSTEM/ppsspp.ini","Session changes");
         write(root+"/ppsspp/PSP/SYSTEM/ULUS10002_ppsspp.ini","Session changes");
@@ -480,6 +538,27 @@ private slots:
         auto found=prepareEmulators(env);QCOMPARE(found.profiles["armsx2"],custom);QVERIFY(!found.profiles.contains("ppsspp"));
         QFile f(broken);QVERIFY(f.open(QIODevice::ReadOnly));QCOMPARE(f.readAll(),"broken custom config");
         QVERIFY(!QFileInfo::exists(dir.filePath("state/integrations/discovered/armsx2.json")));
+    }
+    void flatpakCurrentBranchSurvivesRollbackAndUserOverride() {
+#ifdef Q_OS_UNIX
+        QTemporaryDir dir; QVERIFY(dir.isValid());
+        const auto user=dir.filePath("user"), system=dir.filePath("system");
+        const QString app="org.ppsspp.PPSSPP";
+        const auto base=system+"/app/"+app;
+        QVERIFY(QDir().mkpath(base+"/aarch64/stable/active"));
+        QVERIFY(QDir().mkpath(base+"/aarch64/traineros-relay/active"));
+        write(base+"/aarch64/stable/active/metadata","old");
+        write(base+"/aarch64/traineros-relay/active/metadata","new");
+        QVERIFY(QFile::link(base+"/aarch64/traineros-relay",base+"/current"));
+        QCOMPARE(currentFlatpakDeployment(app,{user,system}),base+"/current/active");
+        QVERIFY(QFile::remove(base+"/current"));
+        QVERIFY(QFile::link(base+"/aarch64/stable",base+"/current"));
+        QCOMPARE(QFileInfo(currentFlatpakDeployment(app,{user,system})).canonicalFilePath(),base+"/aarch64/stable/active");
+        QVERIFY(QDir().mkpath(user+"/app/"+app+"/current/active"));
+        write(user+"/app/"+app+"/current/active/metadata","user");
+        QCOMPARE(currentFlatpakDeployment(app,{user,system}),user+"/app/"+app+"/current/active");
+        QVERIFY(currentFlatpakDeployment("missing.app",{user,system}).isEmpty());
+#endif
     }
     void flatpakUpdateRefreshesOnlyRuntimeAndKeepsWrapperAndDataPaths() {
 #ifdef Q_OS_WIN

@@ -51,7 +51,7 @@ struct ShellPreferences {
     bool worldEditing = false;
     bool videoPreviews = true;
 };
-enum class LibraryEditKind { RenameWorld, RenameGame, MoveGame, RemoveGame, RestoreGame, MoveFile };
+enum class LibraryEditKind { RenameWorld, RenameGame, MoveGame, RemoveGame, RestoreGame, MoveFile, DeactivatePackage, RestorePackage };
 struct LibraryEdit {
     LibraryEditKind kind;
     QString id;
@@ -100,6 +100,14 @@ struct PlaySession {
     QDateTime endedAt;
     std::optional<qint64> elapsedSeconds;
     PlaySessionOutcome outcome = PlaySessionOutcome::Running;
+};
+// Owner-scoped all-time totals and a bounded, launch-ordered cross-game feed.
+// Unknown durations are omitted, never converted into measured zeroes.
+struct PlayerHistory {
+    QList<PlaySession> sessions;
+    qint64 sessionCount = 0;
+    qint64 gamesPlayed = 0;
+    std::optional<qint64> recordedSeconds;
 };
 struct ContinueEntry {
     QString id;

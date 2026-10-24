@@ -20,6 +20,7 @@ public:
     // A validated account-local checkpoint restores membership, never a launch.
     bool restore(const QJsonObject& state);
     bool setAccess(const QString& actor,QString access);
+    bool setRelay(const QString& actor,QString relay);
     bool setDetails(const QString& actor,QString title,qint64 startsAt);
     bool setConversation(const QString& actor,QString channel);
     bool invite(const QString& actor,QString peer,qint64 expiresAt);
@@ -43,6 +44,8 @@ public:
     bool acknowledgeLaunch(const QString& ticket,bool success);
     bool finishGame(const QString& ticket);
     bool finishPlayer(const QString& peer,const QString& ticket);
+    bool enableRejoin(const QString& ticket);
+    void expireRejoins(qint64 now);
     bool setLiveJoining(const QString& actor,bool enabled);
     int liveSeat(const QString& peer) const;
     bool admitLive(const QString& peer,const QString& token,int seat);
@@ -57,7 +60,7 @@ signals:
     void changed();
     void launchRequested(QString ticket,QJsonObject party);
 private:
-    struct Member {QString name;int seat=0;bool prepared=false,ready=false,connected=true,spectator=false;QString admission;};
+    struct Member {QString name;int seat=0;bool prepared=false,ready=false,connected=true,spectator=false;QString admission;int returnSeat=0;qint64 returnUntil=0;};
     bool host(const QString& actor) const;
     bool editable() const;
     int freeSeat() const;
@@ -70,7 +73,9 @@ private:
     QMap<QString,qint64> invites_;
     quint64 revision_=0,generation_=0;
     bool liveJoining_=false;
+    bool rejoin_=false;
     QString title_;
+    QString relay_="auto";
     qint64 startsAt_=0;
     QJsonObject ballot_;
 };

@@ -209,6 +209,46 @@ private slots:
         QTRY_COMPARE(emulator.state(), QAbstractSocket::UnconnectedState);
         QCOMPARE(emulator.bytesAvailable(), 0);
     }
+    void slowReceiverRetainsLargeStates_data() {
+        QTest::addColumn<bool>("fromHost");
+        QTest::newRow("host-state-to-local-emulator") << true;
+        QTest::newRow("local-emulator-to-host") << false;
+    }
+    void slowReceiverRetainsLargeStates() {
+        QFETCH(bool, fromHost);
+        QTcpServer server; QVERIFY(server.listen(QHostAddress::LocalHost));
+        NetplayClient bridge; QSignalSpy errors(&bridge, &NetplayClient::failed);
+        QTcpSocket emulator;
+        emulator.connectToHost(QHostAddress::LocalHost,
+            bridge.start("127.0.0.1", server.serverPort(), {}, "secret"));
+        QTRY_VERIFY(server.hasPendingConnections());
+        QScopedPointer<QTcpSocket> host(server.nextPendingConnection());
+        const auto header = nativeHeader();
+        const auto nick = packet(0x20, QByteArray(32, 'n'));
+        emulator.write(header + nick); host->write(header);
+        QTRY_COMPARE(host->bytesAvailable(), 24 + 40 + 72);
+        host->readAll();
+        QTRY_COMPARE(emulator.bytesAvailable(), 24); emulator.readAll();
+        auto* sender = fromHost ? host.data() : &emulator;
+        auto* receiver = fromHost ? &emulator : host.data();
+        receiver->setReadBufferSize(1); // deliberately stop draining the stream
+        const auto payload = packet(0x42, QByteArray(32 * 1024 * 1024, 's'));
+        QCOMPARE(sender->write(payload), payload.size());
+        QTest::qWait(350);
+        QVERIFY2(errors.isEmpty(), "A slow reader must not disconnect a valid state transfer");
+        QVERIFY(sender->bytesToWrite() > 0); // bounded bridge propagates pressure
+        receiver->setReadBufferSize(256 * 1024);
+        QByteArray received;
+        QTRY_VERIFY_WITH_TIMEOUT(([&]{
+            received += receiver->readAll();
+            return received.size() == payload.size() || !errors.isEmpty();
+        }()), 15000);
+        QVERIFY(errors.isEmpty()); QCOMPARE(received, payload);
+        sender->write("after-state");
+        QTRY_COMPARE(receiver->bytesAvailable(), 11);
+        QCOMPARE(receiver->readAll(), QByteArray("after-state"));
+        bridge.stop(); QVERIFY(errors.isEmpty());
+    }
     void invalidInvitationDoesNotOpenListener() {
         NetplayClient bridge;
         QCOMPARE(bridge.start("host;command", 55435, {}, "secret"), 0);

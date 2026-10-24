@@ -6,7 +6,9 @@ struct NetplayRequest {
     QJsonObject expected;
     bool host = false, online = false;
     QString address, nickname;
+    bool hostRelay = false;
 };
+QString hostRelayRoot();
 QString configFile(const StandaloneInstallation&);
 // Read-only, bounded raw UMD probe. A disc ID establishes format/identity,
 // never the presence or compatibility of an in-game multiplayer mode.

@@ -1,5 +1,19 @@
 # Automatic socket transport
 
+**PS2 source addition, 24 October 2026:** managed `mode: "ps2"` carries bounded
+ECLX v1 datagrams on channel 0, rejects the RTSP channel, and authenticates the
+mode separately from PSP/media. Its local socket binds loopback only; host
+destination is fixed to UDP 19072, guest destination is pinned by its first local
+HELLO. The private config supplies role, local port and a fresh room code shared
+inside DTLS. The emulator still owns packet authentication and reassembly.
+See [PS2 contract and remaining work](../../../docs/emulators/armsx2-lan.md).
+Only the portable socket test/configuration tests have passed for this addition;
+the changed full Linux helper is not yet built, installed or connected to Lobby.
+
+`-DSOCKET_CHECK_ONLY=ON` builds the Qt socket boundary check without fetching RTC
+dependencies, including on Windows. Both PS2 tests require UDP 19072 free and
+share a CTest resource lock. Do not stop an existing game to free that port.
+
 Separate helper used by the [L07 lobby service](../../../docs/REMOTE_PLAY_LOBBY.md). Carries
 the existing Moonlight RTSP/video/audio/control packets through libdatachannel
 ICE + DTLS + SCTP, without another media codec, Fluxer media server, VPN daemon,

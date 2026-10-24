@@ -4,9 +4,11 @@
 #include "HotseatHandoff.h"
 #include "LobbyGamePreparation.h"
 #include "features/social/LobbyRuntime.h"
+#include "features/social/LobbyConnection.h"
 #include "core/model/GamePlayers.h"
 #include "integrations/adventure/retroarch/RetroArchNetplay.h"
 #include "integrations/adventure/retroarch/RetroArchNetplayClient.h"
+#include "integrations/adventure/retroarch/NetplayRelaySelector.h"
 #include "integrations/adventure/retroarch/LinkedSavePreparation.h"
 #include "integrations/adventure/standalone/PpssppNetplay.h"
 #include "integrations/adventure/standalone/DolphinNetplay.h"
@@ -15,6 +17,7 @@
 #include "integrations/adventure/standalone/MelonDsNetplay.h"
 #include "integrations/adventure/standalone/AzaharNetplay.h"
 #include "integrations/adventure/standalone/VitaNetplay.h"
+#include "integrations/adventure/standalone/Ps2LanNetplay.h"
 #include "platform/network/LocalLinkPeer.h"
 #include <QFutureWatcher>
 #include <memory>
@@ -54,6 +57,7 @@ public:
     void launch(QString operation,QString ticket,QJsonObject context,Completion done) override;
     void cancel(QString operation) override;
     bool supportsLive(const QJsonObject& game) const override;
+    bool supportsRejoin(const QJsonObject& game) const override {return supportsLive(game);}
     bool admitLive(QString ticket,QString peer,QString operation,int seat) override;
     void releaseLive(QString peer,QString operation) override;
     QVariantMap party() const {return party_.state().toVariantMap();}
@@ -106,12 +110,16 @@ private:
     void show(QString panel);
     void prepareHost();
     void resolveRelay();
+    retroarch::NetplayRelaySelector relaySelector_{this};
+    QString relayTicket_,selectedRelay_,selectedRelayEndpoint_;
+    bool relayStarted_=false,relayWaiting_=false;
     void resolvePspRelay();
     void prepareRmg();
     bool rmg() const { return descriptor_["id"]=="runtime.rmg.n64.v1"; }
     bool flycast() const { return descriptor_["id"]=="runtime.flycast-dojo.dc.v1"; }
     bool azahar() const { return descriptor_["id"]=="runtime.azahar.3ds.v1"; }
     bool vita() const { return descriptor_["id"]=="runtime.vita3k.lan.v1"; }
+    bool ps2Lan() const { return descriptor_["id"]=="runtime.armsx2.lan.v1"; }
     bool ds() const { return descriptor_["id"]=="runtime.melonds.nds.v1"; }
     bool psp() const { return descriptor_["id"].toString().startsWith("runtime.ppsspp."); }
     bool dolphin() const { return descriptor_["id"].toString().startsWith("runtime.dolphin."); }
@@ -140,6 +148,14 @@ private:
     bool rmgPreparing_=false;
     ProcessService& process_;AdventureLaunchController& lifecycle_;AdventureExitPresentation& overlay_;
     LobbyGamePreparation preparation_;
+    LobbyConnection nativeConnection_;
+    QProcess pspRelay_{this};
+    bool pspDirect_=false;
+    bool ps2Connection_=false;
+    QString ps2ConnectionConfig_;
+    QJsonObject nativeLaunchContext_;
+    void bindLobbyPlayers(const QJsonObject&);
+    void stopNativeConnection();
     LocalLinkPeer nearby_{this,47855,47856,"trainerosRuntime",true};
     GameParty party_{this};
     HotseatHandoff handoff_{this};

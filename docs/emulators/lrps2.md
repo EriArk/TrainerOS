@@ -1,5 +1,9 @@
 # LRPS2: PS2 shared-console candidate
 
+**24 October 2026:** the owner supplied LAN/Online catalogues and selected PS2
+as the follow-up after the current PSP work. [Source CSVs, analysis and native
+integration entry point](../PS2_NATIVE_MULTIPLAYER.md). This does not restart LRPS2.
+
 ## Stopped experiment - latest owner correction, 12 October 2026
 
 The owner selected native game online first. "Hotseat" meant couch multiplayer:
