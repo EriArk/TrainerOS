@@ -24,9 +24,9 @@ struct Client {
         socket.write(QJsonDocument(QJsonObject{{"id",QString::number(++sequence)},{"method",method},{"params",params}}).toJson(QJsonDocument::Compact)+'\n');
         socket.flush();
     }
-    QJsonObject receive() {
+    QJsonObject receive(int timeout=3000) {
         QElapsedTimer timer;timer.start();
-        while(!socket.canReadLine()&&timer.elapsed()<3000){QCoreApplication::processEvents();QTest::qWait(1);}
+        while(!socket.canReadLine()&&timer.elapsed()<timeout){QCoreApplication::processEvents();QTest::qWait(1);}
         return QJsonDocument::fromJson(socket.readLine()).object();
     }
     QJsonObject hello(const QString& app="org.test.one",int version=1) {
@@ -79,6 +79,26 @@ private slots:
         Client b(f.endpoint);b.hello("org.test.bob");b.send("avatar.get");QCOMPARE(b.receive()["error"].toObject()["code"].toString(),"avatar_not_ready");
         f.host.setAvatar({},false);b.send("avatar.get");QCOMPARE(b.receive()["error"].toObject()["code"].toString(),"unsupported_method");
     }
+    void asynchronousAvatarRecipes(){
+        if(!AvatarAssets::available())QSKIP("Local pack required");
+        Fixture f;auto own=AvatarAssets::resolve(AvatarAssets::defaults(),{},f.dir.filePath("own"));
+        own["profile"]="alice";f.host.setAvatar(own,true);QVERIFY(f.start());
+        Client c(f.endpoint);c.hello();
+        const auto recipe=own["recipe"].toObject();
+        c.send("avatar.resolve",{{"recipe",recipe}});
+        c.send("avatar.resolve",{{"recipe",recipe}});
+        QCOMPARE(c.receive()["error"].toObject()["code"].toString(),"avatar_busy");
+        c.send("context.get");
+        QCOMPARE(c.receive()["result"].toObject()["context"].toObject()["profile"].toString(),"alice");
+        const auto result=c.receive(30000)["result"].toObject()["avatar"].toObject();
+        QCOMPARE(result["sha256"],own["sha256"]);QVERIFY(!result.contains("profile"));
+        const auto path=result["glb"].toString();QVERIFY(QFile::exists(path));
+        c.send("avatar.get");QCOMPARE(c.receive()["result"].toObject()["avatar"].toObject()["revision"],own["revision"]);
+        auto bad=recipe;bad["packRevision"]="unknown";c.send("avatar.resolve",{{"recipe",bad}});
+        QCOMPARE(c.receive()["error"].toObject()["code"].toString(),"avatar_pack_mismatch");
+        f.host.setContext(context("bob"));QCOMPARE(c.receive()["event"].toString(),"context.revoked");
+        QTRY_VERIFY(!QFile::exists(path));
+    }
     void realGodotAvatarConsumer(){
         const auto godot=qEnvironmentVariable("TRAINER_AVATAR_GODOT");
         if(godot.isEmpty()||!AvatarAssets::available())QSKIP("External Godot and local pack required");
@@ -87,7 +107,13 @@ private slots:
         QVERIFY(!avatar.contains("error"));avatar["profile"]="alice";
         f.host.setAvatar(avatar,true);QVERIFY(f.start());
         QProcess child;auto env=QProcessEnvironment::systemEnvironment();env.insert("TRAINEROS_SDK_ENDPOINT",f.endpoint);child.setProcessEnvironment(env);
-        child.start(godot,{"--headless","--path",QString::fromUtf8(SDK_SOURCE)+"/sdk/godot","--script","client_probe.gd"});
+        // Optional external consumer exercises the same real host/pack/lifecycle.
+        const auto project=qEnvironmentVariable("TRAINER_AVATAR_CONSUMER_PROJECT",QString::fromUtf8(SDK_SOURCE)+"/sdk/godot");
+        const auto script=qEnvironmentVariable("TRAINER_AVATAR_CONSUMER_SCRIPT","client_probe.gd");
+        QStringList args{"--path",project,"--script",script};
+        if(!qEnvironmentVariableIsSet("TRAINER_AVATAR_CONSUMER_RENDER"))args.prepend("--headless");
+        else args<<"--rendering-method"<<"gl_compatibility";
+        child.start(godot,args);
         QVERIFY(child.waitForStarted());QByteArray output;
         QTRY_VERIFY_WITH_TIMEOUT((output+=child.readAllStandardOutput()).contains("AVATAR_RECEIVED 1"),30000);
         appearance["hair"]="bob";avatar=AvatarAssets::resolve(appearance,{},f.dir.filePath("cache"));avatar["profile"]="alice";f.host.setAvatar(avatar,true);

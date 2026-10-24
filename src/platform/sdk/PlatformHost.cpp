@@ -1,5 +1,9 @@
 #include "PlatformHost.h"
 #include "SdkNetwork.h"
+#include "features/trainer/AvatarAssets.h"
+#include <QFutureWatcher>
+#include <QtConcurrent/QtConcurrentRun>
+#include <QTemporaryDir>
 #include "features/device/ControlsDashboard.h"
 #include <QDir>
 #include <QFile>
@@ -197,7 +201,7 @@ void PlatformHost::request(QTcpSocket* socket, const QJsonObject& packet) {
         for (const auto& other : peers_) if (other.authenticated && other.app == app) { fail("app_in_use"); return; }
         peer.authenticated = true; peer.app = app;
         auto caps=capabilities();
-        if(avatarAvailable_)caps["avatar.local"]=1;
+        if(avatarAvailable_){caps["avatar.local"]=1;caps["avatar.recipe"]=1;}
         if(network_&&network_->available()){caps["lobby.activity"]=1;caps["network.records"]=1;}
         ok({{"protocol", 1}, {"capabilities", caps}, {"context", snapshot()}});
         return;
@@ -213,6 +217,32 @@ void PlatformHost::request(QTcpSocket* socket, const QJsonObject& packet) {
         if(avatar_.isEmpty()){fail("avatar_not_ready");return;}
         auto descriptor=avatar_;descriptor["profile"]=context_["profile"];
         ok({{"avatar",descriptor}});return;
+    }
+    if(method=="avatar.resolve") {
+        if(!avatarAvailable_){fail("unsupported_method");return;}
+        if(context_["profile"].toString().isEmpty()){fail("no_profile");return;}
+        if(peer.avatarResolving||avatarJobs_>=4){fail("avatar_busy");return;}
+        if(args.size()!=1||!args["recipe"].isObject()){fail("invalid_avatar_recipe");return;}
+        auto cache=std::make_shared<QTemporaryDir>(QDir::tempPath()+"/trainer-avatar-peer-XXXXXX");
+        if(!cache->isValid()){fail("avatar_cache_unavailable");return;}
+        peer.avatarResolving=true;++avatarJobs_;
+        auto* watcher=new QFutureWatcher<QJsonObject>(this);
+        const QPointer<QTcpSocket> target(socket);
+        connect(watcher,&QFutureWatcher<QJsonObject>::finished,this,[this,watcher,target,id,cache]{
+            --avatarJobs_;
+            const auto result=watcher->result();watcher->deleteLater();
+            if(!target||!peers_.contains(target))return;
+            auto& current=peers_[target];current.avatarResolving=false;
+            if(result.contains("error"))send(target,{{"id",id},{"error",QJsonObject{{"code",result["error"]}}}});
+            else {
+                current.avatarCache=cache;
+                // A renderable recipe is not an authenticated account/profile.
+                send(target,{{"id",id},{"result",QJsonObject{{"avatar",result}}}});
+            }
+        });
+        const auto recipe=args["recipe"].toObject();
+        watcher->setFuture(QtConcurrent::run([recipe,cache]{return AvatarAssets::resolveRecipe(recipe,cache->path());}));
+        return;
     }
     if(network_&&(method.startsWith("activity.")||method.startsWith("network."))) {
         if(context_["profile"].toString().isEmpty()){fail("no_profile");return;}

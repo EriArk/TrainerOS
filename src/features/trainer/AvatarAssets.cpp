@@ -123,7 +123,16 @@ QJsonObject AvatarAssets::resolve(const QJsonObject& a,const QString& explicitRo
         if(!write(preview,glb(g,binary)))return fail("avatar_cache_write_failed");
     }
     if(output.isEmpty())output=read(path);
-    return {{"schema",1},{"pack",m["pack"]},{"revision",revision},{"appearance",a},{"glb",path},{"preview",preview},
+    const QJsonObject recipe{{"schema",1},{"packRevision",QString::fromLatin1(QCryptographicHash::hash(manifestBytes,QCryptographicHash::Sha256).toHex())},{"appearance",a}};
+    return {{"schema",1},{"recipe",recipe},{"pack",m["pack"]},{"revision",revision},{"appearance",a},{"glb",path},{"preview",preview},
         {"sha256",QString::fromLatin1(QCryptographicHash::hash(output,QCryptographicHash::Sha256).toHex())},{"rig",m["rig"]},{"units","metres"},{"forward","+Z"},{"eyeHeight",m["eyeHeight"]},{"actions",m["actions"]}};
+}
+QJsonObject AvatarAssets::resolveRecipe(const QJsonObject& recipe,const QString& cache) {
+    if(recipe.size()!=3||recipe["schema"]!=1||!valid(recipe["appearance"].toObject()))
+        return {{"error","invalid_avatar_recipe"}};
+    const auto manifest=read(packRoot()+"/manifest.json",65536);
+    const auto revision=QString::fromLatin1(QCryptographicHash::hash(manifest,QCryptographicHash::Sha256).toHex());
+    if(manifest.isEmpty()||recipe["packRevision"]!=revision)return {{"error","avatar_pack_mismatch"}};
+    return resolve(recipe["appearance"].toObject(),{},cache);
 }
 }

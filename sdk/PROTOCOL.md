@@ -7,7 +7,7 @@ Qt is a host implementation detail; a client needs JSON + a byte-stream socket.
 
 Optional `lobby.activity` / `network.records` capabilities and their methods are
 defined in [NETWORK.md](NETWORK.md); they appear only with the shared helper.
-Optional `avatar.local` and `avatar.get/subscribe/unsubscribe` are defined in
+Optional `avatar.local`, `avatar.recipe` and `avatar.get/subscribe/unsubscribe/resolve` are defined in
 [AVATAR.md](AVATAR.md). They expose the active profile's console-owned GLB and
 saved appearance events, without giving games profile-write access.
 

@@ -4,6 +4,8 @@ extends Node
 ## Read-only local avatar capability. Does not register a Lobby or launch a game.
 signal appearance_changed(descriptor: Dictionary)
 signal unavailable(reason: String)
+signal recipe_resolved(key: String, descriptor: Dictionary)
+signal recipe_failed(key: String, reason: String)
 var app_id := "org.example.avatar"
 var endpoint_override := ""
 var profile_id := ""
@@ -16,6 +18,8 @@ var deadline := 0
 var serial := 0
 var pending: Dictionary = {}
 var token := ""
+var recipe_supported := false
+var resolving_key := ""
 
 func connect_host() -> void:
 	disconnect_host()
@@ -46,6 +50,8 @@ func disconnect_host() -> void:
 	active=false
 	connecting=false
 	profile_id=""
+	recipe_supported=false
+	resolving_key=""
 	token=""
 	buffer.clear()
 	outgoing.clear()
@@ -56,9 +62,15 @@ func _fail(reason: String) -> void:
 	disconnect_host()
 	unavailable.emit(reason)
 
+func resolve_recipe(recipe: Dictionary, key: String) -> bool:
+	if not active or not recipe_supported or not resolving_key.is_empty(): return false
+	resolving_key=key
+	_request("avatar.resolve",{"recipe":recipe})
+	return true
+
 func _request(method: String, params: Dictionary={}) -> void:
 	serial+=1
-	pending[str(serial)]={"method":method,"deadline":Time.get_ticks_msec()+5000}
+	pending[str(serial)]={"method":method,"deadline":Time.get_ticks_msec()+(30000 if method=="avatar.resolve" else 5000)}
 	outgoing.append_array((JSON.stringify({"id":str(serial),"method":method,"params":params})+"\n").to_utf8_buffer())
 
 func _process(_delta: float) -> void:
@@ -119,6 +131,14 @@ func _packet(p: Dictionary) -> void:
 		return
 	var method: String=pending[id].method
 	pending.erase(id)
+	if method=="avatar.resolve":
+		var key := resolving_key
+		resolving_key=""
+		if p.has("error"): recipe_failed.emit(key,str(p.error.get("code","Avatar unavailable")))
+		elif p.get("result") is Dictionary and p.result.get("avatar") is Dictionary:
+			recipe_resolved.emit(key,p.result.avatar)
+		else: recipe_failed.emit(key,"Invalid avatar result")
+		return
 	if p.has("error"):
 		if method=="avatar.subscribe" and p.error.get("code")=="avatar_not_ready": return
 		_fail(str(p.error.get("code","Avatar unavailable")))
@@ -128,6 +148,7 @@ func _packet(p: Dictionary) -> void:
 		_fail("Invalid TrainerOS result")
 		return
 	if method=="hello":
+		recipe_supported=result.get("capabilities",{}).get("avatar.recipe")==1
 		if result.get("capabilities",{}).get("avatar.local")!=1:
 			_fail("This TrainerOS has no avatar service")
 			return

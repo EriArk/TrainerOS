@@ -8,6 +8,7 @@
 
 class QLockFile;
 class QTcpSocket;
+class QTemporaryDir;
 namespace trainer {
 class ControlsDashboard;
 class SdkNetwork;
@@ -33,6 +34,8 @@ private:
         QString app;
         bool authenticated = false, subscribed = false;
         bool avatarSubscribed = false;
+        bool avatarResolving = false;
+        std::shared_ptr<QTemporaryDir> avatarCache;
         QJsonObject widgets;
     };
     ControlsDashboard& dashboard_;
@@ -45,6 +48,7 @@ private:
     bool avatarAvailable_ = false;
     QPointer<SdkNetwork> network_;
     quint64 revision_ = 0;
+    int avatarJobs_ = 0;
     void accept();
     void read(QTcpSocket*);
     void request(QTcpSocket*, const QJsonObject&);
