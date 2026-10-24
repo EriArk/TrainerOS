@@ -88,13 +88,19 @@ Delivery: PPSSPP `01eafca8…` is installed on both Flip/Odin, with stable retai
 Odin runs shell SHA-256
 `1ca69d6a870f6b78d5302fc0b9781b58d01dd86c0a24f37ccc169a9001d2daa4`
 and the final helper bundle above; live executable hash matched, no new QML errors
-were found in the startup journal and volume remained zero. **Flip shell/helper
-delivery is incomplete:** SSH became unavailable after the diagnostic games
-exited, before the new bundle was staged. Its last confirmed shell is
-`ee363389b6056d0a730606f3d2292494fcbd7cbbc3fd6752ea1bdc6e5be8a510`.
-Do not treat the mixed shell pair as ready for this new path. Both original
-SYSTEM/SAVEDATA baselines matched after the game checks; Odin's installer also
-preserved its personal files. No sleep/reboot check was performed.
+were found in the startup journal and volume remained zero.
+
+**Flip delivery completed later on 24 October:** the owner rebooted it after
+the earlier SSH outage. The same final shell/helper bundle is now installed;
+the live shell, installed PPSSPP and both helper hashes match. TrainerOS was
+launched through its existing desktop entry in the current KDE session;
+Home rendered and the battery gauge showed 9% / charging. Boot preferences
+were preserved. The desktop launcher inherited output pipes and exceeded the
+diagnostic command's wait; independent live-PID/hash and screenshot checks
+confirmed the running application. All 14 personal PSP files matched the
+pre-install baseline. Both devices' original SYSTEM/SAVEDATA baselines had
+also matched after game checks; volume remained zero. This closes the earlier
+incomplete Flip delivery, not a new paired gameplay or live Fluxer launch check.
 
 Rollback: end the owned game safely, restore the previous shell together with
 its accepted emulator branch; retain the prior Flatpak bundle and stable branch.
