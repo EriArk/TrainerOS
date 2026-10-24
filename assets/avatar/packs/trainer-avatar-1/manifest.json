@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "pack": "trainer-avatar-1",
-  "revision": 1,
+  "revision": 2,
   "template": "template.glb",
   "bodyImage": 0,
   "almondPatches": [
@@ -59,6 +59,11 @@
     "face-round.png": "ab8d363c7a0fafe920f38d6636f9e7163dc5b8f27e0990f9a2e9e6fc673abc5e",
     "mask-almond.png": "06cbd8cef7656bf906acf3707e2e989b49de580353292829514f89ca52a40ffa",
     "mask-round.png": "c10d8575189afcf21654acddcb97d01b28658e295398bd10cca43c260a71cd00",
-    "template.glb": "9f2048bbbc1b02efa868be7bdf676b658705720bf70692b8ac9076c9357e40bc"
+    "template.glb": "1aec15adf7312f91e645b1c8d89e2cd347b64dba24824411f0cf30e075659691"
+  },
+  "clothing": {
+    "deformation": "torso-skin",
+    "simulation": false,
+    "fit": 1
   }
 }

@@ -249,6 +249,10 @@ def build(source,out,shirt=None):
     manifest['files']={f.name:hashlib.sha256(f.read_bytes()).hexdigest() for f in out.iterdir() if f.is_file() and f.name!='manifest.json'}
     if shirt:manifest['sourceSha256']['shirt.glb']=hashlib.sha256(shirt.read_bytes()).hexdigest()
     (out/'manifest.json').write_text(json.dumps(manifest,indent=2),encoding='utf-8')
+    # Sleeveless game clothing follows the torso, with no runtime cloth or
+    # copied arm/leg sculpt corrections. Preserve the approved body bind pose.
+    from rigid_clothing import bind
+    bind(out)
     print(json.dumps({'templateBytes':(out/'template.glb').stat().st_size,'totalBytes':sum(f.stat().st_size for f in out.iterdir() if f.is_file()),'bodyAccessorsExact':True,'correctives':46,'joints':54,'hairNodes':hair_nodes}),flush=True)
 if __name__=='__main__':
     p=argparse.ArgumentParser();p.add_argument('source',type=Path);p.add_argument('output',type=Path);p.add_argument('--shirt',type=Path);a=p.parse_args();build(a.source,a.output,a.shirt)

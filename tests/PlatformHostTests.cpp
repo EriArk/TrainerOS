@@ -113,11 +113,14 @@ private slots:
         QStringList args{"--path",project,"--script",script};
         if(!qEnvironmentVariableIsSet("TRAINER_AVATAR_CONSUMER_RENDER"))args.prepend("--headless");
         else args<<"--rendering-method"<<"gl_compatibility";
+        // Render consumers capture several real frames before acknowledging.
+        // Keep headless protocol timing separate from cold GPU/shader startup.
+        const int consumerTimeout=qEnvironmentVariableIsSet("TRAINER_AVATAR_CONSUMER_RENDER")?60000:30000;
         child.start(godot,args);
         QVERIFY(child.waitForStarted());QByteArray output;
-        QTRY_VERIFY_WITH_TIMEOUT((output+=child.readAllStandardOutput()).contains("AVATAR_RECEIVED 1"),30000);
+        QTRY_VERIFY_WITH_TIMEOUT((output+=child.readAllStandardOutput()).contains("AVATAR_RECEIVED 1"),consumerTimeout);
         appearance["hair"]="bob";avatar=AvatarAssets::resolve(appearance,{},f.dir.filePath("cache"));avatar["profile"]="alice";f.host.setAvatar(avatar,true);
-        QTRY_VERIFY_WITH_TIMEOUT((output+=child.readAllStandardOutput()).contains("AVATAR_RECEIVED 2"),30000);
+        QTRY_VERIFY_WITH_TIMEOUT((output+=child.readAllStandardOutput()).contains("AVATAR_RECEIVED 2"),consumerTimeout);
         f.host.setContext(context("bob"));QTRY_COMPARE_WITH_TIMEOUT(child.state(),QProcess::NotRunning,10000);
         output+=child.readAllStandardOutput();const auto errors=child.readAllStandardError();
         QVERIFY2(child.exitCode()==0,errors.constData());QVERIFY2(!errors.contains("ERROR"),errors.constData());QVERIFY(output.contains("AVATAR_REVOKED"));
