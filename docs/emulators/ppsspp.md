@@ -1,5 +1,106 @@
 # PPSSPP maintenance
 
+
+## Host relay and PDP threading — 24 October 2026
+
+The default remains the public relay. The owner explicitly requested a manual
+alternative in the game card's Connection settings, with incompatible routes
+hidden. PSP now offers Standard internet relay / Relay on host handheld;
+RetroArch retains its own regional selector. Switching resets preparation/Ready
+and requires explicit Start. There is no automatic fallback, PSP relaunch or
+native-game rejoin. [UI and ownership contract](../NETPLAY_RELAY_SELECTION.md#альтернативное-подключение-psp--24-октября-2026).
+
+The alternative reuses LobbyConnection's authenticated Fluxer signaling and the
+existing libdatachannel ICE/DTLS helper. Only PSP coordination and relay TCP
+services (27312/27313) are multiplexed; destinations cannot be supplied by a
+peer. At most 32 streams, each with 64 KiB credit, bound queued traffic and apply
+backpressure instead of dropping a burst. Monotonic stream IDs prevent late
+bytes entering a new connection. Native socket close does not close unrelated
+streams. The upstream aemu server runs only on host loopback and is owned by
+the runtime session; cancellation, teardown and parent death release it. No VPS,
+TURN or permanent public service is added. This is a two-player route and still
+requires direct connectivity between the networks; STUN cannot guarantee that.
+PPSSPP's built-in coordination server retains its upstream bind behavior;
+this does not certify general private-party isolation for every native route.
+
+A separate shared defect was found in the PPSSPP relay wrapper: the emulated PSP
+thread's GetPdpStat and native MatchingInput thread can simultaneously drain the
+same mutable aemu TCP/ring buffer. The actual-source concurrency fixture observed
+199 overlapping operations before the patch, zero after per-socket recursive
+locking of peek/receive/send/recovery/delete and status inspection. This repair
+is not a title-specific delay or a logging workaround. Sonic still rejected the
+matching-to-gameplay transition with normal logging after this fix, both through
+the public relay and the handheld P2P relay. Therefore its root cause is not
+closed, and the alternative is not advertised as a guaranteed Sonic fix.
+
+Reproducible maintenance:
+
+- Existing base `fa50bb1976065c4f8b1b47af227d367fe9771555` (PPSSPP v1.20.4),
+  aemu `572de778fabcbda819ab0f677368c3fbc3033e19`; prior patches retained.
+- [pdp-threading.patch](../../tools/ppsspp-relay/pdp-threading.patch) and
+  [actual-source test](../../tools/ppsspp-relay/pdp-threading-test.py).
+  [patches.py](../../tools/ppsspp-relay/patches.py) reconstructs each known stack
+  from pinned Git originals before applying/checking, so overlapping patches
+  remain reproducible and unknown local changes are rejected.
+- [build.sh](../../tools/ppsspp-relay/build.sh) / [package.py](../../tools/ppsspp-relay/package.py)
+  produce the separate `traineros-relay` Flatpak branch. Runtime SHA-256
+  `01eafca876b8bc05ec2e087f6619bd127d5f6cfbc68aff804b6d362f5fdc25d5`,
+  settings suffix `-pdp-threading-v5`. Original stable and older reviewed hashes
+  remain available for rollback; exact settings compatibility remains required.
+- [build-host.sh](../../tools/ppsspp-relay/build-host.sh) builds the upstream server
+  with the session-owned [launcher](../../tools/ppsspp-relay/host-main.cpp).
+  [host-bind.patch](../../tools/ppsspp-relay/host-bind.patch) fixes upstream
+  inet_pton handling: zero means a nonmatching family, not success. Previously
+  an IPv4 loopback request accidentally opened the IPv6 wildcard listener.
+  The patched binary was checked for loopback-only binding and automatic exit
+  after killing its parent; both passed.
+  Build `tools/remote-play-stream/transport` using its pinned CMake dependency,
+  then [package-host.py](../../tools/ppsspp-relay/package-host.py) assembles both
+  helpers with hashes and license notices. Install this bundle at
+  `$XDG_DATA_HOME/traineros/psp-network` (default `~/.local/share/traineros/psp-network`).
+  There is no system daemon; a missing/damaged bundle rejects the selected route.
+- Helper hashes: `psp_relay`
+  `38bc521c2ebd89bbad5758422a17031b4f82948bff1ec75242d4e9353a8a1dd9`,
+  `stream_transport` `558721ca62ae44c4f845c0232dfe784d8d9306fc31e02d75307c5e315b7d5c29`.
+
+Checks: ARM64 shell/emulator/helper builds; actual ICE transport tests including
+persistent concurrent streams, 256 KiB transfers in each direction, EOF/reconnect
+and PSP/media mismatch; actual LobbyConnection tests include PSP admission and
+revocation; Lobby/Standalone/Social suites pass. The rendered 960×540 gear/menu
+check passes controller and pointer input, compatibility hiding and no implicit
+launch, with zero QML warnings. The runtime loss fixture keeps the live game PID
+and rejects a late connected callback. These source/helper checks are separate
+from a live Fluxer-account launch and from native-game compatibility.
+
+The final RuntimeMultiplayer suite passed (110.83 s); NetplayRelay and GameParty
+also passed. [host-test.py](../../tools/ppsspp-relay/host-test.py) reproduces the
+Linux loopback/parent-death check against a built relay with port 27313 unused.
+
+Ridge Racer ULUS10001 loaded Seaside Route 765 through the host relay using the
+new PPSSPP build. Both cars moved and saw each other. This diagnostic pair used
+SSH to exchange ICE descriptions/candidates, not the live Fluxer account UI.
+It used the preceding helper queue limit and the relay before the bind-only fix;
+the final helper transport and final relay binding/lifecycle checks passed
+separately. This result does not close Sonic's failure. See the
+[game register](../MULTIPLAYER_TESTED_GAMES.md).
+
+Delivery: PPSSPP `01eafca8…` is installed on both Flip/Odin, with stable retained.
+Odin runs shell SHA-256
+`1ca69d6a870f6b78d5302fc0b9781b58d01dd86c0a24f37ccc169a9001d2daa4`
+and the final helper bundle above; live executable hash matched, no new QML errors
+were found in the startup journal and volume remained zero. **Flip shell/helper
+delivery is incomplete:** SSH became unavailable after the diagnostic games
+exited, before the new bundle was staged. Its last confirmed shell is
+`ee363389b6056d0a730606f3d2292494fcbd7cbbc3fd6752ea1bdc6e5be8a510`.
+Do not treat the mixed shell pair as ready for this new path. Both original
+SYSTEM/SAVEDATA baselines matched after the game checks; Odin's installer also
+preserved its personal files. No sleep/reboot check was performed.
+
+Rollback: end the owned game safely, restore the previous shell together with
+its accepted emulator branch; retain the prior Flatpak bundle and stable branch.
+The optional helper directory may be removed after its processes have stopped.
+Never restore old personal SAVEDATA as part of a runtime rollback.
+
 ## Five-game paired checks — 24 October 2026
 
 The owner requested actual multiplayer checks of all five newly copied games
@@ -18,7 +119,11 @@ game menus and transport directly, not a fresh TrainerOS Lobby invitation cycle.
 | Dragon Ball Z: Shin Budokai / `ULUS10081` | Native challenge/accept, character selection and Mountains fight loaded. Movement, attacks and health changes were visible on both. An initial challenge expired while capturing its screen; leaving/re-entering Network Battle and accepting promptly succeeded in the same processes. This is not Another Road. |
 | Sonic Rivals 2 / `ULUS10323` | Discovery and matching admission worked, but three normal-log attempts failed before the race. Two debug-log attempts loaded Blue Coast Zone Act 1; the first included movement and mutual player visibility, the second remained in the race for about eight minutes. **Startup reliability remains broken.** |
 
-### Sonic reproduction and next repair
+### Sonic reproduction — investigation paused by owner
+
+**24 October latest owner decision:** record the failure in the
+[tested-games table](../MULTIPLAYER_TESTED_GAMES.md) and set Sonic aside.
+The findings below remain evidence for a future return, not the current task.
 
 Flip: Multiplayer → Wireless Play → Create → Single Event → Sonic →
 Blue Coast Zone → Act 1 Race → No Wager. Odin: Join → host → Shadow.
@@ -37,7 +142,7 @@ yet prove whether the cause is callback delivery, gameplay packet scheduling,
 or relay ordering across sockets. The third failure showed host error while
 the guest was already loading; it must also be covered by the eventual fix.
 
-Next: instrument that transition with bounded event/packet timestamps, compare
+When the owner returns to this defect: instrument that transition with bounded event/packet timestamps, compare
 normal and diagnostic timing through the existing relay, then repair the shared
 PPSSPP path and verify failed-start retry plus the affected matching users.
 Do not suppress disconnect callbacks globally or change only Sonic's timing to

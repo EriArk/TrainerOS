@@ -392,7 +392,7 @@ void SocialController::lobbyAction(QString action) {
     }
     const auto room=viewedLobby().state();
     const bool relayEditable=viewedLobby().hosting()&&(room["phase"]=="choosing"||room["phase"]=="gathering")&&
-        netplayRelay::supported(room["game"].toObject()["runtime"].toObject());
+        !netplayRelay::choices(room["game"].toObject()["runtime"].toObject()).isEmpty();
     if(action.startsWith("relay:")&&relayEditable) {viewedLobby().setRelay(action.mid(6));emit changed();return;}
     bool allowed=(relayEditable&&action=="relay")||(viewedLobby().hosting()&&(action=="requests"||action=="publish-topic"||action=="remove"||(action=="live-joining"&&lobbyRuntime_.liveSupported())));for(const auto& v:lobbyActions())if(v.toMap()["id"]==action&&v.toMap()["enabled"].toBool())allowed=true;
     if(!allowed)return;
@@ -425,7 +425,7 @@ void SocialController::lobbyAction(QString action) {
         else if(action=="seat") {menuTitle_="Choose your controller";for(int i=1;i<=viewedLobby().state()["game"].toObject()["seats"].toInt();++i)add("P"+QString::number(i),"seat:"+QString::number(i));}
         else if(action=="options") {
             menuTitle_="Lobby options";add("Access: "+viewedLobby().state()["access"].toString()+" · change","access");
-            if(relayEditable)add("Relay: "+netplayRelay::label(room["relay"].toString("auto")),"relay");
+            if(relayEditable)add("Connection settings","relay");
             if(&viewedLobby()==lobby_.activeRoom()&&lobbyRuntime_.liveSupported()&&viewedLobby().state()["phase"]!="launching")
                 add(viewedLobby().state()["rejoin"].toBool()
                     ?(viewedLobby().state()["liveJoining"].toBool()?"New players during play: On · disable":"Allow new players during play")
@@ -439,9 +439,12 @@ void SocialController::lobbyAction(QString action) {
             if(viewedLobby().state()["startsAt"].toInteger())add("Cancel gathering time","unschedule");
         }
         else if(action=="relay") {
-            menuTitle_="NetPlay relay";menuDetail_="Automatic chooses a region using every player's connection. Changing it resets Ready.";
-            auto choices=netplayRelay::regions();choices.prepend("auto");
-            for(const auto& region:choices)add(netplayRelay::label(region)+(room["relay"].toString("auto")==region?" · Selected":""),"relay:"+region);
+            const auto profile=room["game"].toObject()["runtime"].toObject();
+            menuTitle_="Connection settings";
+            menuDetail_=profile["id"].toString().startsWith("runtime.ppsspp.")
+                ?"Try the host relay if standard fails. Needs direct connectivity; resets Ready."
+                :"Automatic chooses a relay region using every player's connection. Changing it resets Ready.";
+            for(const auto& region:netplayRelay::choices(profile))add(netplayRelay::connectionLabel(profile,region)+(room["relay"].toString("auto")==region?" · Selected":""),"relay:"+region);
         }
         else if(action=="publish-topic") {menuTitle_="Lobby category";for(const auto& topic:lobbyDirectory::publicationTopics())add(lobbyDirectory::topicName(topic),"publish-topic:"+topic);}
         if(menu_.isEmpty()) {menu_.append("Close");menuCommands_.append("cancel");}

@@ -4,6 +4,7 @@
 #include "HotseatHandoff.h"
 #include "LobbyGamePreparation.h"
 #include "features/social/LobbyRuntime.h"
+#include "features/social/LobbyConnection.h"
 #include "core/model/GamePlayers.h"
 #include "integrations/adventure/retroarch/RetroArchNetplay.h"
 #include "integrations/adventure/retroarch/RetroArchNetplayClient.h"
@@ -145,6 +146,12 @@ private:
     bool rmgPreparing_=false;
     ProcessService& process_;AdventureLaunchController& lifecycle_;AdventureExitPresentation& overlay_;
     LobbyGamePreparation preparation_;
+    LobbyConnection pspConnection_;
+    QProcess pspRelay_{this};
+    bool pspDirect_=false;
+    QJsonObject pspLaunchContext_;
+    void bindLobbyPlayers(const QJsonObject&);
+    void stopPspConnection();
     LocalLinkPeer nearby_{this,47855,47856,"trainerosRuntime",true};
     GameParty party_{this};
     HotseatHandoff handoff_{this};

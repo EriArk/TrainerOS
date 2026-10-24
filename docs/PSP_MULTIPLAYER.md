@@ -1,12 +1,23 @@
 # Standalone PSP multiplayer research
 
+**24 October owner update:** maintain the [tested-games table](MULTIPLAYER_TESTED_GAMES.md).
+Sonic's startup failure stays open, but its investigation is paused at the owner's
+request. The earlier immediate Sonic repair below is superseded; PS2 remains the
+owner's subsequent direction after this PSP delivery.
+
+**24 October manual alternative:** the game card's Connection settings retains
+standard public relay by default and offers a host-handheld relay for PSP only.
+It reuses Lobby/Fluxer signaling and direct ICE/DTLS; launch and native rejoin stay
+explicit. A concurrent PDP-buffer defect is repaired, but Sonic's transition
+failure remains reproducible through both routes. [Implementation and evidence](emulators/ppsspp.md#host-relay-and-pdp-threading--24-october-2026).
+
 **24 October five-game follow-up:** all five additional games were exercised on
 Flip/Odin through the public relay. Ridge Racer, Virtua Tennis, Killzone and
 Shin Budokai reached paired gameplay; Tennis also started a second match without
 restarting PPSSPP. Sonic Rivals 2 failed three normal-log starts but ran twice
 with debug logging. Its timing-sensitive matching-to-gameplay failure remains
-unfixed; PS2 is not the immediate continuation.
-[Exact scenarios and next repair](emulators/ppsspp.md#five-game-paired-checks--24-october-2026).
+unfixed; the later owner update above stops further Sonic work for now.
+[Exact scenarios and retained findings](emulators/ppsspp.md#five-game-paired-checks--24-october-2026).
 
 **24 October silent-loss follow-up:** the Linux coordination connection now has
 a 15-second limit for unacknowledged TCP data, matching the relay sockets. Real

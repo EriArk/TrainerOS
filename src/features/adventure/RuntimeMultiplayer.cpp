@@ -38,6 +38,7 @@ RuntimeMultiplayer::~RuntimeMultiplayer() {
     // QObject's own disconnect runs after value members have been destroyed.
     // A network member's close signal must not redraw a menu using freed maps.
     active_=false;
+    stopPspConnection();
     relaySelector_.stop();
     for(auto* child:findChildren<QObject*>())QObject::disconnect(child,nullptr,this,nullptr);
     handoff_.stop();timer_.stop();invitationOpenTimer_.stop();scanPublish_.stop();
@@ -47,7 +48,19 @@ RuntimeMultiplayer::~RuntimeMultiplayer() {
 }
 RuntimeMultiplayer::RuntimeMultiplayer(LibraryRepository& lib,RetroArchAdapter& adapter,StandaloneAdapter& ppsspp,StandaloneAdapter& dolphinAdapter,SocialController& social,
     ProcessService& process,AdventureLaunchController& lifecycle,AdventureExitPresentation& overlay)
-    :library_(lib),adapter_(adapter),social_(social),ppsspp_(ppsspp),dolphin_(dolphinAdapter),process_(process),lifecycle_(lifecycle),overlay_(overlay),preparation_(process,lifecycle,overlay,[&social]{return social.accountGeneration();},this) {
+    :library_(lib),adapter_(adapter),social_(social),ppsspp_(ppsspp),dolphin_(dolphinAdapter),process_(process),lifecycle_(lifecycle),overlay_(overlay),preparation_(process,lifecycle,overlay,[&social]{return social.accountGeneration();},this),pspConnection_(*social.lobbyCoordinator(),this) {
+    connect(&pspConnection_,&LobbyConnection::connected,this,[this](QString){
+        if(pspDirect_&&!pspLaunchContext_.isEmpty()) {
+            const auto context=std::exchange(pspLaunchContext_,{});bindLobbyPlayers(context);
+        }
+    });
+    connect(&pspConnection_,&LobbyConnection::ended,this,[this](QString){
+        if(pspDirect_)fail("The direct PSP connection ended. Finish this game session, then try the standard relay in Connection settings.");
+    });
+    connect(&pspRelay_,&QProcess::readyReadStandardOutput,this,[this]{pspRelay_.readAllStandardOutput();});
+    connect(&pspRelay_,&QProcess::readyReadStandardError,this,[this]{pspRelay_.readAllStandardError();});
+    connect(&pspRelay_,&QProcess::errorOccurred,this,[this](auto error){if(pspDirect_&&error==QProcess::FailedToStart)fail("Couldn't start the handheld relay.");});
+    connect(&pspRelay_,&QProcess::finished,this,[this](int,QProcess::ExitStatus){if(pspDirect_)fail("The handheld relay stopped. Your game is kept.");});
     setupHotseat();
     connect(&relaySelector_,&retroarch::NetplayRelaySelector::report,this,[this](QString peer,QJsonObject scores){
         if(!relayTicket_.isEmpty())social_.lobbyCoordinator()->sendRuntimeSignal(peer,relayTicket_,relayTicket_,
@@ -286,7 +299,7 @@ RuntimeMultiplayer::RuntimeMultiplayer(LibraryRepository& lib,RetroArchAdapter& 
             return;
         }
         handoff_.stop();
-        active_=false;deadline_=0;timer_.stop();
+        active_=false;deadline_=0;timer_.stop();stopPspConnection();
         relaySelector_.stop();relayStarted_=relayWaiting_=false;relayTicket_.clear();selectedRelay_.clear();selectedRelayEndpoint_.clear();
         client_.stop();
         rmgLobby_.stop();rmgPreparing_=false;
@@ -742,7 +755,8 @@ void RuntimeMultiplayer::startParty(bool host,const QJsonObject& endpoint) {
         prepareHost();
     } else if(host) {
         request_.password=randomToken();
-        if(psp()){if(online_)resolvePspRelay();else {request_.address=nearby_.localAddressFor(transportPeer_.mid(7));prepareHost();}}
+        if(psp()){if(pspDirect_){request_.address="127.0.0.1";prepareHost();}
+            else if(online_)resolvePspRelay();else {request_.address=nearby_.localAddressFor(transportPeer_.mid(7));prepareHost();}}
         else if(online_)resolveRelay();else prepareHost();
     } else if(linked())prepareLinked(endpoint);else frame(endpoint);
     emit changed();
@@ -830,7 +844,7 @@ void RuntimeMultiplayer::launch() {
     if(rmg()){prepareRmg();return;}
     if(linked()&&!linkedPrepared_){if(host_)prepareLinked();return;}
     const auto result=dolphin()?dolphin_.launchNetplay(record->adventure,dolphinRequest_):psp()?ppsspp_.launchNetplay(record->adventure,
-        ppsspp::NetplayRequest{descriptor_,host_,online_,request_.address,trainer_}):adapter_.launchNetplay(record->adventure,request_);
+        ppsspp::NetplayRequest{descriptor_,host_,online_,request_.address,trainer_,pspDirect_}):adapter_.launchNetplay(record->adventure,request_);
     if(!result.success)fail(result.message);
     // The launch worker owns its snapshot; do not retain peer progress in UI state.
     request_.ownSram.clear();request_.peerSrams.clear();
@@ -1009,7 +1023,7 @@ void RuntimeMultiplayer::frame(const QJsonObject& packet) {
     if(psp()) {
         if(host_||packet["kind"]!="psp-ready"||lifecycle_.active()||launchPending_)return;
         if(packet["identity"].toObject()!=descriptor_){fail("Your PSP game or emulator doesn't match your friend's.");return;}
-        request_.address=online_?packet["address"].toString():nearby_.addressOf(transportPeer_.mid(7));
+        request_.address=pspDirect_?QString("127.0.0.2"):online_?packet["address"].toString():nearby_.addressOf(transportPeer_.mid(7));
         launchPending_=true;launch();return;
     }
     if(host_||packet["kind"]!="ready"||lifecycle_.active()||launchPending_)return;
@@ -1182,6 +1196,7 @@ void RuntimeMultiplayer::output(const QByteArray& bytes) {
     if(output_.size()>16384)output_.clear();
 }
 void RuntimeMultiplayer::fail(QString text) {
+    stopPspConnection();
     relaySelector_.stop();relayStarted_=relayWaiting_=false;relayTicket_.clear();selectedRelay_.clear();selectedRelayEndpoint_.clear();
     auto lobbyDone=std::exchange(lobbyCompletion_,{});
     const auto endedLobbyTicket=lobbyTicket_;

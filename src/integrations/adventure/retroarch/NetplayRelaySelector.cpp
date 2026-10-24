@@ -59,7 +59,7 @@ void NetplayRelaySelector::stop() {
 }
 void NetplayRelaySelector::start(QString self,QString owner,QStringList players,QString preference) {
     stop();self_=std::move(self);owner_=std::move(owner);players_=std::move(players);preference_=std::move(preference);
-    if(!netplayRelay::valid(preference_)||players_.isEmpty()||players_.size()>4||!players_.contains(self_)||!players_.contains(owner_)) {
+    if(!netplayRelay::validRegion(preference_)||players_.isEmpty()||players_.size()>4||!players_.contains(self_)||!players_.contains(owner_)) {
         emit failed("The relay selection context changed. Prepare the lobby again.");return;
     }
     probes_=new QObject(this);pending_=preference_=="auto"?netplayRelay::regions():QStringList{preference_};
@@ -111,7 +111,7 @@ void NetplayRelaySelector::receive(const QString& peer,const QJsonObject& scores
 QString NetplayRelaySelector::choose(const QStringList& players,const QMap<QString,QJsonObject>& reports,const QString& preference) {
     QString best;int bestWorst=std::numeric_limits<int>::max(),bestTotal=bestWorst;
     const auto regions=preference=="auto"?netplayRelay::regions():QStringList{preference};
-    if(players.isEmpty()||!netplayRelay::valid(preference))return {};
+    if(players.isEmpty()||!netplayRelay::validRegion(preference))return {};
     for(const auto& region:regions) {
         int worst=0,total=0;bool available=true;
         for(const auto& peer:players) {

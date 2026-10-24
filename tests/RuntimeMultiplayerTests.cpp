@@ -165,6 +165,19 @@ private slots:
         QVERIFY(f.runtime.relayTicket_.isEmpty());QVERIFY(f.runtime.selectedRelay_.isEmpty());
         QVERIFY(f.runtime.selectedRelayEndpoint_.isEmpty());
     }
+    void pspTransportLossKeepsGameAndRevokesPendingLaunch() {
+        Fixture f;QVERIFY(f.start());QTRY_COMPARE(f.lifecycle.state(),"running");
+        const auto pid=f.process.processId();
+        f.runtime.active_=true;f.runtime.pspDirect_=true;
+        f.runtime.pspLaunchContext_={{"ticket","old"}};
+        int completions=0;f.runtime.lobbyCompletion_=[&](bool ok,QString){QVERIFY(!ok);++completions;};
+        emit f.runtime.pspConnection_.ended("Lost connection");
+        QCOMPARE(completions,1);QVERIFY(!f.runtime.pspDirect_);QVERIFY(f.runtime.pspLaunchContext_.isEmpty());
+        QCOMPARE(f.process.processId(),pid);QVERIFY(f.lifecycle.active());
+        emit f.runtime.pspConnection_.connected("late private config");
+        QCOMPARE(completions,1);QVERIFY(!f.runtime.party_.active());QCOMPARE(f.process.processId(),pid);
+        finishOrdinary(f);
+    }
     void destructionCannotReenterFromExternalLobbySignals() {
         Fixture f;
         auto* runtime=new RuntimeMultiplayer(f.library,f.retro,f.psp,f.dolphin,f.social,f.process,f.lifecycle,f.view);

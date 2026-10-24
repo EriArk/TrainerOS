@@ -41,7 +41,7 @@ bool LobbySession::setAccess(const QString& actor,QString access) {
     access_=access;publish();return true;
 }
 bool LobbySession::setRelay(const QString& actor,QString relay) {
-    if(!host(actor)||!editable()||!netplayRelay::valid(relay))return false;
+    if(!host(actor)||!editable()||!netplayRelay::compatible(game_.runtime,relay))return false;
     if(relay_==relay)return true;
     relay_=relay;++generation_;ticket_.clear();
     for(auto& m:members_)m.prepared=m.ready=false;
@@ -65,6 +65,7 @@ bool LobbySession::restore(const QJsonObject& s) {
     conversation_=s["conversation"].toString();ticket_.clear();invites_.clear();members_.clear();
     const auto g=s["game"].toObject();
     game_={g["id"].toString(),g["title"].toString(),g["platform"].toString(),g["mode"].toString(),g["seats"].toInt(),g["runtime"].toObject()};
+    if(!netplayRelay::compatible(game_.runtime,relay_))relay_="auto";
     revision_=quint64(s["revision"].toInteger());generation_=quint64(s["generation"].toInteger())+1;
     for(const auto& value:s["members"].toArray()) {
         const auto m=value.toObject();members_.insert(m["id"].toString(),{m["name"].toString(),m["seat"].toInt(),false,false,false,m["spectator"].toBool()});
@@ -117,6 +118,7 @@ bool LobbySession::selectGame(const QString& actor,const Game& game) {
        ||game.title.size()>160||game.platform.isEmpty()||game.platform.size()>32||game.mode.isEmpty()
        ||game.mode.size()>64||game.seats<1||game.seats>16)return false;
     ballot_={};game_=game;++generation_;ticket_.clear();phase_="gathering";liveJoining_=rejoin_=false;
+    if(!netplayRelay::compatible(game_.runtime,relay_))relay_="auto";
     // Seat assignment is per game. The existing runtime families use the
     // organizer's console as P1; other players may change their free port.
     for(auto& m:members_) {m.seat=m.returnSeat=0;m.returnUntil=0;m.prepared=false;m.ready=false;m.admission.clear();}

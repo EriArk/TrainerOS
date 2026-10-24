@@ -32,6 +32,52 @@ public:
 // Isolated provider state; exercises the actual QML and input, never an account.
 class LobbySmokeScenario {
 public:
+    static void connection(QQuickWindow* window,ShellController& shell,ControllerInput& input,SDL_Joystick* joystick,QString directory,bool& completed,int& warnings,QStringList& diagnostics) {
+        auto* social=shell.social();
+        QObject::disconnect(social->session_,nullptr,social,nullptr);QObject::disconnect(social,nullptr,social->session_,nullptr);
+        auto step=std::make_shared<int>(0);auto failed=std::make_shared<bool>(false);auto* timer=new QTimer(window);timer->setInterval(700);
+        const auto check=[=,&diagnostics](bool ok,QString text){diagnostics.append((ok?"PASS ":"FAIL ")+text);if(!ok)*failed=true;};
+        const auto press=[&input,joystick](SDL_GameControllerButton key){SDL_JoystickSetVirtualButton(joystick,key,1);input.poll();SDL_JoystickSetVirtualButton(joystick,key,0);input.poll();};
+        const auto find=[window](QString name){
+            const std::function<QQuickItem*(QQuickItem*)> search=[&](QQuickItem* item)->QQuickItem* {if(item->objectName()==name)return item;for(auto* child:item->childItems())if(auto* found=search(child))return found;return nullptr;};
+            return search(window->contentItem());
+        };
+        QObject::connect(timer,&QTimer::timeout,window,[=,&shell,&completed,&warnings,&diagnostics]{
+            switch((*step)++) {
+            case 0:
+                social->receive(0,{{"state","connected"},{"userId","1"},{"name","Host"}});
+                shell.goToPage(2);emit social->lobbyRequested();social->createAnotherLobby();social->submitLobbyDraft();
+                social->viewedLobby().selectGame({"psp","PSP multiplayer","psp","runtime.ppsspp.adhoc.v1",2,{{"id","runtime.ppsspp.adhoc.v1"}}});
+                social->lobbyRoomFocus_="game";window->resize(960,540);break;
+            case 1:
+                check(find("lobby-connection-settings")&&find("lobby-connection-settings")->isVisible(),"Compatible game exposes gear");
+                window->grabWindow().save(directory+"/connection-card.png");press(SDL_CONTROLLER_BUTTON_DPAD_RIGHT);
+                check(social->lobbyRoomFocus()=="connection","Controller reaches gear");press(ControllerInput::ConfirmButton);break;
+            case 2:
+                check(social->menuCommands_==QStringList{"lobby:relay:auto","lobby:relay:psp-host"},"Only compatible connection choices");
+                window->grabWindow().save(directory+"/connection-menu.png");press(SDL_CONTROLLER_BUTTON_DPAD_DOWN);press(ControllerInput::ConfirmButton);
+                check(social->viewedLobby().state()["relay"]=="psp-host","Controller selects alternative");break;
+            case 3: {
+                auto* item=find("lobby-connection-settings");check(item,"Gear remains available");if(!item)break;
+                const auto point=item->mapToScene(QPointF(item->width()/2,item->height()/2));const auto global=window->mapToGlobal(point.toPoint());
+                QMouseEvent down(QEvent::MouseButtonPress,point,global,Qt::LeftButton,Qt::LeftButton,Qt::NoModifier),up(QEvent::MouseButtonRelease,point,global,Qt::LeftButton,Qt::NoButton,Qt::NoModifier);
+                QCoreApplication::sendEvent(window,&down);QCoreApplication::sendEvent(window,&up);
+                check(social->menuTitle_=="Connection settings"&&!social->menu_.isEmpty(),"Touch opens same settings");break;
+            }
+            case 4:
+                window->grabWindow().save(directory+"/connection-selected.png");social->closeMenu();
+                social->viewedLobby().selectGame({"other","Other connection","ps2","remoteplay.v1",2,{}});break;
+            case 5:
+                check(find("lobby-connection-settings")&&!find("lobby-connection-settings")->isVisible(),"Incompatible game hides gear");
+                check(social->viewedLobby().state()["relay"]=="auto","Changing family restores compatible default");
+                check(social->viewedLobby().state()["phase"]=="gathering","No implicit game launch");break;
+            default:
+                timer->stop();completed=true;QFile report(directory+"/connection-check.txt");
+                if(report.open(QIODevice::WriteOnly))report.write((diagnostics.join('\n')+QString("\nqmlWarnings=%1\n").arg(warnings)).toUtf8());
+                QCoreApplication::exit(*failed||warnings?4:0);
+            }
+        });timer->start();
+    }
     static void picker(QQuickWindow* window,ShellController& shell,QString directory,bool& completed,int& warnings,QStringList& diagnostics) {
         auto* social=shell.social();
         QObject::disconnect(social->session_,nullptr,social,nullptr);QObject::disconnect(social,nullptr,social->session_,nullptr);
@@ -364,6 +410,7 @@ public:
     }
     static void start(QQuickWindow* window,ShellController& shell,ControllerInput& input,SDL_Joystick* joystick,
                       QString directory,bool& completed,int& warnings,QStringList& diagnostics) {
+        if(qEnvironmentVariableIsSet("TRAINEROS_CONNECTION_SMOKE")){connection(window,shell,input,joystick,directory,completed,warnings,diagnostics);return;}
         if(qEnvironmentVariableIsSet("TRAINEROS_FILES68_SMOKE")){files68(window,shell,directory,completed,warnings,diagnostics);return;}
         if(qEnvironmentVariableIsSet("TRAINEROS_SOCIAL67_SMOKE")){social67(window,shell,directory,completed,warnings,diagnostics);return;}
         if(qEnvironmentVariableIsSet("TRAINEROS_SOCIAL65_SMOKE")){social65(window,shell,directory,completed,warnings,diagnostics);return;}

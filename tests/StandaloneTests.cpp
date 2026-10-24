@@ -413,6 +413,23 @@ private slots:
         QVERIFY(bytes.contains("AdhocServerRelayMode = 2\n"));
         r.host=false;QVERIFY(ppsspp::networkSettings(r).contains("EnableAdhocServer = False\n"));
     }
+    void pspHostRelayOnlyUsesItsOwnLoopbackEndpoints() {
+        ppsspp::NetplayRequest r{{{"id","runtime.ppsspp.adhoc.v1"}},true,true,"127.0.0.1","Host",true};
+        auto bytes=ppsspp::networkSettings(r);
+        QVERIFY(bytes.contains("EnableAdhocServer = True\n"));
+        QVERIFY(bytes.contains("AdhocServerRelayMode = 1\n"));
+        r.host=false;r.address="127.0.0.2";
+        QVERIFY(ppsspp::networkSettings(r).contains("EnableAdhocServer = False\n"));
+        ProcessCommand command;StandaloneInstallation installation;std::atomic_bool cancel=false;
+        for(const auto& address:{"socom.cc","192.168.1.1","127.0.0.1"}) {
+            r.address=address;
+            QCOMPARE(ppsspp::configureNetplay(command,installation,r,cancel),"This multiplayer address is invalid.");
+        }
+        r.address="127.0.0.2";r.online=false;
+        QCOMPARE(ppsspp::configureNetplay(command,installation,r,cancel),"This multiplayer address is invalid.");
+        r.online=true;r.hostRelay=false;
+        QCOMPARE(ppsspp::configureNetplay(command,installation,r,cancel),"This multiplayer address is invalid.");
+    }
     void pspMultiplayerKeepsSettingsPrivateAndOrdinarySavesShared() {
 #ifdef Q_OS_WIN
         QSKIP("Linux memory-stick directory symlinks.");

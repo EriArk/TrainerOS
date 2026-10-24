@@ -38,16 +38,7 @@ def main():
     binary = work / "build/PPSSPPSDL"
     assert run("git", "-C", str(source), "rev-parse", "HEAD") == BASE_REV
     assert run("git", "-C", str(source / "ext/aemu_postoffice"), "rev-parse", "HEAD") == RELAY_REV
-    subprocess.run(["git", "-C", str(source), "apply", "--reverse", "--check",
-                    str(recipe / "pdp-stat.patch")], check=True)
-    subprocess.run(["git", "-C", str(source), "apply", "--reverse", "--check",
-                    str(recipe / "relay-retry.patch")], check=True)
-    subprocess.run(["git", "-C", str(source), "apply", "--reverse", "--check",
-                    str(recipe / "coordination-stream.patch")], check=True)
-    subprocess.run(["git", "-C", str(source), "apply", "--reverse", "--check",
-                    str(recipe / "coordination-timeout.patch")], check=True)
-    subprocess.run(["git", "-C", str(source / "ext/aemu_postoffice"), "apply", "--reverse", "--check",
-                    str(recipe / "socket-timeout.patch")], check=True)
+    subprocess.run(["python3", str(recipe / "patches.py"), str(source), "--check"], check=True)
     base = Path(run("flatpak", "info", "--system", "--show-location",
                     f"app/{APP}/aarch64/stable"))
     assert digest(base / "files/bin/PPSSPPSDL") == BASE_HASH, "Unreviewed base package"
@@ -65,7 +56,8 @@ def main():
     for name in ("build.sh", "pdp-stat.patch", "relay-receive-test.c", "package.py",
                  "relay-retry.patch", "socket-timeout.patch", "relay-timeout-test.c", "relay-retry-test.cpp",
                  "coordination-stream.patch", "coordination-stream-test.py",
-                 "coordination-timeout.patch", "coordination-timeout-test.py"):
+                 "coordination-timeout.patch", "coordination-timeout-test.py",
+                 "pdp-threading.patch", "pdp-threading-test.py", "patches.py"):
         shutil.copy2(recipe / name, evidence / name)
     licence = recipe / "LICENSE"
     if not licence.is_file():
@@ -84,6 +76,7 @@ def main():
         "timeoutPatchSha256": digest(recipe / "socket-timeout.patch"),
         "coordinationPatchSha256": digest(recipe / "coordination-stream.patch"),
         "coordinationTimeoutPatchSha256": digest(recipe / "coordination-timeout.patch"),
+        "pdpThreadingPatchSha256": digest(recipe / "pdp-threading.patch"),
     }, indent=2) + "\n", encoding="utf-8")
     repo = work / "repo"
     subprocess.run(["flatpak", "build-export", "--arch=aarch64",

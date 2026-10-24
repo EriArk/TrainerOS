@@ -15,6 +15,7 @@ R-ID готовности → S-владельцы → F-сценарии. Ст�
 | Какой продукт делаем | [продукт и архитектура](PRODUCT_ARCHITECTURE_RU.md), [экранные решения](PRODUCT_SPEC.md), [визуальный язык](DESIGN_LANGUAGE.md) |
 | Владельцы функций и связи | [Карта структуры](STRUCTURE_MAP_RU.md): входы/выходы, зависимости, жизненные циклы и код |
 | Готовность функций и остаток | [Карта с галочками](FEATURE_READINESS.md), [условия проверки](CURRENT_TASKS.md) |
+| Какие игры проверены и где есть проблемы | [Таблица проверок мультиплеера](MULTIPLAYER_TESTED_GAMES.md) |
 | Что уже сделано | [PROJECT_STATUS](../PROJECT_STATUS.md) |
 | Как развивалось | [CHANGELOG](../CHANGELOG.md), [коммиты](https://github.com/EriArk/TrainerOS/commits/codex/apps-workspace/) |
 | Требования к функциям | [GitHub issues](https://github.com/EriArk/TrainerOS/issues) |

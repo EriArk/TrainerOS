@@ -301,6 +301,7 @@ bool LobbyRoomCoordinator::validState(const QJsonObject& s,const QString& host) 
     QSet<QString> identities;QSet<int> seats;const auto capacity=s["game"].toObject()["seats"].toInt(-1);
     if(capacity<0||capacity>16)return false;
     const auto game=s["game"].toObject();
+    if(s["relay"]=="psp-host"&&!netplayRelay::compatible(game["runtime"].toObject(),"psp-host"))return false;
     if(game["id"].toString().size()>128||game["title"].toString().size()>160||game["platform"].toString().size()>32||game["mode"].toString().size()>64)return false;
     if(!game["id"].toString().isEmpty()&&(capacity<1||game["title"].toString().trimmed().isEmpty()||game["mode"].toString().isEmpty()||game["platform"].toString().isEmpty()))return false;
     for(const auto& value:members) {

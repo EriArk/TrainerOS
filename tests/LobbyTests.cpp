@@ -222,7 +222,7 @@ private slots:
         QCOMPARE(host.state()["phase"].toString(),QString("playing"));QCOMPARE(hs.launches,2);QCOMPARE(gs.launches,2);
     }
     void relayPreferenceIsHostOwnedAndInvalidatesReadiness() {
-        LobbySession room;QVERIFY(room.create("host","Host","public"));QVERIFY(room.selectGame("host",game()));
+        LobbySession room;QVERIFY(room.create("host","Host","public"));auto selection=game();selection.runtime={{"id","runtime.fceumm.test.v1"}};QVERIFY(room.selectGame("host",selection));
         QVERIFY(room.join("guest","Guest",100));prepare(room,"host",1);prepare(room,"guest",2);
         QVERIFY(room.ready("host",room.generation(),true));QVERIFY(room.ready("guest",room.generation(),true));
         const auto generation=room.generation();QVERIFY(!room.setRelay("guest","nyc"));QVERIFY(!room.setRelay("host","arbitrary-address"));
@@ -232,6 +232,19 @@ private slots:
         LobbySession restored;QVERIFY(restored.restore(room.state()));QCOMPARE(restored.state()["relay"].toString(),"nyc");
         prepare(room,"host",1);prepare(room,"guest",2);QVERIFY(room.ready("host",room.generation(),true));QVERIFY(room.ready("guest",room.generation(),true));
         QVERIFY(room.start("host"));QVERIFY(!room.setRelay("host","madrid"));
+    }
+    void pspConnectionChoiceIsExplicitAndCannotLeakIntoOtherFamilies() {
+        LobbySession room;QVERIFY(room.create("host","Host","public"));
+        auto psp=game();psp.platform="psp";psp.mode="runtime.ppsspp.adhoc.v1";psp.runtime={{"id",psp.mode}};
+        QVERIFY(room.selectGame("host",psp));QCOMPARE(room.state()["relay"].toString(),"auto");
+        QVERIFY(room.join("guest","Guest",100));prepare(room,"host",1);prepare(room,"guest",2);
+        QVERIFY(room.ready("host",room.generation(),true));QVERIFY(room.ready("guest",room.generation(),true));
+        QVERIFY(!room.setRelay("guest","psp-host"));QVERIFY(!room.setRelay("host","nyc"));
+        QVERIFY(room.setRelay("host","psp-host"));QVERIFY(!room.canStart("host"));
+        QCOMPARE(room.state()["phase"].toString(),"gathering");
+        LobbySession restored;QVERIFY(restored.restore(room.state()));QCOMPARE(restored.state()["relay"].toString(),"psp-host");
+        QVERIFY(room.selectGame("host",game()));QCOMPARE(room.state()["relay"].toString(),"auto");
+        QVERIFY(!room.setRelay("host","psp-host"));
     }
     void ownershipObservationPreservesDisconnectedAndClosedRooms() {
         LobbySession room;QVERIFY(!room.ownedBy("host"));QVERIFY(!room.ownedBy(""));
@@ -404,12 +417,14 @@ private slots:
         QVERIFY(host.finishGame(ticket));QCOMPARE(host.state()["phase"].toString(),"gathering");
     }
     void realLobbyConnectionOwnsHelperAndRevokesOnGuestRemoval_data() {
-        QTest::addColumn<bool>("badCandidates");QTest::addColumn<bool>("rejoin");
-        QTest::newRow("guest-removed")<<false<<false;QTest::newRow("invalid-address-batch")<<true<<false;
-        QTest::newRow("guest-rejoined")<<false<<true;
+        QTest::addColumn<bool>("badCandidates");QTest::addColumn<bool>("rejoin");QTest::addColumn<bool>("psp");
+        QTest::newRow("guest-removed")<<false<<false<<false;QTest::newRow("invalid-address-batch")<<true<<false<<false;
+        QTest::newRow("guest-rejoined")<<false<<true<<false;
+        QTest::newRow("psp-host-guest-removed")<<false<<false<<true;
+        QTest::newRow("psp-host-invalid-address-batch")<<true<<false<<true;
     }
     void realLobbyConnectionOwnsHelperAndRevokesOnGuestRemoval() {
-        QFETCH(bool,badCandidates);QFETCH(bool,rejoin);
+        QFETCH(bool,badCandidates);QFETCH(bool,rejoin);QFETCH(bool,psp);
         const auto helper=qEnvironmentVariable("TRAINEROS_STREAM_TRANSPORT");if(helper.isEmpty())QSKIP("Real Linux transport supplied by the ARM integration check");
         LobbyCoordinator host,guest;host.configure("1","Host",true);guest.configure("2","Guest",true);
         connect(&host,&LobbyCoordinator::outgoing,&guest,[&](QString peer,QJsonObject p){if(peer=="2")guest.receive("1","Host",p);});
@@ -419,14 +434,18 @@ private slots:
             host.receive("2","Guest",p);
         });
         LobbyConnection hc(host),gc(guest);QSignalSpy hr(&hc,&LobbyConnection::connected),gr(&gc,&LobbyConnection::connected),ended(&hc,&LobbyConnection::ended),media(&gc,&LobbyConnection::mediaReady);
-        connect(&host,&LobbyCoordinator::launchRequested,&hc,[&](QString ticket,QJsonObject){QVERIFY(hc.start("1",ticket,helper));});
-        connect(&guest,&LobbyCoordinator::launchRequested,&gc,[&](QString ticket,QJsonObject){QVERIFY(gc.start("2",ticket,helper));});
-        QVERIFY(host.create("public"));auto selected=game();selected.mode="remoteplay.v1";QVERIFY(host.selectGame(selected));
+        const QString mode=psp?"psp":"game";
+        connect(&host,&LobbyCoordinator::launchRequested,&hc,[&](QString ticket,QJsonObject){QVERIFY(hc.start("1",ticket,helper,{},mode));});
+        connect(&guest,&LobbyCoordinator::launchRequested,&gc,[&](QString ticket,QJsonObject){QVERIFY(gc.start("2",ticket,helper,{},mode));});
+        QVERIFY(host.create("public"));auto selected=game();selected.mode=psp?"runtime.ppsspp.adhoc.v1":"remoteplay.v1";
+        if(psp)selected.runtime={{"id",selected.mode}};
+        QVERIFY(host.selectGame(selected));if(psp)QVERIFY(host.activeRoom()->setRelay("psp-host"));
         QVERIFY(guest.join("1",host.state()["id"].toString()));const auto gen=host.state()["generation"].toInteger();
         QVERIFY(host.prepared(gen,true));QVERIFY(guest.prepared(gen,true));QVERIFY(host.ready(true));QVERIFY(guest.ready(true));QVERIFY(host.start());
         QTRY_COMPARE_WITH_TIMEOUT(hr.size(),1,15000);QTRY_COMPARE_WITH_TIMEOUT(gr.size(),1,15000);QCOMPARE(hc.id(),gc.id());
         const auto hostFile=hr[0][0].toString(),guestFile=gr[0][0].toString();QFile file(hostFile);QVERIFY(file.open(QIODevice::ReadOnly));
-        const auto config=file.readAll();QVERIFY(config.contains("mode=game\n"));QVERIFY(config.contains("seconds=0\n"));file.close();
+        const auto config=file.readAll();QVERIFY(config.contains("mode="+mode.toUtf8()+"\n"));
+        if(psp)QVERIFY(config.contains("address=127.0.0.1\n"));else QVERIFY(config.contains("seconds=0\n"));file.close();
         const auto ticket=host.state()["ticket"].toString();QVERIFY(host.acknowledgeLaunch(ticket,true));QVERIFY(guest.acknowledgeLaunch(ticket,true));
         QVERIFY(hc.announceMedia());QCOMPARE(media.size(),1);
         if(rejoin) {

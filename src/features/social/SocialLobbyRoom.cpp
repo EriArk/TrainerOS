@@ -1,4 +1,5 @@
 #include "SocialController.h"
+#include "core/model/NetplayRelay.h"
 #include <QJsonDocument>
 #include <QDateTime>
 #include <algorithm>
@@ -66,6 +67,9 @@ QVariantList SocialController::lobbySpectators() const {
 QVariantMap SocialController::lobbyRoomGame() const {
     auto game=viewedLobby().state()["game"].toObject().toVariantMap();
     game["canStart"]=&viewedLobby()==lobby_.activeRoom()&&viewedLobby().canStart();
+    game["canConfigureConnection"]=viewedLobby().hosting()
+        &&viewedLobby().state()["phase"]=="gathering"
+        &&!netplayRelay::choices(QJsonObject::fromVariantMap(game["runtime"].toMap())).isEmpty();
     for(const auto& v:lobbyGames_) {const auto local=v.toMap();if(local["id"]==game["id"]&&local["mode"]==game["mode"]) {
         game["cover"]=local["cover"];game["modeLabel"]=local.value("modeLabel",QString("Emulator multiplayer"));break;
     }}
@@ -101,7 +105,7 @@ QVariantList SocialController::lobbyRoomActions() const {
 }
 QString SocialController::lobbyRoomFocus() const {
     if(lobbyRoomFocus_=="start"&&lobbyRoomGame()["canStart"].toBool())return "start";
-    if(lobbyRoomFocus_=="game")return lobbyRoomFocus_;
+    if(lobbyRoomFocus_=="game"||(lobbyRoomFocus_=="connection"&&lobbyRoomGame()["canConfigureConnection"].toBool()))return lobbyRoomFocus_;
     for(const auto& rows:{lobbyPlayers(),lobbyRoomActions()})for(const auto& v:rows)if(v.toMap()["key"]==lobbyRoomFocus_)return lobbyRoomFocus_;
     return "game";
 }
@@ -111,12 +115,13 @@ void SocialController::expandLobbyChat() {
 }
 void SocialController::activateLobbyRoom(QString key) {
     if(!lobbyDetailFocused_||viewedLobby().state().isEmpty())return;
-    bool found=key=="game"||(key=="start"&&lobbyRoomGame()["canStart"].toBool());for(const auto& rows:{lobbyPlayers(),lobbyRoomActions()})for(const auto& v:rows)
+    bool found=key=="game"||(key=="connection"&&lobbyRoomGame()["canConfigureConnection"].toBool())||(key=="start"&&lobbyRoomGame()["canStart"].toBool());for(const auto& rows:{lobbyPlayers(),lobbyRoomActions()})for(const auto& v:rows)
         if(v.toMap()["key"]==key)found=true;
     if(!found)return;
     lobbyRoomFocus_=key;lobbyChatFocused_=false;emit changed();
     if(key=="start"){viewedLobby().start();return;}
     if(key=="game"){if(lobbyRoomGame()["canImport"].toBool())emit lobbyImportRequested();else if(viewedLobby().hosting())lobbyAction("game");return;}
+    if(key=="connection"){lobbyAction("relay");return;}
     if(key=="invite"){if(viewedLobby().hosting())lobbyAction("invite");return;}
     if(key.startsWith("invited:")){profile(key.mid(8));return;}
     if(key=="action:microphone"||key=="action:audio") {
@@ -168,7 +173,10 @@ void SocialController::dispatchLobbyRoom(Action action) {
     if(action==Action::ToggleContinue&&lobbyChatVisible()){focusLobbyChat();call();return;}
     if(action==Action::ContextMenu||action==Action::LocalAction){if(lobbyRoomFocus().startsWith("person:"))activateLobbyRoom(lobbyRoomFocus());else lobbyAction("room-menu");return;}
     if(action==Action::Confirm){activateLobbyRoom(lobbyRoomFocus());return;}
-    QList<QStringList> groups;groups.append(lobbyRoomGame()["canStart"].toBool()?QStringList{"game","start"}:QStringList{"game"});
+    QList<QStringList> groups;QStringList gameKeys{"game"};
+    if(lobbyRoomGame()["canConfigureConnection"].toBool())gameKeys.append("connection");
+    if(lobbyRoomGame()["canStart"].toBool())gameKeys.append("start");
+    groups.append(gameKeys);
     for(const auto& rows:{lobbyPlayers(),lobbyRoomActions()}) {QStringList keys;for(const auto& v:rows)keys.append(v.toMap()["key"].toString());if(!keys.isEmpty())groups.append(keys);}
     int group=0,index=0;for(int i=0;i<groups.size();++i)if(groups[i].contains(lobbyRoomFocus())){group=i;index=groups[i].indexOf(lobbyRoomFocus());break;}
     if(action==Action::Up||action==Action::Down){group=qBound(0,group+(action==Action::Down?1:-1),int(groups.size())-1);lobbyRoomFocus_=groups[group][qMin(index,int(groups[group].size())-1)];}

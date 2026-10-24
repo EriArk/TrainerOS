@@ -543,6 +543,14 @@ private slots:
         s.selectMenu(s.menuCommands_.indexOf("lobby:relay:nyc"));QCOMPARE(s.viewedLobby().state()["relay"].toString(),"nyc");
         s.lobbyAction("relay");QVERIFY(s.menu_.join(' ').contains("New York · Selected"));
         s.closeMenu();s.lobbyAction("relay:arbitrary-address");QCOMPARE(s.viewedLobby().state()["relay"].toString(),"nyc");
+        const QJsonObject psp{{"id","runtime.ppsspp.adhoc.v1"},{"content","same"},{"players",2}};
+        QVERIFY(s.viewedLobby().selectGame({"psp","PSP game","psp","runtime.ppsspp.adhoc.v1",2,psp}));
+        QVERIFY(s.lobbyRoomGame()["canConfigureConnection"].toBool());
+        s.activateLobbyRoom("connection");QCOMPARE(s.menuCommands_.size(),2);
+        QVERIFY(s.menuCommands_.contains("lobby:relay:psp-host"));QVERIFY(!s.menuCommands_.contains("lobby:relay:nyc"));
+        s.selectMenu(s.menuCommands_.indexOf("lobby:relay:psp-host"));QCOMPARE(s.viewedLobby().state()["relay"].toString(),"psp-host");
+        QVERIFY(s.viewedLobby().selectGame({"other","Other","ps2","remoteplay.v1",2,{}}));
+        QVERIFY(!s.lobbyRoomGame()["canConfigureConnection"].toBool());
     }
     void playersCannotBecomeSpectatorsFromTheRoom() {
         SocialController s;QObject::disconnect(&s,nullptr,s.session_,nullptr);QObject::disconnect(s.session_,nullptr,&s,nullptr);

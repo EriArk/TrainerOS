@@ -20,7 +20,10 @@ QJsonObject binding(const QJsonObject& s) {
     QJsonArray players;
     for(const auto& v:s["members"].toArray()) {const auto m=v.toObject();if(!m["spectator"].toBool())players.append(QJsonObject{
         {"id",m["id"]},{"seat",m["seat"]},{"connected",m["connected"]},{"admission",m["admission"]}});}
-    return {{"lobby",s["id"]},{"generation",s["generation"]},{"owner",s["owner"]},{"game",s["game"]},{"ticket",s["ticket"]},{"players",players}};
+    QJsonObject result{{"lobby",s["id"]},{"generation",s["generation"]},{"owner",s["owner"]},{"game",s["game"]},{"ticket",s["ticket"]},{"players",players}};
+    // Preserve the existing Remote Play identity contract with older clients.
+    if(s["relay"]=="psp-host")result["relay"]="psp-host";
+    return result;
 }
 }
 LobbyConnection::LobbyConnection(LobbyCoordinator& lobby,QObject* parent):QObject(parent),lobby_(lobby) {
@@ -30,7 +33,7 @@ LobbyConnection::LobbyConnection(LobbyCoordinator& lobby,QObject* parent):QObjec
     connect(&process_,&QProcess::readyReadStandardError,this,[this]{process_.readAllStandardError();});
     connect(&process_,&QProcess::started,this,[this]{
         if(!matches()){fail("The lobby game changed.");return;}
-        write({{"host",host_},{"identity",identity_},{"seconds",0},{"ice",ice_},{"mode","game"}});
+        write({{"host",host_},{"identity",identity_},{"seconds",0},{"ice",ice_},{"mode",mode_}});
         initialized_=true;
         if(!pendingDescription_.isEmpty()){auto packet=pendingDescription_;pendingDescription_={};write(packet);}
         if(!pendingCandidates_.isEmpty()){auto batch=pendingCandidates_;pendingCandidates_={};write({{"identity",identity_},{"candidates",batch}});}
@@ -45,11 +48,14 @@ bool LobbyConnection::matches() const {
     const auto s=lobby_.state();return active()&&!lobby_.recoveryUncertain()&&!s["recovering"].toBool()
         &&s["connection"].toString().isEmpty()&&(s["phase"]=="launching"||s["phase"]=="playing")&&binding(s)==context_;
 }
-bool LobbyConnection::start(QString self,QString ticket,QString helper,QJsonArray ice) {
+bool LobbyConnection::start(QString self,QString ticket,QString helper,QJsonArray ice,QString mode) {
     if(active()||process_.state()!=QProcess::NotRunning||!QFileInfo(helper).isExecutable())return false;
     const auto s=lobby_.state();const auto game=s["game"].toObject();
     const bool live=s["phase"]=="playing";
-    if((s["phase"]!="launching"&&!live)||s["ticket"]!=ticket||ticket.isEmpty()||game["mode"]!="remoteplay.v1"||game["seats"]!=2)return false;
+    const bool psp=mode=="psp"&&game["mode"].toString().startsWith("runtime.ppsspp.")&&s["relay"]=="psp-host"&&!live;
+    if((s["phase"]!="launching"&&!live)||s["ticket"]!=ticket||ticket.isEmpty()
+       ||(!(mode=="game"&&game["mode"]=="remoteplay.v1")&&!psp)||game["seats"]!=2)return false;
+    mode_=mode;
     int players=0;QString owner,guest,admission;
     for(const auto& v:s["members"].toArray()) {
         const auto m=v.toObject();if(m["spectator"].toBool())continue;++players;

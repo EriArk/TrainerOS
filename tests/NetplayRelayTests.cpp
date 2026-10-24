@@ -80,6 +80,8 @@ private slots:
         QVERIFY(NetplayRelaySelector::choose({"host","guest"},reports,"madrid").isEmpty());
         QCOMPARE(NetplayRelaySelector::choose({"host","guest"},reports,"auto"),"nyc");
         QVERIFY(NetplayRelaySelector::choose({"host"},reports,"custom-host").isEmpty());
+        reports["host"]["psp-host"]=1;
+        QVERIFY(NetplayRelaySelector::choose({"host"},reports,"psp-host").isEmpty());
     }
     void reportsAreBoundedRosterScopedAndCancellationSafe() {
         NetplayRelaySelector selector;selector.self_=selector.owner_="host";selector.players_={"host","guest"};selector.preference_="auto";

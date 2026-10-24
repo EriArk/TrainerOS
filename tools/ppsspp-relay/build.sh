@@ -21,30 +21,12 @@ fi
 git -C "$work/source/ext/armips" submodule update --init --recursive --depth 1
 git -C "$work/source/ext/aemu_postoffice" fetch --depth 1 origin "$relay"
 git -C "$work/source/ext/aemu_postoffice" checkout --detach "$relay"
-if ! git -C "$work/source" apply --reverse --check "$recipe/pdp-stat.patch" 2>/dev/null; then
-    git -C "$work/source" apply --check "$recipe/pdp-stat.patch"
-    git -C "$work/source" apply "$recipe/pdp-stat.patch"
-fi
-if ! git -C "$work/source" apply --reverse --check "$recipe/relay-retry.patch" 2>/dev/null; then
-    git -C "$work/source" apply --check "$recipe/relay-retry.patch"
-    git -C "$work/source" apply "$recipe/relay-retry.patch"
-fi
-if ! git -C "$work/source" apply --reverse --check "$recipe/coordination-stream.patch" 2>/dev/null; then
-    git -C "$work/source" apply --check "$recipe/coordination-stream.patch"
-    git -C "$work/source" apply "$recipe/coordination-stream.patch"
-fi
-if ! git -C "$work/source" apply --reverse --check "$recipe/coordination-timeout.patch" 2>/dev/null; then
-    git -C "$work/source" apply --check "$recipe/coordination-timeout.patch"
-    git -C "$work/source" apply "$recipe/coordination-timeout.patch"
-fi
-if ! git -C "$work/source/ext/aemu_postoffice" apply --reverse --check "$recipe/socket-timeout.patch" 2>/dev/null; then
-    git -C "$work/source/ext/aemu_postoffice" apply --check "$recipe/socket-timeout.patch"
-    git -C "$work/source/ext/aemu_postoffice" apply "$recipe/socket-timeout.patch"
-fi
+python3 "$recipe/patches.py" "$work/source"
 cp "$recipe/relay-receive-test.c" "$work/relay-receive-test.c"
 cp "$recipe/relay-timeout-test.c" "$recipe/relay-retry-test.cpp" "$work/"
 cp "$recipe/coordination-stream-test.py" "$work/"
 cp "$recipe/coordination-timeout-test.py" "$work/"
+cp "$recipe/pdp-threading-test.py" "$work/"
 flatpak run --command=sh --filesystem="$work" org.freedesktop.Sdk/aarch64/25.08 -eu -c '
     work=$1
     mkdir -p "$work/relay-test"
@@ -72,6 +54,7 @@ flatpak run --command=sh --filesystem="$work" org.freedesktop.Sdk/aarch64/25.08 
     ./relay-retry-test
     python3 "$work/coordination-stream-test.py" "$work/source/Core/HLE/proAdhoc.cpp"
     python3 "$work/coordination-timeout-test.py" "$work/source" "$work/coordination-timeout-test"
+    python3 "$work/pdp-threading-test.py" "$work/source/Core/HLE/sceNetAdhoc.cpp" "$work/pdp-threading-test"
     cmake -S "$work/source" -B "$work/build" -G Ninja \
         -DCMAKE_BUILD_TYPE=Release -DUSING_QT_UI=OFF -DUSING_GLES2=ON \
         -DUSING_EGL=ON -DUSE_WAYLAND_WSI=ON -DUSE_SYSTEM_FFMPEG=OFF \

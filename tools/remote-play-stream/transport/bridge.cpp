@@ -24,6 +24,7 @@
 #include <cstring>
 #include <fcntl.h>
 #include <unistd.h>
+#include "psp_sockets.hpp"
 
 namespace {
 constexpr int FirstPort=49010, MaxDatagram=4096, MaxRecord=65536;
@@ -74,7 +75,8 @@ private:
     void fail() {if(stopping.exchange(true))return;QCoreApplication::exit(1);}
     template<class F> void post(F fn,qsizetype size=0) {
         if(stopping)return;
-        if(pending.fetch_add(size)+size>QueueLimit){pending-=size;QMetaObject::invokeMethod(this,[this]{fail();},Qt::QueuedConnection);return;}
+        const qsizetype limit=psp?3*1024*1024:QueueLimit;
+        if(pending.fetch_add(size)+size>limit){pending-=size;QMetaObject::invokeMethod(this,[this]{fail();},Qt::QueuedConnection);return;}
         QMetaObject::invokeMethod(this,[this,fn=std::move(fn),size]{pending-=size;if(!stopping)try{fn();}catch(...){fail();}},Qt::QueuedConnection);
     }
     void readInput() {
@@ -112,10 +114,11 @@ private:
     }
     void configure(const QJsonObject& value) {
         game=value.size()==5&&value["mode"]=="game";
+        psp=value.size()==5&&value["mode"]=="psp";
         const int lifetime=value["seconds"].toInt(-1);
-        if((value.size()!=4&&!game)||!value["host"].isBool()||!hex(value["identity"].toString(),64)
+        if((value.size()!=4&&!game&&!psp)||!value["host"].isBool()||!hex(value["identity"].toString(),64)
            ||!value["ice"].isArray()||!value["seconds"].isDouble()||value["seconds"].toDouble()!=lifetime
-           ||!((lifetime>=5&&lifetime<=120)||(game&&lifetime==0)))throw std::runtime_error("config");
+           ||!((lifetime>=5&&lifetime<=120)||((game||psp)&&lifetime==0)))throw std::runtime_error("config");
         host=value["host"].toBool();identity=value["identity"].toString();seconds=value["seconds"].toInt();
         rtc::Configuration config;config.maxMessageSize=MaxRecord;config.mtu=1200;config.disableAutoNegotiation=true;
         const auto servers=value["ice"].toArray();if(servers.size()>4)throw std::runtime_error("ice bounds");
@@ -157,7 +160,9 @@ private:
     bool send(int channel,const QByteArray& bytes) {
         try {
             const auto c=channels[channel];if(!c||!c->isOpen()){fail();return false;}
-            if(c->bufferedAmount()+bytes.size()>size_t(channel==0?32768:MaxRecord)) {
+            // PSP has at most 32 streams, each credit-limited to 64 KiB.
+            const int limit=psp&&channel==2?3*1024*1024:(channel==0?32768:MaxRecord);
+            if(c->bufferedAmount()+bytes.size()>size_t(limit)) {
                 if(channel==0){++dropped;return false;}fail();return false;
             }
             c->send(reinterpret_cast<const std::byte*>(bytes.constData()),bytes.size());return true;
@@ -171,7 +176,10 @@ private:
     }
     void open() {
         if(!opened[0]||!opened[1]||!opened[2]||greeted)return;
-        greeted=true;control({{"identity",identity},{"host",host}});
+        greeted=true;
+        QJsonObject hello{{"identity",identity},{"host",host}};
+        if(psp)hello["mode"]="psp";
+        control(hello);
         material();
     }
     void material() {
@@ -183,7 +191,8 @@ private:
     void receive(int channel,const QByteArray& bytes) {
         if(channel==1){admission(QJsonDocument::fromJson(bytes).object());return;}
         if(!ready){fail();return;}
-        if(channel==2){rtsp(bytes);return;}
+        if(channel==2){if(psp)pspSockets->receive(bytes);else rtsp(bytes);return;}
+        if(psp){fail();return;}
         if(bytes.size()<2){fail();return;}
         const int index=static_cast<unsigned char>(bytes[0]);if(index<1||index>3){fail();return;}
         auto& socket=udp[index-1];
@@ -194,7 +203,7 @@ private:
     void admission(const QJsonObject& value) {
         if(ready&&value==QJsonObject{{"close",true}}){closing=true;QCoreApplication::quit();return;}
         if(!verified) {
-            if(value.size()!=2||value["identity"]!=identity||!value["host"].isBool()||value["host"].toBool()==host)throw std::runtime_error("identity");
+            if(value.size()!=(psp?3:2)||(psp&&value["mode"]!="psp")||value["identity"]!=identity||!value["host"].isBool()||value["host"].toBool()==host)throw std::runtime_error("identity");
             verified=true;
             material();
             return;
@@ -212,6 +221,15 @@ private:
         event({{"event","ready"},{"config",directory.path()+"/session.conf"}});
     }
     void startSockets() {
+        if(psp) {
+            pspSockets=new PspSockets(host,[this](const QByteArray& bytes){return send(2,bytes);},[this]{fail();},this);
+            if(!pspSockets->start()||!directory.isValid())throw std::runtime_error("psp bind");
+            QFile file(directory.path()+"/session.conf");
+            const QByteArray config="mode=psp\naddress="+QByteArray(host?"127.0.0.1":"127.0.0.2")+"\n";
+            if(!file.open(QIODevice::WriteOnly|QIODevice::NewOnly)||!file.setPermissions(QFile::ReadOwner|QFile::WriteOwner)
+               ||file.write(config)!=config.size()||!file.flush())throw std::runtime_error("private PSP config");
+            key.fill(0);key.clear();return;
+        }
         for(int i=0;i<3;++i) {
             auto& socket=udp[i];
             if(!socket.bind(QHostAddress("127.0.0.2"),host?0:FirstPort+i+1,QUdpSocket::DontShareAddress))throw std::runtime_error("udp bind");
@@ -284,7 +302,7 @@ private:
     std::array<bool,3> opened{};std::array<QUdpSocket,3> udp;std::array<quint16,3> peerPorts{};
     QTcpServer tcpServer;QPointer<QTcpSocket> tcp;QByteArray tcpBytes,key,ping;uint32_t token=0;
     bool host=false,remoteDescription=false,greeted=false,verified=false,ready=false,requestSent=false,materialSent=false,closing=false;
-    QString identity;int seconds=0;bool game=false;quint64 sent=0,received=0,dropped=0;
+    QString identity;int seconds=0;bool game=false,psp=false;PspSockets* pspSockets=nullptr;quint64 sent=0,received=0,dropped=0;
 };
 }
 int main(int argc,char** argv) {

@@ -14,7 +14,7 @@ class LobbyConnection final:public QObject {
 public:
     explicit LobbyConnection(LobbyCoordinator&,QObject* parent=nullptr);
     ~LobbyConnection() override;
-    bool start(QString self,QString ticket,QString helper,QJsonArray ice={});
+    bool start(QString self,QString ticket,QString helper,QJsonArray ice={},QString mode="game");
     void stop();
     QString id() const {return connection_;}
     QString peer() const {return peer_;}
@@ -34,6 +34,7 @@ private:
     void fail(QString reason);
     LobbyCoordinator& lobby_;QProcess process_{this};QTimer deadline_{this};
     QString self_,peer_,ticket_,connection_,identity_,helper_,config_,admission_;
+    QString mode_="game";
     QJsonObject context_,pendingDescription_;QJsonArray ice_,pendingCandidates_;QByteArray buffer_;
     int candidatesSent_=0,candidatesReceived_=0;
     std::unique_ptr<QTemporaryDir> directory_;

@@ -78,6 +78,10 @@ void RuntimeMultiplayer::prepare(QString operation,QJsonObject context,Completio
         seats.insert(seat);if(m["id"]==context["owner"]&&seat==1)hostReady=true;
     }
     if(!hostReady) {done(false,"This runtime needs the organizer on P1. Choose controller seats first.");return;}
+    if(!netplayRelay::compatible(profile,context["relay"].toString("auto"))) {done(false,"This connection type isn't supported by the selected emulator.");return;}
+    if(context["relay"]=="psp-host"&&(players!=2||ppsspp::hostRelayRoot().isEmpty())) {
+        done(false,"The handheld relay needs two players and the PSP connection package on both devices. Choose the standard relay otherwise.");return;
+    }
     if(requiresLinkedSavePreparation(profile)) {
         if(players<2) {done(false,"This linked-machine mode needs another player.");return;}
         for(int i=1;i<=players;++i)if(!seats.contains(i)) {done(false,"Linked machines need consecutive seats starting at P1.");return;}
@@ -119,13 +123,35 @@ void RuntimeMultiplayer::launch(QString operation,QString ticket,QJsonObject con
         relaySelector_.start(lobbyContext_["self"].toString(),context["owner"].toString(),peers,context["relay"].toString("auto"));
         if(!relayStarted_)return; // Synchronous context rejection already completed the launch.
     }
-    if(!party_.bindLobby(ticket,selected,players,lobbyContext_["self"].toString(),context["owner"].toString(),lobbyContext_["liveAdmission"].toString())) {
+    if(context["relay"]=="psp-host") {
+        const auto root=ppsspp::hostRelayRoot();
+        if(root.isEmpty()){fail("The PSP connection package is unavailable. Choose the standard relay.");return;}
+        pspDirect_=true;pspLaunchContext_=context;
+        if(context["owner"]==lobbyContext_["self"])pspRelay_.start(root+"/psp_relay",{});
+        if(!pspConnection_.start(lobbyContext_["self"].toString(),ticket,root+"/stream_transport",{"stun:stun.l.google.com:19302"},"psp"))
+            fail("Couldn't prepare the direct PSP connection. Choose the standard relay in Connection settings.");
+        return;
+    }
+    bindLobbyPlayers(context);
+}
+void RuntimeMultiplayer::bindLobbyPlayers(const QJsonObject& context) {
+    QJsonArray players;for(const auto& m:context["members"].toArray())if(!m.toObject()["spectator"].toBool())players.append(m);
+    auto selected=context["game"].toObject()["runtime"].toObject();if(selected.isEmpty())selected=lobbyDescriptor_;
+    if(!party_.bindLobby(lobbyTicket_,selected,players,lobbyContext_["self"].toString(),context["owner"].toString(),lobbyContext_["liveAdmission"].toString())) {
+        stopPspConnection();
         relaySelector_.stop();relayStarted_=relayWaiting_=false;relayTicket_.clear();
         auto completion=std::exchange(lobbyCompletion_,{});lobbyTicket_.clear();if(completion)completion(false,"The player seats changed. Prepare again.");
     }
 }
+void RuntimeMultiplayer::stopPspConnection() {
+    pspDirect_=false;pspLaunchContext_={};pspConnection_.stop();
+    if(pspRelay_.state()!=QProcess::NotRunning) {
+        pspRelay_.terminate();if(!pspRelay_.waitForFinished(1500)){pspRelay_.kill();pspRelay_.waitForFinished(1000);}
+    }
+}
 void RuntimeMultiplayer::cancel(QString operation) {
     if(operation!=lobbyOperation_)return;
+    stopPspConnection();
     relaySelector_.stop();relayStarted_=relayWaiting_=false;relayTicket_.clear();selectedRelay_.clear();selectedRelayEndpoint_.clear();
     preparation_.cancel(operation);
     lobbyOperation_.clear();lobbyContext_={};lobbyGame_.clear();lobbyDescriptor_={};lobbyCompletion_={};lobbyTicket_.clear();
