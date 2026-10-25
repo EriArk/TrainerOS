@@ -32,14 +32,13 @@ inline bool requiresLinkedSavePreparation(const QJsonObject& profile) {
     const auto mode=profile.value("settings").toString();
     return mode=="sameboy-linked-pair-battery-v1"||mode=="mgba-linked-party-v2";
 }
-// Network admission compares game/protocol/settings, not architecture-specific
-// executable bytes. Local installation integrity and save guards stay exact.
+// Emulator admission requires the same runtime/core build, content and settings.
+// A matching mode name alone does not certify cross-build compatibility.
 inline bool sameMultiplayerGame(QJsonObject left,QJsonObject right) {
     if(left.isEmpty()||right.isEmpty())return false;
     left.remove("label");right.remove("label");
     left.remove("connections");right.remove("connections");
     if(left["id"]==right["id"]&&left["id"].toString().startsWith("runtime.")) {
-        for(const auto& key:{"runtime","core"}) {left.remove(key);right.remove(key);}
         if(left["playMode"].toString("separate")=="separate"&&right["playMode"].toString("separate")=="separate") {
             left.remove("controllerModes");right.remove("controllerModes");
         }

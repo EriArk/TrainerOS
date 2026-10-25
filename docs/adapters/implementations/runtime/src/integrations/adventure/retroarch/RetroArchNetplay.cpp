@@ -1,4 +1,5 @@
 #include "RetroArchNetplay.h"
+#include "integrations/adventure/MultiplayerRoute.h"
 #include "RetroArchConfiguration.h"
 #include "RetroArchDisc.h"
 #include "RetroArchHandheldLink.h"
@@ -141,6 +142,9 @@ bool token(const QString& s,int max) {
 bool netplaySupported(const QString& platform,const QString& core) {
     return coreProfile(platform,core)!=nullptr||(platform=="gba"&&core=="mgba")||
         ((platform=="gb"||platform=="gbc")&&core=="gambatte");
+}
+AdventureRegistration netplayRegistration(AdventureRegistration r) {
+    return multiplayerRegistration(std::move(r));
 }
 int netplayCapacity(const QString& platform,const QString& core,const QVariantMap& metadata,const QString& contentPath) {
     const auto players=gamePlayers(metadata);

@@ -24,6 +24,8 @@ struct NetplayRequest {
 QString netplayRelayEndpoint(const QByteArray& directoryResponse);
 // Reviewed platform/core pairs; shared-screen netplay is not a link cable.
 bool netplaySupported(const QString& platform, const QString& core);
+// Session-only routing; never rewrites the player's ordinary emulator choice.
+AdventureRegistration netplayRegistration(AdventureRegistration);
 // Scraped capacity selects only reviewed controller layouts, never a transport.
 int netplayCapacity(const QString& platform, const QString& core, const QVariantMap& metadata,
                     const QString& contentPath = {});

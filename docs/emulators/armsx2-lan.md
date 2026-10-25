@@ -1,5 +1,34 @@
 # ARMSX2: native LAN preparation
 
+## Owner result and local preparation repair — 25 October 2026
+
+The owner reports **working LAN play in Battlefront II** after completing the
+PS2 network setup during the brief interval before input failed. On Flip, analog
+input stopped first, then the controller stopped responding altogether. The
+system network utility also showed graphical corruption. This supersedes the
+earlier statement that missing setup still prevents a match; it does not establish
+the cause of the utility defects. The owner put that investigation aside.
+The report did not re-record runtime hashes or specify distinct Internet networks;
+retain the exact earlier build evidence separately in the game table.
+
+Source-only continuation, with **no handheld connections**: `launcher.py` now
+publishes all private INIs atomically in `prepared/`, with a receipt binding the
+request, connection material and copied settings. Failed copying/validation leaves
+no launchable partial state and permits retry; completed settings are never
+overwritten. Launch rechecks the receipt and admitted runtime/settings before
+executing the existing namespace endpoint. A changed or removed connection fails
+before emulation starts. Existing outer session ownership cleans abandoned staging;
+live-game network loss still leaves the game running with no automatic rejoin.
+
+Local Windows Python checks: 12 launcher cases, 7 configuration cases and 5 disc
+cases passed. Launcher cases use real temporary files and injected copy failures;
+runtime/disc admission and the Linux transport-file reader are fixture inputs,
+and `execvpe` is captured rather than launching a native emulator. The changed
+launcher has not been installed. No new profiles, utility fixes or LAN transport
+claims are implied. Next independent work is extending exact PS2 LAN profiles
+where edition/CRC and game-native LAN evidence are available; offline admission
+remains a separate unfinished feature.
+
 ## Paired runtime alignment — 24 October 2026
 
 Both handhelds now use 2.8.4-433 / `90126bdfea`, SHA
@@ -67,12 +96,13 @@ private-settings probe left personal INIs and pre-existing card bytes unchanged.
 The initial ordinary startup updated Flip's INI through ARMSX2 itself; no existing
 card was replaced or formatted. PSP helper/PPSSPP remain separate.
 
-**Still incomplete:** neither card contains a PS2 network configuration. The
+**Historical blocker on 24 October (owner completed setup on 25 October):** neither card contained a PS2 network configuration. The
 game's built-in Network Configuration Utility opens but stops responding to input
 after its ELF transition on both devices; foreground ownership, input descriptors
 and rendering persist. Native peer admission is not a completed LAN match.
-Next: isolate that input transition, finish native setup/discovery/match and the
-installed Lobby/Home/Exit cycle. Offline admission remains separate unfinished work.
+The later owner result above supersedes the missing-setup/match blocker. Utility
+investigation is paused; the installed Lobby/Home/Exit cycle and offline admission
+remain separate unfinished work.
 No VPN, difficult NAT or new relay infrastructure was added.
 
 Build the two CMake projects under tools/remote-play-stream/transport and

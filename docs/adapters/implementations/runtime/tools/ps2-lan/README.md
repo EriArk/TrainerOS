@@ -20,8 +20,9 @@ The source interface is checked against ARMSX2 revisions recorded in
 `docs/emulators/armsx2-lan.md` at the repository root. The bundle is wired into
 `RuntimeMultiplayer`, exact-disc discovery and explicit Lobby Start, and installed
 on Flip/Odin. Offline admission remains unfinished. The initial profile covers
-Battlefront II SLUS-21240 / 02F4B541; native Local Link joined, but a match remains
-blocked by controller input loss in the game's Network Configuration Utility.
+Battlefront II SLUS-21240 / 02F4B541. On 25 October the owner confirmed working
+LAN play after completing network setup before the utility lost controller input.
+Utility input/graphics defects remain open; see the dated game evidence table.
 
 `launcher.py` copies settings into the private session, removes library scanning
 from that copy and launches ARMSX2 plus `ps2_endpoint` in a loopback-only network
@@ -31,9 +32,20 @@ authenticated ICE/DTLS transport. Memory cards remain owned by each player.
 emulator, BIOS, disc or personal settings. The private installation manifest
 supplies the local runtime and configuration paths.
 
+Preparation now publishes one complete `prepared/` directory by rename. Copy or
+validation failure removes only its own staging directory; a killed process may
+leave staging files, which the existing outer session cleanup owns. They never
+count as ready. A receipt binds the request, connection bytes and private settings.
+Before launch, the helper checks that receipt and the admitted runtime/settings;
+expired/replaced connections or incomplete/changed INIs fail before `bwrap` starts.
+An existing prepared directory is never overwritten. Native settings may change
+while playing; a later launch requires a fresh session through existing Lobby.
+This adds no automatic launch/rejoin or new networking mechanism.
+
 ```sh
 python3 tools/ps2-lan/check_config.py
 python3 tools/ps2-lan/check_disc.py
+python3 tools/ps2-lan/check_launcher.py
 cmake -S tools/remote-play-stream/transport -B build-ps2-sockets -DSOCKET_CHECK_ONLY=ON
 cmake --build build-ps2-sockets
 ctest --test-dir build-ps2-sockets --output-on-failure

@@ -4,11 +4,18 @@ from pathlib import Path
 import tempfile
 import unittest
 from session_config import connection, overlay, prepare, launch_settings
+from launcher import stable
 
 MATERIAL = b'mode=ps2\naddress=127.0.0.1\nhost=true\nport=19072\npeer=1\nroom=abcdef123456\nsocket=/tmp/traineros-test/ps2.sock\n'
 
 
 class ConfigurationTests(unittest.TestCase):
+    def test_preparation_rejects_runtime_replacement_after_admission(self):
+        admitted={'id':'runtime.armsx2.lan.v1','content':'disc','runtime':'reviewed-a','settings':'locked'}
+        self.assertNotEqual(stable(admitted),stable(dict(admitted,runtime='reviewed-b')))
+        self.assertNotEqual(stable(admitted),stable({k:v for k,v in admitted.items() if k!='runtime'}))
+        self.assertEqual(stable(admitted),stable(dict(admitted,label='Local title',connections=['online'])))
+
     def test_private_launch_skips_library_scanning_preserving_other_settings(self):
         original=b'[GameList]\nPaths = /mnt/share\nRecursivePaths=/mnt/nfs\nExcludedPaths=/skip\n[Pad1]\nPaths=keep\n[MemoryCards]\nSlot1_Filename=Own.ps2\n'
         result=launch_settings(original)
