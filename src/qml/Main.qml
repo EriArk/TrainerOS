@@ -401,7 +401,7 @@ Window {
                 if (shell.downloads.open) return [h("↑↓","Choose"),h("←→","Actions"),h("A","Select"),h("B","Close")]
                 if (shell.menuOpen) return shell.powerMenu ? [h("A","Select"),h("B","Back")] : [] // Controls owns its contextual hints.
                 if (shell.keyboard.open) return [h("X","Case"),h("Y",shell.keyboard.nextLayout),h("A","Type"),h("Select",shell.keyboard.submitLabel),h("B",shell.keyboard.submitLabel === "Send" ? "Keep draft" : "Cancel")]
-                if (shell.scraper.open) return shell.scraper.selectingSystems ? [h("↑↓","Systems"),h("←→","Actions"),h("A","Select"),h("B","Back")] : [h("A","Select"),h("B",shell.scraper.busy&&!shell.scraper.choosingMatch?"Stop":"Back")]
+                if (shell.scraper.open) return shell.scraper.selectingSystems&&!shell.scraper.overview ? [h("↑↓","Systems"),h("←→","Actions"),h("A","Select"),h("B","Back")] : [h("A","Select"),h("B",shell.scraper.busy&&!shell.scraper.choosingMatch&&!shell.scraper.overview?"Stop":"Back")]
                 if (shell.libraryTools.open) {
                     if(shell.libraryTools.route==="reviews")return shell.libraryTools.reviewReportAvailable
                         ? [h("A","Reveal"),h("← →","Read"),h("Select","Report"),h("B","Back")]
@@ -500,7 +500,7 @@ Window {
         Loader { anchors.fill: screen; active: shell.service === "device"; visible: active; sourceComponent: DevicePanel { shell: shellController } }
         Loader { anchors.fill: screen; active: shell.service === "diagnostics"; visible: active; sourceComponent: DiagnosticsPanel { shell: shellController } }
         Loader { anchors.fill: screen; z: 2.8; active: shell.primaryId === "apps" && shell.appsFace === "crates" && shell.crates.detailOpen && !shell.serviceOpen && !shell.quickAppsOpen && !shell.drawerOpen; visible: active; sourceComponent: CratesProjectPopup { flow: shell.crates } }
-        Loader { anchors.fill: screen; z: 3.1; active: shell.scraper.open && !shell.keyboard.open; visible: active; sourceComponent: ScrapePanel { shell: shellController } }
+        Loader { anchors.fill: screen; z: shell.menuOpen ? 4.2 : 3.1; active: shell.scraper.open && !shell.keyboard.open; visible: active; sourceComponent: ScrapePanel { shell: shellController } }
         Loader { anchors.fill: screen; z: shell.menuOpen ? 4.2 : 3.2; active: shell.downloads.open; visible: active; sourceComponent: DownloadsPanel { flow: shell.downloads } }
         MyLobbiesPopup { anchors.fill: screen; social: shell.social; z: 3.5 }
         ChatFilePicker { anchors.fill: screen; picker: shell.social.files.picker; z: 4 }
@@ -534,7 +534,7 @@ Window {
         }
         KeyboardPanel {
             anchors { left: screen.left; right: screen.right; top: screen.top; bottom: footer.top }
-            z: shell.controlsNetworkOpen ? 4.5 : shell.social.lobbyCreateOpen || shell.social.lobbyPickerOpen ? 3.9 : 3; takesFocus: shell.keyboard.open && (shell.controlsNetworkOpen || !shell.menuOpen) && !shell.notice.length; shell: shellController
+            z: shell.controlsNetworkOpen || shell.scraper.open ? 4.5 : shell.social.lobbyCreateOpen || shell.social.lobbyPickerOpen ? 3.9 : 3; takesFocus: shell.keyboard.open && (shell.controlsNetworkOpen || shell.scraper.open || !shell.menuOpen) && !shell.notice.length; shell: shellController
         }
         SystemPanel {
             anchors { left: screen.left; right: parent.right; top: screen.top; bottom: footer.top }

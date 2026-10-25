@@ -7,6 +7,7 @@
 #include <QPointF>
 
 namespace trainer {
+class FilesService;
 class BrowserController final : public QObject {
     Q_OBJECT
     Q_PROPERTY(bool available READ available CONSTANT)
@@ -47,6 +48,9 @@ public:
     Q_INVOKABLE void wheel(QObject* item,qreal x,qreal y,qreal dx,qreal dy);
     Q_INVOKABLE void editPageField();
     Q_INVOKABLE void controlDownload(const QString& id,const QString& command);
+    void moveDownloadBefore(const QString& id,const QString& before);
+    void setDownloadDestination(const QString& id,const QString& folder);
+    void setFilesService(FilesService* service);
 signals:
     void changed();
     void profileChanging();
@@ -59,7 +63,10 @@ private:
     void persist();
     void persistDownloads();
     void acceptDownload(QObject* request);
-    struct Download {QString id,name,path,state,error; qint64 received=0,total=-1; bool paused=false; QPointer<QObject> request;};
+    void pumpDownloads();
+    void finishDownload(const QString& id);
+    struct Download {QString id,name,path,state,error,destination,moveTask,moveTarget; qint64 received=0,total=-1; bool paused=false,queued=false; QPointer<QObject> request;};
+    QPointer<FilesService> files_;
     QList<Download> jobs_;
     QVariantList tabs_,bookmarks_,history_;
     QString selected_,path_,owner_,textTarget_;

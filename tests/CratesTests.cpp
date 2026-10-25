@@ -9,6 +9,23 @@ using namespace trainer;
 class CratesTests: public QObject {
     Q_OBJECT
 private slots:
+    void queuePriorityPauseAndPersistentOrder() {
+        QTemporaryDir temp;QVERIFY(temp.isValid());
+        {CratesInstaller jobs;jobs.configure("/not-executed",{},temp.path());jobs.replacementGuard=[]{return QString("Held for queue test");};
+            QVariantList records;auto arch=QSysInfo::currentCpuArchitecture();if(arch=="arm64")arch="aarch64";
+            for(const auto& id:{"one","two","three"})records<<QVariantMap{{"id",id},{"title",id},{"architecture",arch},{"version","1"}};
+            jobs.useCatalogue(records,{});for(const auto& id:{"one","two","three"})jobs.request(id);
+            jobs.moveBefore("three","one");QCOMPARE(jobs.tasks()[0].toMap()["id"].toString(),"three");
+            jobs.command("two","first");QCOMPARE(jobs.tasks()[0].toMap()["id"].toString(),"two");
+            jobs.command("two","pause");QCOMPARE(jobs.tasks()[0].toMap()["state"].toString(),"paused");
+            jobs.command("three","cancel");jobs.moveBefore("one","three"); // Terminal targets cannot reorder.
+            QCOMPARE(jobs.tasks()[1].toMap()["id"].toString(),"three");
+            jobs.command("one","pause");
+        }
+        CratesInstaller restored;restored.configure("/not-executed",{},temp.path());
+        QCOMPARE(restored.tasks()[0].toMap()["id"].toString(),"two");QCOMPARE(restored.tasks()[0].toMap()["state"].toString(),"paused");
+        QVERIFY(!restored.tasks()[0].toMap()["terminal"].toBool());
+    }
     void externalAtomicUpgradeRefreshesLobbyInventory() {
         QTemporaryDir temp;QVERIFY(temp.isValid());QDir root(temp.path());
         CratesInstaller installer;installer.configure({}, {},temp.path());
@@ -120,6 +137,31 @@ private slots:
         QTRY_VERIFY(jobs.tasks()[0].toMap()["terminal"].toBool());
         QCOMPARE(jobs.tasks()[0].toMap()["state"].toString(),QString("cancelled"));
         QCOMPARE(jobs.tasks()[0].toMap()["actions"].toList()[0].toMap()["id"].toString(),QString("retry"));
+#endif
+    }
+    void promotedPackageYieldsActiveWorkerAndResumesItLater() {
+#ifndef Q_OS_LINUX
+        QSKIP("Production pause signals require Linux");
+#else
+        QTemporaryDir temp;const auto helper=temp.path()+"/worker.py";
+        QFile f(helper);QVERIFY(f.open(QIODevice::WriteOnly));
+        f.write("import signal,sys,time\nsignal.signal(signal.SIGUSR1,lambda *_:sys.exit(75))\nsignal.signal(signal.SIGTERM,lambda *_:sys.exit(1))\nprint('{\"stage\":\"Downloading\",\"received\":128,\"total\":4096}',flush=True)\ntime.sleep(20)\n");f.close();
+        CratesInstaller jobs;jobs.configure(helper,{},temp.path()+"/store");
+        auto arch=QSysInfo::currentCpuArchitecture();if(arch=="arm64")arch="aarch64";QVariantList records;
+        for(const auto& id:{"one","two","three"})records<<QVariantMap{{"id",id},{"title",id},{"version","1"},{"architecture",arch}};
+        jobs.useCatalogue(records,{});jobs.request("one");
+        const auto state=[&](QString id){return jobs.state(id)["job"].toMap();};
+        QTRY_COMPARE(state("one")["stage"].toString(),"Downloading");jobs.request("two");jobs.request("three");
+        jobs.command("three","first");jobs.command({},"pause-all");
+        QTRY_COMPARE(state("one")["state"].toString(),"paused");
+        QCOMPARE(state("three")["state"].toString(),"paused");
+        jobs.command("one","resume");QTRY_COMPARE(state("one")["stage"].toString(),"Downloading");
+        jobs.command("three","first");QTRY_COMPARE(state("three")["stage"].toString(),"Downloading");
+        QCOMPARE(state("one")["state"].toString(),"queued");QVERIFY(!state("one")["terminal"].toBool());
+        jobs.command({},"pause-all");QTRY_COMPARE(state("three")["state"].toString(),"paused");
+        for(const auto& id:{"one","two","three"})QCOMPARE(state(id)["state"].toString(),"paused");
+        jobs.command("one","resume");QTRY_COMPARE(state("one")["state"].toString(),"running");
+        jobs.command({},"cancel-all");QTRY_VERIFY(state("one")["terminal"].toBool());
 #endif
     }
     void packageActionsAndDeduplicatedQueue() {

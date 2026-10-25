@@ -30,6 +30,35 @@ class InstallerTests(unittest.TestCase):
                 'entry':'bin/app','size':path.stat().st_size,'unpackedSize':1024,
                 'sha256':hashlib.sha256(path.read_bytes()).hexdigest()}
         return path,record
+    def test_pause_keeps_partial_and_resume_checks_range(self):
+        data=b'a'*(128*1024)+b'b'*(128*1024)
+        target=self.root/'partial';record={'url':'https://github.com/fixture','size':len(data)}
+        class Response(io.BytesIO):
+            status=200
+            headers={}
+        opener=unittest.mock.Mock();opener.open.return_value=Response(data)
+        with patch.object(m.urllib.request,'build_opener',return_value=opener):
+            with self.assertRaises(m.DownloadPaused):
+                m.download(record,target,lambda p:None,lambda:False,lambda:target.exists() and target.stat().st_size>=128*1024)
+        self.assertEqual(target.read_bytes(),data[:128*1024])
+        response=Response(data[128*1024:]);response.status=206;response.headers={'Content-Range':f'bytes 131072-262143/262144'}
+        opener.open.return_value=response
+        with patch.object(m.urllib.request,'build_opener',return_value=opener):m.download(record,target,lambda p:None,lambda:False)
+        self.assertEqual(opener.open.call_args.args[0].get_header('Range'),'bytes=131072-')
+        self.assertEqual(target.read_bytes(),data)
+    def test_range_ignored_restarts_and_bad_range_does_not_append(self):
+        target=self.root/'partial';target.write_bytes(b'old')
+        record={'url':'https://github.com/fixture','size':6}
+        class Response(io.BytesIO):
+            status=206
+            headers={'Content-Range':'bytes 0-5/6'}
+        opener=unittest.mock.Mock();opener.open.return_value=Response(b'abcdef')
+        with patch.object(m.urllib.request,'build_opener',return_value=opener):
+            with self.assertRaises(ValueError):m.download(record,target,lambda p:None,lambda:False)
+        self.assertEqual(target.read_bytes(),b'old')
+        response=Response(b'abcdef');response.status=200;opener.open.return_value=response
+        with patch.object(m.urllib.request,'build_opener',return_value=opener):m.download(record,target,lambda p:None,lambda:False)
+        self.assertEqual(target.read_bytes(),b'abcdef')
     def test_update_and_downgrade_keep_data(self):
         p,r=self.package();first=self.store.activate(p,r)
         save=self.store.root/'data'/'progress';save.write_text('keep')

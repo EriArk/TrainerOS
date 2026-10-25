@@ -41,6 +41,10 @@ struct Game {
     QMap<QString,QString> fields;
     QMap<QString,QUrl> media;
     bool exactFile = false;
+    QStringList aliases;
+    QString romName;
+    QString matchSource;
+    int matchScore = 0;
 };
 struct Result {
     Status status = Status::InvalidResponse;
@@ -51,13 +55,18 @@ struct Result {
 struct Preferences {
     QString language = "en", region = "us", cover = "box-2D";
     bool metadata = true, logos = true, screenshots = true, fanart = false, refresh = false;
+    bool aggressive = true;
     QStringList mediaTags() const;
     QJsonObject json() const;
     static Preferences fromJson(const QJsonObject&);
 };
+// Catalogue/media selection only; never authorizes semantic save access.
+QString searchTitle(const QString& filename);
+QList<Game> rankMatches(QList<Game>, const QString& title, const QString& filename,
+                       int system, const Preferences&);
+bool automaticMatch(const QList<Game>&, const Preferences&);
 // Synchronous worker API. No network during construction, discovery or rendering.
-// Results of search (and lookup without matching returned ROM hashes) require
-// explicit choice; no silent filename-based binding or catalogue-ID replacement.
+// exactFile remains hash evidence; title ranking is a separate catalogue decision.
 class Client {
 public:
     explicit Client(Credentials credentials, Transport transport = httpsTransport(), Delay delay = {});

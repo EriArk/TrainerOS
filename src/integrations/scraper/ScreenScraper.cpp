@@ -13,6 +13,7 @@
 #include <QThread>
 #include <QTimer>
 #include <QUrlQuery>
+#include <QRegularExpression>
 #include <array>
 #include <algorithm>
 
@@ -63,6 +64,9 @@ Game parseGame(const QJsonObject& data, const Fingerprint* file, const Preferenc
     QStringList regions{preferences.region,"wor","us","eu","jp","uk","ss",""};regions.removeDuplicates();
     QStringList languages{preferences.language,"en"};languages.removeDuplicates();
     g.fields["name"]=preferred(data["noms"],"region",regions);
+    for(const auto& name:data["noms"].toArray()) {
+        const auto alias=value(name).left(256);if(!alias.isEmpty())g.aliases<<alias;
+    }
     g.fields["desc"]=preferred(data["synopsis"],"langue",languages);
     const auto date=preferred(data["dates"],"region",regions);
     QDate parsed=QDate::fromString(date,"yyyy-MM-dd");
@@ -93,6 +97,7 @@ Game parseGame(const QJsonObject& data, const Fingerprint* file, const Preferenc
         }
     }
     const auto rom=data["rom"].toObject();
+    g.romName=value(rom["romnom"]).left(256);
     if(file && value(rom["romsize"]).toLongLong()==file->size) {
         bool any=false, all=true;
         for(const auto& pair:QList<QPair<QString,QString>>{{"rommd5",file->md5},{"romsha1",file->sha1},{"romcrc",file->crc}}) {
@@ -267,7 +272,7 @@ QStringList Preferences::mediaTags() const {
 }
 QJsonObject Preferences::json() const {
     return {{"language",language},{"region",region},{"cover",cover},{"metadata",metadata},
-        {"logos",logos},{"screenshots",screenshots},{"fanart",fanart},{"refresh",refresh}};
+        {"logos",logos},{"screenshots",screenshots},{"fanart",fanart},{"refresh",refresh},{"aggressive",aggressive}};
 }
 Preferences Preferences::fromJson(const QJsonObject& o) {
     Preferences p;
@@ -275,6 +280,64 @@ Preferences Preferences::fromJson(const QJsonObject& o) {
     if(QStringList{"us","eu","jp","wor"}.contains(o["region"].toString()))p.region=o["region"].toString();
     if(o.contains("cover")&&QStringList{"","box-2D","box-3D"}.contains(o["cover"].toString()))p.cover=o["cover"].toString();
     p.metadata=o["metadata"].toBool(true);p.logos=o["logos"].toBool(true);p.screenshots=o["screenshots"].toBool(true);
-    p.fanart=o["fanart"].toBool(false);p.refresh=o["refresh"].toBool(false);return p;
+    p.fanart=o["fanart"].toBool(false);p.refresh=o["refresh"].toBool(false);p.aggressive=o["aggressive"].toBool(true);return p;
+}
+
+QString searchTitle(const QString& filename) {
+    QString text=filename.left(256);
+    // Strip release annotations, not meaningful subtitles in parentheses.
+    static const QRegularExpression tags(R"(\s*[\(\[]\s*(?:USA|Europe|Japan|World|En(?:,[A-Za-z]{2})*|[A-Za-z]{2}(?:,[A-Za-z]{2})+|Rev\s+[^\)\]]+|v\d[^\)\]]*|!|T[+-][^\)\]]*|h\d*|b\d*)\s*[\)\]])",QRegularExpression::CaseInsensitiveOption);
+    text.remove(tags);return text.simplified();
+}
+namespace {
+QString normalizedTitle(QString text) {
+    text=searchTitle(text).normalized(QString::NormalizationForm_D).toCaseFolded();
+    text.remove(QRegularExpression("[\\p{M}]"));
+    text.replace('&'," and ");text.replace(QRegularExpression("[^\\p{L}\\p{N}]+")," ");
+    text=text.simplified();if(text.startsWith("the "))text.remove(0,4);
+    if(text.endsWith(" the"))text.chop(4);return text;
+}
+QString marker(const QString& text,const QString& pattern) {
+    return QRegularExpression(pattern,QRegularExpression::CaseInsensitiveOption).match(text).captured(1).toLower();
+}
+int titleScore(const QString& a,const QString& b) {
+    if(a.isEmpty()||b.isEmpty())return 0;if(a==b)return 100;
+    // Never fuzzy-merge numbered sequels, discs or editions.
+    const auto numbers=[](const QString& s){QStringList r;auto it=QRegularExpression("\\b(?:[0-9]+|ii|iii|iv|vi|vii|viii|ix)\\b").globalMatch(s);while(it.hasNext())r<<it.next().captured();return r;};
+    if(numbers(a)!=numbers(b))return 0;
+    // Bounded edit distance tolerates punctuation/spelling differences, not subtitles.
+    if(std::abs(a.size()-b.size())>3||std::min(a.size(),b.size())<8)return 0;
+    QList<int> previous(b.size()+1),current(b.size()+1);for(int j=0;j<=b.size();++j)previous[j]=j;
+    for(int i=1;i<=a.size();++i){current[0]=i;for(int j=1;j<=b.size();++j)current[j]=std::min({current[j-1]+1,previous[j]+1,previous[j-1]+(a[i-1]==b[j-1]?0:1)});previous=current;}
+    return 100-100*previous.last()/std::max(a.size(),b.size());
+}
+}
+QList<Game> rankMatches(QList<Game> games,const QString& title,const QString& filename,int system,const Preferences& prefs) {
+    const auto local=normalizedTitle(filename),display=normalizedTitle(title);
+    const auto region=marker(filename,"\\b(USA|Europe|Japan|World)\\b");
+    const auto revision=marker(filename,"\\b(?:Rev|v)\\s*([0-9]+(?:\\.[0-9]+)*)\\b");
+    for(auto& g:games){
+        g.matchScore=0;g.matchSource="review";if(g.system!=system)continue;
+        if(g.exactFile){g.matchScore=1000;g.matchSource="hash";continue;}
+        auto names=g.aliases;names<<g.fields.value("name");if(!g.romName.isEmpty())names<<QFileInfo(g.romName).completeBaseName();
+        int best=0;for(const auto& name:names){const auto n=normalizedTitle(name);best=std::max(best,std::max(titleScore(local,n),titleScore(display,n)));}
+        g.matchScore=best;if(best<88)continue;
+        const auto candidate=names.join(' ');
+        const auto candidateRegion=marker(candidate,"\\b(USA|Europe|Japan|World)\\b");
+        const auto candidateRev=marker(candidate,"\\b(?:Rev|v)\\s*([0-9]+(?:\\.[0-9]+)*)\\b");
+        if(!revision.isEmpty()&&!candidateRev.isEmpty()&&revision!=candidateRev){g.matchScore=0;continue;}
+        if(!revision.isEmpty()&&revision==candidateRev)g.matchScore+=8;
+        const auto wanted=region.isEmpty()?QMap<QString,QString>{{"us","usa"},{"eu","europe"},{"jp","japan"},{"wor","world"}}.value(prefs.region):region;
+        if(!candidateRegion.isEmpty())g.matchScore+=candidateRegion==wanted?8:-8;
+        g.matchSource=QRegularExpression(R"(\[(?:T[+-]|h\d)|\b(?:hack|translation)\b)",QRegularExpression::CaseInsensitiveOption).match(filename).hasMatch()?"base-game-media":"title";
+    }
+    std::stable_sort(games.begin(),games.end(),[](const Game& a,const Game& b){return a.matchScore==b.matchScore?a.id<b.id:a.matchScore>b.matchScore;});
+    return games;
+}
+bool automaticMatch(const QList<Game>& games,const Preferences& prefs) {
+    if(games.isEmpty())return false;const auto& first=games.first();
+    if(first.matchScore==1000)return games.size()==1||games[1].matchScore<1000;
+    if((first.matchSource!="title"&&first.matchSource!="base-game-media")||first.matchScore<(prefs.aggressive?92:100))return false;
+    return games.size()==1||first.matchScore-games[1].matchScore>=(prefs.aggressive?7:15);
 }
 }

@@ -502,6 +502,7 @@ qt_add_qml_module(traineros
         src/qml/CollectionsPanel.qml
         src/qml/LibraryToolsPanel.qml
         src/qml/ScrapePanel.qml
+        src/qml/ScrapeWidget.qml
         src/qml/ScrapeSettingsPane.qml
         src/qml/DownloadsPanel.qml
         src/qml/LibraryPanel.qml

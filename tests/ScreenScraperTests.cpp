@@ -40,6 +40,58 @@ class ScreenScraperTests:public QObject {
             QJsonObject{{"type","video"},{"region","us"},{"url","https://untrusted.test/video.mp4"}}}}};}
     static Reply response(const QJsonObject& value){return {200,QJsonDocument(QJsonObject{{"response",value}}).toJson(),0};}
 private slots:
+    void catalogueRankingAcceptsStrongTitlesButKeepsEditionsAndPlatformsSeparate() {
+        const auto candidate=[](QString id,QString name,int system=12){Game g;g.id=id;g.system=system;g.fields["name"]=name;return g;};
+        Preferences prefs;
+        auto ranked=rankMatches({candidate("1","The Little Adventure")},"Owner title","Little Adventure, The (USA) (Rev 1) [!]",12,prefs);
+        QVERIFY(automaticMatch(ranked,prefs));QVERIFY(!ranked.first().exactFile);QCOMPARE(ranked.first().matchSource,"title");
+        ranked=rankMatches({candidate("1","Little Adventure 2"),candidate("2","Little Adventure")},"Little Adventure","Little Adventure (Europe)",12,prefs);
+        QVERIFY(automaticMatch(ranked,prefs));QCOMPARE(ranked.first().id,"2");
+        ranked=rankMatches({candidate("1","Little Adventure",9)},"Little Adventure","Little Adventure",12,prefs);QVERIFY(!automaticMatch(ranked,prefs));
+        ranked=rankMatches({candidate("1","Little Adventure"),candidate("2","Little Adventure")},"Little Adventure","Little Adventure",12,prefs);QVERIFY(!automaticMatch(ranked,prefs));
+        auto us=candidate("1","Little Adventure"),eu=candidate("2","Little Adventure");us.romName="Little Adventure (USA).gba";eu.romName="Little Adventure (Europe).gba";
+        ranked=rankMatches({us,eu},"Little Adventure","Little Adventure (Europe)",12,prefs);QVERIFY(automaticMatch(ranked,prefs));QCOMPARE(ranked.first().id,"2");
+        us.romName="Little Adventure (Rev 2).gba";
+        ranked=rankMatches({us},"Little Adventure","Little Adventure (Rev 1)",12,prefs);QVERIFY(!automaticMatch(ranked,prefs));
+        ranked=rankMatches({candidate("1","Little Adventure Disc 2")},"Little Adventure Disc 1","Little Adventure (Disc 1)",12,prefs);QVERIFY(!automaticMatch(ranked,prefs));
+        ranked=rankMatches({candidate("1","Little Adventure")},"Little Adventure","Little Adventure [T+Eng]",12,prefs);QVERIFY(automaticMatch(ranked,prefs));QCOMPARE(ranked.first().matchSource,"base-game-media");
+        auto alias=candidate("1","Another language");alias.aliases={"Little Adventure"};
+        ranked=rankMatches({alias},"Little Adventure","Little Adventure",12,prefs);QVERIFY(automaticMatch(ranked,prefs));
+        ranked=rankMatches({candidate("1","Little Adventure")},"Little Adventur","Little Adventur",12,prefs);QVERIFY(automaticMatch(ranked,prefs));prefs.aggressive=false;QVERIFY(!automaticMatch(ranked,prefs));
+        QCOMPARE(Preferences::fromJson(prefs.json()).aggressive,false);
+        QCOMPARE(searchTitle("Little Adventure (USA) (Rev 1) [!]"),"Little Adventure");
+    }
+    void strongTitleBatchFinishesWithoutReviewAndOverviewBackKeepsWorker() {
+        QTemporaryDir dir;ScrapeLibrary library;library.root=dir.filePath("roms");library.add("Fixture (USA)");put(library.records.first().contentPath,"123456789");
+        const auto state=dir.filePath("state");QVERIFY(writeCredentials(state+"/secrets/screenscraper.json",{"dev","secret",{}, {}}));
+        ScrapeController flow(library);flow.configure(state);
+        flow.setTransport([&](const QUrl& url,qint64,const Cancellation&){
+            if(url.path().endsWith("ssuserInfos.php"))return response({{"ssuser",QJsonObject{{"maxthreads","1"}}}});
+            auto g=game();g.remove("medias");return response({{"jeux",QJsonArray{g}}});
+        },[](qint64,const Cancellation& c){return !c->load();});
+        flow.beginMissing();flow.showOverview();QVERIFY(flow.overview());flow.dispatch(Action::Back);QVERIFY(!flow.isOpen());QVERIFY(flow.busy());
+        QTRY_VERIFY_WITH_TIMEOUT(!flow.busy(),3000);QCOMPARE(flow.downloadTasks().first().toMap()["state"],"done");
+        QVERIFY(read(library.root+"/gba/gamelist.xml").contains("English description"));
+    }
+    void manualCatalogueChoiceSurvivesProfileChangeAndOverridesHeuristic() {
+        QTemporaryDir dir;ScrapeLibrary library;library.root=dir.filePath("roms");library.add("Fixture");put(library.records.first().contentPath,"123456789");
+        const auto state=dir.filePath("state");QVERIFY(writeCredentials(state+"/secrets/screenscraper.json",{"dev","secret",{}, {}}));
+        ScrapeController flow(library);flow.configure(state);bool secondRun=false;
+        flow.setTransport([&](const QUrl& url,qint64,const Cancellation&){
+            if(url.path().endsWith("ssuserInfos.php"))return response({{"ssuser",QJsonObject{{"maxthreads","1"}}}});
+            auto a=game(),b=game();a.remove("medias");b.remove("medias");b["id"]="43";
+            if(secondRun)b["noms"]=QJsonArray{QJsonObject{{"region","us"},{"text","Old confirmed edition"}}};
+            return response({{"jeux",QJsonArray{a,b}}});
+        },[](qint64,const Cancellation& c){return !c->load();});
+        flow.beginMissing();QTRY_COMPARE(flow.downloadTasks().first().toMap()["state"],"attention");flow.downloadCommand("Fixture","open");flow.activate(1);
+        QTRY_VERIFY(!flow.busy());
+        const auto maps=QDir(state+"/cache/screenscraper/matches").entryList({"*.json"},QDir::Files);QCOMPARE(maps.size(),1);
+        QCOMPARE(QJsonDocument::fromJson(read(state+"/cache/screenscraper/matches/"+maps.first())).object()["id"].toString(),"43");
+        secondRun=true;flow.activateSetting(5);flow.beginMissing();QTRY_VERIFY(!flow.busy());
+        QCOMPARE(flow.downloadTasks().first().toMap()["state"],"done");
+        const auto caches=QDir(state+"/cache/screenscraper").entryList({"*.json"},QDir::Files);QCOMPARE(caches.size(),2);
+        for(const auto& file:caches)QCOMPARE(QJsonDocument::fromJson(read(state+"/cache/screenscraper/"+file)).object()["id"].toString(),"43");
+    }
     void editionChoicesDoNotBlockWorkerOrStealAnOpenChoice() {
         QTemporaryDir dir;ScrapeLibrary library;library.root=dir.filePath("roms");
         for(const auto& id:QStringList{"first","second","third","fourth"})library.add(id);
@@ -176,6 +228,35 @@ private slots:
         QCOMPARE(commands.last()[0].toString(),"second");
         downloads.dispatch(Action::Back);QVERIFY(downloads.isOpen());QVERIFY(!downloads.actionsFocused());
         downloads.dispatch(Action::Back);QVERIFY(!downloads.isOpen());QCOMPARE(downloads.tasks().size(),3);
+    }
+    void downloadDirectCommandsAndReorderValidateStableProviderKeys() {
+        DownloadsController flow;QSignalSpy commands(&flow,&DownloadsController::commandRequested),moves(&flow,&DownloadsController::reorderRequested);
+        const auto row=[](QString id,bool pending){return QVariantMap{{"id",id},{"state",pending?"queued":"running"},{"reorderable",pending},
+            {"actions",QVariantList{QVariantMap{{"id","pause"},{"label","Pause"}},QVariantMap{{"id","cancel"},{"enabled",false}}}}};};
+        flow.publish("one",{row("a",false),row("b",true),row("c",true)});flow.publish("two",{row("b",true)});
+        flow.command("one:b","pause");QCOMPARE(commands.last(),QVariantList({QString("one"),QString("b"),QString("pause")}));
+        flow.command("one:b","cancel");flow.command("missing:b","pause");QCOMPARE(commands.size(),1);
+        flow.moveBefore("one:c","one:b");QCOMPARE(moves.size(),1);QCOMPARE(moves.last(),QVariantList({QString("one"),QString("c"),QString("b")}));
+        flow.moveBefore("one:b","two:b");flow.moveBefore("one:a","one:b");flow.moveBefore("one:b","one:a");QCOMPARE(moves.size(),1);
+        flow.moveBefore("one:b",{});QCOMPARE(moves.size(),2);
+    }
+    void downloadSpeedUsesBytesAndClearsWhenPaused() {
+        DownloadsController flow;QVariantMap row{{"id","one"},{"state","running"},{"received",0},{"total",10000}};
+        flow.publish("test",{row});QTest::qWait(1100);row["received"]=1000;flow.publish("test",{row});
+        QTRY_VERIFY_WITH_TIMEOUT(flow.tasks()[0].toMap()["speed"].toDouble()>0,1800);
+        QVERIFY(!flow.tasks()[0].toMap()["history"].toList().isEmpty());
+        row["state"]="paused";flow.publish("test",{row});QCOMPARE(flow.tasks()[0].toMap()["speed"].toDouble(),0.0);
+    }
+    void downloadFolderPickerKeepsOriginalJobAcrossSelectionChanges() {
+        QTemporaryDir folder;LocalFileCatalog catalog;DownloadsController flow;flow.picker()->setCatalog(&catalog);
+        QSignalSpy chosen(&flow,&DownloadsController::destinationRequested);
+        const auto row=[&](QString id,bool canChoose){return QVariantMap{{"id",id},{"state","queued"},{"destination",folder.path()},{"canChooseDestination",canChoose}};};
+        flow.publish("browser",{row("one",true),row("two",true)});flow.publish("crates",{row("package",false)});flow.begin();
+        flow.command("crates:package","destination");QVERIFY(!flow.picker()->isOpen());
+        flow.command("browser:one","destination");QVERIFY(flow.picker()->isOpen());
+        flow.select(1);QTRY_VERIFY(flow.picker()->canChoose());flow.picker()->choose();
+        QCOMPARE(chosen.size(),1);QCOMPARE(chosen.first(),QVariantList({QString("browser"),QString("one"),folder.path()}));
+        QVERIFY(flow.isOpen());QVERIFY(!flow.picker()->isOpen());QCOMPARE(flow.tasks()[flow.focusIndex()].toMap()["id"].toString(),"one");
     }
     void downloadActionsKeepIdentityAndUnwindBeforeClosing() {
         DownloadsController downloads;QSignalSpy commands(&downloads,&DownloadsController::commandRequested);

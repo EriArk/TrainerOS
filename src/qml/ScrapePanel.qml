@@ -8,9 +8,15 @@ Item {
     Rectangle { anchors.fill: parent; color: Theme.surfaceColor("#770d2525") }
     MouseArea { anchors.fill: parent }
     Rectangle {
-        visible: root.flow.selectingSystems
+        visible: root.flow.overview
+        anchors.centerIn: parent; width: Math.min(760,parent.width-40); height: Math.min(350,parent.height-40)
+        radius: 12; color: Theme.paper; border.width: 1; border.color: Theme.divider
+        ScrapeWidget { anchors.fill: parent; anchors.margins: 20; flow: root.flow; controllerFocus: root.takesFocus }
+    }
+    Rectangle {
+        visible: root.flow.selectingSystems&&!root.flow.overview
         anchors.centerIn: parent; width: Math.min(680,parent.width-40); height: Math.min(414,parent.height-30)
-        radius: 18; color: Theme.surfaceColor("#e8edda"); border.color: Theme.surfaceColor("#35544f"); border.width: 3
+        radius: 12; color: Theme.paper; border.color: Theme.divider; border.width: 1
         Text { x: 22; y: 14; text: "ScreenScraper"; color: Theme.ink; font.family: Theme.displayFamily; font.pixelSize: 26; font.bold: true }
         Text { x: 22; y: 51; width: parent.width-44; text: root.flow.detail; color: Theme.muted; font.pixelSize: 14; lineHeight: 1.25 }
         CapButton {
@@ -52,9 +58,9 @@ Item {
         }
     }
     Rectangle {
-        visible: !root.flow.selectingSystems
+        visible: !root.flow.selectingSystems&&!root.flow.overview
         anchors.centerIn: parent; width: Math.min(680,parent.width-40); height: Math.min(content.implicitHeight+36,parent.height-30)
-        radius: 18; color: Theme.surfaceColor("#e8edda"); border.color: Theme.surfaceColor("#35544f"); border.width: 3
+        radius: 12; color: Theme.paper; border.color: Theme.divider; border.width: 1
         Column {
             id: content
             x: 22; y: 18; width: parent.width-44; spacing: 10

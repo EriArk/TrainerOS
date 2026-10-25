@@ -519,6 +519,31 @@ private slots:
         QCOMPARE(worker.fileJobs_.value(QString(channel)+":4:5")["state"].toString(),QString("error"));
         worker.reset();QVERIFY(worker.fileJobs_.isEmpty());
     }
+    void downloadDestinationBeforeCompletionUsesSharedFilesAndPreservesCollision() {
+        FilesService service;if(!service.available())QSKIP("Linux libfm backend required");
+        QTemporaryDir dir;QVERIFY(QDir().mkpath(dir.filePath("target")));QVERIFY(QDir().mkpath(dir.filePath("alternate")));
+        const auto source=dir.filePath("download.txt"),target=dir.filePath("target/download.txt");
+        const auto put=[](QString path,QByteArray bytes){QFile f(path);return f.open(QIODevice::WriteOnly)&&f.write(bytes)==bytes.size();};
+        QVERIFY(put(source,"download"));QVERIFY(put(target,"keep"));
+        FluxerSession worker;bind(worker);
+        worker.setTransport([](auto,auto,auto,Completion done,auto){done({200,{}});});
+        ChatFiles files;files.context("fixture","channel");files.setFilesService(&service);
+        connect(&files,&ChatFiles::request,&worker,[&](QString operation,QVariantMap args){worker.command(operation,args);});
+        connect(&worker,&FluxerSession::fileEvent,&files,[&](quint64,QVariantMap event){files.receive(event);});
+        const QString id="download-fixture";
+        worker.fileJobs_[id]={{"id",id},{"title","download.txt"},{"state","queued"},{"path",source},{"folder",dir.path()}};
+        worker.publishFiles();files.setDownloadDestination(id,dir.filePath("alternate"));
+        QCOMPARE(worker.fileJobs_[id]["destination"].toString(),dir.filePath("alternate"));
+        worker.fileJobs_[id]["state"]="running";worker.publishFiles();files.setDownloadDestination(id,dir.filePath("target"));
+        QCOMPARE(worker.fileJobs_[id]["destination"].toString(),dir.filePath("target"));
+        QSignalSpy requests(&files,&ChatFiles::request);worker.fileJobs_[id]["state"]="done";worker.publishFiles();worker.publishFiles();
+        QTRY_COMPARE(worker.fileJobs_[id]["folder"].toString(),dir.filePath("target"));
+        QCOMPARE(worker.fileJobs_[id]["state"].toString(),"done");QVERIFY(!QFile::exists(source));
+        QFile original(target);QVERIFY(original.open(QIODevice::ReadOnly));QCOMPARE(original.readAll(),QByteArray("keep"));
+        QFile moved(dir.filePath("target/download (1).txt"));QVERIFY(moved.open(QIODevice::ReadOnly));QCOMPARE(moved.readAll(),QByteArray("download"));
+        int prepared=0,finished=0;for(const auto& call:requests){const auto action=call[1].toMap()["action"].toString();prepared+=action=="prepare-move";finished+=action=="moved";}
+        QCOMPARE(prepared,1);QCOMPARE(finished,1);
+    }
     void myLobbiesBrowseIsIndependentAndHomeDisappearsAfterProviderLeave() {
         SocialController s;QObject::disconnect(&s,nullptr,s.session_,nullptr);QObject::disconnect(s.session_,nullptr,&s,nullptr);
         s.receive(0,{{"state","connected"},{"userId","1"},{"name","Mika"}});s.createAnotherLobby();s.submitLobbyDraft();

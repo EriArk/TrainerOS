@@ -14,6 +14,7 @@ class ScrapeController final : public QObject {
     Q_OBJECT
     Q_PROPERTY(bool open READ isOpen NOTIFY changed)
     Q_PROPERTY(bool busy READ busy NOTIFY changed)
+    Q_PROPERTY(bool paused READ paused NOTIFY changed)
     Q_PROPERTY(bool choosingMatch READ choosingMatch NOTIFY changed)
     Q_PROPERTY(QString title READ title NOTIFY changed)
     Q_PROPERTY(QString detail READ detail NOTIFY changed)
@@ -25,6 +26,9 @@ class ScrapeController final : public QObject {
     Q_PROPERTY(bool selectingSystems READ selectingSystems NOTIFY changed)
     Q_PROPERTY(QVariantList systemRows READ systemRows NOTIFY changed)
     Q_PROPERTY(int selectedGameCount READ selectedGameCount NOTIFY changed)
+    Q_PROPERTY(QVariantList tasks READ downloadTasks NOTIFY changed)
+    Q_PROPERTY(bool overview READ overview NOTIFY changed)
+    Q_PROPERTY(int overviewFocus READ overviewFocus NOTIFY changed)
 public:
     explicit ScrapeController(LibraryRepository&,QObject* parent=nullptr);
     ~ScrapeController() override;
@@ -34,6 +38,7 @@ public:
     std::function<bool()> canStart;
     bool isOpen() const {return open_;}
     bool busy() const {return active_ || working_;}
+    bool paused() const {return paused_;}
     bool choosingMatch() const {return choosing_;}
     Q_INVOKABLE void back(){dispatch(Action::Back);}
     QString title() const;
@@ -46,13 +51,18 @@ public:
     void begin(const QString& game={},const QString& world={});
     void beginSystems();
     void beginMissing();
+    Q_INVOKABLE void showOverview();
+    Q_INVOKABLE void overviewAction(int index);
+    bool overview() const {return overview_;}
+    int overviewFocus() const {return overviewFocus_;}
     bool selectingSystems() const {return scope_==4 && !active_ && !finished_;}
     QVariantList systemRows() const;
     int selectedGameCount() const;
     void close();
     void hide(){open_=false;emit changed();}
     QVariantList downloadTasks() const;
-    void downloadCommand(const QString& task,const QString& command);
+    Q_INVOKABLE void downloadCommand(const QString& task,const QString& command);
+    void moveDownloadBefore(const QString& id,const QString& before);
     void dispatch(Action);
     void dispatchSettings(Action);
     Q_INVOKABLE void activate(int);
@@ -73,7 +83,7 @@ private:
         scraper::Fingerprint file;
         QList<scraper::Game> games;
         QMap<QString,QString> local;
-        QString error,cache,cachedId;
+        QString error,cache,cachedId,mapping,manualId;
         bool cached=false,success=false;
         scraper::Quota quota;
     };
@@ -114,5 +124,7 @@ private:
     bool skipCurrent_=false;
     int scope_=0,focus_=0,settingsFocus_=0,index_=0,done_=0,failed_=0,skipped_=0;
     bool open_=false,active_=false,working_=false,paused_=false,choosing_=false,finished_=false,wrote_=false;
+    bool overview_=false;
+    int overviewFocus_=0;
 };
 }

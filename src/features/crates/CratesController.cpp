@@ -173,6 +173,15 @@ QVariantList CratesController::projects() const {
     }
     return rows;
 }
+QVariantList CratesController::downloadTasks() const {
+    auto rows=installer_.tasks();
+    for(auto& value:rows){auto row=value.toMap();const auto project=catalogue_.projects.value(row["id"].toString());
+        if(!project.isEmpty()){
+            row["description"]=project["summary"].toString().isEmpty()?project["description"]:project["summary"];
+            if(row["picture"].toString().isEmpty())row["picture"]=project["hero"];
+        }value=row;
+    }return rows;
+}
 void CratesController::selectProject(int index) {
     const auto id=current()["id"].toString();const auto ids=catalogue_.contents.value(id);
     if(!opened_ || detailOpen_ || index<0 || index>=ids.size())return;

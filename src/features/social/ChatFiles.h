@@ -1,8 +1,10 @@
 #pragma once
 #include "features/library/FilePickerController.h"
 #include <QVariantMap>
+#include <QSet>
 
 namespace trainer {
+class FilesService;
 // UI-owned selection only. Transfer IO and authentication stay on Fluxer's worker.
 class ChatFiles final : public QObject {
     Q_OBJECT
@@ -25,14 +27,20 @@ public:
     Q_INVOKABLE void remove(int index);
     Q_INVOKABLE void cancel();
     void dispatch(Action action){picker_.dispatch(action);}
-    QVariantList downloads() const {return jobs_;}
+    QVariantList downloads() const;
     void control(QString id,QString action);
+    void setFilesService(FilesService*);
+    void setDownloadDestination(QString id,QString folder);
 signals:
     void changed();
     void request(QString operation,QVariantMap args);
     void sent(QString channel,QString text);
     void folderRequested(QString path);
 private:
+    void relocateDownloads();
+    FilesService* fileService_=nullptr;
+    QHash<QString,QString> moving_;
+    QSet<QString> preparing_;
     LocalFileCatalog catalog_;
     FilePickerController picker_{&catalog_};
     QHash<QString,QVariantList> selections_;

@@ -13,7 +13,30 @@ class ControlsDashboardTests: public QObject {
     static QVariantMap row(const ControlsDashboard& b,const QString& id){for(const auto& v:b.widgets())if(v.toMap()["id"]==id)return v.toMap();return {};}
 private slots:
     void initTestCase(){QCoreApplication::setOrganizationName("TrainerControlsTest");QCoreApplication::setApplicationName("Dashboard");QSettings::setDefaultFormat(QSettings::IniFormat);QSettings::setPath(QSettings::IniFormat,QSettings::UserScope,directory.path());}
-    void init(){QSettings().clear();}
+    void init(){
+        QSettings().clear();
+        // Editing regressions use the supported compact layout. Migration to the
+        // informational scraper widget has a separate test below.
+        for(const auto& owner:QList<QByteArray>{"one","two","bad"}){
+            const auto key="controls/v1/"+QString::fromLatin1(QCryptographicHash::hash(owner,QCryptographicHash::Sha256).toHex());
+            QSettings().setValue(key+"/layoutRevision",4);
+        }
+    }
+    void scraperInformationMigrationPreservesOtherWidgetsAndSavedLayout(){
+        ControlsDashboard b;b.setOwner("fresh");QCOMPARE(b.pages(),2);
+        const auto first=b.widgets();QCOMPARE(first.size(),9);QCOMPARE(row(b,"downloads")["w"].toInt(),4);QCOMPARE(row(b,"storage")["h"].toInt(),4);
+        b.changePage(1);QCOMPARE(row(b,"scraper")["w"].toInt(),8);QCOMPARE(row(b,"scraper")["h"].toInt(),4);
+        ControlsDashboard restored;restored.setOwner("fresh");QCOMPARE(restored.widgets(),first);
+        restored.changePage(1);QCOMPARE(restored.widgets(),b.widgets());
+    }
+    void scraperMigrationUsesSpaceBesideAnExistingWidget(){
+        ControlsDashboard b;b.setOwner("one");b.edit();b.drop("clock",12,0);b.edit();
+        const auto key="controls/v1/"+QString::fromLatin1(QCryptographicHash::hash("one",QCryptographicHash::Sha256).toHex());
+        QSettings().setValue(key+"/layoutRevision",2);
+        ControlsDashboard restored;restored.setOwner("one");QCOMPARE(restored.pages(),2);restored.changePage(1);
+        QCOMPARE(row(restored,"clock")["x"].toInt(),0);QCOMPARE(row(restored,"scraper")["x"].toInt(),2);
+        QCOMPARE(row(restored,"scraper")["w"].toInt(),8);
+    }
     void outputPickerDoesNotReplaceSliderOrEditor(){
         ControlsDashboard b;b.setOwner("one");QSignalSpy actions(&b,&ControlsDashboard::actionRequested);
         b.activate("volume");b.dispatch(Action::ToggleContinue);QVERIFY(b.adjusting());QCOMPARE(actions.last()[0].toString(),"audio-output");

@@ -28,7 +28,7 @@ Rectangle {
     signal moved(real dx,real dy)
     signal swiped(int delta)
     radius: 10
-    color: selected ? Theme.selection : Qt.alpha(Theme.ink,Theme.dark?.025:.035)
+    color: selected && kind!=="scraper" ? Theme.selection : Qt.alpha(Theme.ink,Theme.dark?.025:.035)
     border.width: selected ? 1.5 : 1
     border.color: selected ? Theme.focusGlow : Qt.alpha(Theme.divider,.5)
     z: dragX || dragY || board.moving&&selected ? 2 : 0
@@ -57,14 +57,15 @@ Rectangle {
         enabled: !root.board.editing
         // Legacy single-column widgets remain usable; full names are in the footer.
         MenuGlyph { id: glyph; x: root.slider&&!root.verticalSlider&&!root.narrow ? 0 : (parent.width-width)/2; y: root.slider?0:3; width: 23; height: 23; glyph: root.icon
-            visible: !root.external && root.kind!=="clock" && root.kind!=="storage" && root.kind!=="downloads" && !(root.shortWidget&&root.kind==="battery")
+            visible: !root.external && root.kind!=="clock" && root.kind!=="storage" && root.kind!=="downloads" && !(root.kind==="scraper"&&root.width>=250) && !(root.shortWidget&&root.kind==="battery")
             ink: root.radio&&root.radioData.level===1 ? root.readableAccent : Theme.ink
             opacity: root.available?1:.4
             MouseArea { anchors.fill: parent; anchors.margins: -5; enabled: root.kind==="volume"&&root.level>=0; onClicked: {root.board.select(root.kind);root.shell.systemAction("volume")} }
         }
         Text { id: label; anchors.bottom: parent.bottom; width: parent.width; text: root.modelData.title; textFormat: Text.PlainText
             font.pixelSize: 12; color: Theme.ink; horizontalAlignment: Text.AlignHCenter; wrapMode: Text.Wrap; maximumLineCount: 2; elide: Text.ElideRight
-            visible: !root.shortWidget&&!root.narrow&&!root.slider&&root.kind!=="storage"&&root.kind!=="downloads"&&root.kind!=="clock" }
+            visible: !root.shortWidget&&!root.narrow&&!root.slider&&root.kind!=="storage"&&root.kind!=="downloads"&&root.kind!=="clock"&&!(root.kind==="scraper"&&root.width>=250) }
+        ScrapeWidget { anchors.fill: parent; visible: root.kind==="scraper"&&root.width>=250; flow: root.shell.scraper; interactive: !root.board.editing; embedded: true }
         Text { x: 31; y: 3; width: parent.width-x; text: root.modelData.title; color: Theme.ink; font.pixelSize: 12; elide: Text.ElideRight; visible: root.slider&&!root.narrow }
         Text { anchors.fill: parent; anchors.bottomMargin: root.narrow?0:30; visible: root.external; text: root.modelData.text || ""; textFormat: Text.PlainText
             color: Theme.ink; font.pixelSize: 13; wrapMode: Text.Wrap; elide: Text.ElideRight; maximumLineCount: 3; verticalAlignment: Text.AlignVCenter; horizontalAlignment: Text.AlignHCenter }

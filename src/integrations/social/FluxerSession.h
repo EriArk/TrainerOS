@@ -59,7 +59,7 @@ private:
     void fileCommand(QString operation,const QVariantMap& args);
     void sendFiles(const QVariantMap& args);
     void downloadFile(QString task);
-    void publishFiles();
+    void publishFiles(bool persist=false);
     void resetFiles();
     QPointer<QNetworkReply> fileUpload_;
     QHash<QString,QVariantMap> fileJobs_;

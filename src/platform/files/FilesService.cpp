@@ -73,6 +73,7 @@ void execute(const std::shared_ptr<Task>& task) {
                     const auto candidate=info.completeBaseName()+QString(" (%1)").arg(n++)+(info.suffix().isEmpty()?QString():"."+info.suffix());
                     renamed=destination.path().parent().child(candidate.toUtf8().constData());
                 } while(g_file_query_exists(renamed.gfile().get(),nullptr)&&n<10000);
+                if(task->operation=="rename")task->destination=QString::fromUtf8(renamed.uri().get());
                 response=Fm::FileOperationJob::RENAME;
             }
         },Qt::DirectConnection);
@@ -191,7 +192,7 @@ QVariantList FilesService::tasks() const {
         QVariantList actions;if(!task->finished)actions<<action("cancel","Cancel");
         if(!task->question.isEmpty())actions.prepend(action("resolve","Resolve conflict"));
         result<<QVariantMap{{"id",task->id},{"kind","file-operation"},{"title",task->operation.left(1).toUpper()+task->operation.mid(1)+" · "+(task->sources.isEmpty()?QUrl(task->destination).fileName():QString::number(task->sources.size())+" items")},
-            {"subtitle",task->error.isEmpty()?task->destination:task->error},{"state",state},{"terminal",task->finished},{"progress",task->progress},{"actions",actions},{"question",task->question}};
+            {"subtitle",task->error.isEmpty()?task->destination:task->error},{"detail",task->error.isEmpty()?task->destination:task->error},{"destination",task->destination},{"state",state},{"terminal",task->finished},{"progress",task->progress},{"actions",actions},{"question",task->question}};
     }return result;
 }
 }
