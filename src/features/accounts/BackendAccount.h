@@ -38,6 +38,8 @@ public:
     // Fixed, host-mediated game API. No caller-supplied URL or credential export.
     void playRequest(const QString& channel,const QString& app,const QString& method,QJsonObject args,Reply done);
     void closePlay(const QString& channel);
+    // Composition supplies the current owner's saved SDK recipe; games cannot write it.
+    void setPublicAvatar(const QString& owner,const QJsonObject& recipe);
 signals:
     void changed();
     void returnRequested();
@@ -48,6 +50,7 @@ private:
     void accept();
     void tokens(const QJsonObject& result);
     void refresh();
+    void syncPublicAvatar();
     void logout();
     void fail(const QString& message);
     void request(QByteArray method,QString path,QJsonObject body,Reply done,QByteArray access={});
@@ -59,6 +62,9 @@ private:
     EncryptedCredentials encrypted_{this};
     QTcpServer listener_{this};
     QTimer expiry_{this}, refreshTimer_{this};
+    QTimer avatarRetry_{this};
+    QJsonObject publicAvatar_, publishedAvatar_;
+    bool avatarBusy_=false;
     std::shared_ptr<QLockFile> lock_;
     QString owner_,key_,state_="disabled",detail_="Open your Trainer to sign in";
     QString attempt_,verifier_,callbackPath_,socialSubject_,subject_,player_,session_;

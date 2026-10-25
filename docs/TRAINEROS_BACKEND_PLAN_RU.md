@@ -809,3 +809,8 @@ Results/Providers → Rewards → Wallet/Inventory/Entitlements; Operations дл
 для конкурентных транзакций; [backup/restore](https://www.postgresql.org/docs/current/backup.html)
 для выбора резервирования. Это источники механик, а не доказательства их
 реализации, нагрузки или эксплуатации TrainerOS.
+
+
+### Public profiles — 26 October 2026
+
+Accounts/S01 owns verified display names and the shared avatar recipe. Boards/S10 project page-member profiles; SDK resolves installed models. Profile revisions are independent of score revisions. Source and server checks: [contract](../services/backend/profiles.md). Full account erasure and provider deletion detection remain open; R089/R107 remain partial. The owner now authorizes handheld installation/checks in this chat; delivery evidence follows separately.

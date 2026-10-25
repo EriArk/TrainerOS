@@ -41,6 +41,7 @@ PlatformHost::~PlatformHost() { stop(); }
 void PlatformHost::setBackend(BackendAccount* service) { backend_=service; }
 void PlatformHost::setAvatar(const QJsonObject& descriptor,bool available) {
     avatarAvailable_=available;
+    if(backend_)backend_->setPublicAvatar(context_["profile"].toString(),descriptor["recipe"].toObject());
     if(descriptor==avatar_)return;
     avatar_=descriptor;
     for(auto* socket:peers_.keys())if(peers_.value(socket).authenticated&&peers_.value(socket).avatarSubscribed)

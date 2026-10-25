@@ -247,5 +247,7 @@ class Play:
                 offset=max(0,center['position']-limit//2) if center else 0
             rows=conn.execute(query+' ORDER BY position OFFSET %s LIMIT %s',(ruleset,mode,offset,limit)).fetchall()
             total=rows[0]['total'] if rows else 0
-            return {'ruleset_id':ruleset,'mode':mode,'kind':kind,'trust':'peer_confirmed','revision':str(current),
+            from ..accounts.profiles import public_profiles
+            profiles=public_profiles(conn,[player for row in rows for player in row['members']])
+            return {'ruleset_id':ruleset,'mode':mode,'kind':kind,'trust':'peer_confirmed','revision':str(current),'profiles':profiles,
                     'items':rows,'offset':offset,'next_offset':offset+limit if offset+limit<total else None}

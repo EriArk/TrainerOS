@@ -36,7 +36,7 @@ class Provider(FluxerProvider):
         assert challenge(verifier)==self.challenge
         if code!='valid-code':
             raise AuthError('provider_unavailable',503)
-        return self.subject
+        return {'subject':self.subject,'display_name':'Test player '+self.subject[-4:]}
 
 
 @pytest.fixture
@@ -216,7 +216,7 @@ def test_provider_sends_pkce_and_only_identify_token(monkeypatch):
         if path=='/oauth2/token': return {'token_type':'Bearer','scope':'identify','access_token':'a'*43}
         return {'sub':'1234567890123456789'}
     monkeypatch.setattr(provider,'_request',fake)
-    assert provider.identify('valid-code','verifier')=='1234567890123456789'
+    assert provider.identify('valid-code','verifier')=={'subject':'1234567890123456789','display_name':'Player'}
     assert calls[0][1]['code_verifier']=='verifier'
     assert calls[1][0]=='/oauth2/userinfo' and calls[1][2]=='a'*43
 
@@ -265,7 +265,7 @@ def test_provider_http_transport_rejects_redirects_and_oversized_bodies():
     try:
         provider=FluxerProvider(CONFIG)
         provider.api='http://127.0.0.1:'+str(server.server_port)  # Test-only instance override, not configurable by a client.
-        assert provider.identify('code','pkce-verifier')=='12345'
+        assert provider.identify('code','pkce-verifier')=={'subject':'12345','display_name':'Player'}
         assert seen[0]['code_verifier']==['pkce-verifier']
         for path in ['/redirect','/large']:
             with pytest.raises(AuthError): provider._request(path,bearer='a'*43)

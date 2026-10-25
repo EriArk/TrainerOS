@@ -43,6 +43,8 @@ BackendAccount::BackendAccount(QObject* parent):QObject(parent) {
     expiry_.setSingleShot(true);refreshTimer_.setSingleShot(true);
     connect(&expiry_,&QTimer::timeout,this,[this]{fail("Sign-in expired. Try again.");});
     connect(&refreshTimer_,&QTimer::timeout,this,&BackendAccount::refresh);
+    avatarRetry_.setSingleShot(true);
+    connect(&avatarRetry_,&QTimer::timeout,this,&BackendAccount::syncPublicAvatar);
 }
 BackendAccount::~BackendAccount(){reset();}
 void BackendAccount::state(QString value,QString detail){state_=std::move(value);detail_=std::move(detail);emit changed();}
@@ -56,6 +58,7 @@ QString BackendAccount::actionLabel() const {
     return "Sign in to TrainerOS with Fluxer";
 }
 void BackendAccount::reset() {
+    avatarRetry_.stop();publicAvatar_={};publishedAvatar_={};avatarBusy_=false;
     const auto channels=playGrants_.keys();for(const auto& channel:channels)closePlay(channel);
     ++epoch_;expiry_.stop();refreshTimer_.stop();listener_.close();encrypted_.cancel();
     for(auto* socket:findChildren<QTcpSocket*>(QString(),Qt::FindDirectChildrenOnly)){socket->abort();socket->deleteLater();}
@@ -173,6 +176,7 @@ void BackendAccount::tokens(const QJsonObject& result) {
         player_=player;attempt_.clear();verifier_.clear();
         if(logoutPending_){logoutPending_=false;logout();return;}
         state("connected","Connected through Fluxer");
+        syncPublicAvatar();
         refreshTimer_.start(int(qBound(qint64(1000),QDateTime::currentDateTimeUtc().msecsTo(accessExpiry_)-60000,qint64(840000))));
     });
 }
@@ -224,6 +228,21 @@ void BackendAccount::closePlay(const QString& channel) {
     const auto grant=playGrants_.take(channel);
     if(grant.token.isEmpty())return;
     request("POST","/v1/play/commands",{{"action","revoke"},{"operation_id",QUuid::createUuid().toString(QUuid::WithoutBraces)},{"payload",QJsonObject{}}},[](int,QJsonObject){},grant.token);
+}
+void BackendAccount::setPublicAvatar(const QString& owner,const QJsonObject& recipe) {
+    if(owner!=owner_)return;
+    publicAvatar_=recipe;
+    syncPublicAvatar();
+}
+void BackendAccount::syncPublicAvatar() {
+    // Missing/uninstalled assets are not a request to erase the online appearance.
+    if(state_!="connected"||avatarBusy_||avatarRetry_.isActive()||publicAvatar_.isEmpty()||publicAvatar_==publishedAvatar_)return;
+    const auto recipe=publicAvatar_;avatarBusy_=true;
+    request("PUT","/v1/me/profile/avatar",{{"avatar",recipe}},[this,recipe](int status,QJsonObject){
+        avatarBusy_=false;
+        if(status==200){publishedAvatar_=recipe;syncPublicAvatar();}
+        else avatarRetry_.start(60000);
+    },access_);
 }
 void BackendAccount::playRequest(const QString& channel,const QString& app,const QString& method,QJsonObject args,Reply done) {
     auto reject=[&](const QString& code){done(409,{{"code",code}});};

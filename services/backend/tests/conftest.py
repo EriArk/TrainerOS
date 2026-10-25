@@ -79,7 +79,7 @@ def db(postgres):
         conn.execute('''TRUNCATE trainer_backend.principals, trainer_backend.operation_receipts,
             trainer_backend.jobs,trainer_backend.event_index,trainer_backend.outbox,
             trainer_backend.consumer_receipts,trainer_backend.consumer_watermarks,
-            trainer_backend.audit_events,trainer_backend.players,trainer_backend.external_identities,
+            trainer_backend.audit_events,trainer_backend.players,trainer_backend.external_identities,trainer_backend.public_profiles,
             trainer_backend.login_attempts,trainer_backend.device_sessions,trainer_backend.refresh_credentials,
             trainer_backend.game_rulesets,trainer_backend.play_grants,trainer_backend.matches,trainer_backend.match_participants,
             trainer_backend.result_submissions,trainer_backend.result_decisions,trainer_backend.result_outcomes,trainer_backend.board_revisions,

@@ -87,4 +87,5 @@ class FluxerProvider:
         subject = user.get('sub', user.get('id'))
         if not isinstance(subject,str) or not re.fullmatch(r'[0-9]{1,20}',subject) or user.get('bot') or user.get('system'):
             raise AuthError('unauthenticated', 401)
-        return subject
+        from .profiles import display_name
+        return {'subject': subject, 'display_name': display_name(user)}

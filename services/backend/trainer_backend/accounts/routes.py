@@ -143,3 +143,17 @@ def revoke(session_id: UUID, request: Request):
 @router.get('/v1/me')
 def me(request: Request):
     return wire(service(request).me(bearer(request)))
+
+
+class AvatarUpdate(StrictBody):
+    avatar: dict | None
+
+
+@router.get('/v1/me/profile')
+def profile(request: Request):
+    return wire(service(request).profile(bearer(request)))
+
+
+@router.put('/v1/me/profile/avatar')
+def avatar(body: AvatarUpdate, request: Request):
+    return wire(service(request).profile(bearer(request),avatar=body.avatar))

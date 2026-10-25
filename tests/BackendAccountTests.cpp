@@ -21,6 +21,9 @@ struct Harness {
     BackendAccount::Reply pending;
     BackendAccount::Reply pendingGrant;
     bool deferGrant=false;
+    bool deferAvatar=false;
+    BackendAccount::Reply pendingAvatar;
+    QList<QJsonObject> avatars;
     QList<QByteArray> playAuth;
     QList<QJsonObject> playBodies;
     QJsonObject grant() {return {{"grant_token",QString(43,'g')},{"ruleset",QJsonObject{{"id","test.v1"}}},{"trust","peer_confirmed"},
@@ -40,6 +43,7 @@ struct Harness {
                     done(loseRefresh?0:200,loseRefresh?QJsonObject():credentials());
                 } else if(path=="/v1/play/grants") {playAuth<<auth;playBodies<<body;if(deferGrant)pendingGrant=std::move(done);else done(200,grant());}
                 else if(path=="/v1/play/commands") {playAuth<<auth;playBodies<<body;done(200,{{"state","accepted"}});}
+                else if(path=="/v1/me/profile/avatar") {avatars<<body;Q_ASSERT(auth==QByteArray(43,'a'));if(deferAvatar)pendingAvatar=std::move(done);else done(200,{});}
                 else if(method=="DELETE"&&!auth.isEmpty()) {const int status=rejectDeleteOnce?401:204;rejectDeleteOnce=false;done(status,{});}
                 else done(500,{});
             },
@@ -64,6 +68,19 @@ class BackendAccountTests:public QObject {
     Q_OBJECT
 private slots:
     void initTestCase(){QStandardPaths::setTestModeEnabled(true);QCoreApplication::setOrganizationName("TrainerOSAccountTests");QCoreApplication::setApplicationName(QUuid::createUuid().toString(QUuid::Id128));}
+    void publicAvatarCoalescesAndFencesOwnerChanges() {
+        Harness h;BackendAccount a;a.setServices(h.services());a.configure("alice");a.activate();h.callback();
+        const QJsonObject first{{"schema",1},{"packRevision",QString(64,'a')}},second{{"schema",1},{"packRevision",QString(64,'b')}};
+        a.setPublicAvatar("other",first);QCOMPARE(h.avatars.size(),0);
+        h.deferAvatar=true;a.setPublicAvatar("alice",first);QCOMPARE(h.avatars.size(),1);
+        a.setPublicAvatar("alice",second);QCOMPARE(h.avatars.size(),1);
+        auto complete=std::move(h.pendingAvatar);h.deferAvatar=false;complete(200,{});
+        QCOMPARE(h.avatars.size(),2);QCOMPARE(h.avatars.last()["avatar"].toObject(),second);
+        a.setPublicAvatar("alice",second);a.setPublicAvatar("alice",{});QCOMPARE(h.avatars.size(),2);
+        h.deferAvatar=true;a.setPublicAvatar("alice",first);complete=std::move(h.pendingAvatar);
+        a.configure("bob");complete(200,{});a.setPublicAvatar("alice",second);QCOMPARE(h.avatars.size(),3);
+        QVERIFY(!QJsonDocument(a.snapshot()).toJson().contains("packRevision"));
+    }
     void gameFacadeScopesCredentialsAndRejectsArbitraryProxy() {
         Harness h;BackendAccount a;a.setServices(h.services());a.configure("alice");a.activate();h.callback();
         QJsonObject result;int status=0;auto done=[&](int s,QJsonObject r){status=s;result=r;};

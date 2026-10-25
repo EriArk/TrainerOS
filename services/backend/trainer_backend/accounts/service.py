@@ -11,6 +11,7 @@ from urllib.parse import urlencode
 from ..commands import Principal, canonical, require_principal, Forbidden
 from ..events import EventSpec,publish
 from .provider import AuthError
+from .profiles import public_profiles, update_name, update_avatar, avatar_recipe
 
 
 def digest(value):
@@ -130,7 +131,8 @@ class Accounts:
             raise AuthError('login_cancelled',400)
         try:
             # One-shot code exchange outside the database transaction; ambiguous failures require a new login.
-            subject = self.provider.identify(code,self.secret('pkce',row['id']))
+            identity = self.provider.identify(code,self.secret('pkce',row['id']))
+            subject = identity['subject']
             if row['expected_subject'] and subject != row['expected_subject']:
                 raise AuthError('account_mismatch',409)
             handoff = secrets.token_urlsafe(32) if row['return_uri'] else None
@@ -140,6 +142,7 @@ class Accounts:
                     raise AuthError('login_restart_required',409)
                 player = conn.execute('SELECT trainer_backend.resolve_fluxer_player(%s,%s) AS id', (self.provider.instance,subject)).fetchone()['id']
                 self.active(conn,player)
+                update_name(conn,player,identity['display_name'])
                 conn.execute("UPDATE trainer_backend.login_attempts SET status='verified',player_id=%s,handoff_hash=%s WHERE id=%s", (player,digest(handoff) if handoff else None,row['id']))
         except Exception:
             with self.db.transaction() as conn:
@@ -239,6 +242,15 @@ class Accounts:
             who = self.authenticate(conn,access)
             revision = conn.execute('SELECT revision FROM trainer_backend.players WHERE id=%s',(who.player_id,)).fetchone()['revision']
             return {'player_id':who.player_id,'status':'active','revision':revision}
+
+    def profile(self, access, *, avatar=...):
+        if avatar is not ...:
+            avatar_recipe(avatar)
+        with self.db.transaction() as conn:
+            who = self.authenticate(conn,access)
+            if avatar is not ...:
+                update_avatar(conn,who.player_id,avatar)
+            return public_profiles(conn,[who.player_id])[str(who.player_id)]
 
     def revoke(self,access,session):
         with self.db.transaction() as conn:

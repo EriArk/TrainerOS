@@ -69,6 +69,7 @@ def grant_runtime(database_url, role):
         'consumer_receipts': 'SELECT,INSERT', 'consumer_watermarks': 'SELECT,INSERT,UPDATE',
         'audit_events': 'SELECT,INSERT',
         'players': 'SELECT,UPDATE', 'external_identities': 'SELECT',
+        'public_profiles': 'SELECT,INSERT,UPDATE',
         'login_attempts': 'SELECT,INSERT,UPDATE', 'device_sessions': 'SELECT,INSERT,UPDATE',
         'refresh_credentials': 'SELECT,INSERT,UPDATE',
         'game_rulesets': 'SELECT', 'play_grants': 'SELECT,INSERT,UPDATE',

@@ -293,3 +293,8 @@ issues массово по карте и не создавать новую гл
 [S13]: STRUCTURE_MAP_RU.md#s13
 [S14]: STRUCTURE_MAP_RU.md#s14
 [S15]: STRUCTURE_MAP_RU.md#s15
+
+
+### Public profiles — 26 October 2026
+
+Accounts/S01 owns verified display names and the shared avatar recipe. Boards/S10 project page-member profiles; SDK resolves installed models. Profile revisions are independent of score revisions. Source and server checks: [contract](../services/backend/profiles.md). Full account erasure and provider deletion detection remain open; R089/R107 remain partial. The owner now authorizes handheld installation/checks in this chat; delivery evidence follows separately.
