@@ -206,7 +206,7 @@ void PlatformHost::request(QTcpSocket* socket, const QJsonObject& packet) {
         peer.authenticated = true; peer.app = app;peer.playChannel=QUuid::createUuid().toString(QUuid::WithoutBraces);
         auto caps=capabilities();
         if(avatarAvailable_){caps["avatar.local"]=1;caps["avatar.recipe"]=1;}
-        if(network_&&network_->available()){caps["lobby.activity"]=1;caps["network.records"]=1;}
+        if(network_&&network_->available()){caps["lobby.activity"]=1;caps["network.records"]=1;caps["network.group"]=1;}
         if(backend_)caps["play.scorecards"]=1;
         ok({{"protocol", 1}, {"capabilities", caps}, {"context", snapshot()}});
         return;

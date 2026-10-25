@@ -88,9 +88,10 @@ QVariantList CratesInstaller::activities() const {
         QFile f(base.filePath("traineros-activity.json"));
         if(QFileInfo(base.path()).isSymLink()||QFileInfo(f).isSymLink()||f.size()>4096||!f.open(QIODevice::ReadOnly))continue;
         const auto m=QJsonDocument::fromJson(f.readAll()).object();const auto app=m["app"].toString();
-        if(m["schema"]!=1||m["seats"]!=2||!appId.match(app).hasMatch()||!protocol.match(m["protocol"].toString()).hasMatch())continue;
+        const int seats=m["seats"].toInt(-1);
+        if(m["schema"]!=1||!m["seats"].isDouble()||m["seats"].toDouble()!=seats||seats<2||seats>16||!appId.match(app).hasMatch()||!protocol.match(m["protocol"].toString()).hasMatch())continue;
         if(seen.contains(app)){ambiguous.insert(app);continue;}seen.insert(app);
-        out<<QVariantMap{{"app",app},{"protocol",m["protocol"].toString()},{"title",r["title"]},{"local","crates:"+project}};
+        out<<QVariantMap{{"app",app},{"protocol",m["protocol"].toString()},{"seats",seats},{"title",r["title"]},{"local","crates:"+project}};
     }
     for(qsizetype i=out.size();i-->0;)if(ambiguous.contains(out[i].toMap()["app"].toString()))out.removeAt(i);
     return out;

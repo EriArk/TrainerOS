@@ -1,0 +1,11 @@
+********* Start testing of CratesTests *********
+Config: Using QtTest library 6.11.1, Qt 6.11.1 (x86_64-little_endian-llp64 shared (dynamic) release build; by GCC 16.1.0), windows 10
+PASS   : CratesTests::initTestCase()
+QWARN  : CratesTests::installedActivityDoesNotRequireRunningGame() QFSFileEngine::open: No file name specified
+QWARN  : CratesTests::installedActivityDoesNotRequireRunningGame() QFSFileEngine::open: No file name specified
+PASS   : CratesTests::installedActivityDoesNotRequireRunningGame()
+QWARN  : CratesTests::externalAtomicUpgradeRefreshesLobbyInventory() QFSFileEngine::open: No file name specified
+PASS   : CratesTests::externalAtomicUpgradeRefreshesLobbyInventory()
+PASS   : CratesTests::cleanupTestCase()
+Totals: 4 passed, 0 failed, 0 skipped, 0 blacklisted, 868ms
+********* Finished testing of CratesTests *********
