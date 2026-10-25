@@ -1,5 +1,10 @@
 # Карта готовности функций TrainerOS
 
+**26 октября — CBN/CBIN доставлены на обе портативки:** оболочка `fcff5356`,
+отдельный native package, проверки чтения/старта и сохранности проверенных
+личных файлов. [Установленные хеши и границы](MULTIPLAYER_CONTENT_FORMATS.md#cbncbin-исправленный-native-reader).
+CIA/ZCIA installation/identity остаётся незавершённой функцией ниже.
+
 **25 октября — CBN/CBIN, S02/S03 → S06/S08:** отдельный исправленный PS1 reader
 подключён к регистрации, обычному запуску и NetPlay, включая M3U. Native miniz
 и ARM64 suites прошли; [доставка/границы](MULTIPLAYER_CONTENT_FORMATS.md#cbncbin-исправленный-native-reader)

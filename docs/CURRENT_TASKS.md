@@ -1,5 +1,9 @@
 # Задачи и условия готовности
 
+**26 октября — поставка CBN/CBIN завершена:** новый пакет и оболочка `fcff5356`
+работают на Flip/Odin; [проверки и сохранность данных](MULTIPLAYER_CONTENT_FORMATS.md#cbncbin-исправленный-native-reader)
+записаны. Не повторять эту доставку; следующий участок CIA/ZCIA описан ниже.
+
 **25 октября — продолжение форматов:** исправленный отдельный PCSX-ReARMed
 подключён для CBN/CBIN/M3U, native reader и ARM64 suites прошли.
 [Поставка и ограничения](MULTIPLAYER_CONTENT_FORMATS.md#cbncbin-исправленный-native-reader).
