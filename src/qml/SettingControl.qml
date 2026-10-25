@@ -10,6 +10,7 @@ Item {
     property int level: -1
     property bool muted: false
     property bool compact: false
+    property bool flat: false
     property real textInset: 13
     readonly property bool slider: kind === "volume" || kind === "brightness"
     signal activated()
@@ -24,6 +25,10 @@ Item {
     onSelectedChanged: Qt.callLater(claimFocus)
     onVisibleChanged: Qt.callLater(claimFocus)
     Component.onCompleted: Qt.callLater(claimFocus)
+    SettingsRow { anchors.fill: parent; visible: root.flat; compact: root.compact || root.height<48; title: root.title; detail: root.detail; kind: root.kind; selected: root.selected; checked: root.checked; level: root.level; muted: root.muted; textInset: root.textInset
+        onActivated: root.activated(); onAdjustmentRequested: direction => root.adjustmentRequested(direction); onLevelRequested: value => root.levelRequested(value)
+    }
+    Item { anchors.fill: parent; visible: !root.flat
     Rectangle { anchors.fill: parent; radius: 10; color: root.selected ? "#fff4ce" : "#eaf0e6"; border.color: root.selected ? Theme.focus : "#bdcdbd"; border.width: root.selected ? 3 : 1 }
     Rectangle { anchors.fill: parent; anchors.margins: -3; radius: 13; color: "transparent"; visible: root.selected; border.width: 3; border.color: Theme.focusGlow; opacity: 0.45 }
     Text { x: root.textInset; y: root.compact ? 4 : root.height<60 ? 6 : 12; width: parent.width-root.textInset-13-(root.slider || root.kind==="theme" ? readout.implicitWidth+12 : 54); elide: Text.ElideRight; text: root.title; textFormat: Text.PlainText; color: root.kind === "unavailable" ? Theme.muted : Theme.ink; font.pixelSize: root.compact ? 13 : root.height<60 ? 16 : 19; font.bold: !root.compact }
@@ -64,5 +69,6 @@ Item {
                 onActivated: root.adjustmentRequested(index ? 1 : -1)
             }
         }
+    }
     }
 }

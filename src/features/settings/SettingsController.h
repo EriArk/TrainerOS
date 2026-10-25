@@ -1,8 +1,10 @@
 #pragma once
 #include "LibraryStorageController.h"
 #include "ClockController.h"
+#include "GameInputProfiles.h"
 #include "CommunicationSettings.h"
 #include "core/input/Action.h"
+#include "core/input/ControllerInput.h"
 #include "core/repository/PreferencesRepository.h"
 #include <QVariantList>
 #include <QPointer>
@@ -32,8 +34,15 @@ class SettingsController final : public QObject {
     Q_PROPERTY(int rowFocus READ rowFocus NOTIFY changed)
     Q_PROPERTY(bool controlsFocused READ controlsFocused NOTIFY changed)
     Q_PROPERTY(QStringList categories READ categories CONSTANT)
+    Q_PROPERTY(QVariantList sections READ sections CONSTANT)
+    Q_PROPERTY(QVariantList pages READ pages NOTIFY changed)
+    Q_PROPERTY(int sectionIndex READ sectionIndex NOTIFY changed)
+    Q_PROPERTY(QString categoryId READ categoryId NOTIFY changed)
+    Q_PROPERTY(trainer::GameInputProfiles* gameInput READ gameInput CONSTANT)
     Q_PROPERTY(QVariantList controls READ controls NOTIFY changed)
 public:
+    GameInputProfiles* gameInput() {return &gameInput_;}
+    void setController(ControllerInput* value) { input_=value;connect(value,&ControllerInput::profileChanged,this,&SettingsController::changed); }
     void setScraper(ScrapeController* value) { scraper_=value; }
     CommunicationSettings* communication() { return &communication_; }
     void configureNearby(NativeActivityProvider*);
@@ -50,10 +59,16 @@ public:
     void setLegacyTrashAvailable(bool value) { if(legacyTrash_==value)return;legacyTrash_=value;if(category_==8)row_=0;emit changed(); }
     void begin() { storage_.close(); category_ = 0; row_ = 0; pane_ = false; emit changed(); }
     int category() const { return category_; }
-    int rowFocus() const { return row_; }
+    int rowFocus() const { return category_==16?gameInput_.focusIndex():row_; }
     bool controlsFocused() const { return pane_; }
     QStringList categories() const { return {"Appearance", "Sound", "Media", "Feedback", "Trainer", "System", "Credits", "Controller", "Library", "Saves", "Connections", "Date & time", "Nearby play", "Communication", "ScreenScraper"}; }
     QVariantList controls() const;
+    QVariantList sections() const;
+    QVariantList pages() const;
+    int sectionIndex() const;
+    QString categoryId() const;
+    Q_INVOKABLE void selectSection(int index);
+    Q_INVOKABLE void selectPage(const QString& id, bool enter=true);
     Q_INVOKABLE void selectCategory(int index, bool enter = true);
     Q_INVOKABLE void activateRow(int index);
     Q_INVOKABLE void cycleTheme(int direction = 1);
@@ -72,7 +87,7 @@ public:
     QString error() const { return error_; }
     QString libraryStatus() const { return libraryStatus_; }
     void setLibraryScanState(bool available, bool busy, const QString& result = {});
-    int focusIndex() const { return pane_ ? row_ : category_; }
+    int focusIndex() const { return pane_ ? rowFocus() : sectionIndex(); }
     void dispatch(Action);
     void activate(int index);
 signals:
@@ -80,6 +95,7 @@ signals:
     void closeRequested();
     void deviceRequested(int index);
     void controllerRequested();
+    void softwareRequested(QString destination);
     void trashRequested();
     void collectionsRequested();
     void libraryRefreshRequested();
@@ -87,6 +103,8 @@ signals:
     void messageRequested(const QString& message);
     void quickAdjustment(int index, trainer::Action action);
 private:
+    GameInputProfiles gameInput_;
+    ControllerInput* input_=nullptr;
     ScrapeController* scraper_=nullptr;
     QPointer<NativeActivityProvider> nearby_;
     ClockController clock_;

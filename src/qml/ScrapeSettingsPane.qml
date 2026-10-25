@@ -2,6 +2,7 @@ import QtQuick
 
 Item {
     id: root
+    property bool flat: false
     required property var flow
     property bool takesFocus: false
     Text { id: heading; x: 5; y: 12; text: "ScreenScraper"; color: Theme.ink; font.family: Theme.displayFamily; font.pixelSize: 25 }
@@ -16,7 +17,7 @@ Item {
             visible: list.contentHeight>list.height; color: "#b5c7b8"; z: 2
             Rectangle { width: parent.width; height: Math.max(16,list.visibleArea.heightRatio*parent.height); y: list.visibleArea.yPosition*parent.height; radius: 2; color: Theme.muted }
         }
-        delegate: SettingControl {
+        delegate: SettingControl { flat: root.flat;
             required property int index; required property var modelData
             objectName: "scraper-setting-"+index; width: list.width; height: 56
             title: modelData.label; detail: modelData.detail; kind: modelData.enabled ? "action" : "unavailable"

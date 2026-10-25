@@ -312,6 +312,16 @@ Minimize сохраняет тот же сеанс. Обычный Exit прох
 может разрешить продолжение Lobby, сохраняя unclean save/frame outcome; это не
 доказательство сохранения внутри игры. Краш/stop не должны давать фиктивный успех.
 
+[Профили ввода 25.10](INPUT_PROFILES.md): S04 (`GameInputProfiles`) хранит
+owner/game черновик и атомарный профиль; S03 передаёт снимок следующему запуску
+через `AdventureOverlayService`. S15/InputPlumber перехватывает gamepad, отдельный
+watchdog XTest владеет удержанными клавишами/мышью на действующем X11 game window.
+Home, focus loss, disconnect, EOF/timeout освобождают выход; возврат требует
+нейтрали. Кольцо использует нефокусируемый `InvitationOverlayService` и тот же
+lease, без нового владельца сеанса/сохранений. Постоянный профиль устройства
+остаётся у `ControllerInput`; raw helpers получают только runtime-проекцию.
+Физическая Linux-приёмка этого пути ещё открыта, как и прочие host backends.
+
 У приложений сейчас отдельная ветка `AppsController::openDesktopId()` →
 `commandRequested(launch)` → [apps-service](../packaging/integrations/apps-service.py).
 Состояния current/running/foreground возвращаются в Apps; общие правила Home/ввода
@@ -585,6 +595,7 @@ sample необязателен для простой realtime игры. Про�
 | Причина / вход | Что восстанавливается и кем | Что нельзя считать восстановленным / проверка |
 | --- | --- | --- |
 | Сон/крышка | S15 PowerControl/logind, S04 navigation checkpoint; записи проверяются до suspend, wake сохраняет текущий экран | Сейчас активная игра отклоняет Sleep. Сон работающего эмулятора/voice/transfers и физический wake ещё не приняты; не обещать resume игры. [POWER86](POWER86.md). |
+| Потеря focus/помощника game input | S03/S15 снимают held keys/mouse через независимый watchdog; S04 гасит кольцо. При следующем вводе требуется нейтраль, после потери helper применяется native fallback | [Профили ввода](INPUT_PROFILES.md): тесты mapping/EOF/timeout не заменяют физический X11/InputPlumber loop или sleep/wake. Профиль и сохранения остаются на диске. |
 | Перезапуск shell | S04 открывает Home, сохраняя позиции разделов; S03 проверяет фактический процесс через существующий supervisor, S08 — оставшуюся save-операцию | Новый shell не является новым запуском/успешным save. Attachment к оставшемуся процессу/input/helpers требует подтверждения по runtime; не стартовать дубль. Browser не восстанавливает сетевые страницы автоматически. |
 | Перезапуск/потеря Lobby | S06 читает owner/account journal; хозяин повышает generation, сбрасывает Ready/ticket, гость заново подтверждает членство | Журнал не выдаёт допуск, не воскрешает исключённого участника и не восстанавливает emulator savestate. Подтверждённая игра завершается независимо. [LOBBY_RECOVERY](LOBBY_RECOVERY.md). |
 | Потеря сети/provider | S05 reconnect собственных событий; S07 восстанавливает только поддержанный игровой канал; S06 повторно проверяет членство/режим | Messenger online не доказывает game rejoin. Срок приглашения не продлевается молча, call не заменяется новым. Существующий runtime решает reconnect либо завершение с сохранным Exit. |

@@ -15,6 +15,7 @@ Window {
     Binding { target: controllerInput; property: "pointerMode"; value: !shell.social.incomingCall.id && (filesPane.takesFocus || browserPane.takesFocus) && (!adventureLaunch.active || adventureLaunch.minimized) && !sessionState.blocked }
     Binding { target: controllerInput; property: "nativeKeyboard"; value: !shell.social.incomingCall.id && browserPane.takesFocus && !browserPane.popup && !browserPane.toolsFocused }
     Binding { target: controllerInput; property: "browserMode"; value: !shell.social.incomingCall.id && browserPane.takesFocus }
+    RadialInputWindow { flow: shell.settings.gameInput; bridge: radialOverlay; permitted: adventureLaunch.active && !adventureLaunch.minimized && !sessionState.blocked && !adventureExitPresentation.visible }
     AppControlsWindow { flow: shell.apps; bridge: appsOverlay }
     AdventureExitWindow {
         presentation: adventureExitPresentation
@@ -34,6 +35,7 @@ Window {
             && !adventureExitPresentation.visible && !adventureExitPresentation.capturing
     }
     Binding { target: Theme; property: "themeId"; value: shell.settings.theme }
+    Binding { target: Theme; property: "controller"; value: controllerInput }
     Binding { target: Theme; property: "reducedMotion"; value: shell.settings.reducedMotion }
     Binding { target: Theme; property: "television"; value: shell.settings.displayProfile === "tv" }
     Binding { target: Theme; property: "uiScale"; value: window.uiScale }
@@ -427,7 +429,8 @@ Window {
                     const flow = shell.settings.communication
                     return [h("←→","Adjust"),h("A","Select"),h("B",flow.choosingAvatar ? "Cancel" : "Categories")]
                 }
-                if (shell.service === "settings") return [h("←→","Adjust"),h("A",shell.settings.controlsFocused ? "Select" : "Open"),h("B",shell.settings.controlsFocused ? "Categories" : "Back")]
+                if (shell.service === "settings" && shell.settings.categoryId==="game-input" && shell.settings.controlsFocused) return [h("↑↓","Choose"),h("L2/R2","Tabs"),h("A","Select"),h("B",shell.settings.gameInput.choosing?"Cancel":"Back")]
+                if (shell.service === "settings") return [h(shell.settings.controlsFocused?"←→":"↑↓",shell.settings.controlsFocused?"Adjust":"Section"),h("A",shell.settings.controlsFocused ? "Select" : "Open"),h("B",shell.settings.controlsFocused ? "Categories" : "Back")]
                 if (shell.service === "device") return [h("←→","Adjust"),h("Y","Refresh"),h("A","Select"),h("B","Back")]
                 if (shell.serviceOpen) return [h("A","Select"),h("B","Back")]
                 if (shell.pcGames.open) return [h("A","Choose"),h("B",shell.pcGames.picker.open ? "Back" : shell.pcGames.busy ? "Hide" : "Close")]
@@ -514,16 +517,12 @@ Window {
             objectName: "settings-overlay"
             width: parent.width; height: Theme.footerTop; z: 2.2
             visible: shell.service === "settings"
-            Rectangle { anchors.fill: parent; color: "#99102020" }
+            Rectangle { anchors.fill: parent; color: "#fafbf7" }
             MouseArea { anchors.fill: parent; acceptedButtons: Qt.AllButtons; onWheel: wheel => wheel.accepted = true }
-            Rectangle {
-                x: 37; y: 61; width: parent.width-64; height: parent.height-66
-                radius: 16; color: "#60101a19"
-            }
-            Panel {
+            Item {
                 id: settingsSurface
                 objectName: "settings-surface"
-                x: 32; y: 52; width: parent.width-64; height: parent.height-66
+                x: 12; y: 0; width: parent.width-24; height: parent.height
                 Loader { anchors.fill: parent; active: settingsOverlay.created; sourceComponent: SettingsPanel { shell: shellController } }
             }
         }

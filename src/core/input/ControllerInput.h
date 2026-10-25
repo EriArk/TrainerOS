@@ -1,5 +1,6 @@
 #pragma once
 #include "Action.h"
+#include "ControllerProfile.h"
 #include <QObject>
 #include <QTimer>
 #include <QElapsedTimer>
@@ -24,6 +25,10 @@ class ControllerInput final : public QObject {
     Q_PROPERTY(bool nativeKeyboard MEMBER nativeKeyboard_)
     Q_PROPERTY(bool browserMode MEMBER browserMode_)
     Q_PROPERTY(bool connected READ connected NOTIFY connectionChanged)
+    Q_PROPERTY(QString family READ family NOTIFY profileChanged)
+    Q_PROPERTY(QVariantMap profile READ profile NOTIFY profileChanged)
+    Q_PROPERTY(QString deviceName READ deviceName NOTIFY profileChanged)
+    Q_PROPERTY(QString profileError READ profileError NOTIFY profileChanged)
 public:
     // Switch-style shell: printed A at the right confirms; printed B below
     // goes back. SDL names these positions B/east and A/south respectively.
@@ -35,6 +40,15 @@ public:
     ~ControllerInput() override;
     bool connected() const { return controller_ != nullptr; }
     bool initialized() const { return initialized_; }
+    QString family() const;
+    QString deviceName() const { return physicalName_.isEmpty()?sample_.name:physicalName_; }
+    QString profileError() const { return profileError_; }
+    QVariantMap profile() const { return profile_.json(); }
+    Q_INVOKABLE bool setProfile(const QVariantMap&);
+    Q_INVOKABLE void resetProfile() { setProfile(ControllerProfile{}.json()); }
+    Q_INVOKABLE QString glyph(const QString& semanticHint) const;
+    int confirmButton() const;
+    int backButton() const { return confirmButton()==SDL_CONTROLLER_BUTTON_A?SDL_CONTROLLER_BUTTON_B:SDL_CONTROLLER_BUTTON_A; }
     const ControllerSample& sample() const { return sample_; }
     QString kernelDeviceName() const;
     void setEnabled(bool enabled);
@@ -53,6 +67,7 @@ signals:
     void textBackspace();
     void textSubmitted();
     void connectionChanged();
+    void profileChanged();
     void sampled();
     void pointerMoved(qreal dx,qreal dy);
     void pageScrolled(qreal dx,qreal dy);
@@ -79,5 +94,9 @@ private:
     qint64 nextRepeat_ = 0;
     qint64 nextScroll_ = 0;
     ControllerSample sample_;
+    ControllerProfile profile_;
+    QString detectedFamily_="generic", profileError_, physicalName_, profileKey_;
+    void loadProfile();
+    void publishShellMapping();
 };
 }

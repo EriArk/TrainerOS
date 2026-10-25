@@ -4,7 +4,7 @@
 namespace trainer {
 namespace {
 QString actionName(Action action) {
-    const QStringList names{"Up", "Down", "Left", "Right", "Confirm (A)", "Back (B)", "System (Start)", "Previous section (L1)", "Next section (R1)", "Choose Adventure / filter (Y)", "Secondary (X)", "Home", "Previous paired face (L2)", "Next paired face (R2)", "Local action (Select)"};
+    const QStringList names{"Up", "Down", "Left", "Right", "Confirm", "Back", "System menu", "Previous section", "Next section", "Recent games", "Quick Apps", "Home", "Previous face", "Next face", "Local action"};
     return names.value(int(action), "Unknown action");
 }
 }
@@ -66,14 +66,14 @@ void DiagnosticsController::reset() {
     emit changed();
 }
 QVariantList DiagnosticsController::buttons() const {
-    const std::pair<SDL_GameControllerButton, QString> shown[] = {
+    const std::pair<int, QString> shown[] = {
         {SDL_CONTROLLER_BUTTON_DPAD_UP,"Up"}, {SDL_CONTROLLER_BUTTON_DPAD_DOWN,"Down"}, {SDL_CONTROLLER_BUTTON_DPAD_LEFT,"Left"},
-        {SDL_CONTROLLER_BUTTON_DPAD_RIGHT,"Right"}, {ControllerInput::ConfirmButton,"A"}, {ControllerInput::BackButton,"B"},
+        {SDL_CONTROLLER_BUTTON_DPAD_RIGHT,"Right"}, {input_?input_->confirmButton():ControllerInput::ConfirmButton,"A"}, {input_?input_->backButton():ControllerInput::BackButton,"B"},
         {SDL_CONTROLLER_BUTTON_Y,"X"}, {SDL_CONTROLLER_BUTTON_X,"Y"}, {SDL_CONTROLLER_BUTTON_LEFTSHOULDER,"L1"},
         {SDL_CONTROLLER_BUTTON_RIGHTSHOULDER,"R1"}, {SDL_CONTROLLER_BUTTON_START,"Start"}, {SDL_CONTROLLER_BUTTON_BACK,"Select"},
         {SDL_CONTROLLER_BUTTON_LEFTSTICK,"L3"}, {SDL_CONTROLLER_BUTTON_RIGHTSTICK,"R3"}, {SDL_CONTROLLER_BUTTON_GUIDE,"Guide"}};
     QVariantList result;
-    for (const auto& [id, name] : shown) result.append(QVariantMap{{"label", name}, {"held", sample_.buttons[id]}, {"seen", seen_[id]}});
+    for (const auto& [id, name] : shown) result.append(QVariantMap{{"label", input_?input_->glyph(name):name}, {"held", sample_.buttons[id]}, {"seen", seen_[id]}});
     return result;
 }
 QVariantList DiagnosticsController::axes() const {

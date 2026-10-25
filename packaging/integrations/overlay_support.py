@@ -5,12 +5,16 @@ import os
 import signal
 from pathlib import Path
 import struct
+import json
 
 
 class RawPad:
     def __init__(self, path):
         self.fd = os.open(path, os.O_RDONLY | os.O_NONBLOCK | os.O_CLOEXEC)
         name = bytes(self.get(0x06, 128)).split(b'\0')[0]
+        self.name = name.decode('utf-8', errors='replace')
+        self.shell_mapping = {}
+        self.mapping_stamp = None
         profiles = {b'Retroid Pocket Gamepad': ({0,1,2,3,4,5,20,21}, {20,21}),
                     b'AYN Odin2 Gamepad': ({0,1,2,3,4,5}, {2,5})}
         if name not in profiles or struct.unpack('HHHH', self.get(0x02, 8))[:3] != (3, 0x2020, 0x3001):
@@ -27,6 +31,18 @@ class RawPad:
         return data
 
     def sample(self):
+        mapping_path = Path(os.environ.get('XDG_RUNTIME_DIR', '/nonexistent'))/'traineros-shell-input.json'
+        try:
+            stamp = mapping_path.stat().st_mtime_ns
+            if stamp != self.mapping_stamp:
+                self.mapping_stamp = stamp
+                self.shell_mapping = {}
+                if mapping_path.stat().st_size <= 4096:
+                    candidate = json.loads(mapping_path.read_text())
+                    if isinstance(candidate, dict) and candidate.get('version') == 1 and candidate.get('device') == self.name:
+                        self.shell_mapping = candidate
+        except (OSError, ValueError):
+            self.shell_mapping = {}
         bits = self.get(0x18, 96)
         keys = {i for i in range(768) if bits[i // 8] & (1 << (i % 8))}
         neutral = not keys
@@ -38,12 +54,22 @@ class RawPad:
             position = (value - low) / (high - low)
             positions[axis] = position
             neutral &= position < .15 if axis in self.triggers else abs(position - .5) < .175
-        return {'connected': True, 'neutral': bool(neutral), 'confirm': 305 in keys,
-                'back': 304 in keys, 'home': 316 in keys,
-                'up': 544 in keys or positions[1] < .225,
-                'down': 545 in keys or positions[1] > .775,
-                'left': 546 in keys or positions[0] < .225,
-                'right': 547 in keys or positions[0] > .775,
+        buttons = [name for code, name in ((304,'south'),(305,'east'),(308,'west'),(307,'north'),
+            (310,'leftShoulder'),(311,'rightShoulder'),(317,'leftStick'),(318,'rightStick'),
+            (314,'select'),(315,'start'),(544,'up'),(545,'down'),(546,'left'),(547,'right')) if code in keys]
+        if positions[min(self.triggers)] > .55: buttons.append('leftTrigger')
+        if positions[max(self.triggers)] > .55: buttons.append('rightTrigger')
+        right = (2,3) if 20 in self.triggers else (3,4)
+        confirm, back = (304,305) if self.shell_mapping.get('southConfirms') is True else (305,304)
+        lx = 1-positions[0] if self.shell_mapping.get('invertX') is True else positions[0]
+        ly = 1-positions[1] if self.shell_mapping.get('invertY') is True else positions[1]
+        return {'buttons': buttons, 'sticks': [positions[a]*2-1 for a in (0,1,*right)],
+                'connected': True, 'neutral': bool(neutral), 'confirm': confirm in keys,
+                'back': back in keys, 'home': 316 in keys,
+                'up': 544 in keys or ly < .225,
+                'down': 545 in keys or ly > .775,
+                'left': 546 in keys or lx < .225,
+                'right': 547 in keys or lx > .775,
                 'start': 315 in keys, 'select': 314 in keys,
                 'secondary': 307 in keys, 'recent': 308 in keys,
                 'previousPage': 310 in keys, 'nextPage': 311 in keys,

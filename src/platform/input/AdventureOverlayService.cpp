@@ -3,6 +3,7 @@
 #include <QFileInfo>
 #include <QImageReader>
 #include <QJsonDocument>
+#include <QSaveFile>
 #include <QLoggingCategory>
 
 namespace trainer {
@@ -23,7 +24,7 @@ AdventureOverlayService::AdventureOverlayService(ProcessService& game, Adventure
     connect(&stopDeadline_, &QTimer::timeout, this, [this] { helperProcess_.kill(); }); // Helper only; watchdog survives.
     connect(&retry_, &QTimer::timeout, this, &AdventureOverlayService::start);
     connect(&heartbeat_, &QTimer::timeout, this, [this] { send({{"command", "ping"}}); });
-    connect(&launch, &AdventureLaunchController::suspendRequested, this, [this] { active_ = true; start(); });
+    connect(&launch, &AdventureLaunchController::suspendRequested, this, [this] { mappingFailed_=false;active_ = true; start(); });
     connect(&launch, &AdventureLaunchController::restoreRequested, this, [this] { stop(); });
     connect(&helperProcess_, &QProcess::started, this, [this] { heartbeat_.start(); send({{"command", "ping"}}); });
     connect(&helperProcess_, &QProcess::readyReadStandardOutput, this, &AdventureOverlayService::receive);
@@ -74,10 +75,22 @@ void AdventureOverlayService::start() {
     temporary_ = std::make_unique<QTemporaryDir>();
     if (!temporary_->isValid()) return;
     buffer_.clear(); sentEpoch_ = 0;
-    helperProcess_.start("/usr/bin/python3", {helper_, "--game", QString::number(game_.processId()),
-        "--shell", QString::number(QCoreApplication::applicationPid()), "--directory", temporary_->path()});
+    QStringList arguments{helper_, "--game", QString::number(game_.processId()),
+        "--shell", QString::number(QCoreApplication::applicationPid()), "--directory", temporary_->path()};
+    const auto profile=inputProfile?inputProfile(launch_.adventureId()):QJsonObject{};
+    profileRequested_=!mappingFailed_ && profile["mode"]=="keyboard_mouse";
+    if(profileRequested_) {
+        const auto path=temporary_->filePath("input.json");QSaveFile file(path);
+        const auto data=QJsonDocument(profile).toJson();
+        if(!file.open(QIODevice::WriteOnly)||file.write(data)!=data.size()||!file.commit()) {
+            profileRequested_=false;mappingFailed_=true;
+            emit inputMappingFailed("Could not prepare the input profile. Using original game controls.");
+        } else arguments << "--input-profile" << path;
+    }
+    helperProcess_.start("/usr/bin/python3", arguments);
 }
 void AdventureOverlayService::stop() {
+    emit radialChanged({});
     openingShell_=false;
     active_ = false; retry_.stop(); heartbeat_.stop(); handoffDeadline_.stop();
     exit_.setAvailable(false); view_.setInputIsolated(false);
@@ -86,6 +99,11 @@ void AdventureOverlayService::stop() {
     }
 }
 void AdventureOverlayService::lost() {
+    emit radialChanged({});
+    if(active_ && game_.active() && game_.processId() && profileRequested_ && !mappingFailed_) {
+        mappingFailed_=true;
+        emit inputMappingFailed("The game input profile could not stay active. Original controls are restored; check the controller and restart the game to retry.");
+    }
     openingShell_=false;
     handoffDeadline_.stop();
     protocol_=0;shellReady_=false;returning_=minimizing_=false;
@@ -117,7 +135,8 @@ void AdventureOverlayService::receive() {
         const auto message = QJsonDocument::fromJson(buffer_.left(index)).object(); buffer_.remove(0, index + 1);
         if (!active_ || !game_.active()) continue;
         const auto event = message["event"].toString();
-        if (event == "ready") {protocol_=message["protocol"].toInt();exit_.setAvailable(protocol_>=2 && protocol_<=4);qCInfo(overlayLog)<<"helper ready"<<protocol_;}
+        if (event == "radial") {emit radialChanged(message.toVariantMap());}
+        else if (event == "ready") {protocol_=message["protocol"].toInt();exit_.setAvailable(protocol_>=2 && protocol_<=4);qCInfo(overlayLog)<<"helper ready"<<protocol_;}
         else if(event=="minimized") {
             if(minimizing_ && launch_.setMinimized(true)){handoffDeadline_.stop();minimizing_=false;shellReady_=false;heldAction_.clear();view_.handOffToShell();emit shellRequested();}
         } else if(event=="shell-input" && launch_.minimized() && !returning_ && message["epoch"].toString().toULongLong()==view_.inputGeneration())shellInput(message);

@@ -75,6 +75,9 @@ ShellController::ShellController(LibraryRepository& repo, TrainerRepository& pro
       libraryManager_(repo, nullptr, this), libraryTools_(repo,this), scraper_(repo,this), pcGames_(repo,*files_.service(),this), settings_(this), device_(this), diagnostics_(this), dashboard_(repo,achievements,social_,this), story_(repo,achievements) {
 
     connect(&pcGames_,&PcGamesController::changed,this,&ShellController::changed);
+    settings_.gameInput()->configure(&repo,{},{});
+    connect(settings_.gameInput(),&GameInputProfiles::changed,&settings_,&SettingsController::changed);
+    connect(settings_.gameInput(),&GameInputProfiles::backRequested,this,[this]{settings_.selectPage("game-input",false);});
     connect(&pcGames_,&PcGamesController::saved,this,[this](QString){refreshLibrary();});
     connect(&pcGames_,&PcGamesController::textRequested,this,[this](QString title,QString text,int limit){textTarget_=TextTarget::PcGame;keyboard_.begin(title,text,limit);});
 
@@ -243,6 +246,9 @@ ShellController::ShellController(LibraryRepository& repo, TrainerRepository& pro
         textTarget_ = TextTarget::SetupName; keyboard_.begin(trainerSetup_.live()?"Trainer name":"Sample Trainer name", initial, 24);
     });
     connect(&settings_, &SettingsController::deviceRequested, this, [this](int index) { device_.activate(index + 2); emit changed(); });
+    connect(&settings_, &SettingsController::softwareRequested, this, [this](const QString& destination) {
+        service_.clear(); goToPage(AppsPage); selectFace(destination=="crates"?1:0); emit changed();
+    });
     connect(&settings_, &SettingsController::controllerRequested, this, [this] { service_ = "diagnostics"; diagnostics_.begin(); emit changed(); });
     connect(&device_, &DeviceController::changed, this, &ShellController::changed);
     connect(this, &ShellController::changed, this, [this] { device_.setMonitoring(onboardingConnections_ || menuOpen_ || gameControlsOpen_ || service_ == "device" || service_ == "settings"); });
@@ -1287,7 +1293,7 @@ void ShellController::activate(int index, const QString& area) {
     else if (service_ == "trainer-settings") { trainerSettingsAction(index); return; }
     else if (service_ == "trainer-setup") { trainerSetup_.activate(index); return; }
     else if(service_=="profile") {trainer_.activate(index);return;}
-    else if (service_ == "settings") { if(hall_.account()->isOpen()) { hall_.account()->activate(index); return; } if(trainer_.editing()) { trainer_.activate(index); return; } if(settings_.controlsFocused()) {if(settings_.category()==10)network_.activate(index);else settings_.activateRow(index);} else settings_.selectCategory(index,true); return; }
+    else if (service_ == "settings") { if(hall_.account()->isOpen()) { hall_.account()->activate(index); return; } if(trainer_.editing()) { trainer_.activate(index); return; } if(settings_.controlsFocused()) {if(settings_.category()==10)network_.activate(index);else settings_.activateRow(index);} else {settings_.selectSection(index);settings_.dispatch(Action::Confirm);} return; }
     else if (service_ == "device") { device_.activate(index); return; }
     else if (service_ == "diagnostics") { diagnostics_.activate(index); return; }
     else if (trainer_.editing()) { trainer_.activate(index); return; }
@@ -1743,6 +1749,10 @@ void ShellController::dispatch(Action action) {
         return;
     }
     if (action == Action::PreviousFace || action == Action::NextFace) {
+        if(service_=="settings" && !menuOpen_ && !homeMenuOpen_ && !keyboard_.isOpen() && !drawerOpen_ && notice_.isEmpty()) {
+            if(!hall_.account()->isOpen() && !trainer_.editing())settings_.dispatch(action);
+            return;
+        }
         if(drawerOpen_) {setDrawerSource(drawerFavorites_?"recent":"favorites");return;}
         if(pairedNavigationAvailable()) {
             drawerOpen_=false;

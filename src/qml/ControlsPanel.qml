@@ -41,7 +41,7 @@ Panel {
         Text { anchors.centerIn: parent; visible: root.board.widgets.length === 0; text: "Add the controls you use"; color: Theme.muted; font.pixelSize: 16 }
     }
     Row { anchors.bottom: parent.bottom; anchors.bottomMargin: 15; x: 22; spacing: 9; visible: root.board.editing
-        Repeater { model: [{id:"add",name:"+ Add"},{id:"resize",name:"X Size"},{id:"hide",name:"Y Hide"}]
+        Repeater { model: [{id:"add",name:"+ Add"},{id:"resize",name:Theme.buttonLabel("X")+" Size"},{id:"hide",name:Theme.buttonLabel("Y")+" Hide"}]
             CapButton { required property var modelData; width: 87; height: 28; textSize: 13; label: modelData.name; centered: true; tint: Theme.paper; onActivated: root.board.activate(modelData.id) }
         }
     }
@@ -51,7 +51,7 @@ Panel {
         Text { text: "R1 ›"; color: Theme.muted; font.pixelSize: 13; MouseArea { anchors.fill: parent; onClicked: root.board.changePage(1) } }
     }
     Text { anchors.right: parent.right; anchors.rightMargin: 28; anchors.bottom: parent.bottom; anchors.bottomMargin: 15; color: Theme.muted; font.pixelSize: 12
-        text: root.board.moving?"A Place · B Cancel · L1/R1 Page":root.board.editing?"A Move · L2 Add":root.board.adjusting?(root.board.selected==="volume"?"↑↓ Adjust · X Mute · B Done":"↑↓ Adjust · B Done"):"A Select · B Close" }
+        text: root.board.moving?Theme.buttonLabel("A")+" Place · "+Theme.buttonLabel("B")+" Cancel · "+Theme.buttonLabel("L1/R1")+" Page":root.board.editing?Theme.buttonLabel("A")+" Move · "+Theme.buttonLabel("L2")+" Add":root.board.adjusting?(root.board.selected==="volume"?"↑↓ Adjust · "+Theme.buttonLabel("X")+" Mute · "+Theme.buttonLabel("B")+" Done":"↑↓ Adjust · "+Theme.buttonLabel("B")+" Done"):Theme.buttonLabel("A")+" Select · "+Theme.buttonLabel("B")+" Close" }
     Text { x: 30; y: grid.y+grid.height+4; width: parent.width-60; color: Theme.muted; text: root.board.status || root.shell.device.error; font.pixelSize: 11; elide: Text.ElideRight }
     Rectangle { anchors.fill: parent; radius: 15; color: "#99182b29"; visible: root.board.picking
         MouseArea { anchors.fill: parent; onClicked: {} }

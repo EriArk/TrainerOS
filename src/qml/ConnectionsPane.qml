@@ -1,6 +1,7 @@
 import QtQuick
 Item {
     id: root
+    property bool flat: false
     required property var shell
     property bool onboarding: false
     property bool quick: false
@@ -11,14 +12,14 @@ Item {
         x: 0; y: 10; width: parent.width; spacing: 8
         Text { visible: root.quick; width: root.quick?root.width-132:0; height: 38; verticalAlignment: Text.AlignVCenter; text: "Available networks"; color: Theme.muted; font.pixelSize: 14 }
         Repeater { model: root.quick?[]:["Wi-Fi", "Bluetooth"]
-            CapButton {
+            CapButton { flat: root.flat;
                 required property int index; required property string modelData
                 width: (root.width-140)/2; height: 43; label: modelData; textSize: 18
                 tint: root.network.bluetooth===(index===1) ? Theme.yellow : Theme.blue
                 onActivated: { root.enter();root.network.selectFace(index===1) }
             }
         }
-        CapButton {
+        CapButton { flat: root.flat;
             width: 124; height: root.quick?32:43; textSize: 15
             readonly property var radio: root.shell.device.radios[!root.quick && root.network.bluetooth?1:0]
             label: radio.detail; tint: radio.level===1 ? Theme.green : Theme.pink
@@ -47,7 +48,7 @@ Item {
                 selected: root.focused && root.network.focusIndex===entry.index
                 onActivated: {root.enter();root.network.activate(entry.index)}
             }
-            CapButton { anchors.fill: parent; visible: !root.quick; textSize: 18
+            CapButton { flat: root.flat; anchors.fill: parent; visible: !root.quick; textSize: 18
                 label: entry.modelData.title; detail: entry.modelData.detail
                 tint: entry.modelData.connected?Theme.green:entry.modelData.saved?Theme.blue:"#e4eddf"
                 selected: root.focused && root.network.focusIndex===entry.index
@@ -69,7 +70,7 @@ Item {
             text: root.network.prompt; textFormat: Text.PlainText; wrapMode: Text.WordWrap
             font.pixelSize: root.quick?18:23; color: Theme.ink
         }
-        CapButton {
+        CapButton { flat: root.flat;
             x: 22; anchors.bottom: parent.bottom; anchors.bottomMargin: root.quick?12:20
             width: parent.width-44; height: root.quick?32:43; label: root.network.confirmLabel
             visible: root.network.confirmLabel!=="Wait"
@@ -80,10 +81,10 @@ Item {
     Text {
         x: 4; anchors.bottom: parent.bottom; anchors.bottomMargin: 8
         width: parent.width-(root.quick?112:8); height: root.quick?45:34; wrapMode: Text.WordWrap; elide: Text.ElideRight
-        text: root.quick && root.network.bluetooth ? "Opening Wi-Fi…" : root.network.status || root.shell.device.error || (root.quick ? "A Select · X Radio · Y Search" : ""); textFormat: Text.PlainText
+        text: root.quick && root.network.bluetooth ? "Opening Wi-Fi…" : root.network.status || root.shell.device.error || (root.quick ? Theme.buttonLabel("A")+" Select · "+Theme.buttonLabel("X")+" Radio · "+Theme.buttonLabel("Y")+" Search" : ""); textFormat: Text.PlainText
         color: Theme.muted; font.pixelSize: 14
     }
-    CapButton { visible: root.quick; anchors.right: parent.right; anchors.bottom: parent.bottom; anchors.bottomMargin: 12
+    CapButton { flat: root.flat; visible: root.quick; anchors.right: parent.right; anchors.bottom: parent.bottom; anchors.bottomMargin: 12
         width: 100; height: 30; textSize: 13; label: "Search"; centered: true; tint: Theme.paper
         enabled: !root.network.busy && !root.network.prompt.length
         onActivated: root.network.search()

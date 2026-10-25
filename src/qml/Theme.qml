@@ -2,6 +2,11 @@ pragma Singleton
 import QtQuick
 
 QtObject {
+    property var controller: null
+    function buttonLabel(hint) {
+        const family=controller?.family, profile=controller?.profile
+        return controller ? hint.split("/").map(part => controller.glyph(part)).join("/") : hint
+    }
     property string themeId: "turquoise"
     property bool reducedMotion: false
     property bool television: false

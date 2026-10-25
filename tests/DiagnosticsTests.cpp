@@ -73,7 +73,7 @@ private slots:
         input.setEnabled(true); input.poll(); QVERIFY(actions.isEmpty()); QVERIFY(presses.isEmpty()); QVERIFY(input.sample().awaitingNeutral);
         SDL_JoystickSetVirtualButton(pad.joystick, SDL_CONTROLLER_BUTTON_B, 0); input.poll();
         SDL_JoystickSetVirtualButton(pad.joystick, SDL_CONTROLLER_BUTTON_B, 1); input.poll();
-        QCOMPARE(actions.size(), 1); QCOMPARE(checks.lastAction(), QString("Confirm (A)"));
+        QCOMPARE(actions.size(), 1); QCOMPARE(checks.lastAction(), QString("Confirm"));
         QCOMPARE(presses.size(), 1); // Feedback follows the same foreground/neutral gate as actions.
         SDL_JoystickSetVirtualButton(pad.joystick, SDL_CONTROLLER_BUTTON_B, 0); input.poll();
         SDL_JoystickSetVirtualAxis(pad.joystick, SDL_CONTROLLER_AXIS_RIGHTX, -30000); input.poll();
