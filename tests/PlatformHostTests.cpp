@@ -9,6 +9,7 @@
 #include "platform/sdk/PlatformHost.h"
 #include "features/device/ControlsDashboard.h"
 #include "features/trainer/AvatarAssets.h"
+#include "features/accounts/BackendAccount.h"
 using namespace trainer;
 namespace {
 struct Client {
@@ -57,6 +58,34 @@ private slots:
         QSettings::setDefaultFormat(QSettings::IniFormat);QSettings::setPath(QSettings::IniFormat,QSettings::UserScope,settings_.path());
     }
     void init(){QSettings().clear();}
+    void backendGameFacadeUsesRealSdkSocketAndHidesCredentials() {
+        QStandardPaths::setTestModeEnabled(true);
+        QList<QJsonObject> bodies;QList<QByteArray> credentials;
+        BackendAccount backend;
+        backend.setServices({[&](QByteArray,QString path,QJsonObject body,QByteArray auth,BackendAccount::Reply done){
+            if(path=="/v1/auth/refresh")done(200,{{"player_id","11111111-1111-4111-8111-111111111111"},
+                {"session_id","22222222-2222-4222-8222-222222222222"},{"fluxer_subject","12345"},
+                {"access_token",QString(43,'a')},{"refresh_token",QString(43,'r')},
+                {"expires_at",QDateTime::currentDateTimeUtc().addSecs(900).toString(Qt::ISODateWithMs)}});
+            else if(path=="/v1/play/grants") {credentials<<auth;done(200,{{"grant_token",QString(43,'g')},{"ruleset",QJsonObject{{"id","test.v1"}}},
+                {"trust","peer_confirmed"},{"expires_at",QDateTime::currentDateTimeUtc().addSecs(7200).toString(Qt::ISODateWithMs)}});}
+            else {bodies<<body;credentials<<auth;done(200,{{"receipt_id","test-receipt"}});}
+        },[](QString,auto done){done(true,QJsonDocument(QJsonObject{{"refresh_token",QString(43,'r')}}).toJson());},
+          [](QString,QByteArray,auto done){done(true);},{}});
+        backend.configure("play-test-"+QUuid::createUuid().toString());
+        QCOMPARE(backend.snapshot()["state"].toString(),"signed_in");
+        Fixture f;f.host.setBackend(&backend);auto ctx=context();ctx["account"]=backend.snapshot();f.host.setContext(ctx);QVERIFY(f.start());
+        Client c(f.endpoint);QCOMPARE(c.hello()["result"].toObject()["capabilities"].toObject()["play.scorecards"].toInt(),1);
+        c.send("play.open",{{"ruleset_id","test.v1"}});auto opened=c.receive();
+        QVERIFY(opened.contains("result"));QVERIFY(!QJsonDocument(opened).toJson().contains("token"));
+        QCOMPARE(credentials.last(),QByteArray(43,'a'));
+        const auto operation=QUuid::createUuid().toString(QUuid::WithoutBraces);
+        c.send("play.create",{{"operation_id",operation},{"payload",QJsonObject{{"mode","individual"}}}});
+        QCOMPARE(c.receive()["result"].toObject()["receipt_id"].toString(),"test-receipt");
+        QCOMPARE(credentials.last(),QByteArray(43,'g'));QCOMPARE(bodies.last()["operation_id"].toString(),operation);
+        f.host.setContext(context("bob"));QCOMPARE(c.receive()["event"].toString(),"context.revoked");
+        QCOMPARE(bodies.last()["action"].toString(),"revoke");
+    }
     void discoveryAndExclusiveEndpoint(){
         Fixture f;QVERIFY(f.start());
         ControlsDashboard other;PlatformHost duplicate(other);QString error;
@@ -78,6 +107,16 @@ private slots:
         f.host.setContext(context("bob"));QCOMPARE(c.receive()["event"].toString(),"context.revoked");
         Client b(f.endpoint);b.hello("org.test.bob");b.send("avatar.get");QCOMPARE(b.receive()["error"].toObject()["code"].toString(),"avatar_not_ready");
         f.host.setAvatar({},false);b.send("avatar.get");QCOMPARE(b.receive()["error"].toObject()["code"].toString(),"unsupported_method");
+    }
+    void accountIdentityChangeRevokesOldClient(){
+        Fixture f;auto initial=context();initial["account"]=QJsonObject{{"state","signed_out"},{"player_id",""}};f.host.setContext(initial);
+        QVERIFY(f.start());Client client(f.endpoint);QCOMPARE(client.hello()["result"].toObject()["capabilities"].toObject()["account.identity"].toInt(),1);
+        client.send("account.get");QCOMPARE(client.receive()["result"].toObject()["account"].toObject()["state"].toString(),"signed_out");
+        initial["account"]=QJsonObject{{"state","signed_in"},{"player_id","server-player"}};f.host.setContext(initial);
+        QCOMPARE(client.receive()["reason"].toString(),"account_changed");
+        Client next(f.endpoint);next.hello();next.send("account.get");
+        QCOMPARE(next.receive()["result"].toObject()["account"].toObject()["player_id"].toString(),"server-player");
+        next.send("account.token");QCOMPARE(next.receive()["error"].toObject()["code"].toString(),"unsupported_method");
     }
     void asynchronousAvatarRecipes(){
         if(!AvatarAssets::available())QSKIP("Local pack required");

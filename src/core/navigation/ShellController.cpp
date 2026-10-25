@@ -215,6 +215,10 @@ ShellController::ShellController(LibraryRepository& repo, TrainerRepository& pro
     connect(&settings_, &SettingsController::trainerRequested, this, [this](int index) {
         trainerSettingsAction(index);
     });
+    connect(&backendAccount_,&BackendAccount::changed,this,[this]{
+        settings_.setBackendAccount(backendAccount_.actionLabel(),backendAccount_.detail());emit changed();
+    });
+    connect(&social_,&SocialController::changed,this,[this]{backendAccount_.setSocialSubject(social_.account()["userId"].toString());});
     connect(&files_, &FilesController::changed, this, &ShellController::changed);
     connect(&browser_, &BrowserController::pageInputRequested,this,[this](int hints){textTarget_=TextTarget::Browser;keyboard_.beginLive(hints);});
     connect(&browser_, &BrowserController::pageInputEnded,this,[this]{if(keyboard_.live())keyboard_.cancel();});
@@ -1360,8 +1364,9 @@ void ShellController::activate(int index, const QString& area) {
 }
 void ShellController::trainerSettingsAction(int index) {
     if (hall_.account()->isOpen()) { hall_.account()->activate(index); return; }
-    if (index < 0 || index > 4) return;
+    if (index < 0 || index > 5) return;
     trainerSettingsFocus_ = index;
+    if(index==5||(index==4&&service_=="trainer-settings")){backendAccount_.activate();emit changed();return;}
     if (index == 0) { trainer_.beginEdit(); }
     else if (index == 1) {
         if (hall_.account()->available()) hall_.account()->begin();
@@ -1840,7 +1845,7 @@ void ShellController::dispatch(Action action) {
             else if (action == Action::Back) service_ = "settings";
             else if (action == Action::Confirm) { trainerSettingsAction(trainerSettingsFocus_); return; }
             else if (action == Action::Up) trainerSettingsFocus_ = std::max(0, trainerSettingsFocus_ - 1);
-            else if (action == Action::Down) trainerSettingsFocus_ = std::min(3, trainerSettingsFocus_ + 1);
+            else if (action == Action::Down) trainerSettingsFocus_ = std::min(4, trainerSettingsFocus_ + 1);
             emit changed(); return;
         }
         if (service_ == "settings") { if(hall_.account()->isOpen()) hall_.account()->dispatch(action); else if(trainer_.editing()) trainer_.dispatch(action,true); else if(settings_.category()==10 && settings_.controlsFocused()) network_.dispatch(action); else settings_.dispatch(action); return; }

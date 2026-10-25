@@ -1,5 +1,31 @@
 # Platform SDK: внешняя программа → консоль → результат
 
+**25 октября — group + Play:** подготовленные ветки объединены, Pocket Golf
+использует один игровой SDK peer для network и account/play. Отдельный новый
+менеджер Lobby или канал credentials игре не добавлен. [Игровая серверная
+приёмка 2/4/5/8 и границы](evidence/backend-golf-20261025/README.md).
+
+**25 октября — backend play preview:** общий [Play API](../sdk/PLAY.md) подключён
+к существующим PlatformHost/BackendAccount. Grants остаются в host; смена owner/
+disconnect прекращает старые callbacks и отзывает доступ best effort. Сессии,
+результаты и общие таблицы доступны через одну bounded цепочку. Фактические
+[проверки](evidence/backend-play-20261025/README.md) не означают установки на
+портативки или интеграции экранов в существующие игры.
+
+**25 октября — Backend identity preview.** `BackendAccount` владеет браузерным
+входом и защищённой сессией отдельно для каждого local Trainer. PlatformBinding
+публикует только `context.account` и `account.get` (`account.identity:1`), без
+provider credentials. Смена Player UUID отзывает старые соединения; выдача
+серверных grants/доставка revocation events ещё не подключены.
+[Контракт и границы](../services/backend/accounts.md). Это исходники/серверная
+проверка; установленный SDK на портативках этим проходом не обновляется.
+**Подготовка 25 октября:** `network.group: 1` расширяет reliable records до
+2–16 участников через отдельные связи хост–клиент. Манифесты и inventory
+сохраняют максимальное число мест; снимок запуска содержит неизменный состав
+и opaque grants. Windows TLS-проверка 16 участников и обратная совместимость
+двухместных приложений пройдены. Это подготовленная ветка, не установленное
+обновление. [Контракт](../sdk/NETWORK.md), [стык с параллельным Lobby](SDK_GROUP_LOBBY_HANDOFF.md).
+
 **21 октября 2026.** Первый реализованный вход для #236 и ограниченная часть #237:
 локальный versioned bridge, реальный контекст, подписки, один простой тип Start
 widget и lifecycle cleanup. [Старт автора](../sdk/README.md) и
@@ -158,7 +184,7 @@ endpoints для отсутствующего backend.
 
 | Функция | Что ещё нужно подключить / проверить |
 | --- | --- |
-| Lobby + Network Fabric | Реализованы installed-game discovery, запуск из Lobby, attach, reliable 2-peer records и возврат; Windows/ARM cold-start и повторная сессия проверены локально. Offline admission, direct ICE/unreliable fast path, 5 peers и полный real-account/internet цикл открыты |
+| Lobby + Network Fabric | Реализованы installed-game discovery, запуск из Lobby, attach и возврат. Прежние 2-peer Windows/ARM проверки сохранены. В отдельной ветке подготовлены reliable records на 2–16 игроков и Windows TLS-проверка 16 участников; это ещё не установленное обновление. Offline admission, direct ICE/unreliable fast path, ARM/интернет для группы и полный real-account цикл открыты |
 | GameHub tools / live overlays | Registry/placement/context/input lease для этих slots; Start widget не заменяет их |
 | Media / Files / Downloads | Service facade к действующим owners, provider registration, реальные операции/error/cancel; не второй worker или музыкальный сервер |
 | System module packages | Проверенная installed identity, lifecycle/autostart/uninstall/update, scopes к чувствительным операциям; app ID пока только namespacing |

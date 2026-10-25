@@ -4,6 +4,7 @@
 #include "features/home/ScreensController.h"
 #include "core/input/Action.h"
 #include "features/social/SocialController.h"
+#include "features/accounts/BackendAccount.h"
 #include "LaunchPreparation.h"
 #include "core/input/TextEntryController.h"
 #include "core/repository/LibraryRepository.h"
@@ -77,6 +78,7 @@ class ShellController final : public QObject {
     Q_PROPERTY(QVariantMap passiveNotice READ passiveNotice NOTIFY changed)
     Q_PROPERTY(QString trainerFace READ trainerFace NOTIFY changed)
     Q_PROPERTY(trainer::SocialController* social READ social CONSTANT)
+    Q_PROPERTY(trainer::BackendAccount* backendAccount READ backendAccount CONSTANT)
     Q_PROPERTY(QString socialFace READ socialFace NOTIFY changed)
     Q_PROPERTY(int focusIndex READ focusIndex NOTIFY changed)
     Q_PROPERTY(bool drawerOpen READ drawerOpen NOTIFY changed)
@@ -154,6 +156,7 @@ public:
     TrainerSetupPresentation* trainerSetup() { return &trainerSetup_; }
     void setOnboardingConnections(bool active) { if(onboardingConnections_==active)return; onboardingConnections_=active; emit changed(); }
     SocialController* social() { return &social_; }
+    BackendAccount* backendAccount() { return &backendAccount_; }
     TextEntryController* keyboard() { return &keyboard_; }
     Q_PROPERTY(bool unobstructed READ canReceiveNearby NOTIFY changed)
     bool canReceiveNearby() { return !homeMenuOpen_ && !menuOpen_ && !drawerOpen_ && !serviceOpen() && notice_.isEmpty()
@@ -385,6 +388,7 @@ private:
     NetworkController network_;
     DiagnosticsController diagnostics_;
     SocialController social_;
+    BackendAccount backendAccount_;
     HomeDashboardController dashboard_;
     PlayerStory story_;
     ScreensController album_;

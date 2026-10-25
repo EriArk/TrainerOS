@@ -1,5 +1,41 @@
 # Структура TrainerOS: владельцы, контракты и связи
 
+**25 октября — S01 → S14 → S10, серверный play preview.** Существующий
+BackendAccount владеет credentials и узкими grants; PlatformHost принимает
+[Play API](../sdk/PLAY.md) с привязкой к SDK-соединению. S10 владеет immutable
+registry, составом матча, append-only решениями и общими таблицами; он использует
+существующие receipts/jobs/outbox. Game/Lobby/transport/Avatar не меняют владельца.
+F05/F11: каждый Player вступает сам → Start фиксирует состав → карточки → worker →
+peer-confirmed board; изменение/отмена результата атомарно меняет revision таблицы.
+S01/F08: отзыв session запрещает дальнейшие записи; смена local Trainer закрывает
+старые SDK peers, поздний grant отзывается best effort. Полная identity/build
+аттестация и push revocation не заявлены. [Сервер](../services/backend/play.md),
+[приёмка и ограничения](evidence/backend-play-20261025/README.md).
+
+**Accounts, позднее 25 октября:** S01 получил серверную реализацию identity и
+сессий в [`services/backend/trainer_backend/accounts`](../services/backend/trainer_backend/accounts).
+Вход опирается на S05/Fluxer OAuth и выдаёт собственную сессию оболочке; внешний
+subject уникально связан с внутренним Player UUID. Revocation пишет общий outbox.
+Сборка установлена, отдельное приложение владельца и HTTPS origin созданы.
+S15 эксплуатирует отдельный API tunnel; секрет/callback настроены, Fluxer активирован.
+Живые consent/cancel/relogin и серверные сессии проверены, включая стабильный UUID.
+Native handoff без ручного кода теперь реализован: S04 `BackendAccount` открывает
+external browser, принимает одноразовый loopback handoff и хранит свою сессию в
+существующем защищённом хранилище отдельно по local Trainer. S05 Social subject
+ограничивает выбор аккаунта, но Social credentials не копируются. Main владеет
+owner/lock lifecycle и возвратом окна; Settings — действиями входа/отмены/выхода.
+S14 PlatformBinding выдаёт только `context.account`/`account.get`; смена Player ID
+отзывает старые connections и contributions. Серверные revocation events ещё не
+доставляются push-каналом: host обнаруживает отзыв при refresh. Игры/аватар не менялись.
+[Контракт и приёмка](../services/backend/accounts.md); портативная поставка не выполнялась.
+
+**Backend, 25 октября:** общий [серверный каркас](../services/backend/README.md)
+теперь установлен отдельно от directory/catalogue. Владелец эксплуатации — S15;
+S01/S10/S11 используют общие транзакции/квитанции/задачи/события при последующей
+реализации модулей. Действующий API пока предоставляет только health/capabilities;
+account/results/economy контракты остаются целевыми. SDK, Avatar и жизненный цикл
+Lobby не переданы этому каркасу. [Проверки и ограничения](evidence/backend-foundation-20261025/README.md).
+
 **21 октября 2026. Карта согласованной конечной структуры со сквозными цепочками.**
 TrainerOS — консольная экосистема с общими правилами, сервисами и точками подключения.
 Часть функций принадлежит самой консоли; игры, программы и адаптеры используют их.
@@ -101,7 +137,7 @@ flowchart LR
 | <a id="s11"></a>**S11 Экономика и права** | Серверный баланс/журнал, покупки, инвентарь, правила начисления и преимущества подписки | Основание награды/покупка/проверенная подписка → подтверждённая операция и права | Клиент не назначает баланс. Магазин открыт всем, множитель до ×3, приобретения сохраняются; без pay-to-win/прямой продажи монет. Тарифы не определены. |
 | <a id="s12"></a>**S12 Crates и публикации** | Курируемый каталог, проекты/релизы, размещение, сведения об авторах, reviews/Top Rated | Одобренная публикация, каталог, допустимый отзыв → предложение установки и сведения о проекте | Установленные файлы принадлежат учёту S13. Донат автору не равен подписке TrainerOS. Reviews используют существующий Fluxer механизм. |
 | <a id="s13"></a>**S13 Доставка и обслуживание** | Общие представление/команды заданий; исполнители владеют своей очередью/транзакцией. Версии/зависимости/целостность, активные пакеты, update/remove/recovery | Выбранный источник/версия/операция → результат задания и изменение inventory | Downloads не исполняет установку. Crates — один источник/исполнитель. Image/host, TrainerOS Software, игры и пользовательские данные имеют разных владельцев обновления. |
-| <a id="s14"></a>**S14 Расширения и контракты** | Совместимость, регистрация, доступ к существующим сервисам и разрешённым UI-точкам, отключение | Manifest/descriptor/контекст → действующие возможности и вклады пакета | Адаптер, runtime-интеграция и SDK-приложение — разные роли. Local SDK preview даёт context/Start widget и 2-peer Lobby/records; остальные facades/#92/SPI открыты. Built-in API не объявляется внешним ABI. |
+| <a id="s14"></a>**S14 Расширения и контракты** | Совместимость, регистрация, доступ к существующим сервисам и разрешённым UI-точкам, отключение | Manifest/descriptor/контекст → действующие возможности и вклады пакета | Адаптер, runtime-интеграция и SDK-приложение — разные роли. Local SDK preview даёт context/Start widget; подготовлено расширение records с 2 до 16 peers, [контракт](../sdk/NETWORK.md). Остальные facades/#92/SPI открыты. Built-in API не объявляется внешним ABI. |
 | <a id="s15"></a>**S15 Среда устройства** | Общие файловые/медиа/аппаратные службы: места хранения, звук, питание, сеть устройства, диагностика | Фактические host capabilities/запросы → доступные операции и состояние | Использует Armada/Linux. Не выдумывает поддержку устройства и не делает Desktop Mode обязательным для обычных действий. |
 
 Пользовательские материалы отделены от заменяемого кода. Системы S01/S10/S11 могут
@@ -138,7 +174,7 @@ flowchart LR
 
 | **E20** | Автор/издатель → S12 → S13 | Принятый project ID, immutable release assets по (id, version, architecture), подпись и revision; withdrawn | Первый проект курируется; следующая версия/архитектура через существующий publisher. Отзыв каталога не удаляет установленный пакет; F09. |
 | **E21** | S12 ↔ S05; S15 → S12 | Provider-owned review ID, project/content identity, stars/text и preview device/arch/version | Edit/delete/report через Fluxer; Top Rated производен от того же источника, без отдельного account/голоса; F10. |
-| **E22** | Программа ↔ S14 ↔ S06/S07/S15 | Versioned discovery/capabilities, service/contribution IDs, owner/session/generation | Local v1 bridge/context/widget реализован; Lobby/reliable records подключены для 2 app peers; полные Network/Files/Media facades ещё target. Host снимает bindings, app владеет данными/симуляцией. F11; не универсальный ABI. |
+| **E22** | Программа ↔ S14 ↔ S06/S07/S15 | Versioned discovery/capabilities, service/contribution IDs, owner/session/generation | Local v1 bridge/context/widget; подготовлены `network.group` и 2–16 app peers с неизменным составом и отдельными каналами host-star. [Стык Lobby](SDK_GROUP_LOBBY_HANDOFF.md). Host снимает grants, app владеет данными/симуляцией. Интернет/ARM и полные Network/Files/Media facades открыты. F11; не универсальный ABI. |
 | **E23** | S15/перезапуск/provider loss → затронутые владельцы | Причина прерывания, сохранённая operation identity и фактический исход каждого сервиса | Каждый владелец восстанавливает своё состояние; общий экран успеха не доказывает процесс/save/channel/call/job. F12. Для [NetPlay rejoin](LOBBY_LIVE_JOIN.md) S06 резервирует прежний Pn в пределах ticket; S03 проверяет пару платформы/ядра через общий профиль RetroArch и проверенную локальную сборку, закрывает собственный временный процесс через штатный exit/finalizer и запускает возврат только после явного Rejoin game. Восстановление signaling/открытие лобби не запускает игру; смена аккаунта/игры отменяет неподтверждённый вход. |
 
 ## 4. Подключаемое содержимое: вход, работа, выход
@@ -432,6 +468,13 @@ Guest content добавляет отдельный E19 lease/cleanup, а не �
 <a id="f05"></a>
 ### F05. Игровое событие → результат/зачёт → награда
 
+**Реализация 25 октября:** S14 Play SDK соединяет S01 host session с S10
+server-owned match/result/board. Pocket Golf связывает свои состав/Start/карточки
+и игровые таблицы, сохраняя S07 group transport и owner-owned avatar отдельно.
+Callback revocation/operation journal не дают результату перейти к новому Player.
+Согласие всех карточек — peer-confirmed, не автоматическое основание награды S11.
+[Проверенная цепочка и оставшиеся границы](evidence/backend-golf-20261025/README.md).
+
 **Участники:** S01, S03, S08, S09, S10, S11; E10–E12.
 
 Личная история принимает сведения со своим источником и степенью достоверности.
@@ -445,6 +488,21 @@ S11 рассчитывает и фиксирует соответствующе�
 верификации/кошелька в этом проходе не обнаружено и не добавлено. Формулы наград,
 споры, аннулирование, повторяемые достижения и офлайн-события остаются открытыми.
 Условия наград не ограничивают обычный single-player и личные сохранения.
+
+25 октября: [проект общего Backend](TRAINEROS_BACKEND_PLAN_RU.md#foundation-20261025)
+конкретизирует этот целевой путь: SDK/Accounts → Results/validator → Boards и
+разрешённые Rewards, с receipt, dedup, исправлениями и отдельным уровнем доверия.
+По последующему уточнению владельца сначала подготовлена [вся серверная
+архитектура v1](TRAINEROS_BACKEND_PLAN_RU.md#architecture-v1), гольф остаётся
+примером будущей приёмки. Контракты всех S01/S10/S11-модулей, данные/API/SDK,
+провайдеры, доступы и эксплуатация описаны до реализации сценариев. Владельцы
+сохраняются; работающих новых API и установки этот проект не добавляет.
+
+Уточнение контрактов: [architecture-draft.2](../services/backend/contracts/README.md)
+связывает владельцев с формальными API/messages/events/logical entities. При
+реализации использовать эти границы вместе с существующим SDK: `network.records`
+остаётся транспортом, avatar recipe сохраняет текущий формат, online-capabilities
+пока не объявлены. Проверка схем не доказывает реальные права/транзакции.
 
 <a id="f06"></a>
 ### F06. Поддержка → право → покупка → использование косметики
@@ -683,3 +741,8 @@ sample необязателен для простой realtime игры. Про�
 
 Карта фиксирует связь, а не обещание полной готовности. Портативки у владельца;
 создание этой карты не включает подключения, изменения устройств или runtime-кода.
+
+
+### Public profiles — 26 October 2026
+
+Accounts/S01 owns verified display names and the shared avatar recipe. Boards/S10 project page-member profiles; SDK resolves installed models. Profile revisions are independent of score revisions. Source and server checks: [contract](../services/backend/profiles.md). Full account erasure and provider deletion detection remain open; R089/R107 remain partial. The owner now authorizes handheld installation/checks in this chat; delivery evidence follows separately.

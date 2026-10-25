@@ -1,0 +1,3 @@
+# Design validation only; these are not Backend runtime dependencies.
+jsonschema==4.24.0
+openapi-spec-validator==0.8.4

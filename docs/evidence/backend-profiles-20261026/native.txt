@@ -1,0 +1,9 @@
+Test project /work/build-trixie
+    Start 1: backend_account
+1/2 Test #1: backend_account ..................   Passed    0.15 sec
+    Start 3: platform_sdk
+2/2 Test #3: platform_sdk .....................   Passed    2.79 sec
+
+100% tests passed, 0 tests failed out of 2
+
+Total Test time (real) =   2.95 sec

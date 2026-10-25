@@ -4,6 +4,32 @@
 
 ## Current working mode — owner correction, 21 October 2026
 
+**Owner Backend correction, 25 October 2026:** prepare the complete shared
+server architecture before implementing/polishing individual working scenarios.
+Use [Backend architecture v1](docs/TRAINEROS_BACKEND_PLAN_RU.md#architecture-v1):
+all module/data/API/SDK/trust/operations boundaries, not a golf-first vertical
+slice. Golf is a later integration example. This is a scoped Backend instruction,
+not a restored global execution queue. **Later owner correction, 25 October:**
+implement, build and test the Backend directly on the existing server; do not
+accumulate local databases, downloaded runtimes or build environments. Server
+installation is now authorized in this chat. Keep the live Lobby bot independent;
+handheld tests and GitHub publication remain outside this increment. Architecture
+is not runtime implementation or server acceptance.
+
+**Owner account clarification, 25 October:** sign in through Fluxer, with no
+separate TrainerOS username/password. A stable internal TrainerOS ID binds to
+the verified Fluxer subject, never its display name. Use a separate OAuth app
+named TrainerOS, owned by the owner's permanent account; preserve the existing
+Lobby Directory app. Keep provider credentials outside games/SDK. Server source
+and isolated provider tests do not prove live owner consent or shell integration.
+
+**Owner login UX correction, 25 October:** OAuth application creation and server
+configuration are one-time operator work, never player setup. Ordinary players
+sign in through Fluxer and return to TrainerOS; mandatory manual device-code
+entry is not the accepted ordinary flow. Preserve secure device/browser binding
+when implementing native return. The existing code-confirmation flow is an
+interim backend mechanism, not delivered SDK/handheld UX.
+
 Global plans, milestones and mandatory execution queues are withdrawn. Work
 by the readiness of individual features, using [the readiness map](docs/FEATURE_READINESS.md).
 Keep unfinished requirements and unchecked acceptance; there is no deferred category.
