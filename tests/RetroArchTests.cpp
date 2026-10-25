@@ -796,12 +796,102 @@ private slots:
         QVERIFY(write("game.ccd","alternate descriptor"));QVERIFY(retroarch::netplayIdentity(r,i,cancel).isEmpty());
         QVERIFY(QFile::remove(dir.filePath("game.ccd")));
         r.contentPath=dir.filePath("game.m3u");QVERIFY(write("game.m3u","game.cue\n"));
-        QVERIFY(retroarch::netplayIdentity(r,i,cancel).isEmpty());
+        QVERIFY(!retroarch::netplayIdentity(r,i,cancel).isEmpty());
         r.contentPath=dir.filePath("game.chd");QVERIFY(write("game.chd","MComprHDfixture"));
         QVERIFY(retroarch::netplayIdentity(r,i,cancel).isEmpty()); // Unhashed companion CUE.
         QVERIFY(QFile::remove(dir.filePath("game.cue")));
         QVERIFY(!retroarch::netplayIdentity(r,i,cancel).isEmpty());
         QVERIFY(write("game.chd","invalid CHD"));QVERIFY(retroarch::netplayIdentity(r,i,cancel).isEmpty());
+    }
+    void playStationAdditionalFormats_data() {
+        QTest::addColumn<QString>("format");
+        for(const auto& format:{"iso","raw-iso","pbp","multi-pbp","m3u"})QTest::newRow(format)<<QString(format);
+    }
+    void playStationAdditionalFormats() {
+        QFETCH(QString,format);
+        QTemporaryDir dir;std::atomic_bool cancel=false;
+        const auto write=[&](const QString& name,const QByteArray& bytes) {
+            QFile f(dir.filePath(name));return f.open(QIODevice::WriteOnly)&&f.write(bytes)==bytes.size();
+        };
+        QVERIFY(QDir().mkpath(dir.filePath("bios")));
+        QVERIFY(write("bios/scph5501.bin",QByteArray(512*1024,'b')));
+        const auto config="system_directory = \""+dir.filePath("bios").toUtf8()+"\"\ninitial_disk_change_enable = \"true\"\n";
+        QVERIFY(write("retroarch.cfg",config));QVERIFY(write("core","core"));QVERIFY(write("runtime","runtime"));
+        RetroArchInstallation i;i.configFile=dir.filePath("retroarch.cfg");i.runtimeFile=dir.filePath("runtime");i.cores["pcsx_rearmed"]=dir.filePath("core");
+        const int sector=format=="raw-iso"?2352:2048;
+        QByteArray iso(32*sector,'\0');
+        if(sector==2352)iso.replace(0,12,QByteArray::fromHex("00ffffffffffffffffffff00"));
+        iso.replace(16*sector+(sector==2352?24:0),7,QByteArray("\1CD001\1",7));
+        QVERIFY(write("disc.iso",iso));
+        QByteArray second=iso;second[second.size()-1]='2';QVERIFY(write("second.iso",second));
+        // Structural fixture only: no game sectors or compressed payload decoding.
+        const int count=format=="multi-pbp"?2:1;
+        const int psar=40,discSize=0x100000+32,base=psar+(count>1?0x400:0);
+        QByteArray pbp(base+count*discSize,'\0');pbp.replace(0,4,QByteArray("\0PBP",4));
+        const auto put=[&](int offset,quint32 value){qToLittleEndian(value,pbp.data()+offset);};
+        for(int n=8;n<40;n+=4)put(n,psar);
+        if(count>1) {
+            pbp.replace(psar,10,"PSTITLEIMG");
+            for(int n=0;n<count;++n)put(psar+0x200+n*4,base-psar+n*discSize);
+        }
+        for(int n=0;n<count;++n) {
+            const int start=base+n*discSize;pbp.replace(start,10,"PSISOIMG00");
+            pbp[start+0x800+17]=1;pbp[start+0x800+28]=2;pbp[start+0x800+29]=0x16;pbp[start+0x800+38]=2;
+            put(start+0x4004,32);put(start+0x4020,32);
+        }
+        QVERIFY(write("disc.pbp",pbp));
+        QVERIFY(write("game.m3u","# ordered discs\r\ndisc.iso\r\nsecond.iso\r\n"));
+        AdventureRegistration r;r.adventure.platformId="psx";r.adventure.adapterId="duckstation";
+        r.contentPath=dir.filePath(format=="m3u"?"game.m3u":format.contains("pbp")?"disc.pbp":"disc.iso");
+        r=retroarch::netplayRegistration(r);
+        const auto identity=retroarch::netplayIdentity(r,i,cancel);QVERIFY(!identity.isEmpty());
+        retroarch::NetplayRequest request;request.host=true;request.slot=1;request.password="private";request.nickname="host";request.expected=identity;
+        ProcessCommand cmd;cmd.arguments={r.contentPath};
+        QVERIFY(retroarch::prepareNetplay(cmd,r,i,request,cancel).isEmpty());
+        QCOMPARE(cmd.arguments.last(),r.contentPath);
+        const auto settings=retroarch::readSettings(cmd.arguments[cmd.arguments.indexOf("--appendconfig")+1]);
+        QCOMPARE(settings.value("initial_disk_change_enable"),QString("false"));
+        QCOMPARE(cmd.arguments[cmd.arguments.indexOf("--sram-mode")+1],QString("noload-nosave"));
+        const auto session=settings.value("savefile_directory");
+        cmd.settled({true,0,false,false});QVERIFY(!QFileInfo::exists(session));
+        QFile original(i.configFile);QVERIFY(original.open(QIODevice::ReadOnly));QCOMPARE(original.readAll(),config);
+        const QString sidecar=format=="multi-pbp"?"disc_2.sbi":"disc.sub";
+        QVERIFY(write(sidecar,"changed subchannel data"));
+        QVERIFY(!sameMultiplayerGame(identity,retroarch::netplayIdentity(r,i,cancel)));
+        ProcessCommand stale;stale.arguments={r.contentPath};
+        QVERIFY(!retroarch::prepareNetplay(stale,r,i,request,cancel).isEmpty());
+        QCOMPARE(stale.arguments,QStringList{r.contentPath});QVERIFY(QFile::remove(dir.filePath(sidecar)));
+        if(format=="m3u") {
+            QVERIFY(write("game.m3u","second.iso\ndisc.iso\n"));
+            QVERIFY(!sameMultiplayerGame(identity,retroarch::netplayIdentity(r,i,cancel)));
+            QVERIFY(write("game.m3u","disc.iso\nsecond.iso\n"));
+            QCOMPARE(retroarch::netplayIdentity(r,i,cancel),identity);
+            second[second.size()-1]='3';QVERIFY(write("second.iso",second));
+            QVERIFY(!sameMultiplayerGame(identity,retroarch::netplayIdentity(r,i,cancel)));
+            for(const auto& list:QList<QByteArray>{"missing.iso\n","game.m3u\n","\"disc.iso\"\n","# empty\n",QByteArray("disc.iso\n").repeated(9),QByteArray("disc.iso\0",9),QByteArray(1023,'a')}) {
+                QVERIFY(write("game.m3u",list));QVERIFY(retroarch::netplayIdentity(r,i,cancel).isEmpty());
+            }
+        } else if(format.contains("pbp")) {
+            auto changed=pbp;changed[changed.size()-1]='x';
+            QVERIFY(write("disc.pbp",changed));
+            QVERIFY(!sameMultiplayerGame(identity,retroarch::netplayIdentity(r,i,cancel)));
+            auto broken=pbp;broken.replace(base+(count-1)*discSize,10,"PSP DATA!!");
+            QVERIFY(write("disc.pbp",broken));QVERIFY(retroarch::netplayIdentity(r,i,cancel).isEmpty());
+            broken=pbp;qToLittleEndian<quint32>(0xffffffff,broken.data()+base+0x4004);
+            QVERIFY(write("disc.pbp",broken));QVERIFY(retroarch::netplayIdentity(r,i,cancel).isEmpty());
+            broken=pbp;broken[base+0x800+17]=0;
+            QVERIFY(write("disc.pbp",broken));QVERIFY(retroarch::netplayIdentity(r,i,cancel).isEmpty());
+            QVERIFY(write("disc.pbp",pbp));
+            QVERIFY(write("game.m3u","disc.pbp\n"));r.contentPath=dir.filePath("game.m3u");
+            QCOMPARE(retroarch::netplayIdentity(r,i,cancel).isEmpty(),count>1);
+        } else {
+            QVERIFY(write("disc.iso",iso.left(iso.size()-1)));QVERIFY(retroarch::netplayIdentity(r,i,cancel).isEmpty());
+            QVERIFY(write("disc.iso",QByteArray(iso.size(),'x')));QVERIFY(retroarch::netplayIdentity(r,i,cancel).isEmpty());
+            QVERIFY(write("disc.iso",iso));
+            QVERIFY(write("disc.cue","FILE \"second.iso\" BINARY\n TRACK 01 MODE1/2048\n"));
+            QVERIFY(retroarch::netplayIdentity(r,i,cancel).isEmpty());
+        }
+        cancel=true;QVERIFY(retroarch::netplayIdentity(r,i,cancel).isEmpty());
     }
     void relayDirectoryRequiresCompleteUnambiguousEndpoint() {
         const QByteArray reply="status=OK\r\ntunnel_addr=europe-west1.relay.retroarch.com\r\ntunnel_port=55435\r\n";

@@ -14,6 +14,7 @@
 #include <QRegularExpression>
 #include <QSaveFile>
 #include <QTemporaryDir>
+#include <QtEndian>
 
 namespace trainer::retroarch {
 namespace {
@@ -96,21 +97,118 @@ QString playStationBios(const RetroArchInstallation& i) {
     }
     return {};
 }
-QString playStationContent(const QString& path,const std::atomic_bool& cancel,NetplayDigestCache* cache) {
+// Bounded structural admission, not a second CD decoder. Layout follows
+// PCSX ReARMed c8816799, cdriso.c handlepbp(); the core decodes the original file.
+int playStationPbpDiscs(const QString& path,const std::atomic_bool& cancel) {
+    QFile f(path);if(!f.open(QIODevice::ReadOnly)||f.size()>8LL*1024*1024*1024)return 0;
+    const auto read=[&](qint64 offset,qint64 length) {
+        if(cancel||offset<0||length>f.size()-offset||!f.seek(offset))return QByteArray();
+        return f.read(length);
+    };
+    const auto header=read(0,40);
+    if(header.size()!=40||header.first(4)!=QByteArray("\0PBP",4))return 0;
+    quint32 previous=40;
+    for(int n=8;n<40;n+=4) {
+        const auto offset=qFromLittleEndian<quint32>(header.constData()+n);
+        if(offset<previous||offset>f.size())return 0;
+        previous=offset;
+    }
+    const qint64 psar=previous;
+    QList<qint64> discs;
+    if(read(psar,10)=="PSTITLEIMG") {
+        const auto offsets=read(psar+0x200,32);if(offsets.size()!=32)return 0;
+        for(int n=0;n<8;++n) {
+            const auto offset=qFromLittleEndian<quint32>(offsets.constData()+n*4);
+            if(!offset)break;
+            if(offset<0x220||(!discs.isEmpty()&&psar+offset<=discs.last()))return 0;
+            discs.append(psar+offset);
+        }
+    } else discs.append(psar);
+    for(int d=0;d<discs.size();++d) {
+        const auto start=discs[d],end=d+1<discs.size()?discs[d+1]:f.size();
+        if(read(start,10)!="PSISOIMG00"||end-start<=0x100000)return 0;
+        const auto table=read(start+0x800,1020);if(table.size()!=1020)return 0;
+        const auto bcd=[](uchar value){return (value&15)<10&&(value>>4)<10?int(value>>4)*10+(value&15):-1;};
+        const int tracks=bcd(uchar(table[17]));if(tracks<1||tracks>99)return 0;
+        for(int n=2;n<3+tracks;++n) {
+            const int minutes=bcd(uchar(table[n*10+7])),seconds=bcd(uchar(table[n*10+8])),frames=bcd(uchar(table[n*10+9]));
+            if(minutes<0||seconds<0||seconds>=60||frames<0||frames>=75)return 0;
+        }
+        const auto index=read(start+0x4000,0x100000-0x4000);
+        if(index.size()!=0x100000-0x4000)return 0;
+        quint64 next=0;int blocks=0;
+        for(int n=0;n<index.size();n+=32) {
+            const auto offset=qFromLittleEndian<quint32>(index.constData()+n);
+            const auto size=qFromLittleEndian<quint32>(index.constData()+n+4);
+            if(!size)break;
+            // Allow alignment padding between blocks; do not require a specific
+            // converter's packing. Payload decoding remains the core's job.
+            if((blocks&&offset<next)||size>16*2352+100||quint64(offset)+size>quint64(end-start-0x100000))return 0;
+            next=quint64(offset)+size;++blocks;
+        }
+        if(!blocks||cancel)return 0;
+    }
+    return cancel?0:discs.size();
+}
+bool playStationIso(const QString& path) {
+    QFile f(path);if(!f.open(QIODevice::ReadOnly)||f.size()<17*2048)return false;
+    const auto first=f.read(4);
+    // Match the native mode1/2048 heuristic, otherwise require raw sectors.
+    const bool cooked=f.size()%2048==0&&first!=QByteArray::fromHex("00ffffff");
+    const int sector=cooked?2048:2352;
+    if(f.size()%sector)return false;
+    for(int offset:cooked?QList<int>{0}:QList<int>{16,24}) {
+        if(!f.seek(16*sector+offset))return false;
+        if(f.read(7)==QByteArray("\1CD001\1",7))return true;
+    }
+    return false;
+}
+QString playStationContent(const QString& path,const std::atomic_bool& cancel,NetplayDigestCache* cache,bool inPlaylist=false) {
     const QFileInfo file(path);
     const auto extension=file.suffix().toLower();
-    if((extension!="cue"&&extension!="chd")||!validateDiscContent(path,cancel).isEmpty())return {};
+    if(cancel||!file.isFile()||file.absoluteFilePath().toUtf8().size()>=1024)return {};
+    if(extension=="m3u") {
+        if(inPlaylist||file.size()>65536)return {}; // The native parser does not recurse.
+        QFile list(path);if(!list.open(QIODevice::ReadOnly))return {};
+        const auto bytes=list.readAll();
+        if(list.error()!=QFile::NoError||bytes.contains('\0')||QString::fromUtf8(bytes).toUtf8()!=bytes)return {};
+        QJsonArray discs;
+        for(auto line:bytes.split('\n')) {
+            if(line.size()>1022)return {}; // Native fgets buffer includes the newline.
+            const int cr=line.indexOf('\r');if(cr>=0)line.truncate(cr);
+            if(line.isEmpty()||line.startsWith('#'))continue;
+            // Keep native whitespace semantics; do not trim or strip quotes.
+            const auto name=QString::fromUtf8(line);
+            if(name.contains('\\')||name.contains(':')||discs.size()==8)return {};
+            const auto disc=playStationContent(file.dir().absoluteFilePath(name),cancel,cache,true);
+            if(disc.isEmpty())return {};
+            discs.append(disc);
+        }
+        if(discs.isEmpty())return {};
+        const QJsonObject manifest{{"psx-m3u-v1",discs}};
+        return QString::fromLatin1(QCryptographicHash::hash(QJsonDocument(manifest).toJson(QJsonDocument::Compact),QCryptographicHash::Sha256).toHex());
+    }
+    int discCount=1;
+    if(extension=="cue"||extension=="chd") {
+        if(!validateDiscContent(path,cancel).isEmpty())return {};
+    } else if(extension=="pbp") {
+        discCount=playStationPbpDiscs(path,cancel);
+        // Native M3U exposes only internal disc zero for each PBP entry.
+        if(!discCount||(inPlaylist&&discCount>1))return {};
+    } else if(extension!="iso"||!playStationIso(path))return {};
     const auto stem=file.dir().filePath(file.completeBaseName());
     // PCSX probes these descriptors before loading the requested disc. Until
     // their dependencies are supported, do not fingerprint only the main file.
     for(const auto& suffix:{".toc",".ccd",".mds"})if(QFileInfo::exists(stem+suffix))return {};
-    if(extension=="chd"&&QFileInfo::exists(stem+".cue"))return {};
-    const auto content=contentDigest(path,cancel,cache);
+    if(extension!="cue"&&QFileInfo::exists(stem+".cue"))return {};
+    const auto content=extension=="pbp"?digest(path,8LL*1024*1024*1024,cancel,cache):contentDigest(path,cancel,cache);
     if(content.isEmpty())return {};
     QJsonObject media{{"disc",content}};
     // SBI/SUB change disc behavior; a small descriptor may also trigger the
     // core's same-basename BIN/IMG fallback. Match all those bytes as well.
-    for(const auto& suffix:{".sbi",".sub",".bin",".BIN",".img",".IMG"}) {
+    QStringList sidecars{".sbi",".sub",".bin",".BIN",".img",".IMG"};
+    if(discCount>1)for(int n=1;n<=discCount;++n)sidecars.append(QString("_%1.sbi").arg(n));
+    for(const auto& suffix:sidecars) {
         const auto candidate=stem+suffix;
         if(!QFileInfo::exists(candidate))continue;
         const auto value=digest(candidate,2LL*1024*1024*1024,cancel,cache);
@@ -496,7 +594,7 @@ QString prepareNetplay(ProcessCommand& cmd,const AdventureRegistration& r,const 
         bytes+="netplay_input_latency_frames_min = \"0\"\n"
                "netplay_input_latency_frames_range = \"6\"\n";
     }
-    if(playStation)bytes+="system_directory = \""+path.toUtf8()+"/bios\"\n";
+    if(playStation)bytes+="system_directory = \""+path.toUtf8()+"/bios\"\ninitial_disk_change_enable = \"false\"\n";
     if(ps2)bytes+="system_directory = \""+path.toUtf8()+"/system\"\nvideo_driver = \"vulkan\"\nvideo_shader_enable = \"false\"\nstdin_cmd_enable = \"true\"\n";
 #ifdef Q_OS_LINUX
     // The existing classic profiles use InputPlumber's virtual pad

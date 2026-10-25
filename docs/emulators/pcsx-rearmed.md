@@ -1,5 +1,60 @@
 # PCSX ReARMed multiplayer preparation
 
+## PBP, M3U and ISO admission — 25 October 2026
+
+S02 registration → S03 identity/preparation → S06 Lobby now accepts PS1 PBP,
+M3U and ISO in source, alongside existing CUE/CHD. No title whitelist or new
+transport is introduced. DuckStation's ordinary registration also accepts ISO;
+existing emulator/save bindings are not rewritten. The network session still
+routes a copy of the registration to PCSX ReARMed.
+
+The bounded PBP preflight follows `handlepbp` in the reviewed
+[cdriso.c](https://github.com/libretro/pcsx_rearmed/blob/c8816799b50388e61cfe237fe2cdbb7d8175f20a/libpcsxcore/cdriso.c):
+PBP offsets, PSISOIMG00 / PSTITLEIMG signatures, up to eight embedded images,
+TOC count/timestamps and block-table bounds. It reads at most roughly 1 MiB
+of index data per disc, then fingerprints the entire container (maximum 8 GiB).
+It does not decode or certify every compressed sector. PSP PBP and encrypted or
+unrecognized payloads do not become PS1 content merely by their extension.
+Multi-disc `_1.sbi` … `_8.sbi` companions are included as applicable, as are the
+existing SBI/SUB and BIN/IMG dependencies. Changing a later embedded disc or
+sidecar changes the fingerprint.
+
+ISO admission recognizes the native 2048-byte sector heuristic or raw 2352-byte
+sectors and requires a primary ISO9660 descriptor. It retains the 2 GiB disc
+bound. Unsupported same-basename TOC/CCD/MDS or overriding CUE descriptors remain
+excluded until their dependencies are integrated. Existing CUE/CHD identities
+are preserved; this is not content-normalized matching across ISO/CHD/PBP.
+
+M3U follows the native [eight-slot parser](https://github.com/libretro/pcsx_rearmed/blob/c8816799b50388e61cfe237fe2cdbb7d8175f20a/frontend/libretro.c),
+with a 64 KiB manifest bound and lines up to 1022 bytes. Relative paths (including
+parent directories) and Linux absolute paths resolve to local media. Order matters;
+comments, CRLF and the library's directory names do not affect the identity.
+Whitespace is not silently trimmed. Nested M3U, oversized lists, quoted paths,
+NUL/invalid UTF-8 and foreign drive/backslash syntax are not admitted. Multi-disc
+PBP inside M3U is excluded because this native path only exposes its first image;
+the PBP itself can be selected directly. Each admitted disc's full identity is
+checked, including CUE tracks and sidecars. No playlist or ROM is rewritten.
+
+Preparation revalidates without the scan digest cache, disables remembered initial
+disc selection for the private PS1 session and launches the original path through
+the existing RetroArch host/guest mechanism. Personal cards remain unattached;
+ordinary settings and history are preserved. No new disc-switch UI or synchronized
+mid-session disc-switch contract is claimed.
+
+This is source integration, not installation on Flip/Odin or a new emulator build.
+No handheld was contacted. Full retail decoding and gameplay are not established
+by the structural fixtures. CCD/TOC/MDS, additional formats and ordinary save-card
+migration remain separate unfinished work.
+
+Windows checks: RetroArchTests 73 passed, zero failed, one existing PS2 platform
+skip; the final focused PS1 run passed 8/8 after adding late-PBP-payload mutation.
+StandaloneTests passed 55, zero failed, six existing Linux-only skips, including
+literal child-process launch/return for ISO/PBP/M3U. Its obsolete GBA ZIP rejection
+expectation was updated to reflect the preceding archive increment; RAR remains
+rejected. `runtime_multiplayer` passed in 120.91 seconds. The Windows application
+build and adapter export/knowledge validation passed (209 runtime source files).
+No ARM64 shell build or device delivery was performed in this increment.
+
 ## Ordinary Hotseat delivery — 12 October 2026
 
 Flip and Odin now offer **Separate controllers** (the default) or **Take turns

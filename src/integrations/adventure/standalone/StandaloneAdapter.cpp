@@ -31,7 +31,7 @@ QStringList extensions(const QString& platform) {
     if (platform == "psp") return {"iso", "cso", "pbp", "chd"};
     if (platform == "ps2") return {"iso", "chd", "cso", "bin", "gz"};
     if (platform == "wiiu") return {"wud", "wux", "wua", "rpx"};
-    if (platform == "psx") return {"cue", "chd", "pbp", "m3u", "exe"};
+    if (platform == "psx") return {"cue", "chd", "pbp", "m3u", "iso", "exe"};
     if (platform == "ps3") return {"self", "elf"};
     if (platform == "switch") return {"nro", "nsp", "xci"};
     if (platform == "xbox") return {"iso"};

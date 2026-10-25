@@ -121,6 +121,19 @@ private slots:
             QCOMPARE(r.adventure.adapterId,platform=="wiiu"?QString("cemu"):platform=="ps2"?QString("armsx2"):QString("duckstation"));
         }
     }
+    void playStationFormatsRegisterWithoutChangingExistingBindings() {
+        MockLibraryRepository library;
+        StandaloneAdapter adapter("duckstation",library,{probe(),probe(),{},{"psx"}});
+        for(const auto& extension:{"cue","chd","pbp","m3u","iso"}) {
+            AdventureRegistration r;r.adventure.platformId="psx";r.adventure.adapterId="unconfigured";
+            r.contentPath=QString("/roms/game.%1").arg(extension);
+            adapter.prepareInstallation(r);QCOMPARE(r.adventure.adapterId,QString("duckstation"));
+            QVERIFY(adapter.setupIssue(r).isEmpty());
+            r.adventure.adapterId="retroarch";r.integrationConfig={{"core","pcsx_rearmed"}};
+            adapter.prepareInstallation(r);QCOMPARE(r.adventure.adapterId,QString("retroarch"));
+            QCOMPARE(r.integrationConfig["core"].toString(),QString("pcsx_rearmed"));
+        }
+    }
     void cemuAndDuckstationDiscoveryPreservesExistingPreferences() {
         QTemporaryDir dir;EmulatorEnvironment env;env.home=dir.path();env.configHome=dir.filePath("config");
         env.stateDirectory=dir.filePath("state");env.executables={{"Cemu",probe()},{"DuckStation",probe()}};
@@ -772,7 +785,8 @@ private slots:
         MockLibraryRepository library;RetroArchAdapter retroarch(library,{probe(),{},"settings",{{"mgba","core"}}});
         AdventureRegistration r;r.adventure.adapterId="unconfigured";r.adventure.platformId="n64";r.contentPath="/game.z64";
         QVERIFY(retroarch.setupIssue(r).contains("missing"));
-        r.adventure.platformId="gba";r.contentPath="/game.zip";QVERIFY(retroarch.setupIssue(r).contains("format"));
+        r.adventure.platformId="gba";r.contentPath="/game.zip";QVERIFY(retroarch.setupIssue(r).isEmpty());
+        r.contentPath="/game.rar";QVERIFY(retroarch.setupIssue(r).contains("format"));
         StandaloneAdapter ds("melonds",library,{probe(),"/missing/runtime",{},{"nds"}});
         r.adventure.platformId="nds";r.contentPath="/game.nds";QVERIFY(ds.verifyInstallation(r).contains("unavailable"));
     }
@@ -821,6 +835,8 @@ private slots:
         QTest::newRow("PS2") << QString("armsx2") << QString("ps2") << QString("chd");
         QTest::newRow("WiiU") << QString("cemu") << QString("wiiu") << QString("wua");
         QTest::newRow("PS1") << QString("duckstation") << QString("psx") << QString("chd");
+        for(const auto& extension:{"iso","pbp","m3u"})
+            QTest::newRow(qPrintable(QString("PS1-")+extension))<<QString("duckstation")<<QString("psx")<<QString(extension);
         QTest::newRow("PS3-homebrew") << QString("rpcs3") << QString("ps3") << QString("self");
         QTest::newRow("Switch-homebrew") << QString("eden") << QString("switch") << QString("nro");
         QTest::newRow("Xbox-disc") << QString("xemu") << QString("xbox") << QString("iso");
