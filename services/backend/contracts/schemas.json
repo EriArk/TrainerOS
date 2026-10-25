@@ -182,6 +182,18 @@
         },
         "claim_challenge_method": {
           "const": "S256"
+        },
+        "return_uri": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^http://127\\.0\\.0\\.1:[1-9][0-9]{3,4}/traineros/auth/[A-Za-z0-9_-]{43}$"
+        },
+        "expected_subject": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 32,
+          "pattern": "^[0-9]{1,32}$"
         }
       },
       "additionalProperties": false,
@@ -222,7 +234,7 @@
         "expires_at",
         "verification_code"
       ],
-      "description": "Show verification_code only on the initiating host. Browser asks the user to type it before OAuth; never auto-submit or put it in a URL."
+      "description": "Native return_uri skips manual code and requires a browser-only handoff_token at claim. Without return_uri, verification_code is an interim explicit device confirmation; never auto-submit it."
     },
     "LoginClaim": {
       "type": "object",
@@ -235,6 +247,12 @@
           "minLength": 43,
           "maxLength": 128,
           "pattern": "^[A-Za-z0-9._~-]{43,128}$"
+        },
+        "handoff_token": {
+          "type": "string",
+          "minLength": 43,
+          "maxLength": 43,
+          "pattern": "^[A-Za-z0-9_-]{43}$"
         }
       },
       "additionalProperties": false,
@@ -264,6 +282,12 @@
         },
         "expires_at": {
           "$ref": "#/$defs/Time"
+        },
+        "fluxer_subject": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 32,
+          "pattern": "^[0-9]{1,32}$"
         }
       },
       "additionalProperties": false,
@@ -272,7 +296,8 @@
         "session_id",
         "access_token",
         "refresh_token",
-        "expires_at"
+        "expires_at",
+        "fluxer_subject"
       ],
       "description": "Secret host-only response; never log or expose to games."
     },

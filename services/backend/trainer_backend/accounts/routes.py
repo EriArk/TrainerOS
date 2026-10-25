@@ -37,11 +37,14 @@ class LoginBegin(StrictBody):
     device_label: str = Field(min_length=1,max_length=64,pattern=r'^[^\x00-\x1f\x7f]+$')
     claim_challenge: str = Field(pattern=r'^[A-Za-z0-9_-]{43}$')
     claim_challenge_method: Literal['S256']
+    return_uri: str|None = Field(default=None,max_length=128)
+    expected_subject: str|None = Field(default=None,pattern=r'^[0-9]{1,32}$')
 
 
 class LoginClaim(StrictBody):
     attempt_id: str = Field(pattern=r'^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$')
     claim_verifier: str = Field(pattern=r'^[A-Za-z0-9._~-]{43,128}$')
+    handoff_token: str|None = Field(default=None,pattern=r'^[A-Za-z0-9_-]{43}$')
 
 
 class Refresh(StrictBody):
@@ -64,12 +67,12 @@ def bearer(request):
 
 @router.post('/v1/auth/login-attempts',status_code=201)
 def begin(body: LoginBegin, request: Request, idempotency_key: UUID = Header()):
-    return wire(service(request).begin(idempotency_key,body.model_dump()))
+    return wire(service(request).begin(idempotency_key,body.model_dump(exclude_none=True)))
 
 
 @router.get('/v1/auth/fluxer/start',include_in_schema=False)
 def start(request: Request, attempt_id: UUID, ticket: str=Query(pattern=r'^[A-Za-z0-9_-]{43}$')):
-    cookie = service(request).start(attempt_id,ticket)
+    cookie, native_url = service(request).start(attempt_id,ticket)
     response = HTMLResponse('<!doctype html><html lang="ru"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">'
         '<title>Вход в TrainerOS</title><h1>Вход в TrainerOS</h1>'
         '<p>Введите 8 цифр, которые показаны в TrainerOS на вашем устройстве. '
@@ -79,6 +82,8 @@ def start(request: Request, attempt_id: UUID, ticket: str=Query(pattern=r'^[A-Za
         f'<input type="hidden" name="proof" value="{cookie}">'
         '<label>Код из TrainerOS <input name="code" inputmode="numeric" pattern="[0-9]{8}" minlength="8" maxlength="8" autocomplete="off" required></label>'
         '<button type="submit">Продолжить через Fluxer</button></form></html>')
+    if native_url:
+        response = RedirectResponse(native_url,status_code=303)
     response.set_cookie(COOKIE,cookie,secure=True,httponly=True,samesite='lax',path='/',max_age=600)
     return response
 
@@ -105,16 +110,18 @@ async def confirm(request: Request):
 def callback(request: Request, state: str=Query(pattern=r'^[A-Za-z0-9_-]{43}$'),
              code: str|None=Query(default=None,min_length=1,max_length=2048),
              error: str|None=Query(default=None,max_length=128)):
-    service(request).callback(state,request.cookies.get(COOKIE,''),code,error)
+    native_url = service(request).callback(state,request.cookies.get(COOKIE,''),code,error)
     response = HTMLResponse('<!doctype html><html lang="ru"><meta charset="utf-8"><title>TrainerOS</title>'
         '<h1>Аккаунт Fluxer подтверждён</h1><p>Вернитесь в TrainerOS, чтобы завершить вход. Это окно можно закрыть.</p></html>')
+    if native_url:
+        response = RedirectResponse(native_url,status_code=303)
     response.delete_cookie(COOKIE,secure=True,httponly=True,samesite='lax',path='/')
     return response
 
 
 @router.post('/v1/auth/login-attempts/claim')
 def claim(body: LoginClaim, request: Request):
-    return wire(service(request).claim(UUID(body.attempt_id),body.claim_verifier))
+    return wire(service(request).claim(UUID(body.attempt_id),body.claim_verifier,body.handoff_token))
 
 
 @router.post('/v1/auth/refresh')

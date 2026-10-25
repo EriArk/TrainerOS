@@ -69,7 +69,10 @@ for event in modules['events'].values():
 assert len({gate['id'] for gate in gates['gates']}) == len(gates['gates'])
 for gate in gates['gates']:
     assert gate['owner'] in modules['owners']
-    assert gate['status'] == 'unresolved-before-activation'
+    if gate['status']=='verified-provider-only':
+        assert gate['id']=='auth.provider_contract' and (ROOT/gate['evidence']).is_file()
+    else:
+        assert gate['status']=='unresolved-before-activation'
 for name, table in model['tables'].items():
     assert table['owner'] in modules['owners'], name
     assert set(table['primary_key']) <= table['columns'].keys(), name

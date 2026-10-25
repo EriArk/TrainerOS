@@ -1,5 +1,5 @@
 {
-  "version": "architecture-draft.3",
+  "version": "architecture-draft.4",
   "implemented": false,
   "default": "A missing/unresolved applicable gate prevents activation, never fabricates success.",
   "gates": [
@@ -10,7 +10,8 @@
       "blocks": [
         "online-login"
       ],
-      "status": "unresolved-before-activation"
+      "status": "verified-provider-only",
+      "evidence": "docs/evidence/backend-oauth-live-20261025/README.md"
     },
     {
       "id": "auth.recovery_policy",

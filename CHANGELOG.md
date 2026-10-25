@@ -1,5 +1,23 @@
 # TrainerOS — история изменений
 
+## 2026-10-25 — вход без ручного кода, host session и SDK identity
+
+- Обычный вход возвращается из Fluxer на одноразовый loopback endpoint. Claim
+  требует одновременно исходный verifier и browser-only handoff; пересланной
+  ссылки/опроса сервера недостаточно. Backend установлен с миграцией 0004.
+- Settings: вход, отмена ожидания и выход; общие действия для touch/controller.
+  Host использует QtKeychain/systemd-creds, отдельный owner lock и запись pending
+  перед одноразовым refresh. Потерянный ответ не приводит к replay старого ключа.
+  Сохранены защита активной игры/операций и независимые Social/локальный Trainer.
+- SDK `account.identity:1`, `account.get`, `context.account`: только состояние и
+  Player UUID; смена аккаунта отзывает старые соединения. Токены играм не выдаются.
+- [Проверки](docs/evidence/backend-native-return-20261025/README.md): 43 серверных,
+  12 клиентских, 13 SDK passed/1 прежний skip; QML Settings без warnings, полная
+  Linux-сборка, живой native OAuth/refresh/revoke и восстановление backup.
+- Портативная поставка/физическая приёмка и целевое хранилище не проверялись.
+  Scoped grants, push revocation, cleanup удаления Trainer и recovery остаются
+  открытыми. Изменения сохранены в отдельной backend-ветке без GitHub push.
+
 ## 2026-10-25 — живая авторизация Fluxer на Backend
 
 - Получен и защищённо установлен секрет приложения владельца, зарегистрирован

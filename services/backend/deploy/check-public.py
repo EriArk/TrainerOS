@@ -35,7 +35,7 @@ for path, expected in (
             assert response.headers.get('Cache-Control') == 'no-store', path
         if path == '/v1/capabilities':
             capabilities = json.loads(body)['capabilities']
-            assert capabilities == ({'accounts.fluxer_login': 1, 'accounts.sessions': 1}
+            assert capabilities == ({'accounts.fluxer_login': 1, 'accounts.sessions': 1, 'accounts.native_return': 1}
                                     if args.accounts else {}), 'unexpected_capabilities'
         if path == '/v1/me':
             assert json.loads(body)['code'] == ('unauthenticated' if args.accounts

@@ -6,6 +6,7 @@ import hmac
 import secrets
 import re
 from uuid import uuid4
+from urllib.parse import urlencode
 
 from ..commands import Principal, canonical, require_principal, Forbidden
 from ..events import EventSpec,publish
@@ -56,6 +57,11 @@ class Accounts:
             raise AuthError() from None
 
     def begin(self, operation_id, payload):
+        uri = payload.get('return_uri')
+        if uri is not None and not re.fullmatch(r'http://127\.0\.0\.1:([1-9][0-9]{3,4})/traineros/auth/[A-Za-z0-9_-]{43}',uri):
+            raise AuthError('invalid_request',400)
+        if uri and not 1024 <= int(uri.split(':')[2].split('/')[0]) <= 65535:
+            raise AuthError('invalid_request',400)
         payload_hash = hashlib.sha256(canonical(payload)).hexdigest()
         attempt = uuid4()
         with self.db.transaction() as conn:
@@ -73,10 +79,10 @@ class Accounts:
                 if n>=60:
                     raise AuthError('rate_limited',429)
                 row = conn.execute('''INSERT INTO trainer_backend.login_attempts
-                    (id,operation_id,payload_hash,claim_challenge,device_label,state_hash,status)
-                    VALUES(%s,%s,%s,%s,%s,%s,'created') RETURNING id,expires_at''',
+                    (id,operation_id,payload_hash,claim_challenge,device_label,state_hash,status,return_uri,expected_subject)
+                    VALUES(%s,%s,%s,%s,%s,%s,'created',%s,%s) RETURNING id,expires_at''',
                     (attempt,operation_id,payload_hash,payload['claim_challenge'],payload['device_label'],
-                     digest(self.secret('state',attempt)))).fetchone()
+                     digest(self.secret('state',attempt)),uri,payload.get('expected_subject'))).fetchone()
         return {'attempt_id':row['id'], 'expires_at':row['expires_at'],
             'verification_code':self.verification_code(row['id']),
             'authorization_url':self.config.public_base+'/v1/auth/fluxer/start?attempt_id='+str(row['id'])+'&ticket='+self.secret('ticket',row['id'])}
@@ -86,12 +92,13 @@ class Accounts:
             raise AuthError()
         browser = secrets.token_urlsafe(32)
         with self.db.transaction() as conn:
-            row = conn.execute('''UPDATE trainer_backend.login_attempts SET status='confirming',browser_hash=%s
-                WHERE id=%s AND status='created' AND expires_at>clock_timestamp() RETURNING id''',
+            row = conn.execute('''UPDATE trainer_backend.login_attempts
+                SET status=CASE WHEN return_uri IS NULL THEN 'confirming' ELSE 'authorizing' END,browser_hash=%s
+                WHERE id=%s AND status='created' AND expires_at>clock_timestamp() RETURNING id,return_uri''',
                 (digest(browser),attempt)).fetchone()
             if not row:
                 raise AuthError('login_restart_required',409)
-        return browser
+        return browser, (self.provider.authorization_url(self.secret('state',attempt),challenge(self.secret('pkce',attempt))) if row['return_uri'] else None)
 
     def confirm(self,attempt,browser,proof,code):
         if not browser or not hmac.compare_digest(browser,proof):
@@ -118,21 +125,30 @@ class Accounts:
                 raise AuthError()
             conn.execute("UPDATE trainer_backend.login_attempts SET status=%s WHERE id=%s", ('failed' if error or not code else 'verifying',row['id']))
         if error or not code:
+            if row['return_uri']:
+                return row['return_uri']+'?'+urlencode({'attempt_id':row['id'],'error':'login_cancelled'})
             raise AuthError('login_cancelled',400)
         try:
             # One-shot code exchange outside the database transaction; ambiguous failures require a new login.
             subject = self.provider.identify(code,self.secret('pkce',row['id']))
+            if row['expected_subject'] and subject != row['expected_subject']:
+                raise AuthError('account_mismatch',409)
+            handoff = secrets.token_urlsafe(32) if row['return_uri'] else None
             with self.db.transaction() as conn:
                 current = conn.execute("SELECT id FROM trainer_backend.login_attempts WHERE id=%s AND status='verifying' AND expires_at>clock_timestamp() FOR UPDATE",(row['id'],)).fetchone()
                 if not current:
                     raise AuthError('login_restart_required',409)
                 player = conn.execute('SELECT trainer_backend.resolve_fluxer_player(%s,%s) AS id', (self.provider.instance,subject)).fetchone()['id']
                 self.active(conn,player)
-                conn.execute("UPDATE trainer_backend.login_attempts SET status='verified',player_id=%s WHERE id=%s", (player,row['id']))
+                conn.execute("UPDATE trainer_backend.login_attempts SET status='verified',player_id=%s,handoff_hash=%s WHERE id=%s", (player,digest(handoff) if handoff else None,row['id']))
         except Exception:
             with self.db.transaction() as conn:
                 conn.execute("UPDATE trainer_backend.login_attempts SET status='failed' WHERE id=%s AND status='verifying'", (row['id'],))
+            if row['return_uri']:
+                return row['return_uri']+'?'+urlencode({'attempt_id':row['id'],'error':'login_restart_required'})
             raise AuthError('login_restart_required',409) from None
+        if row['return_uri']:
+            return row['return_uri']+'?'+urlencode({'attempt_id':row['id'],'handoff_token':handoff})
 
     def issue(self, conn, session_id, player):
         access, refresh = secrets.token_urlsafe(32), secrets.token_urlsafe(32)
@@ -140,13 +156,16 @@ class Accounts:
             access_expires_at=LEAST(clock_timestamp()+interval '15 minutes',expires_at)
             WHERE id=%s RETURNING access_expires_at''', (digest(access),session_id)).fetchone()
         conn.execute('INSERT INTO trainer_backend.refresh_credentials(token_hash,session_id) VALUES(%s,%s)', (digest(refresh),session_id))
-        return {'player_id':player,'session_id':session_id,'access_token':access,'refresh_token':refresh,'expires_at':row['access_expires_at']}
+        subject = conn.execute("SELECT subject FROM trainer_backend.external_identities WHERE player_id=%s AND instance=%s",(player,self.provider.instance)).fetchone()['subject']
+        return {'player_id':player,'session_id':session_id,'fluxer_subject':subject,'access_token':access,'refresh_token':refresh,'expires_at':row['access_expires_at']}
 
-    def claim(self, attempt, verifier):
+    def claim(self, attempt, verifier, handoff=None):
         with self.db.transaction() as conn:
             row = conn.execute('''SELECT *,expires_at>clock_timestamp() AS live FROM trainer_backend.login_attempts
                 WHERE id=%s FOR UPDATE''', (attempt,)).fetchone()
             if not row or not row['live'] or not hmac.compare_digest(row['claim_challenge'],challenge(verifier)):
+                raise AuthError()
+            if row['return_uri'] and (not handoff or not row['handoff_hash'] or not hmac.compare_digest(row['handoff_hash'],digest(handoff))):
                 raise AuthError()
             if row['status'] in ('created','confirming','authorizing','verifying'):
                 raise AuthError('authorization_pending',409)

@@ -48,7 +48,7 @@ def attempt(service):
     verifier=secrets.token_urlsafe(32)
     row=service.begin(uuid4(),{'provider':'fluxer','device_label':'test device',
         'claim_challenge':challenge(verifier),'claim_challenge_method':'S256'})
-    browser=service.start(row['attempt_id'],parse_qs(urlsplit(row['authorization_url']).query)['ticket'][0])
+    browser,_=service.start(row['attempt_id'],parse_qs(urlsplit(row['authorization_url']).query)['ticket'][0])
     url=service.confirm(row['attempt_id'],browser,browser,row['verification_code'])
     state=parse_qs(urlsplit(url).query)['state'][0]
     return row['attempt_id'],verifier,state,browser
@@ -277,7 +277,7 @@ def test_provider_http_transport_rejects_redirects_and_oversized_bodies():
 def test_confirmation_code_is_required_and_five_failures_lock_attempt(account):
     verifier=secrets.token_urlsafe(32)
     row=account.begin(uuid4(),{'provider':'fluxer','device_label':'test','claim_challenge':challenge(verifier),'claim_challenge_method':'S256'})
-    browser=account.start(row['attempt_id'],parse_qs(urlsplit(row['authorization_url']).query)['ticket'][0])
+    browser,_=account.start(row['attempt_id'],parse_qs(urlsplit(row['authorization_url']).query)['ticket'][0])
     with pytest.raises(AuthError): account.callback(account.secret('state',row['attempt_id']),browser,'valid-code',None)
     assert account.provider.calls==0
     wrong=str((int(row['verification_code'])+1)%100000000).zfill(8)
@@ -285,3 +285,68 @@ def test_confirmation_code_is_required_and_five_failures_lock_attempt(account):
         with pytest.raises(AuthError): account.confirm(row['attempt_id'],browser,browser,wrong)
     with pytest.raises(AuthError): account.confirm(row['attempt_id'],browser,browser,row['verification_code'])
     with pytest.raises(AuthError): account.claim(row['attempt_id'],verifier)
+
+
+def native_attempt(service, **extra):
+    verifier=secrets.token_urlsafe(32)
+    uri='http://127.0.0.1:49152/traineros/auth/'+secrets.token_urlsafe(32)
+    row=service.begin(uuid4(),{'provider':'fluxer','device_label':'native',
+        'claim_challenge':challenge(verifier),'claim_challenge_method':'S256','return_uri':uri,**extra})
+    browser,url=service.start(row['attempt_id'],parse_qs(urlsplit(row['authorization_url']).query)['ticket'][0])
+    return row,verifier,browser,parse_qs(urlsplit(url).query)['state'][0],uri
+
+
+def test_native_claim_requires_both_device_verifier_and_browser_handoff(account,db):
+    row,verifier,browser,state,uri=native_attempt(account)
+    target=account.callback(state,browser,'valid-code',None)
+    assert target.startswith(uri+'?')
+    handoff=parse_qs(urlsplit(target).query)['handoff_token'][0]
+    with db.transaction() as conn:
+        saved=conn.execute('SELECT handoff_hash FROM trainer_backend.login_attempts WHERE id=%s',(row['attempt_id'],)).fetchone()
+        assert saved['handoff_hash']==digest(handoff) and handoff not in str(saved)
+    # Even the initiating attacker cannot poll a victim's completed login.
+    for v,h in [(verifier,None),(verifier,'x'*43),('y'*43,handoff)]:
+        with pytest.raises(AuthError): account.claim(row['attempt_id'],v,h)
+    tokens=account.claim(row['attempt_id'],verifier,handoff)
+    assert tokens['fluxer_subject']==account.provider.subject
+    with pytest.raises(AuthError): account.claim(row['attempt_id'],verifier,handoff)
+
+
+@pytest.mark.parametrize('uri',[
+    'https://evil.invalid/','http://localhost:49152/traineros/auth/'+'x'*43,
+    'http://127.0.0.1:65536/traineros/auth/'+'x'*43,
+    'http://127.0.0.1:1023/traineros/auth/'+'x'*43,
+    'http://127.0.0.1:49152/traineros/auth/'+'x'*43+'?next=evil',
+    'http://127.0.0.1@evil.invalid:49152/traineros/auth/'+'x'*43])
+def test_native_return_rejects_non_loopback_and_ambiguous_uri(account,uri):
+    with pytest.raises(AuthError): native_attempt(account,return_uri=uri)
+
+
+def test_native_cancel_and_social_mismatch_never_issue_session(account,db):
+    row,verifier,browser,state,uri=native_attempt(account)
+    result=account.callback(state,browser,None,'access_denied')
+    assert parse_qs(urlsplit(result).query)['error']==['login_cancelled']
+    with pytest.raises(AuthError): account.claim(row['attempt_id'],verifier)
+    row,verifier,browser,state,uri=native_attempt(account,expected_subject='987654321')
+    result=account.callback(state,browser,'valid-code',None)
+    assert 'handoff_token' not in result and 'login_restart_required' in result
+    with db.transaction() as conn:
+        assert conn.execute('SELECT count(*) AS n FROM trainer_backend.device_sessions').fetchone()['n']==0
+
+
+def test_native_http_skips_code_and_keeps_browser_binding(postgres,db):
+    provider=Provider()
+    with TestClient(create_app(Settings(postgres[1],'test',oauth=CONFIG),provider=provider),base_url=CONFIG.public_base) as client:
+        verifier=secrets.token_urlsafe(32)
+        begin=client.post('/v1/auth/login-attempts',headers={'Idempotency-Key':str(uuid4())},json={
+            'provider':'fluxer','device_label':'native','claim_challenge':challenge(verifier),'claim_challenge_method':'S256',
+            'return_uri':'http://127.0.0.1:54321/traineros/auth/'+'a'*43})
+        assert begin.status_code==201
+        start=client.get(begin.json()['authorization_url'],follow_redirects=False)
+        assert start.status_code==303 and start.headers['referrer-policy']=='no-referrer'
+        state=parse_qs(urlsplit(start.headers['location']).query)['state'][0]
+        result=client.get('/v1/auth/callback/fluxer',params={'state':state,'code':'valid-code'},follow_redirects=False)
+        assert result.status_code==303 and 'access_token' not in result.headers['location']
+        handoff=parse_qs(urlsplit(result.headers['location']).query)['handoff_token'][0]
+        result=client.post('/v1/auth/login-attempts/claim',json={'attempt_id':begin.json()['attempt_id'],'claim_verifier':verifier,'handoff_token':handoff})
+        assert result.status_code==200

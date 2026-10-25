@@ -1,5 +1,11 @@
 # Backend — проверяемый проект контрактов
 
+**Architecture-draft.4, 25 октября:** `LoginBegin` допускает строго ограниченный
+loopback `return_uri` и ожидаемый Social subject; native claim требует дополнительный
+browser-only `handoff_token`. Host-only SessionTokens содержит проверенный
+`fluxer_subject`. Реализация, включённый provider и shell identity preview описаны
+в [Accounts](../accounts.md). Остальные операции остаются проектом.
+
 **Architecture-draft.3, позднее 25 октября:** `LoginAttempt` дополнен
 `verification_code` для подтверждения из инициирующей оболочки перед OAuth;
 добавлены конкретные auth error codes. Серверные accounts handlers уже

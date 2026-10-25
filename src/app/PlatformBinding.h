@@ -60,6 +60,7 @@ private:
             session_ = QUuid::createUuid().toString(QUuid::WithoutBraces);
         if (!launch_.active()) session_.clear();
         host_.setContext({{"profile", owner},
+            {"account",shell_.backendAccount()->snapshot()},
             {"selected", QJsonObject{{"id", shell_.currentAdventureId()}}},
             {"game", QJsonObject{{"id", launch_.adventureId()}, {"session", session_},
                 {"state", launch_.state()}, {"minimized", launch_.minimized()}}},

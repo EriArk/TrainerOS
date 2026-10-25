@@ -79,6 +79,16 @@ private slots:
         Client b(f.endpoint);b.hello("org.test.bob");b.send("avatar.get");QCOMPARE(b.receive()["error"].toObject()["code"].toString(),"avatar_not_ready");
         f.host.setAvatar({},false);b.send("avatar.get");QCOMPARE(b.receive()["error"].toObject()["code"].toString(),"unsupported_method");
     }
+    void accountIdentityChangeRevokesOldClient(){
+        Fixture f;auto initial=context();initial["account"]=QJsonObject{{"state","signed_out"},{"player_id",""}};f.host.setContext(initial);
+        QVERIFY(f.start());Client client(f.endpoint);QCOMPARE(client.hello()["result"].toObject()["capabilities"].toObject()["account.identity"].toInt(),1);
+        client.send("account.get");QCOMPARE(client.receive()["result"].toObject()["account"].toObject()["state"].toString(),"signed_out");
+        initial["account"]=QJsonObject{{"state","signed_in"},{"player_id","server-player"}};f.host.setContext(initial);
+        QCOMPARE(client.receive()["reason"].toString(),"account_changed");
+        Client next(f.endpoint);next.hello();next.send("account.get");
+        QCOMPARE(next.receive()["result"].toObject()["account"].toObject()["player_id"].toString(),"server-player");
+        next.send("account.token");QCOMPARE(next.receive()["error"].toObject()["code"].toString(),"unsupported_method");
+    }
     void asynchronousAvatarRecipes(){
         if(!AvatarAssets::available())QSKIP("Local pack required");
         Fixture f;auto own=AvatarAssets::resolve(AvatarAssets::defaults(),{},f.dir.filePath("own"));

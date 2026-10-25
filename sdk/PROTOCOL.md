@@ -48,6 +48,22 @@ that OS user. Privileged future capabilities need their real host-service gates.
 
 ## Calls
 
+### Backend identity preview
+
+`account.identity:1` adds `account.get` with empty params and result
+`{"account":{"state":"signed_in","player_id":"<server UUID>"}}`.
+The same object is available as `context.account`. Signed-out state has an empty ID.
+The local `profile` ID remains independent. Python clients can call `client.account()`.
+Sign-in/out belongs to Settings → Trainer; SDK games cannot open login, obtain
+credentials, refresh or choose an account. Fluxer subject and session/access/refresh
+tokens never cross this bridge. The snapshot is not server admission or a verified result.
+
+A change of Player ID closes existing connections with `context.revoked`, reason
+`account_changed`. The client must stop old-owner operations and deliberately bind a
+new context. Remote server revocation is currently detected on host refresh, not
+through a push channel. The broader draft `account.online.get`/scoped grant API is
+not advertised as implemented. See [Accounts](../services/backend/accounts.md).
+
 | Method | Params | Result |
 | --- | --- | --- |
 | `context.get` | `{}` | `{"context": snapshot}` |

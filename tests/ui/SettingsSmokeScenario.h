@@ -81,7 +81,30 @@ inline void startSettingsSmoke(QQuickWindow* window, trainer::ShellController& s
         case 9: capture("settings-audio");settings->selectPage("communication");break;
         case 10: capture("settings-communication");settings->selectPage("clock");break;
         case 11: capture("settings-clock");settings->selectPage("system");break;
-        case 12: capture("settings-system");break;
+        case 12: {
+            capture("settings-system");
+            trainer::BackendAccount::Services services;
+            services.read=[](QString,auto done){done(true,{});};
+            services.write=[](QString,QByteArray,auto done){done(true);};
+            services.openBrowser=[](QUrl){return true;};
+            services.request=[](QByteArray,QString path,QJsonObject,QByteArray,auto done){
+                if(path=="/v1/auth/login-attempts")done(201,{{"attempt_id","22222222-2222-4222-8222-222222222222"},
+                    {"authorization_url","https://traineros-api.abysstail.art/v1/auth/fluxer/start"}});
+                else done(500,{});
+            };
+            shell.backendAccount()->setServices(std::move(services));shell.backendAccount()->configure("settings-account-fixture");
+            settings->selectPage("trainer");break;
+        }
+        case 13:
+            for(int i=0;i<5;++i)shell.dispatch(trainer::Action::Down);
+            check(settings->rowFocus()==5,"Controller reaches TrainerOS account action");break;
+        case 14:
+            capture("settings-account");tap(visibleItem(window->contentItem(),"settings-control-5"));
+            check(shell.backendAccount()->actionLabel().startsWith("Cancel"),"Touch begins browser sign-in");break;
+        case 15:
+            capture("settings-account-waiting");shell.dispatch(trainer::Action::Confirm);
+            check(shell.backendAccount()->detail().contains("cancelled"),"Controller cancels browser sign-in");
+            shell.backendAccount()->configure({});break;
         default:timer->stop();completed=true;qInfo()<<"Settings UI checks"<<diagnostics<<"warnings"<<warnings;QCoreApplication::exit(diagnostics.isEmpty()&&warnings==0?0:1);break;
         }
     });timer->start();

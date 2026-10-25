@@ -16,6 +16,7 @@ find_package(Qt6 6.9 QUIET COMPONENTS WebEngineQuick)
 find_package(Qt6 QUIET COMPONENTS Quick3D)
 
 add_library(trainer_core STATIC
+    src/features/accounts/BackendAccount.cpp
     src/features/trainer/AvatarAssets.cpp
     src/platform/sdk/PlatformHost.cpp
     src/platform/sdk/SdkNetwork.cpp
@@ -577,6 +578,15 @@ qt_add_qml_module(traineros
 if(BUILD_TESTING)
     find_package(Python3 REQUIRED COMPONENTS Interpreter)
     qt_add_executable(trainer_platform_tests tests/PlatformHostTests.cpp)
+    qt_add_executable(trainer_account_tests tests/BackendAccountTests.cpp
+        src/features/accounts/BackendAccount.cpp src/platform/storage/EncryptedCredentials.cpp)
+    target_include_directories(trainer_account_tests PRIVATE src)
+    target_link_libraries(trainer_account_tests PRIVATE Qt6::Test Qt6::Gui Qt6::Network Qt6Keychain::Qt6Keychain)
+    add_test(NAME backend_account COMMAND trainer_account_tests)
+    qt_add_executable(trainer_backend_login_probe tools/BackendLoginProbe.cpp
+        src/features/accounts/BackendAccount.cpp src/platform/storage/EncryptedCredentials.cpp)
+    target_include_directories(trainer_backend_login_probe PRIVATE src)
+    target_link_libraries(trainer_backend_login_probe PRIVATE Qt6::Core Qt6::Gui Qt6::Network Qt6Keychain::Qt6Keychain)
     qt_add_executable(trainer_avatar_tests tests/AvatarTests.cpp)
     target_link_libraries(trainer_avatar_tests PRIVATE trainer_core Qt6::Test)
     add_test(NAME avatar COMMAND trainer_avatar_tests)

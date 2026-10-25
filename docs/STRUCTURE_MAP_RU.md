@@ -7,10 +7,15 @@ subject уникально связан с внутренним Player UUID. Rev
 Сборка установлена, отдельное приложение владельца и HTTPS origin созданы.
 S15 эксплуатирует отдельный API tunnel; секрет/callback настроены, Fluxer активирован.
 Живые consent/cancel/relogin и серверные сессии проверены, включая стабильный UUID.
-Обычный вход должен возвращаться в native
-shell без обязательного ручного кода; этот handoff пока не реализован.
-[Контракт](../services/backend/accounts.md). S03/SDK и локальный Trainer ещё не
-подключены к этому пути, доставки revocation в SDK пока нет; игры/аватар не менялись.
+Native handoff без ручного кода теперь реализован: S04 `BackendAccount` открывает
+external browser, принимает одноразовый loopback handoff и хранит свою сессию в
+существующем защищённом хранилище отдельно по local Trainer. S05 Social subject
+ограничивает выбор аккаунта, но Social credentials не копируются. Main владеет
+owner/lock lifecycle и возвратом окна; Settings — действиями входа/отмены/выхода.
+S14 PlatformBinding выдаёт только `context.account`/`account.get`; смена Player ID
+отзывает старые connections и contributions. Серверные revocation events ещё не
+доставляются push-каналом: host обнаруживает отзыв при refresh. Игры/аватар не менялись.
+[Контракт и приёмка](../services/backend/accounts.md); портативная поставка не выполнялась.
 
 **Backend, 25 октября:** общий [серверный каркас](../services/backend/README.md)
 теперь установлен отдельно от directory/catalogue. Владелец эксплуатации — S15;

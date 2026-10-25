@@ -1,5 +1,13 @@
 # Platform SDK: внешняя программа → консоль → результат
 
+**25 октября — Backend identity preview.** `BackendAccount` владеет браузерным
+входом и защищённой сессией отдельно для каждого local Trainer. PlatformBinding
+публикует только `context.account` и `account.get` (`account.identity:1`), без
+provider credentials. Смена Player UUID отзывает старые соединения; выдача
+серверных grants/доставка revocation events ещё не подключены.
+[Контракт и границы](../services/backend/accounts.md). Это исходники/серверная
+проверка; установленный SDK на портативках этим проходом не обновляется.
+
 **21 октября 2026.** Первый реализованный вход для #236 и ограниченная часть #237:
 локальный versioned bridge, реальный контекст, подписки, один простой тип Start
 widget и lifecycle cleanup. [Старт автора](../sdk/README.md) и

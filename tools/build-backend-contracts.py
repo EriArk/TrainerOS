@@ -10,7 +10,7 @@ import re
 
 ROOT = Path(__file__).resolve().parents[1]
 DEST = ROOT / 'services/backend/contracts'
-DRAFT = 'architecture-draft.3'
+DRAFT = 'architecture-draft.4'
 MODULES = {
     'accounts': 'S01', 'profiles': 'S01', 'registry': 'S10', 'results': 'S10',
     'boards': 'S10', 'competitions': 'S10', 'community_competitions': 'S10',
@@ -82,16 +82,18 @@ define('ReasonedRevision', {'expected_revision': ref('Revision'), 'reason': ref(
 # Accounts: attempt possession and backend session credentials are separate.
 define('LoginBegin', {'provider': enum('fluxer'), 'device_label': string(64),
     'claim_challenge': string(43, 43, pattern=r'^[A-Za-z0-9_-]{43}$'),
-    'claim_challenge_method': {'const': 'S256'}})
+    'claim_challenge_method': {'const': 'S256'},
+    'return_uri': string(128, pattern=r'^http://127\.0\.0\.1:[1-9][0-9]{3,4}/traineros/auth/[A-Za-z0-9_-]{43}$'),
+    'expected_subject': string(32,pattern=r'^[0-9]{1,32}$')}, optional=('return_uri','expected_subject'))
 define('LoginAttempt', {'attempt_id': ref('Id'), 'authorization_url': string(2048,
     format='uri', pattern=r'^https://'), 'expires_at': ref('Time'),
     'verification_code': string(8,8,pattern=r'^[0-9]{8}$')},
-    description='Show verification_code only on the initiating host. Browser asks the user to type it before OAuth; never auto-submit or put it in a URL.')
+    description='Native return_uri skips manual code and requires a browser-only handoff_token at claim. Without return_uri, verification_code is an interim explicit device confirmation; never auto-submit it.')
 define('LoginClaim', {'attempt_id': ref('Id'), 'claim_verifier': string(128, 43,
-    pattern=r'^[A-Za-z0-9._~-]{43,128}$')})
+    pattern=r'^[A-Za-z0-9._~-]{43,128}$'), 'handoff_token': string(43,43,pattern=r'^[A-Za-z0-9_-]{43}$')},optional=('handoff_token',))
 define('SessionTokens', {'player_id': ref('Id'), 'session_id': ref('Id'),
     'access_token': string(2048, 32), 'refresh_token': string(2048, 32),
-    'expires_at': ref('Time')}, description='Secret host-only response; never log or expose to games.')
+    'expires_at': ref('Time'), 'fluxer_subject': string(32,pattern=r'^[0-9]{1,32}$')}, description='Secret host-only response; never log or expose to games.')
 define('Refresh', {'refresh_token': ref('Token')})
 define('ReauthGrant', {'reauth_grant': string(2048, 32), 'expires_at': ref('Time'),
     'purpose': ref('Code')}, description='One-shot grant bound to actor, current session and sensitive operation.')
@@ -553,10 +555,12 @@ def data_model():
         [('token_hash',), ('refresh_hash',)], {'player_id': 'players.id'},
         ['refresh rotation is atomic; reused credential revokes family', 'never store raw access/refresh tokens'])
     table('login_attempts', 'accounts', {'claim_challenge': 'sha256', 'oauth_state_hash': 'sha256',
+        'return_uri': 'nullable_loopback_uri', 'handoff_hash': 'nullable_sha256', 'expected_subject': 'nullable_bounded_text',
         'target_player_id': 'nullable_uuid', 'expires_at': 'utc', 'consumed_at': 'nullable_utc'},
         [('oauth_state_hash',)], {'target_player_id': 'players.id'},
         ['callback bound to provider instance and intended login/link/recovery purpose',
-         'no session before provider proof and possession claim; expiry checked server-side'])
+         'no session before provider proof and possession claim; expiry checked server-side',
+         'native claim requires original verifier AND one-shot browser handoff; only its hash persists'])
     table('recovery_credentials', 'accounts', {'player_id': 'uuid', 'credential_hash': 'sha256',
         'consumed_at': 'nullable_utc'}, [('credential_hash',)], {'player_id': 'players.id'})
     table('public_profiles', 'profiles', {'player_id': 'uuid', 'display_name': 'text_64',
@@ -726,7 +730,8 @@ def documents():
             'default': 'A missing/unresolved applicable gate prevents activation, never fabricates success.',
             'gates': [
                 {'id': key, 'owner': owner, 'decision': decision, 'blocks': blocks,
-                 'status': 'unresolved-before-activation'} for key, owner, decision, blocks in [
+                 **({'status': 'verified-provider-only', 'evidence': 'docs/evidence/backend-oauth-live-20261025/README.md'}
+                    if key == 'auth.provider_contract' else {'status': 'unresolved-before-activation'})} for key, owner, decision, blocks in [
                     ('auth.provider_contract', 'accounts', 'Exact Fluxer instance endpoints, registered callbacks and PKCE behavior verified.', ['online-login']),
                     ('auth.recovery_policy', 'accounts', 'Lost-all-factors recovery, identity relink and conflict procedure.', ['account-recovery']),
                     ('results.validator_policy', 'results', 'Game-specific evidence, resource budget, determinism and trust level.', ['official-results']),

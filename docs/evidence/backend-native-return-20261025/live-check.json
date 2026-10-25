@@ -1,0 +1,8 @@
+{
+    "handheld": false,
+    "native_browser_return": true,
+    "same_player": true,
+    "server_session_revoked": true,
+    "session_restored_with_refresh": true,
+    "storage": "test-only memory; not vault acceptance"
+}

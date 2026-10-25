@@ -1,5 +1,5 @@
 {
-  "version": "architecture-draft.3",
+  "version": "architecture-draft.4",
   "implemented": false,
   "kind": "logical-schema-not-migration",
   "tables": {
@@ -82,6 +82,9 @@
         "id": "uuid",
         "claim_challenge": "sha256",
         "oauth_state_hash": "sha256",
+        "return_uri": "nullable_loopback_uri",
+        "handoff_hash": "nullable_sha256",
+        "expected_subject": "nullable_bounded_text",
         "target_player_id": "nullable_uuid",
         "expires_at": "utc",
         "consumed_at": "nullable_utc"
@@ -100,7 +103,8 @@
       "delete_policy": "explicit-owner-command; no cascading historical erasure",
       "invariants": [
         "callback bound to provider instance and intended login/link/recovery purpose",
-        "no session before provider proof and possession claim; expiry checked server-side"
+        "no session before provider proof and possession claim; expiry checked server-side",
+        "native claim requires original verifier AND one-shot browser handoff; only its hash persists"
       ]
     },
     "recovery_credentials": {

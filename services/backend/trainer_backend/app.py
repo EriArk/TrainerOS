@@ -84,7 +84,7 @@ def create_app(settings=None, *, provider=None):
     def capabilities():
         modules=[asdict(module) for module in MODULES]
         modules[0]['state']='configured' if settings.oauth else 'provider_not_configured'
-        return {'version': __version__, 'capabilities': {'accounts.fluxer_login':1,'accounts.sessions':1} if settings.oauth else {},
+        return {'version': __version__, 'capabilities': {'accounts.fluxer_login':1,'accounts.sessions':1,'accounts.native_return':1} if settings.oauth else {},
                 'modules': modules}
 
     # Draft OpenAPI operations are NOT mounted as success-returning placeholders.

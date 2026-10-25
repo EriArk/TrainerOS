@@ -59,6 +59,10 @@ class Client:
     def supports(self, name, version=1):
         return self.capabilities.get(name) == version
 
+    def account(self):
+        """Public server identity only; sign-in and credentials belong to the host."""
+        return self.call("account.get")["account"]
+
     def _receive(self, deadline):
         while b"\n" not in self._buffer:
             if not self._socket:

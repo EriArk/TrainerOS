@@ -106,7 +106,7 @@ void SettingsController::activate(int index) {
     if (repository_) repository_->savePreferences(candidate, this, completed); else completed({});
 }
 QVariantList SettingsController::controls() const {
-    const auto row = [](const char* title, const char* kind, const QString& detail) {
+    const auto row = [](const QString& title, const char* kind, const QString& detail) {
         return QVariantMap{{"title",title},{"kind",kind},{"detail",detail}};
     };
     switch(category_) {
@@ -115,7 +115,7 @@ QVariantList SettingsController::controls() const {
         return {row("Volume","volume",""),row("Achievement jingle","stepper",volume?QString::number(volume)+"%":"Off"),row("Background music","unavailable","Music playback is not available yet")}; }
     case 2: return {row("Video previews","toggle",videoPreviews()?"On · silent playback":"Off"),row("Adventure pictures","status","Clean exit pictures on Home and in Choose Adventure"),row("Field Guide illustrations","status","Illustrations and animated companions")};
     case 3: return {row("Charger vibration","unavailable","Patterns have not been verified on this handheld"),row("Device lighting","unavailable","Lighting support has not been verified")};
-    case 4: return {row("Your profile","action","Name and emblem"),row("RetroAchievements","action","Manage your account"), trainersAvailable_ ? row("Trainers","action","Choose a player or create a Trainer") : row("Separate Trainers & PIN","unavailable","Not available yet"),row("Trainer PIN",trainersAvailable_?"action":"unavailable","Set, change or remove your PIN"),row("Family code",trainersAvailable_?"action":"unavailable","A parent can reset forgotten PINs")};
+    case 4: return {row("Your profile","action","Name and emblem"),row("RetroAchievements","action","Manage your account"), trainersAvailable_ ? row("Trainers","action","Choose a player or create a Trainer") : row("Separate Trainers & PIN","unavailable","Not available yet"),row("Trainer PIN",trainersAvailable_?"action":"unavailable","Set, change or remove your PIN"),row("Family code",trainersAvailable_?"action":"unavailable","A parent can reset forgotten PINs"),row(backendAction_,"action",backendDetail_)};
     case 5: return {row("Refresh status","action",""),row("Restart","action",""),row("Power off","action","")};
     case 7: {
         const auto p=input_?input_->profile():ControllerProfile{}.json();

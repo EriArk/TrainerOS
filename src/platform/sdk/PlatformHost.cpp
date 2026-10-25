@@ -28,7 +28,7 @@ bool identifier(const QString& value) {
 }
 QString widgetKey(const QString& app, const QString& id) { return "sdk:" + app + ":" + id; }
 QJsonObject capabilities() {
-    return {{"context", 1}, {"lifecycle", 1}, {"ui.start.widget", 1}};
+    return {{"context", 1}, {"lifecycle", 1}, {"ui.start.widget", 1}, {"account.identity",1}};
 }
 }
 PlatformHost::PlatformHost(ControlsDashboard& dashboard, QObject* parent)
@@ -110,8 +110,9 @@ QJsonObject PlatformHost::snapshot() const {
 void PlatformHost::setContext(const QJsonObject& value) {
     if (value == context_) return;
     const bool ownerChanged = value["profile"] != context_["profile"];
+    const bool accountChanged = value["account"].toObject()["player_id"] != context_["account"].toObject()["player_id"];
     context_ = value; ++revision_;
-    if (ownerChanged) {
+    if (ownerChanged||accountChanged) {
         avatar_={};
         // An old process must not automatically adopt the next player's context.
         // Clear all contributions together: releasing peers one by one must not
@@ -119,7 +120,7 @@ void PlatformHost::setContext(const QJsonObject& value) {
         for (auto& peer : peers_) peer.widgets = {};
         const auto sockets = peers_.keys();
         for (auto* socket : sockets) {
-            send(socket, {{"event", "context.revoked"}, {"reason", "profile_changed"}});
+            send(socket, {{"event", "context.revoked"}, {"reason", ownerChanged?"profile_changed":"account_changed"}});
             release(socket);
         }
     } else {
@@ -207,6 +208,10 @@ void PlatformHost::request(QTcpSocket* socket, const QJsonObject& packet) {
         return;
     }
     if (method == "context.get") { ok({{"context", snapshot()}}); return; }
+    if (method == "account.get") {
+        const auto account=context_["account"].toObject();
+        ok({{"account",QJsonObject{{"state",account["state"].toString("signed_out")},{"player_id",account["player_id"].toString()}}}});return;
+    }
     if (method == "context.subscribe") { peer.subscribed = true; ok({{"context", snapshot()}}); return; }
     if (method == "context.unsubscribe") { peer.subscribed = false; ok({}); return; }
     if(method=="avatar.get"||method=="avatar.subscribe"||method=="avatar.unsubscribe") {

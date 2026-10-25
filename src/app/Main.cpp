@@ -412,6 +412,7 @@ int main(int argc, char* argv[]) {
         if(personalLibrary && !smoke && store) {
             QObject::connect(store.get(), &LocalStateStore::opened, &shell, [&](bool ready) {
                 shell.social()->setOwner(ready ? store->ownerId() : QString());
+                shell.backendAccount()->configure(ready ? store->ownerId() : QString());
                 shell.keyboard()->configure(stateDirectory,ready ? store->ownerId() : QString());
                 shell.collectionManager()->configure(stateDirectory,ready?store->ownerId():QString());
                 shell.apps()->configure(stateDirectory,ready?store->ownerId():QString());
@@ -423,6 +424,7 @@ int main(int argc, char* argv[]) {
             });
             QObject::connect(store.get(), &LocalStateStore::accessNeeded, &shell, [&] {
                 shell.social()->setOwner({});
+                shell.backendAccount()->configure({});
                 shell.keyboard()->configure(stateDirectory,{});
                 shell.collectionManager()->configure(stateDirectory,{});
                 shell.apps()->configure(stateDirectory,{});
@@ -1174,12 +1176,17 @@ int main(int argc, char* argv[]) {
         else {
             auto* window = qobject_cast<QQuickWindow*>(engine.rootObjects().first());
             if (!window) {qCritical()<<"Shell root is not a window:"<<engine.rootObjects().first()->metaObject()->className();return 2;}
+            QObject::connect(shell.backendAccount(),&BackendAccount::returnRequested,window,[&,window]{
+                if(adventureLaunch.active())return;
+                if(parser.isSet("windowed"))window->show();else window->showFullScreen();window->requestActivate();
+            });
             shell.apps()->launchGuard=[&]{
                 if(adventureLaunch.active())return QString("Return to your game and close it before opening an application.");
                 if(session.blocked()||shell.runtimeChangeBlocked())return QString("Finish the current operation before opening an application.");
                 return QString();
             };
             QObject::connect(shell.apps(),&AppsController::foregroundRequested,window,[window]{window->hide();});
+            shell.backendAccount()->loginGuard=shell.apps()->launchGuard;
             QObject::connect(shell.apps(),&AppsController::shellRequested,window,[&,window]{
                 if(adventureLaunch.active())return;
                 shell.goToSection("apps");if(parser.isSet("windowed"))window->show();else window->showFullScreen();window->requestActivate();

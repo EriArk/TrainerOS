@@ -1,0 +1,12 @@
+# Server-only Linux checks, not a TrainerOS release or handheld runtime.
+# Pass the pinned PYTHON_IMAGE from images.env (Debian trixie base).
+ARG PYTHON_IMAGE
+FROM ${PYTHON_IMAGE}
+RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+    build-essential cmake ninja-build qt6-base-dev qt6-declarative-dev \
+    qt6-multimedia-dev qt6-websockets-dev qtkeychain-qt6-dev libssl-dev \
+    libsdl2-dev libfm-qt-dev libglib2.0-dev pkg-config libqt6sql6-sqlite qt6-svg-plugins \
+    qml6-module-qtquick qml6-module-qtquick-window qml6-module-qtquick-shapes \
+    qml6-module-qtqml-workerscript qml6-module-qtqml-models \
+    qml6-module-qtquick-layouts qml6-module-qtmultimedia fonts-dejavu-core \
+    && rm -rf /var/lib/apt/lists/*
