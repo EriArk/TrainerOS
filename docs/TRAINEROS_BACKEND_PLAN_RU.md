@@ -8,6 +8,12 @@
 для реализации, а не работающий API; исходники сервиса, deploy и приёмка ещё
 предстоят. Общего плана для остальных функций TrainerOS этот раздел не вводит.
 
+**Уточнение владельца, 25 октября:** сначала подготовить **всю архитектуру
+серверной системы**, затем реализовывать и полировать рабочие сценарии.
+[Архитектура v1](#architecture-v1) охватывает все модули, данные, контракты,
+отказы и эксплуатацию. Предыдущее предложение сразу начать с вертикального
+сценария гольфа снято; гольф остаётся проверочным примером проекта.
+
 ## 1. Зачем сервер
 
 Нужна **одна компактная серверная инфраструктура TrainerOS** для координации, метаданных и проверенных результатов. Её используют TrainerOS и Crates, но она **не становится обязательной основой запуска игр** и не заменяет Fluxer, P2P или операционную систему.
@@ -335,13 +341,15 @@ GameHub и игровая таблица читают один API. Точное
 на произвольных числах. Турниры/Arcade Today/кланы используют тот же подтверждённый
 result ID и не требуют сначала закончить магазин.
 
-### 10.8. Конкретный первый результат и приёмка
+### 10.8. Проверочный пример после подготовки всей архитектуры
 
-Первый сквозной инкремент: **войти на двух устройствах под одним TrainerOS ID,
+Пример будущей сквозной приёмки: **войти на двух устройствах под одним TrainerOS ID,
 сыграть полный раунд гольфа, отправить результат через SDK, дождаться проверки
 и увидеть его в общей таблице с обоих устройств**. Это включает Accounts,
 Results, Boards и game validator; один `/health` не является выполнением.
 Устройства для начальной проверки — изолированные desktop-клиенты, не портативки.
+Это не текущая очередь реализации: по последующему решению владельца сначала
+готовится архитектура всех серверных функций из раздела 11.
 
 Зависимости и критерии готовности этой функции:
 
@@ -373,3 +381,390 @@ Results, Boards и game validator; один `/health` не является вы
 - [FastAPI: несколько модулей одного приложения](https://fastapi.tiangolo.com/tutorial/bigger-applications/) — основание для modular API, не подтверждение выбранного deployment.
 - [PostgreSQL: ограничения целостности](https://www.postgresql.org/docs/current/ddl-constraints.html) — unique/FK/check, дополненные транзакционными тестами реализации.
 - [Fluxer: Authentication](https://fluxerapp-fluxer.mintlify.app/authentication) — опубликованный authorization-code/identify flow; совместимость целевого instance и PKCE остаются отдельной проверкой.
+
+<a id="architecture-v1"></a>
+## 11. Полная серверная архитектура v1 — проект перед реализацией
+
+**Статус:** проект всех согласованных серверных областей, без runtime-кода и
+поставки. Сначала фиксируем этот общий контракт; реализация/полировка отдельных
+сценариев следует после него. Разделы 1–10 сохраняют продуктовые ограничения и
+детали, раздел 11 уточняет архитектуру целиком. Сроки, формулы и тарифы не
+подменяются произвольными значениями. Это локальная последовательность работ
+над Backend по решению владельца, не новая очередь для всего TrainerOS.
+
+### 11.1. Компоненты и границы исполнения
+
+```mermaid
+flowchart LR
+    Game[Игры и приложения] --> SDK[Platform SDK / активный Trainer]
+    Shell[Экраны TrainerOS] --> SDK
+    SDK --> API[Backend API]
+    API --> Identity[Accounts / профили]
+    API --> Results[Results / Boards / Competitions]
+    API --> Economy[Rewards / Wallet / Inventory]
+    Identity --> DB[(PostgreSQL)]
+    Results --> DB
+    Economy --> DB
+    Worker[Фоновые задания / проекции] --> DB
+    Worker --> Validator[Изолированные validators]
+    Providers[Fluxer / RA / провайдеры поддержки] --> Adapters[Provider adapters]
+    Adapters --> API
+    Worker --> Adapters
+    SDK --> Lobby[Существующий Lobby / P2P]
+    Lobby --> Bot[Существующий directory bot / SQLite]
+    Shell --> Catalogue[Существующий подписанный Crates catalogue]
+    Catalogue --> Releases[Утверждённые GitHub Releases]
+```
+
+Один новый пакет `services/backend/` с модулями: `accounts`, `profiles`,
+`registry`, `results`, `boards`, `competitions`, `community_competitions`,
+`rewards`, `wallet`, `inventory`, `support`, `providers`, `operations`.
+Это предлагаемое размещение будущего кода, этих модулей ещё нет. Точки запуска
+API и worker используют одни доменные правила. Проверяющие игровые процессы
+отделены от API и не получают сессионные, платёжные или административные секреты.
+
+Внутри нового Backend один PostgreSQL-кластер, схемы/таблицы имеют одного
+модульного владельца. Чужие таблицы изменяются через команду владельца, не
+случайным SQL из соседнего router. Связанные операции в одной БД допускают
+одну транзакцию; внешние провайдеры и игровые процессы — всегда вне неё.
+Авторизация и экономические операции читают авторитетное состояние;
+таблицы лидеров и сводная статистика допускают задержку проекции с revision.
+
+Отдельные процессы существующих бота и каталога сохраняются. Их restart не
+завершает игровой матч; restart Backend не закрывает существующее P2P/Lobby.
+Общие log/backup/health-процедуры не означают слияния БД. Видео, голос, ROM,
+личные saves и исполняемые архивы через новый API не передаются.
+
+### 11.2. Данные: владельцы, ключи и инварианты
+
+Это логическая схема для будущих миграций, не установленная БД. UUID —
+внутренние непрозрачные ID, UTC — серверное время; внешние ID хранятся строками
+с provider/instance namespace. Число монет, метрики и версии — целые значения.
+Строки личного владельца всегда ссылаются на player ID, а не на имя/аватар.
+
+| Владелец | Основные сущности | Обязательные связи и ограничения |
+| --- | --- | --- |
+| Accounts | players, external_identities, device_sessions, login_attempts, recovery_credentials | UNIQUE(provider, instance, subject); active/suspended/deletion_pending/deleted; session принадлежит одному player; повтор credential запрещён |
+| Profiles | public_profiles, avatar_recipes | player PK; revision для optimistic concurrency; whitelist публичных полей; recipe с pack/item revisions |
+| Registry | games, game_rulesets, validators, board_definitions | game+ruleset immutable; hash контента/валидатора; draft/active/retired/revoked; board содержит eligibility и порядок метрик |
+| Results | matches, match_participants, match_teams, submissions, evidence_refs, result_decisions, result_outcomes | roster фиксируется при старте; participant уникален внутри match; submission с payload hash; решения append-only, revision монотонна |
+| Boards | best_records, statistics, rating_events, rating_projections | ключ board+subject; результат ссылается на действующую decision revision; каждая проекция содержит watermark |
+| Competitions | competitions, entries, rounds, fixtures, standings, disputes | policy snapshot и deadline; entry уникален по competition+subject; fixture/result assignment не выбирается клиентом |
+| Community competitions | community_refs, roster_snapshots, delegations | provider membership evidence и момент проверки; snapshot на competition/fixture; полномочия с expiry |
+| Rewards | reward_rules, reward_claims, trophies | rule revision; UNIQUE(rule, qualifying event, beneficiary); issued/reversed; срок/критерий трофея отдельно от владения предметом |
+| Wallet | ledger_transactions, ledger_entries, wallet_accounts, purchases | запись только в целых coins; сбалансированные проводки; unique source operation; purchase и постоянный grant атомарны |
+| Inventory | cosmetic_items, item_revisions, ownership_grants, entitlement_grants | ownership player+item; временное entitlement с источником и интервалом; retired item не уничтожает владение |
+| Support | support_links, provider_events, support_periods | проверенная привязка; UNIQUE(provider, event ID); права от подтверждённого периода, не клиентского флага |
+| Operations | idempotency_keys, jobs, outbox, consumer_receipts, audit_events | ключи scoped actor+operation; job lease/fencing; UNIQUE(consumer,event); audit не редактируется runtime-пользователем |
+
+Удаление родителя не запускает каскадную потерю истории матчей/ledger: удаление
+аккаунта — отдельная оркестрация с анонимизацией и retention-политикой.
+Матчи хранят и player identity, и исторический состав; смена ника не создаёт
+нового рекорда. Командный subject — канонический отсортированный набор player IDs
+и размер состава; порядок ходов находится отдельно в правилах/журнале.
+
+Хранить только ограниченные evidence blobs с хешем, размером, форматом, владельцем
+и сроком. Физическое хранилище скрыто за evidence-store интерфейсом; первоначально
+закрытый каталог сервера, с atomic finalize и резервированием, не публичные URLs.
+Запись сначала получает staging ID; только проверенный blob становится частью
+заявки. Недовложенные/осиротевшие blobs удаляются по отдельной политике. Большие
+произвольные файлы и пользовательские исполняемые validators не принимаются.
+
+### 11.3. Контракт API и SDK
+
+Все новые маршруты ниже — **предлагаемый API v1**, ещё не capabilities текущего
+SDK. Корневой публичный prefix `/v1`; provider ingress и operator API имеют
+отдельные пути, credentials и rate limits. Существующий `/v1/catalogue` сохраняет
+свой контракт и владельца. Новое API не перенаправляет его на незавершённую БД.
+
+| Область API | Команды / чтение | Кто обращается |
+| --- | --- | --- |
+| `/auth/login-attempts`, `/auth/callback/fluxer`, `/auth/sessions` | Начало/завершение входа, refresh, список/отзыв устройств | Только оболочка и проверенный OAuth callback |
+| `/me`, `/me/identities`, `/me/recovery`, `/me/export`, `/me/deletion` | Связи аккаунта, recovery, экспорт/удаление | Владелец; sensitive-команды со свежим подтверждением |
+| `/players/{id}/profile`, `/me/avatar` | Публичная карточка; изменение своего рецепта с expected revision | Чтение согласно видимости; запись — оболочка владельца |
+| `/games`, `/games/{id}/rulesets`, `/boards` | Поддерживаемые игры, правила и метрики | Read-only SDK; запись registry — оператор |
+| `/matches`, `/matches/{id}/admissions`, `/matches/{id}/submissions` | Зарегистрировать матч, своё участие, отправить bounded evidence | Scope текущей игры/участника |
+| `/results/{receipt}`, `/me/results` | Решение/причина/статус и личная история | Участник; публичный итог отделён от закрытого evidence |
+| `/boards/{id}/entries`, `/players/{id}/statistics` | Top, cursor, around-self, статистика/рейтинг | Read-only SDK с privacy и rate limits |
+| `/competitions`, `/competitions/{id}/entries`, `/competitions/{id}/standings` | Участие/выход, правила, расписание и зачёт | Игрок или проверенный team delegate |
+| `/competitions/{id}/disputes` | Заявка на разбор конкретного результата | Участник; решение — оператор/уполномоченный организатор |
+| `/communities/{provider}/{id}/competitions` | Зачёты сообщества и допущенные составы | Чтение по видимости; запись с проверенными полномочиями |
+| `/me/rewards`, `/me/trophies`, `/me/wallet`, `/me/ledger` | Только авторитетные выдачи и баланс | Владелец; игра видит только нужную разрешённую часть |
+| `/shop/items`, `/me/purchases`, `/me/inventory`, `/me/entitlements` | Витрина, явная покупка, владение/права | Покупка через host-owned подтверждение, не скрытый вызов игры |
+| `/me/support-links`, `/ingress/{provider}` | Привязка поддержки и доставка provider events | Владелец / проверенный provider adapter |
+| `/ops/*` | Registry, corrections, disputes, jobs, audit, moderation | Изолированная operator identity, никогда обычный game token |
+
+Граница wire-данных: JSON со schema version, request ID; денежные суммы —
+integer coins, большие счётчики с явно выбранным безопасным представлением.
+Ответ ошибки: стабильный code, message, request ID, retryable, при необходимости
+retry_after. Значения code: unauthenticated/forbidden/conflict/unsupported_ruleset/
+invalid_evidence/rate_limited/provider_unavailable/service_unavailable.
+HTTP 202/receipt означает принятую работу, не успех соревнования/покупки.
+Pagination всегда bounded; immutable definitions используют ETag/revision.
+
+Все денежные/соревновательные команды требуют operation ID. Сервер связывает
+его с actor, операцией и нормализованным payload hash. Потерянный ответ проверяют
+чтением операции/receipt или повтором того же ID; другой payload возвращает
+conflict. Истечение HTTP dedup-кеша не разрешает повторную выдачу: у доменных
+таблиц остаются постоянные unique source keys. Для редактирования профиля/правил
+используется expected revision, чтобы второй клиент не затёр первое изменение.
+
+SDK скрывает URL/auth/retry/cache, но сохраняет честные pending/error-статусы.
+Через локальный host передаётся actor+app/session generation; grants ограничены
+операцией/игрой/матчем/сроком. Покупки, привязки и удаления принадлежат оболочке.
+Смена профиля отменяет callbacks и недействительные grants. Кеш и очередь
+разделены по online player и local Trainer; нет отправки чужого pending после login.
+
+Установка подписанного пакета и локальный app ID не доказывают, что устройство
+не модифицировано. Backend проверяет результат и права; секрет «официальной
+игры» нельзя вшить в бинарник как доказательство честности. Неизвестная игра
+может пользоваться разрешённым SDK без участия в официальных наградах/рейтингах.
+Registry допускает её к соревнованиям только после явного определения правил
+и проверки validator, отдельно от редакционного одобрения в Crates.
+
+### 11.4. События, транзакции и повторное исполнение
+
+У события есть event ID, type+schema revision, aggregate ID+revision,
+occurred_at сервера, causation/operation ID и минимальный payload. Изменение
+доменных строк и outbox-запись выполняются одной транзакцией. Доставка —
+at-least-once; потребитель имеет inbox/dedup и проверяет revision источника.
+Глобального порядка между всеми игроками не требуется.
+
+| Событие | Единственный издатель | Потребители и эффект |
+| --- | --- | --- |
+| AccountSessionRevoked / AccountDeletionRequested | Accounts | SDK grants/очереди, profile visibility, операции удаления |
+| ResultVerified / ResultVoided | Results | Boards, Statistics, Competitions, Rewards; все учитывают decision revision |
+| CompetitionFinalized / CompetitionCorrected | Competitions | Trophies/Rewards, архив; нет повторной выдачи за повтор события |
+| RewardApproved / RewardReversed | Rewards | Wallet/Inventory по типу награды и постоянному claim ID |
+| PurchaseCommitted | Wallet + Inventory в одной транзакции | UI receipts/история; не повторное списание |
+| SupportPeriodChanged | Support | Entitlements/будущая reward policy; покупки не отзываются |
+| AvatarRecipeChanged / OwnershipChanged | Profiles / Inventory | Перепроверка представления и кеша SDK |
+
+Состояние match: preparing → active → submitted → settled; возможны aborted
+и disputed. Состояние submission и доверие описаны в 10.4; отсутствие evidence
+не превращается в поражение без правил игры. Correction добавляет новую decision,
+а не переписывает прежнюю. Применение revision N после N+1 не возвращает старый
+результат в таблицу. Повторный пересчёт рейтингов использует стабильный порядок
+подтверждённых матчей и прежнюю версию алгоритма.
+
+Worker получает ограниченную аренду job с attempt/fencing token; просроченный
+worker не может позже затереть решение нового. Повторы с backoff+jitter и
+пределом; dead-letter виден оператору. API intake, result verification, provider
+refresh и projection имеют отдельные квоты, чтобы тяжёлый validator не вытеснил
+авторизацию/покупку. No-op повтор безопасен, «exactly once по сети» не обещается.
+
+### 11.5. Все соревновательные модули
+
+**Boards / Statistics / Rating.** Механизм рекордов и статистики общий (10.5),
+алгоритм рейтинга выбирается для режима игры и имеет собственную immutable
+версию. `rating_events` хранит входной result ID, прежние/новые значения и
+параметры расчёта. Нет смешивания разных метрик в глобальный skill number.
+Формула рейтинга, provisional-период и правила против повторного фарма —
+продуктовые параметры, до определения rating capability не объявляется готовой.
+
+**Arcade Today.** Это вид competition с immutable rules snapshot, серверными
+opens/closes/finalizes_at и content revision; не отдельный результат/кошелёк.
+Публикация фиксирует timezone/UTC-интервал, число попыток, offline policy,
+tie policy и призы. Поздняя заявка рассматривается только по объявленному окну.
+День хранится как экземпляр события, а не вычисляется из часов клиента.
+
+**Турниры.** Competition → entries → rounds → fixtures → подтверждённые results.
+Формат (сетка/круг/другой) — versioned strategy, определяемая при публикации.
+Состав/посев фиксируется при закрытии регистрации. Состояния: draft → published
+→ registration → running → provisional → finalized; cancellation/correction
+имеют отдельные причины и историю. Переходы требуют условий, а не таймера UI.
+Bye, disconnect, no-show, ничья, пересдача и срок апелляции задаются policy;
+не выбирать победителя произвольно. Finalize требует отсутствия нерешённых
+обязательных fixtures/disputes. После finalize исправление публикует новую
+revision и компенсирует награды, не переписывает историю незаметно.
+
+**Команды и кланы.** Состав разового матча и Fluxer community — разные сущности.
+Backend хранит внешний community ref, проверенные полномочия заявителя и
+snapshot участников на соревнование; не создаёт копию социальных ролей/чатов.
+Устаревший кеш членства не даёт права новой заявки от сообщества. Изменение
+членства после freeze не переписывает прошедший матч; правила замены/перехода
+между командами задаёт competition policy. Организатор может управлять только
+своим соревнованием, не общим балансом и аккаунтами участников.
+
+**Трофеи и архив.** Трофей ссылается на result/competition decision, beneficiary
+и award rule. Постоянный памятный трофей и временная корона текущего чемпиона
+различаются. Ничьи/несколько чемпионов определяются policy. Отмена результата
+может отозвать основание трофея с историей причины, не удаляя прочие приобретения.
+Публикация в Fluxer — отдельное подключаемое действие с согласованным каналом и
+правами. Проект не разрешает отправлять сообщения пользователям автоматически.
+
+### 11.6. Экономика, предметы и провайдеры
+
+**Rewards.** Только зарегистрированные источники: проверенный игровой результат,
+подтверждённое RA-событие, финал competition или аудированная operator correction.
+Rule содержит eligible event type, version, лимиты повторов, способ вычисления
+и trust policy. Выдача использует rule revision, действовавшую по объявленным
+правилам события; новая конфигурация не пересчитывает старое молча. Политика
+вознаграждений за ретро-прохождение опирается на существующую Verified Session,
+не принимает импорт save/галочку истории как доказательство.
+
+**Wallet.** Внутренняя единица coins без дробей. Каждое начисление/трата/отмена —
+append-only транзакция с равными дебетом/кредитом; технические issuance/sink accounts
+учитывают выпуск и расход. Перевод между пользователями не включается без решения.
+Доступный баланс — авторитетный ledger + проверяемая проекция. Покупка блокирует
+wallet account на время короткой транзакции, проверяет цену/версию/владение,
+фиксирует списание и ownership grant атомарно. Параллельные покупки не могут
+потратить один баланс дважды; единый порядок блокировок и bounded retry при конфликте.
+
+**Shop / Inventory.** Стабильный item ID отделён от ревизии ассета/пакета.
+Предложение содержит цену, совместимость, вид права и revision. Изменение цены
+после показа требует нового подтверждения, не списания по новой цене вслепую.
+Покупка уже принадлежащего non-consumable возвращает owned без повторной траты.
+При снятии предмета с продажи владение сохраняется; отзыв опасного ассета
+запрещает его загрузку с безопасным внешним видом и отдельным разбором замены,
+не теряет запись о покупке. Валюта и косметика не меняют соревновательные правила.
+
+**Аватар.** Recipe хранит item/pack IDs, совместимость rig и revision; модель и
+рендер принадлежат SDK. Облачная запись идёт с expected revision. При конфликте
+двух устройств сохраняются обе версии для явного выбора, нет молчаливой потери
+последнего переодевания. Офлайн допустимы локально доступные принадлежащие предметы
+по правилам кеша; офлайн-покупок и самостоятельного выпуска прав нет. По возврате
+связи рецепт перепроверяется, неподдержанный предмет заменяется базовым в
+представлении, исходный выбор не уничтожается. Нет аппаратного DRM/обещания
+защиты локального GLB от копирования.
+
+**Поддержка / Entitlements.** Patreon/Ko-fi adapter проверяет доступным именно
+этому провайдеру способом принадлежность аккаунта и актуальное основание права.
+Не предполагать единый webhook signature/OAuth или одинаковые статусы оплат:
+каждый adapter обязан документировать реально подтверждённый контракт. Входные
+события получают dedup, сохраняются минимально, проходят reconciliation при
+пропуске/смене порядка. При недоступности провайдера право имеет verified_until
+и явную stale policy; нельзя продлевать его бесконечно по старому флажку.
+Действующий множитель до ×3 отделён от постоянного ownership. Отмена поддержки
+не удаляет купленную косметику/баланс; влияние на будущие награды определяется
+версией правила. Цены/уровни, время применения множителя к offline reward,
+возврат ошибочно выданных и уже потраченных coins остаются открытыми решениями.
+
+**Закрытые dev/beta-сборки.** Право на канал отделено от самого пакета, его
+подписи и явного действия установки. Подписка не превращает открытый GitHub
+Release URL в закрытый: проверка доступа должна существовать и у источника
+артефакта. Publisher задаёт поддержанный защищённый способ выдачи короткого
+разрешения конкретному player/package/version; provider credentials остаются
+на сервере. Пока такого источника/контракта нет, закрытый канал не объявляется
+работающим. Отмена доступа к новым загрузкам не удаляет установленную игру.
+Подписанные публичные каталоги/обычные GitHub Releases остаются прежними;
+изменения Image/Host, TrainerOS Software и Crates packages не сливаются в один
+поток. Авторский onboarding/редакционное одобрение сохраняют владельца S12,
+ключ публикации не выдаётся новому Backend и авторам. Reviews остаются
+проекцией существующего Fluxer-механизма, без второго хранилища отзывов.
+
+### 11.7. Доступы, приватность и оператор
+
+| Субъект | Разрешено | Не разрешено |
+| --- | --- | --- |
+| Анонимный клиент | Ограниченные публичные board/profile/catalogue чтения | Личный ledger/evidence/session или запись результата |
+| Игрок / оболочка | Свой профиль, участие, явная покупка, recovery | Правка чужого player ID/баланса/результата |
+| Игра через SDK | Действия в выданном app/match scope, чтение разрешённого представления | Provider tokens, привязка аккаунтов, скрытые траты |
+| Provider adapter | Нормализованные факты своего провайдера | Выпуск произвольной валюты или impersonation игрока |
+| Организатор | Собственная competition и disputes в её policy | Глобальный бан, чужой tournament, operator reward |
+| Оператор | Конкретные роли registry/review/support/operations | Общий бессрочный master token в game client или bot |
+
+Sensitive-операции требуют свежей аутентификации. Operator API закрыт отдельным
+доступом с сильной аутентификацией; действия записываются с actor, reason и
+before/after references. Исправление результата проходит доменную команду;
+панель администратора не редактирует таблицы произвольным SQL. Квоты по аккаунту,
+приложению и сетевому источнику ограничивают abuse, но IP не становится identity.
+
+Публичность: ник/аватар, согласованный итог/позиция, видимые трофеи. Приватно:
+внешние привязки, сессии, покупки/ledger, raw evidence, споры и экспорт. Ник/email
+не раскрываются в auth error для поиска существующих аккаунтов. No secrets/raw
+payload в логах. Выдача файлов только владельцу/оператору с коротким разрешением.
+
+Deletion сначала отзывает сессии и новые экономические операции; затем удаляет
+связи и приватную внешность, анонимизирует публичную историю и обрабатывает
+ledger/evidence по согласованным срокам. Export не включает чужой evidence,
+приватные provider credentials и внутренние operator notes. Retention задаётся
+для attempts/sessions/evidence/decisions/ledger/audit/backups отдельно; конкретные
+сроки и последствия закрытия аккаунта фиксируются до публичного запуска.
+Restore обязан повторно применить журнал удалений/отзывов, чтобы не воскресить
+удалённый аккаунт и старые полномочия из backup.
+
+### 11.8. Развёртывание, восстановление и совместимость
+
+Три изолированных окружения: local, staging, production. Раздельные БД,
+provider apps/secrets, audience и публикации; тестовый результат нельзя принять
+production credential. Один release manifest связывает API/worker revision,
+schema migration range, validator hashes и configuration revision.
+
+Предлагаемое размещение на существующем сервере: HTTPS ingress → API; PostgreSQL
+в закрытой сети/loopback; workers и evidence-store непубличны. Роли БД разделены:
+runtime без schema DDL, migration отдельно, backup read permissions по необходимости.
+Ограниченные service users, quotas, timeouts, фиксированные validator binaries,
+обновление зависимостей через review. Выбор systemd/Compose, домена и ресурса
+диска подтверждается при публикации; арендовать новую машину проект не требует.
+
+Обновление: backup → additive migration → совместимые API/worker → проверка →
+отдельный contract cleanup после окна совместимости. Старый бинарник откатывается
+только к совместимой схеме; destructive migration не считается обратимой.
+Registry/rules/price/award policy имеют версии, а не значения, меняемые задним
+числом. Старый поддержанный клиент получает старый контракт; несовместимый —
+явный unsupported/upgrade-required без потери локальных игр и результатов.
+
+Backup включает БД, finalized evidence, registry/validator revisions и нужную
+конфигурацию; ключи восстанавливаются отдельным защищённым путём. Нужна внешняя
+копия, а не только другая папка того же диска. Проектный целевой RPO ≤15 минут,
+RTO ≤4 часов для аккаунтов/результатов/ledger — **критерий будущего измерения**,
+не действующее SLA. Для такого RPO предлагается base backup + WAL archive;
+частота/retention и цена проверяются перед эксплуатацией. Restore drill в пустом
+окружении проверяет балансы/инвентарь, dedup, result revisions, projection rebuild,
+отзывы сессий и удаления. Повторная доставка provider events безопасна.
+
+Мониторинг: availability/latency API, auth failures, pool saturation, deadlocks,
+job age/retries, validator CPU/timeouts, projection lag, provider freshness,
+диск/evidence growth, backup age и restore duration. Health разделяет liveness,
+DB readiness и деградацию провайдера; сбой Ko-fi не делает все таблицы недоступными.
+Capacity оценивается на результатах/сек, стоимости validator, количестве чтений
+и росте данных, а не на числе пользователей в Lobby. Публичная статика/boards
+кешируются; validators масштабируются отдельно до любых новых микросервисов.
+
+### 11.9. Отказы на границах
+
+| Сбой | Поведение и сохранённая гарантия |
+| --- | --- |
+| API недоступен | Локальная игра/P2P продолжается; заявки в owner-scoped очереди, покупки недоступны |
+| Потерян ответ | Чтение receipt/operation; повтор того же ID, без новой траты/награды |
+| Worker умер | Job lease истекает; fenced повтор; нет двойной выдачи |
+| Validator завис/сломался | Resource limit, retry/dead-letter; результат pending/error, не выдуманный проигрыш |
+| Участники расходятся | Disputed; evidence по каждой стороне; правило игры/разбор до финализации |
+| Позднее отменён результат | Новая decision revision, пересчёт рекордов/рейтинга/зачёта и компенсации |
+| Provider недоступен | Сохраняется текущая Backend-сессия до её expiry; новые зависимые подтверждения не имитируются |
+| Смена Trainer/logout | Revocation grants, остановка callbacks, изоляция кеша и pending |
+| Параллельные покупки | Сериализация wallet account и unique purchase keys; одна подтверждённая трата |
+| БД восстановлена | Reconcile provider/outbox, отзыв сессий/удаления, сверка ledger, rebuilding projections |
+| Рестарт directory/catalogue | Существующие протоколы и их recovery; нет второго владельца Lobby/установки |
+
+### 11.10. Архитектурная готовность и оставшиеся решения
+
+Архитектура охватывает R089 и R107–R115: Accounts → Profiles/SDK;
+Registry → Results → Boards/Statistics/Rating → Competitions/Clans/Trophies;
+Results/Providers → Rewards → Wallet/Inventory/Entitlements; Operations для
+всех модулей. Существующие S05/S06/S07/S12/S13 интегрируются через свои границы.
+Ни один checkbox реализации не закрывается от наличия этого проекта.
+
+| Решение | Зафиксировано в архитектуре | Что ещё нужно перед включением функции |
+| --- | --- | --- |
+| Общая система | Один modular Backend, PostgreSQL, worker, существующие bot/catalogue | Точные dependency/runtime версии и размещение |
+| Идентичность | Постоянный ID, Fluxer adapter, scoped sessions, recovery boundary | Проверенный OAuth instance contract, UX восстановления, правила утраты всех факторов |
+| Результаты | Receipts, versioned validation, evidence levels, correction/outbox | Validator и trust policy каждой игры |
+| Рейтинг | Per-game/version, recomputation, отдельно от records/stats | Формула, provisional/abuse policy |
+| Competitions | Immutable policy, roster freeze, disputes/finalize/correction | Конкретные форматы, окна, no-show/tie и призы |
+| Экономика | Ledger/atomic purchases, permanent vs time-limited grants | Ставки/цены, offline multiplier и reversal при потраченных coins |
+| Данные/операции | Owner isolation, deletion pipeline, backups/restore, migration | Retention, restore budget и фактический замер RPO/RTO |
+
+Проверка проекта до реализации: у каждого модуля есть владелец, вход/выход,
+данные/инварианты, доступы, версия и поведение отказа; одна сущность не имеет
+двух владельцев. Следующий вид работы — конкретизация wire schemas/миграций и
+реализация по этой общей архитектуре; выбор/полировка первого игрового сценария
+не подменяет проектирование остальных модулей. Пример гольфа из 10.8 применяется
+для будущей интеграционной приёмки, а не определяет устройство всей платформы.
+
+Технические опоры: [OAuth security BCP](https://www.rfc-editor.org/rfc/rfc9700.html)
+для ограничений сессий/авторизации; [PostgreSQL locks](https://www.postgresql.org/docs/current/explicit-locking.html)
+для конкурентных транзакций; [backup/restore](https://www.postgresql.org/docs/current/backup.html)
+для выбора резервирования. Это источники механик, а не доказательства их
+реализации, нагрузки или эксплуатации TrainerOS.

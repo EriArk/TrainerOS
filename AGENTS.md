@@ -4,6 +4,15 @@
 
 ## Current working mode — owner correction, 21 October 2026
 
+**Owner Backend correction, 25 October 2026:** prepare the complete shared
+server architecture before implementing/polishing individual working scenarios.
+Use [Backend architecture v1](docs/TRAINEROS_BACKEND_PLAN_RU.md#architecture-v1):
+all module/data/API/SDK/trust/operations boundaries, not a golf-first vertical
+slice. Golf is a later integration example. This is a scoped Backend instruction,
+not a restored global execution queue. In this preparation chat do not publish,
+deploy or test handhelds; delivery remains in the main chat. Architecture is not
+runtime implementation or server acceptance.
+
 Global plans, milestones and mandatory execution queues are withdrawn. Work
 by the readiness of individual features, using [the readiness map](docs/FEATURE_READINESS.md).
 Keep unfinished requirements and unchecked acceptance; there is no deferred category.
