@@ -13,10 +13,13 @@ public:
     QList<LobbyRoomCoordinator*> rooms() const {return rooms_;}
     LobbyRoomCoordinator* room(const QString& id) const;
     LobbyRoomCoordinator* activeRoom() const {return active_;}
-    LobbyRoomCoordinator* createRoom(QString access="private");
+    LobbyRoomCoordinator* createRoom(QString access="private",bool local=false);
     bool activateRoom(const QString& id);
     void configure(QString self,QString name,bool online);
     void setStorage(QString file);
+    void setLocalStorage(QString file);
+    void configureLocal(QString self,QString name,bool connected);
+    QString self() const {return active_->self();}
     bool recoveryUncertain() const { return active_->recoveryUncertain(); }
     void reconnect() { active_->reconnect(); }
     bool remove(const QString& peer) { return active_->remove(peer); }
@@ -70,12 +73,15 @@ signals:
     void membershipEnded(QString room);
     void roomsChanged();
 private:
-    LobbyRoomCoordinator* appendRoom();
+    LobbyRoomCoordinator* appendRoom(bool local=false);
     void saveIndex();
     QList<LobbyRoomCoordinator*> rooms_;
     QSet<QString> departedRooms_;
     LobbyRoomCoordinator* active_=nullptr;
-    QString self_,name_,file_;
+    QString self_,name_,file_,localSelf_,localName_;
+    QString localFile_;
+    bool localIndexError_=false;
+    bool localConnected_=false;
     bool online_=false,loading_=false,indexError_=false;
 };
 }

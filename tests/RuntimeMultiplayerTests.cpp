@@ -443,23 +443,32 @@ private slots:
         f.runtime.openInvitation(invitation);QVERIFY(f.social.face()!="lobby");
     }
     void lobbyReadyRunsBothOwnedChildrenAndReturnsToTheSameRoom_data() {
-        QTest::addColumn<QString>("ending");
-        for(const auto& name:{"normal","connection-failure","party-left"})QTest::newRow(name)<<QString(name);
+        QTest::addColumn<QString>("ending");QTest::addColumn<bool>("local");
+        for(bool local:{false,true})for(const auto& name:{"normal","connection-failure","party-left"})QTest::newRow(qPrintable(QString(local?"local-":"online-")+name))<<QString(name)<<local;
     }
     void lobbyReadyRunsBothOwnedChildrenAndReturnsToTheSameRoom() {
-        QFETCH(QString,ending);
+        QFETCH(QString,ending);QFETCH(bool,local);
+        QString selfA="1",selfB="2";const QString prefix=local?"local:":"online:";
+        const QString mode=local?"runtime.retroarch.nes.fceumm.v1":"runtime.test";
         Fixture a,b;
-        const QJsonObject profile{{"id","runtime.test"},{"content","exact"},{"players",2},{"label","Game"}};
-        const auto digest=QString::fromLatin1(QCryptographicHash::hash(QByteArray("runtime.test/exact"),QCryptographicHash::Sha256).toHex());
+        const QJsonObject profile{{"id",mode},{"content","exact"},{"players",2},{"label","Game"}};
+        const auto digest=QString::fromLatin1(QCryptographicHash::hash((mode+"/exact").toUtf8(),QCryptographicHash::Sha256).toHex());
         for(auto* f:{&a,&b}) {
             const auto id=f==&a?QString("1"):QString("2");
             // The test wires authenticated metadata locally; the signed-out
             // provider worker must not also attempt to deliver those packets.
             disconnect(&f->social,&SocialController::commandRequested,f->social.session_,nullptr);
             disconnect(f->social.session_,nullptr,&f->social,nullptr);
-            f->social.snapshot_={{"state","connected"},{"userId",id},{"name",id}};
-            f->social.lobbyCoordinator()->configure(id,id,true);f->social.lobbyRuntime()->configure(id,true);
-            f->social.lobbyRuntime()->registerService("runtime.test",&f->runtime);
+            if(local) {
+                f->social.owner_="local-owner";f->social.localLobby_.loopbackOnly_=true;f->social.localLobby_.discoveryPort_=0;
+                f->social.configureLocalLobby(f->dir.path(),id);f->social.setLobbyScope("local");f->social.openLobby();
+                disconnect(f->social.lobbyCoordinator(),&LobbyCoordinator::outgoing,&f->social,nullptr);
+                if(f==&a)selfA=f->social.localLobby_.identity();else selfB=f->social.localLobby_.identity();
+            } else {
+                f->social.snapshot_={{"state","connected"},{"userId",id},{"name",id}};
+                f->social.lobbyCoordinator()->configure(id,id,true);f->social.lobbyRuntime()->configure(id,true);
+            }
+            f->social.lobbyRuntime()->registerService(mode,&f->runtime);
             f->runtime.allowed_=true;f->runtime.games_={{"local",profile}};
             AdventureRegistration record;record.adventure.id="local";f->library.records={record};
             disconnect(&f->runtime.party_,&GameParty::startRequested,&f->runtime,&RuntimeMultiplayer::startParty);
@@ -474,18 +483,24 @@ private slots:
         }
         auto* h=a.social.lobbyCoordinator();auto* g=b.social.lobbyCoordinator();
         QSignalSpy startsA(&a.lifecycle,&AdventureLaunchController::adventureStarted),startsB(&b.lifecycle,&AdventureLaunchController::adventureStarted);
-        connect(h,&LobbyCoordinator::outgoing,g,[&](QString,QJsonObject p){g->receive("1","Host",p);});
-        connect(g,&LobbyCoordinator::outgoing,h,[&](QString,QJsonObject p){h->receive("2","Guest",p);});
-        connect(&a.runtime.party_,&GameParty::outgoing,&b.runtime,[&](QString,QJsonObject p){b.runtime.party_.receive("online:1","Host",p);});
-        connect(&b.runtime.party_,&GameParty::outgoing,&a.runtime,[&](QString,QJsonObject p){a.runtime.party_.receive("online:2","Guest",p);});
-        QVERIFY(h->create());QVERIFY(h->invite("2"));g->answer(true);const auto room=h->state()["id"].toString();
-        QVERIFY(h->selectGame({digest,"Game","test","runtime.test",2,profile}));QVERIFY(h->seat(1));QVERIFY(g->seat(2));
+        connect(h,&LobbyCoordinator::outgoing,g,[&](QString,QJsonObject p){g->receive(selfA,"Host",p);});
+        connect(g,&LobbyCoordinator::outgoing,h,[&](QString,QJsonObject p){h->receive(selfB,"Guest",p);});
+        connect(&a.runtime.party_,&GameParty::outgoing,&b.runtime,[&](QString,QJsonObject p){b.runtime.party_.receive(prefix+selfA,"Host",p);});
+        connect(&b.runtime.party_,&GameParty::outgoing,&a.runtime,[&](QString,QJsonObject p){a.runtime.party_.receive(prefix+selfB,"Guest",p);});
+        if(local) {
+            auto* r=h->createRoom("private",true);QVERIFY(r);QVERIFY(h->activateRoom(r->state()["id"].toString()));
+            QVERIFY(g->join(selfA,h->state()["id"].toString(),true));QVERIFY(h->approve(selfB));
+        } else {QVERIFY(h->create());QVERIFY(h->invite("2"));g->answer(true);}
+        const auto room=h->state()["id"].toString();
+        QVERIFY(h->selectGame({digest,"Game","test",mode,2,profile}));QVERIFY(h->seat(1));QVERIFY(g->seat(2));
         QVERIFY(a.social.lobbyRuntime()->prepare());QVERIFY(b.social.lobbyRuntime()->prepare());
         QVERIFY(h->ready(true));QVERIFY(!a.process.active());QVERIFY(!b.process.active());QVERIFY(g->ready(true));
         QVERIFY(!a.process.active());QVERIFY(!b.process.active());QVERIFY(!g->start());QVERIFY(h->start());QVERIFY(!h->start());
         QTRY_VERIFY2_WITH_TIMEOUT(h->state()["phase"]=="playing",qPrintable(a.social.lobbyRuntime()->status()+" / "+b.social.lobbyRuntime()->status()+" / "+a.lifecycle.state()+" / "+b.lifecycle.state()),5000);
         QCOMPARE(g->state()["phase"].toString(),QString("playing"));
-        QVERIFY(a.process.active());QVERIFY(b.process.active());QVERIFY(a.runtime.party_.pending().isEmpty());QVERIFY(b.runtime.party_.pending().isEmpty());
+        QVERIFY(a.process.active());QVERIFY(b.process.active());
+        if(local){QVERIFY(!a.runtime.online_);QVERIFY(!b.runtime.online_);QVERIFY(!a.runtime.relayStarted_);QVERIFY(!b.runtime.relayStarted_);}
+        QVERIFY(a.runtime.party_.pending().isEmpty());QVERIFY(b.runtime.party_.pending().isEmpty());
         if(ending!="normal") {
             if(ending=="party-left")b.runtime.party_.leave();else b.runtime.fail("Connection lost after suspend");
             QTRY_COMPARE(h->state()["phase"].toString(),QString("gathering"));
@@ -500,8 +515,8 @@ private slots:
         QVERIFY(!a.process.active());QVERIFY(!b.process.active());
         auto next=profile;next["content"]="another-game";
         for(auto* f:{&a,&b}) {QVERIFY(QFile::remove(f->dir.filePath("control")));f->runtime.games_["local"]=next;}
-        const auto nextId=QString::fromLatin1(QCryptographicHash::hash(QByteArray("runtime.test/another-game"),QCryptographicHash::Sha256).toHex());
-        QVERIFY(h->selectGame({nextId,"Another game","test","runtime.test",2,next}));
+        const auto nextId=QString::fromLatin1(QCryptographicHash::hash((mode+"/another-game").toUtf8(),QCryptographicHash::Sha256).toHex());
+        QVERIFY(h->selectGame({nextId,"Another game","test",mode,2,next}));
         QVERIFY(a.social.lobbyRuntime()->prepare());QVERIFY(b.social.lobbyRuntime()->prepare());
         QVERIFY(g->ready(true));QVERIFY(h->ready(true));QVERIFY(h->start());QTRY_COMPARE(h->state()["phase"].toString(),QString("playing"));
         QCOMPARE(startsA.size(),2);QCOMPARE(startsB.size(),2);QCOMPARE(g->state()["id"].toString(),room);

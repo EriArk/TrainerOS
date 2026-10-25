@@ -69,6 +69,38 @@ class SocialTests : public QObject {
         s.channel_=channel;s.channels_[channel]={{"id",channel},{"type",1}};
     }
 private slots:
+    void offlineLobbyCreationAndFiltersDoNotRequireProvider() {
+        QTemporaryDir dir;SocialController s;
+        QObject::disconnect(&s,nullptr,s.session_,nullptr);QObject::disconnect(s.session_,nullptr,&s,nullptr);
+        s.localLobby_.loopbackOnly_=true;s.localLobby_.discoveryPort_=0;
+        // The shell refreshes profile bindings from Social changes as well.
+        connect(&s,&SocialController::changed,&s,[&]{s.configureLocalLobby(dir.path(),"Local trainer");});
+        s.owner_="offline-owner";s.configureLocalLobby(dir.path(),"Local trainer");
+        s.setLobbyScope("local");s.openLobby();s.dispatch(Action::ContextMenu);QVERIFY(!s.menu_.isEmpty());s.dispatch(Action::Back);
+        QSignalSpy commands(&s,&SocialController::commandRequested);
+        const QVariantMap lan{{"key","lan"},{"id","lan"},{"title","LAN game"},{"platform","nes"},{"mode","runtime.retroarch.nes.fceumm.v1"},{"seats",2},
+            {"runtime",QVariantMap{{"id","runtime.retroarch.nes.fceumm.v1"},{"connections",QVariantList{"nearby","online"}}}}};
+        auto cloud=lan;cloud["key"]="cloud";cloud["id"]="cloud";cloud["runtime"]=QVariantMap{{"id","runtime.retroarch.nes.fceumm.v1"},{"connections",QVariantList{"online"}}};
+        auto remote=lan;remote["key"]="remote";remote["mode"]="remoteplay.v1";remote["runtime"]=QVariantMap{{"id","remoteplay.v1"}};
+        s.setLobbyGames({lan,cloud,remote});s.createAnotherLobby();
+        QCOMPARE(s.lobbyDraft()["type"].toString(),QString("local"));QCOMPARE(s.availableLobbyGames().size(),1);
+        s.lobbyDraftAction("name");s.applyText("Offline friends");QCOMPARE(s.lobbyDraft()["title"].toString(),QString("Offline friends"));
+        s.submitLobbyDraft();QVERIFY(!s.lobbyCreateOpen());QVERIFY(s.viewedLobby().local());
+        const auto room=s.lobbyState()["id"].toString();QVERIFY(!room.isEmpty());
+        QVERIFY(!s.lobbyChatVisible());QVERIFY(s.lobbyRoomActions().isEmpty());
+        s.publishLobby();s.syncMyLobbies();
+        for(const auto& command:commands)QVERIFY(command[0].toString()!="lobby-chat"&&command[0].toString()!="lobby-directory-publish"&&command[0].toString()!="lobby-send");
+        s.setLobbyScope("online");QCOMPARE(s.lobbyState()["id"].toString(),room);QVERIFY(s.viewedLobby().local());
+        s.receive(0,{{"state","connected"},{"userId","123"},{"name","Online account"}});
+        auto* online=s.lobby_.createRoom("private");QVERIFY(online);
+        bool ownOnline=false;
+        for(const auto& value:s.myLobbies())if(value.toMap()["id"]==online->state()["id"].toString())
+            ownOnline=value.toMap()["people"].toList().first().toMap()["self"].toBool();
+        QVERIFY(ownOnline);QVERIFY(s.viewedLobby().local());
+        s.receive(0,{{"state","signed-out"}});QCOMPARE(s.lobbyState()["id"].toString(),room);
+        s.snapshot_["mutationBusy"]=true;
+        s.leaveViewedLobby();QVERIFY(s.lobbyState().isEmpty());QVERIFY(!s.localLobby_.running());
+    }
     void nativeActivitiesSurviveRuntimeCatalogueRefresh() {
         SocialController c;
         const QVariantMap native{{"key","sdk:counter"},{"id","sdk:counter"},{"title","Counter"},{"platform","Apps"},{"mode","sdk.records.v1"},{"seats",2}};

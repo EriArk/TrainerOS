@@ -15,6 +15,18 @@ inline bool multiplayerConnectionAllowed(const QJsonObject& profile,const QStrin
     for(const auto& value:list)if(value!="nearby"&&value!="online")return false;
     return list.contains(connection);
 }
+// Offline Lobby reuses implemented LAN runtime paths. Unknown/SDK/Remote Play
+// modes do not inherit support from missing metadata. PS2 uses its existing
+// secure direct helper with host ICE candidates only.
+inline bool localLobbyRuntime(const QJsonObject& profile) {
+    const auto id=profile["id"].toString();
+    if(id=="runtime.armsx2.lan.v1")return true;
+    const bool known=id.startsWith("runtime.retroarch.")||id.startsWith("runtime.handheld.")
+        ||id.startsWith("runtime.fceumm.")||id.startsWith("runtime.snes9x.")||id.startsWith("runtime.genesis.")
+        ||id.startsWith("runtime.ppsspp.")||id.startsWith("runtime.dolphin.")||id=="runtime.rmg.n64.v1"
+        ||id=="runtime.flycast-dojo.dc.v1"||id.startsWith("runtime.melonds.")||id.startsWith("runtime.azahar.")||id.startsWith("runtime.vita3k.");
+    return known&&multiplayerConnectionAllowed(profile,"nearby");
+}
 // Display only LOCAL admitted runtime profiles. Catalogue player counts cannot
 // create a mode, and an unknown future runtime does not inherit an icon.
 inline QVariantMap multiplayerPresentation(const QJsonObject& profile) {

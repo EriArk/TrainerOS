@@ -35,12 +35,14 @@ LobbyRuntime::LobbyRuntime(LobbyCoordinator& lobby,QObject* parent):QObject(pare
     });
 }
 void LobbyRuntime::configure(QString self,bool online) {
+    providerSelf_=self;providerOnline_=online;
+    if(lobby_.activeRoom()->local()){self=lobby_.self();online=lobby_.activeRoom()->connected();}
     if(self_==self&&online_==online)return;
     // Provider presence is not the emulator connection. Once all launches are
     // acknowledged, a messenger reconnect must not tear down that connection.
     const auto s=lobby_.state();
-    if(self_!=self||(!playing_&&(ticket_.isEmpty()||s["phase"]!="playing"||s["ticket"]!=ticket_)))cancel();
-    self_=self;online_=online;emit changed();
+    const bool reset=self_!=self||(!playing_&&(ticket_.isEmpty()||s["phase"]!="playing"||s["ticket"]!=ticket_));
+    self_=self;online_=online;if(reset)cancel();emit changed();
 }
 void LobbyRuntime::registerService(QString mode,LobbyRuntimeService* service) {
     if(services_.value(mode)==service)return;
@@ -64,6 +66,7 @@ QJsonObject LobbyRuntime::context() const {
     }
     QJsonObject result{{"lobby",s["id"]},{"owner",s["owner"]},{"generation",s["generation"]},
         {"game",s["game"]},{"relay",s["relay"].toString("auto")},{"vote",s["vote"].toObject()["id"]},{"members",members},{"self",self_}};
+    if(lobby_.activeRoom()->local())result["type"]="local";
     if(live_)result["liveAdmission"]=operation_;
     return result;
 }
@@ -119,6 +122,7 @@ void LobbyRuntime::cancelPending() {
     status_="Opening cancelled. You can prepare again.";emit changed();
 }
 void LobbyRuntime::reconcile() {
+    configure(providerSelf_,providerOnline_);
     if(!problemContext_.isEmpty()&&problemContext_!=context()){problem_.clear();problemContext_={};status_.clear();}
     const auto s=lobby_.state();
     if(live_&&ticket_.isEmpty()&&!lobby_.activeRoom()->canJoinLive()) {

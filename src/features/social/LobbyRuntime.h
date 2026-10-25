@@ -51,6 +51,7 @@ private:
     LobbyInput input_;
     QMap<QString,QPointer<LobbyRuntimeService>> services_;
     QPointer<LobbyRuntimeService> activeService_;
+    QString providerSelf_;bool providerOnline_=false;
     QString self_,operation_,ticket_,status_;
     QString problem_;
     QJsonObject preparedContext_;

@@ -412,6 +412,7 @@ int main(int argc, char* argv[]) {
         if(personalLibrary && !smoke && store) {
             QObject::connect(store.get(), &LocalStateStore::opened, &shell, [&](bool ready) {
                 shell.social()->setOwner(ready ? store->ownerId() : QString());
+                if(ready)shell.social()->configureLocalLobby(stateDirectory,shell.trainer()->profile()["name"].toString());
                 shell.keyboard()->configure(stateDirectory,ready ? store->ownerId() : QString());
                 shell.collectionManager()->configure(stateDirectory,ready?store->ownerId():QString());
                 shell.apps()->configure(stateDirectory,ready?store->ownerId():QString());
@@ -721,6 +722,8 @@ int main(int argc, char* argv[]) {
             multiplayer.refresh(retroarchInstallation,lastMultiplayerState["trainer"].toString(),lastMultiplayerState["allowed"].toBool());
         };
         auto refreshMultiplayerState=[&]{
+            if(!smoke&&!parser.isSet("ephemeral"))
+                shell.social()->configureLocalLobby(stateDirectory,shell.trainer()->profile()["name"].toString());
             const auto revision=activeLibrary.libraryRevision();
             if(!revision || revision!=lastMultiplayerRevision || multiplayerState()!=lastMultiplayerState)refreshMultiplayer();
         };

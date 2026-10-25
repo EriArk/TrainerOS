@@ -44,7 +44,7 @@ Item {
                         }
                     }
                 }
-                Text { anchors.right: parent.right; anchors.rightMargin: 14; y: parent.height-28; width: parent.width*.4; horizontalAlignment: Text.AlignRight; text: modelData.hostName+"  \u203a"; font.pixelSize: 12; color: Theme.muted; elide: Text.ElideRight; textFormat: Text.PlainText }
+                Text { anchors.right: parent.right; anchors.rightMargin: 14; y: parent.height-28; width: parent.width*.4; horizontalAlignment: Text.AlignRight; text: (modelData.type==="local"?"Local · ":"")+modelData.hostName+"  \u203a"; font.pixelSize: 12; color: Theme.muted; elide: Text.ElideRight; textFormat: Text.PlainText }
                 MouseArea { anchors.fill: parent; onClicked: root.social.chooseMyLobby(modelData.id) }
             }
         }

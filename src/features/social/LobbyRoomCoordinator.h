@@ -53,6 +53,9 @@ public:
     QJsonArray requests() const;
     QStringList invitedPeers(qint64 now) const {return hosting()?session_.invitedPeers(now):QStringList{};}
     bool hosting() const;
+    QString self() const {return self_;}
+    bool local() const {return self_.startsWith("local-");}
+    bool connected() const {return online_;}
     bool acknowledgeLaunch(const QString& ticket,bool success);
     bool finishGame(const QString& ticket);
     bool enableRejoin(const QString& ticket) {return hosting()&&session_.enableRejoin(ticket);}

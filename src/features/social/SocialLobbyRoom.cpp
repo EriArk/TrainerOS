@@ -19,9 +19,9 @@ void SocialController::toggleLobbySpectatorChat() {
     emit changed();
 }
 QVariantMap SocialController::lobbyPerson(QVariantMap member) const {
-    const auto id=member["id"].toString(),self=snapshot_["userId"].toString();
+    const auto id=member["id"].toString(),self=viewedLobby().self();
     QString avatar;bool blocked=false;
-    if(id==self)avatar=snapshot_["profile"].toMap()["avatar"].toString();
+    if(id==snapshot_["userId"].toString())avatar=snapshot_["profile"].toMap()["avatar"].toString();
     for(const auto& value:snapshot_["friends"].toList()) {
         const auto person=value.toMap();if(person["id"]!=id)continue;
         blocked=person["type"].toInt()==2;if(avatar.isEmpty())avatar=person["avatar"].toString();
@@ -31,11 +31,11 @@ QVariantMap SocialController::lobbyPerson(QVariantMap member) const {
     }
     if(avatar.isEmpty())avatar=directConversation(id)["avatar"].toString();
     const auto voice=snapshot_["voice"].toMap();
-    member["avatar"]=blocked?QString():avatar;member["self"]=id==self;
+    member["avatar"]=blocked?QString():avatar;member["self"]=id==self||id==localLobby_.identity()||id==snapshot_["userId"].toString();
     member["host"]=id==viewedLobby().state()["owner"].toString();member["key"]="person:"+id;
     member["speaking"]=!blocked&&member["connected"].toBool()&&voice["state"]=="connected"
         &&voice["channel"].toString()==lobbyChatChannel_&&!lobbyChatChannel_.isEmpty()&&voice["speakers"].toStringList().contains(id);
-    member["status"]=!member["connected"].toBool()?"Reconnecting":member["returnSeat"].toInt()>0?"Can return to P"+QString::number(member["returnSeat"].toInt()):member["spectator"].toBool()?"Spectator":member["ready"].toBool()?"Ready":"Preparing";
+    member["status"]=!member["connected"].toBool()?"Reconnecting":member["returnSeat"].toInt()>0?"Can return to P"+QString::number(member["returnSeat"].toInt()):member["spectator"].toBool()?(viewedLobby().local()?"Waiting for a controller":"Spectator"):member["ready"].toBool()?"Ready":"Preparing";
     member["technical"]=member["prepared"].toBool()?"verified":QString();
     if(id==self&& &viewedLobby()==lobby_.activeRoom()&&!member["spectator"].toBool())
         member["technical"]=lobbyRuntime_.busy()?"checking":!lobbyRuntime_.problem().isEmpty()?"attention":member["technical"];
@@ -43,10 +43,10 @@ QVariantMap SocialController::lobbyPerson(QVariantMap member) const {
 }
 QVariantList SocialController::lobbyPlayers() const {
     QVariantList result,unseated;const auto s=viewedLobby().state();const int seats=s["game"].toObject()["seats"].toInt();
-    for(int seat=1;seat<=seats;++seat)result.append(QVariantMap{{"key","seat:"+QString::number(seat)},{"seat",seat},{"empty",true},{"name","Invite"}});
+    for(int seat=1;seat<=seats;++seat)result.append(QVariantMap{{"key","seat:"+QString::number(seat)},{"seat",seat},{"empty",true},{"name",viewedLobby().local()?"Free controller":"Invite"}});
     for(const auto& v:s["members"].toArray()) {
         auto member=lobbyPerson(v.toObject().toVariantMap());const int returning=member["returnSeat"].toInt();
-        if(member["spectator"].toBool()&&!returning)continue;
+        if(member["spectator"].toBool()&&!returning&&!viewedLobby().local())continue;
         const int seat=returning?returning:member["seat"].toInt();
         if(returning)member["seat"]=returning; // Presentation only: the native port is still disconnected.
         if(seat>0&&seat<=result.size())result[seat-1]=member;else unseated.append(member);
@@ -58,7 +58,7 @@ QVariantList SocialController::lobbyPlayers() const {
         for(const auto& v:snapshot_["friends"].toList())if(v.toMap()["id"]==id)person["name"]=v.toMap()["name"];
         person=lobbyPerson(person);person["key"]="invited:"+id;person["invited"]=true;person["status"]="Invited";result.append(person);
     }
-    if(!seats&&viewedLobby().hosting())result.append(QVariantMap{{"key","invite"},{"empty",true},{"name","Invite friends"}});
+    if(!seats&&viewedLobby().hosting()&&!viewedLobby().local())result.append(QVariantMap{{"key","invite"},{"empty",true},{"name","Invite friends"}});
     return result;
 }
 QVariantList SocialController::lobbySpectators() const {
@@ -67,7 +67,7 @@ QVariantList SocialController::lobbySpectators() const {
 QVariantMap SocialController::lobbyRoomGame() const {
     auto game=viewedLobby().state()["game"].toObject().toVariantMap();
     game["canStart"]=&viewedLobby()==lobby_.activeRoom()&&viewedLobby().canStart();
-    game["canConfigureConnection"]=viewedLobby().hosting()
+    game["canConfigureConnection"]=!viewedLobby().local()&&viewedLobby().hosting()
         &&viewedLobby().state()["phase"]=="gathering"
         &&!netplayRelay::choices(QJsonObject::fromVariantMap(game["runtime"].toMap())).isEmpty();
     for(const auto& v:lobbyGames_) {const auto local=v.toMap();if(local["id"]==game["id"]&&local["mode"]==game["mode"]) {
@@ -79,7 +79,7 @@ QVariantMap SocialController::lobbyRoomGame() const {
         const auto state=viewedLobby().state();
         status=state["phase"]=="playing"?"Playing together":gameActive_?"Save your current game, then continue setup":
             lobbyRuntime_.available()?"Checking this game…":"Waiting for the players";
-        for(const auto& v:state["members"].toArray()) {const auto m=v.toObject();if(m["id"]!=snapshot_["userId"].toString()||m["spectator"].toBool())continue;
+        for(const auto& v:state["members"].toArray()) {const auto m=v.toObject();if(m["id"]!=viewedLobby().self()||m["spectator"].toBool())continue;
             if(!m["connected"].toBool())status="Reconnecting…";
             else if(!m["seat"].toInt())status="Choose a free controller from your avatar";
             else if(!gameActive_&&!lobbyRuntime_.available()&&state["phase"]=="gathering")status="Game setup is unavailable on this device";
@@ -93,7 +93,8 @@ QVariantList SocialController::lobbyRoomActions() const {
     QVariantList result;const auto add=[&](QString key,QString label,bool enabled=true){result.append(QVariantMap{{"key","action:"+key},{"command",key},{"label",label},{"enabled",enabled},{"busy",key=="ready"&&viewedLobby().readyPending()}});};
     const auto state=viewedLobby().state();if(state.isEmpty())return result;
     const auto voice=snapshot_["voice"].toMap();
-    if(!voice["channel"].toString().isEmpty()) {
+    if(viewedLobby().local()) { /* Local rooms have no provider voice controls. */ }
+    else if(!voice["channel"].toString().isEmpty()) {
         add("microphone",voice["muted"].toBool()?"Mic off":"Mic on");add("audio",voice["deaf"].toBool()?"Sound off":"Sound on");
     } else add("call","Join voice",!lobbyChatChannel_.isEmpty()&&voice["available"].toBool());
     for(const auto& v:lobbyActions()) {const auto action=v.toMap();const auto id=action["id"].toString();
@@ -130,14 +131,14 @@ void SocialController::activateLobbyRoom(QString key) {
     if(key.startsWith("person:")||key.startsWith("seat:")) {
         menuMode_="lobby";menuFocus_=0;menu_.clear();menuCommands_.clear();menuDetail_.clear();
         const auto add=[&](QString label,QString command){menu_.append(label);menuCommands_.append(command);};
-        const auto id=key.mid(7);const bool self=id==snapshot_["userId"].toString();
+        const auto id=key.mid(7);const bool self=id==viewedLobby().self();
         menuTitle_="Player";
         if(key.startsWith("seat:")) {
-            menuTitle_="P"+key.mid(5);if(viewedLobby().hosting())add("Invite friend","lobby:invite");
+            menuTitle_="P"+key.mid(5);if(viewedLobby().hosting()&&!viewedLobby().local())add("Invite friend","lobby:invite");
             if(viewedLobby().state()["phase"]=="gathering")add("Take this controller","lobby:"+key);
         } else {
             for(const auto& v:viewedLobby().state()["members"].toArray())if(v.toObject()["id"]==id)menuTitle_=v.toObject()["name"].toString();
-            add("View profile","profile:"+id);
+            if(!viewedLobby().local())add("View profile","profile:"+id);
             if(self&& &viewedLobby()==lobby_.activeRoom()) {
                 menuDetail_=lobbyRuntime_.status();
                 if(lobbyRuntime_.problem()=="local-content")add("Import your game","lobby:import");
@@ -195,10 +196,10 @@ void SocialController::reconcileLobbyPreparation() {
             readySwitch_.clear();lobbyAutoPreparation_.clear();
         } else return;
     }
-    if(gameActive_||snapshot_["state"]!="connected"||!lobbyRuntime_.available()) {lobbyAutoPreparation_.clear();return;}
+    if(gameActive_||(!lobby_.activeRoom()->local()&&snapshot_["state"]!="connected")||!lobbyRuntime_.available()) {lobbyAutoPreparation_.clear();return;}
     if(lobbyRuntime_.busy())return;
     const auto s=lobby_.state();QJsonArray people;
-    for(const auto& v:s["members"].toArray()){const auto m=v.toObject();if(m["id"]==snapshot_["userId"].toString()&&m["prepared"].toBool()) {
+    for(const auto& v:s["members"].toArray()){const auto m=v.toObject();if(m["id"]==lobby_.self()&&m["prepared"].toBool()) {
             return;
         }
         people.append(QJsonObject{{"id",m["id"]},{"seat",m["seat"]},{"connected",m["connected"]},{"spectator",m["spectator"]}});}

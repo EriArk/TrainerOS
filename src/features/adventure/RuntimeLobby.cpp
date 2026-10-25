@@ -43,13 +43,13 @@ bool RuntimeMultiplayer::admitLive(QString ticket,QString peer,QString operation
     if(!active_||!host_||!partySession_||lobbyTicket_!=ticket||!process_.processId()||lifecycle_.state()!="running"
        ||!supportsLive(descriptor_)||QJsonObject::fromVariantMap(process_.runtimeControls()["netplay"].toMap())!=descriptor_)return false;
     QString name;for(const auto& v:social_.lobbyCoordinator()->state()["members"].toArray())if(v.toObject()["id"]==peer)name=v.toObject()["name"].toString();
-    return !name.isEmpty()&&party_.admitLobby(ticket,"online:"+peer,name,operation,seat);
+    return !name.isEmpty()&&party_.admitLobby(ticket,(lobbyContext_["type"]=="local"?"local:":"online:")+peer,name,operation,seat);
 }
-void RuntimeMultiplayer::releaseLive(QString peer,QString operation) {party_.releaseLobby("online:"+peer,operation);}
+void RuntimeMultiplayer::releaseLive(QString peer,QString operation) {party_.releaseLobby((lobbyContext_["type"]=="local"?"local:":"online:")+peer,operation);}
 void RuntimeMultiplayer::prepare(QString operation,QJsonObject context,Completion done) {
     lobbyProblem_.clear();
     if(!allowed_||active_||party_.active()) {done(false,"Finish the current game party before preparing this lobby.");return;}
-    if(context["self"]!=social_.account()["userId"].toString()) {done(false,"The account changed. Reopen the lobby.");return;}
+    if(context["type"]=="local"?(context["self"]!=social_.lobbyCoordinator()->self()||!social_.lobbyCoordinator()->activeRoom()->local()):context["self"]!=social_.account()["userId"].toString()) {done(false,"The account changed. Reopen the lobby.");return;}
     const auto wanted=context["game"].toObject();QString local;QJsonObject profile;
     const auto offered=wanted["runtime"].toObject();
     if(context.contains("liveAdmission")&&!supportsLive(offered)) {done(false,"This installed runtime cannot join a running game.");return;}
@@ -63,7 +63,7 @@ void RuntimeMultiplayer::prepare(QString operation,QJsonObject context,Completio
         if(!offered.isEmpty()&&p["content"]==offered["content"]&&p["id"]==offered["id"])installedContent=true;
         const auto digest=QString::fromLatin1(QCryptographicHash::hash((p["id"].toString()+"/"+p["content"].toString()).toUtf8(),QCryptographicHash::Sha256).toHex());
         const bool compatible=offered.isEmpty()?digest==wanted["id"]:supportsMultiplayerSession(p,offered);
-        if(compatible&&p["id"]==wanted["mode"]&&multiplayerConnectionAllowed(p,"online")) {
+        if(compatible&&p["id"]==wanted["mode"]&&(context["type"]=="local"?localLobbyRuntime(p):multiplayerConnectionAllowed(p,"online"))) {
             if(local.isEmpty()||p["content"]==offered["content"]) {local=it.key();profile=p;}
             if(offered.isEmpty()||p["content"]==offered["content"])break;
         }
@@ -84,7 +84,7 @@ void RuntimeMultiplayer::prepare(QString operation,QJsonObject context,Completio
         seats.insert(seat);if(m["id"]==context["owner"]&&seat==1)hostReady=true;
     }
     if(!hostReady) {done(false,"This runtime needs the organizer on P1. Choose controller seats first.");return;}
-    if(!netplayRelay::compatible(profile,context["relay"].toString("auto"))) {done(false,"This connection type isn't supported by the selected emulator.");return;}
+    if(context["type"]=="local"?context["relay"].toString("auto")!="auto":!netplayRelay::compatible(profile,context["relay"].toString("auto"))) {done(false,"This connection type isn't supported by the selected emulator.");return;}
     if(context["relay"]=="psp-host"&&(players!=2||ppsspp::hostRelayRoot().isEmpty())) {
         done(false,"The handheld relay needs two players and the PSP connection package on both devices. Choose the standard relay otherwise.");return;
     }
@@ -120,10 +120,10 @@ void RuntimeMultiplayer::launch(QString operation,QString ticket,QJsonObject con
     QJsonArray players;for(const auto& m:context["members"].toArray())if(!m.toObject()["spectator"].toBool())players.append(m);
     QJsonArray caps;for(const auto& p:games_)caps.append(p);
     party_.configure(trainer_,caps,lobbyDescriptor_,true);
-    lobbyTicket_=ticket;lobbyCompletion_=std::move(done);online_=true;partySession_=true;
+    lobbyTicket_=ticket;lobbyCompletion_=std::move(done);online_=lobbyContext_["type"]!="local";partySession_=true;
     auto selected=context["game"].toObject()["runtime"].toObject();if(selected.isEmpty())selected=lobbyDescriptor_;
     relaySelector_.stop();selectedRelay_.clear();selectedRelayEndpoint_.clear();relayWaiting_=false;relayStarted_=false;relayTicket_.clear();
-    if(netplayRelay::supported(selected)&&!lobbyContext_.contains("liveAdmission")) {
+    if(online_&&netplayRelay::supported(selected)&&!lobbyContext_.contains("liveAdmission")) {
         relayTicket_=ticket;relayStarted_=true;QStringList peers;
         for(const auto& player:players)peers.append(player.toObject()["id"].toString());
         relaySelector_.start(lobbyContext_["self"].toString(),context["owner"].toString(),peers,context["relay"].toString("auto"));
@@ -131,7 +131,7 @@ void RuntimeMultiplayer::launch(QString operation,QString ticket,QJsonObject con
     }
     if(selected["id"]=="runtime.armsx2.lan.v1") {
         ps2Connection_=true;nativeLaunchContext_=context;
-        if(!nativeConnection_.start(lobbyContext_["self"].toString(),ticket,ps2lan::bundleRoot()+"/stream_transport",{"stun:stun.l.google.com:19302"},"ps2"))
+        if(!nativeConnection_.start(lobbyContext_["self"].toString(),ticket,ps2lan::bundleRoot()+"/stream_transport",online_?QJsonArray{"stun:stun.l.google.com:19302"}:QJsonArray{},"ps2"))
             fail("Couldn't prepare the PS2 LAN connection. Reopen this game in the lobby.");
         return;
     }
@@ -149,7 +149,7 @@ void RuntimeMultiplayer::launch(QString operation,QString ticket,QJsonObject con
 void RuntimeMultiplayer::bindLobbyPlayers(const QJsonObject& context) {
     QJsonArray players;for(const auto& m:context["members"].toArray())if(!m.toObject()["spectator"].toBool())players.append(m);
     auto selected=context["game"].toObject()["runtime"].toObject();if(selected.isEmpty())selected=lobbyDescriptor_;
-    if(!party_.bindLobby(lobbyTicket_,selected,players,lobbyContext_["self"].toString(),context["owner"].toString(),lobbyContext_["liveAdmission"].toString())) {
+    if(!party_.bindLobby(lobbyTicket_,selected,players,lobbyContext_["self"].toString(),context["owner"].toString(),lobbyContext_["liveAdmission"].toString(),lobbyContext_["type"]=="local")) {
         stopNativeConnection();
         relaySelector_.stop();relayStarted_=relayWaiting_=false;relayTicket_.clear();
         auto completion=std::exchange(lobbyCompletion_,{});lobbyTicket_.clear();if(completion)completion(false,"The player seats changed. Prepare again.");

@@ -18,7 +18,7 @@ Item {
     function indexOf(rows,key) { for(let i=0;i<rows.length;i++)if(rows[i].key===key)return i;return -1 }
     Item {
         id: gathering; visible: !root.expanded; x: root.margin; y: 10
-        width: root.width*.655-root.margin*2; height: root.height-22
+        width: root.width*(root.room.type==="local"?1:.655)-root.margin*2; height: root.height-22
         Text { id: title; width: parent.width-115; height: 30; text: root.room.title || "Our lobby"
             font.family: Theme.displayFamily; font.pixelSize: 24; color: Theme.ink; elide: Text.ElideRight; textFormat: Text.PlainText }
         SocialIconButton { objectName: "lobby-room-menu"; anchors.right: parent.right; y: 0; icon: "dots-three"; label: "Room options"
@@ -59,8 +59,8 @@ Item {
                 onActivated: root.social.activateLobbyRoom("start") }
         }
         Text { id: time; y: showcase.y+showcase.height+4; width: parent.width; height: visible ? (root.compact ? 12 : 16) : 0
-            visible: !!root.room.startsAt || !!root.room.connection
-            text: root.room.connection || ("Gathering · "+Qt.formatDateTime(new Date((root.room.startsAt || 0)*1000),"ddd d MMM, HH:mm"))
+            visible: root.room.type==="local" || !!root.room.startsAt || !!root.room.connection
+            text: root.room.connection || (root.room.type==="local"?"Local · same network · no chat or voice":("Gathering · "+Qt.formatDateTime(new Date((root.room.startsAt || 0)*1000),"ddd d MMM, HH:mm")))
             font.pixelSize: root.compact ? 9 : 11; color: Theme.muted; elide: Text.ElideRight; textFormat: Text.PlainText }
         Item { id: stage; objectName: "lobby-player-stage"; x: 0; y: time.y+time.height+5; width: parent.width
             height: Math.max(80,(disclosure.visible ? disclosure.y : actions.y)-y-9)
@@ -110,8 +110,8 @@ Item {
             }
         }
     }
-    Rectangle { visible: !root.expanded; x: root.width*.655; y: 18; width: 1; height: root.height-45; color: Theme.rim; opacity: .40 }
-    Item { id: chat; x: root.expanded ? root.margin : root.width*.655+root.margin; y: 10; width: root.width-x-root.margin; height: root.height-32
+    Rectangle { visible: !root.expanded && root.room.type!=="local"; x: root.width*.655; y: 18; width: 1; height: root.height-45; color: Theme.rim; opacity: .40 }
+    Item { id: chat; visible: root.room.type!=="local"; x: root.expanded ? root.margin : root.width*.655+root.margin; y: 10; width: root.width-x-root.margin; height: root.height-32
         Text { text: root.social.lobbySpectatorChat ? "Spectator chat" : "Room chat"; font.family: Theme.displayFamily; font.pixelSize: 20; color: Theme.ink }
         Item { objectName: "lobby-expand-chat"; anchors.right: parent.right; width: 32; height: 32
             enabled: root.social.lobbyChatVisible; opacity: enabled ? 1 : .35

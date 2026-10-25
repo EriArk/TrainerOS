@@ -60,8 +60,8 @@ Item {
     Rectangle { x: rail.x+rail.width+3; y: 17; width: 1; height: parent.height-38; color: Theme.muted; opacity: .18 }
     Item {
         id: field; x: rail.x+rail.width+19; y: 8; width: parent.width-x-16; height: parent.height-12
-        Text { x: 3; y: 3; text: "Online lobbies"; color: Theme.ink; font.family: Theme.displayFamily; font.pixelSize: 22 }
-        Text { x: 4; y: 31; width: parent.width-225; text: root.social.lobbyPlatform || root.social.lobbyMode ? [root.social.lobbyPlatform,root.social.lobbyMode].filter(Boolean).join(" · ") : "A place to start something together"
+        Text { x: 3; y: 3; text: root.social.lobbyScope==="local"?"Local lobbies":"Online lobbies"; color: Theme.ink; font.family: Theme.displayFamily; font.pixelSize: 22 }
+        Text { x: 4; y: 31; width: parent.width-225; text: root.social.lobbyPlatform || root.social.lobbyMode ? [root.social.lobbyPlatform,root.social.lobbyMode].filter(Boolean).join(" · ") : (root.social.lobbyScope==="local"?"Same Wi-Fi or Ethernet · no account":"A place to start something together")
             color: Theme.muted; font.pixelSize: 11; elide: Text.ElideRight }
         CapButton {
             anchors.right: parent.right; y: 3; width: Math.min(166,parent.width*.29); height: 34; claimsFocus: false; textSize: 13; tint: Theme.green
@@ -70,8 +70,13 @@ Item {
             selected: root.takesFocus && !root.social.lobbyRailFocused && root.social.lobbyFocus===0
             onActivated: root.social.selectLobby(0)
         }
+        Text { objectName: "lobby-scope-toggle"; anchors.right: parent.right; y: 36; height: 24; verticalAlignment: Text.AlignVCenter; text: root.social.lobbyScope==="local"?"Local ✓   ·   Online":"Local   ·   Online ✓"; font.pixelSize: 11; color: Theme.ink
+            MouseArea { anchors.fill: parent; onClicked: root.social.setLobbyScope(root.social.lobbyScope==="local"?"online":"local") }
+            Accessible.role: Accessible.Button; Accessible.name: "Local or Online lobbies"
+            Accessible.onPressAction: root.social.setLobbyScope(root.social.lobbyScope==="local"?"online":"local")
+        }
         Grid {
-            id: cards; x: 0; y: 59; width: parent.width; height: parent.height-y-30; columns: 2; columnSpacing: 12; rowSpacing: 12
+            id: cards; x: 0; y: 64; width: parent.width; height: parent.height-y-30; columns: 2; columnSpacing: 12; rowSpacing: 12
             Repeater {
                 model: root.rows.slice(root.social.lobbyPage*6,root.social.lobbyPage*6+6)
                 delegate: Item {
@@ -132,7 +137,7 @@ Item {
             }
             Text { width: parent.width; text: root.social.lobbyDirectory.busy ? "Looking for your next party…" : "Room for a new adventure"
                 font.family: Theme.displayFamily; font.pixelSize: 23; color: Theme.ink; horizontalAlignment: Text.AlignHCenter; wrapMode: Text.WordWrap }
-            Text { width: parent.width; text: root.social.lobbyDirectory.needsJoin ? root.social.lobbyDirectory.status : root.social.lobbySearch || root.social.lobbyTopic || root.social.lobbyFreeOnly || root.social.lobbyPlatform || root.social.lobbyMode ? "Try another category or clear your filters." : "Create a lobby and invite your friends. You can choose a game together."
+            Text { width: parent.width; text: root.social.lobbyScope==="local" ? (root.social.lobbyDirectory.status || "Create a local lobby, or ask your friend to open one on the same network.") : root.social.lobbyDirectory.needsJoin ? root.social.lobbyDirectory.status : root.social.lobbySearch || root.social.lobbyTopic || root.social.lobbyFreeOnly || root.social.lobbyPlatform || root.social.lobbyMode ? "Try another category or clear your filters." : "Create a lobby and invite your friends. You can choose a game together."
                 font.pixelSize: 13; color: Theme.muted; horizontalAlignment: Text.AlignHCenter; wrapMode: Text.WordWrap }
         }
         Row {

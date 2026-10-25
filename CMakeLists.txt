@@ -64,6 +64,8 @@ add_library(trainer_core STATIC
     src/features/social/LobbyConnection.cpp
     src/features/social/RecentTogether.cpp
     src/features/social/TemporaryContacts.cpp
+    src/platform/network/LocalLobbyTransport.cpp
+    src/features/social/SocialLocalLobby.cpp
     src/platform/network/NearbyService.cpp
     src/platform/device/ClockService.cpp
     src/features/settings/ClockController.cpp
@@ -774,6 +776,9 @@ if(BUILD_TESTING)
     qt_add_executable(trainer_netplay_relay_tests tests/NetplayRelayTests.cpp)
     target_link_libraries(trainer_netplay_relay_tests PRIVATE trainer_core Qt6::Test)
     add_test(NAME netplay_relay COMMAND trainer_netplay_relay_tests)
+    qt_add_executable(trainer_local_lobby_tests tests/LocalLobbyTests.cpp)
+    target_link_libraries(trainer_local_lobby_tests PRIVATE trainer_core Qt6::Test)
+    add_test(NAME local_lobby COMMAND trainer_local_lobby_tests)
     qt_add_executable(trainer_lobby_tests tests/LobbyTests.cpp)
     qt_add_executable(trainer_contacts_tests tests/TemporaryContactsTests.cpp)
     if(UNIX AND NOT APPLE)

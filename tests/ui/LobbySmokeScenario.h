@@ -32,6 +32,50 @@ public:
 // Isolated provider state; exercises the actual QML and input, never an account.
 class LobbySmokeScenario {
 public:
+    static void offline(QQuickWindow* window,ShellController& shell,ControllerInput& input,SDL_Joystick* joystick,QString directory,bool& completed,int& warnings,QStringList& diagnostics) {
+        auto* social=shell.social();
+        QObject::disconnect(social->session_,nullptr,social,nullptr);QObject::disconnect(social,nullptr,social->session_,nullptr);
+        social->owner_="offline-visual-fixture";social->localLobby_.loopbackOnly_=true;social->localLobby_.discoveryPort_=0;
+        social->configureLocalLobby(directory,"Local trainer");social->snapshot_={{"state","signed-out"}};
+        auto step=std::make_shared<int>(0);auto failed=std::make_shared<bool>(false);auto room=std::make_shared<QString>();
+        auto* timer=new QTimer(window);timer->setInterval(600);
+        const auto check=[=,&diagnostics](bool ok,QString text){diagnostics.append((ok?"PASS ":"FAIL ")+text);if(!ok)*failed=true;};
+        const auto press=[&input,joystick](SDL_GameControllerButton key){SDL_JoystickSetVirtualButton(joystick,key,1);input.poll();SDL_JoystickSetVirtualButton(joystick,key,0);input.poll();};
+        const auto click=[window](QString name){
+            const std::function<QQuickItem*(QQuickItem*)> search=[&](QQuickItem* item)->QQuickItem* {if(item->objectName()==name&&item->isVisible())return item;for(auto* child:item->childItems())if(auto* found=search(child))return found;return nullptr;};
+            auto* item=search(window->contentItem());if(!item)return false;
+            const auto point=item->mapToScene(QPointF(item->width()/2,item->height()/2));const auto global=window->mapToGlobal(point.toPoint());
+            QMouseEvent down(QEvent::MouseButtonPress,point,global,Qt::LeftButton,Qt::LeftButton,Qt::NoModifier),up(QEvent::MouseButtonRelease,point,global,Qt::LeftButton,Qt::NoButton,Qt::NoModifier);
+            QCoreApplication::sendEvent(window,&down);QCoreApplication::sendEvent(window,&up);return true;
+        };
+        QObject::connect(timer,&QTimer::timeout,window,[=,&shell,&completed,&warnings,&diagnostics]{
+            switch((*step)++) {
+            case 0:shell.goToPage(2);social->openLobby();window->resize(960,540);break;
+            case 1:check(click("lobby-scope-toggle"),"Touch reaches Local filter");break;
+            case 2:
+                check(social->lobbyScope()=="local","Local browsing works signed out");window->grabWindow().save(directory+"/offline-catalogue.png");
+                check(click("lobby-create"),"Touch reaches Create lobby");break;
+            case 3:
+                check(social->lobbyCreateOpen()&&social->lobbyDraft()["type"]=="local","Creation has an explicit Local type");
+                window->grabWindow().save(directory+"/offline-create.png");
+                for(int i=0;i<4;++i)press(SDL_CONTROLLER_BUTTON_DPAD_DOWN);
+                check(social->lobbyDraftFocus_==6,"Controller skips online-only access and schedule");press(ControllerInput::ConfirmButton);break;
+            case 4:
+                *room=social->lobbyState()["id"].toString();check(!room->isEmpty()&&social->viewedLobby().local(),"Controller creates room without an account");
+                check(!social->lobbyChatVisible()&&social->lobbyRoomActions().isEmpty(),"Local room has no cloud chat or voice controls");
+                window->grabWindow().save(directory+"/offline-room.png");social->setLobbyScope("online");break;
+            case 5:
+                check(social->lobbyState()["id"]==*room&&social->viewedLobby().local(),"Browse filter does not change room type");
+                social->chooseMyLobby(*room);window->resize(1280,720);break;
+            case 6:window->grabWindow().save(directory+"/offline-room-wide.png");social->leaveViewedLobby();break;
+            default:
+                check(!social->localLobby_.running(),"Local discovery stops after leaving and browsing Online");
+                timer->stop();completed=true;QFile report(directory+"/offline-check.txt");
+                if(report.open(QIODevice::WriteOnly))report.write((diagnostics.join('\n')+QString("\nqmlWarnings=%1\n").arg(warnings)).toUtf8());
+                QCoreApplication::exit(*failed||warnings?4:0);
+            }
+        });timer->start();
+    }
     static void connection(QQuickWindow* window,ShellController& shell,ControllerInput& input,SDL_Joystick* joystick,QString directory,bool& completed,int& warnings,QStringList& diagnostics) {
         auto* social=shell.social();
         QObject::disconnect(social->session_,nullptr,social,nullptr);QObject::disconnect(social,nullptr,social->session_,nullptr);
@@ -410,6 +454,7 @@ public:
     }
     static void start(QQuickWindow* window,ShellController& shell,ControllerInput& input,SDL_Joystick* joystick,
                       QString directory,bool& completed,int& warnings,QStringList& diagnostics) {
+        if(qEnvironmentVariableIsSet("TRAINEROS_OFFLINE_LOBBY_SMOKE")){offline(window,shell,input,joystick,directory,completed,warnings,diagnostics);return;}
         if(qEnvironmentVariableIsSet("TRAINEROS_CONNECTION_SMOKE")){connection(window,shell,input,joystick,directory,completed,warnings,diagnostics);return;}
         if(qEnvironmentVariableIsSet("TRAINEROS_FILES68_SMOKE")){files68(window,shell,directory,completed,warnings,diagnostics);return;}
         if(qEnvironmentVariableIsSet("TRAINEROS_SOCIAL67_SMOKE")){social67(window,shell,directory,completed,warnings,diagnostics);return;}

@@ -1,5 +1,15 @@
 # TrainerOS — состояние проекта
 
+**25 октября — Local Lobby без аккаунта, реализация в исходниках.** В GameHub
+добавлен локальный каталог и неизменяемый тип комнаты Local/Online. Устройства
+в общей сети находят комнаты автоматически; вход подтверждает хозяин. Сохранены
+общие выбор игры/голосование, места, Ready, явный Start и защищённый возврат.
+Смена аккаунта Fluxer не меняет Local-комнату; разрыв восстанавливает членство
+без автоматического запуска игры. Локальные ключи, TLS и журналы отделены от
+провайдера; облачные чат/голос/трансляции в Local отсутствуют. Общий PC LAN #251
+остаётся отдельной незавершённой связкой. Поставка на занятые портативки не
+выполнялась. Четыре профильных CTest-набора, 38 проверок Social/Lobby и Local QML-сценарий пройдены. [Механизм, проверки и границы](docs/OFFLINE_LOBBY.md).
+
 **25 октября — снят допуск только Battlefront II для PS2 LAN.** По просьбе
 владельца в исходниках доступны все 56 названий сохранённого LAN-списка через
 общий транспорт; каталог сопоставляет 164 serial изданий. CRC-список одной игры
@@ -845,7 +855,7 @@ root/docs. Ссылки и README-изображения проверены; с�
 | GameHub | My Story по библиотеке, таймлайн, галерея с плёнкой/100-фото буфером и отдельным избранным; RA-выбор игр/история и карточка достижения. [RA73](docs/RA73_GAME_SELECTION.md), [RA56](docs/RA56_ACHIEVEMENT_LOOP.md) | Личная RA-history ждёт Web API key; баннер/джингл/физические кнопки на финальной полировке |
 | Home/Start | Home — текущая игра/её настройки, лобби/голос/уведомления; Start — виджеты/quick actions и Settings/Power/Switch. [78/79](docs/CONTROLS78_HOME_START.md) | Не новый уровень совместимости настроек всех эмуляторов; физическая приёмка открыта |
 | Social | Люди → DM, группы/комьюнити отдельно, Discover; удаление друзей, выход/удаление по правам Fluxer, скрытие служебных групп. [Social](docs/SOCIAL.md), [lifecycle](docs/SOCIAL66_LIFECYCLE_CONTROLS.md), [Discover](docs/SOCIAL67_DISCOVER.md) | Live public discovery, destructive MFA flow и новый Recently Together требуют отдельных проверок |
-| Lobby | Каталог 2×3, My Lobbies/расписание, wizard/Game Picker, голосование/Ready, ручной Start хозяина, общий launch splash, HUD/тёмный mini-chat. [Контракт](docs/LOBBY.md), [подготовка](docs/LOBBY63_PREPARATION.md), [HUD](docs/LOBBY64_ENTRIES_HUD.md) | Все runtime/разные сети не закрыты; offline Lobby и Watch/переход роли не завершены |
+| Lobby | Каталог 2×3, My Lobbies/расписание, wizard/Game Picker, голосование/Ready, ручной Start хозяина, общий launch splash, HUD/тёмный mini-chat. [Контракт](docs/LOBBY.md), [подготовка](docs/LOBBY63_PREPARATION.md), [HUD](docs/LOBBY64_ENTRIES_HUD.md) | Все runtime/разные сети не закрыты; Local Lobby реализован в исходниках, поставка не выполнена; Watch/переход роли не завершены |
 | Apps/Files/Browser | Приложения/избранное/скрытие; Files libfm-qt с breadcrumb/нижним управлением; QtWebEngine, вкладки, bookmark/history popovers, fullscreen и общие загрузки. [Files](docs/FILES68_IMPLEMENTATION.md), [Browser](docs/BROWSER71_IMPLEMENTATION.md) | Не новая универсальная сертификация файловых backend/сайтов/устройств |
 | Crates | Тематические ящики, каталог/проект, установка/запуск временных open-source примеров, подписанные обновления каталога. [76](docs/CRATES76_INSTALLER.md), [77](docs/CRATES77_CATALOGUE.md) | Физическая совместимость пакетов вне проверок, полный publishing/reviews ещё не готовы; SPI не завершён |
 | Отзывчивость | PERF-72 доставлен обоим; исправлены лишние фоновые работы и use-after-free, измерены CPU/PSS на одинаковом маршруте. [Методика](docs/PERFORMANCE72.md) | Ограниченный замер не заменяет длительную приёмку; старые общие UI-fixtures не объявлены зелёными |

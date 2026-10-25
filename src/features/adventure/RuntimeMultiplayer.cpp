@@ -48,7 +48,7 @@ RuntimeMultiplayer::~RuntimeMultiplayer() {
 }
 RuntimeMultiplayer::RuntimeMultiplayer(LibraryRepository& lib,RetroArchAdapter& adapter,StandaloneAdapter& ppsspp,StandaloneAdapter& dolphinAdapter,SocialController& social,
     ProcessService& process,AdventureLaunchController& lifecycle,AdventureExitPresentation& overlay)
-    :library_(lib),adapter_(adapter),social_(social),ppsspp_(ppsspp),dolphin_(dolphinAdapter),process_(process),lifecycle_(lifecycle),overlay_(overlay),preparation_(process,lifecycle,overlay,[&social]{return social.accountGeneration();},this),nativeConnection_(*social.lobbyCoordinator(),this) {
+    :library_(lib),adapter_(adapter),social_(social),ppsspp_(ppsspp),dolphin_(dolphinAdapter),process_(process),lifecycle_(lifecycle),overlay_(overlay),preparation_(process,lifecycle,overlay,[&social]{return social.lobbyCoordinator()->activeRoom()->local()?quint64(qHash(social.trainerIdentity())):social.accountGeneration();},this),nativeConnection_(*social.lobbyCoordinator(),this) {
     connect(&nativeConnection_,&LobbyConnection::connected,this,[this](QString config){
         if(ps2Connection_)ps2ConnectionConfig_=config;
         if((pspDirect_||ps2Connection_)&&!nativeLaunchContext_.isEmpty()) {
@@ -91,9 +91,12 @@ RuntimeMultiplayer::RuntimeMultiplayer(LibraryRepository& lib,RetroArchAdapter& 
     identity_=QSettings().value("runtimeMultiplayer/device").toString();
     if(QUuid(identity_).isNull()){identity_=QUuid::createUuid().toString(QUuid::WithoutBraces);QSettings().setValue("runtimeMultiplayer/device",identity_);}
     connect(&party_,&GameParty::outgoing,this,[this](QString peer,QJsonObject packet){
-        if(peer.startsWith("nearby:"))nearby_.sendTo(peer.mid(7),packet);
+        if(peer.startsWith("local:")){social_.sendLocalParty(peer.mid(6),packet);}
+        else if(peer.startsWith("nearby:"))nearby_.sendTo(peer.mid(7),packet);
         else if(peer.startsWith("online:"))social_.runtimeCommand("party-send",{{"peer",peer.mid(7)},{"content",GameParty::encode(packet)}});
     });
+    connect(&social_,&SocialController::localPartyPacket,this,[this](QString peer,QString name,QJsonObject p){party_.receive("local:"+peer,name,p);});
+    connect(&social_,&SocialController::localPartyDisconnected,this,[this](QString peer){party_.disconnected("local:"+peer);});
     connect(&social_,&SocialController::partyPacket,this,[this](QString peer,QString name,QJsonObject p){party_.receive("online:"+peer,name,p);});
     connect(&nearby_,&LocalLinkPeer::partyReceived,this,[this](QString peer,QString name,QJsonObject p){party_.receive("nearby:"+peer,name,p);});
     connect(&nearby_,&LocalLinkPeer::partyDisconnected,this,[this](QString peer){party_.disconnected("nearby:"+peer);});
@@ -102,11 +105,11 @@ RuntimeMultiplayer::RuntimeMultiplayer(LibraryRepository& lib,RetroArchAdapter& 
             party_.leave();emit notice("This group is no longer available for joining.");
         }else party_.deliveryFailed("online:"+peer);
     });
-    connect(&social_,&SocialController::partyReset,&party_,&GameParty::reset);
+    connect(&social_,&SocialController::partyReset,this,[this]{if(lobbyContext_["type"]!="local"||!social_.lobbyCoordinator()->activeRoom()->local())party_.reset();});
     connect(&social_,&SocialController::presentationChanged,this,&RuntimeMultiplayer::changed);
     connect(social_.lobbyCoordinator(),&LobbyCoordinator::changed,this,[this]{
         const auto room=social_.lobbyCoordinator()->state();QJsonObject offer;
-        if(social_.lobbyCoordinator()->hosting()) {
+        if(social_.lobbyCoordinator()->hosting()&&!social_.lobbyCoordinator()->activeRoom()->local()) {
             const auto game=room["game"].toObject();const bool editable=room["phase"]=="choosing"||room["phase"]=="gathering";
             int occupied=0;for(const auto& m:room["members"].toArray())if(m.toObject()["seat"].toInt()>0)++occupied;
             offer={{"lobby",room["id"]},{"party",room["id"]},{"company",room["conversation"]},
@@ -232,7 +235,7 @@ RuntimeMultiplayer::RuntimeMultiplayer(LibraryRepository& lib,RetroArchAdapter& 
     connect(&nearby_,&LocalLinkPeer::error,this,[this](QString text){
         // Discovery has its own lifecycle. A LAN listener failure must not
         // cancel an independently established Online friend game.
-        if(active_&&!online_)fail(text);else emit notice(text);
+        if(active_&&!online_&&lobbyContext_["type"]!="local")fail(text);else emit notice(text);
     });
     connect(&process_,&ProcessService::runtimeOutput,this,&RuntimeMultiplayer::output);
     invitationOpenTimer_.setSingleShot(true);invitationOpenTimer_.setInterval(5000);
@@ -395,7 +398,7 @@ void RuntimeMultiplayer::refresh(const RetroArchInstallation& installation,QStri
     if(allowed_)for(const auto& record:records) {
         const auto profile=games_.value(record.adventure.id);
         const auto content=profile["content"].toString();const int capacity=profile["players"].toInt(2);
-        if(content.isEmpty()||capacity<1||capacity>16||!multiplayerConnectionAllowed(profile,"online"))continue;
+        if(content.isEmpty()||capacity<1||capacity>16||(!multiplayerConnectionAllowed(profile,"online")&&!localLobbyRuntime(profile)))continue;
         const auto id=QString::fromLatin1(QCryptographicHash::hash((profile["id"].toString()+"/"+content).toUtf8(),QCryptographicHash::Sha256).toHex());
         lobbyGames.append(QVariantMap{{"key",record.adventure.id},{"id",id},{"title",profile["label"].toString()},
             {"platform",record.adventure.platformId},{"mode",profile["id"].toString()},{"modeLabel",multiplayerPresentation(profile).value("label",QString("Emulator multiplayer"))},
@@ -717,7 +720,7 @@ void RuntimeMultiplayer::startParty(bool host,const QJsonObject& endpoint) {
     game_=game;descriptor_=selected;partySession_=true;active_=true;host_=host;relaySent_=false;
     const auto roster=party_.state()["members"].toArray();
     transportPeer_=host?(roster.size()>1?roster.at(1).toObject()["peer"].toString():QString()):party_.hostPeer();
-    online_=!lobbyTicket_.isEmpty()||transportPeer_.startsWith("online:");
+    online_=lobbyTicket_.isEmpty()?transportPeer_.startsWith("online:"):lobbyContext_["type"]!="local";
     request_={};request_.host=host;request_.relay=online_;request_.expected=selected;
     request_.localExpected=games_.value(game);
     if(!host)relaySelector_.stop();
@@ -747,16 +750,16 @@ void RuntimeMultiplayer::startParty(bool host,const QJsonObject& endpoint) {
         }
         if(host)prepareHost();else frame(endpoint);
     } else if(host&&vita()) {
-        vitaRequest_={selected,{},true,online_,randomToken()+randomToken(),nearby_.localAddressFor(transportPeer_.mid(7))};
+        vitaRequest_={selected,{},true,online_,randomToken()+randomToken(),(transportPeer_.startsWith("local:")?social_.localSocketAddress(transportPeer_.mid(6)):nearby_.localAddressFor(transportPeer_.mid(7)))};
         prepareHost();
     } else if(host&&azahar()) {
-        azaharRequest_={selected,{},true,online_,randomToken()+randomToken(),nearby_.localAddressFor(transportPeer_.mid(7))};
+        azaharRequest_={selected,{},true,online_,randomToken()+randomToken(),(transportPeer_.startsWith("local:")?social_.localSocketAddress(transportPeer_.mid(6)):nearby_.localAddressFor(transportPeer_.mid(7)))};
         prepareHost();
     } else if(host&&ds()) {
-        dsRequest_={selected,{},true,online_,randomToken()+randomToken(),nearby_.localAddressFor(transportPeer_.mid(7))};
+        dsRequest_={selected,{},true,online_,randomToken()+randomToken(),(transportPeer_.startsWith("local:")?social_.localSocketAddress(transportPeer_.mid(6)):nearby_.localAddressFor(transportPeer_.mid(7)))};
         prepareHost();
     } else if(host&&flycast()) {
-        flycastRequest_={selected,true,online_,nearby_.addressOf(transportPeer_.mid(7)),randomToken(),{}};
+        flycastRequest_={selected,true,online_,(transportPeer_.startsWith("local:")?social_.localPeerAddress(transportPeer_.mid(6)):nearby_.addressOf(transportPeer_.mid(7))),randomToken(),{}};
         prepareHost();
     } else if(host&&rmg()) {
         rmgRequest_.host=true;rmgRequest_.identity=selected;rmgRequest_.token=randomToken();
@@ -769,7 +772,7 @@ void RuntimeMultiplayer::startParty(bool host,const QJsonObject& endpoint) {
     } else if(host) {
         request_.password=randomToken();
         if(psp()){if(pspDirect_){request_.address="127.0.0.1";prepareHost();}
-            else if(online_)resolvePspRelay();else {request_.address=nearby_.localAddressFor(transportPeer_.mid(7));prepareHost();}}
+            else if(online_)resolvePspRelay();else {request_.address=(transportPeer_.startsWith("local:")?social_.localSocketAddress(transportPeer_.mid(6)):nearby_.localAddressFor(transportPeer_.mid(7)));prepareHost();}}
         else if(online_)resolveRelay();else prepareHost();
     } else if(linked())prepareLinked(endpoint);else frame(endpoint);
     emit changed();
@@ -896,7 +899,7 @@ void RuntimeMultiplayer::prepareRmg() {
         }
         if(online_)rmgRequest_.server=QUrl(installed["onlineServer"].toString());
         else {
-            const auto address=host_?QString("127.0.0.1"):nearby_.addressOf(transportPeer_.mid(7));
+            const auto address=host_?QString("127.0.0.1"):(transportPeer_.startsWith("local:")?social_.localPeerAddress(transportPeer_.mid(6)):nearby_.addressOf(transportPeer_.mid(7)));
             rmgRequest_.server=QUrl("ws://"+address+":45000");
             if(host_)rmgRequest_.localServer=rmg::bundleRoot()+"/bin/rmg-netplay-server";
         }
@@ -927,7 +930,7 @@ void RuntimeMultiplayer::prepareLinked(const QJsonObject& endpoint) {
         config["content"]=descriptor_["content"];config["size"]=seed.bytes.size();
         if(!host_) {
             config["data"]=QString::fromLatin1(seed.bytes.toBase64());
-            if(!online_)config["address"]=nearby_.addressOf(transportPeer_.mid(7));
+            if(!online_)config["address"]=(transportPeer_.startsWith("local:")?social_.localPeerAddress(transportPeer_.mid(6)):nearby_.addressOf(transportPeer_.mid(7)));
             linkedSave_.start(installation_.linkedSavePython,installation_.linkedSaveHelper,config);
             return;
         }
@@ -945,7 +948,7 @@ void RuntimeMultiplayer::prepareLinked(const QJsonObject& endpoint) {
                 if(active_&&generation==sessionGeneration_&&linkedPreparing_)
                     fail("Couldn't prepare everyone's linked game. Your save was kept. Try inviting again.");
             });
-            if(!online_)config["address"]=nearby_.localAddressFor(linkedPeers_.value(slot).mid(7));
+            if(!online_)config["address"]=(linkedPeers_.value(slot).startsWith("local:")?social_.localSocketAddress(linkedPeers_.value(slot).mid(6)):nearby_.localAddressFor(linkedPeers_.value(slot).mid(7)));
             transfer->start(installation_.linkedSavePython,installation_.linkedSaveHelper,config);
         }
     });
@@ -1000,7 +1003,7 @@ void RuntimeMultiplayer::frame(const QJsonObject& packet) {
         if(packet["identity"].toObject()!=descriptor_||packet["slot"]!=QJsonValue(2)) {
             fail("Your Vita game or invitation changed. Invite again.");return;
         }
-        vitaRequest_={descriptor_,packet["connection"].toObject(),false,online_,packet["key"].toString(),nearby_.addressOf(transportPeer_.mid(7))};
+        vitaRequest_={descriptor_,packet["connection"].toObject(),false,online_,packet["key"].toString(),(transportPeer_.startsWith("local:")?social_.localPeerAddress(transportPeer_.mid(6)):nearby_.addressOf(transportPeer_.mid(7)))};
         launchPending_=true;launch();return;
     }
     if(azahar()) {
@@ -1008,7 +1011,7 @@ void RuntimeMultiplayer::frame(const QJsonObject& packet) {
         if(packet["identity"].toObject()!=descriptor_||packet["slot"]!=QJsonValue(2)) {
             fail("Your 3DS game or invitation changed. Invite again.");return;
         }
-        azaharRequest_={descriptor_,packet["connection"].toObject(),false,online_,packet["key"].toString(),nearby_.addressOf(transportPeer_.mid(7))};
+        azaharRequest_={descriptor_,packet["connection"].toObject(),false,online_,packet["key"].toString(),(transportPeer_.startsWith("local:")?social_.localPeerAddress(transportPeer_.mid(6)):nearby_.addressOf(transportPeer_.mid(7)))};
         launchPending_=true;launch();return;
     }
     if(ds()) {
@@ -1016,7 +1019,7 @@ void RuntimeMultiplayer::frame(const QJsonObject& packet) {
         if(packet["identity"].toObject()!=descriptor_||packet["slot"]!=QJsonValue(2)) {
             fail("Your DS game or invitation changed. Invite again.");return;
         }
-        dsRequest_={descriptor_,packet["connection"].toObject(),false,online_,packet["key"].toString(),nearby_.addressOf(transportPeer_.mid(7))};
+        dsRequest_={descriptor_,packet["connection"].toObject(),false,online_,packet["key"].toString(),(transportPeer_.startsWith("local:")?social_.localPeerAddress(transportPeer_.mid(6)):nearby_.addressOf(transportPeer_.mid(7)))};
         launchPending_=true;launch();return;
     }
     if(packet["kind"]=="left"){
@@ -1026,7 +1029,7 @@ void RuntimeMultiplayer::frame(const QJsonObject& packet) {
     if(flycast()) {
         if(host_||packet["kind"]!="flycast-ready"||lifecycle_.active()||launchPending_)return;
         if(packet["identity"].toObject()!=descriptor_||packet["slot"].toInt()!=2){fail("Your Dreamcast game or emulator doesn't match.");return;}
-        flycastRequest_={descriptor_,false,online_,nearby_.addressOf(transportPeer_.mid(7)),packet["token"].toString(),packet["key"].toString()};
+        flycastRequest_={descriptor_,false,online_,(transportPeer_.startsWith("local:")?social_.localPeerAddress(transportPeer_.mid(6)):nearby_.addressOf(transportPeer_.mid(7))),packet["token"].toString(),packet["key"].toString()};
         launchPending_=true;launch();return;
     }
     if(rmg()) {
@@ -1046,7 +1049,7 @@ void RuntimeMultiplayer::frame(const QJsonObject& packet) {
     if(dolphin()) {
         if(host_||packet["kind"]!="dolphin-ready"||lifecycle_.active()||launchPending_)return;
         if(packet["identity"].toObject()!=descriptor_){fail("Your game or emulator doesn't match your friend's.");return;}
-        dolphinRequest_.address=online_?packet["code"].toString():nearby_.addressOf(transportPeer_.mid(7));
+        dolphinRequest_.address=online_?packet["code"].toString():(transportPeer_.startsWith("local:")?social_.localPeerAddress(transportPeer_.mid(6)):nearby_.addressOf(transportPeer_.mid(7)));
         dolphinRequest_.port=packet["port"].toInt();dolphinRequest_.slot=packet["slot"].toInt();
         dolphinRequest_.token=packet["token"].toString();dolphinRequest_.seats=packet["seats"].toArray();
         launchPending_=true;launch();return;
@@ -1054,7 +1057,7 @@ void RuntimeMultiplayer::frame(const QJsonObject& packet) {
     if(psp()) {
         if(host_||packet["kind"]!="psp-ready"||lifecycle_.active()||launchPending_)return;
         if(packet["identity"].toObject()!=descriptor_){fail("Your PSP game or emulator doesn't match your friend's.");return;}
-        request_.address=pspDirect_?QString("127.0.0.2"):online_?packet["address"].toString():nearby_.addressOf(transportPeer_.mid(7));
+        request_.address=pspDirect_?QString("127.0.0.2"):online_?packet["address"].toString():(transportPeer_.startsWith("local:")?social_.localPeerAddress(transportPeer_.mid(6)):nearby_.addressOf(transportPeer_.mid(7)));
         launchPending_=true;launch();return;
     }
     if(host_||packet["kind"]!="ready"||lifecycle_.active()||launchPending_)return;
@@ -1063,7 +1066,7 @@ void RuntimeMultiplayer::frame(const QJsonObject& packet) {
     const auto port=packet["port"].toInt();
     if(port<1||port>65535){fail("This multiplayer address is invalid.");return;}
     request_.password=packet["password"].toString();request_.port=quint16(port);
-    request_.address=online_?packet["address"].toString():nearby_.addressOf(transportPeer_.mid(7));
+    request_.address=online_?packet["address"].toString():(transportPeer_.startsWith("local:")?social_.localPeerAddress(transportPeer_.mid(6)):nearby_.addressOf(transportPeer_.mid(7)));
     request_.relaySession=packet["session"].toString();
     if(hotseat()) {
         handoff_.begin(party_.state()["party"].toString(),request_.slot);
