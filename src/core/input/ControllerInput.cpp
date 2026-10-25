@@ -358,7 +358,8 @@ void ControllerInput::poll() {
     }
     previous_ = buttons;
 }
-bool ControllerInput::eventFilter(QObject*, QEvent* event) {
+bool ControllerInput::eventFilter(QObject* target, QEvent* event) {
+    if(target && target->property("trainerBrowserKey").toBool())return false;
     if (event->type() != QEvent::KeyPress) return false;
     const auto* key = static_cast<QKeyEvent*>(event);
     if(!captureMode_.isEmpty()) {
@@ -376,8 +377,16 @@ bool ControllerInput::eventFilter(QObject*, QEvent* event) {
         }
         return true;
     }
-    if(nativeKeyboard_&&!textEntryEnabled_&&key->key()!=Qt::Key_F1&&key->key()!=Qt::Key_Escape)return false;
+    if(nativeKeyboard_&&key->key()!=Qt::Key_F1&&key->key()!=Qt::Key_Escape)return false;
     if(textEntryEnabled_&&enabled_) {
+        static const QMap<int,QString> shortcuts{{Qt::Key_A,"select-all"},{Qt::Key_C,"copy"},{Qt::Key_X,"cut"},
+            {Qt::Key_V,"paste"},{Qt::Key_Z,"undo"},{Qt::Key_Y,"redo"}};
+        if(key->modifiers()==Qt::ControlModifier && shortcuts.contains(key->key())) {
+            emit textCommand(shortcuts[key->key()]);return true;
+        }
+        if(key->modifiers()==Qt::NoModifier && (key->key()==Qt::Key_Left||key->key()==Qt::Key_Right)) {
+            emit textCommand(key->key()==Qt::Key_Left?"left":"right");return true;
+        }
         if(key->key()==Qt::Key_Backspace){emit textBackspace();return true;}
         if(key->key()==Qt::Key_Return||key->key()==Qt::Key_Enter){if(!key->isAutoRepeat())emit textSubmitted();return true;}
         if(!(key->modifiers()&(Qt::ControlModifier|Qt::AltModifier|Qt::MetaModifier))&&!key->text().isEmpty()&&key->text().front().isPrint()) {

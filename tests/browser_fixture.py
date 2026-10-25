@@ -20,6 +20,13 @@ class Handler(BaseHTTPRequestHandler):
     def log_message(self, *args): pass
     def do_GET(self):
         path = self.path.split("?")[0]
+        if path in ("/input", "/frame"):
+            if path == "/input":
+                body = (Path(__file__).parent / "browser_input_fixture.html").read_text(encoding="utf-8").replace("PORT", str(self.server.server_port)).encode()
+            else:
+                body = b'<input id="entry"><script>addEventListener("message",()=>entry.focus());entry.oninput=()=>parent.postMessage(entry.value,"*");</script>'
+            self.send_response(200); self.send_header("Content-Type", "text/html; charset=utf-8")
+            self.send_header("Content-Length", str(len(body))); self.end_headers(); self.wfile.write(body); return
         with lock:
             with (root / "requests.jsonl").open("a") as out:
                 out.write(json.dumps({"path": path, "range": self.headers.get("Range"), "if_range": self.headers.get("If-Range"), "if_match": self.headers.get("If-Match"), "fixture_cookie": "browser71=yes" in self.headers.get("Cookie", "")}) + "\n")

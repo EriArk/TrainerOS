@@ -18,6 +18,7 @@
 #include <QQuickItem>
 #include <QQuickWindow>
 #include <QMouseEvent>
+#include <QKeyEvent>
 #include <QWheelEvent>
 #include <QInputMethod>
 #include <QInputMethodEvent>
@@ -45,6 +46,7 @@ bool BrowserController::available() const {
 void BrowserController::configure(const QString& directory,const QString& owner) {
     const QString next=owner.isEmpty()?QString():directory+"/browser/"+QString::fromLatin1(QCryptographicHash::hash(owner.toUtf8(),QCryptographicHash::Sha256).toHex());
     if(next==path_)return;
+    stopPageInput();inputSurface_=nullptr;
     persist();persistDownloads();saveTimer_.stop();downloadSaveTimer_.stop();emit profileChanging();
     delete profile_;profile_=nullptr;field_=nullptr;tabs_.clear();bookmarks_.clear();history_.clear();jobs_.clear();selected_.clear();textTarget_.clear();path_=next;owner_=owner;
     if(!path_.isEmpty()) {
@@ -138,9 +140,60 @@ void BrowserController::updateTab(const QString& id,const QString& url,const QSt
 void BrowserController::toggleBookmark(const QString& url,const QString& title){if(!url.startsWith("http://")&&!url.startsWith("https://"))return;bool removed=bookmarks_.removeIf([&](const QVariant& v){return v.toMap()["url"]==url;})>0;if(!removed)bookmarks_<<QVariantMap{{"url",url},{"title",title}};persist();emit changed();}
 void BrowserController::removeHistory(){history_.clear();persist();emit changed();}
 void BrowserController::persist(){if(path_.isEmpty())return;QSaveFile f(path_+"/session.json");if(f.open(QIODevice::WriteOnly)){f.setPermissions(QFile::ReadOwner|QFile::WriteOwner);f.write(QJsonDocument(QJsonObject{{"tabs",QJsonArray::fromVariantList(tabs_)},{"selected",selected_},{"bookmarks",QJsonArray::fromVariantList(bookmarks_)},{"history",QJsonArray::fromVariantList(history_)}}).toJson());f.commit();}}
-void BrowserController::requestAddress(const QString& url){textTarget_="address";emit textRequested("Address or search",url=="about:blank"?QString():url,4096,false);}
-void BrowserController::applyText(const QString& text){const auto target=textTarget_;textTarget_.clear();if(target=="address"){openUrl(text);}else if(target=="field"&&field_){QInputMethodQueryEvent query(Qt::ImCursorPosition|Qt::ImSurroundingText);QCoreApplication::sendEvent(field_,&query);QInputMethodEvent event;event.setCommitString(text,-query.value(Qt::ImCursorPosition).toInt(),query.value(Qt::ImSurroundingText).toString().size());QCoreApplication::sendEvent(field_,&event);field_=nullptr;}}
-void BrowserController::editPageField(){auto* target=QGuiApplication::focusObject();if(!target)return;const auto enabled=QInputMethod::queryFocusObject(Qt::ImEnabled,{}).toBool();if(!enabled)return;field_=target;textTarget_="field";emit textRequested("Enter text",QInputMethod::queryFocusObject(Qt::ImSurroundingText,{}).toString(),8192,QInputMethod::queryFocusObject(Qt::ImHints,{}).toInt()&Qt::ImhHiddenText);}
+void BrowserController::requestAddress(const QString& url){stopPageInput();textTarget_="address";emit textRequested("Address or search",url=="about:blank"?QString():url,4096,false);}
+void BrowserController::applyText(const QString& text){const auto target=textTarget_;textTarget_.clear();if(target=="address")openUrl(text);}
+bool BrowserController::validInputTarget() const {
+    auto* surface=qobject_cast<QQuickItem*>(inputSurface_.data());
+    auto* target=qobject_cast<QQuickItem*>(QGuiApplication::focusObject());
+    return surface&&surface->isVisible()&&target&&(surface==target||surface->isAncestorOf(target))
+        && QInputMethod::queryFocusObject(Qt::ImEnabled,{}).toBool();
+}
+void BrowserController::editPageField(QObject* surface,bool explicitRequest) {
+    if(inputSurface_!=surface){stopPageInput();inputSurface_=surface;inputDismissed_=false;}
+    if(!validInputTarget()){
+        inputDismissed_=false;
+        if(pageInput_)stopPageInput();
+        return;
+    }
+    if(explicitRequest)inputDismissed_=false;
+    const int hints=QInputMethod::queryFocusObject(Qt::ImHints,{}).toInt();
+    if(inputDismissed_ || (pageInput_&&hints==inputHints_))return;
+    field_=QGuiApplication::focusObject();pageInput_=true;inputHints_=hints;
+    emit pageInputRequested(hints);
+}
+void BrowserController::stopPageInput() {
+    const bool wasOpen=pageInput_;pageInput_=false;field_=nullptr;inputDismissed_=true;
+    if(wasOpen)emit pageInputEnded();
+}
+void BrowserController::commitPageText(const QString& text) {
+    if(!pageInput_||!validInputTarget()){stopPageInput();return;}
+    // Chromium owns the selection, DOM, undo and input/beforeinput events, including
+    // cross-origin frames and shadow DOM. Never copy/replace the whole field.
+    QInputMethodEvent event;event.setCommitString(text);
+    QCoreApplication::sendEvent(QGuiApplication::focusObject(),&event);
+}
+void BrowserController::pageKey(const QString& action) {
+    if(!pageInput_||!validInputTarget()){stopPageInput();return;}
+    static const QMap<QString,int> keys{{"backspace",Qt::Key_Backspace},{"left",Qt::Key_Left},
+        {"right",Qt::Key_Right},{"enter",Qt::Key_Return},{"next",Qt::Key_Tab},
+        {"paste",Qt::Key_V},{"select-all",Qt::Key_A},{"copy",Qt::Key_C},
+        {"cut",Qt::Key_X},{"undo",Qt::Key_Z},{"redo",Qt::Key_Y}};
+    if(!keys.contains(action))return;
+    const auto modifiers=QStringList{"paste","select-all","copy","cut","undo","redo"}.contains(action)?Qt::ControlModifier:Qt::NoModifier;
+    pageKeyStroke(keys[action],modifiers,action=="enter"?"\r":QString());
+}
+void BrowserController::pageKeyStroke(int key,int modifiers,const QString& text) {
+    if(!pageInput_||!validInputTarget()){stopPageInput();return;}
+    QPointer<QObject> target=QGuiApplication::focusObject();
+    // Scope only our synthetic key pair; the global shell mapper must not turn
+    // Return/Tab/Backspace back into keyboard commands.
+    target->setProperty("trainerBrowserKey",true);
+    QKeyEvent press(QEvent::KeyPress,key,Qt::KeyboardModifiers(modifiers),text);
+    QKeyEvent release(QEvent::KeyRelease,key,Qt::KeyboardModifiers(modifiers));
+    QCoreApplication::sendEvent(target,&press);if(!target)return;QCoreApplication::sendEvent(target,&release);
+    if(!target)return;
+    target->setProperty("trainerBrowserKey",QVariant());
+}
 void BrowserController::copyText(const QString& text){QGuiApplication::clipboard()->setText(text);}
 void BrowserController::pointerEvent(QObject* object,qreal x,qreal y,int button){auto* item=qobject_cast<QQuickItem*>(object);if(!item||!item->window())return;const auto local=item->mapToScene(QPointF(x,y));const auto global=item->window()->mapToGlobal(local.toPoint());if(!button){QMouseEvent e(QEvent::MouseMove,local,global,Qt::NoButton,Qt::NoButton,Qt::NoModifier);QCoreApplication::sendEvent(item->window(),&e);return;}const auto b=button==2?Qt::RightButton:Qt::LeftButton;QMouseEvent press(QEvent::MouseButtonPress,local,global,b,b,Qt::NoModifier);QMouseEvent release(QEvent::MouseButtonRelease,local,global,b,Qt::NoButton,Qt::NoModifier);QCoreApplication::sendEvent(item->window(),&press);QCoreApplication::sendEvent(item->window(),&release);}
 void BrowserController::wheel(QObject* object,qreal x,qreal y,qreal dx,qreal dy){auto* item=qobject_cast<QQuickItem*>(object);if(!item||!item->window())return;const auto local=item->mapToScene(QPointF(x,y));QWheelEvent e(local,item->window()->mapToGlobal(local.toPoint()),QPoint(int(dx),int(dy)),QPoint(int(dx),int(dy)),Qt::NoButton,Qt::NoModifier,Qt::NoScrollPhase,false);QCoreApplication::sendEvent(item->window(),&e);}

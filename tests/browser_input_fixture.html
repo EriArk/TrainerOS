@@ -1,0 +1,16 @@
+<!doctype html>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Browser input fixture</title>
+<style>body{font:18px sans-serif;margin:25px}input,textarea,[contenteditable]{display:block;width:80%;padding:8px;margin:8px;border:1px solid gray}iframe{height:65px}#rich{min-height:30px}</style>
+<input id="plain" value="abcd">
+<div id="rich" contenteditable="true"></div>
+<div id="shadow"></div>
+<iframe id="frame" src="http://localhost:PORT/frame"></iframe>
+<input id="password" type="password">
+<textarea id="multiline"></textarea>
+<input id="readonly" readonly value="keep">
+<script>
+window.events=0;plain.addEventListener('input',()=>events++);
+shadow.attachShadow({mode:'open'}).innerHTML='<input aria-label="Shadow input">';
+addEventListener('message',e=>{if(e.source===frame.contentWindow)window.frameValue=e.data;});
+</script>

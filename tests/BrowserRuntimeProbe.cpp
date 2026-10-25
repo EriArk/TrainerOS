@@ -12,6 +12,9 @@
 #include <QDir>
 #include <QElapsedTimer>
 #include <QDebug>
+#include <QTemporaryDir>
+#include "core/input/TextEntryController.h"
+#include "core/input/ControllerInput.h"
 #include "platform/files/FilesService.h"
 int main(int argc,char** argv){
     QCoreApplication::setAttribute(Qt::AA_ShareOpenGLContexts);
@@ -21,6 +24,40 @@ int main(int argc,char** argv){
     trainer::BrowserController browser;browser.configure(qEnvironmentVariable("PROBE_DATA"),"runtime-probe");browser.setFilesService(&files);browser.enter();browser.ensureEngine();
     QQmlApplicationEngine engine;engine.rootContext()->setContextProperty("browser",&browser);
     engine.rootContext()->setContextProperty("probeUrl",qEnvironmentVariable("PROBE_URL"));
+    engine.rootContext()->setContextProperty("probeData",qEnvironmentVariable("PROBE_DATA"));
+    if(qEnvironmentVariable("PROBE_MODE")=="input") {
+        trainer::TextEntryController keyboard;
+        trainer::ControllerInput input;app.installEventFilter(&input);
+        QObject::connect(&browser,&trainer::BrowserController::pageInputRequested,&keyboard,&trainer::TextEntryController::beginLive);
+        QObject::connect(&browser,&trainer::BrowserController::pageInputEnded,&keyboard,&trainer::TextEntryController::cancel);
+        QObject::connect(&keyboard,&trainer::TextEntryController::textCommitted,&browser,&trainer::BrowserController::commitPageText);
+        QObject::connect(&keyboard,&trainer::TextEntryController::keyRequested,&browser,&trainer::BrowserController::pageKey);
+        QObject::connect(&keyboard,&trainer::TextEntryController::keyStroke,&browser,&trainer::BrowserController::pageKeyStroke);
+        QObject::connect(&keyboard,&trainer::TextEntryController::changed,&browser,[&]{input.setTextEntryEnabled(keyboard.isOpen());if(!keyboard.isOpen())browser.stopPageInput();});
+        // Load the production components with their real singleton registration.
+        QTemporaryDir qml;
+        QDir source(QFileInfo(qEnvironmentVariable("PROBE_KEYBOARD")).absolutePath());
+        for(const auto& name:source.entryList({"*.qml"},QDir::Files))QFile::copy(source.filePath(name),qml.filePath(name));
+        QFile qmldir(qml.filePath("qmldir"));if(!qmldir.open(QIODevice::WriteOnly))return 8;
+        qmldir.write("singleton Theme 1.0 Theme.qml\n");qmldir.close();
+        engine.rootContext()->setContextProperty("keyboard",&keyboard);
+        engine.rootContext()->setContextProperty("controllerInput",&input);
+        engine.rootContext()->setContextProperty("engineSource",QUrl::fromLocalFile(qml.filePath("BrowserEngine.qml")));
+        engine.rootContext()->setContextProperty("keyboardSource",QUrl::fromLocalFile(qml.filePath("KeyboardPanel.qml")));
+        bool passed=false;
+        QObject::connect(&engine,&QQmlEngine::exit,&app,[&](int code){
+            passed=code==0&&!engine.rootObjects().isEmpty()&&engine.rootObjects().first()->property("passed").toBool();
+            QFile receipt(qEnvironmentVariable("PROBE_DATA")+"/input.json");
+            if(receipt.open(QIODevice::WriteOnly))receipt.write(QJsonDocument(QJsonObject{{"passed",passed},{"stage",engine.rootObjects().first()->property("stage").toInt()}}).toJson());
+            if(passed)qInfo("INPUT_PASSED");app.exit(passed?0:2);
+        });
+        engine.load(QUrl::fromLocalFile(qEnvironmentVariable("PROBE_SCENARIO")));
+        if(engine.rootObjects().isEmpty())return 2;
+        QTimer::singleShot(40000,&app,[&]{qCritical("INPUT_TIMEOUT");app.exit(3);});
+        const int result=app.exec();
+        qDeleteAll(engine.rootObjects());
+        return passed?result:3;
+    }
     if(qEnvironmentVariable("PROBE_MODE")=="lifecycle") {
         engine.rootContext()->setContextProperty("Theme",QVariantMap{{"uiScale",1.0},{"paper","#fffdf5"}});
         engine.rootContext()->setContextProperty("engineSource",QUrl::fromLocalFile(qEnvironmentVariable("PROBE_ENGINE")));

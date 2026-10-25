@@ -216,7 +216,17 @@ ShellController::ShellController(LibraryRepository& repo, TrainerRepository& pro
         trainerSettingsAction(index);
     });
     connect(&files_, &FilesController::changed, this, &ShellController::changed);
-    connect(&browser_, &BrowserController::textRequested, this, [this](QString title,QString text,int limit,bool secret){textTarget_=TextTarget::Browser;keyboard_.begin(title,text,limit,secret);});
+    connect(&browser_, &BrowserController::pageInputRequested,this,[this](int hints){textTarget_=TextTarget::Browser;keyboard_.beginLive(hints);});
+    connect(&browser_, &BrowserController::pageInputEnded,this,[this]{if(keyboard_.live())keyboard_.cancel();});
+    connect(&keyboard_, &TextEntryController::textCommitted,&browser_,&BrowserController::commitPageText);
+    connect(&keyboard_, &TextEntryController::keyRequested,&browser_,&BrowserController::pageKey);
+    connect(&keyboard_, &TextEntryController::keyStroke,&browser_,&BrowserController::pageKeyStroke);
+    connect(&keyboard_, &TextEntryController::changed,this,[this]{if(!keyboard_.isOpen())browser_.stopPageInput();});
+    connect(&browser_, &BrowserController::textRequested, this, [this](QString title,QString text,int limit,bool secret){
+        textTarget_=TextTarget::Browser;keyboard_.begin(title,text,limit,secret,"Go");
+        if(text.isEmpty()&&!secret)keyboard_.shift();
+        keyboard_.select(0,text.size());
+    });
     connect(&browser_, &BrowserController::downloadsChanged, this, [this]{downloads_.publish("browser",browser_.downloads());});
     browser_.setFilesService(files_.service());
     social_.files()->setFilesService(files_.service());

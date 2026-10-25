@@ -209,6 +209,19 @@ Built-in Experience реализован; внешние SPI/SDK-вклады т
 | S14 | [ExperienceModule](../src/core/experience/ExperienceModule.h), [manifest](../src/core/experience/ExperienceManifest.h), [composition](../src/adapters/BuiltinExperiences.cpp), [правила](../src/adapters/AGENTS.md), [PlatformHost](../src/platform/sdk/PlatformHost.cpp) | Trusted built-ins, local SDK context/widget и app Lobby/records существуют; #92, SPI и остальные service facades #235–244 остаются незавершёнными контрактами. |
 | S15 | [PlatformService](../src/platform/PlatformService.h), [device](../src/platform/device), [FilesService](../src/platform/files/FilesService.h), [power](../src/platform/power), [Apps](../src/features/apps/AppsController.h), [Browser](../src/features/browser/BrowserController.h) | DeviceService владеет реальными аудиопотоками/микрофонами, проверкой их идентичности и системными командами; S04 только маршрутизирует Sound. DiagnosticsService пишет ограниченный локальный support TAR; DiagnosticsController запрашивает readonly-проверку у существующих S03-адаптеров. [Core-блок и границы](CORE_POLISH_20261025.md). Все хосты, сон/recovery и providers не завершены. [Восстановление ADSP/батареи](POWER86.md#прочерк-батареи-odin--24-октября-2026) также принадлежит S15. Apps/Browser — потребители общих служб. |
 
+**Browser / общий ввод, 25 октября:** S04 `TextEntryController` владеет локальным
+буфером/курсором обычных форм, но в режиме Browser только публикует клавиши и
+текстовые commits. S15 `BrowserController` проверяет активную поверхность и
+направляет их в настоящий Qt focus object; Chromium владеет текстом, выделением,
+паролем, событиями страницы и переходами между полями. Смена профиля/поверхности
+и выход из Browser прекращают ввод; Hide не отменяет уже введённое на сайте.
+Общие формы Settings/Social/SDK сохраняют Apply/cancel и собственный лимит.
+S04 также владеет стандартной геометрией PC-клавиатуры, кодами/модификаторами,
+Num Lock и настройками видимости групп в trainer-scoped keyboard.ini.
+Скрытие групп меняет геометрию, сохраняя текущую сессию редактирования.
+Передача экранных клавиш действующему игровому сеансу пока не реализована.
+[Механизм и проверка](BROWSER71_IMPLEMENTATION.md#мобильный-ввод--25-октября-2026).
+
 ## 7. Внешние системы и пределы их роли
 
 | Внешняя сторона | Связь с TrainerOS | Что остаётся у консоли / игрока |

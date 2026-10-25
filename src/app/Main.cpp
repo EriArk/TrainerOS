@@ -1075,6 +1075,11 @@ int main(int argc, char* argv[]) {
         });
         QObject::connect(&input,&ControllerInput::textEntered,shell.keyboard(),&TextEntryController::insertText);
         QObject::connect(&input,&ControllerInput::textBackspace,shell.keyboard(),&TextEntryController::backspace);
+        QObject::connect(&input,&ControllerInput::textCommand,&shell,[&](const QString& command){
+            auto* keyboard=shell.keyboard();
+            if(command=="left"||command=="right")keyboard->moveCursor(command=="left"?-1:1);
+            else keyboard->shortcut(command);
+        });
         QObject::connect(&input,&ControllerInput::textSubmitted,&shell,[&]{shell.keyboard()->dispatch(Action::LocalAction);});
         bool homeMenuWasOpen = false;
         QObject::connect(&shell, &ShellController::changed, &input, [&] {

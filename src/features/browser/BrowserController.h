@@ -46,7 +46,11 @@ public:
     Q_INVOKABLE void copyText(const QString& text);
     Q_INVOKABLE void pointerEvent(QObject* item,qreal x,qreal y,int button=0);
     Q_INVOKABLE void wheel(QObject* item,qreal x,qreal y,qreal dx,qreal dy);
-    Q_INVOKABLE void editPageField();
+    Q_INVOKABLE void editPageField(QObject* surface, bool explicitRequest = true);
+    Q_INVOKABLE void stopPageInput();
+    void commitPageText(const QString& text);
+    void pageKey(const QString& action);
+    void pageKeyStroke(int key,int modifiers,const QString& text);
     Q_INVOKABLE void controlDownload(const QString& id,const QString& command);
     void moveDownloadBefore(const QString& id,const QString& before);
     void setDownloadDestination(const QString& id,const QString& folder);
@@ -58,6 +62,8 @@ signals:
     void downloadsChanged();
     void commandRequested(QString command);
     void textRequested(QString title,QString text,int limit,bool secret);
+    void pageInputRequested(int hints);
+    void pageInputEnded();
     void navigateRequested(QString url);
 private:
     void persist();
@@ -71,6 +77,10 @@ private:
     QVariantList tabs_,bookmarks_,history_;
     QString selected_,path_,owner_,textTarget_;
     QPointer<QObject> profile_,field_;
+    QPointer<QObject> inputSurface_;
+    bool pageInput_ = false, inputDismissed_ = false;
+    int inputHints_ = 0;
+    bool validInputTarget() const;
     QTimer saveTimer_,downloadSaveTimer_;
 };
 }
