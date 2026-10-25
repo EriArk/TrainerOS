@@ -9,6 +9,8 @@ Item {
     property string fallbackTitle: ""
     property url fallbackArt: ""
     property bool playbackAllowed: false
+    property bool previewSound: false
+    property int previewDelay: 1800
     property bool settled: false
     readonly property bool eligible: visible && playbackAllowed && Qt.application.state === Qt.ApplicationActive && video.toString().startsWith("file:")
     function restart() { settled = false; delay.stop(); if (eligible) delay.start() }
@@ -16,7 +18,7 @@ Item {
     onPictureChanged: restart()
     onEligibleChanged: restart()
     Component.onCompleted: restart()
-    Timer { id: delay; interval: 700; onTriggered: root.settled = true }
+    Timer { id: delay; interval: Math.max(1500,Math.min(3000,root.previewDelay)); onTriggered: root.settled = true }
     Image {
         id: still
         anchors.fill: parent
@@ -53,6 +55,6 @@ Item {
         objectName: "game-preview-loader"
         anchors.fill: parent
         active: root.eligible && root.settled
-        sourceComponent: GameVideoPreview { source: root.video }
+        sourceComponent: GameVideoPreview { source: root.video; sound: root.previewSound }
     }
 }

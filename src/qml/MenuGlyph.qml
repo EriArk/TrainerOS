@@ -28,6 +28,8 @@ Item {
         "collapse": "M3 3 L10 10 M4 10 H10 V4 M21 21 L14 14 M14 20 V14 H20",
         "microphone": "M9 5 A3 3 0 0 1 15 5 V12 A3 3 0 0 1 9 12 Z M6 10 V12 Q6 18 12 18 Q18 18 18 12 V10 M12 18 V22 M8 22 H16",
         "speaker": "M3 9 H7 L13 4 V20 L7 15 H3 Z M16 8 Q20 12 16 16 M19 5 Q25 12 19 19",
+        "speaker-muted": "M3 9 H7 L13 4 V20 L7 15 H3 Z M17 9 L23 15 M23 9 L17 15",
+        "microphone-muted": "M9 5 A3 3 0 0 1 15 5 V12 A3 3 0 0 1 9 12 Z M6 10 V12 Q6 18 12 18 Q18 18 18 12 V10 M12 18 V22 M8 22 H16 M3 3 L21 21",
         "guide": "M3 4 Q8 2 12 5 Q16 2 21 4 V20 Q16 18 12 21 Q8 18 3 20 Z M12 5 V21",
         "party": "M8 3 A3 3 0 1 0 8 9 A3 3 0 1 0 8 3 M16 5 A3 3 0 1 0 16 11 A3 3 0 1 0 16 5 M2 21 V16 Q8 10 13 16 V21 M14 14 Q20 12 22 18 V21",
         "boxes": "M3 3 H21 V21 H3 Z M3 9 H21 M3 15 H21 M9 3 V21 M15 3 V21",

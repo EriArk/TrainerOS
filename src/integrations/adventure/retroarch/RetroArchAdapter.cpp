@@ -106,7 +106,7 @@ QString RetroArchAdapter::setupIssue(const AdventureRegistration& record) const 
     if (!contentRoute(record.adventure.platformId, core, QFileInfo(record.contentPath).suffix().toLower()))
         return "This file format cannot be opened by this platform's emulator.";
     if (retroarch::discPlatform(record.adventure.platformId) && !installation_.readyDiscPlatforms.contains(record.adventure.platformId))
-        return "This platform's BIOS files are missing or have not been verified. Check its BIOS files in Desktop Mode.";
+        return "BIOS files are missing or unverified. Expected in the emulator BIOS folder: "+(record.adventure.platformId=="segacd"?QString("bios_CD_U.bin, bios_CD_E.bin, bios_CD_J.bin"):(installation_.discFirmware.value(record.adventure.platformId).isEmpty()?QString("Neo Geo CD firmware for this runtime"):installation_.discFirmware.value(record.adventure.platformId).keys().join(", ")))+". Add your own files using Files, then recheck.";
     return {};
 }
 QString RetroArchAdapter::verifyInstallation(const AdventureRegistration& record) const {

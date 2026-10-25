@@ -12,7 +12,7 @@ QString capacity(qint64 free, qint64 total) {
 void DeviceController::configure(DeviceService* service, bool powerAvailable) {
     service_ = service; powerAvailable_ = powerAvailable;
     if (service_) connect(service_, &DeviceService::changed, this, [this]{
-        if(audioOpen_&&audioFocus()<0){audioFocusId_=audioOutput();if(audioFocus()<0)audioFocusId_=audioOutputs().value(0).toMap()["id"].toString();}
+        if(audioOpen_&&audioFocus()<0){audioFocusId_=inputs_?audioInput():mixer_?QString():audioOutput();if(audioFocus()<0)audioFocusId_=audioRows().value(0).toMap()["id"].toString();}
         emit changed();
     });
     monitor_.setInterval(1500);
@@ -45,14 +45,21 @@ void DeviceController::setQuickLevel(int index, int value) {
 }
 void DeviceController::begin() { focus_ = 0; if (service_) service_->refresh(); emit changed(); }
 int DeviceController::audioFocus() const {
-    const auto rows=audioOutputs();for(int i=0;i<rows.size();++i)if(rows[i].toMap()["id"]==audioFocusId_)return i;
+    const auto rows=audioRows();for(int i=0;i<rows.size();++i)if(rows[i].toMap()["id"]==audioFocusId_)return i;
     return -1;
 }
 void DeviceController::beginAudio(){
-    audioOpen_=true;audioFocusId_=audioOutput();
-    if(service_)service_->refresh();emit changed();
+    audioOpen_=true;mixer_=true;inputs_=false;audioFocusId_=audioStreams().value(0).toMap()["id"].toString();
+    if(service_){service_->monitorAudio(true);service_->refresh();}emit changed();
 }
-void DeviceController::closeAudio(){if(!audioOpen_)return;audioOpen_=false;emit changed();}
+void DeviceController::closeAudio(){if(!audioOpen_)return;audioOpen_=false;if(service_)service_->monitorAudio(false);emit changed();}
+void DeviceController::showMixer(bool value){inputs_=false;mixer_=value;audioFocusId_=audioRows().value(0).toMap()["id"].toString();emit changed();}
+void DeviceController::showInputs(){inputs_=true;mixer_=false;audioFocusId_=audioInput();if(audioFocus()<0)audioFocusId_=audioRows().value(0).toMap()["id"].toString();emit changed();}
+void DeviceController::setInput(const QString& id,int level){if(audioOpen_&&service_){audioFocusId_=id;service_->setInput(id,level,"volume");}}
+void DeviceController::muteInput(const QString& id){if(!audioOpen_||!service_)return;for(const auto& row:audioInputs())if(row.toMap()["id"]==id){audioFocusId_=id;service_->setInput(id,!row.toMap()["muted"].toBool(),"mute");return;}}
+void DeviceController::selectInput(const QString& id){if(audioOpen_&&service_){audioFocusId_=id;service_->setInput(id,0,"default");}}
+void DeviceController::setStream(const QString& id,int level){if(audioOpen_&&service_){audioFocusId_=id;service_->setStream(id,level);}}
+void DeviceController::muteStream(const QString& id){if(!audioOpen_||!service_)return;for(const auto& row:audioStreams())if(row.toMap()["id"]==id){audioFocusId_=id;service_->setStream(id,!row.toMap()["muted"].toBool(),true);return;}}
 void DeviceController::selectOutput(const QString& id){
     if(!audioOpen_||!service_||busy())return;
     for(const auto& row:audioOutputs())if(row.toMap()["id"]==id&&row.toMap()["available"].toBool()){
@@ -62,11 +69,14 @@ void DeviceController::selectOutput(const QString& id){
 void DeviceController::dispatchAudio(Action action){
     if(!audioOpen_)return;
     if(action==Action::Back){closeAudio();return;}
-    const auto rows=audioOutputs();
+    if(action==Action::PreviousFace||action==Action::NextFace){const int page=mixer_?0:inputs_?1:2;const int next=(page+(action==Action::NextFace?1:2))%3;if(next==1)showInputs();else showMixer(next==0);return;}
+    const auto rows=audioRows();
     if(action==Action::Up||action==Action::Down){
         const int i=std::clamp(audioFocus()+(action==Action::Down?1:-1),0,std::max(0,int(rows.size())-1));
         audioFocusId_=rows.value(i).toMap()["id"].toString();emit changed();
-    }else if(action==Action::Confirm)selectOutput(audioFocusId_);
+    }else if(action==Action::Confirm){if(inputs_)muteInput(audioFocusId_);else if(mixer_)muteStream(audioFocusId_);else selectOutput(audioFocusId_);}
+    else if(inputs_&&action==Action::LocalAction)selectInput(audioFocusId_);
+    else if((mixer_||inputs_)&&(action==Action::Left||action==Action::Right)&&audioFocus()>=0){const int level=std::clamp(rows[audioFocus()].toMap()["level"].toInt()+(action==Action::Right?5:-5),0,100);if(inputs_)setInput(audioFocusId_,level);else setStream(audioFocusId_,level);}
 }
 QVariantList DeviceController::rows() const {
     const auto value = service_ ? service_->snapshot() : DeviceSnapshot{};

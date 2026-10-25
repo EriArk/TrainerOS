@@ -262,6 +262,12 @@ ShellController::ShellController(LibraryRepository& repo, TrainerRepository& pro
         service_.clear(); goToPage(AppsPage); selectFace(destination=="crates"?1:0); emit changed();
     });
     connect(&settings_, &SettingsController::controllerRequested, this, [this] { service_ = "diagnostics"; diagnostics_.begin(); emit changed(); });
+    diagnostics_.configureLibrary(&repo,&adapter);
+    diagnostics_.canCheck=[this]{return liveGame_.isEmpty()&&!scraper_.busy()&&!navigationLocked();};
+    connect(&settings_,&SettingsController::healthRequested,this,[this]{service_="diagnostics";diagnostics_.beginHealth();emit changed();});
+    connect(&diagnostics_,&DiagnosticsController::reportsRequested,this,[this](const QString& path){service_.clear();goToPage(AppsPage);selectFace(3);files_.navigate(QUrl::fromLocalFile(path).toString());emit changed();});
+    connect(&diagnostics_,&DiagnosticsController::setupRequested,this,[this](const QString& id){service_.clear();libraryTools_.beginGame(id);libraryTools_.activate(3);emit changed();});
+    connect(&diagnostics_,&DiagnosticsController::recheckRequested,&settings_,&SettingsController::libraryRefreshRequested);
     connect(&device_, &DeviceController::changed, this, &ShellController::changed);
     connect(this, &ShellController::changed, this, [this] { device_.setMonitoring(onboardingConnections_ || menuOpen_ || gameControlsOpen_ || service_ == "device" || service_ == "settings"); });
     connect(&device_, &DeviceController::closeRequested, this, [this] { service_ = "settings"; emit changed(); });
@@ -428,7 +434,7 @@ bool ShellController::chooseAdventureAvailable() {
         && !localModalOpen() && !moduleActivityBusy() && !navigationLocked();
 }
 bool ShellController::navigationLocked(bool primaryRecovery) const {
-    return modulesBlocked(primaryRecovery) || launchPreparation_.busy() || settings_.clock()->busy() || settings_.storage()->busy() || libraryTools_.busy();
+    return diagnostics_.checking() || modulesBlocked(primaryRecovery) || launchPreparation_.busy() || settings_.clock()->busy() || settings_.storage()->busy() || libraryTools_.busy();
 }
 bool ShellController::modulesBlocked(bool recovery) const {for(const auto& module:modules_)if(module->navigationBlocked(recovery))return true;return false;}
 bool ShellController::moduleWriting() const {for(const auto& module:modules_)if(module->writing())return true;return false;}

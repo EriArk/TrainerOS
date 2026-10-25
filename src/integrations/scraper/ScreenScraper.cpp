@@ -268,14 +268,16 @@ QStringList Preferences::mediaTags() const {
     if(logos)tags<<"marquee";
     if(screenshots)tags<<"screenshot";
     if(fanart)tags<<"fanart";
+    if(videos)tags<<"video";
     return tags;
 }
 QJsonObject Preferences::json() const {
     return {{"language",language},{"region",region},{"cover",cover},{"metadata",metadata},
-        {"logos",logos},{"screenshots",screenshots},{"fanart",fanart},{"refresh",refresh},{"aggressive",aggressive}};
+        {"logos",logos},{"screenshots",screenshots},{"fanart",fanart},{"refresh",refresh},{"aggressive",aggressive},{"videos",videos}};
 }
 Preferences Preferences::fromJson(const QJsonObject& o) {
     Preferences p;
+    p.videos=o["videos"].toBool(true);
     if(QStringList{"en","ru","fr","de","es","it","pt","ja"}.contains(o["language"].toString()))p.language=o["language"].toString();
     if(QStringList{"us","eu","jp","wor"}.contains(o["region"].toString()))p.region=o["region"].toString();
     if(o.contains("cover")&&QStringList{"","box-2D","box-3D"}.contains(o["cover"].toString()))p.cover=o["cover"].toString();

@@ -133,6 +133,32 @@ Rectangle {
             check(shell.scraper()->overview()&&shell.scraper()->isOpen(),"Scraper overview did not open");
             press(SDL_CONTROLLER_BUTTON_DPAD_RIGHT);check(shell.scraper()->overviewFocus()==1,"Scraper controller navigation");
             press(static_cast<SDL_GameControllerButton>(input.backButton()));check(!shell.scraper()->isOpen(),"Scraper Back did not close overview");break;
+        case 14: {
+            check(shell.page()==1,"Controller cannot browse after closing Downloads");
+            auto state=std::make_shared<DeviceSnapshot>();state->volume=0;
+            state->audioStreams={QVariantMap{{"id","game:1"},{"index","1"},{"title","Adventure"},{"level",70},{"muted",false},{"available",true}},QVariantMap{{"id","music:2"},{"index","2"},{"title","Music Radio"},{"level",35},{"muted",false},{"available",true}},QVariantMap{{"id","voice:3"},{"index","3"},{"title","Voice call"},{"level",80},{"muted",false},{"available",true}}};
+            state->audioInputs={QVariantMap{{"id","mic"},{"title","Internal microphone"},{"level",60},{"muted",true},{"available",true}},QVariantMap{{"id","headset"},{"title","USB headset"},{"level",85},{"muted",false},{"available",true}}};state->audioInput="mic";
+            DeviceBackend backend;backend.read=[state]{return *state;};backend.write=[](auto,auto){return QString();};
+            auto* service=new DeviceService(backend,window);shell.device()->configure(service,false);
+            press(SDL_CONTROLLER_BUTTON_START);shell.controls()->audioOutputs();break;
+        }
+        case 15:
+            check(shell.device()->audioOpen()&&shell.device()->mixer(),"Mixer did not open");capture("core-mixer-light-800");
+            shell.dispatch(Action::NextFace);check(shell.device()->inputs(),"Controller cannot reach microphones");break;
+        case 16:
+            capture("core-microphones-light-800");shell.settings()->cycleTheme(1);break;
+        case 17:
+            capture("core-microphones-dark-800");shell.dispatch(Action::Back);check(!shell.device()->audioOpen(),"Mixer Back did not close");shell.closeControls();
+            shell.collectionManager()->configure(directory,"core-smoke");shell.collectionManager()->begin();shell.collectionManager()->activate(1);shell.keyboard()->cancel();shell.collectionManager()->applyText("Weekend adventures");break;
+        case 18:
+            capture("core-collections-dark-800");shell.collectionManager()->activate(1);shell.collectionManager()->activate(1);shell.collectionManager()->activate(2);shell.keyboard()->cancel();shell.collectionManager()->applyText("Mario");break;
+        case 19:
+            capture("core-collection-condition-dark-800");shell.collectionManager()->dispatch(Action::Back);shell.collectionManager()->dispatch(Action::Back);shell.collectionManager()->close();
+            shell.settings()->healthRequested();break;
+        case 20:
+            check(shell.diagnostics()->health()&&shell.service()=="diagnostics","System health did not open");capture("core-health-dark-800");shell.settings()->cycleTheme(1);window->resize(960,540);break;
+        case 21:
+            shell.diagnostics()->healthAction(3);capture("core-health-light-960");shell.dispatch(Action::Back);check(shell.service()=="settings","Health Back did not return to Settings");break;
         default:
             check(shell.page()==1,"Controller cannot browse after closing Downloads");
             check(warnings==0,"QML warnings");completed=true;timer->stop();

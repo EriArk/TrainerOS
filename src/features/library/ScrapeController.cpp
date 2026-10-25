@@ -53,13 +53,23 @@ QMap<QString,QString> localFields(const QString& root,const QString& path) {
     if(bytes.toUpper().contains("<!DOCTYPE")||!doc.setContent(bytes))return fields;
     for(auto game=doc.documentElement().firstChildElement("game");!game.isNull();game=game.nextSiblingElement("game")) {
         if(QFileInfo(QDir(root).filePath(game.firstChildElement("path").text())).canonicalFilePath()!=path)continue;
-        for(auto node=game.firstChildElement();!node.isNull();node=node.nextSiblingElement())fields[node.tagName()]=node.text();
+        for(auto node=game.firstChildElement();!node.isNull();node=node.nextSiblingElement()) {
+            fields[node.tagName()]=node.text();
+            const auto digest=QString::fromLatin1(QCryptographicHash::hash(node.text().toUtf8(),QCryptographicHash::Sha256).toHex());
+            if(node.attribute("traineros-source")=="screenscraper"&&node.attribute("traineros-value")==digest)fields["owned:"+node.tagName()]="yes";
+        }
         break;
     }
     return fields;
 }
 bool cachedMediaValid(const QString& root,const QString& path) {
-    const QFileInfo f(path);return f.isFile()&&f.isReadable()&&f.canonicalFilePath().startsWith(root+'/');
+    const QFileInfo f(path);return f.canonicalFilePath().startsWith(root+'/')&&validLocalMedia(path,f.suffix().toLower()=="mp4");
+}
+bool completeFields(const QString& root,const QString& path,const Preferences& prefs) {
+    const auto fields=localFields(root,path);
+    if(prefs.metadata)for(const auto& key:QStringList{"desc","genre","players","releasedate","developer","publisher"})if(fields.value(key).trimmed().isEmpty())return false;
+    for(const auto& tag:prefs.mediaTags())if(fields.value(tag).isEmpty()||!validLocalMedia(QDir(root).filePath(fields.value(tag)),tag=="video"))return false;
+    return true;
 }
 }
 ScrapeController::ScrapeController(LibraryRepository& library,QObject* parent):QObject(parent),library_(library) {}
@@ -91,7 +101,8 @@ QVariantList ScrapeController::settingsRows() const {
         row("Display · background",display_["background"].toBool(false)?"Downloaded artwork":"TrainerOS theme",enabled),
         row("Display · game facts",display_["facts"].toBool(true)?"On · year, genre, developer, publisher":"Off",enabled),
         row("Display · descriptions",display_["description"].toBool(true)?"On":"Off",enabled),
-        row("Matching",preferences_.aggressive?"Aggressive · choose strong title matches automatically":"Cautious · send more candidates to review",enabled)};
+        row("Matching",preferences_.aggressive?"Aggressive · choose strong title matches automatically":"Cautious · send more candidates to review",enabled),
+        row("Download video previews",preferences_.videos?"On · local videos, up to 64 MB each":"Off",enabled)};
 }
 void ScrapeController::activateSetting(int index) {
     if(busy()||index<0||index>=settingsRows().size())return;
@@ -115,6 +126,7 @@ void ScrapeController::activateSetting(int index) {
     if(index==16)display_["facts"]=!display_["facts"].toBool(true);
     if(index==17)display_["description"]=!display_["description"].toBool(true);
     if(index==18)preferences_.aggressive=!preferences_.aggressive;
+    if(index==19)preferences_.videos=!preferences_.videos;
     if(index>=4){savePreferences();if(index>=13)emit displayChanged();}
     emit changed();
 }
@@ -193,12 +205,12 @@ QList<ScrapeController::Item> ScrapeController::items() const {
 }
 void ScrapeController::begin(const QString& game,const QString& world) {
     if(busy())return;
-    overview_=false;
+    overview_=false;correcting_=false;
     missingOnly_=false;open_=true;finished_=false;gameId_=game;worldId_=world;scope_=game.isEmpty()?2:0;focus_=0;status_.clear();results_.clear();emit changed();
 }
 void ScrapeController::beginMissing() {
     if(busy())return;
-    gameId_.clear();worldId_.clear();scope_=2;open_=false;finished_=false;missingOnly_=true;start();
+    correcting_=false;gameId_.clear();worldId_.clear();scope_=2;open_=false;finished_=false;missingOnly_=true;start();
 }
 void ScrapeController::showOverview() {overview_=true;choosing_=false;open_=true;overviewFocus_=0;emit changed();}
 void ScrapeController::overviewAction(int index) {
@@ -270,7 +282,7 @@ QVariantList ScrapeController::rows() const {
     const auto selected=library_.registration(gameId_);
     const auto collection=selected?seriesDefinition(selected->adventure.domain=="pokemon"?QString("pokemon"):seriesForTitle(selected->adventure.title)).name:QString();
     return {row("Scope",!worldId_.isEmpty()?"Current collection":scope_==0?"This game":scope_==1?"Current system":scope_==3?collection+" collection":"Whole library",!gameId_.isEmpty()),
-        row("Start scraping",{},!items().isEmpty()),row("Cancel")};
+        row("Start scraping",{},!items().isEmpty()),row("Cancel"),row("Correct this game's match","Choose another result; only ScreenScraper-owned fields can be replaced",scope_==0&&!gameId_.isEmpty())};
 }
 void ScrapeController::close(){if(busy())return;const bool systems=selectingSystems();open_=false;emit changed();if(systems)emit systemSelectionClosed();}
 void ScrapeController::dispatch(Action a) {
@@ -321,12 +333,12 @@ void ScrapeController::activate(int i) {
     }
     if(active_){if(i==0){paused_=!paused_;if(!paused_&&!working_)next();}else {cancel_->store(true);if(!working_)finish();else phase_="Stopping";}}
     else if(finished_){if(i==0)start(true);else close();}
-    else if(i==0){scope_=scope_==0?1:scope_==1?3:scope_==3?2:0;}else if(i==1)start();else close();
+    else if(i==0){scope_=scope_==0?1:scope_==1?3:scope_==3?2:0;}else if(i==1)start();else if(i==3){correcting_=true;start();}else close();
     emit changed();
 }
 void ScrapeController::start(bool retry) {
     if(busy())return;
-    if(!retry){jobPreferences_=preferences_;if(missingOnly_)jobPreferences_.refresh=false;}
+    if(!retry){jobPreferences_=preferences_;if(missingOnly_)jobPreferences_.refresh=false;if(correcting_)jobPreferences_.refresh=true;}
     if(directory_.isEmpty()||(canStart&&!canStart())){status_="Wait for the current game or library operation to finish.";emit changed();return;}
     if(!preferences_.metadata&&preferences_.mediaTags().isEmpty()){status_="Choose what to download in Settings > ScreenScraper first.";emit changed();return;}
     queue_=retry?failures_:items();failures_.clear();results_.clear();done_=failed_=skipped_=index_=0;wrote_=paused_=choosing_=finished_=false;active_=true;focus_=0;
@@ -334,7 +346,16 @@ void ScrapeController::start(bool retry) {
     choices_.clear();matches_.clear();searches_.clear();choiceId_.clear();searchId_.clear();pending_={};
     for(const auto& item:queue_)taskStates_[item.id]="queued";
     emit jobStarted();
-    checkAccount(true);
+    // Inspect local fields off the UI thread before any hash or account request.
+    const auto queue=queue_;const auto prefs=jobPreferences_;
+    cancel_=std::make_shared<std::atomic_bool>(false);const auto cancel=cancel_;
+    phase_="Checking existing media";
+    run([queue,prefs,cancel]{Outcome o;if(!prefs.refresh)for(const auto& item:queue){if(cancel->load())break;if(completeFields(item.root,item.path,prefs))o.readyIds<<item.id;}return o;},[this](Outcome o){
+        if(handleCancellation())return;
+        for(const auto& id:o.readyIds)taskStates_[id]="skipped";
+        if(o.readyIds.size()==queue_.size()){done_=skipped_=queue_.size();index_=queue_.size();finish();return;}
+        checkAccount(true);
+    });
 }
 void ScrapeController::next() {
     if(!active_||working_)return;
@@ -409,10 +430,10 @@ void ScrapeController::found(Outcome o) {
     if(o.status!=Status::Ready&&o.status!=Status::NotFound){complete(statusMessage(o.status));return;}
     pending_=std::move(o);
     if(pending_.cached&&pending_.games.size()==1){apply(pending_.games.first());return;}
-    if(!pending_.manualId.isEmpty())for(auto g:pending_.games)if(g.id==pending_.manualId){g.matchSource="manual";apply(g);return;}
+    if(!correcting_&&!pending_.manualId.isEmpty())for(auto g:pending_.games)if(g.id==pending_.manualId){g.matchSource="manual";apply(g);return;}
     const auto& item=queue_[index_];
     pending_.games=rankMatches(pending_.games,item.title,QFileInfo(item.path).completeBaseName(),systemId(item.platform),jobPreferences_);
-    if(pending_.manualId.isEmpty()&&automaticMatch(pending_.games,jobPreferences_)){apply(pending_.games.first());return;}
+    if(!correcting_&&pending_.manualId.isEmpty()&&automaticMatch(pending_.games,jobPreferences_)){apply(pending_.games.first());return;}
     const auto id=queue_[index_].id;choices_[id]=std::move(pending_);pending_={};taskStates_[id]="attention";
     // Attention is per item. Open its choices only on an explicit player action;
     // neither the worker nor a background result may take over the interface.
@@ -433,12 +454,12 @@ void ScrapeController::apply(const Game& game) {
         for(const auto& tag:prefs.mediaTags()) {
             if(cancel->load())return o;
             if(local.contains(tag))continue;
-            if(!prefs.refresh&&!existing.value(tag).isEmpty())continue; // preserve owner media, including intentionally unavailable mounts
+            if(!existing.value(tag).isEmpty()&&(existing.value("owned:"+tag)!="yes"||(!prefs.refresh&&validLocalMedia(QDir(item.root).filePath(existing.value(tag)),tag=="video"))))continue;
             if(!g.media.contains(tag))continue;
-            auto reply=client->media(g.media[tag],false,cancel);
-            if(reply.status==423||reply.status==429)reply=client->media(g.media[tag],false,cancel);
+            auto reply=client->media(g.media[tag],tag=="video",cancel);
+            if(reply.status==423||reply.status==429)reply=client->media(g.media[tag],tag=="video",cancel);
             if(reply.status!=200){o.error=reply.status==430||reply.status==431?statusMessage(Status::Quota):"Artwork download failed. Retry this game later.";if(reply.status==430||reply.status==431)o.status=Status::Quota;return o;}
-            const auto path=storeMedia(item.root,g.id,reply.bytes,false,cancel);
+            const auto path=storeMedia(item.root,g.id,reply.bytes,tag=="video",cancel);
             if(path.isEmpty()){o.error="Could not validate or store the downloaded image.";return o;}local[tag]=path;cache(false);
         }
         if(!prefs.metadata)g.fields.clear();else {

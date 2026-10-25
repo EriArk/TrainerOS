@@ -56,6 +56,7 @@ struct Preferences {
     QString language = "en", region = "us", cover = "box-2D";
     bool metadata = true, logos = true, screenshots = true, fanart = false, refresh = false;
     bool aggressive = true;
+    bool videos = true;
     QStringList mediaTags() const;
     QJsonObject json() const;
     static Preferences fromJson(const QJsonObject&);
@@ -89,6 +90,7 @@ private:
     bool reserve(const Cancellation& cancel);
 };
 bool allowedUrl(const QUrl& url);
+bool validLocalMedia(const QString& path, bool video);
 // Content-addressed media never overwrites existing unrelated user files.
 // Returns an absolute local filename, or empty on invalid bytes/cancellation.
 QString storeMedia(const QString& systemDirectory, const QString& gameId, const QByteArray& bytes,

@@ -28,9 +28,16 @@ private slots:
         QTRY_VERIFY(loader->property("item").value<QObject*>());
         auto* video=loader->property("item").value<QObject*>();QTRY_VERIFY(video->property("playing").toBool());
         auto* player=video->findChild<QObject*>("game-preview-player");QVERIFY(player);
+        auto* audio=player->property("audioOutput").value<QObject*>();QVERIFY(audio);
+        QVERIFY(audio->property("muted").toBool());
+        root->setProperty("previewSound",true);QTRY_VERIFY(!audio->property("muted").toBool());
+        root->setProperty("previewSound",false);QTRY_VERIFY(audio->property("muted").toBool());
         auto* output=player->property("videoOutput").value<QObject*>();QVERIFY(output);
         auto* sink=output->property("videoSink").value<QVideoSink*>();QVERIFY(sink);
         QSignalSpy frames(sink,&QVideoSink::videoFrameChanged);QTRY_VERIFY(frames.size()>=3);
+        const auto rendered=view.grabWindow();QVERIFY(!rendered.isNull());
+        QSet<QRgb> colors;for(int y=40;y<230;y+=10)for(int x=60;x<420;x+=10)colors.insert(rendered.pixel(x,y));
+        QVERIFY2(colors.size()>12,"Decoded video must also render, not leave a blank masked surface");
         root->setProperty("playbackAllowed",false);QTRY_VERIFY(!loader->property("item").value<QObject*>());
         root->setProperty("video",QUrl("https://example.invalid/forbidden.mp4"));root->setProperty("playbackAllowed",true);
         QVERIFY(!root->property("eligible").toBool());QVERIFY(!loader->property("active").toBool());

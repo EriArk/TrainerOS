@@ -24,6 +24,8 @@ class SettingsController final : public QObject {
     Q_PROPERTY(bool worldEditing READ worldEditing NOTIFY changed)
     Q_PROPERTY(bool reducedMotion READ reducedMotion NOTIFY changed)
     Q_PROPERTY(bool videoPreviews READ videoPreviews NOTIFY changed)
+    Q_PROPERTY(bool previewSound READ previewSound NOTIFY changed)
+    Q_PROPERTY(int previewDelay READ previewDelay NOTIFY changed)
     Q_PROPERTY(bool readOnlySaves READ readOnlySaves NOTIFY changed)
     Q_PROPERTY(bool saving READ saving NOTIFY changed)
     Q_PROPERTY(QString error READ error NOTIFY changed)
@@ -86,6 +88,9 @@ public:
     bool worldEditing() const { return value_.worldEditing; }
     bool reducedMotion() const { return value_.reducedMotion; }
     bool videoPreviews() const { return value_.videoPreviews; }
+    bool previewSound() const;
+    int previewDelay() const;
+    void setMediaOwner(const QString& owner);
     bool saving() const { return saving_; }
     QString error() const { return error_; }
     QString libraryStatus() const { return libraryStatus_; }
@@ -98,6 +103,7 @@ signals:
     void closeRequested();
     void deviceRequested(int index);
     void controllerRequested();
+    void healthRequested();
     void softwareRequested(QString destination);
     void trashRequested();
     void collectionsRequested();
@@ -106,6 +112,7 @@ signals:
     void messageRequested(const QString& message);
     void quickAdjustment(int index, trainer::Action action);
 private:
+    QString mediaPrefix_="media/preview/";
     GameInputProfiles gameInput_;
     ControllerInput* input_=nullptr;
     ScrapeController* scraper_=nullptr;

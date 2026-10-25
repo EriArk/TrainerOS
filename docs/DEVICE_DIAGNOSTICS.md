@@ -1,5 +1,13 @@
 # Controller and display checks
 
+## 25 October 2026 — system health and local support archive
+
+Settings → System now opens runtime/game/firmware checks through the existing
+adapters, game Properties, offline help and a bounded local TAR export.
+[Current behavior, evidence and limits](CORE_POLISH_20261025.md) supersedes the
+input-report-only scope of the historical notes below. Controller profiles and
+calibration are tracked separately in [Input profiles](INPUT_PROFILES.md).
+
 Start → Settings → Controller opens **Check your field gear**, an attached service panel. It is preparation for the ArmadaOS baseline, not a calibration wizard or evidence that the device is supported.
 
 ## Reading the panel

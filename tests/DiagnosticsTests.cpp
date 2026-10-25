@@ -6,6 +6,9 @@
 #include <QDir>
 #include <QJsonDocument>
 #include <QKeyEvent>
+#include <QSqlDatabase>
+#include <QSqlQuery>
+#include <atomic>
 
 using namespace trainer;
 class VirtualPad {
@@ -30,6 +33,43 @@ public:
 class DiagnosticsTests final : public QObject {
     Q_OBJECT
 private slots:
+    void healthUsesRuntimeVerificationOffThreadWithoutLaunching() {
+        class Library final: public LibraryRepository {
+        public:
+            AdventureRegistration record;
+            QList<World> worlds() const override{return {};}
+            QList<Adventure> adventures() const override{return {record.adventure};}
+            QList<AdventureRegistration> registrations() const override{return {record};}
+            std::optional<AdventureRegistration> registration(const QString& id) const override{return id==record.adventure.id?std::optional(record):std::nullopt;}
+            QList<ResumePoint> resumePoints() const override{return {};}
+            HomeSnapshot home() const override{return {};}
+        } library;
+        class Adapter final: public AdventureAdapter {
+        public:
+            mutable std::atomic_bool worker=false;
+            QString id() const override{return "fixture";}
+            AdventureCapabilities capabilities(const Adventure&) const override{return {true,false,false};}
+            QString setupIssue(const AdventureRegistration&) const override{return {};}
+            QString verifyInstallation(const AdventureRegistration&) const override{worker=QThread::currentThread()!=qApp->thread();return "BIOS missing: bios_CD_U.bin";}
+            AdventureResult launch(const Adventure&) override{return {false,"Must not launch"};}
+            AdventureResult resume(const Adventure&,const ResumePoint&) override{return {false,"Must not resume"};}
+        } adapter;
+        QTemporaryDir dir;library.record.adventure.id="private-game";library.record.adventure.title="Private game";library.record.adventure.platformId="segacd";library.record.adventure.adapterId="fixture";
+        library.record.contentPath=dir.filePath("fixture.chd");library.record.contentAvailable=true;
+        QFile file(library.record.contentPath);QVERIFY(file.open(QIODevice::WriteOnly));file.write("unchanged fixture");file.close();
+        DiagnosticsController controller;controller.configureLibrary(&library,&adapter);controller.beginHealth();QCOMPARE(controller.healthRows().size(),1);
+        controller.healthAction(5);QTRY_VERIFY(!controller.checking());QVERIFY(adapter.worker.load());
+        QCOMPARE(controller.healthRows()[0].toMap()["state"].toString(),"Needs attention");QVERIFY(controller.selectedHealth()["detail"].toString().contains("bios_CD_U.bin"));
+        QVERIFY(file.open(QIODevice::ReadOnly));QCOMPARE(file.readAll(),QByteArray("unchanged fixture"));file.close();
+        QVERIFY(file.remove());controller.healthAction(5);QTRY_VERIFY(!controller.checking());QVERIFY(controller.selectedHealth()["detail"].toString().contains("Game file unavailable"));
+    }
+    void supportArchiveExcludesUntrustedDataAndIsAtomic() {
+        QTemporaryDir dir;DiagnosticsService service(dir.filePath("reports"));QSignalSpy finished(&service,&DiagnosticsService::completed);
+        service.saveSupport({{"token","private-token"},{"path","/home/private/game.rom"},{"systems",QJsonArray{QJsonObject{{"platform","gba"},{"runtime","retroarch"},{"state","Needs verification"},{"games",4},{"title","private-title"},{"url","https://secret?token=private-token"}}}}});
+        QTRY_COMPARE(finished.size(),1);QVERIFY(finished[0][0].toString().isEmpty());QFile f(service.lastReportPath());QVERIFY(f.open(QIODevice::ReadOnly));const auto bytes=f.readAll();
+        QVERIFY(bytes.startsWith("diagnostics.json"));QVERIFY(bytes.contains("ustar"));QVERIFY(bytes.contains("retroarch"));QVERIFY(bytes.contains("README.txt"));
+        QVERIFY(!bytes.contains("private-token"));QVERIFY(!bytes.contains("private-title"));QVERIFY(!bytes.contains("/home/private"));QVERIFY(!bytes.contains("https://secret"));QVERIFY(bytes.size()<128*1024);
+    }
     void normalizedXboxNameKeepsRemoteIdentityWithoutExcludingPhysicalXbox() {
         QVERIFY(remoteGamePadIdentity("Xbox One S Controller",0x045e,0x02ea,"TrainerOS Remote P2"));
         QVERIFY(!remoteGamePadIdentity("Xbox One S Controller",0x045e,0x02ea,"Xbox One S Controller"));

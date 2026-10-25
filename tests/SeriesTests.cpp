@@ -220,7 +220,7 @@ private slots:
     }
     void collectionPickerKeepsUnreadableStorageAndDynamicDefinitions() {
         SeriesLibrary library;QTemporaryDir dir;GameCollections model(library);model.configure(dir.path(),"one");
-        model.begin();model.activate(1);model.applyText("Automatic legacy");model.activate(9);
+        model.begin();model.activate(1);model.applyText("Automatic legacy");model.activate(3);
         const auto original=model.definitions();model.beginMembership("m1");QCOMPARE(model.rows().size(),2);
         model.activate(0);model.applyText("Manual");model.activate(1);QCOMPARE(model.definitions()[0],original[0]);
         auto files=QDir(dir.filePath("collections")).entryList({"*.json"},QDir::Files);QCOMPARE(files.size(),1);
@@ -485,10 +485,35 @@ private slots:
         editor.configure(dir.path(),"one");QVERIFY(!editor.error().isEmpty());editor.begin();editor.activate(0);editor.applyText("Replace");editor.activate(2);
         QVERIFY(file.open(QIODevice::ReadOnly));QCOMPARE(file.readAll(),QByteArray("broken-data"));
     }
+    void nestedRulesAndOverridesMigrateWithoutTouchingLegacyDefinitions() {
+        SeriesLibrary library;QTemporaryDir dir;const auto key=QString::fromLatin1(QCryptographicHash::hash("owner",QCryptographicHash::Sha256).toHex());
+        QDir().mkpath(dir.filePath("collections"));const auto path=dir.filePath("collections/"+key+".json");
+        const auto leaf=[](QString field,QString value){return QJsonObject{{"field",field},{"op","contains"},{"value",value}};};
+        QJsonObject tree{{"op","all"},{"children",QJsonArray{QJsonObject{{"op","any"},{"children",QJsonArray{leaf("title","Mario"),leaf("title","Zelda")}}},QJsonObject{{"op","exclude"},{"children",QJsonArray{leaf("title","Kart")}}}}}};
+        QJsonObject smart{{"id","user:smart"},{"name","Smart"},{"dynamic",true},{"tree",tree}};
+        QJsonObject old{{"id","user:legacy"},{"name","Legacy"},{"dynamic",true},{"rules",QJsonObject{{"platform","gba"}}}};
+        QFile f(path);QVERIFY(f.open(QIODevice::WriteOnly));f.write(QJsonDocument(QJsonObject{{"version",1},{"collections",QJsonArray{smart,old}}}).toJson());f.close();
+        GameCollections model(library);model.configure(dir.path(),"owner");model.begin("user:smart");QCOMPARE(model.preview().size(),2);
+        QVERIFY(model.contains("user:smart",library.records[0].adventure));QVERIFY(!model.contains("user:smart",library.records[1].adventure));
+        model.overrideGame("x1");QCOMPARE(model.preview().size(),3);model.activate(3);
+        GameCollections reopened(library);reopened.configure(dir.path(),"owner");QCOMPARE(reopened.definitions()[1].toObject(),old);
+        QVERIFY(reopened.contains("user:smart",library.records[3].adventure));
+        reopened.begin("user:smart");reopened.overrideGame("x1");QCOMPARE(reopened.preview().size(),2);reopened.dispatch(Action::Back);
+        QVERIFY(reopened.contains("user:smart",library.records[3].adventure));
+        library.records[0].adventure.title="Other";reopened.refresh();QVERIFY(!reopened.contains("user:smart",library.records[0].adventure));
+        QVERIFY(f.open(QIODevice::ReadOnly));QCOMPARE(QJsonDocument::fromJson(f.readAll())["version"].toInt(),2);f.close();
+        tree["op"]="unknown";smart["tree"]=tree;const auto invalid=QJsonDocument(QJsonObject{{"version",2},{"collections",QJsonArray{smart}}}).toJson();QVERIFY(f.open(QIODevice::WriteOnly|QIODevice::Truncate));f.write(invalid);f.close();
+        reopened.configure(dir.path(),"owner");QVERIFY(!reopened.error().isEmpty());reopened.begin();reopened.activate(0);reopened.applyText("Overwrite");reopened.activate(2);
+        QVERIFY(f.open(QIODevice::ReadOnly));QCOMPARE(f.readAll(),invalid);
+    }
     void automaticRulesRefreshWithMetadataAndUnknownPlayersDoNotMatch() {
         SeriesLibrary library;SeriesAdapter adapter;MultiversePresentation model(library,adapter);auto* editor=model.collectionManager();
         editor->begin();editor->activate(1);editor->applyText("Mario multiplayer");
-        editor->activate(1);editor->applyText("Mario");editor->activate(6);editor->activate(9);
+        editor->activate(1);editor->activate(1); // Add title condition.
+        editor->activate(2);editor->applyText("Mario");editor->dispatch(Action::Back);
+        editor->activate(2); // Add a second condition; cycle to player count.
+        for(int i=0;i<5;++i)editor->activate(0);
+        editor->dispatch(Action::Back);editor->dispatch(Action::Back);editor->activate(3);
         const auto id=editor->definitions()[0].toObject()["id"].toString();model.setCollection(id);QVERIFY(model.games().isEmpty());
         library.metadata["m1"]={{"players","1-2"},{"favorite","true"}};model.refresh();
         QCOMPARE(model.games().size(),1);QCOMPARE(model.detail()["id"],"m1");

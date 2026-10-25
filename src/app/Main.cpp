@@ -418,11 +418,13 @@ int main(int argc, char* argv[]) {
                 shell.files()->configure(stateDirectory,ready?store->ownerId():QString());
                 shell.pcGames()->configure(stateDirectory,ready?store->ownerId():QString());
                 shell.settings()->gameInput()->configure(&activeLibrary,stateDirectory,ready?store->ownerId():QString());
+                shell.settings()->setMediaOwner(ready?store->ownerId():QString());
                 shell.browser()->configure(stateDirectory,ready?store->ownerId():QString());
                 shell.album()->configure(stateDirectory,ready?store->ownerId():QString());
             });
             QObject::connect(store.get(), &LocalStateStore::accessNeeded, &shell, [&] {
                 shell.social()->setOwner({});
+                shell.settings()->setMediaOwner({});
                 shell.keyboard()->configure(stateDirectory,{});
                 shell.collectionManager()->configure(stateDirectory,{});
                 shell.apps()->configure(stateDirectory,{});

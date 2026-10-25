@@ -97,6 +97,8 @@ Item {
             entries: visible ? root.model.games : []; entry: root.model.detail; selectionIndex: root.model.focusIndex
             takesFocus: root.takesFocus && visible
             previewsEnabled: root.shell.settings.videoPreviews && !root.shell.serviceOpen && !adventureLaunch.active && !sessionState.blocked
+            previewSound: root.shell.settings.previewSound
+            previewDelay: root.shell.settings.previewDelay
             filterText: root.model.filterLabel + (root.model.query ? " · " + root.model.query : "")
             actionVisible: entry.linked === true
             emptyTitle: root.pc ? "Your PC games, at home here" : root.model.query || root.model.filterLabel !== "All titles" ? "No matching titles" : "This collection is empty"

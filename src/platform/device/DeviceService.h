@@ -5,6 +5,8 @@
 #include <QString>
 #include <QVariantList>
 #include <functional>
+#include <QProcess>
+#include <QTimer>
 
 namespace trainer {
 struct DeviceSnapshot {
@@ -12,6 +14,9 @@ struct DeviceSnapshot {
     bool muted = false;
     QVariantList audioOutputs;
     QString audioOutput;
+    QVariantList audioStreams;
+    QVariantList audioInputs;
+    QString audioInput;
     int brightness = -1;
     QString network = "Unavailable";
     int wifi = -1, bluetooth = -1, airplane = -1;
@@ -22,10 +27,14 @@ BacklightValue readBacklight(const QString& root);
 QString writeBacklight(const QString& root, int percent);
 DeviceSnapshot parseVolume(const QByteArray& output);
 QVariantList parseAudioOutputs(const QByteArray& output);
+QVariantList parseAudioStreams(const QByteArray& output);
+QVariantList parseAudioInputs(const QByteArray& output);
 struct DeviceBackend {
     std::function<DeviceSnapshot()> read;
     std::function<QString(const QString&, int)> write;
     std::function<QString(const QString&)> selectOutput;
+    std::function<QString(const QString&, int, bool)> setStream;
+    std::function<QString(const QString&, int, const QString&)> setInput;
 };
 DeviceBackend systemDeviceBackend(const QString& dataDirectory, const QString& libraryDirectory);
 
@@ -44,6 +53,9 @@ public:
     void toggleRadio(const QString& control);
     void hardwareVolume(int delta);
     void selectOutput(const QString& id);
+    void setStream(const QString& id, int value, bool mute=false);
+    void monitorAudio(bool enabled);
+    void setInput(const QString& id,int value,const QString& operation);
 signals:
     void changed();
 private:
@@ -56,7 +68,11 @@ private:
     bool busy_ = false;
     QMap<QString, int> pending_;
     QString activeControl_;
+    struct AudioChange {QString control;int value;QString target;};
+    QMap<QString,AudioChange> pendingAudio_;
     int activeValue_ = 0;
+    QProcess audioEvents_;
+    QTimer audioDebounce_;
     int desired(const QString& control) const;
 };
 }

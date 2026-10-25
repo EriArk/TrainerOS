@@ -93,6 +93,8 @@ Item {
                 entries: root.worlds.adventures; entry: root.worlds.detail; selectionIndex: root.worlds.adventureIndex
                 takesFocus: root.takesFocus && root.listOpen
                 previewsEnabled: root.shell.settings.videoPreviews && !root.shell.serviceOpen && !adventureLaunch.active && !sessionState.blocked
+                previewSound: root.shell.settings.previewSound
+                previewDelay: root.shell.settings.previewDelay
                 wheelFocused: root.worlds.focusIndex < entries.length
                 showBack: false; idsInNames: true; itemPrefix: "adventure-"
                 emptyName: "world-list-back"; emptyTitle: "No matching Adventures"; emptyDetail: "Back to Worlds"

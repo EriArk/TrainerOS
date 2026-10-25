@@ -84,7 +84,8 @@ private:
         QList<scraper::Game> games;
         QMap<QString,QString> local;
         QString error,cache,cachedId,mapping,manualId;
-        bool cached=false,success=false;
+        QStringList readyIds;
+        bool cached=false,success=false,complete=false;
         scraper::Quota quota;
     };
     void run(std::function<Outcome()>,std::function<void(Outcome)>);
@@ -103,6 +104,7 @@ private:
     scraper::Credentials credentials_;
     scraper::Preferences preferences_, jobPreferences_;
     bool missingOnly_=false;
+    bool correcting_=false;
     QJsonObject display_;
     scraper::Transport transport_=scraper::httpsTransport();
     scraper::Delay delay_;

@@ -6,6 +6,8 @@ Item {
     required property var entry
     property bool active: false
     property bool previewsEnabled: false
+    property bool previewSound: false
+    property int previewDelay: 1800
     property bool favoritesAvailable: false
     signal favoriteRequested(string gameId)
     readonly property var artwork: entry.artwork || ({})
@@ -91,6 +93,8 @@ Item {
                 id: preview; anchors.fill: parent; anchors.margins: 7
                 picture: root.artwork.displayPicture || root.entry.screenshot || ""
                 video: root.artwork.video || ""
+                previewSound: root.previewSound
+                previewDelay: root.previewDelay
                 playbackAllowed: root.previewsEnabled && root.active && !Theme.reducedMotion
                     && preview.parent.y + preview.parent.height > descriptionViewport.contentY
                     && preview.parent.y < descriptionViewport.contentY + descriptionViewport.height
