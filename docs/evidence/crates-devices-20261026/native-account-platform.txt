@@ -1,0 +1,13 @@
+[0/2] Re-checking globbed directories...
+[1/5] Automatic MOC for target trainer_platform_tests
+[2/4] Building CXX object CMakeFiles/trainer_platform_tests.dir/tests/PlatformHostTests.cpp.o
+[3/4] Linking CXX executable trainer_platform_tests
+Test project /work/build
+    Start 1: backend_account
+1/2 Test #1: backend_account ..................   Passed    0.05 sec
+    Start 3: platform_sdk
+2/2 Test #3: platform_sdk .....................   Passed    1.95 sec
+
+100% tests passed, 0 tests failed out of 2
+
+Total Test time (real) =   2.00 sec

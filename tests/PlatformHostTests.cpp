@@ -48,6 +48,19 @@ struct Fixture {
         return {{"revision",revision},{"id",id},{"title","Test widget"},{"text","Hello"}};
     }
 };
+QVariantMap dashboardLayout(ControlsDashboard& board) {
+    const auto page=board.page();
+    QVariantMap result;
+    for(int p=0;p<board.pages();++p){
+        board.changePage(p-board.page());
+        for(const auto& value:board.widgets()){
+            auto row=value.toMap();row.insert("page",p);
+            result.insert(row["id"].toString(),row);
+        }
+    }
+    board.changePage(page-board.page());
+    return result;
+}
 }
 class PlatformHostTests final: public QObject {
     Q_OBJECT
@@ -226,11 +239,14 @@ private slots:
     }
     void layoutSurvivesReconnectWithoutChangingBuiltins(){
         Fixture f;QVERIFY(f.start());Client c(f.endpoint);const auto rev=c.hello()["result"].toObject()["context"].toObject()["revision"].toString();
+        const auto builtins=dashboardLayout(f.board);
         c.send("widget.put",f.widget(rev));c.receive();f.board.edit();f.board.pick();f.board.restore("sdk:org.test.one:hello");f.board.edit();
-        c.socket.abort();QTRY_COMPARE(f.board.pages(),1);
+        const auto withExtension=dashboardLayout(f.board);
+        QVERIFY(withExtension.contains("sdk:org.test.one:hello"));
+        c.socket.abort();QTRY_COMPARE(dashboardLayout(f.board),builtins);
         Client again(f.endpoint);QVERIFY(again.hello().contains("result"));again.send("widget.put",f.widget(rev));again.receive();
-        QCOMPARE(f.board.pages(),2);QVERIFY(f.board.available().isEmpty());
-        ControlsDashboard reopened;reopened.setOwner("alice");QCOMPARE(reopened.widgets().size(),10);
+        QCOMPARE(dashboardLayout(f.board),withExtension);QVERIFY(f.board.available().isEmpty());
+        ControlsDashboard reopened;reopened.setOwner("alice");QCOMPARE(dashboardLayout(reopened),builtins);
     }
     void realPythonProcess(){
         Fixture f;QVERIFY(f.start());QProcess child;
@@ -238,7 +254,7 @@ private slots:
         QVERIFY(child.waitForStarted());
         QTRY_COMPARE_WITH_TIMEOUT(f.board.available().size(),1,10000);
         f.board.edit();f.board.pick();f.board.restore("sdk:org.test.process:hello");f.board.edit();f.board.activate("sdk:org.test.process:hello");
-        QTRY_COMPARE(f.board.widgets().first().toMap()["text"].toString(),"Callback received");
+        QTRY_COMPARE(dashboardLayout(f.board)["sdk:org.test.process:hello"].toMap()["text"].toString(),"Callback received");
         f.host.setContext(context("alice","game-b"));
         QByteArray output;
         QTRY_VERIFY_WITH_TIMEOUT((output+=child.readAllStandardOutput()).contains("changed"),10000);
