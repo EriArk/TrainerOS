@@ -1,5 +1,12 @@
 # Серверные матчи и таблицы — SDK preview
 
+**Pocket Golf, 25 октября:** первый реальный потребитель подготовлен в Crates
+0.1.22. Ruleset `pocket-golf.island.analog5.v1` зарегистрирован отдельно от demo;
+проверены полный игровой цикл и таблицы на 2/4/5/8 участниках. Нужен объединённый
+group/Play SDK. [Приёмка и границы](../docs/evidence/backend-golf-20261025/README.md).
+Это уточняет описание «production игры ещё не связаны» ниже для Golf; перенос
+на целевые устройства, публичные профили и physics validation остаются открытыми.
+
 25 октября 2026. Capability `play.scorecards:1` подключена к существующему
 PlatformHost и BackendAccount. Это общий механизм scorecard для игр; сетевые
 кадры, физика и Lobby остаются у своих владельцев. Account/refresh/grant tokens

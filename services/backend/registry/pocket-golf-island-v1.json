@@ -1,0 +1,14 @@
+{
+  "id": "pocket-golf.island.analog5.v1",
+  "game_id": "art.abysstail.pocket-golf",
+  "content_id": "island-ad79aeae2d38dd08c43b123c6a99de5c2136f1ea5fc239fb",
+  "definition": {
+    "validator": "scorecard.v1",
+    "segments": 3,
+    "minimum": 1,
+    "maximum": 8,
+    "direction": "asc",
+    "trust": "peer_confirmed",
+    "label": "Pocket Golf - Island, three greens, analog-5"
+  }
+}

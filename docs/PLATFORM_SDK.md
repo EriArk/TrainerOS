@@ -1,5 +1,10 @@
 # Platform SDK: внешняя программа → консоль → результат
 
+**25 октября — group + Play:** подготовленные ветки объединены, Pocket Golf
+использует один игровой SDK peer для network и account/play. Отдельный новый
+менеджер Lobby или канал credentials игре не добавлен. [Игровая серверная
+приёмка 2/4/5/8 и границы](evidence/backend-golf-20261025/README.md).
+
 **25 октября — backend play preview:** общий [Play API](../sdk/PLAY.md) подключён
 к существующим PlatformHost/BackendAccount. Grants остаются в host; смена owner/
 disconnect прекращает старые callbacks и отзывает доступ best effort. Сессии,

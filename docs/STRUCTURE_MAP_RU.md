@@ -436,6 +436,13 @@ Guest content добавляет отдельный E19 lease/cleanup, а не �
 <a id="f05"></a>
 ### F05. Игровое событие → результат/зачёт → награда
 
+**Реализация 25 октября:** S14 Play SDK соединяет S01 host session с S10
+server-owned match/result/board. Pocket Golf связывает свои состав/Start/карточки
+и игровые таблицы, сохраняя S07 group transport и owner-owned avatar отдельно.
+Callback revocation/operation journal не дают результату перейти к новому Player.
+Согласие всех карточек — peer-confirmed, не автоматическое основание награды S11.
+[Проверенная цепочка и оставшиеся границы](evidence/backend-golf-20261025/README.md).
+
 **Участники:** S01, S03, S08, S09, S10, S11; E10–E12.
 
 Личная история принимает сведения со своим источником и степенью достоверности.

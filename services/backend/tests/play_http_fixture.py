@@ -29,8 +29,10 @@ try:
           'definition':{'validator':'scorecard.v1','segments':3,'minimum':1,'maximum':99,'direction':'asc','trust':'peer_confirmed','label':'Isolated SDK integration'}}
     with tempfile.TemporaryDirectory() as directory:
         path=Path(directory)/'rules.json';path.write_text(json.dumps(rule));register(admin,path)
+    if os.environ.get('PLAY_FIXTURE_RULESET'):
+        register(admin,os.environ['PLAY_FIXTURE_RULESET'])
     accounts=Accounts(db,CONFIG,Provider())
-    for i in range(5):
+    for i in range(int(os.environ.get('PLAY_FIXTURE_PLAYERS','5'))):
         accounts.provider.subject=str(2000+i)
         account=login(accounts)
         path=fixture/f'player-{i}.json'
