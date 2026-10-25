@@ -1,5 +1,12 @@
 # Карта готовности функций TrainerOS
 
+**25 октября — CBN/CBIN, S02/S03 → S06/S08:** отдельный исправленный PS1 reader
+подключён к регистрации, обычному запуску и NetPlay, включая M3U. Native miniz
+и ARM64 suites прошли; [доставка/границы](MULTIPLAYER_CONTENT_FORMATS.md#cbncbin-исправленный-native-reader)
+отделены от исходников. Прежние ядро/Rejoin/handoff других PS1-форматов сохранены.
+CIA/ZCIA: [native install изучен](emulators/azahar.md#ciazcia-installation-boundary--25-october-2026),
+интеграция установки и состава title+updates/DLC ещё не реализована.
+
 **25 октября — доставка общего multiplayer-прохода, S02/S03 → S06/S08:**
 объединённая с актуальным main ARM64-оболочка и PSP/Dolphin/PS2 helpers установлены
 на Flip/Odin. Шесть native suites и проверки helpers прошли; обе оболочки работают,

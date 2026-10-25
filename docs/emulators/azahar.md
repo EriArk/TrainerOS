@@ -1,5 +1,27 @@
 # Azahar: native 3DS wireless rooms
 
+## CIA/ZCIA installation boundary — 25 October 2026
+
+Reviewed the pinned `219d743a1e698101fe1ab8bef43e6563126c3c27` implementation;
+this section is preparation, not an enabled CIA launch route. The existing
+[Qt `--install` command](https://github.com/azahar-emu/azahar/blob/219d743a1e698101fe1ab8bef43e6563126c3c27/src/citra_qt/citra_qt.cpp)
+calls native `Service::AM::InstallCIA` and exits with a result code. Linux reports
+the result on stdout; Windows uses a message box. No second installer or CIA
+decoder is needed. The native [AM implementation](https://github.com/azahar-emu/azahar/blob/219d743a1e698101fe1ab8bef43e6563126c3c27/src/core/hle/service/am/am.cpp)
+wraps ZCIA with `Z3DSReadIOFile`, rejects encrypted contents and resolves the
+installed executable through TMD content indices. A CIA is not a path accepted
+by `Loader::GetLoader`; an update/DLC package must not become a game card.
+
+Remaining integration: explicit import/preparation with cancellation and progress;
+isolated native install before committing content into this player's configured
+storage; title/content inventory and a stable library binding to the executable;
+fingerprints of the base title and loaded updates/DLC; preserve existing saves,
+custom NAND/SDMC paths and failure recovery. Metadata probing must reuse native
+TMD/NCCH readers, including compressed containers. Existing room preparation
+still launches only executable images and does not run installation during a
+background Lobby scan. This is a concrete missing installation/identity chain,
+not a per-game compatibility whitelist or another networking protocol.
+
 **25 октября — доставка:** расширенные форматы и совместимая со свежим core/main
 оболочка установлены на Flip/Odin. [Хеши, native проверки, сохранность данных
 и откат](../MULTIPLAYER_CONTENT_FORMATS.md#доставка-на-flip-и-odin--25-октября-2026).

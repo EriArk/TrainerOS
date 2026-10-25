@@ -807,6 +807,60 @@ private slots:
         QTest::addColumn<QString>("format");
         for(const auto& format:{"iso","raw-iso","pbp","multi-pbp","m3u"})QTest::newRow(format)<<QString(format);
     }
+    void playStationCbinRequiresFixedReaderAndTracksFinalBlock() {
+        QTemporaryDir dir;std::atomic_bool cancel=false;
+        const auto write=[&](const QString& name,const QByteArray& bytes){QFile f(dir.filePath(name));QVERIFY(f.open(QIODevice::WriteOnly));QCOMPARE(f.write(bytes),bytes.size());};
+        write("core","ordinary core");write("runtime","runtime");write("scph5501.bin",QByteArray(512*1024,'b'));
+        write("retroarch.cfg","system_directory = \""+dir.path().toUtf8()+"\"\n");
+        RetroArchInstallation i;i.configFile=dir.filePath("retroarch.cfg");i.runtimeFile=dir.filePath("runtime");i.cores["pcsx_rearmed"]=dir.filePath("core");
+        AdventureRegistration r;r.adventure.platformId="psx";r.adventure.adapterId="retroarch";r.integrationConfig["core"]="pcsx_rearmed";
+        QByteArray image(36+2*2352,'\0');image.replace(0,4,"CISO");
+        qToLittleEndian<quint32>(24,image.data()+4);qToLittleEndian<quint64>(2*2352,image.data()+8);
+        qToLittleEndian<quint32>(2352,image.data()+16);image[20]=1;
+        for(int n=0;n<=2;++n)qToLittleEndian<quint32>(36+n*2352+(n<2?0x80000000u:0),image.data()+24+n*4);
+        write("disc.cbin",image);r.contentPath=dir.filePath("disc.cbin");
+        QVERIFY(retroarch::netplayIdentity(r,i,cancel).isEmpty());
+        QVERIFY(QDir().mkpath(dir.filePath("fixed")));
+        write("fixed/core.so","fixed reader");write("fixed/cbin-reader.patch","reader patch");
+        QJsonObject files;for(const auto& name:QStringList{"core.so","cbin-reader.patch"})files[name]=retroarch::fileDigest(dir.filePath("fixed/"+name),1024,cancel);
+        write("fixed/manifest.json",QJsonDocument(QJsonObject{{"protocol","pcsx-cbin-v1"},{"source","c8816799b50388e61cfe237fe2cdbb7d8175f20a"},{"files",files}}).toJson());
+        i.cores["pcsx_rearmed_cbin"]=dir.filePath("fixed/core.so");
+        const auto identity=retroarch::netplayIdentity(r,i,cancel);QVERIFY(!identity.isEmpty());
+        QCOMPARE(identity["core"].toString(),files["core.so"].toString());
+        QVERIFY(!identity.contains("controllerModes")); // Do not inherit the ordinary core's paired handoff evidence.
+        for(const auto& ext:QStringList{"cbn","cbin","CBIN","m3u"}) {
+            write("disc."+ext,ext=="m3u"?QByteArray("# discs\ndisc.cbin\n"):image);r.contentPath=dir.filePath("disc."+ext);
+            retroarch::NetplayDigestCache cache;
+            const auto current=retroarch::netplayIdentity(r,i,cancel,&cache);QVERIFY(!current.isEmpty());
+            QVERIFY(cache.dependencies.contains(dir.filePath("fixed/manifest.json")));
+            retroarch::NetplayRequest request;request.host=true;request.password="private";request.nickname="host";request.expected=current;
+            ProcessCommand command;command.arguments={"--libretro",i.cores["pcsx_rearmed"],r.contentPath};
+            QVERIFY(retroarch::prepareNetplay(command,r,i,request,cancel).isEmpty());
+            QCOMPARE(command.arguments[1],i.cores["pcsx_rearmed_cbin"]);
+            command.settled={};
+        }
+        r.contentPath=dir.filePath("disc.cbin");
+        write("disc.ccd","[CloneCD]\nVersion=3\n[TRACK 1]\nMODE=2\nINDEX 1=0\n");
+        const auto withCcd=retroarch::netplayIdentity(r,i,cancel);QVERIFY(!withCcd.isEmpty());
+        QVERIFY(!sameMultiplayerGame(identity,withCcd));
+        write("disc.sub","subchannel data");QVERIFY(!sameMultiplayerGame(withCcd,retroarch::netplayIdentity(r,i,cancel)));
+        QVERIFY(QFile::remove(dir.filePath("disc.ccd")));QVERIFY(QFile::remove(dir.filePath("disc.sub")));
+        auto changed=image;changed[changed.size()-1]='x';write("disc.cbin",changed);
+        QVERIFY(!sameMultiplayerGame(identity,retroarch::netplayIdentity(r,i,cancel)));
+        for(int offset:{4,8,16,20,21,24,32}) {
+            auto bad=image;bad[offset]=offset==24?char(0):char(0xff);write("disc.cbin",bad);
+            QVERIFY2(retroarch::netplayIdentity(r,i,cancel).isEmpty(),qPrintable(QString::number(offset)));
+        }
+        write("disc.cbin",image.left(32));QVERIFY(retroarch::netplayIdentity(r,i,cancel).isEmpty());
+        write("disc.cbin",image);write("fixed/core.so","changed reader");QVERIFY(retroarch::netplayIdentity(r,i,cancel).isEmpty());
+        ProcessCommand command;command.arguments={"--libretro",i.cores["pcsx_rearmed"],r.contentPath};
+        QVERIFY(!retroarch::preparePlayStationCore(command,r,i,cancel).isEmpty());
+        QCOMPARE(command.arguments[1],i.cores["pcsx_rearmed"]);
+        r.contentPath=dir.filePath("raw.iso");QByteArray iso(32*2048,'\0');iso.replace(16*2048,7,QByteArray("\1CD001\1",7));write("raw.iso",iso);
+        QVERIFY(!retroarch::netplayIdentity(r,i,cancel).isEmpty()); // Broken optional reader cannot disable ordinary PS1.
+        QVERIFY(retroarch::preparePlayStationCore(command,r,i,cancel).isEmpty());
+        QCOMPARE(command.arguments[1],i.cores["pcsx_rearmed"]);
+    }
     void playStationDescriptorsAndPcePlaylistsTrackPayloads() {
         QTemporaryDir dir;std::atomic_bool cancel=false;
         const auto write=[&](const QString& name,const QByteArray& bytes){QFile f(dir.filePath(name));QVERIFY(f.open(QIODevice::WriteOnly));QCOMPARE(f.write(bytes),bytes.size());};

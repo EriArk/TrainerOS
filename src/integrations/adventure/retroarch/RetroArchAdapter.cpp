@@ -1,4 +1,5 @@
 #include "RetroArchAdapter.h"
+#include <QStandardPaths>
 #include "RetroArchAppearance.h"
 #include "RetroArchNetplay.h"
 #include "RetroArchRemotePlay.h"
@@ -72,6 +73,8 @@ RetroArchInstallation RetroArchInstallation::fromJson(const QJsonObject& object)
         const auto path=QDir(coresDirectory).absoluteFilePath(name+"_libretro.so");
         if(QFileInfo(path).isFile()&&QFileInfo(path).isReadable())result.cores.insert(name,path);
     }
+    const auto cbin=QStandardPaths::writableLocation(QStandardPaths::GenericDataLocation)+"/TrainerOS/emulators/pcsx-rearmed-cbin/core.so";
+    if(QFileInfo(cbin).isFile())result.cores.insert("pcsx_rearmed_cbin",cbin);
     if (QFileInfo(object.value("runtimeFile").toString()).isAbsolute())
         result.runtimeFile = object.value("runtimeFile").toString();
     if (object.value("resumeProtocol").toString() == "mgba-entry-v1") {
@@ -237,6 +240,10 @@ AdventureResult RetroArchAdapter::launchConfigured(const Adventure& adventure,st
         if(!recovery.isEmpty())return recovery;
         const auto error=prepare?prepare(cmd,cancel):QString();
         if(!error.isEmpty()||cancel)return error;
+        if(registration) {
+            const auto coreError=retroarch::preparePlayStationCore(cmd,*registration,installation,cancel);
+            if(!coreError.isEmpty())return coreError;
+        }
         const auto appearance=retroarch::prepareAppearance(cmd,id,config,runtime,display,bezelGame);
         return appearance.isEmpty()&&extra?extra(cmd,cancel):appearance;
     };

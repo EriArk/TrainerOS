@@ -1,0 +1,259 @@
+diff --git a/frontend/libretro.c b/frontend/libretro.c
+index 9dd3502..8f8d1c6 100644
+--- a/frontend/libretro.c
++++ b/frontend/libretro.c
+@@ -1224,7 +1224,7 @@ void retro_get_system_info(struct retro_system_info *info)
+    memset(info, 0, sizeof(*info));
+    info->library_name     = "PCSX-ReARMed";
+    info->library_version  = "r26" GIT_VERSION;
+-   info->valid_extensions = "bin|cue|img|mdf|pbp|toc|cbn|m3u|chd|iso|exe";
++   info->valid_extensions = "bin|cue|img|mdf|pbp|toc|cbn|cbin|m3u|chd|iso|exe";
+    info->need_fullpath    = true;
+ }
+ 
+diff --git a/libpcsxcore/cdriso.c b/libpcsxcore/cdriso.c
+index c563da8..2e91fd5 100644
+--- a/libpcsxcore/cdriso.c
++++ b/libpcsxcore/cdriso.c
+@@ -190,6 +190,13 @@ static void set_static_stdio_buffer(FILE *f)
+ #endif
+ }
+ 
++// Existing callers check for at least four characters. CBIN has a five-byte
++// suffix; its metadata and subchannel companions still use the same basename.
++static char *image_extension(char *path) {
++	size_t size = strlen(path);
++	return path + size - (size >= 5 && !strcasecmp(path + size - 5, ".cbin") ? 5 : 4);
++}
++
+ // this function tries to get the .toc file of the given .bin
+ // the necessary data is put into the ti (trackinformation)-array
+ static int parsetoc(const char *isofile) {
+@@ -207,7 +214,7 @@ static int parsetoc(const char *isofile) {
+ 	strncpy(tocname, isofile, sizeof(tocname));
+ 	tocname[MAXPATHLEN - 1] = '\0';
+ 	if (strlen(tocname) >= 4) {
+-		strcpy(tocname + strlen(tocname) - 4, ".toc");
++		strcpy(image_extension(tocname), ".toc");
+ 	}
+ 	else {
+ 		return -1;
+@@ -215,7 +222,7 @@ static int parsetoc(const char *isofile) {
+ 
+ 	if ((fi = fopen(tocname, "r")) == NULL) {
+ 		// try changing extension to .cue (to satisfy some stupid tutorials)
+-		strcpy(tocname + strlen(tocname) - 4, ".cue");
++		strcpy(image_extension(tocname), ".cue");
+ 		if ((fi = fopen(tocname, "r")) == NULL) {
+ 			// if filename is image.toc.bin, try removing .bin (for Brasero)
+ 			strcpy(tocname, isofile);
+@@ -362,15 +369,15 @@ static int parsecue(const char *isofile) {
+ 	cuename[MAXPATHLEN - 1] = '\0';
+ 	if (strlen(cuename) < 4)
+ 		return -1;
+-	if (strcasecmp(cuename + strlen(cuename) - 4, ".cue") == 0) {
++	if (strcasecmp(image_extension(cuename), ".cue") == 0) {
+ 		// it's already open as cdHandle
+ 		fi = cdHandle;
+ 	}
+ 	else {
+ 		// If 'isofile' is a '.cd<X>' file, use it as a .cue file
+ 		//  and don't try to search the additional .cue file
+-		if (strncasecmp(cuename + strlen(cuename) - 4, ".cd", 3) != 0 )
+-			strcpy(cuename + strlen(cuename) - 4, ".cue");
++		if (strncasecmp(image_extension(cuename), ".cd", 3) != 0 )
++			strcpy(image_extension(cuename), ".cue");
+ 
+ 		if ((ftmp = fopen(cuename, "r")) == NULL)
+ 			return -1;
+@@ -574,7 +581,7 @@ static int parseccd(const char *isofile) {
+ 	strncpy(ccdname, isofile, sizeof(ccdname));
+ 	ccdname[MAXPATHLEN - 1] = '\0';
+ 	if (strlen(ccdname) >= 4) {
+-		strcpy(ccdname + strlen(ccdname) - 4, ".ccd");
++		strcpy(image_extension(ccdname), ".ccd");
+ 	}
+ 	else {
+ 		return -1;
+@@ -632,7 +639,7 @@ static int parsemds(const char *isofile) {
+ 	strncpy(mdsname, isofile, sizeof(mdsname));
+ 	mdsname[MAXPATHLEN - 1] = '\0';
+ 	if (strlen(mdsname) >= 4) {
+-		strcpy(mdsname + strlen(mdsname) - 4, ".mds");
++		strcpy(image_extension(mdsname), ".mds");
+ 	}
+ 	else {
+ 		return -1;
+@@ -940,6 +947,7 @@ static int handlecbin(const char *isofile) {
+ 	const char *ext = NULL;
+ 	unsigned int *index_table = NULL;
+ 	unsigned int index = 0, plain;
++	off_t file_size, previous = 0;
+ 	int i, ret;
+ 
+ 	if (strlen(isofile) >= 5)
+@@ -953,7 +961,11 @@ static int handlecbin(const char *isofile) {
+ 		goto fail_io;
+ 	}
+ 
+-	if (strncmp(ciso_hdr.magic, "CISO", 4) != 0 || ciso_hdr.total_bytes <= 0 || ciso_hdr.block_size <= 0) {
++	if (strncmp(ciso_hdr.magic, "CISO", 4) != 0 || ciso_hdr.ver != 1 || ciso_hdr.align > 16 ||
++		ciso_hdr.total_bytes == 0 || ciso_hdr.total_bytes > 2ULL * 1024 * 1024 * 1024 ||
++		ciso_hdr.block_size != CD_FRAMESIZE_RAW ||
++		ciso_hdr.total_bytes % CD_FRAMESIZE_RAW != 0 ||
++		(ciso_hdr.header_size != 0 && ciso_hdr.header_size < sizeof(ciso_hdr))) {
+ 		SysPrintf("bad ciso header\n");
+ 		goto fail_io;
+ 	}
+@@ -972,13 +984,16 @@ static int handlecbin(const char *isofile) {
+ 	compr_img->block_shift = 0;
+ 	compr_img->current_block = (unsigned int)-1;
+ 
++	file_size = get_size(cdHandle);
+ 	compr_img->index_len = ciso_hdr.total_bytes / ciso_hdr.block_size;
++	if (file_size < ftello(cdHandle) + (off_t)(compr_img->index_len + 1) * 4)
++		goto fail_io;
+ 	index_table = malloc((compr_img->index_len + 1) * sizeof(index_table[0]));
+ 	if (index_table == NULL)
+ 		goto fail_io;
+ 
+-	ret = fread(index_table, sizeof(index_table[0]), compr_img->index_len, cdHandle);
+-	if (ret != compr_img->index_len) {
++	ret = fread(index_table, sizeof(index_table[0]), compr_img->index_len + 1, cdHandle);
++	if (ret != compr_img->index_len + 1) {
+ 		SysPrintf("failed to read index table\n");
+ 		goto fail_index;
+ 	}
+@@ -988,10 +1003,15 @@ static int handlecbin(const char *isofile) {
+ 		goto fail_index;
+ 
+ 	for (i = 0; i < compr_img->index_len + 1; i++) {
+-		index = index_table[i];
++		index = SWAP32(index_table[i]);
+ 		plain = index & 0x80000000;
+ 		index &= 0x7fffffff;
+ 		compr_img->index_table[i] = (off_t)index << ciso_hdr.align;
++		if (compr_img->index_table[i] < ftello(cdHandle) ||
++			compr_img->index_table[i] > file_size ||
++			(i && compr_img->index_table[i] <= previous))
++			goto fail_index;
++		previous = compr_img->index_table[i];
+ 		if (plain)
+ 			compr_img->index_table[i] |= OFF_T_MSB;
+ 	}
+@@ -1011,6 +1031,7 @@ fail_index:
+ 	free(index_table);
+ fail_io:
+ 	if (compr_img != NULL) {
++		free(compr_img->index_table);
+ 		free(compr_img);
+ 		compr_img = NULL;
+ 	}
+@@ -1124,7 +1145,7 @@ static int opensubfile(const char *isoname) {
+ 	strncpy(subname, isoname, sizeof(subname));
+ 	subname[MAXPATHLEN - 1] = '\0';
+ 	if (strlen(subname) >= 4) {
+-		strcpy(subname + strlen(subname) - 4, ".sub");
++		strcpy(image_extension(subname), ".sub");
+ 	}
+ 	else {
+ 		return -1;
+@@ -1145,10 +1166,10 @@ static int opensbifile(const char *isoname) {
+ 	if (strlen(sbiname) >= 4) {
+ 		if (cdrIsoMultidiskCount > 1) {
+ 			sprintf(disknum, "_%i.sbi", cdrIsoMultidiskSelect + 1);
+-			strcpy(sbiname + strlen(sbiname) - 4, disknum);
++			strcpy(image_extension(sbiname), disknum);
+ 		}
+ 		else
+-			strcpy(sbiname + strlen(sbiname) - 4, ".sbi");
++			strcpy(image_extension(sbiname), ".sbi");
+ 	}
+ 	else {
+ 		return -1;
+@@ -1260,16 +1281,16 @@ static int cdread_compressed(FILE *f, unsigned int base, void *dest, int sector)
+ 	block = sector >> compr_img->block_shift;
+ 	compr_img->sector_in_blk = sector & ((1 << compr_img->block_shift) - 1);
+ 
++	if (block < 0 || (unsigned int)block >= compr_img->index_len) {
++		SysPrintf("sector %d is past img end\n", sector);
++		return -1;
++	}
++
+ 	if (block == compr_img->current_block) {
+ 		//printf("hit sect %d\n", sector);
+ 		goto finish;
+ 	}
+ 
+-	if (sector >= compr_img->index_len * 16) {
+-		SysPrintf("sector %d is past img end\n", sector);
+-		return -1;
+-	}
+-
+ 	start_byte = compr_img->index_table[block] & ~OFF_T_MSB;
+ 	if (fseeko(cdHandle, start_byte, SEEK_SET) != 0) {
+ 		SysPrintf("seek error for block %d at %llx: ",
+@@ -1280,6 +1301,17 @@ static int cdread_compressed(FILE *f, unsigned int base, void *dest, int sector)
+ 
+ 	is_compressed = !(compr_img->index_table[block] & OFF_T_MSB);
+ 	size = (compr_img->index_table[block + 1] & ~OFF_T_MSB) - start_byte;
++	cdbuffer_size_expect = sizeof(compr_img->buff_raw[0]) << compr_img->block_shift;
++	// CBIN may align blocks beyond our input buffer. A single deflate sector
++	// fits in this buffer; trailing alignment padding need not be read.
++	if (compr_img->block_shift == 0 && size > sizeof(compr_img->buff_compressed))
++		size = sizeof(compr_img->buff_compressed);
++	if (!is_compressed) {
++		if (size < cdbuffer_size_expect)
++			return -1;
++		// Alignment padding belongs to the container, not the sector buffer.
++		size = cdbuffer_size_expect;
++	}
+ 	if (size > sizeof(compr_img->buff_compressed)) {
+ 		SysPrintf("block %d is too large: %u\n", block, size);
+ 		return -1;
+@@ -1301,9 +1333,11 @@ static int cdread_compressed(FILE *f, unsigned int base, void *dest, int sector)
+ 					ret, block, sector);
+ 			return -1;
+ 		}
+-		if (cdbuffer_size != cdbuffer_size_expect)
++		if (cdbuffer_size != cdbuffer_size_expect) {
+ 			SysPrintf("cdbuffer_size: %lu != %lu, sector %d\n", cdbuffer_size,
+ 					cdbuffer_size_expect, sector);
++			return -1;
++		}
+ 	}
+ 
+ 	// done at last!
+@@ -1502,6 +1536,14 @@ int ISOopen(const char *fname)
+ 	}
+ #endif
+ 
++	// A malformed compressed image must not fall through to raw-sector reads.
++	if (!compr_img && strlen(fname) >= 5 &&
++		(!strcasecmp(fname + strlen(fname) - 4, ".cbn") ||
++		 !strcasecmp(fname + strlen(fname) - 5, ".cbin"))) {
++		ISOclose();
++		return -1;
++	}
++
+ 	if (!subChanMixed && opensubfile(fname) == 0) {
+ 		strcat(image_str, "[+sub]");
+ 	}
+@@ -1511,7 +1553,7 @@ int ISOopen(const char *fname)
+ 
+ 	// maybe user selected metadata file instead of main .bin ..
+ 	bin_filename = fname;
+-	if (cdHandle && size_main < 2352 * 0x10) {
++	if (cdHandle && !compr_img && size_main < 2352 * 0x10) {
+ 		static const char *exts[] = { ".bin", ".BIN", ".img", ".IMG" };
+ 		FILE *tmpf = NULL;
+ 		size_t i;
+@@ -1520,7 +1562,7 @@ int ISOopen(const char *fname)
+ 		strncpy(alt_bin_filename, bin_filename, sizeof(alt_bin_filename));
+ 		alt_bin_filename[MAXPATHLEN - 1] = '\0';
+ 		if (strlen(alt_bin_filename) >= 4) {
+-			p = alt_bin_filename + strlen(alt_bin_filename) - 4;
++			p = image_extension(alt_bin_filename);
+ 			for (i = 0; i < sizeof(exts) / sizeof(exts[0]); i++) {
+ 				strcpy(p, exts[i]);
+ 				tmpf = fopen(alt_bin_filename, "rb");

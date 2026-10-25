@@ -45,4 +45,7 @@ QJsonObject netplayIdentity(const AdventureRegistration&, const RetroArchInstall
 QString prepareNetplay(ProcessCommand&, const AdventureRegistration&,
                        const RetroArchInstallation&, const NetplayRequest&,
                        const std::atomic_bool& cancelled);
+// A separate maintained reader is selected only for CBN/CBIN (also in M3U).
+QString preparePlayStationCore(ProcessCommand&, const AdventureRegistration&,
+                              const RetroArchInstallation&, const std::atomic_bool& cancelled);
 }

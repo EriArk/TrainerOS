@@ -1,5 +1,50 @@
 # PCSX ReARMed multiplayer preparation
 
+## CBN/CBIN reader repair — 25 October 2026
+
+The optional package in [packaging/emulators/pcsx-rearmed](../../packaging/emulators/pcsx-rearmed/)
+builds revision `c8816799b50388e61cfe237fe2cdbb7d8175f20a` with a bounded native
+reader patch. TrainerOS selects it for CBN/CBIN and M3U containing those images,
+both in ordinary RetroArch launch and shared-console NetPlay. Other PS1 content
+keeps the existing core and its retained handoff/rejoin evidence. New titles are
+not allowlisted. This new core does not inherit the older binary's handoff proof.
+
+The patch reads the terminal index, checks the actual block count before the
+cache, bounds index positions and sector layout, handles alignment padding and
+rejects wrong decompressed lengths. Invalid CBIN cannot fall through to raw-disc
+loading; a small valid compressed image cannot accidentally switch to a nearby
+BIN. Four-letter `.cbin` now finds same-basename metadata/SBI/SUB. The libretro
+extension declaration includes both aliases. The former CBN extension comparison
+itself was correct; the defects were in indices, bounds and companion paths.
+
+Admission checks CISO v1 / 2352-byte sectors, total size and the complete index;
+native miniz performs decompression. Full container bytes, descriptors, subchannel
+files and M3U dependencies enter the existing identity/watch mechanism. Launch
+rechecks content and the separate package manifest/hash. Personal cards, ordinary
+core selection, settings and the existing temporary-progress policy are preserved.
+
+Build from a clean archive (requires an ARM64 Linux C toolchain and Python 3):
+
+```sh
+git -c core.autocrlf=false archive --format=tar --output=pcsx-source.tar c8816799b50388e61cfe237fe2cdbb7d8175f20a
+sh /path/to/TrainerOS/packaging/emulators/pcsx-rearmed/build.sh pcsx-source.tar /new/build-directory
+python3 /path/to/TrainerOS/packaging/emulators/pcsx-rearmed/install-runtime.py /new/build-directory/package
+```
+
+Run the archive command in the upstream checkout. The recipe pins its SHA-256,
+checks/applies the patch and compiles/tests real reader functions with the same
+miniz implementation as the core. The package retains the pinned source archive
+with its original dependency notices, the patch, build/check recipes and GPL text.
+Installation rejects an active RetroArch,
+validates hashes/dependencies, stages the package and retains an existing version.
+The shell discovers `TrainerOS/emulators/pcsx-rearmed-cbin` under the ordinary
+data directory after restart. Roll back this package and the matching shell;
+no user card/configuration downgrade is required. For upstream updates, rebase
+the patch, re-run reader/admission/launch checks and update the source contract.
+
+Source implementation and native package checks are complete; the final device
+receipt is recorded in [the shared format register](../MULTIPLAYER_CONTENT_FORMATS.md).
+
 **25 октября — доставка:** расширенные форматы и совместимая со свежим core/main
 оболочка установлены на Flip/Odin. [Хеши, native проверки, сохранность данных
 и откат](../MULTIPLAYER_CONTENT_FORMATS.md#доставка-на-flip-и-odin--25-октября-2026).
