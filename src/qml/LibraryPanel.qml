@@ -15,7 +15,7 @@ Item {
             title: root.manager.route === "files" ? "Choose an Adventure file" : root.manager.title
             subtitle: root.manager.route === "files" ? root.files.path : root.manager.saving ? "Saving… You can leave; the submitted save will finish." : "Link your own file. Supported play setups are applied automatically."
         }
-        MountedPanel { x: 0; y: libraryHeader.height; width: parent.width; height: parent.height - y; color: "#d4e2d6" }
+        MountedPanel { x: 0; y: libraryHeader.height; width: parent.width; height: parent.height - y; color: Theme.surfaceColor("#d4e2d6") }
         Item {
             anchors.fill: parent; visible: root.manager.route === "list"
             ControllerList {
@@ -27,7 +27,7 @@ Item {
             Text { x: 30; y: 128; visible: root.manager.rows.length === 0; text: "A new library, ready for your Adventures."; font.pixelSize: 24; color: Theme.ink }
             MountedPanel {
                 anchors { left: parent.left; right: parent.right; bottom: parent.bottom }
-                height: 72; color: "#bfd6c8"
+                height: 72; color: Theme.surfaceColor("#bfd6c8")
                 Row {
                     x: 30; y: 16; spacing: 18
                     Repeater {
@@ -61,7 +61,7 @@ Item {
             }
             MountedPanel {
                 anchors { left: parent.left; right: parent.right; bottom: parent.bottom }
-                height: 72; color: "#bfd6c8"
+                height: 72; color: Theme.surfaceColor("#bfd6c8")
                 CapButton {
                     objectName: "adventure-save"; x: 30; y: 16; width: 415; height: 43
                     label: root.manager.saving ? "Saving…" : "Save Adventure"
@@ -85,7 +85,7 @@ Item {
             onActivated: function(row) { root.shell.activate(row) }
         }
         Text {
-            x: 30; y: 311; width: parent.width - 60; elide: Text.ElideRight; color: "#853b24"; font.pixelSize: 14
+            x: 30; y: 311; width: parent.width - 60; elide: Text.ElideRight; color: Theme.textColor("#853b24"); font.pixelSize: 14
             visible: root.manager.route !== "files"; text: root.manager.error; textFormat: Text.PlainText
         }
     }

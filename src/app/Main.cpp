@@ -89,6 +89,7 @@
 #include "DownloadsSmokeScenario.h"
 #include "AppsSmokeScenario.h"
 #include "PlatformSmokeScenario.h"
+#include "SettingsSmokeScenario.h"
 #include "AvatarSmokeScenario.h"
 #include "CratesSmokeScenario.h"
 #include "ExperienceSmokeScenario.h"
@@ -209,6 +210,7 @@ int main(int argc, char* argv[]) {
     parser.addOption({"art-dir", "Use a private development artwork bootstrap directory.", "directory"});
     parser.addOption({"smoke-test", "Verify the QML shell with an isolated SDL virtual controller, then exit."});
 #ifdef TRAINEROS_UI_TESTS
+    parser.addOption({"settings-smoke-test", "Verify Settings and game input editor with isolated data."});
     parser.addOption({"avatar-smoke-test", "Verify local avatar editor and preview with isolated data."});
     parser.addOption({"platform-smoke-test", "Render and exercise the host-owned SDK widget with isolated data."});
     parser.addOption({"player-overlay-smoke-test", "Verify player bubbles and mini chat with isolated provider and input fixtures."});
@@ -232,7 +234,7 @@ int main(int argc, char* argv[]) {
     bool pokedexSmoke = false;
     bool artSmoke = false;
     bool hallSmoke = false;
-    bool diagnosticsSmoke = false;
+    bool diagnosticsSmoke = false, settingsSmoke = false;
     bool exitSmoke = false;
     bool downloadsSmoke = false, appsSmoke = false, cratesSmoke = false, platformSmoke = false, avatarSmoke = false;
     bool experienceSmoke = false;
@@ -253,11 +255,12 @@ int main(int argc, char* argv[]) {
     artSmoke = parser.isSet("art-smoke-test");
     hallSmoke = parser.isSet("hall-smoke-test") || parser.isSet("achievement-gallery-smoke-test");
     diagnosticsSmoke = parser.isSet("diagnostics-smoke-test");
+    settingsSmoke = parser.isSet("settings-smoke-test");
     persistencePhase = parser.value("persistence-smoke-test");
     if (parser.isSet("persistence-smoke-test") && (!QStringList{"seed", "verify", "error", "library-seed", "library-verify", "library-final", "library-launch", "library-home", "library-home-reopen", "library-center", "collection"}.contains(persistencePhase)
             || parser.value("data-dir").isEmpty() || parser.isSet("ephemeral"))) return 2;
 #endif
-    const bool smoke = avatarSmoke || platformSmoke || cratesSmoke || appsSmoke || playerOverlaySmoke || lobbySmoke || experienceSmoke || parser.isSet("smoke-test") || downloadsSmoke || artSmoke || exitSmoke || worldsSmoke || pokedexSmoke || hallSmoke || diagnosticsSmoke || !persistencePhase.isEmpty();
+    const bool smoke = settingsSmoke || avatarSmoke || platformSmoke || cratesSmoke || appsSmoke || playerOverlaySmoke || lobbySmoke || experienceSmoke || parser.isSet("smoke-test") || downloadsSmoke || artSmoke || exitSmoke || worldsSmoke || pokedexSmoke || hallSmoke || diagnosticsSmoke || !persistencePhase.isEmpty();
     auto smokeBattery = std::make_shared<std::atomic_int>(65);
     PowerStatus powerStatus([smoke, smokeBattery] {
         if (!smoke) return systemBatteryStatus();
@@ -414,6 +417,7 @@ int main(int argc, char* argv[]) {
                 shell.apps()->configure(stateDirectory,ready?store->ownerId():QString());
                 shell.files()->configure(stateDirectory,ready?store->ownerId():QString());
                 shell.pcGames()->configure(stateDirectory,ready?store->ownerId():QString());
+                shell.settings()->gameInput()->configure(&activeLibrary,stateDirectory,ready?store->ownerId():QString());
                 shell.browser()->configure(stateDirectory,ready?store->ownerId():QString());
                 shell.album()->configure(stateDirectory,ready?store->ownerId():QString());
             });
@@ -566,6 +570,9 @@ int main(int argc, char* argv[]) {
         InvitationOverlayService appsOverlay(platform.dedicatedSession(),"/var/opt/traineros/integrations/invitation-overlay.py");
         QObject::connect(shell.apps(),&AppsController::changed,&appsOverlay,[&]{appsOverlay.setGame(shell.apps()->processId());});
         InvitationOverlayService invitationOverlay(platform.dedicatedSession(),"/var/opt/traineros/integrations/invitation-overlay.py");
+        InvitationOverlayService radialOverlay(platform.dedicatedSession(),"/var/opt/traineros/integrations/invitation-overlay.py");
+        QObject::connect(&adventureProcess,&ProcessService::started,&radialOverlay,[&]{radialOverlay.setGame(adventureProcess.processId());});
+        QObject::connect(&adventureProcess,&ProcessService::finished,&radialOverlay,[&]{radialOverlay.setGame(0);shell.settings()->gameInput()->setRadial({});});
         InvitationOverlayService achievementOverlay(platform.dedicatedSession(),"/var/opt/traineros/integrations/invitation-overlay.py");
         AchievementCelebration achievementCelebration(store.get(),realAchievements?static_cast<AchievementProvider&>(*realAchievements):shellAchievements);
         QObject::connect(&achievementCelebration,&AchievementCelebration::notice,&shell,&ShellController::showNotice);
@@ -876,6 +883,12 @@ int main(int argc, char* argv[]) {
             if (QFileInfo(overlayHelper).isFile())
                 adventureOverlay = std::make_unique<AdventureOverlayService>(adventureProcess, adventureLaunch,
                     exitPresentation, overlayHelper);
+            if(adventureOverlay) {
+                adventureOverlay->inputProfile=[&](const QString& id){return shell.settings()->gameInput()->snapshot(id);};
+                QObject::connect(adventureOverlay.get(),&AdventureOverlayService::radialChanged,shell.settings()->gameInput(),&GameInputProfiles::setRadial);
+                QObject::connect(shell.settings()->gameInput(),&GameInputProfiles::radialSlotRequested,adventureOverlay.get(),&AdventureOverlayService::selectRadialSlot);
+                QObject::connect(adventureOverlay.get(),&AdventureOverlayService::inputMappingFailed,&shell,&ShellController::showNotice);
+            }
         }
 #endif
         std::unique_ptr<GameProgressService> gameProgress;
@@ -1047,6 +1060,7 @@ int main(int argc, char* argv[]) {
                 && !shell.settings()->storage()->busy() && !(saveBackups && saveBackups->busy());
         };
         ControllerInput input(nullptr, preferred);
+        shell.settings()->setController(&input);
         remotePlay.ownerDevice=[&]{return input.kernelDeviceName();};
         const auto updateTextInput=[&]{input.setTextEntryEnabled(shell.social()->incomingCall().isEmpty()&&shell.keyboard()->isOpen()&&(playerOverlay.chatOpen()?exitPresentation.ready():!shell.menuOpen()&&shell.notice().isEmpty()&&!shell.homeMenuOpen()));};
         QObject::connect(&shell,&ShellController::changed,&input,updateTextInput);
@@ -1151,6 +1165,7 @@ int main(int argc, char* argv[]) {
         engine.rootContext()->setContextProperty("appsOverlay", &appsOverlay);
         engine.rootContext()->setContextProperty("invitationOverlay", &invitationOverlay);
         engine.rootContext()->setContextProperty("achievementOverlay", &achievementOverlay);
+        engine.rootContext()->setContextProperty("radialOverlay", &radialOverlay);
         engine.rootContext()->setContextProperty("achievementCelebration", &achievementCelebration);
         engine.rootContext()->setContextProperty("playerOverlay", &playerOverlay);
         engine.rootContext()->setContextProperty("powerStatus", &powerStatus);
@@ -1376,6 +1391,8 @@ int main(int argc, char* argv[]) {
                                    screenshotDir, smokeCompleted, qmlWarnings, diagnostics);
                 } else if(persistencePhase=="library-center") {
                     startCenterSmoke(window,shell,session,*store,input,joystick,stateDirectory,screenshotDir,smokeCompleted,qmlWarnings,diagnostics);
+                } else if (settingsSmoke) {
+                    startSettingsSmoke(window,shell,input,screenshotDir,smokeCompleted,qmlWarnings,diagnostics);
                 } else if (diagnosticsSmoke) {
                     startDiagnosticsSmoke(window, shell, session, input, deviceReports, joystick, screenshotDir,
                                           smokeCompleted, qmlWarnings, diagnostics);

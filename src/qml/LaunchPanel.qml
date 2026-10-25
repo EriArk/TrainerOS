@@ -4,9 +4,9 @@ Item {
     id: root
     required property var launch
     readonly property var info: launch.state
-    Rectangle { anchors.fill: parent; color: "#b0102022" }
+    Rectangle { anchors.fill: parent; color: Theme.surfaceColor("#b0102022") }
     MouseArea { anchors.fill: parent }
-    Rectangle { anchors.centerIn: popup; anchors.verticalCenterOffset: 6; width: popup.width + 4; height: popup.height + 4; radius: 20; color: "#55000000" }
+    Rectangle { anchors.centerIn: popup; anchors.verticalCenterOffset: 6; width: popup.width + 4; height: popup.height + 4; radius: 20; color: Theme.surfaceColor("#55000000") }
     Panel {
         id: popup
         anchors.centerIn: parent
@@ -18,12 +18,12 @@ Item {
             ShellBackgroundPattern { anchors.fill: parent; opacity: 0.3 }
             Image { anchors.fill: parent; source: root.info.art || ""; fillMode: Image.PreserveAspectCrop; asynchronous: true }
             Rectangle { anchors.fill: parent; gradient: Gradient {
-                GradientStop { position: 0; color: "#30101a20" }
-                GradientStop { position: 1; color: "#ef152c2d" }
+                GradientStop { position: 0; color: Theme.surfaceColor("#30101a20") }
+                GradientStop { position: 1; color: Theme.surfaceColor("#ef152c2d") }
             } }
             Text { x: 24; y: 22; text: "LET’S PLAY"; font.pixelSize: 12; font.letterSpacing: 2; color: Theme.yellow }
             Text { x: 24; anchors.bottom: parent.bottom; anchors.bottomMargin: 22; width: parent.width - 48
-                text: root.info.title || ""; color: Theme.paper; font.family: Theme.displayFamily; font.pixelSize: 30
+                text: root.info.title || ""; color: Theme.accentInk; font.family: Theme.displayFamily; font.pixelSize: 30
                 maximumLineCount: 2; wrapMode: Text.WordWrap; elide: Text.ElideRight; textFormat: Text.PlainText }
         }
         Item {

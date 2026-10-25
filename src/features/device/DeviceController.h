@@ -13,6 +13,10 @@ class DeviceController final : public QObject {
     Q_PROPERTY(int focusIndex READ focusIndex NOTIFY changed)
     Q_PROPERTY(bool busy READ busy NOTIFY changed)
     Q_PROPERTY(QString error READ error NOTIFY changed)
+    Q_PROPERTY(bool audioOpen READ audioOpen NOTIFY changed)
+    Q_PROPERTY(QVariantList audioOutputs READ audioOutputs NOTIFY changed)
+    Q_PROPERTY(QString audioOutput READ audioOutput NOTIFY changed)
+    Q_PROPERTY(int audioFocus READ audioFocus NOTIFY changed)
 public:
     using QObject::QObject;
     void configure(DeviceService* service, bool powerAvailable);
@@ -29,6 +33,14 @@ public:
     QString error() const { return service_ ? service_->error() : QString(); }
     void dispatch(Action);
     void activate(int index);
+    bool audioOpen() const{return audioOpen_;}
+    QVariantList audioOutputs() const{return service_?service_->snapshot().audioOutputs:QVariantList{};}
+    QString audioOutput() const{return service_?service_->snapshot().audioOutput:QString();}
+    int audioFocus() const;
+    void beginAudio();
+    void dispatchAudio(Action action);
+    Q_INVOKABLE void closeAudio();
+    Q_INVOKABLE void selectOutput(const QString& id);
 signals:
     void changed();
     void closeRequested();
@@ -39,5 +51,7 @@ private:
     bool powerAvailable_ = false;
     int focus_ = 0;
     QTimer monitor_;
+    bool audioOpen_=false;
+    QString audioFocusId_;
 };
 }

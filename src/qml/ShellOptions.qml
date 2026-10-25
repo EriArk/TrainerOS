@@ -13,7 +13,7 @@ Panel {
     SocialIconButton { anchors.right: parent.right; anchors.rightMargin: 20; y: 19; icon: "x"; label: "Close"; onClicked: root.shell.closeHomeMenu() }
     Item {
         id: activity; x: 25; y: 77; width: (parent.width-68)*.49; height: parent.height-y-25
-        Rectangle { anchors.fill: parent; radius: 16; color: "#b5fffef9"; border.color: "#6694a899" }
+        Rectangle { anchors.fill: parent; radius: 16; color: Theme.surfaceColor("#b5fffef9"); border.color: Theme.surfaceColor("#6694a899") }
         Text { id: title; x: 17; y: 15; width: parent.width-34; text: root.live.title || (root.shell.social.homeLobby.title ? "Together" : "Your activity"); color: Theme.ink; font.family: Theme.displayFamily; font.pixelSize: 23; elide: Text.ElideRight; textFormat: Text.PlainText }
         ListView { id: actions; x: 12; y: 61; width: parent.width-24; height: parent.height-y-12; clip: true; spacing: 7
             model: root.shell.homeMenuActions; currentIndex: root.inbox ? -1 : root.shell.homeMenuFocus

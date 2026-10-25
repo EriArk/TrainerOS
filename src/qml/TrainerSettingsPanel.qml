@@ -9,7 +9,7 @@ Item {
         anchors.fill: parent; anchors.margins: Theme.panelInset; anchors.topMargin: Theme.contentTopInset
         PageHeader { id: header; compact: true; title: "Trainer & accounts"; subtitle: "Your identity, your journey." }
         MountedPanel {
-            x: 0; y: header.height; width: parent.width; height: parent.height - y; color: "#d4e2d6"
+            x: 0; y: header.height; width: parent.width; height: parent.height - y; color: Theme.surfaceColor("#d4e2d6")
             Column {
                 x: 28; y: 20; spacing: 13
                 Repeater {

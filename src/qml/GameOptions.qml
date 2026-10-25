@@ -21,7 +21,7 @@ Panel {
             Text { id: name; y: picture.height+17; width: parent.width; text: root.presentation.gameTitle; font.family: Theme.displayFamily; font.pixelSize: 22; wrapMode: Text.WordWrap; maximumLineCount: 3; elide: Text.ElideRight; color: Theme.ink; textFormat: Text.PlainText }
             Text { y: name.y+name.height+15; width: parent.width; text: root.presentation.ready ? (root.appearance ? "For this game only\n\nFormat, pixels and selected artwork apply next launch.\nLive previews are marked separately." : "Your game stays open.") : "Release the controls"; color: Theme.muted; font.pixelSize: 12; wrapMode: Text.WordWrap }
         }
-        Rectangle { x: identity.x+identity.width+21; y: identity.y; width: 1; height: identity.height; color: "#30477865" }
+        Rectangle { x: identity.x+identity.width+21; y: identity.y; width: 1; height: identity.height; color: Theme.surfaceColor("#30477865") }
         Item {
             id: content; x: identity.x+identity.width+43; y: identity.y; width: parent.width-x-29; height: identity.height
             Grid {

@@ -16,7 +16,7 @@ Panel {
     onVisibleChanged: Qt.callLater(restoreFocus)
     patterned: false
     width: 430; height: Math.min(442,92 + actions.length * 58 + 15)
-    Rectangle { x: 3; y: parent.height - 3; width: parent.width - 6; height: 6; radius: 3; color: "#50121e20"; z: -1 }
+    Rectangle { x: 3; y: parent.height - 3; width: parent.width - 6; height: 6; radius: 3; color: Theme.surfaceColor("#50121e20"); z: -1 }
     Text { x: 24; y: 17; width: parent.width - 48; height: 32; text: card.heading; textFormat: Text.PlainText; font.family: Theme.displayFamily; font.pixelSize: 25; color: Theme.ink; elide: Text.ElideRight }
     Text { x: 24; y: 54; width: parent.width - 48; text: card.ready ? card.caption : "Release the controls"; textFormat: Text.PlainText; font.pixelSize: 15; color: Theme.muted; elide: Text.ElideRight }
     MountedPanel {

@@ -55,7 +55,7 @@ Item {
                 text: modelData.date + "  \u00b7  " + modelData.clock; horizontalAlignment: Text.AlignHCenter
                 font.family: Theme.displayFamily; font.pixelSize: 13; color: Theme.ink
             }
-            Rectangle { x: card.x+1; y: card.y+3; width: card.width; height: card.height; radius: 10; color: "#20193f3b" }
+            Rectangle { x: card.x+1; y: card.y+3; width: card.width; height: card.height; radius: 10; color: Theme.surfaceColor("#20193f3b") }
             Rectangle {
                 id: card; objectName: "timeline-event-" + modelData.id
                 x: 10; width: parent.width-20; height: Math.min(110,event.axis-25)

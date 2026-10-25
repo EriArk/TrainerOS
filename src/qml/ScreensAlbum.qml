@@ -76,7 +76,7 @@ Item {
         Text {
             anchors.left: gameTitle.right; anchors.leftMargin: 9; y: -3
             text: root.current.favorite ? "\u2605" : "\u2606"; font.pixelSize: 23
-            color: root.current.favorite ? "#b48228" : Theme.muted
+            color: root.current.favorite ? Theme.textColor("#b48228") : Theme.muted
             MouseArea { anchors.fill: parent; anchors.margins: -4; enabled: root.canBrowse; onClicked: root.album.toggleFavorite() }
         }
         Text {
@@ -148,7 +148,7 @@ Item {
     }
     Text { anchors.bottom: parent.bottom; anchors.bottomMargin: 77; width: parent.width; text: root.album.error; color: Theme.ink; font.pixelSize: 12; wrapMode: Text.WordWrap; visible: text.length>0 }
     Rectangle {
-        anchors.fill: parent; visible: root.album.filtering; color: "#aafffef9"; z: 4
+        anchors.fill: parent; visible: root.album.filtering; color: Theme.surfaceColor("#aafffef9"); z: 4
         MouseArea { anchors.fill: parent; enabled: root.active; onClicked: root.album.close() }
         Rectangle {
             anchors.right: parent.right; anchors.top: parent.top; anchors.margins: 8

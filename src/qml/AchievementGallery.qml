@@ -94,7 +94,7 @@ Item {
                     id: medal
                     width: Math.min(trophy.width-24,112,Math.max(32,trophy.height-41)); height: width
                     anchors.horizontalCenter: parent.horizontalCenter; y: 6
-                    Rectangle { x: 2; y: 4; width: parent.width; height: parent.height; radius: 18; color: "#25283a30" }
+                    Rectangle { x: 2; y: 4; width: parent.width; height: parent.height; radius: 18; color: Theme.surfaceColor("#25283a30") }
                     Rectangle {
                         anchors.fill: parent; radius: 17; border.width: 1; border.color: Qt.darker(trophy.metal,1.3)
                         gradient: Gradient {
@@ -103,7 +103,7 @@ Item {
                             GradientStop { position: 1; color: Qt.darker(trophy.metal,1.3) }
                         }
                     }
-                    Rectangle { anchors.fill: parent; anchors.margins: 3; radius: 14; color: "transparent"; border.color: "#bffff8df" }
+                    Rectangle { anchors.fill: parent; anchors.margins: 3; radius: 14; color: "transparent"; border.color: Theme.surfaceColor("#bffff8df") }
                     Rectangle { anchors.fill: parent; anchors.margins: 5; radius: 10; color: Qt.darker(trophy.metal,1.25) }
                     Image {
                         id: badge; anchors.fill: parent; anchors.margins: 7
@@ -114,7 +114,7 @@ Item {
                     Text {
                         anchors.centerIn: parent; visible: badge.status!==Image.Ready
                         text: trophy.earned ? "★" : trophy.locked ? "◇" : "?"
-                        color: Theme.paper; font.pixelSize: Math.min(33,medal.width*.48)
+                        color: Theme.accentInk; font.pixelSize: Math.min(33,medal.width*.48)
                     }
                     Rectangle {
                         width: 18; height: 18; radius: 9; x: parent.width-17; y: parent.height-17
@@ -161,7 +161,7 @@ Item {
     }
     AchievementPopup { anchors.fill: parent; shell: root.shell; visible: root.detailOpen; enabled: root.active; z: 4 }
     Rectangle {
-        anchors.fill: parent; visible: root.hall.galleryMenuOpen; color: "#b3fffef9"; z: 5
+        anchors.fill: parent; visible: root.hall.galleryMenuOpen; color: Theme.surfaceColor("#b3fffef9"); z: 5
         MouseArea { anchors.fill: parent; enabled: root.active; onClicked: root.hall.closeGalleryMenu() }
         Rectangle {
             width: Math.min(290,parent.width-24); height: Math.min(parent.height-12,338)

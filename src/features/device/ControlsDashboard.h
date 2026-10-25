@@ -21,6 +21,8 @@ class ControlsDashboard final : public QObject {
     Q_PROPERTY(int page READ page NOTIFY changed)
     Q_PROPERTY(int pages READ pages NOTIFY changed)
     Q_PROPERTY(QString status READ status NOTIFY changed)
+    Q_PROPERTY(QString selectedTitle READ selectedTitle NOTIFY changed)
+    Q_PROPERTY(bool widgetSelected READ widgetSelected NOTIFY changed)
 public:
     explicit ControlsDashboard(QObject* parent=nullptr);
     QVariantList widgets() const;
@@ -35,6 +37,8 @@ public:
     int page() const{return page_;}
     int pages() const;
     QString status() const{return status_;}
+    QString selectedTitle() const;
+    bool widgetSelected() const;
     void setOwner(const QString& owner);
     void setExternalWidgets(const QVariantList& widgets);
     void begin();
@@ -44,6 +48,7 @@ public:
     Q_INVOKABLE void select(QString id);
     Q_INVOKABLE void activate(QString id);
     Q_INVOKABLE void edit();
+    Q_INVOKABLE void audioOutputs();
     Q_INVOKABLE void pick();
     Q_INVOKABLE void restore(QString id);
     Q_INVOKABLE void hide();
@@ -70,6 +75,8 @@ private:
     Widget original_;
     QList<Widget> moveOriginal_;
     static QList<Widget> defaults();
+    QList<QSize> sizes(const QString& id) const;
+    bool place(const Widget& candidate);
     bool fits(const Widget&,const QList<Widget>&) const;
     Widget* find(const QString&);
     void save();

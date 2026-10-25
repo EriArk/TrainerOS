@@ -11,8 +11,8 @@ Item {
         anchors.topMargin: Theme.contentTopInset; clip: true
         PageHeader { id: diagnosticsHeader; compact: true; title: "Check your field gear"; subtitle: root.checks.connection }
         MountedPanel {
-            x: 0; y: diagnosticsHeader.height; width: parent.width; height: parent.height - y; color: "#d4e2d6"
-            Rectangle { x: 522; width: parent.width - x; height: parent.height; color: "#e1ecde" }
+            x: 0; y: diagnosticsHeader.height; width: parent.width; height: parent.height - y; color: Theme.surfaceColor("#d4e2d6")
+            Rectangle { x: 522; width: parent.width - x; height: parent.height; color: Theme.surfaceColor("#e1ecde") }
             Text { x: 30; y: 10; text: "LIVE INPUT  ·  DOT = SIGNAL OBSERVED"; color: Theme.muted; font.pixelSize: 10; font.letterSpacing: 0.5 }
             Grid {
                 x: 30; y: 30; columns: 5; columnSpacing: 8; rowSpacing: 6
@@ -22,8 +22,8 @@ Item {
                         required property int index; required property var modelData
                         objectName: "diagnostic-button-" + modelData.label
                         width: 85; height: 29; radius: 6
-                        color: modelData.held ? Theme.yellow : "#f5f6e9"
-                        border.color: modelData.held ? "#976a29" : "#8ab29c"
+                        color: modelData.held ? Theme.yellow : Theme.surfaceColor("#f5f6e9")
+                        border.color: modelData.held ? Theme.surfaceColor("#976a29") : Theme.surfaceColor("#8ab29c")
                         Text { anchors.centerIn: parent; text: modelData.label; color: Theme.ink; font.pixelSize: 13 }
                         Rectangle { x: 6; y: 11; width: 6; height: 6; radius: 3; color: Theme.ink; visible: modelData.seen }
                     }
@@ -37,9 +37,9 @@ Item {
                         required property int index
                         width: 105; height: 76
                         Rectangle {
-                            width: 66; height: 66; radius: 33; color: "#edf3e7"; border.color: "#81a593"; border.width: 2
-                            Rectangle { x: 32; y: 4; width: 1; height: 58; color: "#bbcfbf" }
-                            Rectangle { x: 4; y: 32; width: 58; height: 1; color: "#bbcfbf" }
+                            width: 66; height: 66; radius: 33; color: Theme.surfaceColor("#edf3e7"); border.color: Theme.surfaceColor("#81a593"); border.width: 2
+                            Rectangle { x: 32; y: 4; width: 1; height: 58; color: Theme.surfaceColor("#bbcfbf") }
+                            Rectangle { x: 4; y: 32; width: 58; height: 1; color: Theme.surfaceColor("#bbcfbf") }
                             Rectangle {
                                 objectName: "diagnostic-stick-" + index
                                 width: 14; height: 14; radius: 7; color: Theme.ink
@@ -59,8 +59,8 @@ Item {
                             spacing: 3
                             Text { text: (index === 0 ? "L2" : "R2") + " · " + Math.round(root.checks.axes[index + 4].value * 100) + "%"; color: Theme.ink; font.pixelSize: 12 }
                             Rectangle {
-                                width: 130; height: 9; radius: 4; color: "#f5f6e9"; border.color: "#81a593"
-                                Rectangle { x: 1; y: 1; height: 7; radius: 3; width: Math.max(0, Math.min(1, root.checks.axes[index + 4].value)) * 128; color: "#3e8b76" }
+                                width: 130; height: 9; radius: 4; color: Theme.surfaceColor("#f5f6e9"); border.color: Theme.surfaceColor("#81a593")
+                                Rectangle { x: 1; y: 1; height: 7; radius: 3; width: Math.max(0, Math.min(1, root.checks.axes[index + 4].value)) * 128; color: Theme.surfaceColor("#3e8b76") }
                             }
                         }
                     }
@@ -84,7 +84,7 @@ Item {
         }
         MountedPanel {
             anchors { left: parent.left; right: parent.right; bottom: parent.bottom }
-            height: 65; color: "#bfd6c8"
+            height: 65; color: Theme.surfaceColor("#bfd6c8")
             Row {
                 x: 30; y: 12; spacing: 12
                 Repeater {

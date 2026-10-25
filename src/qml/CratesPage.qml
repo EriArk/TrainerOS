@@ -41,7 +41,7 @@ Item {
         sourceComponent: CratesCataloguePage { flow: root.flow; active: root.active }
     }
     Rectangle {
-        anchors.fill: parent; visible: root.flow.updatePrompt; color: "#55000000"; z: 5
+        anchors.fill: parent; visible: root.flow.updatePrompt; color: Theme.surfaceColor("#55000000"); z: 5
         MouseArea { anchors.fill: parent }
         Rectangle {
             anchors.centerIn: parent; width: Math.min(380,parent.width-30); height: 160

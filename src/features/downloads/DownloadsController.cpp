@@ -4,6 +4,7 @@ namespace trainer {
 void DownloadsController::publish(const QString& provider,const QVariantList& rows) {
     if(sources_.value(provider)==rows)return;
     const auto previous=tasks().value(focusIndex()).toMap();
+    const auto previousAction=actions().value(action_).toMap()["id"].toString();
     sources_[provider]=rows;
     const auto list=tasks();
     if(std::none_of(list.begin(),list.end(),[this](const QVariant& v){return v.toMap()["key"]==selected_;}))
@@ -17,6 +18,13 @@ void DownloadsController::publish(const QString& provider,const QVariantList& ro
                 if(row["state"]=="running"||row["state"]=="queued"){selected_=row["key"].toString();break;}
             }
         }
+    }
+    if(pane_) {
+        const auto commands=actions();
+        const auto found=std::find_if(commands.begin(),commands.end(),[&](const QVariant& v){return v.toMap()["id"]==previousAction;});
+        if(selected_!=previous["key"].toString()||previousAction.isEmpty()||found==commands.end()) {
+            pane_=false;action_=0;
+        } else action_=int(std::distance(commands.begin(),found));
     }
     action_=std::clamp(action_,0,std::max(0,int(actions().size())-1));emit changed();
 }
@@ -38,8 +46,13 @@ QString DownloadsController::summary() const {
     return list.isEmpty()?"No downloads yet":QString("%1 pending · %2 finished").arg(pending).arg(done);
 }
 void DownloadsController::begin(){open_=true;pane_=false;emit changed();}
-void DownloadsController::close(){open_=false;emit changed();}
+void DownloadsController::close(){open_=false;pane_=false;emit changed();}
 void DownloadsController::select(int i){const auto list=tasks();if(i<0||i>=list.size())return;selected_=list[i].toMap()["key"].toString();action_=0;pane_=false;emit changed();}
+void DownloadsController::showActions(int i) {
+    if(i<0||i>=tasks().size())return;
+    select(i);pane_=!actions().isEmpty();emit changed();
+}
+void DownloadsController::dismissActions(){pane_=false;emit changed();}
 void DownloadsController::activate(int i) {
     const auto row=tasks().value(focusIndex()).toMap();const auto commands=actions();
     if(i<0||i>=commands.size()||!commands[i].toMap().value("enabled",true).toBool())return;
@@ -50,11 +63,12 @@ void DownloadsController::controlAll(const QString& command) {
     const auto providers=sources_.keys();for(const auto& provider:providers)emit commandRequested(provider,{},command);
 }
 void DownloadsController::dispatch(Action a) {
-    if(a==Action::Back||a==Action::SystemMenu){close();return;}
+    if(a==Action::SystemMenu){close();return;}
+    if(a==Action::Back){if(pane_)dismissActions();else close();return;}
     if(a==Action::Left)pane_=false;
-    if(a==Action::Right)pane_=true;
+    if(a==Action::Right)pane_=!actions().isEmpty();
     if(a==Action::Up||a==Action::Down){const int d=a==Action::Up?-1:1;if(pane_)action_=std::clamp(action_+d,0,std::max(0,int(actions().size())-1));else select(std::clamp(focusIndex()+d,0,std::max(0,int(tasks().size())-1)));}
-    if(a==Action::Confirm){if(pane_)activate(action_);else pane_=true;}
+    if(a==Action::Confirm){if(pane_)activate(action_);else pane_=!actions().isEmpty();}
     if(a==Action::Secondary)controlAll("pause-all");
     if(a==Action::ToggleContinue)controlAll("resume-all");
     if(a==Action::LocalAction)controlAll("cancel-all");

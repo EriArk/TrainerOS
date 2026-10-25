@@ -10,13 +10,13 @@ Item {
         if (!ready || call.callBusy || (accept && !call.answerable)) return
         social.respondToIncomingCall(call.id, accept)
     }
-    Rectangle { anchors.fill: parent; color: "#99102223" }
+    Rectangle { anchors.fill: parent; color: Theme.surfaceColor("#99102223") }
     MouseArea { anchors.fill: parent; acceptedButtons: Qt.AllButtons; onWheel: wheel => wheel.accepted = true }
     Panel {
         objectName: "incoming-call-card"
         anchors.centerIn: parent; width: Math.min(420, parent.width-40); height: 338
         radius: 32; surface: Qt.tint(Theme.paper,"#0c86b3a2"); patterned: true
-        Rectangle { x: 4; y: 10; width: parent.width-8; height: parent.height; radius: 30; color: "#55081216"; z: -1 }
+        Rectangle { x: 4; y: 10; width: parent.width-8; height: parent.height; radius: 30; color: Theme.surfaceColor("#55081216"); z: -1 }
         Text { anchors.horizontalCenter: parent.horizontalCenter; y: 26; text: "Incoming call"; font.pixelSize: 16; color: Theme.muted }
         AccountAvatar { anchors.horizontalCenter: parent.horizontalCenter; y: 57; width: 88; height: 88; name: root.call.name || ""; source: root.call.avatar || "" }
         Text { x: 26; y: 160; width: parent.width-52; height: 40; text: root.call.name || ""; textFormat: Text.PlainText; font.family: Theme.displayFamily; font.pixelSize: 28; minimumPixelSize: 18; fontSizeMode: Text.Fit; horizontalAlignment: Text.AlignHCenter; elide: Text.ElideRight; color: Theme.ink }

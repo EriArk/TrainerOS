@@ -23,7 +23,7 @@ Item {
         function onRowsChanged() { root.syncRows() }
         function onScrollRequested(direction) { contents.contentY=Math.max(0,Math.min(Math.max(0,contents.contentHeight-contents.height),contents.contentY+direction*60)); contents.maybeLoad() }
     }
-    Rectangle { anchors.fill: parent; color: "#98102022" }
+    Rectangle { anchors.fill: parent; color: Theme.surfaceColor("#98102022") }
     MouseArea { anchors.fill: parent }
     component Tool: Item {
         required property string symbol

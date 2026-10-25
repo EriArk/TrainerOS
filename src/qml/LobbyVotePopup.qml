@@ -10,7 +10,7 @@ Item {
     visible: view.voteOpen
     function count(i) { return Object.values(votes).filter(v=>v===i).length }
     function isLeading(i) { for(let j=0;j<choices.length;j++)if(count(j)>count(i))return false; return true }
-    Rectangle { anchors.fill: parent; color: "#80152728" }
+    Rectangle { anchors.fill: parent; color: Theme.surfaceColor("#80152728") }
     MouseArea { anchors.fill: parent; onClicked: root.social.lobbyPickerAction("vote-close"); onWheel: wheel=>wheel.accepted=true }
     Panel {
         anchors.centerIn: parent; width: Math.min(540,parent.width-28); height: Math.min(root.choices.length>2?370:260,parent.height-12)

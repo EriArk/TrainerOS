@@ -4,7 +4,7 @@ Rectangle {
     id: root
     property string emblem: "compass"
     radius: width / 2
-    color: "#e7f0e3"; border.color: "#a9c5b3"; border.width: 2
+    color: Theme.surfaceColor("#e7f0e3"); border.color: Theme.surfaceColor("#a9c5b3"); border.width: 2
     Canvas {
         id: drawing
         anchors.fill: parent

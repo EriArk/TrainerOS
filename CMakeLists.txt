@@ -237,6 +237,8 @@ add_library(trainer_core STATIC
     src/features/library/LibraryManagementController.cpp
     src/features/library/LibraryManagementController.h
     src/features/settings/SettingsController.cpp
+    src/features/settings/GameInputProfiles.cpp
+    src/features/settings/GameInputProfiles.h
     src/features/settings/SettingsController.h
     src/core/storage/SqliteLibrary.cpp
     src/core/storage/SqliteLibrary.h
@@ -355,6 +357,7 @@ qt_add_resources(traineros home_backdrops PREFIX "/home-backdrops" BASE assets/h
     FILES assets/home-backdrops/turquoise.png assets/home-backdrops/red.png assets/home-backdrops/green.png assets/home-backdrops/blue.png assets/home-backdrops/orange.png)
 qt_add_resources(traineros cover_fallbacks PREFIX "/cover-fallbacks" BASE assets/cover-fallbacks
     FILES assets/cover-fallbacks/fantasy-0.png assets/cover-fallbacks/fantasy-1.png assets/cover-fallbacks/fantasy-2.png assets/cover-fallbacks/fantasy-3.png assets/cover-fallbacks/fantasy-4.png assets/cover-fallbacks/fantasy-5.png assets/cover-fallbacks/racing-0.png assets/cover-fallbacks/racing-1.png assets/cover-fallbacks/sports-0.png assets/cover-fallbacks/sports-1.png assets/cover-fallbacks/scifi-0.png assets/cover-fallbacks/scifi-1.png assets/cover-fallbacks/puzzle-0.png assets/cover-fallbacks/puzzle-1.png assets/cover-fallbacks/action-0.png assets/cover-fallbacks/action-1.png assets/cover-fallbacks/neutral-0.png assets/cover-fallbacks/neutral-1.png)
+qt_add_resources(traineros crt_texture PREFIX "/textures" BASE assets/textures FILES assets/textures/crt.svg)
 qt_add_resources(traineros display_fonts PREFIX "/fonts" BASE assets/fonts
     FILES assets/fonts/Fredoka.ttf assets/fonts/OFL.txt
           assets/fonts/ChakraPetch-Bold.ttf assets/fonts/ChakraPetch-OFL.txt
@@ -509,6 +512,14 @@ qt_add_qml_module(traineros
         src/qml/StorageChoices.qml
         src/qml/SettingControl.qml
         src/qml/SettingsPanel.qml
+        src/qml/SettingsRow.qml
+        src/qml/ControllerDiagram.qml
+        src/qml/ControllerSettingsPane.qml
+    src/qml/ControllerCalibration.qml
+    src/qml/CrtTexture.qml
+        src/qml/RingDiagram.qml
+        src/qml/GameInputPane.qml
+        src/qml/RadialInputWindow.qml
         src/qml/CommunicationPane.qml
         src/qml/ClockPane.qml
         src/qml/DevicePanel.qml
@@ -624,6 +635,7 @@ if(BUILD_TESTING)
         find_package(Python3 REQUIRED COMPONENTS Interpreter)
         add_test(NAME adapter_boundary COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/AdapterBoundaryTests.py)
         add_test(NAME session_supervisor COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/SessionSupervisorTests.py)
+        add_test(NAME game_input_mapping COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/GameInputTests.py)
         add_test(NAME lobby_input_lease COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/LobbyInputLeaseTests.py)
         add_test(NAME remote_play_group COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/RemotePlayGroupTests.py)
         add_test(NAME overlay_helper COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/OverlayHelperTests.py)
@@ -739,6 +751,9 @@ if(BUILD_TESTING)
     target_sources(traineros PRIVATE tests/ui/ExitSmokeScenario.cpp tests/ui/ExitSmokeScenario.h)
     target_sources(traineros PRIVATE tests/ui/AppsSmokeScenario.cpp tests/ui/AppsSmokeScenario.h)
     target_sources(traineros PRIVATE tests/ui/PlatformSmokeScenario.h)
+    target_sources(traineros PRIVATE tests/ui/SettingsSmokeScenario.h)
+    add_test(NAME settings_qml_smoke COMMAND traineros --ephemeral --settings-smoke-test --screenshot-dir "${CMAKE_CURRENT_BINARY_DIR}/screenshots/settings")
+    set_tests_properties(settings_qml_smoke PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software;QT_FORCE_STDERR_LOGGING=1" TIMEOUT 30)
     add_test(NAME platform_qml_smoke COMMAND traineros --ephemeral --platform-smoke-test --screenshot-dir "${CMAKE_CURRENT_BINARY_DIR}/screenshots/platform")
     set_tests_properties(platform_qml_smoke PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software;QT_FORCE_STDERR_LOGGING=1" TIMEOUT 30)
     target_sources(traineros PRIVATE tests/ui/CratesSmokeScenario.cpp tests/ui/CratesSmokeScenario.h)
@@ -852,6 +867,9 @@ if(BUILD_TESTING)
     endif()
     set_tests_properties(adventure_exit PROPERTIES TIMEOUT 30)
     qt_add_executable(trainer_diagnostics_tests tests/DiagnosticsTests.cpp)
+    qt_add_executable(trainer_input_profile_tests tests/InputProfileTests.cpp)
+    target_link_libraries(trainer_input_profile_tests PRIVATE trainer_core Qt6::Test)
+    add_test(NAME input_profiles COMMAND trainer_input_profile_tests)
     target_link_libraries(trainer_diagnostics_tests PRIVATE trainer_core Qt6::Test)
     add_test(NAME diagnostics COMMAND trainer_diagnostics_tests)
     qt_add_executable(trainer_persistence_process_tests tests/PersistenceProcessTests.cpp)

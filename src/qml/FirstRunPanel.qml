@@ -15,8 +15,8 @@ Item {
             Item {
                 required property int index; required property string modelData
                 width: 94; height: 39
-                Rectangle { x: 7; y: 9; width: 90; height: 2; color: index<root.flow.step ? "#b7a56d" : "#dce2d6"; visible: index<6 }
-                Rectangle { width: 19; height: 19; radius: 10; color: index<=root.flow.step ? "#f1ce74" : "#e0e7db"; border.color: index===root.flow.step ? "#997e42" : "#b9c9ba"
+                Rectangle { x: 7; y: 9; width: 90; height: 2; color: index<root.flow.step ? Theme.surfaceColor("#b7a56d") : Theme.surfaceColor("#dce2d6"); visible: index<6 }
+                Rectangle { width: 19; height: 19; radius: 10; color: index<=root.flow.step ? Theme.surfaceColor("#f1ce74") : Theme.surfaceColor("#e0e7db"); border.color: index===root.flow.step ? Theme.surfaceColor("#997e42") : Theme.surfaceColor("#b9c9ba")
                     Text { anchors.centerIn: parent; text: index<root.flow.step ? "✓" : index+1; font.pixelSize: 10; color: Theme.ink; font.bold: true }
                 }
                 Text { x: -7; y: 23; text: modelData; color: index===root.flow.step ? Theme.ink : Theme.muted; font.pixelSize: 11; font.bold: index===root.flow.step }
@@ -27,11 +27,11 @@ Item {
         id: sheet
         x: 24; y: 91; width: parent.width-48; height: parent.height-y-53
         visible: root.flow.stage!=="trainer" && !root.flow.connections
-        Rectangle { anchors.fill: parent; color: "#fffdf4" }
-        Rectangle { width: 327; height: parent.height; color: "#e4eddc"
-            Rectangle { x: parent.width-1; width: 1; height: parent.height; color: "#afc7b6" }
+        Rectangle { anchors.fill: parent; color: Theme.surfaceColor("#fffdf4") }
+        Rectangle { width: 327; height: parent.height; color: Theme.surfaceColor("#e4eddc")
+            Rectangle { x: parent.width-1; width: 1; height: parent.height; color: Theme.surfaceColor("#afc7b6") }
         }
-        Text { x: 24; y: 18; text: "YOUR ADVENTURE KIT"; font.family: Theme.brandFamily; font.pixelSize: 13; font.letterSpacing: 1.4; color: "#5a7d70" }
+        Text { x: 24; y: 18; text: "YOUR ADVENTURE KIT"; font.family: Theme.brandFamily; font.pixelSize: 13; font.letterSpacing: 1.4; color: Theme.textColor("#5a7d70") }
         SetupIllustration { x: 4; y: 53; width: 320; height: 272; stage: root.flow.stage; checkedControls: root.flow.checkedControls }
         Text {
             x: 22; y: 325; width: 286; height: 48
@@ -39,7 +39,7 @@ Item {
                 : root.flow.stage==="controls" ? "A little practice before you set off."
                 : root.flow.stage==="network" ? "Your worlds travel with you."
                 : root.flow.stage==="ready" ? "All packed. Where to first?" : "Big worlds. A little handheld."
-            textFormat: Text.PlainText; color: "#547267"; font.pixelSize: root.flow.stage==="storage" ? 12 : 15
+            textFormat: Text.PlainText; color: Theme.textColor("#547267"); font.pixelSize: root.flow.stage==="storage" ? 12 : 15
             wrapMode: root.flow.stage==="storage" ? Text.NoWrap : Text.WordWrap; horizontalAlignment: Text.AlignHCenter; maximumLineCount: 3; elide: Text.ElideMiddle
         }
         Item {
@@ -56,9 +56,9 @@ Item {
                         Rectangle {
                             required property int index; required property string modelData
                             readonly property bool done: (root.flow.checkedControls & (1<<index))!==0
-                            width: 62; height: 68; radius: 13; color: done ? "#f2d275" : "#e4ecdf"; border.color: done ? "#b99039" : "#abbfaf"; border.width: 2
+                            width: 62; height: 68; radius: 13; color: done ? Theme.surfaceColor("#f2d275") : Theme.surfaceColor("#e4ecdf"); border.color: done ? Theme.surfaceColor("#b99039") : Theme.surfaceColor("#abbfaf"); border.width: 2
                             Text { anchors.centerIn: parent; text: modelData; color: Theme.ink; font.pixelSize: 28; font.bold: true }
-                            Text { anchors.horizontalCenter: parent.horizontalCenter; y: 82; text: done ? "✓" : "·"; color: done ? "#618566" : "#adbca7"; font.pixelSize: 22 }
+                            Text { anchors.horizontalCenter: parent.horizontalCenter; y: 82; text: done ? "✓" : "·"; color: done ? Theme.textColor("#618566") : Theme.textColor("#adbca7"); font.pixelSize: 22 }
                         }
                     }
                 }
@@ -66,8 +66,8 @@ Item {
             Rectangle {
                 x: -29; y: parent.height-155; width: parent.width+53; height: 171
                 visible: !["storage","controls","clock"].includes(root.flow.stage)
-                color: "#eef0df"
-                Rectangle { width: parent.width; height: 1; color: "#c5d2be" }
+                color: Theme.surfaceColor("#eef0df")
+                Rectangle { width: parent.width; height: 1; color: Theme.surfaceColor("#c5d2be") }
                 Column { x: 29; y: 19; width: parent.width-53; spacing: 13
                     Repeater { model: root.flow.rows
                         CapButton {
@@ -80,7 +80,7 @@ Item {
                     }
                 }
             }
-            Text { anchors.bottom: parent.bottom; width: parent.width; height: 24; visible: root.flow.stage!=="clock"; text: root.flow.busy ? "Preparing your library…" : root.flow.error; textFormat: Text.PlainText; color: "#853b24"; font.pixelSize: 13; wrapMode: Text.WordWrap }
+            Text { anchors.bottom: parent.bottom; width: parent.width; height: 24; visible: root.flow.stage!=="clock"; text: root.flow.busy ? "Preparing your library…" : root.flow.error; textFormat: Text.PlainText; color: Theme.textColor("#853b24"); font.pixelSize: 13; wrapMode: Text.WordWrap }
         }
     }
     ConnectionsPane { x: 40; y: 95; width: parent.width-80; height: parent.height-y-61; shell: root.shell; onboarding: true; visible: root.flow.connections }

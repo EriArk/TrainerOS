@@ -6,7 +6,7 @@ Item {
     readonly property var form: social.lobbyDraft
     visible: social.lobbyCreateOpen
     objectName: "lobby-create-popup"
-    Rectangle { anchors.fill: parent; color: "#80152728" }
+    Rectangle { anchors.fill: parent; color: Theme.surfaceColor("#80152728") }
     MouseArea { anchors.fill: parent; onClicked: root.social.cancelLobbyDraft(); onWheel: wheel => wheel.accepted=true }
     Panel {
         anchors.centerIn: parent; width: Math.min(450,parent.width-32); height: Math.min(390,parent.height-12)
@@ -43,7 +43,7 @@ Item {
         CapButton { objectName: "lobby-create-submit"; anchors.right: parent.right; anchors.rightMargin: 25; y: parent.height-52; width: 166; height: 32; label: "Create lobby"; textSize: 14; centered: true; tint: Theme.green; selected: root.form.focus===5; claimsFocus: false; onActivated: root.social.submitLobbyDraft() }
     }
     Item { anchors.fill: parent; visible: root.social.menu.length>0
-        Rectangle { anchors.fill: parent; color: "#70152728" }
+        Rectangle { anchors.fill: parent; color: Theme.surfaceColor("#70152728") }
         MouseArea { anchors.fill: parent; onClicked: root.social.back() }
         Panel { anchors.centerIn: parent; width: 270; height: Math.min(root.height-20,77+root.social.menu.length*34)
             MouseArea { anchors.fill: parent }

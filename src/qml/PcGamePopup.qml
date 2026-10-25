@@ -2,7 +2,7 @@ import QtQuick
 Item {
     id: root
     required property var flow
-    Rectangle { anchors.fill: parent; color: "#99102022" }
+    Rectangle { anchors.fill: parent; color: Theme.surfaceColor("#99102022") }
     MouseArea { anchors.fill: parent }
     Panel {
         anchors.centerIn: parent; width: Math.min(640,parent.width-48); height: Math.min(176+72*Math.min(3,root.flow.rows.length),parent.height-42); radius: 24

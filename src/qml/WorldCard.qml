@@ -94,12 +94,12 @@ Item {
             width: parent.width; text: root.entry.name || ""; textFormat: Text.PlainText
             font.family: Theme.displayFamily; font.pixelSize: root.portion==="whole" ? 27 : 20; font.bold: true
             horizontalAlignment: root.portion==="lower" ? Text.AlignRight : Text.AlignLeft
-            color: "#203e37"; elide: Text.ElideRight
+            color: Theme.textColor("#203e37"); elide: Text.ElideRight
         }
         Text {
             width: parent.width; text: root.entry.count ? root.entry.owned + " / " + root.entry.count + " Adventures" : "No Adventures yet"
             horizontalAlignment: root.portion==="lower" ? Text.AlignRight : Text.AlignLeft
-            color: "#3c594c"; font.pixelSize: 12; elide: Text.ElideRight
+            color: Theme.textColor("#3c594c"); font.pixelSize: 12; elide: Text.ElideRight
         }
     }
 }

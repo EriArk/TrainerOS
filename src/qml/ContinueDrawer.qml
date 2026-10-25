@@ -27,7 +27,7 @@ ChassisDrawer {
                     Text {
                         id: sourceText; anchors.centerIn: parent; text: modelData.label
                         font.pixelSize: 12; font.weight: parent.chosen ? Font.DemiBold : Font.Normal
-                        color: parent.chosen ? Theme.yellow : Theme.paper; opacity: parent.chosen ? 1 : 0.68
+                        color: parent.chosen ? Theme.yellow : Theme.accentInk; opacity: parent.chosen ? 1 : 0.68
                     }
                     Rectangle { anchors.bottom: parent.bottom; anchors.horizontalCenter: parent.horizontalCenter; width: sourceText.width; height: 1; color: Theme.yellow; visible: parent.chosen }
                     TapHandler { onTapped: root.shell.setDrawerSource(modelData.id) }
@@ -114,7 +114,7 @@ ChassisDrawer {
                                 delegate: Rectangle {
                                     required property int index
                                     x: 110 + index * 34; y: 16 + index * 8; width: 85; height: 85
-                                    radius: 25; rotation: 45; color: "#35fffef9"
+                                    radius: 25; rotation: 45; color: Theme.surfaceColor("#35fffef9")
                                 }
                             }
                         }
@@ -146,7 +146,7 @@ ChassisDrawer {
                                     ctx.lineWidth = 1; ctx.lineJoin = "round"; ctx.stroke();
                                 }
                             }
-                            Rectangle { x: 8; y: 2; width: parent.width - 23; height: 1; color: "#90fffef9" }
+                            Rectangle { x: 8; y: 2; width: parent.width - 23; height: 1; color: Theme.surfaceColor("#90fffef9") }
                             Text {
                                 x: 9; y: 4; width: parent.width - 26; elide: Text.ElideRight; textFormat: Text.PlainText
                                 text: modelData.title; color: Theme.ink; font.pixelSize: 14; font.bold: true
@@ -181,9 +181,9 @@ ChassisDrawer {
                             Rectangle {
                                 anchors.fill: parent
                                 gradient: Gradient {
-                                    GradientStop { position: 0; color: "#70fffef9" }
-                                    GradientStop { position: 0.2; color: "#a0fffef9" }
-                                    GradientStop { position: 1; color: "#b0fffef9" }
+                                    GradientStop { position: 0; color: Theme.surfaceColor("#70fffef9") }
+                                    GradientStop { position: 0.2; color: Theme.surfaceColor("#a0fffef9") }
+                                    GradientStop { position: 1; color: Theme.surfaceColor("#b0fffef9") }
                                 }
                             }
                         }
@@ -209,8 +209,8 @@ ChassisDrawer {
                 Text { visible: root.shell.drawerSource === "favorites"; text: "☆"; color: Theme.yellow; font.pixelSize: 36; anchors.verticalCenter: parent.verticalCenter }
                 Column {
                     spacing: 4
-                    Text { id: emptyTitle; text: root.shell.drawerSource === "favorites" ? "Your favorites belong here" : "No recent games yet"; color: Theme.paper; font.pixelSize: 16 }
-                    Text { visible: root.shell.drawerSource === "favorites"; text: "Favorite games from across your library"; color: Theme.paper; opacity: .65; font.pixelSize: 12 }
+                    Text { id: emptyTitle; text: root.shell.drawerSource === "favorites" ? "Your favorites belong here" : "No recent games yet"; color: Theme.accentInk; font.pixelSize: 16 }
+                    Text { visible: root.shell.drawerSource === "favorites"; text: "Favorite games from across your library"; color: Theme.accentInk; opacity: .65; font.pixelSize: 12 }
                 }
             }
         }

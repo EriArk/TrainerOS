@@ -9,18 +9,18 @@ Item {
         anchors.centerIn: parent; anchors.verticalCenterOffset: 2
         width: parent.width * 0.96; height: Math.min(parent.height * 0.9, width)
         radius: width * 0.25
-        color: root.badgeState === "earned" ? "#778575" : "#b7c4ad"
-        border.color: "#8e9e87"
+        color: root.badgeState === "earned" ? Theme.surfaceColor("#778575") : Theme.surfaceColor("#b7c4ad")
+        border.color: Theme.surfaceColor("#8e9e87")
     }
     Rectangle {
         anchors.centerIn: parent
         width: parent.width * 0.96; height: Math.min(parent.height * 0.9, width)
         radius: width * 0.25
         gradient: Gradient {
-            GradientStop { position: 0; color: "#bbc9ad" }
-            GradientStop { position: 1; color: "#eff4df" }
+            GradientStop { position: 0; color: Theme.surfaceColor("#bbc9ad") }
+            GradientStop { position: 1; color: Theme.surfaceColor("#eff4df") }
         }
-        border.color: "#d8e3c8"
+        border.color: Theme.surfaceColor("#d8e3c8")
     }
     Image {
         id: artwork
@@ -36,6 +36,6 @@ Item {
         anchors.centerIn: parent
         visible: !root.imageReady
         text: root.badgeState === "unknown" ? "?" : "·"
-        color: "#7b8a70"; font.pixelSize: Math.min(24, root.width * 0.5)
+        color: Theme.textColor("#7b8a70"); font.pixelSize: Math.min(24, root.width * 0.5)
     }
 }

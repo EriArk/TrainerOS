@@ -3,7 +3,7 @@ Item {
     id: root
     required property var importer
     readonly property var files: importer.files
-    Rectangle { anchors.fill: parent; color: "#aa102022"; visible: !root.files.open }
+    Rectangle { anchors.fill: parent; color: Theme.surfaceColor("#aa102022"); visible: !root.files.open }
     MouseArea { anchors.fill: parent }
     Panel {
         visible: !root.files.open

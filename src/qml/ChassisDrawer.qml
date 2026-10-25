@@ -79,17 +79,17 @@ Item {
                 x: 0; y: 2; width: root.width; height: root.height
                 visible: root.height <= Theme.adventureTabHeight+0.1
                 ShapePath {
-                    strokeColor: "#0a101e1d"; strokeWidth: 10
+                    strokeColor: Theme.surfaceColor("#0a101e1d"); strokeWidth: 10
                     fillColor: "transparent"; joinStyle: ShapePath.RoundJoin
                     PathSvg { path: root.shoulder() }
                 }
                 ShapePath {
-                    strokeColor: "#14101e1d"; strokeWidth: 6
+                    strokeColor: Theme.surfaceColor("#14101e1d"); strokeWidth: 6
                     fillColor: "transparent"; joinStyle: ShapePath.RoundJoin
                     PathSvg { path: root.shoulder() }
                 }
                 ShapePath {
-                    strokeColor: "#24101e1d"; strokeWidth: 3
+                    strokeColor: Theme.surfaceColor("#24101e1d"); strokeWidth: 3
                     fillColor: "transparent"; joinStyle: ShapePath.RoundJoin
                     PathSvg { path: root.shoulder() }
                 }
@@ -133,7 +133,7 @@ Item {
                     delegate: Rectangle {
                         required property int index
                         x: root.keyInset-4+index; y: 7+index; width: 29-index*2; height: width; radius: width/2
-                        color: ["#0a101e1d","#12101e1d","#1c101e1d","#28101e1d"][index]
+                        color: [Theme.surfaceColor("#0a101e1d"),Theme.surfaceColor("#12101e1d"),Theme.surfaceColor("#1c101e1d"),Theme.surfaceColor("#28101e1d")][index]
                     }
                 }
                 Rectangle {
@@ -154,7 +154,7 @@ Item {
                 }
                 Text {
                     x: (root.button === "Y" ? root.keyInset : 18)+28; y: 7; width: root.closedWidth-x-22; height: 24
-                    text: root.label; color: root.button === "Y" ? Theme.ink : Theme.paper
+                    text: root.label; color: root.button === "Y" ? Theme.ink : Theme.accentInk
                     font.pixelSize: 13; font.weight: Font.Medium
                     fontSizeMode: Text.HorizontalFit; minimumPixelSize: 10
                     horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter

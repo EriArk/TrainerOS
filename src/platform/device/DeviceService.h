@@ -3,12 +3,15 @@
 #include <QThread>
 #include <QMap>
 #include <QString>
+#include <QVariantList>
 #include <functional>
 
 namespace trainer {
 struct DeviceSnapshot {
     int volume = -1;
     bool muted = false;
+    QVariantList audioOutputs;
+    QString audioOutput;
     int brightness = -1;
     QString network = "Unavailable";
     int wifi = -1, bluetooth = -1, airplane = -1;
@@ -18,9 +21,11 @@ struct BacklightValue { QString directory; int current = -1, maximum = -1; };
 BacklightValue readBacklight(const QString& root);
 QString writeBacklight(const QString& root, int percent);
 DeviceSnapshot parseVolume(const QByteArray& output);
+QVariantList parseAudioOutputs(const QByteArray& output);
 struct DeviceBackend {
     std::function<DeviceSnapshot()> read;
     std::function<QString(const QString&, int)> write;
+    std::function<QString(const QString&)> selectOutput;
 };
 DeviceBackend systemDeviceBackend(const QString& dataDirectory, const QString& libraryDirectory);
 
@@ -38,10 +43,11 @@ public:
     void toggleMute();
     void toggleRadio(const QString& control);
     void hardwareVolume(int delta);
+    void selectOutput(const QString& id);
 signals:
     void changed();
 private:
-    void execute(const QString& control, int value);
+    void execute(const QString& control, int value, const QString& output = {});
     DeviceBackend backend_;
     DeviceSnapshot snapshot_;
     QString error_;

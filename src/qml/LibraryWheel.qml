@@ -149,7 +149,7 @@ Item {
                     x: fallback.x; y: fallback.y + 3; width: fallback.width; height: fallback.height
                     visible: fallback.visible
                     text: fallback.text; textFormat: Text.PlainText
-                    color: "#463d39"; style: Text.Outline; styleColor: "#463d39"
+                    color: Theme.textColor("#463d39"); style: Text.Outline; styleColor: "#463d39"
                     font: fallback.font
                     fontSizeMode: Text.Fit; minimumPixelSize: 15
                     horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter

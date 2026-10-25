@@ -8,7 +8,7 @@ Rectangle {
     ShellBackgroundPattern { anchors.fill: parent }
     PageHeader { id: pickerHeader; compact: true; title: "Choose your favorite Pokémon"; subtitle: root.picker.query ? "Search · " + root.picker.query : "One companion for your Trainer card" }
     MountedPanel {
-        x: 0; y: pickerHeader.height; width: parent.width; height: 326 - y; color: "#d8e5d8"
+        x: 0; y: pickerHeader.height; width: parent.width; height: 326 - y; color: Theme.surfaceColor("#d8e5d8")
         ListView {
             id: list
             x: 25; y: 8; width: parent.width - 50; height: 216
@@ -47,7 +47,7 @@ Rectangle {
     }
     MountedPanel {
         anchors { left: parent.left; right: parent.right; bottom: parent.bottom }
-        height: 86; color: "#c6dcca"
+        height: 86; color: Theme.surfaceColor("#c6dcca")
         Text { x: 31; y: 6; text: list.count + " entries"; color: Theme.muted; font.pixelSize: 12 }
         CapButton { objectName: "species-search"; x: 30; y: 32; width: 260; height: 40; label: "Search"; selected: root.takesFocus && list.count === 0; onActivated: root.picker.requestSearch() }
         CapButton { x: 316; y: 32; width: 260; height: 40; label: "No favorite"; tint: Theme.blue; onActivated: root.picker.clearChoice() }

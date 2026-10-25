@@ -196,7 +196,7 @@ Built-in Experience реализован; внешние SPI/SDK-вклады т
 | S01 | [TrainerController](../src/features/trainer/TrainerController.h), [TrainerRepository](../src/core/repository/TrainerRepository.h), [ownership](TRAINER_OWNERSHIP.md) | TrainerOS ID, recovery и online-привязки — [target](TRAINEROS_ACCOUNT_ECONOMY_RU.md). |
 | S02 | [LibraryRepository](../src/core/repository/LibraryRepository.h), [SqliteLibrary](../src/core/storage/SqliteLibrary.h), [PC import](../src/features/pc/PcGamesController.h) | Общая совместимость всех изданий/форматов и автоматические коллекции не закрыты. |
 | S03 | [Launch](../src/core/navigation/AdventureLaunchController.h), [Exit](../src/core/navigation/AdventureExitController.h), [runtime integrations](../src/integrations/adventure), [AppsController](../src/features/apps/AppsController.h) | Игры и обычные приложения имеют разные текущие исполнители. Общая ответственность за деятельность не означает, что все приложения уже проходят AdventureLaunchController. PC installer/runtime и часть multiplayer открыты. |
-| S04 | [ShellController](../src/core/navigation/ShellController.h), [input](../src/platform/input), [контракт](CONTROLS78_HOME_START.md) | Start → Wi-Fi popup → общая клавиатура → тот же NetworkController/S15 → возврат к виджету. Закрытие снимает ввод/опрос popup; тот же маршрут из игрового Home. Все физические контроллеры/TV, Home во всех runtime и полный внешний contribution API не приняты. |
+| S04 | [ShellController](../src/core/navigation/ShellController.h), [input](../src/platform/input), [контракт](CONTROLS78_HOME_START.md) | Start → Wi-Fi/Bluetooth popup → общая клавиатура/подтверждение → тот же NetworkController/S15 → возврат к виджету. При повторном входе отменяемый запрос завершается до нового; поздние списки/коды не меняют новый контекст. Volume → список выходов → DeviceController/DeviceService S15 → проверенный системный audio default; настройки звонка независимы. ControlsDashboard владеет личной сеткой, допустимыми размерами, переносом/обменом и полным откатом; QML передаёт те же действия от touch/controller. Закрытие снимает ввод/опрос popup; тот же маршрут из игрового Home. Все физические контроллеры/TV, Home во всех runtime и полный внешний contribution API не приняты. |
 | S05 | [SocialController](../src/features/social/SocialController.h), [FluxerSession](../src/integrations/social/FluxerSession.h), [SocialMedia](../src/features/social/SocialMedia.h) | Реальная речь/гарнитура и отдельные provider/lifecycle сценарии открыты. |
 | S06 | [LobbyCoordinator](../src/features/social/LobbyCoordinator.h), [LobbyRuntime](../src/features/social/LobbyRuntime.h), [directory bot](../services/lobby-directory/README.md) | Offline Lobby, полный rejoin/роль зрителя/все runtime не готовы. Физическое размещение в Social не меняет владельца комнаты. |
 | S07 | [network](../src/platform/network), [OnlineLink](../src/integrations/social/OnlineLink.h), [remote-play transport](../tools/remote-play-stream/transport), [матрица](EMULATOR_MULTIPLAYER_MATRIX.md) | Есть ограниченный app records bridge через существующий helper; полный Network Fabric, разные сети/режимы и PC LAN WIP имеют отдельные границы. |
@@ -311,6 +311,23 @@ Minimize сохраняет тот же сеанс. Обычный Exit прох
 **можно вернуться/готовить следующую игру**. В PC WIP явное закрытие с code 130
 может разрешить продолжение Lobby, сохраняя unclean save/frame outcome; это не
 доказательство сохранения внутри игры. Краш/stop не должны давать фиктивный успех.
+
+Light/Dark и presentation preferences принадлежат S01/текущему Trainer через
+существующий `shell_state` (`scope=preferences`, `trainer_id`); S04 только
+редактирует/отображает их. Калибровка принадлежит физическому устройству S15,
+игровая раскладка — паре Trainer/game; смена owner очищает черновик и не
+переносит активный ввод. F02/F12 сохраняют нейтральный барьер и освобождение
+выхода при Home/focus/disconnect.
+
+[Профили ввода 25.10](INPUT_PROFILES.md): S04 (`GameInputProfiles`) хранит
+owner/game черновик и атомарный профиль; S03 передаёт снимок следующему запуску
+через `AdventureOverlayService`. S15/InputPlumber перехватывает gamepad, отдельный
+watchdog XTest владеет удержанными клавишами/мышью на действующем X11 game window.
+Home, focus loss, disconnect, EOF/timeout освобождают выход; возврат требует
+нейтрали. Кольцо использует нефокусируемый `InvitationOverlayService` и тот же
+lease, без нового владельца сеанса/сохранений. Постоянный профиль устройства
+остаётся у `ControllerInput`; raw helpers получают только runtime-проекцию.
+Физическая Linux-приёмка этого пути ещё открыта, как и прочие host backends.
 
 У приложений сейчас отдельная ветка `AppsController::openDesktopId()` →
 `commandRequested(launch)` → [apps-service](../packaging/integrations/apps-service.py).
@@ -596,6 +613,7 @@ sample необязателен для простой realtime игры. Про�
 | Причина / вход | Что восстанавливается и кем | Что нельзя считать восстановленным / проверка |
 | --- | --- | --- |
 | Сон/крышка | S15 PowerControl/logind, S04 navigation checkpoint; записи проверяются до suspend, wake сохраняет текущий экран | Сейчас активная игра отклоняет Sleep. Сон работающего эмулятора/voice/transfers и физический wake ещё не приняты; не обещать resume игры. [POWER86](POWER86.md). |
+| Потеря focus/помощника game input | S03/S15 снимают held keys/mouse через независимый watchdog; S04 гасит кольцо. При следующем вводе требуется нейтраль, после потери helper применяется native fallback | [Профили ввода](INPUT_PROFILES.md): тесты mapping/EOF/timeout не заменяют физический X11/InputPlumber loop или sleep/wake. Профиль и сохранения остаются на диске. |
 | Перезапуск shell | S04 открывает Home, сохраняя позиции разделов; S03 проверяет фактический процесс через существующий supervisor, S08 — оставшуюся save-операцию | Новый shell не является новым запуском/успешным save. Attachment к оставшемуся процессу/input/helpers требует подтверждения по runtime; не стартовать дубль. Browser не восстанавливает сетевые страницы автоматически. |
 | Перезапуск/потеря Lobby | S06 читает owner/account journal; хозяин повышает generation, сбрасывает Ready/ticket, гость заново подтверждает членство | Журнал не выдаёт допуск, не воскрешает исключённого участника и не восстанавливает emulator savestate. Подтверждённая игра завершается независимо. [LOBBY_RECOVERY](LOBBY_RECOVERY.md). |
 | Потеря сети/provider | S05 reconnect собственных событий; S07 восстанавливает только поддержанный игровой канал; S06 повторно проверяет членство/режим | Messenger online не доказывает game rejoin. Срок приглашения не продлевается молча, call не заменяется новым. Существующий runtime решает reconnect либо завершение с сохранным Exit. |

@@ -76,7 +76,7 @@ Item {
                 width: files.cellWidth; height: files.cellHeight
                 Accessible.role: Accessible.Button; Accessible.name: modelData.name
                 Accessible.onPressAction: root.flow.activate(index)
-                Rectangle { anchors.fill: parent; anchors.margins: 3; radius: 8; color: modelData.selected ? "#22f4cc62" : "transparent"
+                Rectangle { anchors.fill: parent; anchors.margins: 3; radius: 8; color: modelData.selected ? Theme.surfaceColor("#22f4cc62") : "transparent"
                     border.width: root.takesFocus && root.state.area === "files" && root.state.index === index ? 1.5 : modelData.selected ? 1 : 0
                     border.color: modelData.selected ? Theme.chassis : Theme.focusGlow
                 }
@@ -100,6 +100,6 @@ Item {
         }
         Connections { target: root.flow; function onScrollRequested(direction) { files.contentY=Math.max(0,Math.min(Math.max(0,files.contentHeight-files.height),files.contentY+direction*55)) } }
     }
-    Text { x: sidebar.width+22; y: root.height-50; width: parent.width-x-12; height: 18; color: root.state.error.length ? "#96502d" : Theme.muted; font.pixelSize: 11; elide: Text.ElideRight; textFormat: Text.PlainText
+    Text { x: sidebar.width+22; y: root.height-50; width: parent.width-x-12; height: 18; color: root.state.error.length ? Theme.textColor("#96502d") : Theme.muted; font.pixelSize: 11; elide: Text.ElideRight; textFormat: Text.PlainText
         text: root.state.error || root.applicationStatus || (root.state.selected ? root.state.selected+" selected" : root.state.count+" items") + (root.state.query.length ? " · "+root.state.query : "") }
 }

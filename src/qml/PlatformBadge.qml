@@ -8,8 +8,8 @@ Rectangle {
     property bool frameless: false
     property color glyphColor: "#405b51"
     width: 72; height: 44; radius: 7
-    color: frameless ? "transparent" : "#d7ded7"; border.color: "#8c9f97"; border.width: frameless ? 0 : 1
-    Rectangle { visible: !root.frameless; x: 2; y: 2; width: parent.width - 4; height: 1; color: "#71877d" }
+    color: frameless ? "transparent" : Theme.surfaceColor("#d7ded7"); border.color: Theme.surfaceColor("#8c9f97"); border.width: frameless ? 0 : 1
+    Rectangle { visible: !root.frameless; x: 2; y: 2; width: parent.width - 4; height: 1; color: Theme.surfaceColor("#71877d") }
     Canvas {
         id: silhouette
         x: 20; y: 5; width: 32; height: 20

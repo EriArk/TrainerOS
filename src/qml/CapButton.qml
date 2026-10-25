@@ -10,6 +10,7 @@ Item {
     property bool deferredFocus: false
     property int textSize: 17
     property bool centered: false
+    property bool flat: false
     property real contentInset: 13
     property color focusColor: Theme.focus
     property string platform: ""
@@ -35,27 +36,27 @@ Item {
     onVisibleChanged: requestFocus()
     Component.onCompleted: requestFocus()
     Rectangle {
-        x: -1; y: 2; width: parent.width + 2; height: parent.height + 3
-        radius: 10; color: "#50324438"
+        visible: !root.flat; x: -1; y: 2; width: parent.width + 2; height: parent.height + 3
+        radius: 10; color: Theme.surfaceColor("#50324438")
     }
     Rectangle {
-        y: 3; width: parent.width; height: parent.height
+        visible: !root.flat; y: 3; width: parent.width; height: parent.height
         radius: 9; color: Qt.darker(root.capTint, 1.7); border.color: Qt.darker(root.capTint, 1.9)
     }
     Item {
         id: cap
-        y: root.depressed || pointer.pressed ? 3 : 0
+        y: !root.flat && (root.depressed || pointer.pressed) ? 3 : 0
         width: parent.width; height: parent.height
         Behavior on y { NumberAnimation { duration: Theme.motion(55) } }
         Rectangle {
-            anchors.fill: parent; radius: 9; border.color: Qt.darker(root.capTint, 1.6)
+            visible: !root.flat; anchors.fill: parent; radius: 9; border.color: Qt.darker(root.capTint, 1.6)
             gradient: Gradient {
                 GradientStop { position: 0; color: Qt.lighter(root.capTint, 1.18) }
                 GradientStop { position: 0.15; color: Qt.lighter(root.capTint, 1.08) }
                 GradientStop { position: 1; color: root.capTint }
             }
-            Rectangle { anchors.fill: parent; anchors.margins: 2; radius: 7; color: "transparent"; border.color: "#65ffffff" }
-            Rectangle { x: 7; y: 2; width: parent.width - 14; height: 1; color: "#b3ffffff" }
+            Rectangle { anchors.fill: parent; anchors.margins: 2; radius: 7; color: "transparent"; border.color: Theme.surfaceColor("#65ffffff") }
+            Rectangle { x: 7; y: 2; width: parent.width - 14; height: 1; color: Theme.surfaceColor("#b3ffffff") }
         }
         Column {
             anchors { left: parent.left; right: parent.right; margins: 13; verticalCenter: parent.verticalCenter }
@@ -65,7 +66,7 @@ Item {
             Text {
                 width: parent.width; text: root.label
                 textFormat: Text.PlainText
-                color: Theme.ink; font.pixelSize: root.textSize; font.weight: Font.DemiBold
+                color: Theme.ink; font.pixelSize: root.flat ? Math.min(15,root.textSize) : root.textSize; font.weight: root.selected || !root.flat ? Font.DemiBold : Font.Normal
                 horizontalAlignment: root.centered ? Text.AlignHCenter : Text.AlignLeft
                 elide: Text.ElideRight
             }
@@ -81,14 +82,14 @@ Item {
         }
         Rectangle {
             x: 12; anchors.verticalCenter: parent.verticalCenter; width: 18; height: 18; radius: 9
-            visible: root.warning; color: "#713e37"
-            Text { anchors.centerIn: parent; text: "!"; color: "#fff0d8"; font.pixelSize: 13; font.bold: true }
+            visible: root.warning; color: Theme.surfaceColor("#713e37")
+            Text { anchors.centerIn: parent; text: "!"; color: Theme.textColor("#fff0d8"); font.pixelSize: 13; font.bold: true }
         }
     }
     // A bright core and broad inward bloom remain intact at clipped list edges.
     // The outside footprint stays within the existing four-unit focus gutter.
     Item {
-        anchors.fill: parent; z: 1; visible: root.selected
+        anchors.fill: parent; z: 1; visible: root.selected && !root.flat
         Repeater {
             model: 12
             delegate: Rectangle {
@@ -110,8 +111,10 @@ Item {
         Rectangle {
             x: 1; y: 1; width: parent.width - 2; height: parent.height - 2
             radius: 8; color: "transparent"
-            border.width: 1; border.color: "#fff9d6"
+            border.width: 1; border.color: Theme.surfaceColor("#fff9d6")
         }
     }
+    Rectangle { x: 0; y: 7; width: 2; height: parent.height-14; visible: root.flat && root.selected; color: Theme.surfaceColor("#65967d") }
+    Rectangle { x: 10; y: parent.height-1; width: parent.width-20; height: 1; visible: root.flat; color: Theme.surfaceColor("#e0e6dc") }
     MouseArea { id: pointer; anchors.fill: parent; onClicked: { root.pressFeedback(); root.activated(); } }
 }

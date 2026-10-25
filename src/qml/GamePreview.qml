@@ -29,7 +29,7 @@ Item {
         active: root.visible && root.themedFallback && still.status !== Image.Ready
         sourceComponent: HomeCardBackdrop {
             radius: 4
-            Rectangle { anchors.fill: parent; color: "#30203730"; radius: 4 }
+            Rectangle { anchors.fill: parent; color: Theme.surfaceColor("#30203730"); radius: 4 }
             Image {
                 id: fallbackImage; anchors.centerIn: parent
                 width: parent.width * 0.78; height: parent.height * 0.72
@@ -43,7 +43,7 @@ Item {
                 font.family: Theme.gameFamily; font.pixelSize: 29; minimumPixelSize: 17; fontSizeMode: Text.Fit
                 wrapMode: Text.WordWrap; maximumLineCount: 3; elide: Text.ElideRight
                 horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter
-                color: "#fff3cb"; style: Text.Outline; styleColor: Theme.chassisDark
+                color: Theme.textColor("#fff3cb"); style: Text.Outline; styleColor: Theme.chassisDark
             }
         }
     }

@@ -5,7 +5,7 @@ Item {
     readonly property var hall: shell.hall
     readonly property bool active: visible && !hall.account.open && !shell.keyboard.open && !shell.menuOpen
     objectName: "achievement-history"
-    Rectangle {anchors.fill: parent; color: "#650d2525"; radius: 10}
+    Rectangle {anchors.fill: parent; color: Theme.surfaceColor("#650d2525"); radius: 10}
     MouseArea {anchors.fill: parent; enabled: root.active; onClicked: root.hall.closeHistory()}
     Rectangle {
         id: popup; objectName: "achievement-history-popup"; anchors.centerIn: parent

@@ -30,6 +30,8 @@ public:
     Q_INVOKABLE void begin();
     Q_INVOKABLE void close();
     Q_INVOKABLE void select(int index);
+    Q_INVOKABLE void showActions(int index);
+    Q_INVOKABLE void dismissActions();
     Q_INVOKABLE void activate(int index);
     Q_INVOKABLE void controlAll(const QString& command);
 signals:

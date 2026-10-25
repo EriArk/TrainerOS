@@ -26,7 +26,7 @@ Item {
         }
         ActivityRow { id: quit; anchors.bottom: parent.bottom; width: Math.min(190,parent.width); height: 39; label: "Exit game"; glyph: "close"; accent: Theme.pink; selected: root.selection==="exit"; enabled: root.presentation.ready; onActivated: root.presentation.activateAction("exit") }
     }
-    Rectangle { x: game.x+game.width+13; y: game.y; width: 1; height: game.height; color: "#3558786a" }
+    Rectangle { x: game.x+game.width+13; y: game.y; width: 1; height: game.height; color: Theme.surfaceColor("#3558786a") }
     Item { id: updates; x: game.x+game.width+27; y: game.y; width: parent.width-x-26; height: game.height
         Text { id: heading; width: parent.width; text: root.shell.social.homeLobby.title || "Your updates"; font.family: Theme.displayFamily; font.pixelSize: 23; elide: Text.ElideRight; color: Theme.ink; textFormat: Text.PlainText }
         Row { id: people; y: heading.height+12; height: visible ? 80 : 0; spacing: 9; visible: playerOverlay.players.length>0

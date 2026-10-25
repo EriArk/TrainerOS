@@ -16,9 +16,9 @@ Item {
     readonly property real inset: featured ? 20 : 16
     readonly property real labelHeight: featured ? 48 : 36
     // Layered contact shadows and bevels, without a full-screen shader pass.
-    Rectangle { x: 2; y: 22; width: parent.width-4; height: parent.height-17; radius: 15; color: "#130f2725" }
-    Rectangle { x: 3; y: 22; width: parent.width-6; height: parent.height-20; radius: 14; color: "#20102725" }
-    Rectangle { x: -4; y: -1; width: root.width+8; height: root.height+4; radius: 18; color: "transparent"; border.width: 4; border.color: "#36ffcc61"; visible: root.selected }
+    Rectangle { x: 2; y: 22; width: parent.width-4; height: parent.height-17; radius: 15; color: Theme.surfaceColor("#130f2725") }
+    Rectangle { x: 3; y: 22; width: parent.width-6; height: parent.height-20; radius: 14; color: Theme.surfaceColor("#20102725") }
+    Rectangle { x: -4; y: -1; width: root.width+8; height: root.height+4; radius: 18; color: "transparent"; border.width: 4; border.color: Theme.surfaceColor("#36ffcc61"); visible: root.selected }
     Rectangle { x: -1; y: 1; width: root.width+2; height: root.height; radius: 15; color: "transparent"; border.width: 2; border.color: Theme.focus; visible: root.selected }
     // A visible return face gives the case real thickness, not a card outline.
     Shape {
@@ -42,8 +42,8 @@ Item {
             GradientStop { position: 1; color: Qt.darker(root.material, 1.19) }
         }
         border.width: 1; border.color: Qt.darker(root.material,1.6)
-        Rectangle { anchors.fill: parent; anchors.margins: 3; radius: 7; color: "transparent"; border.color: "#6affffdd" }
-        Rectangle { x: 8; y: parent.height-4; width: parent.width-16; height: 3; radius: 1; color: Qt.darker(root.material,1.38); border.color: "#40ffffdd" }
+        Rectangle { anchors.fill: parent; anchors.margins: 3; radius: 7; color: "transparent"; border.color: Theme.surfaceColor("#6affffdd") }
+        Rectangle { x: 8; y: parent.height-4; width: parent.width-16; height: 3; radius: 1; color: Qt.darker(root.material,1.38); border.color: Theme.surfaceColor("#40ffffdd") }
         Rectangle {
             id: artSlot
             x: root.inset; y: root.lip-2; width: parent.width-2*x; height: parent.height-y-root.labelHeight
@@ -51,7 +51,7 @@ Item {
             // Inset image has a narrow cast edge; the lid overlaps its top.
             CrateIllustration { anchors.fill: parent; anchors.margins: 3; art: root.entry.art; clip: true }
             Rectangle { anchors.fill: parent; radius: 8; color: "transparent"; border.width: 3; border.color: Qt.lighter(root.material,1.18) }
-            Rectangle { x: 3; y: 3; width: parent.width-6; height: 2; color: "#450e2928" }
+            Rectangle { x: 3; y: 3; width: parent.width-6; height: 2; color: Theme.surfaceColor("#450e2928") }
         }
         CrateEmblem { x: root.inset; y: parent.height-root.labelHeight+6; width: root.featured ? 35 : 24; height: width; art: root.entry.art; accent: root.lidColor }
         Text {
@@ -80,8 +80,8 @@ Item {
                     GradientStop { position: 1; color: Qt.darker(root.material,1.18) }
                 }
                 border.color: Qt.darker(root.material,1.4)
-                Rectangle { anchors.horizontalCenter: parent.horizontalCenter; y: 5; width: 3; height: 3; radius: 1.5; color: Qt.darker(root.material,1.8); border.color: "#60fff1d0" }
-                Rectangle { anchors.horizontalCenter: parent.horizontalCenter; y: parent.height-9; width: 3; height: 3; radius: 1.5; color: Qt.darker(root.material,1.8); border.color: "#60fff1d0" }
+                Rectangle { anchors.horizontalCenter: parent.horizontalCenter; y: 5; width: 3; height: 3; radius: 1.5; color: Qt.darker(root.material,1.8); border.color: Theme.surfaceColor("#60fff1d0") }
+                Rectangle { anchors.horizontalCenter: parent.horizontalCenter; y: parent.height-9; width: 3; height: 3; radius: 1.5; color: Qt.darker(root.material,1.8); border.color: Theme.surfaceColor("#60fff1d0") }
             }
         }
     }
@@ -91,7 +91,7 @@ Item {
         rotation: root.opening ? -2 : 0
         Behavior on y { NumberAnimation { duration: Theme.motion(150); easing.type: Easing.OutCubic } }
         Behavior on rotation { NumberAnimation { duration: Theme.motion(150) } }
-        Rectangle { x: 1; y: 24; width: root.frontWidth-2; height: root.lip; radius: 7; color: "#650c2729" }
+        Rectangle { x: 1; y: 24; width: root.frontWidth-2; height: root.lip; radius: 7; color: Theme.surfaceColor("#650c2729") }
         Shape {
             width: parent.width; height: 27
             ShapePath {
@@ -104,7 +104,7 @@ Item {
         Shape {
             anchors.fill: parent
             ShapePath {
-                strokeColor: "#80fff5d8"; strokeWidth: 1; fillColor: Qt.darker(root.lidColor,1.06)
+                strokeColor: Theme.surfaceColor("#80fff5d8"); strokeWidth: 1; fillColor: Qt.darker(root.lidColor,1.06)
                 PathSvg { path: "M"+(root.depth+24)+" 7 L"+(lid.width-25)+" 7 L"+(root.frontWidth-19)+" 18 L20 18 Z" }
             }
             ShapePath {
@@ -121,15 +121,15 @@ Item {
                 GradientStop { position: 1; color: Qt.darker(root.lidColor,1.23) }
             }
             border.width: 1; border.color: Qt.darker(root.lidColor,1.5)
-            Rectangle { x: 8; y: 3; width: parent.width-16; height: 2; radius: 1; color: "#aaffefd1" }
-            Rectangle { x: 14; y: 9; width: parent.width-28; height: 5; radius: 2; color: "#13000000"; border.color: "#33ffffff" }
+            Rectangle { x: 8; y: 3; width: parent.width-16; height: 2; radius: 1; color: Theme.surfaceColor("#aaffefd1") }
+            Rectangle { x: 14; y: 9; width: parent.width-28; height: 5; radius: 2; color: Theme.surfaceColor("#13000000"); border.color: Theme.surfaceColor("#33ffffff") }
             Repeater {
                 model: 2
                 Rectangle {
                     required property int index
                     x: index===0 ? 8 : root.frontWidth-21; y: 2; width: 13; height: parent.height-4; radius: 2
                     gradient: Gradient { GradientStop { position: 0; color: Qt.lighter(root.lidColor,1.2) } GradientStop { position: 1; color: Qt.darker(root.lidColor,1.18) } }
-                    border.color: "#49606553"
+                    border.color: Theme.surfaceColor("#49606553")
                 }
             }
         }
@@ -137,7 +137,7 @@ Item {
             x: (root.frontWidth-width)/2; y: root.lip+4
             width: root.featured ? 33 : 25; height: root.featured ? 27 : 23; radius: 4
             color: Qt.darker(root.lidColor,1.15); border.width: 2; border.color: Qt.lighter(root.lidColor,1.3)
-            Rectangle { anchors.centerIn: parent; width: parent.width-14; height: 9; radius: 3; color: Qt.darker(root.material,2.2); border.color: "#66fff0d0" }
+            Rectangle { anchors.centerIn: parent; width: parent.width-14; height: 9; radius: 3; color: Qt.darker(root.material,2.2); border.color: Theme.surfaceColor("#66fff0d0") }
             Rectangle { anchors.horizontalCenter: parent.horizontalCenter; y: 3; width: parent.width-10; height: 3; radius: 1; color: Qt.lighter(root.lidColor,1.5) }
         }
     }

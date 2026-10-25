@@ -31,38 +31,38 @@ Item {
         }
         Rectangle {
             x: (parent.width - 170) / 2; y: (parent.height - 170) / 2 + 8
-            width: 170; height: 170; radius: 85; color: "#693b2e"
+            width: 170; height: 170; radius: 85; color: Theme.surfaceColor("#693b2e")
         }
         Item {
             x: (parent.width - 170) / 2; y: (parent.height - 170) / 2 + (root.depressed ? 5 : -2)
             width: 170; height: 170
             Behavior on y { NumberAnimation { duration: Theme.motion(75) } }
             Rectangle {
-                anchors.fill: parent; radius: 85; border.color: "#85442e"; border.width: 2
+                anchors.fill: parent; radius: 85; border.color: Theme.surfaceColor("#85442e"); border.width: 2
                 gradient: Gradient {
-                    GradientStop { position: 0; color: "#ffdb95" }
-                    GradientStop { position: 0.45; color: "#f5ad68" }
-                    GradientStop { position: 1; color: "#cf7549" }
+                    GradientStop { position: 0; color: Theme.surfaceColor("#ffdb95") }
+                    GradientStop { position: 0.45; color: Theme.surfaceColor("#f5ad68") }
+                    GradientStop { position: 1; color: Theme.surfaceColor("#cf7549") }
                 }
             }
             Rectangle {
                 anchors.fill: parent; anchors.margins: 7; radius: width / 2
-                color: "transparent"; border.color: "#ffe8b6"; border.width: 2
+                color: "transparent"; border.color: Theme.surfaceColor("#ffe8b6"); border.width: 2
             }
             Rectangle {
                 visible: root.showGlyph
                 x: 35; y: 32; width: 100; height: 100; radius: 50
-                color: "#ec9b58"; border.color: "#b3683e"; border.width: 2
-                Text { anchors.centerIn: parent; anchors.verticalCenterOffset: -8; text: "A"; color: "#ffdfa2"; font.pixelSize: 55; font.bold: true }
-                Text { anchors.centerIn: parent; anchors.verticalCenterOffset: -10; text: "A"; color: "#70452f"; font.pixelSize: 55; font.bold: true }
+                color: Theme.surfaceColor("#ec9b58"); border.color: Theme.surfaceColor("#b3683e"); border.width: 2
+                Text { anchors.centerIn: parent; anchors.verticalCenterOffset: -8; text: "A"; color: Theme.textColor("#ffdfa2"); font.pixelSize: 55; font.bold: true }
+                Text { anchors.centerIn: parent; anchors.verticalCenterOffset: -10; text: "A"; color: Theme.textColor("#70452f"); font.pixelSize: 55; font.bold: true }
             }
             Text {
                 objectName: "home-launch-label"
                 x: 14; y: root.showGlyph ? 111 : (parent.height-height)/2-2; width: 142; horizontalAlignment: Text.AlignHCenter
-                text: root.actionLabel; color: "#70452f"; font.family: Theme.displayFamily
+                text: root.actionLabel; color: Theme.textColor("#70452f"); font.family: Theme.displayFamily
                 font.pixelSize: root.showGlyph ? 28 : 35; font.weight: Font.DemiBold
             }
-            Rectangle { x: 55; y: 16; width: 37; height: 2; rotation: -8; color: "#fff0c4"; opacity: 0.7 }
+            Rectangle { x: 55; y: 16; width: 37; height: 2; rotation: -8; color: Theme.surfaceColor("#fff0c4"); opacity: 0.7 }
         }
     }
     MouseArea { anchors.fill: parent; onClicked: { root.depressed = true; release.restart(); root.shell.activateDashboard("play"); } }

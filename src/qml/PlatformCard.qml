@@ -14,7 +14,7 @@ Item {
     onSelectedChanged: { scene.requestPaint(); if(selected && visible)forceActiveFocus(Qt.OtherFocusReason) }
     onVisibleChanged: if(selected && visible)forceActiveFocus(Qt.OtherFocusReason)
     onEntryChanged: scene.requestPaint()
-    Rectangle { x: 2; y: 4; width: parent.width-4; height: parent.height-4; radius: 12; color: "#4014262b" }
+    Rectangle { x: 2; y: 4; width: parent.width-4; height: parent.height-4; radius: 12; color: Theme.surfaceColor("#4014262b") }
     Canvas {
         id: scene
         width: root.width * Theme.uiScale; height: root.height * Theme.uiScale
@@ -107,8 +107,8 @@ Item {
     }
     Column {
         x: root.portrait ? 10 : 16; anchors.bottom: parent.bottom; anchors.bottomMargin: root.compact ? 10 : 12; width: parent.width-2*x; spacing: 3
-        Text {width: parent.width; height: root.portrait ? 38 : implicitHeight; text: root.entry.name || ""; font.family: Theme.displayFamily; font.pixelSize: root.compact ? 17 : 22; minimumPixelSize: 12; fontSizeMode: Text.Fit; wrapMode: Text.WordWrap; maximumLineCount: 2; font.bold: true; color: "#ffffff"; elide: Text.ElideRight}
-        Text {width: parent.width; text: (root.entry.count || 0)+(root.portrait ? " games" : " Adventures"); font.pixelSize: 12; color: "#d1e4f4"; elide: Text.ElideRight}
+        Text {width: parent.width; height: root.portrait ? 38 : implicitHeight; text: root.entry.name || ""; font.family: Theme.displayFamily; font.pixelSize: root.compact ? 17 : 22; minimumPixelSize: 12; fontSizeMode: Text.Fit; wrapMode: Text.WordWrap; maximumLineCount: 2; font.bold: true; color: Theme.textColor("#ffffff"); elide: Text.ElideRight}
+        Text {width: parent.width; text: (root.entry.count || 0)+(root.portrait ? " games" : " Adventures"); font.pixelSize: 12; color: Theme.textColor("#d1e4f4"); elide: Text.ElideRight}
     }
     MouseArea {anchors.fill: parent; onClicked: root.activated()}
 }

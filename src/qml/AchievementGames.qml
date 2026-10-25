@@ -57,7 +57,7 @@ Item {
                 readonly property real aspect: artwork.status===Image.Ready && artwork.implicitHeight>0 ? Math.max(.6,Math.min(1.6,artwork.implicitWidth/artwork.implicitHeight)) : 2/3
                 width: Math.min(parent.width-24,(parent.height-79)*aspect); height: width/aspect+26
                 y: 9+(parent.height-53)-height
-                Rectangle {x: 3; y: 5; width: parent.width; height: parent.height; radius: 11; color: "#30222c29"}
+                Rectangle {x: 3; y: 5; width: parent.width; height: parent.height; radius: 11; color: Theme.surfaceColor("#30222c29")}
                 Rectangle {
                     anchors.fill: parent; radius: 10; border.color: Qt.darker(Theme.rim,1.3)
                     gradient: Gradient {
@@ -65,7 +65,7 @@ Item {
                         GradientStop {position: 1; color: Qt.darker(Theme.rim,1.12)}
                     }
                 }
-                Rectangle {anchors.fill: parent; anchors.margins: 3; radius: 8; color: Theme.paper; border.color: "#aafff4d1"}
+                Rectangle {anchors.fill: parent; anchors.margins: 3; radius: 8; color: Theme.paper; border.color: Theme.surfaceColor("#aafff4d1")}
                 Image {
                     id: artwork; anchors.fill: parent; anchors.margins: 6; anchors.bottomMargin: 32
                     source: card.modelData.cover || "qrc:/cover-fallbacks/neutral-"+(card.index%2)+".png"

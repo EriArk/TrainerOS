@@ -15,6 +15,7 @@ Window {
     Binding { target: controllerInput; property: "pointerMode"; value: !shell.social.incomingCall.id && (filesPane.takesFocus || browserPane.takesFocus) && (!adventureLaunch.active || adventureLaunch.minimized) && !sessionState.blocked }
     Binding { target: controllerInput; property: "nativeKeyboard"; value: !shell.social.incomingCall.id && browserPane.takesFocus && !browserPane.popup && !browserPane.toolsFocused }
     Binding { target: controllerInput; property: "browserMode"; value: !shell.social.incomingCall.id && browserPane.takesFocus }
+    RadialInputWindow { flow: shell.settings.gameInput; bridge: radialOverlay; permitted: adventureLaunch.active && !adventureLaunch.minimized && !sessionState.blocked && !adventureExitPresentation.visible }
     AppControlsWindow { flow: shell.apps; bridge: appsOverlay }
     AdventureExitWindow {
         presentation: adventureExitPresentation
@@ -34,6 +35,7 @@ Window {
             && !adventureExitPresentation.visible && !adventureExitPresentation.capturing
     }
     Binding { target: Theme; property: "themeId"; value: shell.settings.theme }
+    Binding { target: Theme; property: "controller"; value: controllerInput }
     Binding { target: Theme; property: "reducedMotion"; value: shell.settings.reducedMotion }
     Binding { target: Theme; property: "television"; value: shell.settings.displayProfile === "tv" }
     Binding { target: Theme; property: "uiScale"; value: window.uiScale }
@@ -93,7 +95,7 @@ Window {
                 y: headerAvatar.y + (headerAvatar.height-height)/2
                 width: parent.width-x-16; height: twoLines ? 40 : 36
                 text: twoLines ? words.join("\n") : fullName
-                color: Theme.paper; font.family: Theme.displayFamily; font.pixelSize: 26
+                color: "#fffef9"; font.family: Theme.displayFamily; font.pixelSize: 26
                 minimumPixelSize: 16; fontSizeMode: Text.Fit
                 maximumLineCount: twoLines ? 2 : 1
                 elide: Text.ElideRight; textFormat: Text.PlainText; verticalAlignment: Text.AlignVCenter
@@ -108,7 +110,7 @@ Window {
             Text {
                 x: headerName.x; y: 51; width: parent.width-x-16
                 visible: !!shell.liveGame.id; text: "Still running · Home to return"
-                horizontalAlignment: Text.AlignHCenter; color: "#ffe3a4"; font.pixelSize: 9
+                horizontalAlignment: Text.AlignHCenter; color: Theme.textColor("#ffe3a4"); font.pixelSize: 9
                 fontSizeMode: Text.HorizontalFit; minimumPixelSize: 7
             }
         }
@@ -144,24 +146,24 @@ Window {
                         // whole bank underneath the unchanged tab faces.
                         ShapePath {
                             strokeColor: "transparent"
-                            fillColor: "#08101e1d"
+                            fillColor: Theme.surfaceColor("#08101e1d")
                             PathSvg { path: tab.outline(10, 3) }
                         }
                         ShapePath {
-                            strokeColor: "transparent"; fillColor: "#10101e1d"
+                            strokeColor: "transparent"; fillColor: Theme.surfaceColor("#10101e1d")
                             PathSvg { path: tab.outline(8, 2.5) }
                         }
                         ShapePath {
                             strokeColor: "transparent"
-                            fillColor: shell.page === index ? "#28101e1d" : "#1c101e1d"
+                            fillColor: shell.page === index ? Theme.surfaceColor("#28101e1d") : Theme.surfaceColor("#1c101e1d")
                             PathSvg { path: tab.outline(6, 2) }
                         }
                         ShapePath {
-                            strokeColor: "transparent"; fillColor: "#50101e1d"
+                            strokeColor: "transparent"; fillColor: Theme.surfaceColor("#50101e1d")
                             PathSvg { path: tab.outline(4, 1) }
                         }
                         ShapePath {
-                            strokeColor: "transparent"; fillColor: "#60101e1d"
+                            strokeColor: "transparent"; fillColor: Theme.surfaceColor("#60101e1d")
                             PathSvg { path: tab.outline(2, 0.5) }
                         }
                         ShapePath {
@@ -174,9 +176,9 @@ Window {
                         visible: index === 0
                         x: -2; y: 0; width: 2; height: parent.height - Theme.tabBevel
                         gradient: Gradient {
-                            GradientStop { position: 0; color: "#90101e1d" }
-                            GradientStop { position: 0.7; color: "#70101e1d" }
-                            GradientStop { position: 1; color: "#00101e1d" }
+                            GradientStop { position: 0; color: Theme.surfaceColor("#90101e1d") }
+                            GradientStop { position: 0.7; color: Theme.surfaceColor("#70101e1d") }
+                            GradientStop { position: 1; color: Theme.surfaceColor("#00101e1d") }
                         }
                     }
                     Rectangle {
@@ -186,23 +188,23 @@ Window {
                         width: index === shell.primaryNames.length - 1 ? 1 : Theme.tabSpacing
                         height: index === shell.primaryNames.length - 1 ? parent.height - Theme.tabBevel : Theme.tabBaseline
                         gradient: Gradient {
-                            GradientStop { position: 0; color: "#a0101e1d" }
-                            GradientStop { position: 0.6; color: "#90101e1d" }
-                            GradientStop { position: 1; color: "#00101e1d" }
+                            GradientStop { position: 0; color: Theme.surfaceColor("#a0101e1d") }
+                            GradientStop { position: 0.6; color: Theme.surfaceColor("#90101e1d") }
+                            GradientStop { position: 1; color: Theme.surfaceColor("#00101e1d") }
                         }
                     }
-                    Rectangle { x: 2; y: 1; width: parent.width - 4; height: 2; color: "#90ffffff" }
-                    Rectangle { x: 2; y: 3; width: 1; height: parent.height - 17; color: "#55ffffff" }
+                    Rectangle { x: 2; y: 1; width: parent.width - 4; height: 2; color: Theme.surfaceColor("#90ffffff") }
+                    Rectangle { x: 2; y: 3; width: 1; height: parent.height - 17; color: Theme.surfaceColor("#55ffffff") }
                     Text {
                         anchors.centerIn: parent; anchors.verticalCenterOffset: Theme.topRimHeight / 2
                         width: parent.width - 10; horizontalAlignment: Text.AlignHCenter; elide: Text.ElideRight
                         text: modelData; color: Theme.ink; font.family: Theme.displayFamily; font.pixelSize: shell.page === index ? 18 : 17; font.weight: Font.DemiBold
                     }
-                    Rectangle { x: 18; y: parent.height - 8; width: parent.width - 36; height: 3; radius: 1.5; color: "#7a4a24"; visible: shell.page === index }
+                    Rectangle { x: 18; y: parent.height - 8; width: parent.width - 36; height: 3; radius: 1.5; color: Theme.surfaceColor("#7a4a24"); visible: shell.page === index }
                     Rectangle {
                         visible: modelData === "Social" && (shell.social.account.unreadCount || 0) > 0
                         anchors.right: parent.right; anchors.rightMargin: 6; y: Theme.topRimHeight + 3
-                        width: 23; height: 17; radius: 7; color: Theme.yellow; border.color: "#8e642e"
+                        width: 23; height: 17; radius: 7; color: Theme.yellow; border.color: Theme.surfaceColor("#8e642e")
                         Text { anchors.centerIn: parent; text: Math.min(99, shell.social.account.unreadCount || 0); color: Theme.ink; font.bold: true; font.pixelSize: 11 }
                     }
                     MouseArea { anchors.fill: parent; onClicked: shell.goToPage(index) }
@@ -377,7 +379,7 @@ Window {
             Text {
                 objectName: "controller-warning"
                 x: 132; y: 10; visible: !controllerInput.connected; text: "!  Connect a controller"
-                color: "#ffe29c"; font.pixelSize: 11
+                color: Theme.textColor("#ffe29c"); font.pixelSize: 11
                 Accessible.role: Accessible.AlertMessage; Accessible.name: text
             }
             function hint(button, label) { return {button:button, label:label} }
@@ -427,7 +429,8 @@ Window {
                     const flow = shell.settings.communication
                     return [h("←→","Adjust"),h("A","Select"),h("B",flow.choosingAvatar ? "Cancel" : "Categories")]
                 }
-                if (shell.service === "settings") return [h("←→","Adjust"),h("A",shell.settings.controlsFocused ? "Select" : "Open"),h("B",shell.settings.controlsFocused ? "Categories" : "Back")]
+                if (shell.service === "settings" && shell.settings.categoryId==="game-input" && shell.settings.controlsFocused) return [h("↑↓","Choose"),h("L2/R2","Tabs"),h("A","Select"),h("B",shell.settings.gameInput.choosing?"Cancel":"Back")]
+                if (shell.service === "settings") return [h(shell.settings.controlsFocused?"←→":"↑↓",shell.settings.controlsFocused?"Adjust":"Section"),h("A",shell.settings.controlsFocused ? "Select" : "Open"),h("B",shell.settings.controlsFocused ? "Categories" : "Back")]
                 if (shell.service === "device") return [h("←→","Adjust"),h("Y","Refresh"),h("A","Select"),h("B","Back")]
                 if (shell.serviceOpen) return [h("A","Select"),h("B","Back")]
                 if (shell.pcGames.open) return [h("A","Choose"),h("B",shell.pcGames.picker.open ? "Back" : shell.pcGames.busy ? "Hide" : "Close")]
@@ -514,16 +517,12 @@ Window {
             objectName: "settings-overlay"
             width: parent.width; height: Theme.footerTop; z: 2.2
             visible: shell.service === "settings"
-            Rectangle { anchors.fill: parent; color: "#99102020" }
+            Rectangle { anchors.fill: parent; color: Theme.surfaceColor("#fafbf7") }
             MouseArea { anchors.fill: parent; acceptedButtons: Qt.AllButtons; onWheel: wheel => wheel.accepted = true }
-            Rectangle {
-                x: 37; y: 61; width: parent.width-64; height: parent.height-66
-                radius: 16; color: "#60101a19"
-            }
-            Panel {
+            Item {
                 id: settingsSurface
                 objectName: "settings-surface"
-                x: 32; y: 52; width: parent.width-64; height: parent.height-66
+                x: 12; y: 0; width: parent.width-24; height: parent.height
                 Loader { anchors.fill: parent; active: settingsOverlay.created; sourceComponent: SettingsPanel { shell: shellController } }
             }
         }
@@ -550,7 +549,7 @@ Window {
                 if (visible) originFocus = window.activeFocusItem
                 else if (originFocus && originFocus.visible && originFocus.enabled) originFocus.forceActiveFocus()
             }
-            Rectangle { anchors.fill: parent; color: "#88102324" }
+            Rectangle { anchors.fill: parent; color: Theme.surfaceColor("#88102324") }
             MouseArea { anchors.fill: parent; acceptedButtons: Qt.AllButtons; onWheel: wheel => wheel.accepted = true }
             Loader {
                 anchors.centerIn: parent
@@ -569,11 +568,11 @@ Window {
             function answer(accept) { if(runtime) runtimeMultiplayer.answer(accept); else if (online) shell.social.answerOnline(accept); else if(link) link.answerInvitation(accept) }
             width: parent.width; height: Theme.footerTop; z: 6
             visible: (runtime || online || !!shell.moduleInvitation.open) && !sessionState.blocked && !adventureLaunch.active
-            Rectangle { anchors.fill: parent; color: "#77112323" }
+            Rectangle { anchors.fill: parent; color: Theme.surfaceColor("#77112323") }
             MouseArea { anchors.fill: parent; acceptedButtons: Qt.AllButtons; onWheel: wheel => wheel.accepted=true }
             Panel {
                 anchors.centerIn: parent; width: 470; height: 225; surface: "#f6f0d7"
-                Text { x: 27; y: 23; text: nearbyInvitation.incoming ? "INCOMING ACTIVITY" : "TOGETHER"; font.family: Theme.brandFamily; font.pixelSize: 16; color: "#4c8175" }
+                Text { x: 27; y: 23; text: nearbyInvitation.incoming ? "INCOMING ACTIVITY" : "TOGETHER"; font.family: Theme.brandFamily; font.pixelSize: 16; color: Theme.textColor("#4c8175") }
                 Text { x: 27; y: 56; width: parent.width-54; height: 85; text: nearbyInvitation.runtime ? runtimeMultiplayer.invitation : nearbyInvitation.online ? shell.social.online.status : nearbyInvitation.link ? nearbyInvitation.link.invitationText : ""; textFormat: Text.PlainText; font.family: Theme.displayFamily; font.pixelSize: 26; color: Theme.ink; wrapMode: Text.WordWrap }
                 CapButton { x: 27; y: 154; width: 200; height: 45; label: "Accept"; centered: true; tint: Theme.green; selected: true; deferredFocus: true; visible: nearbyInvitation.incoming; onActivated: nearbyInvitation.answer(true) }
                 CapButton { x: nearbyInvitation.incoming ? 242 : 135; y: 154; width: 200; height: 45; label: nearbyInvitation.incoming ? "Decline" : "Cancel"; centered: true; tint: Theme.blue; selected: !nearbyInvitation.incoming; deferredFocus: true; onActivated: nearbyInvitation.answer(false) }
@@ -584,14 +583,14 @@ Window {
             anchors.fill: parent; visible: (sessionState.entryGate || sessionState.firstRunPage) && !sessionState.access.active
             ChassisFrame { anchors.fill: parent }
             ChassisTopRim { }
-            Text { x: 12; y: 0; width: Theme.brandWidth-24; height: Theme.brandHeight; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter; text: "TRAINER OS"; color: "#edf5e9"; font.family: Theme.brandFamily; font.pixelSize: 25; font.bold: true }
+            Text { x: 12; y: 0; width: Theme.brandWidth-24; height: Theme.brandHeight; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter; text: "TRAINER OS"; color: Theme.textColor("#edf5e9"); font.family: Theme.brandFamily; font.pixelSize: 25; font.bold: true }
             FirstRunPanel { anchors.fill: parent; shell: shellController; flow: sessionState.firstRun; visible: sessionState.firstRunPage }
             Loader { x: 0; y: 43; width: parent.width; height: parent.height-63; active: parent.visible && (!sessionState.firstRunPage || sessionState.firstRun.stage === "trainer"); visible: active; sourceComponent: TrainerSetupPanel { entry: true; shell: shellController } }
             Text {
                 x: 48; y: parent.height-62; width: parent.width-96; height: 24
                 visible: sessionState.firstRunPage && sessionState.firstRun.stage === "trainer"
                 text: sessionState.firstRun.error; textFormat: Text.PlainText; elide: Text.ElideRight
-                color: "#853b24"; font.pixelSize: 14
+                color: Theme.textColor("#853b24"); font.pixelSize: 14
             }
             KeyboardPanel { x: Theme.screenBounds.x; y: Theme.screenBounds.y; width: Theme.screenBounds.width; height: Theme.screenBounds.height; shell: shellController }
             Row { anchors.right: parent.right; anchors.rightMargin: 22; anchors.bottom: parent.bottom; anchors.bottomMargin: 9; spacing: 18

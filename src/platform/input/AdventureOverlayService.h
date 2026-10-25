@@ -13,6 +13,8 @@ namespace trainer {
 class AdventureOverlayService final : public QObject {
     Q_OBJECT
 public:
+    std::function<QJsonObject(const QString&)> inputProfile;
+    void selectRadialSlot(int index) {send({{"command","radial-select"},{"slot",index}});}
     AdventureOverlayService(ProcessService&, AdventureLaunchController&, AdventureExitPresentation&,
                             const QString& helper, QObject* parent = nullptr);
     ~AdventureOverlayService() override;
@@ -22,6 +24,8 @@ public:
     void returnToGame(bool options = false);
     void openOptions();
 signals:
+    void inputMappingFailed(QString message);
+    void radialChanged(QVariantMap state);
     void shellRequested();
     void gameRequested();
     void contentAction(trainer::Action action);
@@ -45,6 +49,7 @@ private:
     QTimer heartbeat_, retry_, stopDeadline_, handoffDeadline_;
     QByteArray buffer_;
     bool active_ = false;
+    bool profileRequested_=false, mappingFailed_=false;
     quint64 sentEpoch_ = 0;
     quint64 attempt_ = 0;
     int protocol_ = 0;

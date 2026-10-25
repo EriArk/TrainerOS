@@ -12,7 +12,7 @@ Item {
         if ((mode.mode || "").indexOf("lan") >= 0) return "LAN · in-game"
         return "NetPlay"
     }
-    Rectangle { anchors.fill: parent; color: "#90152728" }
+    Rectangle { anchors.fill: parent; color: Theme.surfaceColor("#90152728") }
     MouseArea { anchors.fill: parent; onClicked: root.social.lobbyPickerAction(root.picker.modeOpen?"mode-cancel":"cancel"); onWheel: wheel => wheel.accepted=true }
     Panel {
         id: frame
@@ -136,7 +136,7 @@ Item {
         CapButton { anchors.right: parent.right; anchors.rightMargin: 24; y: parent.height-48; width: 182; height: 33; label: root.picker.choices.length>1?"Y · Use for a vote":"Y · Use selection"; textSize: 13; centered: true; claimsFocus: false; tint: Theme.green; onActivated: root.social.lobbyPickerAction("apply") }
         Item {
             anchors.fill: parent; visible: root.picker.modeOpen
-            Rectangle { anchors.fill: parent; color: "#30152728"; radius: 16 }
+            Rectangle { anchors.fill: parent; color: Theme.surfaceColor("#30152728"); radius: 16 }
             MouseArea { anchors.fill: parent; onClicked: root.social.lobbyPickerAction("mode-cancel"); onWheel: wheel=>wheel.accepted=true }
             Panel {
                 x: Math.min(games.x+24,parent.width-width-22)

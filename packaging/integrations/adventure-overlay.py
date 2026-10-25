@@ -16,6 +16,7 @@ import sys
 import tempfile
 import time
 from overlay_support import RawPad, X11, identity, supported_emulator_process
+from game_input import Mapper, HeldOutput, XTestSink, mapped_guard, validate
 
 SERVICE = 'org.shadowblip.InputPlumber'
 INTERFACE = 'org.shadowblip.Input.CompositeDevice'
@@ -76,7 +77,12 @@ def watchdog(args):
     # Independent D-Bus connection and raw FD; no dependency on the parent loop.
     device, pad, x11 = Device(args.device), RawPad(args.source), X11()
     channel = socket.socket(fileno=args.watchdog)
-    guard_loop(channel, lambda: restore_input(device, pad, x11, args.shell, args.shell_start, args.game, args.game_start))
+    restore = lambda: restore_input(device, pad, x11, args.shell, args.shell_start, args.game, args.game_start)
+    if args.input_profile:
+        mapped_guard(channel, HeldOutput(XTestSink(x11)),
+                     lambda: x11.owns(x11.active(), args.game, args.game_start), restore)
+    else:
+        guard_loop(channel, restore)
 
 
 def emit(kind, **values):
@@ -168,13 +174,23 @@ def run(args):
     if len(sources) != 1: raise RuntimeError('Unverified composite sources')
     args.source = str(sources[0])
     pad, x11 = RawPad(args.source), X11()
+    mapper = None
+    if args.input_profile:
+        profile_path = Path(args.input_profile)
+        if profile_path.stat().st_size > 65536: raise ValueError('Input profile too large')
+        profile = validate(json.loads(profile_path.read_text()))
+        if profile['mode'] == 'keyboard_mouse': mapper = Mapper(profile)
+    gameplay_mode = 2 if mapper else 1
+    home_requested = False
+    previous_radial = {}
+    emitted_keys = set()
     game_start, args.shell_start = identity(args.game), identity(args.shell)
     lock = os.open(Path(os.environ['XDG_RUNTIME_DIR'])/'traineros-input-lease.lock', os.O_CREAT | os.O_RDWR | os.O_CLOEXEC, 0o600)
     fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
     parent, child = socket.socketpair()
     guard = subprocess.Popen([sys.executable, str(Path(__file__).resolve()), '--watchdog',str(child.fileno()),
         '--device',args.device,'--source',args.source,'--shell',str(args.shell),'--shell-start',args.shell_start,
-        '--game',str(args.game),'--game-start',game_start],
+        '--game',str(args.game),'--game-start',game_start] + (['--input-profile',args.input_profile] if mapper else []),
         pass_fds=(child.fileno(),lock),start_new_session=True,stdin=subprocess.DEVNULL,stdout=subprocess.DEVNULL)
     child.close()
     if not select.select([parent],[],[],2)[0] or parent.recv(1) != b'R':
@@ -185,7 +201,7 @@ def run(args):
     capture_job = None; capture_started = 0
     handoff_deadline = 0; return_options = False
     try:
-        device.mode(1); emit('ready', protocol=4)
+        device.mode(gameplay_mode); emit('ready', protocol=4)
         while guard.poll() is None:
             if identity(args.game) != game_start: break
             if select.select([sys.stdin.buffer],[],[],.02)[0]:
@@ -196,13 +212,15 @@ def run(args):
                 while b'\n' in buffer:
                     line,buffer = buffer.split(b'\n',1); command = json.loads(line)
                     op = command.get('command')
-                    if op == 'ping': parent.sendall(b'K')
+                    if op == 'ping': parent.sendall(b'K\n' if mapper else b'K')
+                    elif op == 'radial-select' and mapper and state == 'game':
+                        mapper.select_slot(command.get('slot'))
                     elif op == 'context': epoch = str(command['epoch'])
                     elif op == 'request' and state == 'game':
                         # A deliberate invitation tap uses the same owned-window
                         # Home path. Never switch controls away from another app.
                         if x11.owns(x11.active(), args.game, game_start):
-                            device.mode(2)
+                            device.mode(2); home_requested = True
                     elif op == 'minimize' and state == 'overlay' and future is None:
                         if device.mode() == 2 and x11.owns(target, args.game, game_start):
                             state = 'shell'; emit('minimized')
@@ -228,7 +246,15 @@ def run(args):
             sample = pad.sample()
             mode = device.mode()
             if mode not in (1,2): raise RuntimeError('Input lease changed')
-            if state == 'game' and mode == 2:
+            if mapper:
+                focused = x11.owns(x11.active(), args.game, game_start)
+                frame = mapper.frame(sample, state == 'game' and focused and not home_requested, time.monotonic())
+                emitted_keys.update(frame['held'])
+                parent.sendall((json.dumps({'held':frame['held'],'motion':frame['motion']})+'\n').encode())
+                if frame['radial'] != previous_radial:
+                    previous_radial = frame['radial']; emit('radial', **previous_radial)
+            if state == 'game' and (home_requested or (sample['home'] if mapper else mode == 2)):
+                home_requested = False
                 target = x11.active()
                 # Enable adapters one at a time. Other emulators may open their
                 # own close confirmation, which this overlay must not obscure.
@@ -270,17 +296,26 @@ def run(args):
                     if return_options:
                         state = 'requested'; emit('request')
                     else:
-                        device.mode(1); state = 'game'; emit('released')
+                        device.mode(gameplay_mode); state = 'game'; emit('released')
                 elif time.monotonic() > handoff_deadline:
                     state = 'shell'; emit('handoff-failed')
             if state == 'release':
                 neutral_since = (neutral_since or time.monotonic()) if sample['neutral'] else None
                 # Do not start another capture while an old worker can still write.
                 if neutral_since and time.monotonic()-neutral_since >= .08 and future is None:
-                    device.mode(1); state = 'game'; emit('released')
+                    device.mode(gameplay_mode); state = 'game'; emit('released')
     finally:
         parent.close()  # Watchdog alone restores mode zero, even after SIGKILL.
         if guard.poll() is not None:
+            if mapper:
+                # Recovery if the output-owning watchdog itself was killed.
+                # Release only keys this session ever sent, never a global reset.
+                try:
+                    recovery = HeldOutput(XTestSink(x11))
+                    recovery.held = emitted_keys
+                    recovery.release()
+                except Exception:
+                    pass  # The display may have gone away; still restore the pad.
             # A killed watchdog cannot restore anything. The surviving helper
             # retains the same lock, service owner and physical release gate.
             restore_input(device, pad, x11, args.shell, args.shell_start, args.game, game_start)
@@ -293,6 +328,7 @@ def main():
     parser.add_argument('--game',type=int); parser.add_argument('--shell',type=int,required=True)
     parser.add_argument('--game-start')
     parser.add_argument('--directory'); parser.add_argument('--watchdog',type=int)
+    parser.add_argument('--input-profile');
     parser.add_argument('--source'); parser.add_argument('--shell-start')
     args = parser.parse_args()
     try:

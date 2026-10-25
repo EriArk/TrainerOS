@@ -35,7 +35,7 @@ void startDiagnosticsSmoke(QQuickWindow* window, ShellController& shell, Session
             auto* item = window->activeFocusItem(); check(item && item->isVisible(), "No visible active focus: " + (item ? item->objectName() : QString("none")));
             if (item && shell.service()=="settings" && (item->objectName().startsWith("settings-control-") || item->objectName().startsWith("achievement-account-"))) {
                 auto* status=window->findChild<QQuickItem*>("settings-status");
-                check(status && item->mapToScene(QPointF(0,item->height()+3)).y() <= status->mapToScene(QPointF(0,0)).y(), "Focused setting cannot overlap status text");
+                check(status && (!status->isVisible() || item->mapToScene(QPointF(0,item->height()+3)).y() <= status->mapToScene(QPointF(0,0)).y()), "Focused setting cannot overlap status text");
             }
             if (item) {
                 const auto outline = item->mapRectToScene(QRectF(-4, -4, item->width() + 8, item->height() + 8));
@@ -49,7 +49,7 @@ void startDiagnosticsSmoke(QQuickWindow* window, ShellController& shell, Session
         auto* checks = shell.diagnostics();
         if (session.blocked() || reports.saving() || shell.device()->busy()) return;
         switch ((*stage)++) {
-        case 0: press(start); press(a); for(int i=0;i<7;++i) press(down); press(a); press(a); break;
+        case 0: shell.systemAction("settings"); shell.settings()->selectPage("controller"); press(a); break;
         case 1:
             check(shell.service() == "diagnostics" && focus("diagnostic-action-0"), "Controller service opened with deterministic focus");
             SDL_JoystickSetVirtualButton(joystick, SDL_CONTROLLER_BUTTON_Y, 1);
@@ -274,7 +274,7 @@ void startDiagnosticsSmoke(QQuickWindow* window, ShellController& shell, Session
             check(pokemonModule(shell).party()->section()=="storage" && focus("party-slot-7"), "Center returns to the prior box slot");
             press(start); for (int i=0;i<10;++i) press(SDL_CONTROLLER_BUTTON_DPAD_UP); for(int i=0;i<4;++i)press(down); press(a); break;
         case 55:
-            check(shell.service()=="settings" && focus("settings-category-0"), "Settings categories focus");
+            check(shell.service()=="settings" && focus("settings-section-personalization"), "Settings categories focus");
             {
                 auto* overlay=window->findChild<QQuickItem*>("settings-overlay");
                 auto* surface=window->findChild<QQuickItem*>("settings-surface");
@@ -289,16 +289,16 @@ void startDiagnosticsSmoke(QQuickWindow* window, ShellController& shell, Session
             press(a); press(b); press(down); press(a); break;
         case 58:
             check(focus("settings-control-0"), "Sound slider receives focus");
-            capture("settings-sound"); press(b); press(down); press(a); break;
+            capture("settings-sound"); shell.settings()->selectPage("media"); break;
         case 59:
-            capture("settings-media"); press(b); press(down); press(a); break;
+            capture("settings-media"); shell.settings()->selectPage("feedback"); break;
         case 60:
             capture("settings-feedback"); press(a); break;
         case 61:
             check(shell.settings()->category()==3 && shell.settings()->controlsFocused(), "Unavailable feedback cannot open a fake action");
             press(b); break;
         case 62:
-            check(focus("settings-category-3"), "Back restores category");
+            check(focus("settings-section-device"), "Back restores category");
             press(SDL_CONTROLLER_BUTTON_RIGHTSHOULDER); break;
         case 63:
             check(!shell.serviceOpen(), "Global shoulder leaves settings");
@@ -309,7 +309,7 @@ void startDiagnosticsSmoke(QQuickWindow* window, ShellController& shell, Session
         case 65:
             check(shell.settings()->theme()=="turquoise", "Reverse theme adjustment"); press(b);
             press(start); for(int i=0;i<10;++i) press(SDL_CONTROLLER_BUTTON_DPAD_UP);
-            for(int i=0;i<4;++i)press(down); press(a); for(int i=0;i<4;++i) press(down); press(a); break;
+            shell.systemAction("settings"); shell.settings()->selectPage("trainer"); break;
         case 66:
             check(focus("settings-control-0") && shell.settings()->category()==4, "Inline Trainer category");
             capture("settings-trainer"); press(a); break;
@@ -321,7 +321,7 @@ void startDiagnosticsSmoke(QQuickWindow* window, ShellController& shell, Session
             capture("settings-profile-cancel"); press(a); break;
         case 69:
             check(!shell.trainer()->editing() && focus("settings-control-0"), "Cancel restores profile row");
-            press(b); press(down); press(a); break;
+            shell.settings()->selectPage("system"); break;
         case 70:
             check(shell.settings()->category()==5 && focus("settings-control-0"), "Inline System category");
             capture("settings-system"); press(down); press(down); press(a); break;
@@ -329,7 +329,7 @@ void startDiagnosticsSmoke(QQuickWindow* window, ShellController& shell, Session
             check(!shell.modeConfirmation() && shell.notice().contains("ArmadaOS"), "Isolated preview cannot perform real power actions"); press(b); break;
         case 72:
             check(focus("settings-control-2"), "Cancelled power restores its row");
-            press(b); press(down); press(down); press(a); break;
+            shell.settings()->selectPage("controller"); break;
         case 73:
             check(shell.settings()->category()==7 && focus("settings-control-0"), "Controller category");
             capture("settings-controller"); press(a); break;
@@ -337,7 +337,7 @@ void startDiagnosticsSmoke(QQuickWindow* window, ShellController& shell, Session
             check(shell.service()=="diagnostics", "Controller test from Settings"); press(b); break;
         case 75:
             check(shell.service()=="settings" && focus("settings-control-0"), "Controller test returns to its row");
-            press(b); for(int i=0;i<3;++i) press(SDL_CONTROLLER_BUTTON_DPAD_UP); press(a); press(a);
+            shell.settings()->selectPage("trainer"); press(a);
             for(int i=0;i<2;++i) press(down); press(a); break;
         case 76: {
             check(shell.trainer()->editing() && !shell.trainer()->error().isEmpty() && focus("settings-control-0"), "Invalid inline profile restores Name");

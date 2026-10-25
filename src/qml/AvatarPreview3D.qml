@@ -26,7 +26,7 @@ View3D {
     DirectionalLight { eulerRotation: Qt.vector3d(-25, -25, 0); brightness: 1.4; ambientColor: "#888888" }
     DirectionalLight { eulerRotation: Qt.vector3d(-10, 140, 0); brightness: 0.7 }
     RuntimeLoader { id: avatar; source: root.modelSource; eulerRotation.y: root.yaw }
-    Text { anchors.centerIn: parent; width: parent.width; wrapMode: Text.Wrap; horizontalAlignment: Text.AlignHCenter; visible: avatar.status===RuntimeLoader.Error; text: "Preview unavailable"; color: "#853b24" }
+    Text { anchors.centerIn: parent; width: parent.width; wrapMode: Text.Wrap; horizontalAlignment: Text.AlignHCenter; visible: avatar.status===RuntimeLoader.Error; text: "Preview unavailable"; color: Theme.textColor("#853b24") }
     MouseArea {
         anchors.fill: parent
         property real previousX

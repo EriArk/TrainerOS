@@ -303,6 +303,19 @@ public:
         if (openError.isEmpty()) {
             state.library = readLibrary(db);
             openError = state.library.error;
+            // The legacy row is a frozen migration default. New presentation
+            // choices belong to this Trainer, using the existing owned state
+            // table (including initial-owner adoption and profile removal).
+            QSqlQuery query(db);
+            query.prepare("SELECT payload FROM shell_state WHERE scope='preferences' AND trainer_id=?");
+            query.addBindValue(ownerId_);
+            if(!query.exec())openError="Your appearance preferences couldn't be read.";
+            else if(query.next()) {
+                const auto p=QJsonDocument::fromJson(query.value(0).toByteArray()).object();
+                if(p["version"].toInt()==1 && QStringList{"light","dark","turquoise","red","green","blue","orange"}.contains(p["theme"].toString())
+                    && p["reducedMotion"].isBool() && p["worldEditing"].isBool() && p["videoPreviews"].isBool())
+                    state.library.preferences={p["theme"].toString(),p["reducedMotion"].toBool(),p["worldEditing"].toBool(),p["videoPreviews"].toBool()};
+            }
         }
         if (!openError.isEmpty()) return fail(openError);
         openError = interruptOpenSessions(db);
@@ -485,7 +498,14 @@ public:
         snapshot = readLibrary(db); media = readExitMedia(db, ownerId_);
         return error.isEmpty() ? snapshot.error : error;
     }
-    QString preferences(const ShellPreferences& value) { return writePreferences(db, value); }
+    QString preferences(const ShellPreferences& value) {
+        if(!QStringList{"light","dark","turquoise","red","green","blue","orange"}.contains(value.theme))return "Choose Light or Dark appearance.";
+        const QJsonObject payload{{"version",1},{"theme",value.theme},{"reducedMotion",value.reducedMotion},{"worldEditing",value.worldEditing},{"videoPreviews",value.videoPreviews}};
+        QSqlQuery q(db);
+        q.prepare("INSERT INTO shell_state(scope,payload,trainer_id) VALUES('preferences',?,?) ON CONFLICT(trainer_id,scope) DO UPDATE SET payload=excluded.payload");
+        q.addBindValue(QJsonDocument(payload).toJson(QJsonDocument::Compact));q.addBindValue(ownerId_);
+        return q.exec()?QString():failedWrite();
+    }
     QString screenFavorite(const QString& id,bool favorite,QVariantList& snapshot) {
         const auto error=starScreen(db,ownerId_,id,favorite);
         if(error.isEmpty())snapshot=readScreens(db,ownerId_);

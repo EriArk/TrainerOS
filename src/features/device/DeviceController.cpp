@@ -11,7 +11,10 @@ QString capacity(qint64 free, qint64 total) {
 }
 void DeviceController::configure(DeviceService* service, bool powerAvailable) {
     service_ = service; powerAvailable_ = powerAvailable;
-    if (service_) connect(service_, &DeviceService::changed, this, &DeviceController::changed);
+    if (service_) connect(service_, &DeviceService::changed, this, [this]{
+        if(audioOpen_&&audioFocus()<0){audioFocusId_=audioOutput();if(audioFocus()<0)audioFocusId_=audioOutputs().value(0).toMap()["id"].toString();}
+        emit changed();
+    });
     monitor_.setInterval(1500);
     connect(&monitor_, &QTimer::timeout, this, [this] { if (service_ && !busy()) service_->refresh(); });
 }
@@ -41,6 +44,30 @@ void DeviceController::setQuickLevel(int index, int value) {
     service_->setValue(index==0 ? "volume" : "brightness",std::clamp(value,index==0 ? 0 : 5,100));
 }
 void DeviceController::begin() { focus_ = 0; if (service_) service_->refresh(); emit changed(); }
+int DeviceController::audioFocus() const {
+    const auto rows=audioOutputs();for(int i=0;i<rows.size();++i)if(rows[i].toMap()["id"]==audioFocusId_)return i;
+    return -1;
+}
+void DeviceController::beginAudio(){
+    audioOpen_=true;audioFocusId_=audioOutput();
+    if(service_)service_->refresh();emit changed();
+}
+void DeviceController::closeAudio(){if(!audioOpen_)return;audioOpen_=false;emit changed();}
+void DeviceController::selectOutput(const QString& id){
+    if(!audioOpen_||!service_||busy())return;
+    for(const auto& row:audioOutputs())if(row.toMap()["id"]==id&&row.toMap()["available"].toBool()){
+        audioFocusId_=id;service_->selectOutput(id);return;
+    }
+}
+void DeviceController::dispatchAudio(Action action){
+    if(!audioOpen_)return;
+    if(action==Action::Back){closeAudio();return;}
+    const auto rows=audioOutputs();
+    if(action==Action::Up||action==Action::Down){
+        const int i=std::clamp(audioFocus()+(action==Action::Down?1:-1),0,std::max(0,int(rows.size())-1));
+        audioFocusId_=rows.value(i).toMap()["id"].toString();emit changed();
+    }else if(action==Action::Confirm)selectOutput(audioFocusId_);
+}
 QVariantList DeviceController::rows() const {
     const auto value = service_ ? service_->snapshot() : DeviceSnapshot{};
     const QString volume = value.volume < 0 ? "Unavailable" : QString::number(value.volume) + "%" + (value.muted ? " · Muted" : "");

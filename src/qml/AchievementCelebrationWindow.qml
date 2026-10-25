@@ -31,7 +31,7 @@ Window {
         opacity: root.showing ? 1 : 0
         Behavior on opacity { NumberAnimation { duration: Theme.motion(210) } }
         Behavior on y { NumberAnimation { duration: Theme.motion(300); easing.type: Easing.OutCubic } }
-        Rectangle { x: 2; y: 6; width: parent.width; height: parent.height-4; radius: 37; color: "#500c1615" }
+        Rectangle { x: 2; y: 6; width: parent.width; height: parent.height-4; radius: 37; color: Theme.surfaceColor("#500c1615") }
         Rectangle {
             anchors.fill: parent; anchors.bottomMargin: 4; radius: 37
             border.width: 1; border.color: Qt.darker(Theme.chassisDark,1.35)
@@ -47,28 +47,28 @@ Window {
             id: medal; x: 7; y: 5; width: 64; height: 64; radius: 32
             border.width: 1; border.color: Qt.darker(Theme.yellow,1.8)
             gradient: Gradient {
-                GradientStop { position: 0; color: "#fff3b9" }
+                GradientStop { position: 0; color: Theme.surfaceColor("#fff3b9") }
                 GradientStop { position: .45; color: Theme.yellow }
-                GradientStop { position: 1; color: "#ba8d38" }
+                GradientStop { position: 1; color: Theme.surfaceColor("#ba8d38") }
             }
-            Rectangle { anchors.fill: parent; anchors.margins: 3; radius: 29; color: Theme.chassisDark; border.color: "#ffffdc" }
+            Rectangle { anchors.fill: parent; anchors.margins: 3; radius: 29; color: Theme.chassisDark; border.color: Theme.surfaceColor("#ffffdc") }
             Image { id: badge; anchors.fill: parent; anchors.margins: 10; source: root.displayedAward.icon || ""; sourceSize: Qt.size(128,128); fillMode: Image.PreserveAspectFit; asynchronous: true }
             Text { anchors.centerIn: parent; visible: badge.status !== Image.Ready; text: "★"; color: Theme.yellow; font.pixelSize: 34 }
         }
         Text {
             x: 84; y: 12; width: parent.width-x-19; height: 18
-            text: "Achievement unlocked"; color: "#fbe7ad"; font.pixelSize: 12; font.family: Theme.displayFamily
+            text: "Achievement unlocked"; color: Theme.textColor("#fbe7ad"); font.pixelSize: 12; font.family: Theme.displayFamily
         }
         Text {
             x: 84; y: 31; width: parent.width-x-19; height: 24
             text: root.displayedAward.title || ""; textFormat: Text.PlainText; elide: Text.ElideRight
-            color: Theme.paper; font.pixelSize: 18; font.family: Theme.displayFamily
+            color: Theme.accentInk; font.pixelSize: 18; font.family: Theme.displayFamily
             fontSizeMode: Text.HorizontalFit; minimumPixelSize: 14
         }
         Text {
             x: 85; y: 54; width: parent.width-x-20; height: 14
             text: (root.displayedAward.points >= 0 ? root.displayedAward.points + " points  ·  " : "") + (root.displayedAward.mode || "")
-            color: Qt.alpha(Theme.paper,.76); font.pixelSize: 10
+            color: Qt.alpha(Theme.accentInk,.76); font.pixelSize: 10
         }
     }
 }

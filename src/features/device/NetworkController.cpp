@@ -13,7 +13,7 @@ void NetworkController::configure(NetworkService* service){
         busy_=false;prompt_.clear();confirmation_.clear();textMode_.clear();pending_={};
         emit closeKeyboardRequested();
         status_=error;
-        if(wifiPending_&&active_){wifiPending_=false;openWifi();return;}
+        if(pendingFace_>=0&&active_){const bool target=pendingFace_==1;pendingFace_=-1;openFace(target);return;}
         emit changed();
     });
 }
@@ -24,23 +24,29 @@ void NetworkController::setActive(bool active){
     else {poll_.stop();leave();}
 }
 void NetworkController::leave(){
-    wifiPending_=false;
+    pendingFace_=-1;
     if(busy_&&service_)service_->cancel();
     textMode_.clear();pending_={};prompt_.clear();confirmation_.clear();emit closeKeyboardRequested();emit changed();
 }
-void NetworkController::openWifi(){
-    if(bluetooth_&&busy_){wifiPending_=true;setActive(true);if(service_)service_->cancel();return;}
-    if(bluetooth_){bluetooth_=false;rows_.clear();focus_=0;leave();if(active_){if(!busy_)run("list");return;}}
-    setActive(true);
+void NetworkController::openFace(bool bluetooth){
+    if(bluetooth_!=bluetooth){bluetooth_=bluetooth;rows_.clear();focus_=0;}
+    textMode_.clear();pending_={};prompt_.clear();confirmation_.clear();
+    emit closeKeyboardRequested();
+    // A prior scan/pair may still be cancelling after its popup was closed.
+    // Wait for that request to finish before starting the requested face.
+    if(busy_){pendingFace_=bluetooth?1:0;setActive(true);if(service_)service_->cancel();emit changed();return;}
+    pendingFace_=-1;
+    if(active_)run("list");else setActive(true);
 }
 void NetworkController::run(const QString& op,const QJsonObject& extra){
     if(busy_)return;
     if(!service_){status_="Connections are available on your handheld.";emit changed();return;}
     auto request=extra;request["op"]=op;request["kind"]=bluetooth_?"bluetooth":"wifi";
-    busy_=true;status_=op=="list"?"Updating…":op=="scan"?"Looking nearby…":"Connecting…";
+    busy_=true;status_=op=="list"?"Updating…":op=="scan"?"Looking nearby…":op=="pair"?"Pairing…":op=="disconnect"?"Disconnecting…":op=="forget"?"Forgetting…":"Connecting…";
     emit changed();service_->request(request);
 }
 void NetworkController::receive(const QJsonObject& value){
+    if(!active_||pendingFace_>=0){if(value.value("event")=="prompt"&&service_)service_->cancel();return;}
     const auto type=value.value("event").toString();
     if(type=="snapshot"){
         const auto id=selected().value("id").toString();rows_=value.value("rows").toArray().toVariantList();

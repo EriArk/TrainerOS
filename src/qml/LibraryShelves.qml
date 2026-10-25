@@ -62,7 +62,7 @@ Item {
             readonly property real coverHeight: height-48
             Rectangle {
                 x: 6; y: shelfRow.coverHeight+17; width: parent.width-12; height: 11
-                gradient: Gradient { GradientStop { position: 0; color: "#22172c29" } GradientStop { position: 1; color: "transparent" } }
+                gradient: Gradient { GradientStop { position: 0; color: Theme.surfaceColor("#22172c29") } GradientStop { position: 1; color: "transparent" } }
             }
             Rectangle {
                 x: 4; y: shelfRow.coverHeight+12; width: parent.width-8; height: 7; radius: 2

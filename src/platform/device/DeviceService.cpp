@@ -9,6 +9,7 @@
 #include <QStorageInfo>
 #include <QJsonDocument>
 #include <QJsonObject>
+#include <QJsonArray>
 #include <cmath>
 #include <algorithm>
 
@@ -22,7 +23,7 @@ int number(const QString& path) {
     return valid.match(QString::fromLatin1(text)).hasMatch() ? text.toInt() : -1;
 }
 #ifdef Q_OS_LINUX
-QByteArray command(const QString& program, const QStringList& arguments) {
+QByteArray command(const QString& program, const QStringList& arguments, int limit=4096) {
     QProcess process;
     auto environment = QProcessEnvironment::systemEnvironment();
     environment.insert("LC_ALL", "C");
@@ -33,19 +34,20 @@ QByteArray command(const QString& program, const QStringList& arguments) {
         process.kill(); process.waitForFinished(1000); return {};
     }
     if (process.exitStatus() != QProcess::NormalExit || process.exitCode() != 0) return {};
-    return process.read(4096);
+    const auto bytes=process.read(limit+1);
+    return bytes.size()>limit ? QByteArray() : bytes;
 }
-QString changeCommand(const QStringList& arguments) {
+QString changeCommand(const QStringList& arguments, const QString& program="/usr/bin/wpctl") {
     QProcess process;
     process.setStandardOutputFile(QProcess::nullDevice());
     process.setStandardErrorFile(QProcess::nullDevice());
-    process.start("/usr/bin/wpctl", arguments);
+    process.start(program, arguments);
     if (!process.waitForStarted(1000) || !process.waitForFinished(1500)) {
         process.kill(); process.waitForFinished(1000);
         return "The audio control did not respond. Try again.";
     }
     return process.exitStatus() == QProcess::NormalExit && process.exitCode() == 0 ? QString()
-        : "The volume could not be changed. Check the audio device in Desktop Mode.";
+        : "The audio setting could not be changed. Check the device and try again.";
 }
 #endif
 void storage(const QString& directory, qint64& free, qint64& total) {
@@ -92,11 +94,31 @@ DeviceSnapshot parseVolume(const QByteArray& output) {
     result.muted = !match.captured(2).isEmpty();
     return result;
 }
+QVariantList parseAudioOutputs(const QByteArray& output) {
+    QVariantList result;
+    if(output.size()>1024*1024)return result;
+    for(const auto& value:QJsonDocument::fromJson(output).array()){
+        const auto item=value.toObject();const auto id=item["name"].toString();
+        if(id.isEmpty()||id.size()>512)continue;
+        // PipeWire's automatic fallback cannot play sound. Keep intentional
+        // virtual outputs, but do not present this placeholder as a device.
+        if(id=="auto_null"&&item["properties"].toObject()["factory.name"]=="support.null-audio-sink")continue;
+        bool available=true;
+        for(const auto& p:item["ports"].toArray()){
+            const auto port=p.toObject();
+            if(port["name"]==item["active_port"]&&port["availability"]=="not available")available=false;
+        }
+        result.append(QVariantMap{{"id",id},{"title",item["description"].toString(id)},{"available",available}});
+    }
+    return result;
+}
 DeviceBackend systemDeviceBackend(const QString& dataDirectory, const QString& libraryDirectory) {
     return {[dataDirectory, libraryDirectory] {
         DeviceSnapshot result;
 #ifdef Q_OS_LINUX
         result = parseVolume(command("/usr/bin/wpctl", {"get-volume", "@DEFAULT_AUDIO_SINK@"}));
+        result.audioOutputs=parseAudioOutputs(command("/usr/bin/pactl",{"-f","json","list","sinks"},1024*1024));
+        result.audioOutput=QString::fromUtf8(command("/usr/bin/pactl",{"get-default-sink"})).trimmed();
         const auto light = readBacklight("/sys/class/backlight");
         if (light.maximum > 0) result.brightness = int(std::lround(double(light.current) * 100 / light.maximum));
         const auto network = command("/usr/bin/nmcli", {"-t", "-f", "STATE", "general"}).trimmed();
@@ -131,6 +153,12 @@ DeviceBackend systemDeviceBackend(const QString& dataDirectory, const QString& l
         Q_UNUSED(control); Q_UNUSED(value);
 #endif
         return "This device control is unavailable.";
+    }, [](const QString& id)->QString {
+#ifdef Q_OS_LINUX
+        return changeCommand({"set-default-sink",id},"/usr/bin/pactl");
+#else
+        Q_UNUSED(id);return "Audio output selection is unavailable on this host.";
+#endif
     }};
 }
 DeviceService::DeviceService(DeviceBackend backend, QObject* parent)
@@ -178,19 +206,30 @@ void DeviceService::setValue(const QString& control, int value) {
     if (busy_) { pending_[control] = value; return; }
     execute(control, value);
 }
-void DeviceService::execute(const QString& control, int value) {
+void DeviceService::selectOutput(const QString& id) {
+    if(busy_||id.isEmpty())return;
+    execute("audio-output",0,id);
+}
+void DeviceService::execute(const QString& control, int value, const QString& output) {
     if (busy_) return;
     busy_ = true; activeControl_ = control; activeValue_ = value;
     if (!control.isEmpty()) error_.clear();
     emit changed();
-    QMetaObject::invokeMethod(worker_, [this, control, value] {
+    QMetaObject::invokeMethod(worker_, [this, control, value, output] {
         QString error;
-        if (control == "volume-step") {
+        if(control=="audio-output"){
+            const auto before=backend_.read();bool available=false;
+            for(const auto& row:before.audioOutputs)if(row.toMap()["id"]==output&&row.toMap()["available"].toBool())available=true;
+            if(!available)error="This output is no longer available. Choose another device.";
+            else if(!backend_.selectOutput)error="Audio output selection is unavailable on this host.";
+            else if(before.audioOutput!=output)error=backend_.selectOutput(output);
+        } else if (control == "volume-step") {
             const auto before = backend_.read();
             error = before.volume < 0 ? "The audio control is unavailable."
                 : backend_.write("volume", std::clamp(before.volume + value, 0, 100));
         } else if (!control.isEmpty()) error = backend_.write(control, value);
         const auto result = backend_.read();
+        if(control=="audio-output"&&error.isEmpty()&&result.audioOutput!=output)error="The audio output did not change. Try again.";
         QMetaObject::invokeMethod(this, [this, error, result] {
             snapshot_ = result;
             if (!error.isEmpty()) { error_ = error; pending_.clear(); }

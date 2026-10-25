@@ -5,7 +5,7 @@ Item {
     required property var social
     objectName: "my-lobbies-popup"
     visible: social.myLobbiesOpen
-    Rectangle { anchors.fill: parent; color: "#70152728" }
+    Rectangle { anchors.fill: parent; color: Theme.surfaceColor("#70152728") }
     MouseArea { anchors.fill: parent; onClicked: root.social.closeMyLobbies(); onWheel: wheel => wheel.accepted=true }
     Panel {
         id: surface; anchors.centerIn: parent
@@ -27,7 +27,7 @@ Item {
                 readonly property var game: modelData.game || ({})
                 Rectangle { x: 2; y: 4; width: parent.width-4; height: parent.height-5; radius: 15; color: Theme.chassisDark; opacity: .18 }
                 Rectangle { anchors.fill: parent; anchors.bottomMargin: 4; radius: 14
-                    gradient: Gradient { GradientStop { position: 0; color: Qt.lighter(Theme.paper,1.04) } GradientStop { position: 1; color: Qt.tint(Theme.paper,"#247cb4a9") } }
+                    gradient: Gradient { GradientStop { position: 0; color: Qt.lighter(Theme.paper,1.04) } GradientStop { position: 1; color: Qt.tint(Theme.paper,Theme.surfaceColor("#247cb4a9")) } }
                     border.width: index===root.social.myLobbiesIndex?2:1; border.color: index===root.social.myLobbiesIndex?Theme.focusGlow:Theme.rim
                 }
                 Text { x: 14; y: 10; width: parent.width-28; text: modelData.title; font.family: Theme.displayFamily; font.pixelSize: 20; color: Theme.ink; elide: Text.ElideRight; textFormat: Text.PlainText }

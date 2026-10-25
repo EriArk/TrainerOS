@@ -52,8 +52,8 @@ Item {
     }
     Rectangle {
         x: root.bubbleLeft; y: root.bubbleTop; width: root.panelWidth; height: root.panelHeight; radius: 18*root.unit
-        color: "#ba1b3437"; border.color: "#657eb9ad"; border.width: root.unit
-        Text { x: 4*root.unit; anchors.verticalCenter: parent.verticalCenter; text: "⋮"; color: "#c3dad0"; font.pixelSize: 20*root.unit }
+        color: Theme.surfaceColor("#ba1b3437"); border.color: Theme.surfaceColor("#657eb9ad"); border.width: root.unit
+        Text { x: 4*root.unit; anchors.verticalCenter: parent.verticalCenter; text: "⋮"; color: Theme.textColor("#c3dad0"); font.pixelSize: 20*root.unit }
         MouseArea { width: 16*root.unit; height: parent.height
             onPressed: mouse => root.pointer("handle","press",mapToItem(root,mouse.x,mouse.y))
             onPositionChanged: mouse => {if(pressed)root.pointer("handle","move",mapToItem(root,mouse.x,mouse.y))}
@@ -85,7 +85,7 @@ Item {
             width: root.diameter; height: width; radius: width/2
             color: [Theme.blue,Theme.pink,Theme.green,Theme.yellow][index%4]
             border.width: (person.speaking && !collapsed ? 4 : 2)*root.unit
-            border.color: person.speaking && !collapsed ? "#58b875" : Theme.paper
+            border.color: person.speaking && !collapsed ? Theme.surfaceColor("#58b875") : Theme.paper
             Text { anchors.centerIn: parent; visible: bubble.collapsed || avatar.status!==Image.Ready; text: bubble.collapsed ? "+"+(root.people.length-3) : (bubble.person.name || "?").substring(0,1).toUpperCase(); color: Theme.ink; font.pixelSize: 20*root.unit; textFormat: Text.PlainText }
             Image { id: avatar; objectName: "player-avatar-" + bubble.person.seat; anchors.fill: parent; anchors.margins: 3*root.unit; source: bubble.collapsed ? "" : bubble.person.avatar || ""; asynchronous: true; sourceSize: Qt.size(96,96); fillMode: Image.PreserveAspectCrop; visible: false }
             Rectangle { id: mask; anchors.fill: avatar; radius: width/2; visible: false; layer.enabled: true; color: "white" }
@@ -114,7 +114,7 @@ Item {
             width: Math.min(248*root.unit,root.width-2*root.margin); height: 62*root.unit; radius: 13*root.unit
             x: modelData.spectator ? root.width-width-root.margin : Math.max(root.margin,Math.min(root.width-width-root.margin,root.bubbleLeft+20*root.unit+seatIndex*(root.diameter+root.gap)))
             y: modelData.spectator ? root.height-root.bottomInset-root.margin-height-index*68*root.unit : root.bubbleTop+root.panelHeight+height<root.height-root.bottomInset-root.margin ? root.bubbleTop+root.panelHeight+7*root.unit : root.bubbleTop-height-7*root.unit
-            color: modelData.spectator ? "#e9d9e7e4" : Qt.tint(Theme.paper,"#367eb9ad"); border.color: "#9eb5a7"
+            color: modelData.spectator ? Theme.surfaceColor("#e9d9e7e4") : Qt.tint(Theme.paper,Theme.surfaceColor("#367eb9ad")); border.color: Theme.surfaceColor("#9eb5a7")
             Text { x: 12*root.unit; y: 7*root.unit; width: parent.width-24*root.unit; text: (modelData.spectator?"Spectator ? ":"")+modelData.name; color: Theme.muted; font.pixelSize: 11*root.unit; elide: Text.ElideRight; textFormat: Text.PlainText }
             Text { x: 12*root.unit; y: 23*root.unit; width: parent.width-24*root.unit; text: modelData.text; font.pixelSize: 13*root.unit; maximumLineCount: 2; wrapMode: Text.Wrap; elide: Text.ElideRight; color: Theme.ink; textFormat: Text.PlainText }
         }

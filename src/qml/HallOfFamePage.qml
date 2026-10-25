@@ -11,7 +11,7 @@ Item {
     anchors.fill: parent; visible: !root.hall.overview
     PageHeader { id: hallHeader; title: root.hall.archive ? "Hall of Fame" : "RetroAchievements"; trailing: root.hall.archive ? "Every journey leaves a story" : "Your account's achievements" }
     MountedPanel {
-        x: 0; y: hallHeader.height; width: parent.width; height: 68; color: "#d2dcd6"
+        x: 0; y: hallHeader.height; width: parent.width; height: 68; color: Theme.surfaceColor("#d2dcd6")
         Rectangle { x: 0; y: -parent.y; width: 6; height: parent.y; color: parent.color }
         Rectangle { anchors.right: parent.right; y: -parent.y; width: 6; height: parent.y; color: parent.color }
         Text { x: 24; y: 11; text: root.hall.archive ? "Adventure memories" : "Account collection · All matched Adventures"; color: Theme.ink; font.pixelSize: 21; font.weight: Font.DemiBold }
@@ -20,7 +20,7 @@ Item {
     Item {
         anchors.fill: parent; visible: !root.detailOpen
         Rectangle {
-            x: 0; y: hallHeader.height + 68; width: 538; height: Math.max(0, root.height - 71 - y); color: "#e2e7de"
+            x: 0; y: hallHeader.height + 68; width: 538; height: Math.max(0, root.height - 71 - y); color: Theme.surfaceColor("#e2e7de")
             // Reveal the complete focused row above the attached action panel.
             ControllerList {
                 objectName: "hall-list"
@@ -38,7 +38,7 @@ Item {
             }
         }
         Rectangle {
-            x: 538; y: hallHeader.height + 68; width: parent.width - x; height: Math.max(0, root.height - 71 - y); color: "#edf0df"
+            x: 538; y: hallHeader.height + 68; width: parent.width - x; height: Math.max(0, root.height - 71 - y); color: Theme.surfaceColor("#edf0df")
             TrainerEmblem { x: 23; y: 19; width: 97; height: 97; emblem: "compass" }
             Text { x: 136; y: 39; width: parent.width - 154; text: root.hall.archive ? "A JOURNEY\nREMEMBERED" : "ACHIEVEMENT\nRECORDS"; color: Theme.muted; font.pixelSize: 13; font.letterSpacing: 1.3 }
             Text { x: 23; y: 123; width: parent.width - 46; text: root.hall.detail.title; textFormat: Text.PlainText; color: Theme.ink; font.pixelSize: 22; font.weight: Font.DemiBold; elide: Text.ElideRight }
@@ -49,7 +49,7 @@ Item {
         anchors.fill: parent; visible: root.detailOpen
         Text { x: 28; y: 135; width: parent.width - 56; text: root.hall.detail.title; textFormat: Text.PlainText; color: Theme.ink; font.pixelSize: 27; font.weight: Font.DemiBold; elide: Text.ElideRight }
         Rectangle {
-            x: 0; y: 172; width: 493; height: 138; color: "#e2e7de"
+            x: 0; y: 172; width: 493; height: 138; color: Theme.surfaceColor("#e2e7de")
             Grid {
                 x: 25; y: 12; columns: 3; spacing: 9; visible: root.hall.archive
                 Repeater {
@@ -57,9 +57,9 @@ Item {
                     delegate: Rectangle {
                         required property int index
                         required property var modelData
-                        width: 141; height: 51; radius: 12; color: "#f5f4e9"; border.color: "#bacbbd"
+                        width: 141; height: 51; radius: 12; color: Theme.surfaceColor("#f5f4e9"); border.color: Theme.surfaceColor("#bacbbd")
                         Rectangle {
-                            x: 8; y: 8; width: 22; height: 22; radius: 11; color: modelData.known ? Theme.yellow : "#d6dfd5"
+                            x: 8; y: 8; width: 22; height: 22; radius: 11; color: modelData.known ? Theme.yellow : Theme.surfaceColor("#d6dfd5")
                             Text { anchors.centerIn: parent; text: index + 1; color: Theme.ink; font.pixelSize: 12; font.bold: true }
                         }
                         Text { x: 35; y: 9; width: 101; text: modelData.name; color: Theme.ink; font.pixelSize: 14; elide: Text.ElideRight }
@@ -71,8 +71,8 @@ Item {
                 anchors.fill: parent; visible: !root.hall.archive
                 Rectangle {
                     x: 26; y: 12; width: 122; height: 122; radius: 61
-                    color: root.hall.detail.earnedState === "earned" ? Theme.yellow : root.hall.detail.earnedState === "locked" ? "#c8d3d0" : "#d9cfdf"
-                    border.width: 3; border.color: "#829687"
+                    color: root.hall.detail.earnedState === "earned" ? Theme.yellow : root.hall.detail.earnedState === "locked" ? Theme.surfaceColor("#c8d3d0") : Theme.surfaceColor("#d9cfdf")
+                    border.width: 3; border.color: Theme.surfaceColor("#829687")
                     Text { anchors.centerIn: parent; text: root.hall.detail.earnedState === "earned" ? "✓" : root.hall.detail.earnedState === "locked" ? "—" : "?"; font.pixelSize: 54; font.bold: true; color: Theme.ink }
                 }
                 Text { x: 170; y: 22; width: 297; text: root.hall.detail.summary; wrapMode: Text.WordWrap; color: Theme.ink; font.pixelSize: 23; font.weight: Font.DemiBold }
@@ -89,7 +89,7 @@ Item {
     }
     MountedPanel {
         anchors { left: parent.left; right: parent.right; bottom: parent.bottom }
-        height: 71; color: "#ccdcd1"
+        height: 71; color: Theme.surfaceColor("#ccdcd1")
         Row {
             x: root.shell.chooseAdventureAvailable ? Theme.adventureCutoutWidth : 24; y: 19; spacing: 14
             Repeater {

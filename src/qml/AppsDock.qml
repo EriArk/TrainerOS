@@ -69,7 +69,7 @@ Item {
             }
             Rectangle {
                 x: parent.width-10; y: 4; width: 4; height: 4; radius: 2
-                visible: modelData.running; color: "#b6ef9d"
+                visible: modelData.running; color: Theme.surfaceColor("#b6ef9d")
             }
             MouseArea {
                 id: pointer; anchors.fill: parent
@@ -79,7 +79,7 @@ Item {
         }
     Column {
         anchors.centerIn: parent; spacing: 7; visible: !root.favorites.length && !root.running.length
-        Text { anchors.horizontalCenter: parent.horizontalCenter; text: "Quick Apps"; color: "#fff4ce"; font.family: Theme.displayFamily; font.pixelSize: 20 }
-        Text { anchors.horizontalCenter: parent.horizontalCenter; text: "Pin favourites in Apps"; color: "#e2eee6"; font.pixelSize: 13 }
+        Text { anchors.horizontalCenter: parent.horizontalCenter; text: "Quick Apps"; color: Theme.textColor("#fff4ce"); font.family: Theme.displayFamily; font.pixelSize: 20 }
+        Text { anchors.horizontalCenter: parent.horizontalCenter; text: "Pin favourites in Apps"; color: Theme.textColor("#e2eee6"); font.pixelSize: 13 }
     }
 }

@@ -35,7 +35,7 @@ Item {
             Rectangle { anchors.fill: parent; radius: 10; color: Theme.rim; opacity: .09 }
             Rectangle { anchors.fill: parent; radius: 10; color: "transparent"; border.width: root.selected("game") ? 1 : 0; border.color: Theme.focusGlow }
             Item { id: cover; x: 10; y: 8; height: parent.height-16; width: height*.70; rotation: -5
-                Rectangle { x: 3; y: 4; width: parent.width; height: parent.height; radius: 5; color: "#30193f3b" }
+                Rectangle { x: 3; y: 4; width: parent.width; height: parent.height; radius: 5; color: Theme.surfaceColor("#30193f3b") }
                 Rectangle { anchors.fill: parent; radius: 5; color: root.game.id ? Theme.blue : Theme.yellow; border.color: Theme.paper; border.width: 3 }
                 Image { anchors.fill: parent; anchors.margins: 3; source: root.game.cover || ""; asynchronous: true; fillMode: Image.PreserveAspectFit }
                 MenuGlyph { anchors.centerIn: parent; width: 29; height: 29; glyph: "game-controller"; visible: !root.game.cover }
@@ -103,7 +103,7 @@ Item {
                     }
                     MenuGlyph { anchors.centerIn: parent; width: 21; height: 21; visible: parent.voiceControl
                         glyph: modelData.command==="microphone" ? "microphone" : "speaker" }
-                    Rectangle { visible: parent.voiceControl && modelData.label.indexOf("off")>=0; anchors.centerIn: parent; width: 27; height: 2; rotation: -45; color: "#9a444f" }
+                    Rectangle { visible: parent.voiceControl && modelData.label.indexOf("off")>=0; anchors.centerIn: parent; width: 27; height: 2; rotation: -45; color: Theme.surfaceColor("#9a444f") }
                     Accessible.role: Accessible.Button; Accessible.name: modelData.label
                     Accessible.onPressAction: root.social.activateLobbyRoom(modelData.key)
                 }

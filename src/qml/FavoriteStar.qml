@@ -16,14 +16,14 @@ Item {
     Shape {
         x: 6; y: 7; width: 24; height: 24
         ShapePath {
-            strokeColor: "#b8ffffff"; strokeWidth: 3.5
-            fillColor: "#70263732"
+            strokeColor: Theme.surfaceColor("#b8ffffff"); strokeWidth: 3.5
+            fillColor: Theme.surfaceColor("#70263732")
             joinStyle: ShapePath.RoundJoin
             PathSvg { path: "M12 1 L15.4 8 L23 9 L17.5 14.4 L18.8 22 L12 18.4 L5.2 22 L6.5 14.4 L1 9 L8.6 8 Z" }
         }
         ShapePath {
-            strokeColor: root.marked ? "#946422" : "#586960"; strokeWidth: 1.3
-            fillColor: root.marked ? "#ffd569" : "#e9f0e4"
+            strokeColor: root.marked ? Theme.surfaceColor("#946422") : Theme.surfaceColor("#586960"); strokeWidth: 1.3
+            fillColor: root.marked ? Theme.surfaceColor("#ffd569") : Theme.surfaceColor("#e9f0e4")
             joinStyle: ShapePath.RoundJoin
             PathSvg { path: "M12 1 L15.4 8 L23 9 L17.5 14.4 L18.8 22 L12 18.4 L5.2 22 L6.5 14.4 L1 9 L8.6 8 Z" }
         }

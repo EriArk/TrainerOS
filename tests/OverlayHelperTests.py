@@ -9,6 +9,7 @@ import tempfile
 import time
 import unittest
 import base64
+import json
 from unittest.mock import patch, Mock
 
 ROOT = Path(__file__).resolve().parents[1] / 'packaging/integrations'
@@ -323,6 +324,9 @@ class OverlayHelperTests(unittest.TestCase):
             self.assertFalse(x.close(2,40,'120'));self.assertEqual(send.call_count,1)
     def test_physical_neutral_includes_every_button_stick_and_trigger(self):
         pad = object.__new__(RawPad)
+        pad.name = 'Retroid Pocket Gamepad'
+        pad.shell_mapping = {}
+        pad.mapping_stamp = None
         pad.axes = [0,1,2,3,4,5,20,21]
         pad.triggers = {20,21}
         keys = set(); values = {}
@@ -350,6 +354,31 @@ class OverlayHelperTests(unittest.TestCase):
         keys.add(545); self.assertTrue(pad.sample()['down']); keys.clear()
         values[1]=-1200; self.assertTrue(pad.sample()['up'])
         values[1]=1200; self.assertTrue(pad.sample()['down']); values.clear()
+        # Shared shell hints/Confirm overrides reach raw helpers without changing
+        # the physical button and stick coordinates used by game profiles.
+        with tempfile.TemporaryDirectory() as directory, patch.dict(os.environ, {'XDG_RUNTIME_DIR':directory}):
+            path=Path(directory)/'traineros-shell-input.json'
+            path.write_text(json.dumps(dict(version=1, device=pad.name, southConfirms=True, invertX=True)))
+            keys.add(304);values[0]=1200
+            state=pad.sample()
+            self.assertTrue(state['confirm']);self.assertFalse(state['back'])
+            self.assertTrue(state['left']);self.assertGreater(state['sticks'][0],0)
+            self.assertIn('south',state['buttons'])
+            keys.clear();values.clear()
+            calibration={'axes':[{'center':.1,'min':-.8,'max':.8} for _ in range(4)]+[{'center':.05,'min':0,'max':.8} for _ in range(2)],'deadzone':30}
+            path.write_text(json.dumps(dict(version=1,device=pad.name,calibration=calibration)))
+            pad.mapping_stamp=None;values[0]=1126;values[20]=1242
+            state=pad.sample()
+            self.assertAlmostEqual(state['sticks'][0],1,places=2)
+            self.assertTrue(state['right']);self.assertTrue(state['previousFace'])
+            self.assertIn('leftTrigger',state['buttons']);self.assertFalse(state['neutral'])
+            calibration['axes'][0]['max']=float('nan')
+            path.write_text(json.dumps(dict(version=1,device=pad.name,calibration=calibration)));pad.mapping_stamp=None
+            self.assertAlmostEqual(pad.sample()['sticks'][0],1126/1408)
+            values.clear()
+            for bad in ([], dict(version=1, device='unrelated', southConfirms=True)):
+                path.write_text(json.dumps(bad));pad.mapping_stamp=None
+                keys.add(305);self.assertTrue(pad.sample()['confirm']);keys.clear()
         # Odin uses 2/5 for triggers, unlike the Flip's 20/21.
         pad.axes = [0, 1, 2, 3, 4, 5]; pad.triggers = {2, 5}
         self.assertTrue(pad.sample()['neutral'])
