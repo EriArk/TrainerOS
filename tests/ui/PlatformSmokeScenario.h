@@ -16,7 +16,22 @@
 class StartNetworkFixture final:public trainer::NetworkService {
 public:
     using NetworkService::NetworkService;
+    bool paired=false, connected=false, forgotten=false;
+    void devices(){
+        QJsonArray rows{QJsonObject{{"id","/headphones"},{"title","Studio headphones"},{"detail","Paired"},{"saved",true},{"connected",false}}};
+        if(!forgotten)rows.append(QJsonObject{{"id","/pad"},{"title","Wireless gamepad"},{"detail",connected?"Connected":paired?"Paired":"Ready to pair"},{"saved",paired},{"connected",connected}});
+        emit event({{"event","snapshot"},{"rows",rows}});emit finished({});
+    }
+    void respond(const QJsonObject& value) override {if(value["accept"].toBool()){paired=connected=true;devices();}}
     void request(const QJsonObject& request) override {
+        if(request["kind"]=="bluetooth"){
+            QTimer::singleShot(0,this,[this,request]{
+                if(request["op"]=="pair"){emit event({{"event","prompt"},{"kind","confirm"},{"text","Does Wireless gamepad show 123456?"}});return;}
+                if(request["op"]=="disconnect")connected=false;
+                if(request["op"]=="forget")forgotten=true;
+                devices();
+            });return;
+        }
         const auto connected=request["op"]=="connect";
         QTimer::singleShot(0,this,[this,connected]{
             QJsonArray rows;
@@ -109,7 +124,7 @@ inline void startPlatformSmoke(QQuickWindow* window, trainer::ShellController& s
             check(shell.controlsNetworkOpen()&&shell.network()->rows().size()==7,"Wi-Fi list missing in Start");
             if(!directory.isEmpty())check(window->grabWindow().save(directory+"/start-wifi.png"),"Cannot save Wi-Fi frame");
             // Exercise the actual pointer path through the modal and row.
-            auto* popup=find(window->contentItem(),"start-wifi-popup");
+            auto* popup=find(window->contentItem(),"start-network-popup");
             auto* row=popup?find(popup,"connection-2"):nullptr;
             check(row&&row->isVisible(),"Wi-Fi touch target missing");
             if(row){const auto point=row->mapToScene(QPointF(row->width()/2,row->height()/2));const auto global=QPointF(window->mapToGlobal(point.toPoint()));
@@ -157,6 +172,27 @@ inline void startPlatformSmoke(QQuickWindow* window, trainer::ShellController& s
             shell.settings()->cycleTheme(1);++*step;break;
         case 14:
             if(!directory.isEmpty())check(window->grabWindow().save(directory+"/start-dark.png"),"Cannot save dark Start");
+            tap("start-widget-bluetooth");++*step;break;
+        case 15:
+            check(shell.controlsNetworkOpen()&&shell.network()->bluetooth()&&shell.network()->rows().size()==2,"Bluetooth list missing from Start");
+            if(!directory.isEmpty())check(window->grabWindow().save(directory+"/start-bluetooth.png"),"Cannot save Bluetooth frame");
+            tap("connection-1");++*step;break;
+        case 16:
+            check(shell.network()->prompt().contains("123456"),"Pair confirmation missing");
+            if(!directory.isEmpty())check(window->grabWindow().save(directory+"/start-bluetooth-pair.png"),"Cannot save pairing frame");
+            tap("connection-confirm");++*step;break;
+        case 17:
+            check(shell.network()->rows().value(1).toMap()["connected"].toBool(),"Pairing result missing");
+            tap("connection-1");check(shell.network()->confirmLabel()=="Disconnect","Connected device missed disconnect prompt");
+            tap("connection-cancel");check(shell.network()->prompt().isEmpty(),"Touch cancel did not dismiss disconnect");
+            tap("connection-1");tap("connection-confirm");++*step;break;
+        case 18:
+            check(!shell.network()->rows().value(1).toMap()["connected"].toBool(),"Disconnect result missing");
+            tap("connection-forget");check(shell.network()->confirmLabel()=="Forget","Forget lacked confirmation");
+            tap("connection-confirm");++*step;break;
+        case 19:
+            check(shell.network()->rows().size()==1,"Forget result missing");
+            tap("start-network-close");check(!shell.controlsNetworkOpen()&&shell.menuOpen()&&board->selected()=="bluetooth","Bluetooth close lost dashboard focus");
             shell.dispatch(trainer::Action::Back);check(!shell.menuOpen(),"Back did not close Start");++*step;break;
         default:
             if(child->state()!=QProcess::NotRunning){child->kill();child->waitForFinished(2000);}

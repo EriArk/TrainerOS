@@ -1055,11 +1055,13 @@ void ShellController::dispatchGameControls(Action action){
 }
 void ShellController::systemAction(const QString& id){
     if(id=="volume"){device_.adjustQuick(0,Action::Confirm);return;}
-    if(id=="wifi"){
-        controlsNetworkOpen_=true;network_.openWifi();emit changed();return;
+    if(id=="wifi"||id=="bluetooth"){
+        controlsNetworkOpen_=true;
+        if(id=="bluetooth")network_.openBluetooth();else network_.openWifi();
+        emit changed();return;
     }
-    if(id=="bluetooth"||id=="airplane"){
-        device_.adjustQuick(id=="wifi"?2:id=="bluetooth"?3:4,Action::Confirm);return;
+    if(id=="airplane"){
+        device_.adjustQuick(4,Action::Confirm);return;
     }
     if(id=="clock"||id=="battery"||id=="storage")return;
     if(id=="downloads"){downloads_.begin();return;}
