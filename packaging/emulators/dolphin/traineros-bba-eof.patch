@@ -1,0 +1,30 @@
+--- a/Source/Core/Core/HW/EXI/BBA/TAPServerConnection.cpp
++++ b/Source/Core/Core/HW/EXI/BBA/TAPServerConnection.cpp
+@@ -300,6 +300,9 @@
+       {
+         ERROR_LOG_FMT(SP1, "Failed to read size field from destination: {}",
+                       Common::StrNetworkError());
++        // EOF is permanently readable. Retrying here spins until the game exits.
++        // Leave the game alive; Deactivate still owns socket close/thread join.
++        return;
+       }
+       break;
+     }
+@@ -313,7 +316,7 @@
+       {
+         ERROR_LOG_FMT(SP1, "Failed to read split size field from destination: {}",
+                       Common::StrNetworkError());
+-        break;
++        return;
+       }
+       frame_bytes_expected |= (size_high << 8);
+       frame_data.resize(frame_bytes_expected, '\0');
+@@ -337,7 +340,7 @@
+       if (bytes_read <= 0)
+       {
+         ERROR_LOG_FMT(SP1, "Failed to read data from destination: {}", Common::StrNetworkError());
+-        break;
++        return;
+       }
+       frame_bytes_received += bytes_read;
+       if (frame_bytes_received == frame_bytes_expected)

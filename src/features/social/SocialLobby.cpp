@@ -134,7 +134,7 @@ void SocialController::openLobbyForPeople(QString peer,QString conversation) {
 }
 void SocialController::openLobbyForGame(const QString& key) {
     if(snapshot_["state"]!="connected") {openLobby();return;}
-    QVariantMap selected;for(const auto& v:lobbyGames_)if(v.toMap()["key"]==key) {selected=v.toMap();break;}
+    QVariantMap selected;for(const auto& v:lobbyGames_)if(v.toMap()["key"]==key||v.toMap()["adventure"]==key) {selected=v.toMap();break;}
     if(selected.isEmpty()) {
         toastTitle_="Play together";toastText_="This game's multiplayer runtime is not available yet.";
         toastTimer_.start();emit presentationChanged();return;

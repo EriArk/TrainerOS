@@ -2,6 +2,7 @@
 #include "integrations/adventure/standalone/StandaloneAdapter.h"
 #include "integrations/adventure/standalone/PpssppNetplay.h"
 #include "integrations/adventure/standalone/DolphinNetplay.h"
+#include "integrations/adventure/standalone/DolphinLan.h"
 #include "integrations/adventure/standalone/AzaharNetplay.h"
 #include "integrations/adventure/standalone/VitaNetplay.h"
 #include "integrations/adventure/retroarch/RetroArchAdapter.h"
@@ -39,6 +40,37 @@ class StandaloneTests final : public QObject {
         QFile file(path); QVERIFY(file.open(QIODevice::WriteOnly)); QCOMPARE(file.write(data), data.size());
     }
 private slots:
+    void gameCubeLanUsesNativeBbaAndIsolatedSaves() {
+        QTemporaryDir dir;QVERIFY(dir.isValid());
+        const auto connection=dir.filePath("session.conf");
+        write(connection,("mode=bba\nhost=true\nmac=00:09:bf:ab:cd:01\nsocket="+dir.filePath("bba.sock")+"\n").toUtf8());
+        QVERIFY(QFile::setPermissions(connection,QFile::ReadOwner|QFile::WriteOwner));
+        write(dir.filePath("Dolphin.ini"),"ordinary settings");
+        write(dir.filePath("GCPadNew.ini"),"[GCPad1]\nDevice = SDL/0/Pad\n");
+        StandaloneInstallation installation{probe(),probe(),{},{"gc"},dir.filePath("Dolphin.ini")};
+        QJsonObject profile{{"id","runtime.dolphin.bba.v1"},{"runtime",QString(64,'a')},{"players",2},{"temporaryProgress",true}};
+        ProcessCommand command;
+        const auto result=dolphinlan::configure(command,installation,"/roms/game.rvz",connection,true,profile);
+        QVERIFY2(result.isEmpty(),qPrintable(result));
+        QVERIFY(command.arguments.contains("-e"));QVERIFY(command.arguments.contains("/roms/game.rvz"));
+        QCOMPARE(command.arguments.mid(0,2),QStringList({"-u","TRAINEROS_DOLPHIN_SESSION"}));
+        const auto root=command.arguments.at(command.arguments.lastIndexOf("-u")+1);
+        QSettings config(root+"/Config/Dolphin.ini",QSettings::IniFormat);
+        QCOMPARE(config.value("Core/SerialPort1").toInt(),11);
+        QCOMPARE(config.value("Core/SIDevice0").toInt(),6);
+        QCOMPARE(config.value("Core/SIDevice1").toInt(),0);
+        QCOMPARE(config.value("Core/BBA_TAPSERVER_DESTINATION").toString(),dir.filePath("bba.sock"));
+        QVERIFY(!config.contains("Core/MemcardAPath"));QVERIFY(!config.contains("Core/GCIPathA"));
+        QFile original(dir.filePath("Dolphin.ini"));QVERIFY(original.open(QIODevice::ReadOnly));QCOMPARE(original.readAll(),QByteArray("ordinary settings"));
+        QVERIFY(!dolphinlan::configure(command,installation,"/roms/game.rvz",connection,false,profile).isEmpty());
+        write(connection,"mode=bba\nhost=true\nmac=00:09:bf:ab:cd:01\nsocket=/tmp/foreign.sock\n");
+        QVERIFY(!dolphinlan::configure(command,installation,"/roms/game.rvz",connection,true,profile).isEmpty());
+        command.settled({});QVERIFY(!QFileInfo::exists(root));
+        QVERIFY(dolphinlan::supportedDisc("GM4E01"));QVERIFY(dolphinlan::supportedDisc("GKYJ01"));
+        QVERIFY(!dolphinlan::supportedDisc("GALE01"));QVERIFY(!dolphinlan::supportedDisc("Mario Kart"));
+        QCOMPARE(multiplayerPresentation(profile)["label"].toString(),QString("LAN (in-game)"));QVERIFY(localLobbyRuntime(profile));
+    }
+
     void modernDiscoverySeedsControlsWithoutReplacingUserSettings() {
         QTemporaryDir dir; EmulatorEnvironment env;
         env.home=dir.path(); env.configHome=dir.filePath("config"); env.stateDirectory=dir.filePath("state");

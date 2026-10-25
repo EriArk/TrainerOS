@@ -32,6 +32,46 @@ public:
 // Isolated provider state; exercises the actual QML and input, never an account.
 class LobbySmokeScenario {
 public:
+    static void bba(QQuickWindow* window,ShellController& shell,ControllerInput& input,SDL_Joystick* joystick,QString directory,bool& completed,int& warnings,QStringList& diagnostics) {
+        auto* social=shell.social();
+        QObject::disconnect(social->session_,nullptr,social,nullptr);QObject::disconnect(social,nullptr,social->session_,nullptr);
+        social->snapshot_={{"state","connected"},{"userId","1"},{"name","Trainer"}};
+        const QVariantMap base{{"key","gc"},{"adventure","gc"},{"id","netplay-disc"},{"title","Mario Kart: Double Dash!!"},{"platform","gc"},{"mode","runtime.dolphin.gc.v1"},{"modeLabel","NetPlay"},{"seats",4}};
+        auto lan=base;lan["key"]="gc#bba";lan["id"]="lan-disc";lan["mode"]="runtime.dolphin.bba.v1";lan["modeLabel"]="LAN (in-game)";
+        lan["modeDetail"]="Own screen / LAN menu / temporary progress";lan["seats"]=2;
+        social->setLobbyGames({base,lan});
+        auto step=std::make_shared<int>(0);auto failed=std::make_shared<bool>(false);
+        const auto check=[=,&diagnostics](bool ok,QString text){diagnostics.append((ok?"PASS ":"FAIL ")+text);if(!ok)*failed=true;};
+        const auto press=[&input,joystick](SDL_GameControllerButton key){SDL_JoystickSetVirtualButton(joystick,key,1);input.poll();SDL_JoystickSetVirtualButton(joystick,key,0);input.poll();};
+        const auto click=[window](QString name){
+            const std::function<QQuickItem*(QQuickItem*)> find=[&](QQuickItem* item)->QQuickItem* {if(item->objectName()==name&&item->isVisible())return item;for(auto* child:item->childItems())if(auto* found=find(child))return found;return nullptr;};
+            auto* item=find(window->contentItem());if(!item)return false;
+            const auto point=item->mapToScene(QPointF(item->width()/2,item->height()/2));const auto global=window->mapToGlobal(point.toPoint());
+            QMouseEvent down(QEvent::MouseButtonPress,point,global,Qt::LeftButton,Qt::LeftButton,Qt::NoModifier),up(QEvent::MouseButtonRelease,point,global,Qt::LeftButton,Qt::NoButton,Qt::NoModifier);
+            QCoreApplication::sendEvent(window,&down);QCoreApplication::sendEvent(window,&up);return true;
+        };
+        auto* timer=new QTimer(window);timer->setInterval(500);
+        QObject::connect(timer,&QTimer::timeout,window,[=,&shell,&completed,&warnings,&diagnostics]{
+            switch((*step)++) {
+            case 0:window->resize(960,540);shell.goToPage(2);social->openLobbyForGame("gc");break;
+            case 1:
+                check(social->lobbyPicker()["modes"].toList().size()==2,"One game offers distinct NetPlay and LAN");
+                window->grabWindow().save(directory+"/bba-modes.png");check(click("lobby-picker-mode-1"),"Touch selects LAN");break;
+            case 2:
+                check(social->lobbyChoices_.size()==1&&social->lobbyChoices_[0].toMap()["mode"]=="runtime.dolphin.bba.v1","LAN selection retains the BBA runtime");
+                social->lobbyPickerAction("game:gc");break;
+            case 3:press(ControllerInput::ConfirmButton);break;
+            case 4:
+                check(social->lobbyChoices_.size()==2,"Controller selects the separate NetPlay proposal");
+                window->resize(1280,720);social->lobbyPickerAction("game:gc");break;
+            case 5:window->grabWindow().save(directory+"/bba-modes-wide.png");social->lobbyPickerAction("mode-cancel");social->lobbyPickerAction("apply");break;
+            default:
+                check(warnings==0,"No QML warnings");timer->stop();completed=true;
+                QFile report(directory+"/bba-check.txt");if(report.open(QIODevice::WriteOnly))report.write(diagnostics.join('\n').toUtf8());
+                QCoreApplication::exit(*failed?1:0);break;
+            }
+        });timer->start();
+    }
     static void offline(QQuickWindow* window,ShellController& shell,ControllerInput& input,SDL_Joystick* joystick,QString directory,bool& completed,int& warnings,QStringList& diagnostics) {
         auto* social=shell.social();
         QObject::disconnect(social->session_,nullptr,social,nullptr);QObject::disconnect(social,nullptr,social->session_,nullptr);
@@ -454,6 +494,7 @@ public:
     }
     static void start(QQuickWindow* window,ShellController& shell,ControllerInput& input,SDL_Joystick* joystick,
                       QString directory,bool& completed,int& warnings,QStringList& diagnostics) {
+        if(qEnvironmentVariableIsSet("TRAINEROS_BBA_SMOKE")){bba(window,shell,input,joystick,directory,completed,warnings,diagnostics);return;}
         if(qEnvironmentVariableIsSet("TRAINEROS_OFFLINE_LOBBY_SMOKE")){offline(window,shell,input,joystick,directory,completed,warnings,diagnostics);return;}
         if(qEnvironmentVariableIsSet("TRAINEROS_CONNECTION_SMOKE")){connection(window,shell,input,joystick,directory,completed,warnings,diagnostics);return;}
         if(qEnvironmentVariableIsSet("TRAINEROS_FILES68_SMOKE")){files68(window,shell,directory,completed,warnings,diagnostics);return;}

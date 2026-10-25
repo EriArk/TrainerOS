@@ -58,7 +58,8 @@ void RuntimeMultiplayer::prepare(QString operation,QJsonObject context,Completio
         if(digest!=wanted["id"]||offered["id"]!=wanted["mode"]) {done(false,"The selected game identity changed. Choose the game again.");return;}
     }
     bool installedContent=false;
-    for(auto it=games_.cbegin();it!=games_.cend();++it) {
+    const auto available=availableGames();
+    for(auto it=available.cbegin();it!=available.cend();++it) {
         const auto p=it.value();
         if(!offered.isEmpty()&&p["content"]==offered["content"]&&p["id"]==offered["id"])installedContent=true;
         const auto digest=QString::fromLatin1(QCryptographicHash::hash((p["id"].toString()+"/"+p["content"].toString()).toUtf8(),QCryptographicHash::Sha256).toHex());
@@ -112,13 +113,13 @@ void RuntimeMultiplayer::prepare(QString operation,QJsonObject context,Completio
 }
 void RuntimeMultiplayer::launch(QString operation,QString ticket,QJsonObject context,Completion done) {
     const auto record=library_.registration(lobbyGame_);
-    if(operation!=lobbyOperation_||lifecycle_.active()||active_||party_.active()||!allowed_||games_.value(lobbyGame_)!=lobbyDescriptor_
+    if(operation!=lobbyOperation_||lifecycle_.active()||active_||party_.active()||!allowed_||localProfile(lobbyGame_,lobbyDescriptor_)!=lobbyDescriptor_
        ||!record||record->removed||!record->contentAvailable||record->revision!=lobbyRevision_||record->contentPath!=lobbyPath_
        ||context["id"]!=lobbyContext_["lobby"]||context["generation"]!=lobbyContext_["generation"]||context["game"]!=lobbyContext_["game"]
        ||context["relay"].toString("auto")!=lobbyContext_["relay"].toString("auto")
        ||context["ticket"]!=ticket||(lobbyContext_.contains("liveAdmission")?context["phase"]!="playing":context["phase"]!="launching")) {done(false,"The game context changed. Prepare again.");return;}
     QJsonArray players;for(const auto& m:context["members"].toArray())if(!m.toObject()["spectator"].toBool())players.append(m);
-    QJsonArray caps;for(const auto& p:games_)caps.append(p);
+    QJsonArray caps;for(const auto& p:availableGames())caps.append(p);
     party_.configure(trainer_,caps,lobbyDescriptor_,true);
     lobbyTicket_=ticket;lobbyCompletion_=std::move(done);online_=lobbyContext_["type"]!="local";partySession_=true;
     auto selected=context["game"].toObject()["runtime"].toObject();if(selected.isEmpty())selected=lobbyDescriptor_;
@@ -129,10 +130,11 @@ void RuntimeMultiplayer::launch(QString operation,QString ticket,QJsonObject con
         relaySelector_.start(lobbyContext_["self"].toString(),context["owner"].toString(),peers,context["relay"].toString("auto"));
         if(!relayStarted_)return; // Synchronous context rejection already completed the launch.
     }
-    if(selected["id"]=="runtime.armsx2.lan.v1") {
-        ps2Connection_=true;nativeLaunchContext_=context;
-        if(!nativeConnection_.start(lobbyContext_["self"].toString(),ticket,ps2lan::bundleRoot()+"/stream_transport",online_?QJsonArray{"stun:stun.l.google.com:19302"}:QJsonArray{},"ps2"))
-            fail("Couldn't prepare the PS2 LAN connection. Reopen this game in the lobby.");
+    if(selected["id"]=="runtime.armsx2.lan.v1"||selected["id"]=="runtime.dolphin.bba.v1") {
+        const bool bba=selected["id"]=="runtime.dolphin.bba.v1";
+        nativeLanConnection_=true;nativeLaunchContext_=context;
+        if(!nativeConnection_.start(lobbyContext_["self"].toString(),ticket,(bba?dolphinlan::bundleRoot():ps2lan::bundleRoot())+"/stream_transport",online_?QJsonArray{"stun:stun.l.google.com:19302"}:QJsonArray{},bba?"bba":"ps2"))
+            fail("Couldn't prepare the LAN connection. Reopen this game in the lobby.");
         return;
     }
     if(context["relay"]=="psp-host") {
@@ -156,7 +158,7 @@ void RuntimeMultiplayer::bindLobbyPlayers(const QJsonObject& context) {
     }
 }
 void RuntimeMultiplayer::stopNativeConnection() {
-    ps2Connection_=false;ps2ConnectionConfig_.clear();
+    nativeLanConnection_=false;nativeLanConfig_.clear();
     pspDirect_=false;nativeLaunchContext_={};nativeConnection_.stop();
     if(pspRelay_.state()!=QProcess::NotRunning) {
         pspRelay_.terminate();if(!pspRelay_.waitForFinished(1500)){pspRelay_.kill();pspRelay_.waitForFinished(1000);}

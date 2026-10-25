@@ -98,6 +98,47 @@ class TransportTests(unittest.TestCase):
             for path in self.pair.paths:
                 self.assertFalse(path.exists(), 'private material survived transport exit')
 
+    def test_bba_native_frames_are_private_bounded_and_bidirectional(self):
+        self.pair = Pair(modes=['bba', 'bba'])
+        self.assertTrue(self.pair.connect())
+        configs = [dict(line.split('=', 1) for line in self.pair.ready[i].read_text().splitlines()) for i in range(2)]
+        clients = [socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) for _ in range(2)]
+        try:
+            for i, client in enumerate(clients):
+                self.assertEqual(configs[i]['mode'], 'bba')
+                self.assertEqual(configs[i]['host'], 'true' if i == 0 else 'false')
+                self.assertRegex(configs[i]['mac'], r'^00:09:bf:[0-9a-f]{2}:[0-9a-f]{2}:0[12]$')
+                self.assertEqual(self.pair.ready[i].stat().st_mode & 0o777, 0o600)
+                self.assertEqual(Path(configs[i]['socket']).stat().st_mode & 0o777, 0o600)
+                client.connect(configs[i]['socket']);client.settimeout(2)
+            self.assertNotEqual(configs[0]['mac'], configs[1]['mac'])
+            def exact(client, n):
+                data = b''
+                while len(data) < n:
+                    part = client.recv(n-len(data))
+                    self.assertTrue(part)
+                    data += part
+                return data
+            for sender in (0, 1):
+                for size in (14, 60, 1518):
+                    frame = b'\xff'*6 + bytes.fromhex(configs[sender]['mac'].replace(':', '')) + b'\x08\x06' + os.urandom(size-14)
+                    wire = struct.pack('<H', len(frame)) + frame
+                    clients[sender].sendall(wire[:1]);clients[sender].sendall(wire[1:9]);clients[sender].sendall(wire[9:])
+                    self.assertEqual(exact(clients[1-sender], len(wire)), wire)
+            # A second local client cannot replace the admitted Dolphin socket.
+            with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as duplicate:
+                duplicate.settimeout(2);duplicate.connect(configs[0]['socket'])
+                self.assertEqual(duplicate.recv(1), b'')
+            clients[0].sendall(struct.pack('<H', 1519))
+            self.assertNotEqual(self.pair.processes[0].wait(timeout=5), 0)
+        finally:
+            for client in clients: client.close()
+
+    def test_bba_cannot_join_ps2_transport(self):
+        self.pair = Pair(modes=['bba', 'ps2'])
+        self.assertFalse(self.pair.connect())
+        self.assertFalse(self.pair.ready)
+
     def test_ps2_native_envelopes_and_private_material(self):
         self.pair = Pair(modes=['ps2', 'ps2'])
         self.assertTrue(self.pair.connect())

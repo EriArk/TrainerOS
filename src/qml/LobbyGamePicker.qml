@@ -159,7 +159,7 @@ Item {
                         width: ListView.view.width; height: 49
                         Rectangle { anchors.fill: parent; anchors.margins: 2; radius: 9; color: index===root.picker.modeFocus?Qt.rgba(Theme.green.r,Theme.green.g,Theme.green.b,.35):"transparent"; border.color: Theme.focusGlow; border.width: index===root.picker.modeFocus?1:0 }
                         Text { x: 10; y: 6; text: (modelData.selected?"✓ ":"")+root.modeName(modelData); font.family: Theme.displayFamily; font.pixelSize: 17; color: Theme.ink; opacity: modelData.enabled===false?.5:1 }
-                        Text { x: 10; y: 28; width: parent.width-20; text: modelData.unavailable || ((modelData.mode || "").indexOf("remoteplay")>=0?"Host screen + guest controller":(modelData.mode || "").indexOf("lan")>=0?"Connect using the game's own menus":"Compatible game and runtime on each device"); elide: Text.ElideRight; font.pixelSize: 10; color: Theme.muted }
+                        Text { x: 10; y: 28; width: parent.width-20; text: modelData.unavailable || modelData.modeDetail || ((modelData.mode || "").indexOf("remoteplay")>=0?"Host screen + guest controller":(modelData.mode || "").indexOf("lan")>=0?"Connect using the game's own menus":"Compatible game and runtime on each device"); elide: Text.ElideRight; font.pixelSize: 10; color: Theme.muted }
                         MouseArea { anchors.fill: parent; enabled: modelData.enabled!==false; onClicked: root.social.lobbyPickerAction("mode:"+modelData.key) }
                     }
                 }

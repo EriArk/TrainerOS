@@ -16,6 +16,10 @@ class LocalLobbyTests final : public QObject {
         return {{"protocol","traineros.local-lobby.1"},{"owner",host.identity()},{"name",host.name()},
             {"lobby",room},{"title","Local test"},{"port",host.listeners_.begin().value()->serverPort()}};
     }
+    static QJsonObject member(const LobbyCoordinator& c,const QString& id) {
+        for(const auto& value:c.state()["members"].toArray())if(value.toObject()["id"]==id)return value.toObject();
+        return {};
+    }
     static void advertise(const QJsonObject& a,quint16 port) {
         QUdpSocket s;s.writeDatagram(QJsonDocument(a).toJson(QJsonDocument::Compact),QHostAddress::LocalHost,port);
     }
@@ -54,10 +58,10 @@ private slots:
         QVERIFY(h.selectGame({"test","Game","nes","netplay",2}));QTRY_COMPARE(g.state()["phase"].toString(),QString("gathering"));
         QVERIFY(h.seat(1));QTRY_COMPARE(g.state()["generation"],h.state()["generation"]);
         QVERIFY(g.seat(2));
-        QTRY_COMPARE(g.state()["members"].toArray().at(1).toObject()["seat"].toInt(),2);
+        QTRY_COMPARE(member(g,guest.identity())["seat"].toInt(),2);
         const auto generation=quint64(h.state()["generation"].toInteger());
         QVERIFY(h.prepared(generation,true));QVERIFY(g.prepared(generation,true));
-        QTRY_VERIFY(g.state()["members"].toArray().at(1).toObject()["prepared"].toBool());
+        QTRY_VERIFY(member(g,guest.identity())["prepared"].toBool());
         QVERIFY(h.ready(true));QVERIFY(g.ready(true));QTRY_VERIFY(h.activeRoom()->canStart());
         QSignalSpy launches(&g,&LobbyCoordinator::launchRequested);QTest::qWait(80);QCOMPARE(launches.size(),0);
         // Socket loss clears Ready. Reconnect restores membership, not launch.
@@ -67,7 +71,7 @@ private slots:
         QTRY_COMPARE(h.state()["phase"].toString(),QString("gathering"));
         const auto next=quint64(h.state()["generation"].toInteger());
         QVERIFY(h.prepared(next,true));QVERIFY(g.prepared(next,true));
-        QTRY_VERIFY(g.state()["members"].toArray().at(1).toObject()["prepared"].toBool());
+        QTRY_VERIFY(member(g,guest.identity())["prepared"].toBool());
         QVERIFY(h.ready(true));QVERIFY(g.ready(true));QTRY_VERIFY(h.activeRoom()->canStart());
         QVERIFY(h.start());QTRY_COMPARE(launches.size(),1);
         const auto ticket=h.state()["ticket"].toString();QVERIFY(h.acknowledgeLaunch(ticket,true));QVERIFY(g.acknowledgeLaunch(ticket,true));

@@ -10,6 +10,8 @@ from pathlib import Path
 source, build, destination = map(Path, sys.argv[1:])
 revision = "c77bbaa0f372c3f72281602a8b087206706542cb"
 assert subprocess.check_output(["git", "-C", str(source), "rev-parse", "HEAD"], text=True).strip() == revision
+subprocess.run(["git", "-C", str(source), "apply", "--reverse", "--check",
+                str(Path(__file__).resolve().parent / "traineros-bba-eof.patch")], check=True)
 assert not destination.exists(), "Use a new staging directory."
 binary = build / "Binaries/dolphin-emu"
 assert binary.is_file()
@@ -19,7 +21,7 @@ shutil.copytree(source / "Data/Sys", destination / "bin/Sys")
 tool = build / "Binaries/dolphin-tool"
 shutil.copy2(tool, destination / "bin/dolphin-tool")
 manifest = dict(protocol=1, source=revision, sha256=hashlib.sha256(binary.read_bytes()).hexdigest(),
-                hotseat="dolphin-golf-p1-v1", wiimote="dolphin-wiimote-v1",
+                bba="tapserver-eof-v1", hotseat="dolphin-golf-p1-v1", wiimote="dolphin-wiimote-v1",
                 toolSha256=hashlib.sha256(tool.read_bytes()).hexdigest())
 (destination / "manifest.json").write_text(json.dumps(manifest, indent=2) + "\n")
 print(manifest["sha256"])

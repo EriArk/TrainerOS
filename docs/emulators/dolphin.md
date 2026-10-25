@@ -1,5 +1,115 @@
 # Dolphin integration checkpoint
 
+## GameCube LAN / BBA — 25 октября 2026, исходники
+
+Обычный Dolphin NetPlay сохранён. Новый `runtime.dolphin.bba.v1` — отдельные
+GameCube, собственный экран и P1 у каждого из **двух** участников. Выбор
+`LAN (in-game)` появляется рядом с NetPlay в GameHub Lobby при установленном
+проверенном пакете. После Ready и ручного Start используются LAN-меню игры.
+Автоматического возврата/запуска игры нет.
+
+### Механизм и владельцы
+
+Закреплённый Dolphin `c77bbaa0f372c3f72281602a8b087206706542cb` уже содержит
+[EthernetTapServer](https://github.com/dolphin-emu/dolphin/blob/c77bbaa0f372c3f72281602a8b087206706542cb/Source/Core/Core/HW/EXI/BBA/TAPServerConnection.cpp).
+Это кадры Ethernet с двухбайтовой little-endian длиной по Unix-сокету;
+`SerialPort1=11` выбирает этот upstream backend. Протокол/эмуляция сохранены.
+При просмотре исходника найден цикл чтения после EOF: закрытый сокет остаётся
+постоянно читаемым, старый код повторял ошибки без остановки. Узкий
+`traineros-bba-eof.patch` завершает поток чтения при EOF/ошибке заголовка или
+кадра; закрытие сокета и join потока остаются у штатного Deactivate. Игра жива.
+Старые сборки без manifest-маркера `bba=tapserver-eof-v1` не получают LAN.
+HLE BBA подключается к сети хоста, IPC соединяет процессы одного ПК, XLink Kai
+требует отдельного сервиса. TAP server подходит к существующему защищённому
+каналу TrainerOS без TAP-интерфейса, VPN, root или нового сервера.
+
+S06 владеет комнатой/допуском/Start. S07 `LobbyConnection` связывает комнату,
+поколение, состав и launch ticket с существующим ICE/DTLS `stream_transport`.
+Обязательный режим `bba` проверяется обоими peers и несовместим с PS2/PSP/media.
+Канал пересылает Ethernet-кадры 14–1518 байт без сетевого стека хоста. Unix-сокет
+и material принадлежат пользователю; допускается один клиент, очереди ограничены,
+переполнение датаграмм сбрасывает кадры. MAC разные у двух консолей и выводятся
+из случайного material сеанса. Local использует host ICE candidates без STUN;
+Online — существующий signaling и публичный STUN. Сложные NAT и приемлемая
+для конкретной LAN-игры задержка через интернет этим не гарантируются.
+
+S03 `DolphinLan` проверяет хеши runtime/tool/helper и заголовок диска через
+проверенный `dolphin-tool header -j`. Доступны ISO/GCM/RVZ/WIA/GCZ для восьми
+изданий: Mario Kart Double Dash GM4E01/GM4J01/GM4P01, Kirby Air Ride
+GKYE01/GKYJ01/GKYP01, 1080 Avalanche GTEE01/GTEP01. Идентификаторы сверены с
+[GM4](https://github.com/dolphin-emu/dolphin/blob/c77bbaa0f372c3f72281602a8b087206706542cb/Data/Sys/GameSettings/GM4.ini),
+[GKY](https://github.com/dolphin-emu/dolphin/blob/c77bbaa0f372c3f72281602a8b087206706542cb/Data/Sys/GameSettings/GKY.ini),
+[GTEE01](https://github.com/dolphin-emu/dolphin/blob/c77bbaa0f372c3f72281602a8b087206706542cb/Data/Sys/GameSettings/GTEE01.ini),
+[GTEP01](https://github.com/dolphin-emu/dolphin/blob/c77bbaa0f372c3f72281602a8b087206706542cb/Data/Sys/GameSettings/GTEP01.ini).
+[Список LAN-игр XLink](https://www.teamxlink.co.uk/wiki/Dolphin) подтверждает
+назначение режимов. Это доступность, не результаты матчей. Сравниваются полные
+образы и runtime: разные контейнеры одного диска пока не считаются одинаковым
+содержимым. PSO/Homeland и серверный Online не включены.
+
+### Сохранения и завершение
+
+Копируется только собственный `GCPadNew.ini`. Пользовательский Dolphin.ini,
+GameSettings, карты памяти, NAND и читы не подключаются. Приватный user-dir
+содержит временные карты памяти; **временный прогресс** обозначен в выборе режима.
+Шейдерный кеш использует существующую безопасную схему. Смена игры и Home/Exit
+принадлежат общему process lifecycle; потеря связи отзывает сеть и ожидающий
+запуск, но не убивает работающую игру. Удаляется только каталог этой сессии.
+
+### Сборка, поставка и откат
+
+Нужно пересобрать `dolphin-netplay` из прежнего закреплённого исходника через
+`packaging/emulators/dolphin/build.sh`: он применяет сохранённый NetPlay-патч
+и дополнительный BBA EOF-патч. `bundle.py` проверяет наличие последнего и
+пишет marker. Полная новая сборка Dolphin в этом проходе не изготовлена;
+отдельно скомпилирован и проверен изменённый upstream TAPServerConnection.
+Дополнительный пакет транспорта строится так:
+
+```sh
+cmake -S tools/remote-play-stream/transport -B build/bba-transport -G Ninja -DCMAKE_BUILD_TYPE=Release
+cmake --build build/bba-transport -j3
+ctest --test-dir build/bba-transport --output-on-failure
+python3 packaging/emulators/dolphin/package-lan.py --transport build/bba-transport --output build/dolphin-lan
+```
+
+Место установки — `TrainerOS/emulators/dolphin-lan` в user data; сейчас пакет
+**не установлен на портативки**. Скрипт не перезаписывает существующий каталог
+и включает лицензии зависимостей. После обновления helper пакет пересобирается.
+При обновлении Dolphin проверить EXI enum/config/TAP framing, нативный парсер
+и профильные тесты до изменения pin. Откат — предыдущий пакет/оболочка;
+без дополнительного пакета BBA скрыт, обычный NetPlay сохраняется.
+Личные карты/настройки при откате не меняются.
+
+### Проверки этого изменения
+
+На Linux x86_64 собран реальный ICE/DTLS helper: пройдены 16 транспортных
+сценариев и отдельный PS2 socket boundary. Новые сценарии передают фрагментированный
+локальный поток и Ethernet-кадры минимального/обычного/максимального размера в обе
+стороны, проверяют права, разные MAC, отказ второго клиента, неверную длину и
+несовпадение BBA/PS2. Пакет helper собран с лицензиями. Стенд — отдельная внутренняя
+Docker-сеть: libjuice не создаёт нужные ICE candidates в loopback-only namespace.
+Сервисы хоста и портативки не участвовали.
+
+На Windows пройдены standalone, runtime_multiplayer, lobby и game_party;
+LocalLobbyTests после исправления тестового поиска гостя по ID прошёл 8/8.
+Раньше тест ошибочно полагался на порядок случайных сертификатных идентификаторов.
+Новые проверки охватывают два профиля одной игры, подготовку LAN, отказ другой
+сборки, собственный P1/временные настройки, сохранность обычного INI и сохранение
+живого процесса при обрыве BBA. QML/SDL-сценарий прошёл пять условий: отдельные
+режимы, выбор касанием и контроллером, сохранение BBA identity, отсутствие QML
+warnings. Экраны 960×540 и 1280×720 просмотрены; дефект символа в пояснении исправлен.
+
+`check-tapserver.py <upstream-files>` на Linux компилирует именно закреплённые
+upstream cpp/header с заглушками logging/utility/platform helpers (не эмуляции).
+Проверяются SHA-256 исходников. Контрольный запуск без патча воспроизводит
+десятки тысяч ошибок после EOF за 80 мс; с патчем каждый из трёх разрывов
+(до размера / между байтами размера / внутри кадра) завершает чтение после
+одной ошибки. Это проверка настоящего socket/thread-кода, не полного Dolphin.
+Окончательная Windows-сборка оболочки с BUILD_TESTING=OFF прошла; тестового
+входа lobby-smoke-test нет в production --help.
+Настоящий матч двух Dolphin в этом проходе не выполнен: пакетные клиенты проверки
+проверяют контракт BBA, но не являются эмуляторами. Поставка и игровая совместимость
+остаются открытыми; прежние результаты NetPlay ниже сохранены.
+
 **23 October 2026 ? NetPlay cache repair:** The session-owned profile now links only `Cache/Shaders` to a persistent renderer cache keyed by the runtime digest. Two native launches on each handheld retained six cache files; temporary GC/NAND/config paths remain isolated.
 [Implementation, installed build and acceptance limits](../NETPLAY_PLATFORM_REPAIR_2026_10_23.md).
 

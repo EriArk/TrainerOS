@@ -11,6 +11,11 @@ if git -C "$source_dir" apply --check "$recipe_dir/traineros-netplay.patch" 2>/d
 else
     git -C "$source_dir" apply --reverse --check "$recipe_dir/traineros-netplay.patch"
 fi
+if git -C "$source_dir" apply --check "$recipe_dir/traineros-bba-eof.patch" 2>/dev/null; then
+    git -C "$source_dir" apply "$recipe_dir/traineros-bba-eof.patch"
+else
+    git -C "$source_dir" apply --reverse --check "$recipe_dir/traineros-bba-eof.patch"
+fi
 cp "$recipe_dir/TrainerNetplay.inc" "$source_dir/Source/Core/DolphinQt/TrainerNetplay.inc"
 cmake -S "$source_dir" -B "$build_dir" -G Ninja -DCMAKE_BUILD_TYPE=Release \
     -DENABLE_TESTS=OFF -DENABLE_LLVM=OFF -DENCODE_FRAMEDUMPS=OFF \

@@ -50,13 +50,13 @@ RuntimeMultiplayer::RuntimeMultiplayer(LibraryRepository& lib,RetroArchAdapter& 
     ProcessService& process,AdventureLaunchController& lifecycle,AdventureExitPresentation& overlay)
     :library_(lib),adapter_(adapter),social_(social),ppsspp_(ppsspp),dolphin_(dolphinAdapter),process_(process),lifecycle_(lifecycle),overlay_(overlay),preparation_(process,lifecycle,overlay,[&social]{return social.lobbyCoordinator()->activeRoom()->local()?quint64(qHash(social.trainerIdentity())):social.accountGeneration();},this),nativeConnection_(*social.lobbyCoordinator(),this) {
     connect(&nativeConnection_,&LobbyConnection::connected,this,[this](QString config){
-        if(ps2Connection_)ps2ConnectionConfig_=config;
-        if((pspDirect_||ps2Connection_)&&!nativeLaunchContext_.isEmpty()) {
+        if(nativeLanConnection_)nativeLanConfig_=config;
+        if((pspDirect_||nativeLanConnection_)&&!nativeLaunchContext_.isEmpty()) {
             const auto context=std::exchange(nativeLaunchContext_,{});bindLobbyPlayers(context);
         }
     });
     connect(&nativeConnection_,&LobbyConnection::ended,this,[this](QString){
-        if(ps2Connection_)fail("The PS2 LAN connection ended. Your game is kept. Return to the lobby when you are ready.");
+        if(nativeLanConnection_)fail("The LAN connection ended. Your game is kept. Return to the lobby when you are ready.");
         if(pspDirect_)fail("The direct PSP connection ended. Finish this game session, then try the standard relay in Connection settings.");
     });
     connect(&pspRelay_,&QProcess::readyReadStandardOutput,this,[this]{pspRelay_.readAllStandardOutput();});
@@ -219,8 +219,10 @@ RuntimeMultiplayer::RuntimeMultiplayer(LibraryRepository& lib,RetroArchAdapter& 
     connect(&scanPublish_,&QTimer::timeout,this,[this]{refresh(installation_,trainer_,allowed_);});
     connect(&scan_,&QFutureWatcherBase::resultReadyAt,this,[this](int index){
         if(scan_.isCanceled())return;
-        const auto result=scan_.resultAt(index);
-        profiles_.insert(result.first,result.second);
+        auto result=scan_.resultAt(index);
+        const auto lan=result.second.take("nativeLanProfile").toObject();
+        if(!lan.isEmpty())lanProfiles_.insert(result.first,lan);
+        if(!result.second.isEmpty())profiles_.insert(result.first,result.second);
         if(!scanPublish_.isActive())scanPublish_.start();
     });
     connect(&scan_,&QFutureWatcherBase::finished,this,[this]{
@@ -259,7 +261,7 @@ RuntimeMultiplayer::RuntimeMultiplayer(LibraryRepository& lib,RetroArchAdapter& 
         // when restarting ordinary play into a temporary multiplayer session.
         // Read without inserting a null transport into older descriptors: the
         // accepted identity must remain byte-for-byte equal at guest launch.
-        if(restarting_&&!psp()&&!dolphin()&&!rmg()&&!flycast()&&!ds()&&!azahar()&&!vita()&&!ps2Lan()&&descriptor_.value("transport")!="netpacket"&&!descriptor_.value("id").toString().startsWith("runtime.retroarch."))
+        if(restarting_&&!psp()&&!dolphin()&&!rmg()&&!flycast()&&!ds()&&!azahar()&&!vita()&&!nativeLan()&&descriptor_.value("transport")!="netpacket"&&!descriptor_.value("id").toString().startsWith("runtime.retroarch."))
             lifecycle_.exitController().confirm();
     });
     connect(&lifecycle_.exitController(),&AdventureExitController::returnToGameRequested,this,[this]{
@@ -275,8 +277,8 @@ RuntimeMultiplayer::RuntimeMultiplayer(LibraryRepository& lib,RetroArchAdapter& 
         if(lobbyCompletion_) {auto done=std::exchange(lobbyCompletion_,{});done(true,{});}
         if(hotseat()&&(host_||dolphin()))handoff_.begin(party_.state()["party"].toString(),host_?1:2,
             dolphin()?HotseatHandoff::NativeControl::HostAuthority:HotseatHandoff::NativeControl::SplitRoles);
-        if(ps2Lan()) {
-            if(host_)send({{"kind","ps2-ready"},{"identity",descriptor_}});
+        if(nativeLan()) {
+            if(host_)send({{"kind",gcLan()?"bba-ready":"ps2-ready"},{"identity",descriptor_}});
             relaySent_=true;deadline_=0;timer_.stop();status_="Choose LAN multiplayer in the game";return;
         }
         if(psp()) {
@@ -337,7 +339,7 @@ void RuntimeMultiplayer::refresh(const RetroArchInstallation& installation,QStri
     trainer_=std::move(trainer);allowed_=allowed;
     installation_=installation;
     if(!allowed_) {
-        games_.clear();
+        games_.clear();lanGames_.clear();
         if(!multiplayerGames_.isEmpty() || !gameModes_.isEmpty()){gameModes_.clear();onlineGames_.clear();nearbyGames_.clear();multiplayerGames_.clear();emit availabilityChanged();}
         update();return;
     }
@@ -348,7 +350,7 @@ void RuntimeMultiplayer::refresh(const RetroArchInstallation& installation,QStri
     const auto stamp=[](const QString& path){const QFileInfo f(path);return qHashMulti(0,path,f.size(),f.lastModified().toMSecsSinceEpoch());};
     quint64 revision=qHashMulti(0,stamp(installation.runtimeFile),stamp(installation.configFile),
         stamp(pspInstallation.runtimeFile),stamp(dolphin::bridgeFile()),stamp(dolphin::bridgeRoot()+"/bin/dolphin-tool"),stamp(dolphin::bridgeRoot()+"/manifest.json"),
-        stamp(installation.linkedSavePython),stamp(installation.linkedSaveHelper),stamp(ps2::bundleRoot()+"/manifest.json"),stamp(ps2lan::bundleRoot()+"/manifest.json"),stamp(rmg::bundleRoot()+"/manifest.json"),stamp(flycast::bundleRoot()+"/manifest.json"),stamp(melonds::bundleRoot()+"/manifest.json"),stamp(azahar::bundleRoot()+"/manifest.json"),stamp(vita::bundleRoot()+"/manifest.json"));
+        stamp(installation.linkedSavePython),stamp(installation.linkedSaveHelper),stamp(dolphinlan::bundleRoot()+"/manifest.json"),stamp(ps2::bundleRoot()+"/manifest.json"),stamp(ps2lan::bundleRoot()+"/manifest.json"),stamp(rmg::bundleRoot()+"/manifest.json"),stamp(flycast::bundleRoot()+"/manifest.json"),stamp(melonds::bundleRoot()+"/manifest.json"),stamp(azahar::bundleRoot()+"/manifest.json"),stamp(vita::bundleRoot()+"/manifest.json"));
     for(auto it=installation.cores.cbegin();it!=installation.cores.cend();++it)revision=qHashMulti(revision,it.key(),stamp(it.value()));
     const auto candidate=[](const AdventureRegistration& r){return r.adventure.platformId=="ps2"||r.adventure.platformId=="psvita"||r.adventure.platformId=="n3ds"||r.adventure.platformId=="nds"||r.adventure.platformId=="psp"||r.adventure.platformId=="gc"||r.adventure.platformId=="wii"||r.adventure.platformId=="n64"||r.adventure.platformId=="dreamcast"||
         retroarch::netplaySupported(r.adventure.platformId,r.integrationConfig["core"].toString());};
@@ -373,7 +375,7 @@ void RuntimeMultiplayer::refresh(const RetroArchInstallation& installation,QStri
     if(scan_.isRunning()&&scanRevision_!=revision) {if(scanCancel_)scanCancel_->store(true);scan_.cancel();}
     if(!scan_.isRunning() && (scanRevision_!=revision||!scanRevision_)) {
         scanRevision_=revision;scanPriority_=playing;
-        profiles_.clear();
+        profiles_.clear();lanProfiles_.clear();
         auto ordered=records;
         std::stable_sort(ordered.begin(),ordered.end(),[&](const auto& a,const auto& b){
             if((a.adventure.id==playing)!=(b.adventure.id==playing))return a.adventure.id==playing;
@@ -386,29 +388,35 @@ void RuntimeMultiplayer::refresh(const RetroArchInstallation& installation,QStri
             retroarch::NetplayDigestCache digests;
             for(const auto& r:ordered)if(candidate(r)) {
                 if(promise.isCanceled()||cancel->load())break;
-                const auto identity=runtimeIdentity(r,installation,pspInstallation,dolphinInstallation,*cancel,capacities.value(r.adventure.id,2),&digests);
+                auto identity=runtimeIdentity(r,installation,pspInstallation,dolphinInstallation,*cancel,capacities.value(r.adventure.id,2),&digests);
+                const auto lan=dolphinlan::netplayIdentity(retroarch::netplayRegistration(r),dolphinInstallation,*cancel);
+                if(!lan.isEmpty())identity["nativeLanProfile"]=lan;
                 if(!identity.isEmpty())promise.addResult(ScannedGame{r.adventure.id,identity});
             }
         }));
     }
-    games_.clear();
+    games_.clear();lanGames_.clear();
     for(auto it=profiles_.cbegin();it!=profiles_.cend();++it)
         if(metadata.contains(it.key())&&permitsMultiplayer(metadata.value(it.key()),it.value()))games_.insert(it.key(),it.value());
+    for(auto it=lanProfiles_.cbegin();it!=lanProfiles_.cend();++it)
+        if(metadata.contains(it.key())&&permitsMultiplayer(metadata.value(it.key()),it.value()))lanGames_.insert(it.key(),it.value());
+    const auto available=availableGames();
     QVariantList lobbyGames;
     if(allowed_)for(const auto& record:records) {
-        const auto profile=games_.value(record.adventure.id);
+        for(const auto& profile:available.values(record.adventure.id)) {
         const auto content=profile["content"].toString();const int capacity=profile["players"].toInt(2);
         if(content.isEmpty()||capacity<1||capacity>16||(!multiplayerConnectionAllowed(profile,"online")&&!localLobbyRuntime(profile)))continue;
         const auto id=QString::fromLatin1(QCryptographicHash::hash((profile["id"].toString()+"/"+content).toUtf8(),QCryptographicHash::Sha256).toHex());
-        lobbyGames.append(QVariantMap{{"key",record.adventure.id},{"id",id},{"title",profile["label"].toString()},
+        lobbyGames.append(QVariantMap{{"key",record.adventure.id+(profile["id"]=="runtime.dolphin.bba.v1"?"#bba":"")},{"adventure",record.adventure.id},{"id",id},{"title",profile["label"].toString()},
             {"platform",record.adventure.platformId},{"mode",profile["id"].toString()},{"modeLabel",multiplayerPresentation(profile).value("label",QString("Emulator multiplayer"))},
-            {"cover",library_.artwork(record.adventure.id).value("cover")},{"seats",qMin(4,capacity)},{"runtime",profile.toVariantMap()}});
+            {"modeDetail",profile["id"]=="runtime.dolphin.bba.v1"?"Own screen / LAN menu / temporary progress":""},{"cover",library_.artwork(record.adventure.id).value("cover")},{"seats",qMin(4,capacity)},{"runtime",profile.toVariantMap()}});
         social_.lobbyRuntime()->registerService(profile["id"].toString(),this);
+        }
     }
     QVariantMap modes;
-    for(auto it=games_.cbegin();it!=games_.cend();++it) {
+    for(auto it=available.cbegin();it!=available.cend();++it) {
         const auto mode=multiplayerPresentation(it.value());
-        if(!mode.isEmpty())modes.insert(it.key(),QVariantList{mode});
+        if(!mode.isEmpty()){auto list=modes.value(it.key()).toList();list.append(mode);modes.insert(it.key(),list);}
     }
     if(additionalLobbyGames) {
         const auto additional=additionalLobbyGames(games_);lobbyGames+=additional;
@@ -421,11 +429,11 @@ void RuntimeMultiplayer::refresh(const RetroArchInstallation& installation,QStri
     }
     if(gameModes_!=modes){gameModes_=modes;emit availabilityChanged();}
     social_.setLobbyGames(lobbyGames);
-    const auto visible=allowed_?games_.keys():QStringList{};
+    auto visible=allowed_?available.uniqueKeys():QStringList{};
     QStringList online,nearby;
     for(const auto& id:visible) {
-        if(multiplayerConnectionAllowed(games_.value(id),"online"))online.append(id);
-        if(multiplayerConnectionAllowed(games_.value(id),"nearby"))nearby.append(id);
+        if(multiplayerConnectionAllowed(games_.value(id),"online")||multiplayerConnectionAllowed(lanGames_.value(id),"online"))online.append(id);
+        if(multiplayerConnectionAllowed(games_.value(id),"nearby")||multiplayerConnectionAllowed(lanGames_.value(id),"nearby"))nearby.append(id);
     }
     if(visible!=multiplayerGames_||online!=onlineGames_||nearby!=nearbyGames_) {
         multiplayerGames_=visible;onlineGames_=online;nearbyGames_=nearby;emit availabilityChanged();
@@ -525,9 +533,9 @@ void RuntimeMultiplayer::update() {
     }
     // Receiving an invitation is independent of the current game's netplay
     // support. An unrelated single-player game may keep running while saving.
-    const bool available=allowed_&&!games_.isEmpty();
+    const bool available=allowed_&&(!games_.isEmpty()||!lanGames_.isEmpty());
     QJsonArray caps;
-    if(available)for(const auto& descriptor:games_)if(!caps.contains(descriptor))caps.append(descriptor);
+    if(available)for(const auto& descriptor:availableGames())if(!caps.contains(descriptor))caps.append(descriptor);
     const bool rooms=allowed_&&social_.account()["state"]=="connected";
     party_.configure(trainer_,caps,selectedControllerProfile(games_.value(process_.runtimeControls()["game"].toString())),available||rooms);
     if(social_.conversationVisible()&&!social_.runtimePeer().isEmpty())party_.query("online:"+social_.runtimePeer());
@@ -688,17 +696,17 @@ bool RuntimeMultiplayer::action(const QString& id,bool fromSocial) {
     return true;
 }
 void RuntimeMultiplayer::startParty(bool host,const QJsonObject& endpoint) {
-    const auto selected=party_.game();QString game;
-    for(auto it=games_.cbegin();it!=games_.cend();++it)if(supportsMultiplayerSession(it.value(),selected)){game=it.key();break;}
+    const auto selected=party_.game();QString game;const auto available=availableGames();
+    for(auto it=available.cbegin();it!=available.cend();++it)if(supportsMultiplayerSession(it.value(),selected)){game=it.key();break;}
     // Preserve the running edition when several compatible handheld games exist.
     const auto current=process_.runtimeControls()["game"].toString();
-    for(auto it=games_.cbegin();it!=games_.cend();++it)
+    for(auto it=available.cbegin();it!=available.cend();++it)
         if(supportsMultiplayerSession(it.value(),selected)&&it.value()["content"]==selected["content"]){game=it.key();break;}
     if(games_.contains(current)&&supportsMultiplayerSession(games_.value(current),selected))game=current;
     if(!lobbyTicket_.isEmpty()) {
         const auto record=library_.registration(lobbyGame_);
         game=record&&!record->removed&&record->contentAvailable&&record->revision==lobbyRevision_
-            &&record->contentPath==lobbyPath_&&games_.value(lobbyGame_)==lobbyDescriptor_
+            &&record->contentPath==lobbyPath_&&localProfile(lobbyGame_,lobbyDescriptor_)==lobbyDescriptor_
             &&supportsMultiplayerSession(lobbyDescriptor_,selected)?lobbyGame_:QString();
     }
     if(!allowed_||game.isEmpty()||!permitsMultiplayer(library_.artwork(game),selected)) {
@@ -722,9 +730,9 @@ void RuntimeMultiplayer::startParty(bool host,const QJsonObject& endpoint) {
     transportPeer_=host?(roster.size()>1?roster.at(1).toObject()["peer"].toString():QString()):party_.hostPeer();
     online_=lobbyTicket_.isEmpty()?transportPeer_.startsWith("online:"):lobbyContext_["type"]!="local";
     request_={};request_.host=host;request_.relay=online_;request_.expected=selected;
-    request_.localExpected=games_.value(game);
+    request_.localExpected=localProfile(game,selected);
     if(!host)relaySelector_.stop();
-    request_.localContent=games_.value(game)["content"].toString();
+    request_.localContent=request_.localExpected["content"].toString();
     request_.slot=host?1:endpoint["slot"].toInt();
     if(linked()) {
         const auto roster=party_.state()["members"].toArray();
@@ -744,9 +752,9 @@ void RuntimeMultiplayer::startParty(bool host,const QJsonObject& endpoint) {
     request_.nickname="TrainerOS-"+randomToken().left(12);output_.clear();
     deadline_=QDateTime::currentSecsSinceEpoch()+((ds()||azahar()||vita()||(rmg()&&online_))?180:dolphin()?150:75);timer_.start();
     dolphinRequest_={};dolphinRequest_.expected=selected;dolphinRequest_.host=host;dolphinRequest_.online=online_;
-    if(ps2Lan()) {
-        if(!ps2Connection_||ps2ConnectionConfig_.isEmpty()||lobbyTicket_.isEmpty()) {
-            fail("Open this PS2 LAN game from GameHub Lobby.");return;
+    if(nativeLan()) {
+        if(!nativeLanConnection_||nativeLanConfig_.isEmpty()||lobbyTicket_.isEmpty()) {
+            fail("Open this LAN game from GameHub Lobby.");return;
         }
         if(host)prepareHost();else frame(endpoint);
     } else if(host&&vita()) {
@@ -820,11 +828,11 @@ void RuntimeMultiplayer::launch() {
     if(record)*record=retroarch::netplayRegistration(*record);
     if(!record){fail("The game is no longer in your library.");return;}
     if(!permitsMultiplayer(library_.artwork(game_),descriptor_)){fail("Multiplayer isn't available for this game.");return;}
-    if(ps2Lan()) {
-        if(!requestRuntimeLaunch||!ps2Connection_||ps2ConnectionConfig_.isEmpty()) {fail("The PS2 LAN connection is unavailable.");return;}
+    if(nativeLan()) {
+        if(!requestRuntimeLaunch||!nativeLanConnection_||nativeLanConfig_.isEmpty()) {fail("The LAN connection is unavailable.");return;}
         QStringList inputPrefix;const auto end=installation_.prefixArguments.indexOf("--");
         if(end>=0)inputPrefix=installation_.prefixArguments.mid(0,end+1);
-        const auto result=requestRuntimeLaunch(ps2lan::command(*record,descriptor_,ps2ConnectionConfig_,host_,inputPrefix),game_);
+        const auto result=requestRuntimeLaunch(gcLan()?dolphinlan::command(*record,dolphin_.installation(),descriptor_,nativeLanConfig_,host_):ps2lan::command(*record,descriptor_,nativeLanConfig_,host_,inputPrefix),game_);
         if(!result.success)fail(result.message);
         return;
     }
@@ -987,14 +995,14 @@ void RuntimeMultiplayer::linkedTransferCompleted(int slot,QByteArray bytes) {
     if(host_)launch();else if(!linkedEndpoint_.isEmpty()){const auto endpoint=linkedEndpoint_;linkedEndpoint_={};frame(endpoint);}
 }
 void RuntimeMultiplayer::send(QJsonObject packet) {
-    if(partySession_){if(packet["kind"]=="ready"||packet["kind"]=="psp-ready"||packet["kind"]=="ps2-ready"||packet["kind"]=="dolphin-ready"||packet["kind"]=="rmg-ready"||packet["kind"]=="flycast-ready"||packet["kind"]=="ds-ready"||packet["kind"]=="azahar-ready"||packet["kind"]=="vita-ready")party_.ready(packet);return;}
+    if(partySession_){if(packet["kind"]=="ready"||packet["kind"]=="psp-ready"||packet["kind"]=="ps2-ready"||packet["kind"]=="bba-ready"||packet["kind"]=="dolphin-ready"||packet["kind"]=="rmg-ready"||packet["kind"]=="flycast-ready"||packet["kind"]=="ds-ready"||packet["kind"]=="azahar-ready"||packet["kind"]=="vita-ready")party_.ready(packet);return;}
 }
 void RuntimeMultiplayer::frame(const QJsonObject& packet) {
     if(!active_)return;
-    if(ps2Lan()) {
-        if(host_||packet["kind"]!="ps2-ready"||lifecycle_.active()||launchPending_)return;
+    if(nativeLan()) {
+        if(host_||packet["kind"]!=(gcLan()?"bba-ready":"ps2-ready")||lifecycle_.active()||launchPending_)return;
         if(packet["identity"].toObject()!=descriptor_||packet["slot"]!=QJsonValue(2)) {
-            fail("Your PS2 game or invitation changed. Invite again.");return;
+            fail("Your LAN game or invitation changed. Invite again.");return;
         }
         launchPending_=true;launch();return;
     }
@@ -1080,7 +1088,7 @@ void RuntimeMultiplayer::frame(const QJsonObject& packet) {
     launchPending_=true;launch();
 }
 void RuntimeMultiplayer::pollRelay() {
-    if(psp()||dolphin()||rmg()||flycast()||ds()||azahar()||vita()||ps2Lan()||query_||!active_||!host_||!online_||relaySent_||request_.relayEndpoint.isEmpty())return;
+    if(psp()||dolphin()||rmg()||flycast()||ds()||azahar()||vita()||nativeLan()||query_||!active_||!host_||!online_||relaySent_||request_.relayEndpoint.isEmpty())return;
     // This is the upstream public directory, not an authenticated signalling
     // service. Passwords travel only through the accepted friend invitation.
     query_=true;QNetworkRequest request(QUrl("http://lobby.libretro.com/list/"));request.setTransferTimeout(7000);
@@ -1104,7 +1112,7 @@ void RuntimeMultiplayer::pollRelay() {
     });
 }
 void RuntimeMultiplayer::output(const QByteArray& bytes) {
-    if(!active_||psp()||ps2Lan())return;
+    if(!active_||psp()||nativeLan())return;
     output_+=bytes;
     while(output_.contains('\n')) {
         const auto end=output_.indexOf('\n');const auto line=output_.left(end);output_.remove(0,end+1);
@@ -1237,7 +1245,7 @@ void RuntimeMultiplayer::fail(QString text) {
     const auto endedLobbyOperation=lobbyOperation_;
     ++sessionGeneration_;
     const bool wasActive=active_,endHotseat=wasActive&&hotseat();
-    const bool cancelPreparation=(endHotseat||(wasActive&&ps2Lan()))&&!restarting_&&process_.preparing()&&lifecycle_.adventureId()==game_;
+    const bool cancelPreparation=(endHotseat||(wasActive&&nativeLan()))&&!restarting_&&process_.preparing()&&lifecycle_.adventureId()==game_;
     active_=false;restarting_=false;launchPending_=false;handoff_.stop();
     // A refused or lost handoff must not leave either temporary copy accepting
     // input independently. Address only this prepared native child through stdin.

@@ -6,6 +6,7 @@ that another edition of the same game has the same format.
 
 | Record | Exact targets | Current boundary |
 |---|---|---|
+| [GameCube native BBA LAN](../emulators/dolphin.md) | Pinned Dolphin, 3 LAN titles / 8 disc IDs | Source integration, two consoles, bounded ICE/DTLS frame checks; native match and delivery open; temporary cards only |
 | [Vita native LAN runtime](../emulators/vita3k.md) | Pinned Vita3K ARM64 and exact rebuilt vitaQuake 2.1 | Installed invitation/native discovery, paired gameplay, own native progress, Home and bounded close/loss. Commercial AdHoc/PSN and wider compatibility open; no semantic save capability |
 | [3DS native wireless rooms](../emulators/azahar.md) | Pinned Azahar 2126.2 and exact base content | Installed two-player Nearby/Online admission and Minicraft3DS gameplay/Home/own save/Exit; retail updates/DLC and external acceptance open; no semantic save capability |
 | [DS wireless runtime](../emulators/melonds.md) | Pinned melonDS frontend and identical DS cartridge identity | Two-player ordinary Nearby/Online friend invitation, launch and protected opaque save return installed on Flip/Odin; same-router checks. Four players, broader games and external acceptance remain open; no semantic save capability |

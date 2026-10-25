@@ -216,20 +216,26 @@ private slots:
         QCOMPARE(completions,1);QVERIFY(!f.runtime.party_.active());QCOMPARE(f.process.processId(),pid);
         finishOrdinary(f);
     }
+    void ps2TransportLossKeepsOwnedGameAndCannotRelaunch_data() {
+        QTest::addColumn<QString>("mode");
+        QTest::newRow("ps2")<<QString("runtime.armsx2.lan.v1");
+        QTest::newRow("gamecube-bba")<<QString("runtime.dolphin.bba.v1");
+    }
     void ps2TransportLossKeepsOwnedGameAndCannotRelaunch() {
+        QFETCH(QString,mode);
         Fixture f;QVERIFY(f.start());QTRY_COMPARE(f.lifecycle.state(),"running");
         const auto pid=f.process.processId();
-        f.runtime.active_=true;f.runtime.ps2Connection_=true;
-        f.runtime.descriptor_={{"id","runtime.armsx2.lan.v1"},{"lateJoin",false}};
+        f.runtime.active_=true;f.runtime.nativeLanConnection_=true;
+        f.runtime.descriptor_={{"id",mode},{"lateJoin",false}};
         QVERIFY(!f.runtime.supportsRejoin(f.runtime.descriptor_));
-        f.runtime.ps2ConnectionConfig_="private connection";
+        f.runtime.nativeLanConfig_="private connection";
         f.runtime.nativeLaunchContext_={{"ticket","old"}};
         int completions=0;f.runtime.lobbyCompletion_=[&](bool ok,QString){QVERIFY(!ok);++completions;};
         emit f.runtime.nativeConnection_.ended("Lost connection");
-        QCOMPARE(completions,1);QVERIFY(!f.runtime.ps2Connection_);QVERIFY(f.runtime.ps2ConnectionConfig_.isEmpty());
+        QCOMPARE(completions,1);QVERIFY(!f.runtime.nativeLanConnection_);QVERIFY(f.runtime.nativeLanConfig_.isEmpty());
         QVERIFY(f.runtime.nativeLaunchContext_.isEmpty());QCOMPARE(f.process.processId(),pid);
         emit f.runtime.nativeConnection_.connected("stale config");
-        QVERIFY(f.runtime.ps2ConnectionConfig_.isEmpty());QVERIFY(!f.runtime.party_.active());QCOMPARE(f.process.processId(),pid);
+        QVERIFY(f.runtime.nativeLanConfig_.isEmpty());QVERIFY(!f.runtime.party_.active());QCOMPARE(f.process.processId(),pid);
         finishOrdinary(f);
     }
     void destructionCannotReenterFromExternalLobbySignals() {
@@ -441,6 +447,28 @@ private slots:
         finishOrdinary(f);QCOMPARE(f.runtime.invitationId(),invitation);QVERIFY(f.runtime.invitationBadge());
         host.leave();QVERIFY(f.runtime.invitationId().isEmpty());QVERIFY(!f.runtime.invitationBadge());
         f.runtime.openInvitation(invitation);QVERIFY(f.social.face()!="lobby");
+    }
+    void gameCubeLanAndNetplayKeepSeparateLocalProfiles() {
+        Fixture f;
+        const QJsonObject netplay{{"id","runtime.dolphin.gc.v1"},{"content","disc"},{"runtime","build"},{"players",4}};
+        auto lan=netplay;lan["id"]="runtime.dolphin.bba.v1";lan["players"]=2;lan["lateJoin"]=false;
+        f.runtime.games_.insert("gc",netplay);f.runtime.lanGames_.insert("gc",lan);
+        QCOMPARE(f.runtime.availableGames().values("gc").size(),2);
+        QCOMPARE(f.runtime.localProfile("gc",netplay),netplay);
+        QCOMPARE(f.runtime.localProfile("gc",lan),lan);
+        auto wrong=lan;wrong["runtime"]="other";QVERIFY(f.runtime.localProfile("gc",wrong).isEmpty());
+        f.runtime.allowed_=true;
+        AdventureRegistration record;record.adventure.id="gc";record.contentAvailable=true;f.library.records={record};
+        const auto digest=QString::fromLatin1(QCryptographicHash::hash((lan["id"].toString()+"/disc").toUtf8(),QCryptographicHash::Sha256).toHex());
+        bool prepared=false;
+        f.runtime.prepare("lan-prepare",{{"self",f.social.account()["userId"].toString()},{"owner","owner"},
+            {"game",QJsonObject{{"id",digest},{"mode",lan["id"]},{"runtime",lan}}},
+            {"members",QJsonArray{QJsonObject{{"id","owner"},{"seat",1},{"connected",true}},QJsonObject{{"id","guest"},{"seat",2},{"connected",true}}}}},
+            [&](bool ok,QString error){QVERIFY2(ok,qPrintable(error));prepared=true;});
+        QVERIFY(prepared);QCOMPARE(f.runtime.lobbyDescriptor_,lan);
+        f.runtime.lanGames_.clear();QVERIFY(f.runtime.localProfile("gc",lan).isEmpty());
+        QCOMPARE(f.runtime.localProfile("gc",netplay),netplay);
+        f.runtime.descriptor_=lan;QVERIFY(f.runtime.nativeLan());QVERIFY(!f.runtime.dolphin());QVERIFY(!f.runtime.supportsLive(lan));
     }
     void lobbyReadyRunsBothOwnedChildrenAndReturnsToTheSameRoom_data() {
         QTest::addColumn<QString>("ending");QTest::addColumn<bool>("local");
