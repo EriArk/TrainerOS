@@ -27,8 +27,8 @@ const QHash<QString, QStringList> extensions{
 };
 bool contentRoute(const QString& platform, const QString& core, const QString& extension) {
     if (retroarch::discPlatform(platform)) return extension == "chd" || extension == "cue";
-    // Compressed GBA saves need a separately verified owned-save route.
-    if (core == "mgba") return extension == "gba";
+    // Archive admission validates a single cartridge; save identity retains the container.
+    if (core == "mgba") return QStringList{"gba","zip","7z"}.contains(extension);
     if (platform.isEmpty()) return extensions.value(core).contains(extension);
     return romContentSupported(platform, core, extension);
 }

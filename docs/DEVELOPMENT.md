@@ -22,6 +22,10 @@ The authoritative list is [CMakeLists.txt](../CMakeLists.txt):
   preview renderer; see [the avatar contract](../sdk/AVATAR.md).
 - Qt6Keychain and a working platform keychain for real account credentials.
 - OpenSSL 3 Crypto and SDL2 2.0.14+, including development headers/CMake packages.
+- libarchive headers and runtime library for bounded ZIP/7z cartridge reading
+  (checked 3.8.7). Fedora: `libarchive-devel` in the builder and `libarchive` at
+  runtime; MSYS2 UCRT64: `mingw-w64-ucrt-x86_64-libarchive`. Keep its dependent
+  codecs with the host package; linking a Windows build is not ARM64 delivery.
 - The QSQLITE driver and Qt Quick, Controls, Window, Shapes, QML WorkerScript/Models and
   QtMultimedia runtime modules. Use one matching Qt/compiler ABI.
 - ffmpeg for the generated-video preview test; working multimedia backend/plugins

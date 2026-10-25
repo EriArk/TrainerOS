@@ -1,4 +1,5 @@
 #include "integrations/adventure/standalone/RmgNetplay.h"
+#include "CartridgeArchiveFixture.h"
 #include <QtTest>
 #include "core/model/GamePlayers.h"
 #include <QWebSocketServer>
@@ -32,7 +33,12 @@ class RmgNetplayTests final : public QObject {
     }
     static void send(QWebSocket* s,const QJsonObject& p){s->sendTextMessage(QString::fromUtf8(QJsonDocument(p).toJson(QJsonDocument::Compact)));}
 private slots:
+    void isolatedCommandAndExactBundle_data() {
+        QTest::addColumn<QString>("format");
+        for(const auto& format:QStringList{"z64","zip","7z"})QTest::newRow(qPrintable(format))<<format;
+    }
     void isolatedCommandAndExactBundle() {
+        QFETCH(QString,format);
         QStandardPaths::setTestModeEnabled(true);
         const auto root=rmg::bundleRoot();QVERIFY(!QFileInfo::exists(root));
         const auto cleanup=qScopeGuard([root]{QDir(root).removeRecursively();QStandardPaths::setTestModeEnabled(false);});
@@ -46,12 +52,14 @@ private slots:
         QJsonObject m{{"protocol",1},{"source",rmg::sourceRevision},{"serverSource",rmg::serverRevision},
             {"onlineServer","wss://rmg.example.invalid:45000"},{"renderer","vulkan"},{"files",hashes}};
         const auto saveManifest=[&]{write(root+"/manifest.json",QJsonDocument(m).toJson());};saveManifest();
-        QTemporaryDir temp;const auto rom=temp.filePath("cartridge.z64");
-        QByteArray bytes(4096,'\0');bytes.replace(0,4,QByteArray::fromHex("80371240"));write(rom,bytes);
+        QTemporaryDir temp;const auto rom=temp.filePath("cartridge."+format);
+        QByteArray bytes(4096,'\0');bytes.replace(0,4,QByteArray::fromHex("80371240"));
+        write(rom,format=="z64"?bytes:cartridgeArchive(format,{{"different/Inner.z64",bytes}}));
         AdventureRegistration record;record.adventure.id="game";record.adventure.platformId="n64";
         record.adventure.adapterId="retroarch";record.adventure.title="Cartridge";record.contentPath=rom;
         std::atomic_bool cancel=false;
         const auto id=rmg::netplayIdentity(record,cancel,4);QVERIFY(!id.isEmpty());
+        QCOMPARE(id["content"].toString(),QString::fromLatin1(QCryptographicHash::hash(bytes,QCryptographicHash::Sha256).toHex()));
         QVERIFY(sameMultiplayerGame(id,rmg::netplayIdentity(record,cancel,2)));
         QVERIFY(multiplayerConnectionAllowed(id,"online"));
         m.remove("onlineServer");saveManifest();
@@ -68,6 +76,8 @@ private slots:
         auto command=rmg::command(record,renamed,"127.0.0.1",45001,3,{"/device/input-bridge","--"});
         QVERIFY(command.prepare(command,cancel).isEmpty());QCOMPARE(command.runtimeControls["kind"].toString(),"rmg");
         QVERIFY(command.runtimeControls["temporaryProgress"].toBool());
+        const auto launchRom=command.arguments.last();QFile launched(launchRom);QVERIFY(launched.open(QIODevice::ReadOnly));
+        QCOMPARE(launched.readAll(),bytes);launched.close();
         QVERIFY(command.arguments.contains("/device/input-bridge"));QVERIFY(!command.arguments.contains("-L"));
         const auto sessionArg=*std::find_if(command.arguments.cbegin(),command.arguments.cend(),[](const auto& s){return s.startsWith("TRAINEROS_RMG_SESSION=");});
         const auto sessionPath=sessionArg.mid(QString("TRAINEROS_RMG_SESSION=").size());
@@ -75,6 +85,7 @@ private slots:
         const auto data=QJsonDocument::fromJson(session.readAll()).object();session.close();
         QCOMPARE(data["controller"].toInt(),3);QCOMPARE(data["renderer"].toString(),"vulkan");
         command.settled={};QVERIFY(!QFileInfo::exists(sessionPath));
+        if(format!="z64")QVERIFY(!QFileInfo::exists(launchRom));
         QFile ordinary(solo);QVERIFY(ordinary.open(QIODevice::ReadOnly));QCOMPARE(ordinary.readAll(),QByteArray("KEEP ORDINARY PROGRESS"));
         const auto previous=m;
         for(const auto& name:{"session.py","island.py","ethernet.py","packets.py","native_log.py",
@@ -98,7 +109,9 @@ private slots:
         const auto channels=hostData["channels"].toObject();QCOMPARE(channels.size(),3);
         QVERIFY(channels["2"].toObject()["identity"]!=channels["3"].toObject()["identity"]);
         QVERIFY(!channels["2"].toObject().contains("code"));
-        QCOMPARE(hostData["runtime"].toObject()["rom"].toString(),QFileInfo(rom).absoluteFilePath());
+        const auto privateRom=hostData["runtime"].toObject()["rom"].toString();
+        QFile extracted(privateRom);QVERIFY(extracted.open(QIODevice::ReadOnly));QCOMPARE(extracted.readAll(),bytes);extracted.close();
+        if(format=="z64")QCOMPARE(privateRom,QFileInfo(rom).absoluteFilePath());
         party.host=false;party.slot=3;party.connection={{"mode","online"},{"code","1-one-two-three-four-five-six-seven-eight"}};
         auto privateGuest=rmg::privateCommand(record,party);QVERIFY(privateGuest.prepare(privateGuest,cancel).isEmpty());
         QFile guestFile(privateGuest.arguments.last());QVERIFY(guestFile.open(QIODevice::ReadOnly));

@@ -1,5 +1,14 @@
 # Nintendo 64 native netplay — 11 October 2026
 
+**25 October — ZIP/7z support in source:** the shared
+[cartridge reader](../HANDHELD_MULTIPLAYER.md#zip7z-cartridges--25-october-2026)
+validates one N64 member and hashes its decoded bytes. Both Nearby and private
+Online stage/revalidate that payload in the existing session directory, then
+launch RMG with the ordinary ROM path. No RMG/server/transport patch or changed
+save policy: progress remains temporary. Raw/ZIP/7z preparation and cleanup
+passed locally; the new shell is not delivered. The previous raw-only admission
+restriction is superseded.
+
 **23 October 2026 ? NetPlay cache repair:** Both direct and private-LAN commands retain their XDG renderer cache across invitations, keyed by the runtime digest. The earlier statement that every XDG cache is fresh is superseded; config/data/save roots remain private.
 [Implementation, installed build and acceptance limits](../NETPLAY_PLATFORM_REPAIR_2026_10_23.md).
 

@@ -17,11 +17,11 @@ runtime и не увеличивает число мест. Полные фай�
 | Семейство | Допуск и устранённые ограничения | Оставшаяся техническая граница |
 | --- | --- | --- |
 | Классические RetroArch | Общие профили NES/FDS/SNES, SG-1000/SMS/MD/Sega CD/32X, PCE/PCE CD/SuperGrafx, Atari 2600, FBNeo/Neo Geo/MAME. Старые exact-хеши — специальные совместимые профили, после них есть общий путь | Установленные core/firmware, determinism, реальные порты; CUE/arcade сравниваются с зависимыми файлами |
-| GB/GBC/GBA | Общие linked-профили по аппаратным данным ROM; solo-фильтр исправлен также для SameBoy/DoubleCherryGB/mGBA rollback | Архивы не разбираются как cartridge header; RTC/особые mapper/save layouts и RFU зависят от core. Сохранено отрицательное exact-исключение отказавшего Hnefatafl |
+| GB/GBC/GBA | Общие linked-профили по аппаратным данным ROM; ZIP/7z с одним картриджем проходят идентификацию/подготовку; solo-фильтр исправлен | Новая оболочка не установлена; RTC/особые mapper/save layouts и RFU зависят от core. Сохранено отрицательное exact-исключение отказавшего Hnefatafl |
 | PS1 | Общий PCSX-ReARMed, CUE с дорожками и CHD, без списка названий | PBP/M3U/ISO, CCD/TOC/MDS требуют полной сетевой идентификации/подготовки |
 | PS2 | Все 56 строк LAN-каталога / 164 serial, одиночный CRC-допуск уже снят; исправлен solo-фильтр | ISO/CHD, SYSTEM.CNF/ELF и DEV9-пакет. Каталог обозначает наличие LAN, не только проверенные матчи |
 | PSP | Общий Ad Hoc без списка названий; ISO и новый CSO/PBP reader на базе PPSSPP, исправлен solo-фильтр | Новый helper/оболочка ещё не установлены; CHD, wrappers и PBP без корректного PSP DISC_ID остаются открыты |
-| N64 | Общий RMG, все три порядка байт ROM, без списка названий | ZIP/7z не распаковываются для сетевой идентификации; до 64 MiB, установленные плагины/endpoint |
+| N64 | Общий RMG, все три порядка байт ROM, ZIP/7z с одним картриджем; без списка названий | Новая оболочка не установлена; до 64 MiB ROM, установленные плагины/endpoint; порядок байт должен совпадать |
 | Dreamcast | Общий Flycast Dojo для CHD v5, без списка названий | GDI/CDI/M3U требуют подготовки/идентичности зависимых файлов; native game-server Online отдельно |
 | GameCube/Wii NetPlay | Общий Dolphin, без списка названий. GC получил RVZ/WIA/GCZ/CISO, Wii CISO/GCM; WIA добавлен в библиотеку/регистрацию; запуск согласован | Сжатые образы и консоль проверяет `dolphin-tool`; Wii требует Wiimote runtime. WAD/NAND и native Wii Online не реализованы этим изменением |
 | GameCube BBA | Семейства GM4/GKY/GTE без allowlist регионов/ревизий; добавлен CISO | Встроенный LAN Mario Kart Double Dash/Kirby Air Ride/1080, а не ограничение общего NetPlay. PSO/Homeland и серверные режимы не подготовлены |

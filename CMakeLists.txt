@@ -11,11 +11,13 @@ option(TRAINER_BUILD_PRACTICE_PROBE "Build the read-only Emerald battle proof to
 find_package(Qt6 6.4 REQUIRED COMPONENTS Core Gui Qml Quick Sql Network Xml Multimedia WebSockets Concurrent)
 find_package(Qt6Keychain REQUIRED)
 find_package(OpenSSL 3 REQUIRED COMPONENTS Crypto)
+find_package(LibArchive REQUIRED)
 find_package(SDL2 2.0.14 REQUIRED CONFIG)
 find_package(Qt6 6.9 QUIET COMPONENTS WebEngineQuick)
 find_package(Qt6 QUIET COMPONENTS Quick3D)
 
 add_library(trainer_core STATIC
+    src/integrations/adventure/CartridgeContent.cpp
     src/features/trainer/AvatarAssets.cpp
     src/platform/sdk/PlatformHost.cpp
     src/platform/sdk/SdkNetwork.cpp
@@ -328,7 +330,7 @@ qt_add_resources(trainer_core rom_platforms PREFIX "/library" BASE data FILES da
 qt_add_resources(trainer_core pokedex_reference PREFIX "/pokedex" BASE data FILES data/pokedex.json)
 qt_add_resources(trainer_core emerald_reference PREFIX "/progress" BASE data FILES data/emerald-reference.json)
 qt_add_resources(trainer_core emerald_shops PREFIX "/progress" BASE data FILES data/emerald-shops.json)
-target_link_libraries(trainer_core PUBLIC Qt6Keychain::Qt6Keychain Qt6::WebSockets Qt6::Core Qt6::Gui Qt6::Sql Qt6::Network Qt6::Xml Qt6::Multimedia Qt6::Concurrent SDL2::SDL2 OpenSSL::Crypto)
+target_link_libraries(trainer_core PUBLIC Qt6Keychain::Qt6Keychain Qt6::WebSockets Qt6::Core Qt6::Gui Qt6::Sql Qt6::Network Qt6::Xml Qt6::Multimedia Qt6::Concurrent SDL2::SDL2 OpenSSL::Crypto LibArchive::LibArchive)
 if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
     find_package(Qt6 REQUIRED COMPONENTS Widgets)
     find_package(PkgConfig REQUIRED)
@@ -677,6 +679,9 @@ if(BUILD_TESTING)
     add_dependencies(trainer_standalone_tests trainer_process_probe)
     add_test(NAME standalone COMMAND trainer_standalone_tests)
     qt_add_executable(trainer_rmg_netplay_tests tests/RmgNetplayTests.cpp)
+    qt_add_executable(trainer_cartridge_content_tests tests/CartridgeContentTests.cpp)
+    target_link_libraries(trainer_cartridge_content_tests PRIVATE trainer_core Qt6::Test)
+    add_test(NAME cartridge_content COMMAND trainer_cartridge_content_tests)
     target_link_libraries(trainer_rmg_netplay_tests PRIVATE trainer_core Qt6::Test)
     add_test(NAME rmg_netplay COMMAND trainer_rmg_netplay_tests)
     qt_add_executable(trainer_flycast_netplay_tests tests/FlycastNetplayTests.cpp)

@@ -245,7 +245,9 @@ QString netplayRelayEndpoint(const QByteArray& response) {
 }
 QJsonObject netplayIdentity(const AdventureRegistration& r,const RetroArchInstallation& i,const std::atomic_bool& cancel,NetplayDigestCache* cache,int players) {
     auto coreId=r.integrationConfig["core"].toString();
-    auto handheld=handheldLinkProfile(r);
+    const auto cartridgeImage=QStringList{"gb","gbc","gba"}.contains(r.adventure.platformId)
+        ?cartridge::read(r.contentPath,r.adventure.platformId,cancel):cartridge::Image{};
+    auto handheld=handheldLinkProfile(r,cartridgeImage);
     if(!handheld.isEmpty()) {
         coreId=handheldLinkCore(handheld);
         if(requiresLinkedSavePreparation(handheld)) {
@@ -259,7 +261,7 @@ QJsonObject netplayIdentity(const AdventureRegistration& r,const RetroArchInstal
             if(helper.isEmpty())return {};
             handheld["preparation"]=helper;
         }
-        const auto content=contentDigest(r.contentPath,cancel,cache);
+        const auto content=cartridgeImage.digest();
         if(!handheldLinkContentCompatible(handheld,content))return {};
         const auto core=digest(i.cores.value(coreId),512LL*1024*1024,cancel,cache);
         const auto runtime=digest(i.runtimeFile,512LL*1024*1024,cancel,cache);
@@ -518,6 +520,11 @@ QString prepareNetplay(ProcessCommand& cmd,const AdventureRegistration& r,const 
     if(append>=0&&append+1<cmd.arguments.size())cmd.arguments[append+1]+="|"+path+"/session.cfg";
     else {auto content=cmd.arguments.takeLast();cmd.arguments<<"--appendconfig"<<path+"/session.cfg"<<content;}
     auto content=cmd.arguments.takeLast();
+    if(!linkCore.isEmpty()&&!linked&&cartridge::archived(r.contentPath)) {
+        content=cartridge::stage(cartridge::read(r.contentPath,r.adventure.platformId,cancel),
+            r.contentPath,path+"/content",identity["content"].toString());
+        if(cancel||content.isEmpty())return "Your archived game changed or couldn't be prepared. Invite again.";
+    }
     const bool bridged=!request.host&&(request.relay||usesSharedController(identity));
     const auto port=bridged?request.clientPort:request.port;
     cmd.arguments<<netplayControllerArguments(sessionIdentity);
