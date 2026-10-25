@@ -9,9 +9,12 @@ server architecture before implementing/polishing individual working scenarios.
 Use [Backend architecture v1](docs/TRAINEROS_BACKEND_PLAN_RU.md#architecture-v1):
 all module/data/API/SDK/trust/operations boundaries, not a golf-first vertical
 slice. Golf is a later integration example. This is a scoped Backend instruction,
-not a restored global execution queue. In this preparation chat do not publish,
-deploy or test handhelds; delivery remains in the main chat. Architecture is not
-runtime implementation or server acceptance.
+not a restored global execution queue. **Later owner correction, 25 October:**
+implement, build and test the Backend directly on the existing server; do not
+accumulate local databases, downloaded runtimes or build environments. Server
+installation is now authorized in this chat. Keep the live Lobby bot independent;
+handheld tests and GitHub publication remain outside this increment. Architecture
+is not runtime implementation or server acceptance.
 
 Global plans, milestones and mandatory execution queues are withdrawn. Work
 by the readiness of individual features, using [the readiness map](docs/FEATURE_READINESS.md).

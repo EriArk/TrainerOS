@@ -1,0 +1,83 @@
+name: traineros-backend
+x-app: &app
+  image: traineros-backend:foundation-20261025
+  build:
+    context: ..
+    target: runtime
+    args:
+      PYTHON_IMAGE: ${PYTHON_IMAGE:?set pinned Python image}
+  environment:
+    TRAINEROS_BACKEND_ENV: server
+    TRAINEROS_BACKEND_HOST: 0.0.0.0
+    TRAINEROS_BACKEND_DATABASE_URL_FILE: /run/secrets/runtime-dsn
+  secrets: [runtime-dsn]
+  networks: [backend]
+  read_only: true
+  tmpfs: ['/tmp:size=16m,mode=1777']
+  cap_drop: [ALL]
+  security_opt: [no-new-privileges:true]
+  mem_limit: 256m
+  cpus: 0.5
+  pids_limit: 64
+  logging:
+    driver: json-file
+    options: {max-size: 5m, max-file: '2'}
+services:
+  db:
+    image: ${POSTGRES_IMAGE:?set pinned PostgreSQL image}
+    environment:
+      POSTGRES_USER: backend_owner
+      POSTGRES_DB: traineros_backend
+      POSTGRES_PASSWORD_FILE: /run/secrets/owner-password
+      POSTGRES_INITDB_ARGS: --auth-host=scram-sha-256
+    secrets: [owner-password]
+    volumes: [pgdata:/var/lib/postgresql/data]
+    networks: [backend]
+    restart: unless-stopped
+    mem_limit: 512m
+    cpus: 1.0
+    pids_limit: 128
+    shm_size: 128m
+    healthcheck:
+      test: [CMD-SHELL, 'pg_isready -U backend_owner -d traineros_backend']
+      interval: 10s
+      timeout: 3s
+      retries: 6
+    logging:
+      driver: json-file
+      options: {max-size: 5m, max-file: '2'}
+  api:
+    <<: *app
+    networks: [backend, ingress]
+    ports: ['127.0.0.1:19120:19120']
+    depends_on:
+      db: {condition: service_healthy}
+    restart: unless-stopped
+    healthcheck:
+      test: [CMD, python, -c, "import urllib.request; urllib.request.urlopen('http://127.0.0.1:19120/health/ready', timeout=3)"]
+      interval: 15s
+      timeout: 4s
+      retries: 3
+  worker:
+    <<: *app
+    command: [traineros-backend, worker]
+    depends_on:
+      db: {condition: service_healthy}
+    restart: unless-stopped
+  migrate:
+    <<: *app
+    profiles: [maintenance]
+    command: [python, /ops/bootstrap.py]
+    secrets: [runtime-dsn, owner-password]
+    volumes: ['./bootstrap.py:/ops/bootstrap.py:ro']
+volumes:
+  pgdata:
+networks:
+  backend:
+    internal: true
+  ingress:
+secrets:
+  owner-password:
+    file: ./secrets/owner-password
+  runtime-dsn:
+    file: ./secrets/runtime-dsn
