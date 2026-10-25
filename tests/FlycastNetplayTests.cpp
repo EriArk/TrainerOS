@@ -9,6 +9,7 @@
 #include <QStandardPaths>
 #include <QTemporaryDir>
 #include <QtTest>
+#include <QtEndian>
 using namespace trainer;
 class FlycastNetplayTests final:public QObject {
     Q_OBJECT
@@ -38,6 +39,36 @@ private slots:
 #endif
         const auto identity=flycast::netplayIdentity(r,cancel);
         QVERIFY(!identity.isEmpty());QCOMPARE(identity["players"].toInt(),2);QVERIFY(!identity["lateJoin"].toBool());
+        const auto chdPath=r.contentPath;
+        write(temp.filePath("first.bin"),QByteArray(2048,'a'));write(temp.filePath("audio.raw"),QByteArray(2352,'b'));
+        write(temp.filePath("last.bin"),QByteArray(2048,'c'));
+        const QByteArray gdi="3\n1 0 4 2048 first.bin 0\n2 450 0 2352 audio.raw 0\n3 45000 4 2048 last.bin 0\n";
+        r.contentPath=temp.filePath("disc.gdi");write(r.contentPath,gdi);
+        QStringList observed;
+        const auto gdiIdentity=flycast::netplayIdentity(r,cancel,[&](const QString& p){observed.append(p);});QVERIFY(!gdiIdentity.isEmpty());
+        QVERIFY(observed.contains(temp.filePath("last.bin")));
+        auto gdiRequest=flycast::Request{gdiIdentity,true,false,"127.0.0.1",QString(32,'a'),{}};
+        auto gdiCommand=flycast::command(r,gdiRequest);QVERIFY(gdiCommand.prepare(gdiCommand,cancel).isEmpty());
+        QCOMPARE(gdiCommand.arguments.last(),r.contentPath);gdiCommand.settled={};
+        write(temp.filePath("last.bin"),QByteArray(2048,'d'));
+        QVERIFY(!sameMultiplayerGame(gdiIdentity,flycast::netplayIdentity(r,cancel)));
+        auto changed=flycast::command(r,gdiRequest);QVERIFY(!changed.prepare(changed,cancel).isEmpty());
+        QVERIFY(QFile::remove(temp.filePath("last.bin")));observed.clear();
+        QVERIFY(flycast::netplayIdentity(r,cancel,[&](const QString& p){observed.append(p);}).isEmpty());
+        QVERIFY(observed.contains(temp.filePath("last.bin")));write(temp.filePath("last.bin"),QByteArray(2048,'c'));
+        write(r.contentPath,QByteArray(gdi).replace("first.bin","../escape.bin"));QVERIFY(flycast::netplayIdentity(r,cancel).isEmpty());write(r.contentPath,gdi);
+        r.contentPath=temp.filePath("disc.cue");write(r.contentPath,"FILE \"first.bin\" BINARY\n TRACK 01 MODE1/2048\n INDEX 01 00:00:00\n");
+        QVERIFY(!flycast::netplayIdentity(r,cancel).isEmpty());
+        r.contentPath=temp.filePath("set.m3u");write(r.contentPath,"disc.gdi\ndisc.chd\n");
+        gdiRequest.expected=flycast::netplayIdentity(r,cancel);QVERIFY(!gdiRequest.expected.isEmpty());
+        auto playlist=flycast::command(r,gdiRequest);QVERIFY(playlist.prepare(playlist,cancel).isEmpty());
+        QCOMPARE(playlist.arguments.last(),temp.filePath("disc.gdi"));playlist.settled={};
+        write(r.contentPath,"set.m3u\n");QVERIFY(flycast::netplayIdentity(r,cancel).isEmpty());
+        QByteArray cdi(4096,'\0');qToLittleEndian<quint16>(2,cdi.data()+3000);
+        qToLittleEndian<quint32>(0x80000005,cdi.data()+4088);qToLittleEndian<quint32>(3000,cdi.data()+4092);
+        r.contentPath=temp.filePath("disc.cdi");write(r.contentPath,cdi);QVERIFY(!flycast::netplayIdentity(r,cancel).isEmpty());
+        qToLittleEndian<quint32>(9999,cdi.data()+4092);write(r.contentPath,cdi);QVERIFY(flycast::netplayIdentity(r,cancel).isEmpty());
+        r.contentPath=chdPath;
         flycast::Request request{identity,true,true,{},QString(32,'a'),{}};
         request.expected["label"]="Different local title";
         auto cmd=flycast::command(r,request,{"/input-bridge","--"});QVERIFY(cmd.prepare(cmd,cancel).isEmpty());

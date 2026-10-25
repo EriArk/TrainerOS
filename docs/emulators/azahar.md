@@ -1,5 +1,17 @@
 # Azahar: native 3DS wireless rooms
 
+## Native image aliases and Z3DS containers — 25 October 2026
+
+Закреплённый Azahar `219d743a1e698101fe1ab8bef43e6563126c3c27`:
+сверены [native loader](https://github.com/azahar-emu/azahar/blob/219d743a1e698101fe1ab8bef43e6563126c3c27/src/core/loader/loader.cpp)
+и `file_derived`/`zstd_compression`. Добавлены APP, ARM32 ELF/AXF и
+ZCCI/ZCXI/Z3DSX в регистрацию/допуск; Z3DS v1 проходит bounded header/seek-table
+проверки, штатный Azahar декодирует исходный файл. Whole-container hash сохранён.
+ARM64 admission проверяет valid/invalid metadata; это не полное native
+распаковывание или retail gameplay. CIA/ZCIA installation и updates/DLC отдельно.
+[Форматы, проверки, обновление и откат](../MULTIPLAYER_CONTENT_FORMATS.md).
+Native package не менялся; новая оболочка не установлена.
+
 **23 October 2026 ? NetPlay cache repair:** The private user profile now links only `shaders` to a persistent cache keyed by the runtime digest. Own NAND/SDMC and private configuration policies are unchanged.
 [Implementation, installed build and acceptance limits](../NETPLAY_PLATFORM_REPAIR_2026_10_23.md).
 

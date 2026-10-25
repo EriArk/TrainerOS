@@ -1,5 +1,17 @@
 # ARMSX2: native LAN preparation
 
+## Native compressed/raw disc formats — 25 October 2026
+
+`tools/ps2-lan/disc.py` и `Ps2LanNetplay.cpp` расширены для CSO/ZSO/GZ,
+BIN/IMG/MDF/NRG. Layouts сверены с ARMSX2 `90126bdfea`,
+`pcsx2/CDVD/InputIsoFile.cpp` и `CsoFileReader.cpp`: raw sector stride
+2048/2336/2352/2448 с соответствующим data offset и NRG prefix.
+Сравнение всего контейнера, serial/CRC, DEV9 namespace и личные карты сохранены.
+ZSO загружает системный liblz4; нужно доставить новый Python reader вместе
+с оболочкой. Проверены disc/config/launcher/profiles — 31 метод суммарно.
+[Общая таблица и процедура обновления/отката](../MULTIPLAYER_CONTENT_FORMATS.md).
+Пакет PS2 на устройствах этим проходом не менялся.
+
 ## Full owner LAN catalogue available in source — 25 October 2026
 
 The owner explicitly removed the one-game gate and will try other LAN games

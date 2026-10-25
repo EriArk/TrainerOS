@@ -8,6 +8,8 @@
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <cstdio>
+#include <memory>
+#include <libchdr/chd.h>
 
 namespace {
 constexpr quint64 Limit=2ULL*1024*1024*1024;
@@ -35,6 +37,32 @@ public:
     }
 };
 quint32 le32(const QByteArray& b,int p){return qFromLittleEndian<quint32>(b.constData()+p);}
+QString chd(LocalReader& source) {
+    const auto h=source.read(0,124);
+    if(h.size()!=124||h.first(16)!=QByteArray::fromHex("4d436f6d707248440000007c00000005")||h.mid(104,20)!=QByteArray(20,'\0'))return {};
+    const auto total=qFromBigEndian<quint64>(h.constData()+32);
+    const auto hunk=qFromBigEndian<quint32>(h.constData()+56),unit=qFromBigEndian<quint32>(h.constData()+60);
+    if(unit!=2048||hunk<unit||hunk>1024*1024||hunk%unit||total<18*2048||total>Limit||total%unit)return {};
+    chd_file* raw=nullptr;
+    if(chd_open(QFile::encodeName(source.file.fileName()).constData(),CHD_OPEN_READ,nullptr,&raw)!=CHDERR_NONE)return {};
+    std::unique_ptr<chd_file,decltype(&chd_close)> native(raw,chd_close);
+    QByteArray buffer(hunk,Qt::Uninitialized);quint64 cached=quint64(-1);
+    const auto read=[&](quint64 offset,quint64 bytes)->QByteArray {
+        if(bytes>1024*1024||offset>total||bytes>total-offset)return {};
+        QByteArray result;
+        while(bytes) {
+            const auto index=offset/hunk;
+            if(index!=cached) {
+                if(chd_read(native.get(),index,buffer.data())!=CHDERR_NONE)return {};
+                cached=index;
+            }
+            const auto within=offset%hunk,take=qMin<quint64>(bytes,hunk-within);
+            result.append(buffer.constData()+within,take);offset+=take;bytes-=take;
+        }
+        return result;
+    };
+    return trainer::ppsspp::content::umdDiscId(total,read);
+}
 QString cso(LocalReader& file) {
     const auto h=file.read(0,24);if(h.size()!=24||h.first(4)!="CISO"||quint8(h[20])>1)return {};
     const auto total=qFromLittleEndian<quint64>(h.constData()+8);
@@ -86,7 +114,7 @@ int main(int argc,char** argv) {
     if(args.size()!=3||args[1]!="--psp-content"||!QFileInfo(args[2]).isAbsolute())return 2;
     LocalReader file(args[2]);if(!file.Exists()||file.FileSize()<24||quint64(file.FileSize())>Limit)return 3;
     const auto extension=QFileInfo(args[2]).suffix().toLower();
-    const auto disc=extension=="cso"?cso(file):extension=="pbp"?pbp(file):QString{};
+    const auto disc=extension=="cso"?cso(file):extension=="pbp"?pbp(file):extension=="chd"?chd(file):QString{};
     if(file.failed||disc.isEmpty())return 4;
     const auto json=QJsonDocument(QJsonObject{{"protocol",1},{"disc",disc},{"format",extension}}).toJson(QJsonDocument::Compact);
     return std::fwrite(json.constData(),1,json.size(),stdout)==size_t(json.size())?0:5;

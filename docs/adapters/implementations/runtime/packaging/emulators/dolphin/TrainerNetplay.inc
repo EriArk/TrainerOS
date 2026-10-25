@@ -69,7 +69,8 @@ void MainWindow::InitTrainerNetplay()
   const auto game = std::make_shared<UICommon::GameFile>(settings[QStringLiteral("game")].toString().toStdString());
   const bool wii = settings[QStringLiteral("controllers")] == QStringLiteral("wiimote");
   if (!game->IsValid() ||
-      game->GetPlatform() != (wii ? DiscIO::Platform::WiiDisc : DiscIO::Platform::GameCubeDisc) ||
+      (wii ? (game->GetPlatform() != DiscIO::Platform::WiiDisc && game->GetPlatform() != DiscIO::Platform::WiiWAD)
+           : game->GetPlatform() != DiscIO::Platform::GameCubeDisc) ||
       (wii && hotseat))
     return fail(QStringLiteral("game"));
   // A Steam-session device name may no longer exist in the native shell.

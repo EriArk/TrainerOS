@@ -35,7 +35,7 @@ bool supportedDisc(const QString& id) {
 }
 QJsonObject netplayIdentity(const AdventureRegistration& r,const StandaloneInstallation& i,const std::atomic_bool& cancel) {
     if(cancel||r.adventure.collectionOnly||r.adventure.platformId!="gc"||r.adventure.adapterId!="dolphin"||!i.platforms.contains("gc")
-       ||!QStringList{"iso","gcm","rvz","wia","gcz","ciso"}.contains(QFileInfo(r.contentPath).suffix().toLower()))return {};
+       ||!QStringList{"iso","gcm","rvz","wia","gcz","ciso","tgc"}.contains(QFileInfo(r.contentPath).suffix().toLower()))return {};
     const auto m=manifest(dolphin::bridgeRoot()+"/manifest.json"),lan=manifest(bundleRoot()+"/manifest.json");
     const auto helper=bundleRoot()+"/stream_transport",tool=dolphin::bridgeRoot()+"/bin/dolphin-tool";
     if(m["protocol"]!=1||m["source"]!=Revision||m["bba"]!="tapserver-eof-v1"||lan["protocol"]!=1||lan["settings"]!=Settings
@@ -51,7 +51,7 @@ QJsonObject netplayIdentity(const AdventureRegistration& r,const StandaloneInsta
     const auto output=probe.readAllStandardOutput();const auto header=QJsonDocument::fromJson(output).object();
     if(cancel||probe.exitCode()!=0||probe.exitStatus()!=QProcess::NormalExit||output.size()>8192
        ||header["platform"]!="gc"||!supportedDisc(header["game_id"].toString()))return {};
-    const auto content=retroarch::fileDigest(r.contentPath,1500LL*1024*1024,cancel);
+    const auto content=dolphin::contentIdentity(r.contentPath,1500LL*1024*1024,cancel);
     if(!hex(content))return {};
     return {{"id","runtime.dolphin.bba.v1"},{"label",r.adventure.title.left(96)},{"content",content},{"runtime",runtime},
         {"settings",Settings},{"disc",header["game_id"]},{"players",2},{"lateJoin",false},{"temporaryProgress",true}};

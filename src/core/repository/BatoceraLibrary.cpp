@@ -250,6 +250,18 @@ FolderScan scanBatoceraLibrary(const QString& roms,const QList<AdventureRegistra
             }
             paths.append(path);
             const auto suffix=file.suffix().toLower();
+            if((platform=="gc"||platform=="wii")&&path.endsWith(".part0.iso")) {
+                for(int n=1;n<256;++n) {
+                    const auto part=path.chopped(10)+QString(".part%1.iso").arg(n);
+                    if(!QFileInfo::exists(part))break;
+                    parts.insert(key(part));
+                }
+            }
+            if(platform=="psx"&&(suffix=="toc"||suffix=="mds")) {
+                const auto stem=file.dir().filePath(file.completeBaseName());
+                for(const auto& ext:suffix=="mds"?QStringList{".mdf",".MDF"}:QStringList{".bin",".BIN",".img",".IMG"})
+                    parts.insert(key(stem+ext));
+            }
             if((suffix=="cue" || suffix=="gdi") && file.size()<1024*1024) {
                 QFile manifest(path);
                 if(manifest.open(QIODevice::ReadOnly)) {

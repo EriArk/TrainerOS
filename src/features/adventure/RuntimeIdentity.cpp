@@ -21,9 +21,10 @@ QJsonObject runtimeIdentity(const AdventureRegistration& original,const RetroArc
     if(platform=="psvita")return vita::netplayIdentity(r,cancel);
     if(platform=="n3ds")return azahar::netplayIdentity(r,cancel);
     if(platform=="nds")return melonds::netplayIdentity(r,cancel);
-    if(platform=="dreamcast")return flycast::netplayIdentity(r,cancel);
+    if(platform=="dreamcast")return flycast::netplayIdentity(r,cancel,[digests](const QString& path){if(digests)digests->observe(path);});
     if(platform=="n64")return rmg::netplayIdentity(r,cancel,capacity);
-    if(platform=="gc"||platform=="wii")return dolphin::netplayIdentity(r,dolphinInstallation,cancel,capacity);
+    if(platform=="gc"||platform=="wii")return dolphin::netplayIdentity(r,dolphinInstallation,cancel,capacity,
+        [digests](const QString& path){if(digests)digests->observe(path);});
     if(platform=="psp")return ppsspp::netplayIdentity(r,pspInstallation,cancel);
     return retroarch::netplayIdentity(r,installation,cancel,digests,capacity);
 }

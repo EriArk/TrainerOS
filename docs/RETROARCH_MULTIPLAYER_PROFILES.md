@@ -1,5 +1,15 @@
 # Shared RetroArch multiplayer profiles
 
+## Cross-family content formats — 25 October 2026
+
+[Единый проход по форматам](MULTIPLAYER_CONTENT_FORMATS.md) расширил PS1
+raw/descriptors/EXE и PCE CD CCD/M3U. Состав образа и дополнительные данные
+входят в идентичность и наблюдение файлов; изменённый track нельзя принять
+по прежнему descriptor hash. PS1 metadata/M3U готовятся для native пути запуска.
+Общие профили других классических систем сохранены; архивы arcade не
+смешиваются с single-cartridge ZIP/7z. Полный RetroArch suite прошёл.
+Это исходники; прежние аппаратные результаты не перепроверялись.
+
 ## Dependency-aware Lobby refresh — 25 October 2026
 
 Source implementation in S03 `RetroArchNetplay` and S06 `RuntimeMultiplayer`

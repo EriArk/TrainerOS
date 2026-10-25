@@ -1,5 +1,16 @@
 # PPSSPP maintenance
 
+## CHD identity — 25 October 2026
+
+Добавлен CHD v5 UMD через pinned libchdr
+`8bba7745d758627258b315997a860039244cedaf`; PPSSPP остаётся
+`fa50bb1976065c4f8b1b47af227d367fe9771555`.
+Изменены `tools/ppsspp-content/` и `PpssppNetplay.cpp`, не сетевой движок
+эмулятора. Native hunk reader подключён к прежнему ISO9660/SFO parser.
+33 проверки helper прошли под ARM64/QEMU; новый пакет собран, не установлен.
+[Общая таблица, SHA, обновление и откат](../MULTIPLAYER_CONTENT_FORMATS.md).
+Прежнее утверждение ниже «CHD не реализован» заменено этим результатом.
+
 ## CSO/PBP multiplayer identity — 25 October 2026
 
 Source implementation adds CSO/PBP to the existing generic Ad Hoc admission

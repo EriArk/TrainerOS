@@ -14,6 +14,7 @@
 #include "platform/emulation/EmulatorDiscovery.h"
 #include "core/model/GamePlayers.h"
 #include <QtTest>
+#include "CartridgeArchiveFixture.h"
 #include <QTemporaryDir>
 #include <QFile>
 #include <QJsonDocument>
@@ -178,6 +179,28 @@ private slots:
         const auto identity=identify();QVERIFY(!identity.isEmpty());
         r.contentPath=dir.filePath(ds?"Any name.SRL":"Any name.3DS");write(r.contentPath,data);
         QVERIFY(sameMultiplayerGame(identity,identify()));
+        if(ds) {
+            for(const auto& ext:QStringList{"zip","7z"}) {
+                r.contentPath=dir.filePath("container."+ext);
+                write(r.contentPath,cartridgeArchive(ext,{{"nested/Actual.srl",data}}));
+                QVERIFY(sameMultiplayerGame(identity,identify()));
+                write(r.contentPath,cartridgeArchive(ext,{{"one.nds",data},{"two.nds",data}}));QVERIFY(identify().isEmpty());
+            }
+            r.contentPath=dir.filePath("Any name.SRL");
+        } else {
+            for(const auto& ext:QStringList{"zcci","zcxi","z3dsx"}) {
+                QByteArray z(64,'\0');z.replace(0,4,"Z3DS");z.replace(4,4,ext=="zcci"?"NCSD":ext=="zcxi"?"NCCH":"3DSX");
+                z[8]=1;qToLittleEndian<quint16>(32,z.data()+10);qToLittleEndian<quint64>(32,z.data()+16);qToLittleEndian<quint64>(1024,z.data()+24);
+                z.replace(39,4,QByteArray::fromHex("5e2a4d18"));qToLittleEndian<quint32>(17,z.data()+43);
+                qToLittleEndian<quint32>(7,z.data()+47);qToLittleEndian<quint32>(1024,z.data()+51);
+                qToLittleEndian<quint32>(1,z.data()+55);z.replace(60,4,QByteArray::fromHex("b1ea928f"));
+                r.contentPath=dir.filePath("native."+ext);write(r.contentPath,z);QVERIFY(!identify().isEmpty());
+                z[24]=1;write(r.contentPath,z);QVERIFY(identify().isEmpty());
+            }
+            QByteArray elf(512,'\0');elf.replace(0,6,QByteArray("\x7f" "ELF\x01\x01",6));qToLittleEndian<quint16>(40,elf.data()+18);
+            for(const auto& ext:QStringList{"elf","axf"}){r.contentPath=dir.filePath("homebrew."+ext);write(r.contentPath,elf);QVERIFY(!identify().isEmpty());}
+            r.contentPath=dir.filePath("Any name.3DS");
+        }
         data[700]='y';write(r.contentPath,data);QVERIFY(!sameMultiplayerGame(identity,identify()));
         r.adventure.collectionOnly=true;QVERIFY(identify().isEmpty());r.adventure.collectionOnly=false;
         if(!ds){data.replace(256,4,"nope");write(r.contentPath,data);QVERIFY(identify().isEmpty());}
@@ -311,7 +334,21 @@ private slots:
     }
     void dolphinCompressedGameCubeUsesNativeReader_data() {
         QTest::addColumn<QString>("extension");
-        for(const auto& extension:{"rvz","wia","gcz","ciso"})QTest::newRow(extension)<<QString(extension);
+        for(const auto& extension:{"rvz","wia","gcz","ciso","tgc"})QTest::newRow(extension)<<QString(extension);
+    }
+    void dolphinSplitImagesMatchEveryNativePart() {
+        QTemporaryDir dir;std::atomic_bool cancel=false;
+        for(const auto& name:QStringList{"game.part0.iso","game.wbfs"}) {
+            const auto path=dir.filePath(name),part=dir.filePath(name.endsWith("iso")?"game.part1.iso":"game.wbf1");
+            write(path,"first part");QStringList observed;
+            const auto single=dolphin::contentIdentity(path,1024,cancel,[&](const QString& p){observed.append(p);});
+            QVERIFY(!single.isEmpty());QVERIFY(observed.contains(part));
+            write(part,"second part");const auto both=dolphin::contentIdentity(path,1024,cancel);
+            QVERIFY(!both.isEmpty());QVERIFY(both!=single);
+            write(part,"changed part");QVERIFY(dolphin::contentIdentity(path,1024,cancel)!=both);
+            QVERIFY(dolphin::contentIdentity(path,12,cancel).isEmpty());
+            QVERIFY(QFile::remove(part));QCOMPARE(dolphin::contentIdentity(path,1024,cancel),single);
+        }
     }
     void dolphinCompressedGameCubeUsesNativeReader() {
         QFETCH(QString,extension);
@@ -367,6 +404,11 @@ private slots:
         QCOMPARE(identity["id"].toString(),QString("runtime.dolphin.wii.v1"));QCOMPARE(identity["players"].toInt(),4);
         QVERIFY(identity["temporaryProgress"].toBool());
         QVERIFY(multiplayerModeProfile(identity,"pass-p1").isEmpty());
+        const auto originalPath=r.contentPath;
+        r.contentPath=dir.filePath("channel.wad");write(r.contentPath,QJsonDocument(QJsonObject{{"platform","wii"},{"revision",0}}).toJson());
+        QVERIFY(dolphin::netplayIdentity(r,i,cancel,4).isEmpty());
+        manifest["wad"]="dolphin-wad-channel-v1";saveManifest();
+        QVERIFY(!dolphin::netplayIdentity(r,i,cancel,4).isEmpty());r.contentPath=originalPath;
         write(r.contentPath,QJsonDocument(QJsonObject{{"platform","gc"},{"revision",0}}).toJson());
         QVERIFY(dolphin::netplayIdentity(r,i,cancel,4).isEmpty());
         write(r.contentPath,QJsonDocument(QJsonObject{{"platform","wii"},{"revision",1}}).toJson());
@@ -844,6 +886,15 @@ private slots:
         QTest::newRow("Wii") << QString("dolphin") << QString("wii") << QString("wad");
         QTest::newRow("DS-SRL") << QString("melonds") << QString("nds") << QString("srl");
         QTest::newRow("3DS-cartridge") << QString("azahar") << QString("n3ds") << QString("3ds");
+        for(const auto& ext:QStringList{"app","elf","axf","zcci","zcxi","z3dsx"})
+            QTest::newRow(qPrintable("3DS-"+ext))<<QString("azahar")<<QString("n3ds")<<ext;
+        for(const auto& ext:QStringList{"cso","zso","gz","bin","img","mdf","nrg"})
+            QTest::newRow(qPrintable("PS2-"+ext))<<QString("armsx2")<<QString("ps2")<<ext;
+        for(const auto& ext:QStringList{"bin","img","mdf","mds","ccd"})
+            QTest::newRow(qPrintable("PS1-"+ext))<<QString("duckstation")<<QString("psx")<<ext;
+        for(const auto& ext:QStringList{"zip","7z"})QTest::newRow(qPrintable("DS-"+ext))<<QString("melonds")<<QString("nds")<<ext;
+        QTest::newRow("GC-TGC")<<QString("dolphin")<<QString("gc")<<QString("tgc");
+        QTest::newRow("PSP-CHD")<<QString("ppsspp")<<QString("psp")<<QString("chd");
         for(const auto& platform:{"gc","wii"})for(const auto& extension:{"wia","gcz","ciso","rvz"})
             QTest::newRow(qPrintable(QString(platform)+'-'+extension))<<QString("dolphin")<<QString(platform)<<QString(extension);
     }
@@ -854,6 +905,8 @@ private slots:
         AdventureRegistration record; record.adventure.id = "ds-fixture"; record.adventure.worldId = "sinnoh";
         record.adventure.title = "Content-free launch fixture"; record.adventure.platformId = platform; record.adventure.adapterId = adapterId;
         record.contentPath = dir.filePath("Adventure ; $(literal) ' quote." + extension); write(record.contentPath, "Original content-free fixture");
+        const bool dsArchive=adapterId=="melonds"&&(extension=="zip"||extension=="7z");
+        if(dsArchive)write(record.contentPath,cartridgeArchive(extension,{{"nested/Actual.srl",QByteArray(1024,'D')}}));
         bool saved = false; store.saveAdventureAsync(record, this, [&](LibraryWriteResult result) { saved = result.success; }); QTRY_VERIFY(saved);
         const auto receipt = dir.filePath("arguments.json");
         const StandaloneInstallation installation{probe(), probe(), {"arguments", receipt}, {platform}};
@@ -886,7 +939,7 @@ private slots:
         QVERIFY(router.launch(record.adventure).inProgress); QVERIFY(!router.launch(record.adventure).success);
         QTRY_COMPARE(restored.size(), 1); QCOMPARE(lifecycle.state(), "returned"); QCOMPARE(store.navigation(), context);
         QFile output(receipt); QVERIFY(output.open(QIODevice::ReadOnly));
-        const auto arguments = adapterId == "melonds" ? QJsonArray{"-f", record.contentPath}
+        auto arguments = adapterId == "melonds" ? QJsonArray{"-f", record.contentPath}
             : adapterId == "azahar" ? QJsonArray{"-f", record.contentPath}
             : adapterId == "ppsspp" ? QJsonArray{"--fullscreen", "--pause-menu-exit", record.contentPath}
             : adapterId == "armsx2" ? QJsonArray{"-batch", "-fullscreen", "--", record.contentPath}
@@ -896,6 +949,7 @@ private slots:
             : adapterId == "eden" ? QJsonArray{"-f", "-g", record.contentPath}
             : adapterId == "xemu" ? QJsonArray{"-full-screen", "-dvd_path", record.contentPath}
             : QJsonArray{"-b", "-C", "Dolphin.Display.Fullscreen=True", "-C", "Dolphin.Interface.ConfirmStop=False", "-e", record.contentPath};
+        if(dsArchive){arguments.append("--archive-file");arguments.append("nested/Actual.srl");}
         QCOMPARE(QJsonDocument::fromJson(output.readAll()).array(), arguments); output.close();
         QVERIFY(QFile::remove(receipt)); QVERIFY(QFile::rename(record.contentPath, record.contentPath + ".moved"));
         QVERIFY(router.launch(record.adventure).inProgress); QTRY_COMPARE(restored.size(), 2);

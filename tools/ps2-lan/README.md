@@ -1,5 +1,14 @@
 # PS2 LAN session preparation and isolated launch
 
+**25 October, source-only format expansion:** `disc.py` now reads ISO/CHD,
+raw BIN/IMG/MDF/NRG layouts, CSOv1/ZSOv1 and gzip discs using the reviewed
+ARMSX2 CDVD layout rules. SYSTEM.CNF/ELF still establishes serial/CRC; full
+container hashing remains in admission. ZSO requires system `liblz4`
+(`lz4-libs` on Fedora, `liblz4-1` on Debian); absence rejects ZSO. Native
+libchdr remains packaged for CHD. Repackage this reader with the shell;
+the previous installed helper does not gain formats from shell extensions alone.
+[Full format/validation record](../../docs/MULTIPLAYER_CONTENT_FORMATS.md).
+
 This module prepares a private ARMSX2 `-gamecfg <session.ini>` using the accepted
 PS2 connection's local `session.conf`. It preserves the exact game's existing
 overrides and leaves the ordinary configuration, memory cards, BIOS and saves

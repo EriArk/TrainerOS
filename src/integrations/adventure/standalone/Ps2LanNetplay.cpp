@@ -46,7 +46,7 @@ QJsonObject helper(QString mode,QString path,const std::atomic_bool& cancel) {
 QString bundleRoot(){return QStandardPaths::writableLocation(QStandardPaths::GenericDataLocation)+"/TrainerOS/emulators/ps2-lan";}
 QJsonObject netplayIdentity(const AdventureRegistration& record,const std::atomic_bool& cancel) {
     if(record.adventure.platformId!="ps2"||record.adventure.adapterId!="armsx2"||record.adventure.collectionOnly
-       ||!QStringList{"chd","iso"}.contains(QFileInfo(record.contentPath).suffix().toLower()))return {};
+       ||!QStringList{"chd","iso","cso","zso","bin","gz","img","mdf","nrg"}.contains(QFileInfo(record.contentPath).suffix().toLower()))return {};
     auto result=helper("identity",record.contentPath,cancel);
     if(result["id"]!="runtime.armsx2.lan.v1"||!hex(result["content"].toString())||!hex(result["runtime"].toString())
        ||result["settings"]!="eclx1-namespace-own-cards-v1"||result["players"]!=2

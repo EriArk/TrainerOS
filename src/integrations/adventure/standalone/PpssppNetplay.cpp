@@ -78,7 +78,7 @@ QString configFile(const StandaloneInstallation& i) {
 }
 QString discId(const QString& path,const std::atomic_bool& cancel) {
     const auto suffix=QFileInfo(path).suffix().toLower();
-    if(suffix=="cso"||suffix=="pbp")return packedDiscId(path,cancel);
+    if(suffix=="cso"||suffix=="pbp"||suffix=="chd")return packedDiscId(path,cancel);
     QFile file(path);
     if(cancel||QFileInfo(path).suffix().compare("iso",Qt::CaseInsensitive)||!file.open(QIODevice::ReadOnly)||
        file.size()<18*2048||file.size()>2LL*1024*1024*1024||file.size()%2048)return {};

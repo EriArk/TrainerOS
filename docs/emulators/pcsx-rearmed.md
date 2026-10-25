@@ -1,5 +1,19 @@
 # PCSX ReARMed multiplayer preparation
 
+## Raw images and descriptors — 25 October 2026
+
+По `cdriso.c` ревизии `c8816799b50388e61cfe237fe2cdbb7d8175f20a`
+добавлены BIN/IMG/MDF/EXE и CCD/TOC/MDS в `RetroArchNetplay.cpp`.
+В хеш входят metadata, все одноимённые native fallback candidates и CUE tracks.
+TOC допускается только с одним одноимённым backing image, как у этого reader.
+Перед запуском metadata разрешается в native data path; M3U переписывается
+в приватный список абсолютных путей. Личные настройки/карты не меняются.
+Полный `retroarch` suite прошёл, включая изменения/утрату зависимостей и запуск.
+CBN/CBIN пока исключены: `handlecbin` читает count индексных элементов,
+но последний блок использует также незаполненный элемент count. Нужен native fix.
+[Общая таблица и обновление/откат](../MULTIPLAYER_CONTENT_FORMATS.md).
+Core не пересобирался, нужна новая оболочка; прежний запрет CCD/TOC/MDS ниже заменён.
+
 ## PBP, M3U and ISO admission — 25 October 2026
 
 S02 registration → S03 identity/preparation → S06 Lobby now accepts PS1 PBP,

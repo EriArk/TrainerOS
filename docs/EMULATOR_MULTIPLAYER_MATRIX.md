@@ -1,5 +1,10 @@
 # Мультиплеер — механизмы и подтверждённые границы
 
+**Обновление 25 октября: общий проход по оставшимся форматам выполнен.**
+[Единый реестр](MULTIPLAYER_CONTENT_FORMATS.md) содержит полную таблицу,
+проверки, пакеты и технические границы. Строки ниже обновлены по исходникам;
+исторические результаты проверок первоначального аудита сохранены отдельно.
+
 ## Аудит доступности игр в Lobby — 25 октября 2026
 
 Проверена цепочка S02 библиотека → S03 runtime/profile → S06 выбор и запуск.
@@ -24,15 +29,15 @@ runtime и не увеличивает число мест. Полные фай�
 | --- | --- | --- |
 | Классические RetroArch | Общие профили NES/FDS/SNES, SG-1000/SMS/MD/Sega CD/32X, PCE/PCE CD/SuperGrafx, Atari 2600, FBNeo/Neo Geo/MAME. Старые exact-хеши — специальные совместимые профили, после них есть общий путь | Установленные core/firmware, determinism, реальные порты; CUE/arcade сравниваются с зависимыми файлами |
 | GB/GBC/GBA | Общие linked-профили по аппаратным данным ROM; ZIP/7z с одним картриджем проходят идентификацию/подготовку; solo-фильтр исправлен | Новая оболочка не установлена; RTC/особые mapper/save layouts и RFU зависят от core. Сохранено отрицательное exact-исключение отказавшего Hnefatafl |
-| PS1 | Общий PCSX-ReARMed, CUE с дорожками, CHD и новые PBP/M3U/ISO, без списка названий; [границы](emulators/pcsx-rearmed.md#pbp-m3u-and-iso-admission--25-october-2026) | Новая оболочка не установлена; CCD/TOC/MDS требуют идентификации зависимостей; смена диска в живом сеансе отдельно |
-| PS2 | Все 56 строк LAN-каталога / 164 serial, одиночный CRC-допуск уже снят; исправлен solo-фильтр | ISO/CHD, SYSTEM.CNF/ELF и DEV9-пакет. Каталог обозначает наличие LAN, не только проверенные матчи |
-| PSP | Общий Ad Hoc без списка названий; ISO и новый CSO/PBP reader на базе PPSSPP, исправлен solo-фильтр | Новый helper/оболочка ещё не установлены; CHD, wrappers и PBP без корректного PSP DISC_ID остаются открыты |
+| PS1 | Общий PCSX-ReARMed, CUE/CHD/PBP/M3U/ISO и BIN/IMG/MDF/EXE/CCD/TOC/MDS с зависимостями, без списка названий | Новая оболочка не установлена; CBN/CBIN native index fix, ограничения TOC и смена диска в живом сеансе отдельно |
+| PS2 | Все 56 строк LAN-каталога / 164 serial; ISO/CHD/CSO/ZSO/GZ/BIN/IMG/MDF/NRG, исправлен solo-фильтр | SYSTEM.CNF/ELF, поддержанный layout, DEV9-пакет и новый Python reader; ZSO требует liblz4. Каталог обозначает наличие LAN, не только проверенные матчи |
+| PSP | Общий Ad Hoc без списка названий; ISO/CSO/PBP/CHD через native reader, исправлен solo-фильтр | Новый helper/оболочка ещё не установлены; wrappers и PBP без корректного PSP DISC_ID остаются открыты |
 | N64 | Общий RMG, все три порядка байт ROM, ZIP/7z с одним картриджем; без списка названий | Новая оболочка не установлена; до 64 MiB ROM, установленные плагины/endpoint; порядок байт должен совпадать |
-| Dreamcast | Общий Flycast Dojo для CHD v5, без списка названий | GDI/CDI/M3U требуют подготовки/идентичности зависимых файлов; native game-server Online отдельно |
-| GameCube/Wii NetPlay | Общий Dolphin, без списка названий. GC получил RVZ/WIA/GCZ/CISO, Wii CISO/GCM; WIA добавлен в библиотеку/регистрацию; запуск согласован | Сжатые образы и консоль проверяет `dolphin-tool`; Wii требует Wiimote runtime. WAD/NAND и native Wii Online не реализованы этим изменением |
-| GameCube BBA | Семейства GM4/GKY/GTE без allowlist регионов/ревизий; добавлен CISO | Встроенный LAN Mario Kart Double Dash/Kirby Air Ride/1080, а не ограничение общего NetPlay. PSO/Homeland и серверные режимы не подготовлены |
-| DS | Общий melonDS, NDS и добавленный SRL; alias проходит запуск и защиту сейвов; исправлен solo-фильтр | Архивы/DSi/WFC не становятся обычным DS wireless |
-| 3DS | Общий Azahar, 3DSX/CCI/CXI и добавленный `.3ds`, с проверкой заголовка; исправлен solo-фильтр | CIA/compressed/encrypted images, отдельная идентичность updates/DLC и серверные механизмы требуют подготовки |
+| Dreamcast | Общий Flycast Dojo для CHD v5/GDI/CDI/CUE/M3U, включая зависимости, без списка названий | M3U запускает первый диск; живая смена дисков и native game-server Online отдельно |
+| GameCube/Wii NetPlay | Общий Dolphin, без списка названий; GC/Wii native compressed/raw, TGC, split ISO/WBFS; WAD каналов через новый bridge | Платформу проверяет `dolphin-tool`; Wii требует Wiimote runtime, WAD — новый manifest. IOS/system WAD исключены; native Wii Online отдельно |
+| GameCube BBA | Семейства GM4/GKY/GTE без allowlist регионов/ревизий; CISO/TGC/split identity | Встроенный LAN Mario Kart Double Dash/Kirby Air Ride/1080, а не ограничение общего NetPlay. PSO/Homeland и серверные режимы не подготовлены |
+| DS | Общий melonDS, NDS/SRL/ZIP/7z; подготовка запуска и защита собственных сейвов; исправлен solo-фильтр | Один картридж в архиве; DSi/WFC не становятся обычным DS wireless |
+| 3DS | Общий Azahar, 3DSX/CCI/CXI/3DS/APP/ELF/AXF/ZCCI/ZCXI/Z3DSX, с проверкой структуры; исправлен solo-фильтр | CIA/ZCIA installation/encrypted images, отдельная идентичность updates/DLC и серверные механизмы требуют подготовки |
 | Vita | Исправлен solo-фильтр действующего vitaQuake LAN | Exact EBOOT/extraContent нужны специальному native-IP профилю; общий commercial AdHoc/PSN не реализован |
 | Wii U / Xbox / прочие несвязанные механизмы | В этом admission pipeline общего сетевого профиля нет | Реальные незавершённые runtime-интеграции R046/R048/R049, не ограничение числа игр |
 
@@ -40,10 +45,11 @@ Dolphin использует [штатный Blob reader](https://github.com/dol
 Azahar вернул `.3ds` в [2124.3](https://github.com/azahar-emu/azahar/discussions/1702),
 раньше используемой 2126.2. [Warp Pipe](https://cubeonline.warppipe.com/gettingstarted/what_is_warp_pipe.php)
 перечисляет исходные LAN-игры GameCube. Разные контейнеры одного диска пока не
-считаются одним содержимым. Следующее расширение — недостающие контейнеры через
-существующие readers и незавершённые механизмы, без разрешения каждой игры вручную.
+считаются одним содержимым. Контейнеры расширены через существующие readers
+в [общем проходе](MULTIPLAYER_CONTENT_FORMATS.md); отсутствие сетевого механизма
+остаётся отдельной задачей, без разрешения каждой игры вручную.
 
-### Проверки этого изменения
+### Исторические проверки первоначального аудита
 
 - Собрана Windows-оболочка и профильные тесты. `standalone`: 48 passed,
   6 platform skips; `game_party`, `save_backups`, полный `runtime_multiplayer`

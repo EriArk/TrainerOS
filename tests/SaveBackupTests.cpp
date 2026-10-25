@@ -14,6 +14,7 @@
 #include <QSemaphore>
 #include <QTimer>
 #include <QProcess>
+#include "CartridgeArchiveFixture.h"
 
 using namespace trainer;
 namespace {
@@ -298,13 +299,16 @@ private slots:
     }
     void melonDsSaveRequiresVerifiedSingleInstanceLayout_data() {
         QTest::addColumn<QString>("extension");
-        QTest::newRow("nds")<<QString("nds");QTest::newRow("srl")<<QString("srl");
+        for(const auto& ext:QStringList{"nds","srl","zip","7z"})QTest::newRow(qPrintable(ext))<<ext;
     }
     void melonDsSaveRequiresVerifiedSingleInstanceLayout() {
         QFETCH(QString,extension);
         QTemporaryDir dir; AdventureRegistration record;
         record.adventure.id = "ds-fixture"; record.adventure.adapterId = "melonds"; record.adventure.platformId = "nds";
-        record.contentPath = dir.filePath("roms/original.v2."+extension); write(record.contentPath, "ORIGINAL DS FIXTURE");
+        const bool archive=extension=="zip"||extension=="7z";
+        const QByteArray cartridge(1024,'D');
+        const auto content=archive?cartridgeArchive(extension,{{"nested/original.v2.srl",cartridge}}):QByteArray("ORIGINAL DS FIXTURE");
+        record.contentPath = dir.filePath("roms/"+(archive?QString("container"):QString("original.v2"))+'.'+extension); write(record.contentPath, content);
         StandaloneInstallation installation;
         installation.program = QCoreApplication::applicationFilePath(); installation.runtimeFile = dir.filePath("runtime");
         installation.configFile = dir.filePath("melonDS.toml"); installation.platforms = {"nds"}; installation.melonDsSaveBackups = true;
@@ -315,7 +319,7 @@ private slots:
         const auto target = resolveMelonDsSave(record, installation);
         QVERIFY2(target.supported, qPrintable(target.error));
         QCOMPARE(target.savePath, dir.filePath("saves/original.v2.sav"));
-        QCOMPARE(target.contentRevision, sha("ORIGINAL DS FIXTURE"));
+        QCOMPARE(target.contentRevision, sha(content));
         const QList<QByteArray> invalid{
             QByteArray(config).replace("RelocSRAM = false", "RelocSRAM = true"),
             QByteArray(config).replace("ConsoleType = 0", "ConsoleType = 1"),
@@ -344,6 +348,22 @@ private slots:
         const auto restored = restoreSaveBackup(root, record, backup.snapshot.copies.first(), snapshot.token, resolve);
         QVERIFY2(restored.success, qPrintable(restored.message)); QCOMPARE(read(target.savePath), "DS SAVE ONE");
         QCOMPARE(restored.snapshot.copies.size(), 2);
+        if(archive) {
+            for(bool changed:{false,true}) {
+                write(record.contentPath,content);write(target.savePath,"DS SAVE ONE");
+                const auto session=dir.filePath(changed?"changed-session":"session");QVERIFY(QDir().mkdir(session));
+                ProcessCommand command;const auto error=melonds::prepareOwnedSession(command,record,root,resolve,session,0,sha(cartridge));
+                QVERIFY2(error.isEmpty(),qPrintable(error));
+                QCOMPARE(QJsonDocument::fromJson(read(session+"/session.json")).object()["content"].toString(),sha(cartridge));
+                write(session+"/owner-return.sav","DS SAVE TWO");
+                write(session+"/owner-return.json",QJsonDocument(QJsonObject{{"version",1},{"ownerSeat",0},{"content",sha(cartridge)},
+                    {"frame",10},{"bytes",11},{"sha256",sha("DS SAVE TWO")},{"hasSave",true}}).toJson());
+                if(changed)write(record.contentPath,cartridgeArchive(extension,{{"new-name.srl",cartridge}}));
+                QCOMPARE(command.finalize({true,0,false,false}).isEmpty(),!changed);
+                QCOMPARE(read(target.savePath),changed?QByteArray("DS SAVE ONE"):QByteArray("DS SAVE TWO"));
+            }
+            write(record.contentPath,content);
+        }
 #ifdef Q_OS_LINUX
         const auto executable = dir.filePath("melonDS.AppImage"); QVERIFY(QFile::copy("/bin/sleep", executable));
         QProcess process; process.start(executable, {"30"}); QVERIFY(process.waitForStarted());

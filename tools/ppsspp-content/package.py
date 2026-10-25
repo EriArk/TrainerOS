@@ -23,6 +23,10 @@ output.mkdir(parents=True,exist_ok=False)
 shutil.copy2(binary,output/'psp-content-probe')
 (output/'psp-content-probe').chmod(0o755)
 shutil.copy2(source/'LICENSE.TXT',output/'PPSSPP-LICENSE.txt')
+for notice in (source/'ext/libchdr').rglob('*'):
+    if notice.is_file() and not notice.is_symlink() and '.git' not in notice.parts and notice.name.lower().startswith(('license','copying')):
+        target=output/'notices/libchdr'/notice.relative_to(source/'ext/libchdr')
+        target.parent.mkdir(parents=True,exist_ok=True);shutil.copy2(notice,target)
 shutil.copytree(recipe,output/'source/tools/ppsspp-content',ignore=shutil.ignore_patterns('__pycache__'))
 header=Path('src/integrations/adventure/standalone/PspContentIdentity.h')
 (output/'source'/header.parent).mkdir(parents=True)

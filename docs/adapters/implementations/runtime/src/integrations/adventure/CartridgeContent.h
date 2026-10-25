@@ -7,6 +7,7 @@ namespace trainer::cartridge {
 struct Image {
     QByteArray bytes;
     QString extension;
+    QString memberName; // Native DS save basename follows the selected archive member.
     QString digest() const;
 };
 bool archived(const QString& path);

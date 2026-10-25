@@ -1,4 +1,5 @@
 #include "MelonDsNetplay.h"
+#include "integrations/adventure/CartridgeContent.h"
 #include "core/model/GamePlayers.h"
 #include <QCryptographicHash>
 #include <QDir>
@@ -52,9 +53,11 @@ QJsonObject bundle(const std::atomic_bool& cancel) {
 }
 QJsonObject netplayIdentity(const AdventureRegistration& record,const std::atomic_bool& cancel) {
     if(record.adventure.platformId!="nds"||record.adventure.adapterId!="melonds"||record.adventure.collectionOnly
-       ||!QStringList{"nds","srl"}.contains(QFileInfo(record.contentPath).suffix().toLower())||QFileInfo(record.contentPath).size()<512)return {};
+       ||!QStringList{"nds","srl","zip","7z"}.contains(QFileInfo(record.contentPath).suffix().toLower()))return {};
     const auto installed=bundle(cancel);if(installed.isEmpty())return {};
-    const auto content=digest(record.contentPath,cancel,512LL*1024*1024);if(content.isEmpty())return {};
+    const auto image=cartridge::read(record.contentPath,"nds",cancel);
+    if(image.bytes.size()<512)return {};
+    const auto content=image.digest();if(content.isEmpty())return {};
     return {{"id","runtime.melonds.nds.v1"},{"label",record.adventure.title.left(96)},
         {"content",content},{"runtime",installed["digest"]},{"settings",installed["settings"]},
         {"players",2},{"lateJoin",false},{"privateProgress",true}};
@@ -76,6 +79,11 @@ ProcessCommand command(const AdventureRegistration& record,const Request& reques
         const auto path=QFileInfo(directory->path()).canonicalFilePath();
         const auto error=prepareOwnedSession(out,record,backupRoot,resolve,path,request.host?0:1,request.expected["content"].toString());
         if(!error.isEmpty())return error;
+        QString content=record.contentPath;
+        if(cartridge::archived(content)) {
+            content=cartridge::stage(cartridge::read(content,"nds",cancel),content,path+"/content",request.expected["content"].toString());
+            if(content.isEmpty())return "Couldn't prepare the DS cartridge from its archive.";
+        }
         QJsonObject config=request.host?QJsonObject{}:request.endpoint;
         config["host"]=request.host;config["mode"]=request.online?"online":"nearby";config["identity"]=request.identity;
         if(!request.online)config["address"]=request.address;
@@ -90,7 +98,7 @@ ProcessCommand command(const AdventureRegistration& record,const Request& reques
             return error;
         };
         out.program="/usr/bin/env";out.arguments={"QT_QPA_PLATFORM=xcb"};out.arguments+=inputPrefix;
-        out.arguments<<bundleRoot()+"/bin/traineros-ds"<<record.contentPath<<"--fullscreen"<<"--seats"<<"2"
+        out.arguments<<bundleRoot()+"/bin/traineros-ds"<<content<<"--fullscreen"<<"--seats"<<"2"
             <<"--prepared-session"<<path<<"--network-session"<<path+"/network.json";
         out.workingDirectory=path;return {};
     };

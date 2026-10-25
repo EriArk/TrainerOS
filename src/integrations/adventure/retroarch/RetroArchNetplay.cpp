@@ -77,12 +77,38 @@ QString digest(const QString& path,qint64 limit,const std::atomic_bool& cancel,N
     if(cache&&!value.isEmpty())cache->insert(key,value);
     return value;
 }
-QString contentDigest(const QString& path,const std::atomic_bool& cancel,NetplayDigestCache* cache) {
+QString contentDigest(const QString& path,const std::atomic_bool& cancel,NetplayDigestCache* cache,bool nested=false) {
     observe(cache,path);
     const auto extension=QFileInfo(path).suffix().toLower();
     // These are manifests, not self-contained disc images. Never hash only the
     // descriptor and accidentally accept peers whose actual tracks differ.
-    if(extension=="m3u"||extension=="ccd"||extension=="toc"||extension=="cmd")return {};
+    if(extension=="m3u") {
+        QFile file(path);if(nested||!file.open(QIODevice::ReadOnly)||file.size()>65536)return {};
+        const auto bytes=file.readAll();if(bytes.contains('\0'))return {};
+        QJsonArray discs;
+        for(const auto& raw:QString::fromUtf8(bytes).split('\n')) {
+            const auto name=raw.trimmed();if(name.isEmpty()||name.startsWith('#'))continue;
+            if(discs.size()>=99||name.size()>1023||name.contains(':')||name.contains('\\'))return {};
+            const auto child=QFileInfo(path).dir().absoluteFilePath(name);
+            if(!QStringList{"cue","chd","ccd"}.contains(QFileInfo(child).suffix().toLower()))return {};
+            const auto hash=contentDigest(child,cancel,cache,true);if(hash.isEmpty())return {};
+            discs.append(hash);
+        }
+        if(discs.isEmpty()||cancel)return {};
+        return QString::fromLatin1(QCryptographicHash::hash(QJsonDocument(QJsonObject{{"disc-list-v1",discs}}).toJson(QJsonDocument::Compact),QCryptographicHash::Sha256).toHex());
+    }
+    if(extension=="ccd") {
+        QFile descriptor(path);if(!descriptor.open(QIODevice::ReadOnly)||descriptor.size()>65536||!descriptor.read(32).startsWith("[CloneCD]"))return {};
+        QJsonObject parts;const auto stem=QFileInfo(path).dir().filePath(QFileInfo(path).completeBaseName());
+        for(const auto& suffix:{".ccd",".img",".sub"}) {
+            const auto file=stem+suffix;observe(cache,file);
+            if(QString(suffix)==".sub"&&!QFileInfo::exists(file))continue;
+            const auto hash=digest(file,2LL*1024*1024*1024,cancel,cache);if(hash.isEmpty())return {};
+            parts[suffix]=hash;
+        }
+        return QString::fromLatin1(QCryptographicHash::hash(QJsonDocument(parts).toJson(QJsonDocument::Compact),QCryptographicHash::Sha256).toHex());
+    }
+    if(extension=="toc"||extension=="cmd")return {};
     if(extension!="cue")return digest(path,2LL*1024*1024*1024,cancel,cache);
     if(!validateDiscContent(path,cancel,[cache](const QString& file){observe(cache,file);}).isEmpty())return {};
     QFile cue(path);if(!cue.open(QIODevice::ReadOnly))return {};
@@ -178,11 +204,65 @@ bool playStationIso(const QString& path) {
     }
     return false;
 }
+QString psxDataPath(const QString& path) {
+    const QFileInfo file(path);const auto ext=file.suffix().toLower();
+    if(!QStringList{"ccd","toc","mds"}.contains(ext))return path;
+    const auto stem=file.dir().filePath(file.completeBaseName());
+    const QStringList candidates=ext=="mds"?QStringList{".mdf",".MDF"}:QStringList{".bin",".BIN",".img",".IMG"};
+    for(const auto& suffix:candidates)if(QFileInfo::exists(stem+suffix))return stem+suffix;
+    return {};
+}
+bool psxDescriptor(const QString& path,const QString& data) {
+    QFile f(path);if(!f.open(QIODevice::ReadOnly)||f.size()>65536||f.size()<8)return false;
+    const auto bytes=f.readAll();const auto ext=QFileInfo(path).suffix().toLower();
+    if(ext=="mds") {
+        if(bytes.size()<84||!bytes.startsWith("MEDIA DESCRIPTOR"))return false;
+        const auto session=qFromLittleEndian<quint32>(bytes.constData()+0x50);
+        if(session>quint32(bytes.size()-24))return false;
+        const auto tracks=qFromLittleEndian<quint16>(bytes.constData()+session+14);
+        quint64 offset=qFromLittleEndian<quint32>(bytes.constData()+session+20);
+        if(!tracks||tracks>99)return false;
+        for(int lead=0;offset+0x50<=quint64(bytes.size())&&quint8(bytes[offset+4])>=0xa0&&lead<99;++lead)offset+=0x50;
+        for(int n=0;n<tracks;++n,offset+=0x50) {
+            if(offset+0x50>quint64(bytes.size()))return false;
+            const auto extra=qFromLittleEndian<quint32>(bytes.constData()+offset+12);
+            const auto start=qFromLittleEndian<quint32>(bytes.constData()+offset+0x28);
+            if(extra>quint32(bytes.size()-8)||start>=QFileInfo(data).size())return false;
+        }
+        return true;
+    }
+    if(bytes.contains('\0'))return false;
+    int tracks=0,indices=0;bool hasFile=false;
+    for(const auto& raw:bytes.split('\n')) {
+        if(raw.size()>254)return false; // native fgets(256)
+        const auto line=QString::fromUtf8(raw).trimmed();
+        if(ext=="ccd") {
+            if(line.startsWith("[TRACK")){if(++tracks>99)return false;}
+            if(line.startsWith("INDEX 1=")) {
+                bool ok=false;const auto sector=line.mid(8).toULongLong(&ok);
+                if(!ok||!tracks||sector>=quint64(QFileInfo(data).size()/2352))return false;
+                ++indices;
+            }
+        } else {
+            if(line.startsWith("TRACK ")){if(++tracks>99)return false;}
+            if(line.startsWith("DATAFILE ")||line.startsWith("FILE ")) {
+                const auto m=QRegularExpression(R"toc(^(?:DATAFILE|FILE)\s+"([^"]+)"\s+.+$)toc").match(line);
+                // This pinned PCSX TOC reader uses offsets in one same-basename
+                // image; it does not open arbitrary named per-track files.
+                if(!m.hasMatch()||QFileInfo(path).dir().absoluteFilePath(m.captured(1))!=QFileInfo(data).absoluteFilePath())return false;
+                hasFile=true;
+            }
+        }
+    }
+    return tracks>0&&(ext=="ccd"?indices==tracks:hasFile);
+}
 QString playStationContent(const QString& path,const std::atomic_bool& cancel,NetplayDigestCache* cache,bool inPlaylist=false) {
     observe(cache,path);
     const QFileInfo file(path);
     const auto extension=file.suffix().toLower();
     if(cancel||!file.isFile()||file.absoluteFilePath().toUtf8().size()>=1024)return {};
+    const auto base=file.dir().filePath(file.completeBaseName());
+    for(const auto& suffix:{".bin",".BIN",".img",".IMG",".mdf",".MDF"})observe(cache,base+suffix);
     if(extension=="m3u") {
         if(inPlaylist||file.size()>65536)return {}; // The native parser does not recurse.
         QFile list(path);if(!list.open(QIODevice::ReadOnly))return {};
@@ -211,22 +291,39 @@ QString playStationContent(const QString& path,const std::atomic_bool& cancel,Ne
         discCount=playStationPbpDiscs(path,cancel);
         // Native M3U exposes only internal disc zero for each PBP entry.
         if(!discCount||(inPlaylist&&discCount>1))return {};
-    } else if(extension!="iso"||!playStationIso(path))return {};
+    } else if(QStringList{"ccd","toc","mds"}.contains(extension)) {
+        const auto data=psxDataPath(path);observe(cache,data);
+        if(data.isEmpty()||!psxDescriptor(path,data))return {};
+    } else if(extension=="exe") {
+        QFile exe(path);if(!exe.open(QIODevice::ReadOnly)||exe.size()<2048||exe.read(8)!="PS-X EXE")return {};
+    } else if(!QStringList{"iso","bin","img","mdf"}.contains(extension)||!playStationIso(path))return {};
     const auto stem=file.dir().filePath(file.completeBaseName());
-    // PCSX probes these descriptors before loading the requested disc. Until
-    // their dependencies are supported, do not fingerprint only the main file.
+    QJsonObject descriptors;
+    // PCSX probes these even for a raw image. Include every candidate in the
+    // fingerprint and dependency watch; malformed overrides fail closed.
     for(const auto& suffix:{".toc",".ccd",".mds"}) {
-        observe(cache,stem+suffix);if(QFileInfo::exists(stem+suffix))return {};
+        const auto descriptor=stem+suffix;observe(cache,descriptor);
+        if(!QFileInfo::exists(descriptor))continue;
+        const auto data=psxDataPath(descriptor);observe(cache,data);
+        if(data.isEmpty()||!psxDescriptor(descriptor,data))return {};
+        const auto metadata=digest(descriptor,65536,cancel,cache),payload=digest(data,2LL*1024*1024*1024,cancel,cache);
+        if(metadata.isEmpty()||payload.isEmpty())return {};
+        descriptors[suffix]=QJsonArray{metadata,payload};
     }
     if(extension!="cue") {
-        observe(cache,stem+".cue");if(QFileInfo::exists(stem+".cue"))return {};
+        observe(cache,stem+".cue");if(QFileInfo::exists(stem+".cue")) {
+            const auto cue=contentDigest(stem+".cue",cancel,cache);if(cue.isEmpty())return {};
+            descriptors[".cue"]=cue;
+        }
     }
-    const auto content=extension=="pbp"?digest(path,8LL*1024*1024*1024,cancel,cache):contentDigest(path,cancel,cache);
+    const auto content=QStringList{"ccd","toc","mds"}.contains(extension)?digest(path,65536,cancel,cache):
+        extension=="pbp"?digest(path,8LL*1024*1024*1024,cancel,cache):contentDigest(path,cancel,cache);
     if(content.isEmpty())return {};
     QJsonObject media{{"disc",content}};
+    if(!descriptors.isEmpty())media["descriptors"]=descriptors;
     // SBI/SUB change disc behavior; a small descriptor may also trigger the
     // core's same-basename BIN/IMG fallback. Match all those bytes as well.
-    QStringList sidecars{".sbi",".sub",".bin",".BIN",".img",".IMG"};
+    QStringList sidecars{".sbi",".sub",".bin",".BIN",".img",".IMG",".mdf",".MDF"};
     if(discCount>1)for(int n=1;n<=discCount;++n)sidecars.append(QString("_%1.sbi").arg(n));
     for(const auto& suffix:sidecars) {
         const auto candidate=stem+suffix;
@@ -645,6 +742,22 @@ QString prepareNetplay(ProcessCommand& cmd,const AdventureRegistration& r,const 
     if(append>=0&&append+1<cmd.arguments.size())cmd.arguments[append+1]+="|"+path+"/session.cfg";
     else {auto content=cmd.arguments.takeLast();cmd.arguments<<"--appendconfig"<<path+"/session.cfg"<<content;}
     auto content=cmd.arguments.takeLast();
+    if(playStation&&QFileInfo(content).suffix().toLower()=="m3u") {
+        QFile original(content);if(!original.open(QIODevice::ReadOnly)||original.size()>65536)return "Couldn't prepare the disc list.";
+        QByteArray list;
+        for(auto line:original.readAll().split('\n')) {
+            const int cr=line.indexOf('\r');if(cr>=0)line.truncate(cr);
+            if(line.isEmpty()||line.startsWith('#'))continue;
+            const auto disc=psxDataPath(QFileInfo(content).dir().absoluteFilePath(QString::fromUtf8(line)));
+            if(disc.isEmpty()||disc.toUtf8().size()>1022)return "A PlayStation disc track is missing.";
+            list+=disc.toUtf8()+'\n';
+        }
+        if(!write("discs.m3u",list))return "Couldn't prepare the disc list.";
+        content=path+"/discs.m3u";
+    }
+    if(playStation&&QStringList{"ccd","toc","mds"}.contains(QFileInfo(content).suffix().toLower())) {
+        content=psxDataPath(content);if(content.isEmpty())return "A PlayStation disc track is missing.";
+    }
     if(!linkCore.isEmpty()&&!linked&&cartridge::archived(r.contentPath)) {
         content=cartridge::stage(cartridge::read(r.contentPath,r.adventure.platformId,cancel),
             r.contentPath,path+"/content",identity["content"].toString());

@@ -1,0 +1,92 @@
+# Форматы содержимого в мультиплеере
+
+## Общий проход — 25 октября 2026
+
+По запросу владельца оставшиеся контейнеры проверены одним проходом по всем
+существующим сетевым семействам. Это изменения исходников и собранные пакеты,
+**не обновление портативок**. Новых разрешительных списков названий нет.
+Формат файла не создаёт отсутствующий сетевой режим эмулятора.
+
+Владельцы: S02 обнаруживает одну игру и её состав; S03 проверяет содержимое,
+runtime и готовит штатный запуск; S06 сохраняет Lobby и ручной Start;
+S08 защищает личные сохранения. Существующие транспорты не изменены.
+
+| Семейство | Подготовлено в исходниках | Условия и реальные границы |
+| --- | --- | --- |
+| Классические RetroArch | Прежние cartridge/arcade/CUE/CHD профили сохранены; PCE CD получил CCD с IMG/SUB и M3U с CUE/CHD/CCD | Совпадают core, firmware и все зависимости; архив arcade — набор файлов core, не один картридж |
+| GB/GBC/GBA/N64 | Прежние ZIP/7z с одним ROM сохранены; N64 учитывает также BIN/U1 aliases | Сравнивается распакованный ROM; неизвестный mapper/core не становится совместимым от расширения |
+| PS1 | CUE/CHD/PBP/M3U/ISO; добавлены BIN/IMG/MDF, EXE, CCD/TOC/MDS и зависимые данные | TOC — поддержанный native вариант с одним одноимённым образом; M3U запускается через временный список с разрешёнными путями. Синхронная смена диска в живом сеансе отдельно |
+| PS2 LAN | ISO/CHD, CSO/ZSO, GZ и raw BIN/IMG/MDF/NRG | Чтение SYSTEM.CNF и ELF serial/CRC, существующий LAN-каталог. ZSO требует системный liblz4. Не любой файл с таким расширением — поддержанный layout |
+| PSP Ad Hoc | ISO/CSO/PBP и новый CHD v5 | Обновлённый проверяемый helper читает UMD unit 2048, без parent CHD; нужен корректный PSP DISC_ID. PS1 EBOOT не допускается |
+| Dreamcast Dojo | CHD v5, GDI/CDI/CUE/M3U | Хешируются все дорожки/диски. Dojo получает первый диск M3U; штатного standalone M3U decoder нет. Живая синхронная смена диска отдельно |
+| GameCube NetPlay/BBA | ISO/GCM/RVZ/WIA/GCZ/CISO/TGC; split `.part0.iso` | Штатный Dolphin reader определяет платформу. BBA остаётся LAN-механизмом соответствующих игр; общий NetPlay не ограничен ими |
+| Wii NetPlay | ISO/GCM/RVZ/WIA/GCZ/CISO/WBFS, split ISO/WBFS и WAD каналов | WAD требует нового manifest-маркера и Wiimote bridge; IOS/system WAD не запускается как игра. Изолированный NAND/сейвы сохранены |
+| DS wireless | NDS/SRL/ZIP/7z с одним картриджем | ROM извлекается в приватный сеанс; собственный SAV ищется по имени ROM внутри архива, как в melonDS, а не по имени контейнера |
+| 3DS wireless | 3DS/CCI/CXI/APP/3DSX/ELF/AXF/ZCCI/ZCXI/Z3DSX | Z3DS v1 проходит проверку структуры и seek table; декодирует штатный Azahar. Это не установка CIA/ZCIA и не идентичность updates/DLC |
+| Vita, Wii U, Xbox и иные незавершённые сетевые механизмы | Прежние standalone регистрации и exact vitaQuake LAN сохранены | Коммерческий Vita AdHoc/PSN, Wii U native online и Xbox System Link требуют самой интеграции; добавление расширений её не заменяет |
+
+Архивы с несколькими подходящими ROM отклоняются до явного выбора. Общий
+libarchive-reader читает контейнер потоком, не держит одновременно полный
+сжатый архив и копию DS ROM; лимиты размера/числа записей, отмена, запрет
+неоднозначных путей/ссылок/шифрования сохранены. DS до 512 MiB.
+
+Идентичность DS и ранее подготовленных cartridge-архивов — байты ROM. У PSP,
+PS2, Dolphin и 3DS сохраняется точное сравнение контейнеров: самостоятельно
+конвертированные копии не объявляются одинаковыми. GDI, CUE, дескрипторы PS1,
+M3U и split Dolphin включают зависимые файлы; добавление/удаление таких файлов
+наблюдается при обновлении Lobby. Отдельные части ISO не дублируют игру в библиотеке.
+
+### Настоящие оставшиеся ограничения
+
+- PCSX-ReARMed CBN/CBIN не включены: в закреплённом `handlecbin` обнаружено чтение
+  последней позиции индекса без заполненного завершающего элемента. Нужен
+  отдельный native fix и новый core, а не снятие проверки расширения.
+- CIA/ZCIA — установка и отдельный индекс контента, encrypted images требуют
+  собственных ключей; retail updates/DLC и удалённый Artic Base не покрыты этим
+  проходом. ELF/DOL Dolphin и Wii NFS не превращены в обычный проверенный disc route.
+- PS2 dumps/ELF/IRX/M3U без обычной boot-disc identity; PSP homebrew без DISC_ID
+  и внешние wrappers требуют иной подготовки. CSOv2 не заявлен.
+- DS DSi/WFC, Dreamcast game servers, Wii native Online и отсутствующие новые
+  сетевые семейства остаются отдельными функциями в карте готовности.
+
+### Проверки и артефакты
+
+- Windows: `standalone`, `retroarch`, `save_backups`, `cartridge_content`,
+  `flycast_netplay`, `game_party`, полный `runtime_multiplayer` прошли.
+  Две целевые проверки библиотеки прошли: расширенный набор форматов и единая
+  карточка split ISO. Три прежних сбоя полного LibraryTests, записанные в
+  [аудите](EMULATOR_MULTIPLAYER_MATRIX.md), этим не объявляются исправленными.
+- PS2: `check_disc.py` (6 методов, включая raw/CSO/ZSO/GZ/NRG),
+  `check_launcher.py` (12), `check_profiles.py` (6), `check_config.py` (7) прошли.
+- Linux ARM64/QEMU: native PSP reader — 33 контейнерных случая; реальные
+  production-функции DS/3DS admission — 4 passed с init/cleanup;
+  собранный Dolphin tool — 4 случая TGC/split ISO/channel WAD/system WAD.
+  Синтетические файлы не содержат ROM/BIOS игр и не доказывают игровой матч.
+- Собраны ARM64 `psp-content-probe`, `dolphin-emu`, `dolphin-tool` и пакеты.
+  Windows production-shell собрана отдельно с `BUILD_TESTING=OFF`.
+  ARM64-оболочка и установка устройств этим проходом не выполнены.
+
+Локальные пакеты в игнорируемом `build/formats-research/`:
+
+| Артефакт | SHA-256 |
+| --- | --- |
+| `traineros-psp-content-formats-arm64.tar.gz` | `7137097a63018a90b0d7acd123fc9b9efed741cd5b3e060c91671488edda1a42` |
+| `traineros-dolphin-formats-arm64.tar.gz` | `3726a8f32e5402387c9e3c9dfff9f21a50253da62005dbf5bd448ce8cd08dd1a` |
+
+PSP binary SHA-256:
+`b8fc2de8306af6effff2d857c8b2f05cda4a1991d80800b409620b97bbaaf4fa`.
+Dolphin emulator SHA-256:
+`cae6aaab7e65e5c87fdfe98c3804e93f2f4eb3726b8d2e97656736eb8bf0d137`.
+Рецепты и notices находятся в репозитории/пакетах, сами бинарники не коммитятся.
+
+### Обновление и откат
+
+Индивидуальные записи [PPSSPP](emulators/ppsspp.md), [ARMSX2](emulators/armsx2-lan.md),
+[PCSX-ReARMed](emulators/pcsx-rearmed.md), [Flycast](emulators/flycast.md),
+[Dolphin](emulators/dolphin.md), [melonDS](emulators/melonds.md) и
+[Azahar](emulators/azahar.md) фиксируют исходные ревизии и места изменений.
+При обновлении native runtime сверять его readers/CLI и правила сохранений,
+пересобирать затронутый пакет и повторять соответствующие проверки форматов.
+Оболочка, PSP helper, Dolphin bridge и PS2 Python reader должны доставляться
+согласованно. Откат сохраняет предыдущие пакеты/оболочку и личные данные;
+форматы, требующие нового helper/manifest, снова недоступны на старом комплекте.

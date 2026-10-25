@@ -1,5 +1,21 @@
 # Dolphin integration checkpoint
 
+## TGC, split discs and channel WAD — 25 October 2026
+
+В ревизии `c77bbaa0f372c3f72281602a8b087206706542cb` переиспользованы
+`DiscIO/TGCBlob`, `SplitFileBlob`, `WbfsBlob` и `VolumeWad`.
+`DolphinNetplay.cpp`/`DolphinLan.cpp` учитывают TGC и полный набор частей
+ISO/WBFS; библиотека не создаёт отдельную игру для каждой части ISO.
+`TrainerNetplay.inc` принимает WiiWAD в Wii-сеанс; `traineros-netplay.patch`
+возвращает платформу Wii только для title type 00010001 (каналы, не IOS).
+`bundle.py` публикует `wad=dolphin-wad-channel-v1`; старый bridge WAD не допускает.
+Изолированные NAND/cards и ручной Start сохранены.
+Пересобраны ARM64 emulator/tool, patch reverse-check прошёл; native tool прошёл
+4 synthetic format cases из `packaging/emulators/dolphin/check-formats.py`.
+WAD-запуск/NetPlay настоящего канала этим не доказан.
+[SHA, остальные проверки, обновление и откат](../MULTIPLAYER_CONTENT_FORMATS.md).
+Устройства не обновлены. Native Wii Online остаётся отдельным механизмом.
+
 ## GameCube LAN / BBA — 25 октября 2026, исходники
 
 Обычный Dolphin NetPlay сохранён. Новый `runtime.dolphin.bba.v1` — отдельные

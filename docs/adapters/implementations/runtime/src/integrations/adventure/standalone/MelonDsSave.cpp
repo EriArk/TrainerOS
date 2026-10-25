@@ -1,4 +1,5 @@
 #include "MelonDsSave.h"
+#include "integrations/adventure/CartridgeContent.h"
 #include <QCryptographicHash>
 #include <QDirIterator>
 #include <QFile>
@@ -65,7 +66,7 @@ std::optional<QString> saveDirectory(const QByteArray& bytes) {
 bool supportsMelonDsSave(const AdventureRegistration& record, const StandaloneInstallation& installation) {
     return installation.melonDsSaveBackups && installation.platforms.contains("nds")
         && record.adventure.adapterId == "melonds" && record.adventure.platformId == "nds"
-        && !record.adventure.collectionOnly && QStringList{"nds","srl"}.contains(QFileInfo(record.contentPath).suffix().toLower());
+        && !record.adventure.collectionOnly && QStringList{"nds","srl","zip","7z"}.contains(QFileInfo(record.contentPath).suffix().toLower());
 }
 SaveTarget resolveMelonDsSave(const AdventureRegistration& record, const StandaloneInstallation& installation) {
     SaveTarget target; target.adventureId = record.adventure.id; target.title = record.adventure.title;
@@ -92,7 +93,10 @@ SaveTarget resolveMelonDsSave(const AdventureRegistration& record, const Standal
     if (config.error() != QFile::NoError || bytes.size() > 65536 || !directory.has_value()) {
         target.error = "This save layout needs verification before backups can be used."; return target;
     }
-    target.contentRevision = hashFile(record.contentPath, 512LL * 1024 * 1024);
+    const bool archived=cartridge::archived(record.contentPath);
+    const auto image=archived?cartridge::read(record.contentPath,"nds",std::atomic_bool{false}):cartridge::Image{};
+    if(archived&&image.bytes.size()<512)return target;
+    target.contentRevision = hashFile(record.contentPath, (512LL+16) * 1024 * 1024);
     const auto runtime = hashFile(installation.runtimeFile, 256LL * 1024 * 1024);
     if (target.contentRevision.isEmpty() || runtime.isEmpty()) {
         target.error = "Game content or play setup couldn't be verified. Check storage and try again."; return target;
@@ -101,7 +105,7 @@ SaveTarget resolveMelonDsSave(const AdventureRegistration& record, const Standal
         installation.configFile, QString::fromLatin1(QCryptographicHash::hash(bytes, QCryptographicHash::Sha256).toHex()),
         QJsonArray::fromStringList(installation.prefixArguments)};
     target.contextRevision = QString::fromLatin1(QCryptographicHash::hash(QJsonDocument(context).toJson(QJsonDocument::Compact), QCryptographicHash::Sha256).toHex());
-    target.savePath = QDir(directory->isEmpty() ? QFileInfo(record.contentPath).absolutePath() : *directory).filePath(QFileInfo(record.contentPath).completeBaseName() + ".sav");
+    target.savePath = QDir(directory->isEmpty() ? QFileInfo(record.contentPath).absolutePath() : *directory).filePath(QFileInfo(archived?image.memberName:record.contentPath).completeBaseName() + ".sav");
     target.supported = true;
     return target;
 }

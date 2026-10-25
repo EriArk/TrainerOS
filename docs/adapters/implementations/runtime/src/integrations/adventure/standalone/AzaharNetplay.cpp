@@ -10,10 +10,33 @@
 #include <QSettings>
 #include <QStandardPaths>
 #include <QTemporaryDir>
+#include <QtEndian>
 
 namespace trainer::azahar {
 namespace {
 bool hex(const QString& value,int size=64) {return value.size()==size&&QRegularExpression("^[a-f0-9]+$").match(value).hasMatch();}
+bool compressedHeader(QFile& file,const QByteArray& header,const QString& suffix) {
+    // Azahar 2126.2 Z3DSFileHeader; native seekable-Zstd remains the decoder.
+    const auto magic=suffix=="zcci"?QByteArray("NCSD"):suffix=="zcxi"?QByteArray("NCCH"):QByteArray("3DSX");
+    if(header.size()<32||header.first(4)!="Z3DS"||header.mid(4,4)!=magic||header[8]!=1||header[9]!=0)return false;
+    const quint64 start=qFromLittleEndian<quint16>(header.constData()+10)+quint64(qFromLittleEndian<quint32>(header.constData()+12));
+    const auto packed=qFromLittleEndian<quint64>(header.constData()+16),raw=qFromLittleEndian<quint64>(header.constData()+24);
+    if(start<32||start>16*1024*1024||packed<17||start>quint64(file.size())||packed!=quint64(file.size())-start||raw<32||raw>8ULL*1024*1024*1024)return false;
+    if(!file.seek(file.size()-9))return false;
+    const auto footer=file.read(9);if(footer.size()!=9||footer.last(4)!=QByteArray::fromHex("b1ea928f"))return false;
+    const auto frames=qFromLittleEndian<quint32>(footer.constData());const auto flags=quint8(footer[4]);
+    if(!frames||frames>1048576||(flags&0x7f))return false;
+    const quint64 tableSize=quint64(frames)*((flags&0x80)?12:8)+17;
+    if(tableSize>packed||!file.seek(file.size()-tableSize))return false;
+    const auto table=file.read(tableSize);
+    if(quint64(table.size())!=tableSize||table.first(4)!=QByteArray::fromHex("5e2a4d18")||qFromLittleEndian<quint32>(table.constData()+4)!=tableSize-8)return false;
+    quint64 compressed=0,decoded=0;
+    for(quint32 n=0;n<frames;++n) {
+        const auto at=table.constData()+8+n*((flags&0x80)?12:8);
+        compressed+=qFromLittleEndian<quint32>(at);decoded+=qFromLittleEndian<quint32>(at+4);
+    }
+    return compressed+tableSize==packed&&decoded==raw;
+}
 QString digest(const QString& path,const std::atomic_bool& cancel,qint64 limit) {
     QFile file(path);if(!file.open(QIODevice::ReadOnly)||file.size()<1||file.size()>limit)return {};
     const auto size=file.size();qint64 read=0;QCryptographicHash hash(QCryptographicHash::Sha256);
@@ -61,10 +84,12 @@ QJsonObject netplayIdentity(const AdventureRegistration& record,const std::atomi
     const auto suffix=QFileInfo(record.contentPath).suffix().toLower();
     QFile file(record.contentPath);if(!file.open(QIODevice::ReadOnly)||file.size()<32)return {};
     const auto header=file.read(512);
-    // CIA installations, encrypted/compressed images and remote Artic Base
-    // require separate identity/data preparation. Filename/title never matches.
-    if(!((suffix=="3dsx"&&header.startsWith("3DSX"))||
-         ((suffix=="cci"||suffix=="3ds")&&header.mid(256,4)=="NCSD")||(suffix=="cxi"&&header.mid(256,4)=="NCCH")))return {};
+    // CIA/ZCIA installs and remote Artic Base are not launchable images.
+    const bool packed=QStringList{"zcci","zcxi","z3dsx"}.contains(suffix);
+    const bool elf=QStringList{"elf","axf"}.contains(suffix)&&header.startsWith(QByteArray("\x7f" "ELF\x01\x01",6))
+        &&header.size()>=52&&qFromLittleEndian<quint16>(header.constData()+18)==40;
+    if(!(elf||(packed&&compressedHeader(file,header,suffix))||(suffix=="3dsx"&&header.startsWith("3DSX"))||
+         ((suffix=="cci"||suffix=="3ds")&&header.mid(256,4)=="NCSD")||((suffix=="cxi"||suffix=="app")&&header.mid(256,4)=="NCCH")))return {};
     const auto installed=bundle(cancel);if(installed.isEmpty())return {};
     const auto content=digest(record.contentPath,cancel,8LL*1024*1024*1024);if(content.isEmpty())return {};
     return {{"id","runtime.azahar.3ds.v1"},{"label",record.adventure.title.left(96)},

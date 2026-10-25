@@ -22,6 +22,9 @@ The authoritative list is [CMakeLists.txt](../CMakeLists.txt):
   preview renderer; see [the avatar contract](../sdk/AVATAR.md).
 - Qt6Keychain and a working platform keychain for real account credentials.
 - OpenSSL 3 Crypto and SDL2 2.0.14+, including development headers/CMake packages.
+- PS2 ZSO identity helper: system liblz4 (`lz4-libs` on Fedora, `liblz4-1`
+  on Debian). It is dynamically loaded by the isolated Python reader;
+  missing library rejects ZSO without changing other disc routes.
 - libarchive headers and runtime library for bounded ZIP/7z cartridge reading
   (checked 3.8.7). Fedora: `libarchive-devel` in the builder and `libarchive` at
   runtime; MSYS2 UCRT64: `mingw-w64-ucrt-x86_64-libarchive`. Keep its dependent

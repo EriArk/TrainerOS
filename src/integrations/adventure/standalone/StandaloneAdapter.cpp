@@ -1,4 +1,5 @@
 #include "StandaloneAdapter.h"
+#include "integrations/adventure/CartridgeContent.h"
 #include "integrations/adventure/MultiplayerRoute.h"
 #include "core/model/GamePlayers.h"
 #include "PpssppNetplay.h"
@@ -29,16 +30,16 @@ QStringList allowedPlatforms(const QString& id) {
 }
 QStringList extensions(const QString& platform) {
     if (platform == "psp") return {"iso", "cso", "pbp", "chd"};
-    if (platform == "ps2") return {"iso", "chd", "cso", "bin", "gz"};
+    if (platform == "ps2") return {"iso", "chd", "cso", "zso", "bin", "gz", "img", "mdf", "nrg"};
     if (platform == "wiiu") return {"wud", "wux", "wua", "rpx"};
-    if (platform == "psx") return {"cue", "chd", "pbp", "m3u", "iso", "exe"};
+    if (platform == "psx") return {"cue", "chd", "pbp", "m3u", "iso", "exe", "bin", "img", "mdf", "mds", "ccd"};
     if (platform == "ps3") return {"self", "elf"};
     if (platform == "switch") return {"nro", "nsp", "xci"};
     if (platform == "xbox") return {"iso"};
-    if (platform == "n3ds") return {"3dsx", "3ds", "cci", "cxi"};
+    if (platform == "n3ds") return {"3dsx", "3ds", "cci", "cxi", "app", "elf", "axf", "zcci", "zcxi", "z3dsx"};
     if (platform == "psvita") return {"psvita"};
-    if (platform == "nds") return {"nds", "srl"};
-    if (platform == "gc") return {"iso", "gcm", "rvz", "wia", "gcz", "ciso"};
+    if (platform == "nds") return {"nds", "srl", "zip", "7z"};
+    if (platform == "gc") return {"iso", "gcm", "rvz", "wia", "gcz", "ciso", "tgc"};
     if (platform == "wii") return {"iso", "gcm", "rvz", "wia", "gcz", "ciso", "wbfs", "wad"};
     return {};
 }
@@ -132,12 +133,17 @@ std::optional<ProcessCommand> StandaloneAdapter::command(const Adventure& advent
     else return {};
     ProcessCommand result{installation_.program, arguments, {}};
     result.runtimeControls={{"kind",id_},{"game",adventure.id}};
-    result.prepare = [path = record->contentPath, program = installation_.program, runtime = installation_.runtimeFile, vita = id_ == "vita3k"]
+    result.prepare = [path = record->contentPath, program = installation_.program, runtime = installation_.runtimeFile, vita = id_ == "vita3k", ds = id_ == "melonds"]
         (ProcessCommand& out, const std::atomic_bool& cancel) -> QString {
         if (cancel) return "Opening cancelled.";
         const QFileInfo content(path);
         if (!content.isFile() || !content.isReadable() || content.size() <= 0) return "The Adventure file is missing or unreadable. Link its current file in Worlds.";
         if (!executable(program) || !executable(runtime)) return "This Adventure's play setup changed. Check it in Desktop Mode.";
+        if(ds&&cartridge::archived(path)) {
+            const auto image=cartridge::read(path,"nds",cancel);
+            if(image.bytes.size()<512)return "This archive must contain one readable DS cartridge.";
+            out.arguments<<"--archive-file"<<image.memberName;
+        }
         if(vita) {
             auto directory=std::make_shared<QTemporaryDir>(QDir::tempPath()+"/traineros-vita-solo-XXXXXX");
             if(!directory->isValid())return "Couldn't prepare this Vita game.";

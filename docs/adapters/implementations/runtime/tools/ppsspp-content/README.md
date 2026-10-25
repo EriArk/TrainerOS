@@ -2,11 +2,15 @@
 
 Linux-only read-only helper, separate from the installed PPSSPP executable.
 It uses PPSSPP v1.20.4 `CISOFileBlockDevice` and `PBPReader`, pinned to
-`fa50bb1976065c4f8b1b47af227d367fe9771555`, with libchdr headers pinned to
+`fa50bb1976065c4f8b1b47af227d367fe9771555`, with native libchdr pinned to
 `8bba7745d758627258b315997a860039244cedaf`. No network/emulation code is called.
 The shared bounded ISO9660/SFO parser is also used by TrainerOS for raw ISO.
 
-Prerequisites: Linux, Git, CMake, Ninja, Python 3, C++20, Qt6 Core, zlib.
+Prerequisites: Linux, Git, CMake, Ninja, Python 3, C/C++20, Qt6 Core, zlib.
+libchdr builds statically with its bundled LZMA/Zstd code; dependency notices
+are copied into the package. Cross Clang builds must set the ASM compiler target
+alongside C/CXX, e.g. `-DCMAKE_ASM_COMPILER_TARGET=aarch64-redhat-linux-gnu`,
+so LZMA's ARM64 assembly is not assembled for the build host.
 From the TrainerOS checkout (or the package's `source` directory):
 
 ```sh
@@ -28,11 +32,11 @@ local source/recipe. Install the package directory as
 `$XDG_DATA_HOME/traineros/psp-content` (default `~/.local/share/traineros/psp-content`)
 alongside a shell containing the new probe. Verify the architecture and target
 Qt/libc dependencies before delivery. Keep a previous directory for rollback;
-removing this directory disables CSO/PBP admission, with raw ISO unaffected.
+removing this directory disables CSO/PBP/CHD admission, with raw ISO unaffected.
 Installation is a release/device-delivery operation, not something this build
 script performs. No ROMs, saves or PPSSPP configuration are changed.
 
-Protocol: `psp-content-probe --psp-content /absolute/file.cso` (or `.pbp`) emits
+Protocol: `psp-content-probe --psp-content /absolute/file.cso` (or `.pbp`/`.chd`) emits
 one JSON object with `protocol: 1`, `disc`, `format`; invalid input returns nonzero
 with no identity. The caller verifies the manifest/hash, cancels the child with
 the scan, and bounds runtime to 15 seconds and output to 4096 bytes.
@@ -44,5 +48,8 @@ PS1 ME/PSISOIMG packages are rejected. A DISC_ID is format identity, not a
 certificate of a working multiplayer mode or executable. NPUMD inner decryption
 and boot are left to PPSSPP. Both players must still have identical whole-file
 hashes: converting one player's ISO to CSO does not make it match the other's ISO.
-CHD, wrappers, missing/unusual DISC_ID, and other categories remain unimplemented.
+CHD v5 uses native libchdr hunk reads and the shared bounded ISO9660/SFO parser;
+UMD units must be 2048 bytes, hunk size 2048..1048576, logical size <=2 GiB,
+and parent images are rejected. The 33-case suite includes malformed CHD layouts.
+Wrappers, missing/unusual DISC_ID, and other categories remain unimplemented.
 Synthetic cases prove header/decompression handling, not gameplay.

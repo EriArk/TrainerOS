@@ -708,7 +708,9 @@
         "gcm",
         "rvz",
         "gcz",
-        "ciso"
+        "ciso",
+        "wia",
+        "tgc"
       ],
       "aliases": [
         "gc"
@@ -956,7 +958,12 @@
         "3dsx",
         "cci",
         "cxi",
-        "app"
+        "app",
+        "elf",
+        "axf",
+        "zcci",
+        "zcxi",
+        "z3dsx"
       ],
       "aliases": [
         "n3ds"
@@ -974,7 +981,9 @@
         "z64",
         "bin",
         "u1",
-        "ndd"
+        "ndd",
+        "zip",
+        "7z"
       ],
       "aliases": [],
       "shape": "console"
@@ -1014,7 +1023,9 @@
       "core": "",
       "extensions": [
         "nds",
-        "srl"
+        "srl",
+        "zip",
+        "7z"
       ],
       "aliases": [],
       "shape": "console"
@@ -1330,7 +1341,9 @@
         "ccd",
         "chd",
         "iso",
-        "exe"
+        "exe",
+        "bin",
+        "mds"
       ],
       "aliases": [],
       "shape": "console"
@@ -1653,7 +1666,9 @@
         "gcz",
         "wbfs",
         "wad",
-        "ciso"
+        "ciso",
+        "wia",
+        "gcm"
       ],
       "aliases": [],
       "shape": "console"

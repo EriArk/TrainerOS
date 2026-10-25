@@ -1,5 +1,18 @@
 # Flycast: Dreamcast multiplayer and ordinary package
 
+## GDI/CDI/CUE/M3U preparation — 25 October 2026
+
+Исходный Dojo `d0e47e572b1e7b355e88bda8308c89d0c5156cbf`:
+проверены `core/imgread/` GDI/CDI readers и standalone launch.
+`FlycastNetplay.cpp` теперь проверяет и хеширует GDI layout/дорожки,
+CDI footer, CUE dependencies и все диски M3U. У native standalone нет M3U
+reader: запускается разрешённый первый диск. Смена диска в живом NetPlay
+этим не реализована. Наблюдение файлов подключено к общему обновлению Lobby.
+`flycast_netplay` прошёл, включая изменение/утрату дорожки и путь запуска;
+сам native Dojo decoder на этих синтетических файлах не проверялся.
+[Границы, обновление и откат](../MULTIPLAYER_CONTENT_FORMATS.md).
+Эмулятор/настройки/временные VMU не менялись; нужна новая оболочка.
+
 ## Handheld runtime continuation - 12 October 2026
 
 The separate native bundle is now installed on Flip/Odin. The ordinary Online

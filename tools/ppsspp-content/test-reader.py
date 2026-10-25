@@ -67,6 +67,24 @@ def changed(data, offset, fmt, value):
     b=bytearray(data); put(b, offset, fmt, value); return b
 
 cases = []
+# Uncompressed CHD v5, native libchdr map and hunk reads (own ISO fixture).
+def chd(data):
+    b=bytearray(2048)
+    put(b,0,'>8sII',b'MComprHD',124,5)
+    put(b,32,'>QQQII',len(data),124,0,2048,2048)
+    for n in range(len(data)//2048):put(b,124+n*4,'>I',n+1)
+    return b+data
+
+base_chd=chd(iso())
+cases.append(('umd-chd','chd',base_chd,True))
+for name,data in (
+    ('chd-parent',changed(base_chd,104,'B',1)),
+    ('chd-cd-unit',changed(base_chd,60,'>I',2448)),
+    ('chd-huge-hunk',changed(base_chd,56,'>I',0x40000000)),
+    ('chd-huge-logical',changed(base_chd,32,'>Q',0x100000000)),
+    ('chd-map-outside',changed(base_chd,124+16*4,'>I',0x7fffffff)),
+    ('chd-truncated',base_chd[:4096])):
+    cases.append((name,'chd',data,False))
 for frame, shift, mixed in ((2048,0,False), (2048,2,True), (8192,0,False), (32768,4,True)):
     cases.append((f'cso-{frame}-{shift}-{mixed}', 'cso', cso(iso(),frame,shift,mixed), True))
 base = cso(iso())

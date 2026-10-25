@@ -10,7 +10,7 @@ class CartridgeContentTests final:public QObject {
 private slots:
     void rawAndPackedIdentityAndStaging_data() {
         QTest::addColumn<QString>("platform");QTest::addColumn<QString>("extension");QTest::addColumn<QString>("format");
-        for(const auto& p:QStringList{"gb","gbc","gba","n64"})for(const auto& f:QStringList{"zip","7z"})
+        for(const auto& p:QStringList{"gb","gbc","gba","n64","nds"})for(const auto& f:QStringList{"zip","7z"})
             QTest::newRow(qPrintable(p+'-'+f))<<p<<(p=="n64"?QString("v64"):p)<<f;
     }
     void rawAndPackedIdentityAndStaging() {
@@ -21,6 +21,7 @@ private slots:
         QVERIFY(!bytes.isEmpty());QVERIFY(write(raw,rom));QVERIFY(write(packed,bytes));
         const auto plain=cartridge::read(raw,platform,cancel),image=cartridge::read(packed,platform,cancel);
         QCOMPARE(image.bytes,rom);QCOMPARE(image.extension,extension);QCOMPARE(image.digest(),plain.digest());
+        QCOMPARE(image.memberName,"nested/Other."+extension.toUpper());
         const auto stage=cartridge::stage(image,packed,dir.filePath("private"),plain.digest());
         QCOMPARE(QFileInfo(stage).fileName(),"Save Name."+extension);
         QFile staged(stage);QVERIFY(staged.open(QIODevice::ReadOnly));QCOMPARE(staged.readAll(),rom);staged.close();

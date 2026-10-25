@@ -73,7 +73,11 @@ private slots:
     void multiplayerDiscFormatsAreDiscoveredWithoutTitleLists() {
         QTemporaryDir dir;
         const QStringList files{"gc/Unlisted.wia","gc/Unlisted.rvz","gc/Unlisted.gcz","gc/Unlisted.ciso",
-            "wii/Unlisted.wia","wii/Unlisted.ciso","wii/Unlisted.gcm","nds/Unlisted.srl","n3ds/Unlisted.3ds"};
+            "gc/Unlisted.tgc","wii/Unlisted.wia","wii/Unlisted.ciso","wii/Unlisted.gcm","wii/Unlisted.wad",
+            "nds/Unlisted.srl","nds/Unlisted.zip","nds/Unlisted.7z","n3ds/Unlisted.3ds","n3ds/Unlisted.app",
+            "n3ds/Unlisted.elf","n3ds/Unlisted.axf","n3ds/Unlisted.zcci","n3ds/Unlisted.zcxi","n3ds/Unlisted.z3dsx",
+            "psp/Unlisted.chd","ps2/Unlisted.cso","ps2/Unlisted.zso","ps2/Unlisted.gz","ps2/Unlisted.nrg",
+            "psx/Raw.bin","psx/Clone.ccd","psx/Alcohol.mds","psx/Raw.img","psx/Dao.toc"};
         for(const auto& name:files){QVERIFY(QDir().mkpath(QFileInfo(dir.filePath(name)).absolutePath()));fixtureFile(dir.filePath(name));}
         const auto scan=scanBatoceraLibrary(dir.path(),{});
         QCOMPARE(scan.entries.size(),files.size());
@@ -83,6 +87,12 @@ private slots:
             }
             QVERIFY2(found,qPrintable(name));
         }
+    }
+    void splitDolphinImagesRemainOneLibraryGame() {
+        QTemporaryDir dir;QVERIFY(QDir().mkpath(dir.filePath("wii")));
+        fixtureFile(dir.filePath("wii/Game.part0.iso"));fixtureFile(dir.filePath("wii/Game.part1.iso"));fixtureFile(dir.filePath("wii/Game.part2.iso"));
+        const auto scan=scanBatoceraLibrary(dir.path(),{});QCOMPARE(scan.entries.size(),1);
+        QCOMPARE(scan.entries.first().record.contentPath,dir.filePath("wii/Game.part0.iso"));
     }
     void vitaInstalledLinksAreGamesButNativeUserFilesAreNot() {
         QTemporaryDir dir;QVERIFY(QDir().mkpath(dir.filePath("psvita")));
