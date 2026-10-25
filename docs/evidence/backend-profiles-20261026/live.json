@@ -1,0 +1,28 @@
+{
+  "ready": true,
+  "migration": "0006",
+  "backup_restore": true,
+  "source_commit": "61a8cfb3",
+  "boards": {
+    "individual/records": {
+      "revision": "1",
+      "items": 0,
+      "profiles": 0
+    },
+    "individual/wins": {
+      "revision": "1",
+      "items": 0,
+      "profiles": 0
+    },
+    "teams/records": {
+      "revision": "1",
+      "items": 0,
+      "profiles": 0
+    },
+    "teams/wins": {
+      "revision": "1",
+      "items": 0,
+      "profiles": 0
+    }
+  }
+}

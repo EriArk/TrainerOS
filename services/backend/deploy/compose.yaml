@@ -1,6 +1,6 @@
 name: traineros-backend
 x-app: &app
-  image: traineros-backend:play-20261025
+  image: traineros-backend:profiles-20261026
   build:
     context: ..
     target: runtime
