@@ -9,6 +9,7 @@
 #include <QProcess>
 #include <QMouseEvent>
 #include <QQuickItem>
+#include <QSignalBlocker>
 #include "app/PlatformBinding.h"
 #include <memory>
 
@@ -47,6 +48,7 @@ inline void startPlatformSmoke(QQuickWindow* window, trainer::ShellController& s
     auto timer=new QTimer(window);timer->setInterval(400);
     QObject::connect(shell.controls(),&trainer::ControlsDashboard::contributionActivated,timer,[actions](const QString&){++*actions;});
     QObject::connect(timer,&QTimer::timeout,window,[=,&shell,&completed,&warnings,&diagnostics]{
+        const QSignalBlocker stepGuard(timer); // Pointer flushing must not re-enter this scenario step.
         Q_UNUSED(settings);
         Q_UNUSED(binding);
         auto* board=shell.controls();
@@ -55,7 +57,24 @@ inline void startPlatformSmoke(QQuickWindow* window, trainer::ShellController& s
             if(item->objectName()==name&&item->isVisible())return item;
             for(auto* child:item->childItems())if(auto* found=find(child,name))return found;return nullptr;
         };
-        if(++*ticks>55){diagnostics<<"SDK/Start UI process timed out";*step=9;}
+        const auto tap=[&](QString name){
+            auto* item=find(window->contentItem(),name);check(item&&item->isEnabled(),"Missing Start touch target: "+name);
+            if(!item)return;
+            const auto point=item->mapToScene(QPointF(item->width()/2,item->height()/2));const auto global=QPointF(window->mapToGlobal(point.toPoint()));
+            QMouseEvent down(QEvent::MouseButtonPress,point,global,Qt::LeftButton,Qt::LeftButton,Qt::NoModifier),up(QEvent::MouseButtonRelease,point,global,Qt::LeftButton,Qt::NoButton,Qt::NoModifier);
+            QCoreApplication::sendEvent(window,&down);QCoreApplication::sendEvent(window,&up);
+        };
+        const auto drag=[&](QString source,QString destination){
+            auto* from=find(window->contentItem(),"start-widget-"+source);auto* to=find(window->contentItem(),"start-widget-"+destination);
+            check(from&&to,"Missing drag widget");if(!from||!to)return;
+            const auto a=from->mapToScene(QPointF(from->width()/2,from->height()/2));
+            const auto b=to->mapToScene(QPointF(to->width()/2,to->height()/2));
+            QMouseEvent down(QEvent::MouseButtonPress,a,QPointF(window->mapToGlobal(a.toPoint())),Qt::LeftButton,Qt::LeftButton,Qt::NoModifier);
+            QCoreApplication::sendEvent(window,&down);
+            for(int i=1;i<=8;++i){const auto point=a+(b-a)*i/8.;QMouseEvent motion(QEvent::MouseMove,point,QPointF(window->mapToGlobal(point.toPoint())),Qt::NoButton,Qt::LeftButton,Qt::NoModifier);QCoreApplication::sendEvent(window,&motion);QCoreApplication::processEvents();}
+            QMouseEvent up(QEvent::MouseButtonRelease,b,QPointF(window->mapToGlobal(b.toPoint())),Qt::LeftButton,Qt::NoButton,Qt::NoModifier);QCoreApplication::sendEvent(window,&up);QCoreApplication::processEvents();
+        };
+        if(++*ticks>55){diagnostics<<"SDK/Start UI process timed out";*step=99;}
         switch(*step) {
         case 0:
             if(board->available().isEmpty())break;
@@ -76,9 +95,15 @@ inline void startPlatformSmoke(QQuickWindow* window, trainer::ShellController& s
             child->kill();++*step;break;
         case 3:
             if(child->state()!=QProcess::NotRunning||board->pages()!=1)break;
+            shell.downloads()->publish("start-fixture",{
+                QVariantMap{{"id","active"},{"title","Adventure artwork"},{"state","running"},{"detail","Downloading · 42%"},{"progress",.42}},
+                QVariantMap{{"id","queued"},{"title","Second download"},{"state","queued"},{"detail","Waiting in queue"}},
+                QVariantMap{{"id","finished"},{"title","Finished download"},{"state","done"},{"detail","Completed"}}});
             ++*step;break;
         case 4:
+            check(find(window->contentItem(),"start-download-row-active")&&find(window->contentItem(),"start-download-row-queued")&&find(window->contentItem(),"start-download-row-finished"),"Tall Downloads did not show multiple tasks");
             if(!directory.isEmpty())check(window->grabWindow().save(directory+"/start-compact.png"),"Cannot save Start frame");
+            tap("start-widget-downloads");check(shell.downloads()->isOpen(),"Downloads widget did not open the shared queue");shell.downloads()->close();
             board->activate("wifi");++*step;break;
         case 5: {
             check(shell.controlsNetworkOpen()&&shell.network()->rows().size()==7,"Wi-Fi list missing in Start");
@@ -108,6 +133,31 @@ inline void startPlatformSmoke(QQuickWindow* window, trainer::ShellController& s
             check(shell.network()->rows().value(2).toMap()["connected"].toBool(),"Wi-Fi result not shown");
             shell.dispatch(trainer::Action::Back);check(!shell.controlsNetworkOpen()&&shell.menuOpen(),"Wi-Fi Back did not return to Start");
             ++*step;break;
+        case 8:
+            tap("start-edit");check(board->editing(),"Edit touch did not enter edit mode");++*step;break;
+        case 9:
+            drag("clock","battery");
+            for(const auto& v:board->widgets())if(v.toMap()["id"]=="clock")check(v.toMap()["y"].toInt()==2,"Scaled pointer drag missed snapped destination");
+            drag("clock","battery");
+            for(const auto& v:board->widgets())if(v.toMap()["id"]=="clock")check(v.toMap()["y"].toInt()==3,"Reverse pointer drag failed to restore layout");
+            tap("start-widget-clock");check(board->selected()=="clock"&&!board->moving(),"Touch did not select clock in edit");
+            tap("start-move");check(board->moving(),"Touch Move did not pick up widget");++*step;break;
+        case 10:
+            tap("start-next-page");check(board->page()==1,"Touch did not create adjacent page");
+            if(!directory.isEmpty())check(window->grabWindow().save(directory+"/start-moving.png"),"Cannot save edit frame");
+            ++*step;break;
+        case 11:
+            tap("start-cancel");check(board->page()==0&&!board->moving()&&board->pages()==1,"Touch cancel did not restore page and layout");
+            tap("start-hide");check(board->widgets().size()==9,"Touch hide did not remove clock");++*step;break;
+        case 12:
+            tap("start-add");check(board->picking(),"Touch Add did not open picker");++*step;break;
+        case 13:
+            shell.dispatch(trainer::Action::Confirm);check(!board->picking()&&board->widgets().size()==10,"Picker restore failed");
+            tap("start-edit");check(!board->editing(),"Done did not leave edit mode");
+            shell.settings()->cycleTheme(1);++*step;break;
+        case 14:
+            if(!directory.isEmpty())check(window->grabWindow().save(directory+"/start-dark.png"),"Cannot save dark Start");
+            shell.dispatch(trainer::Action::Back);check(!shell.menuOpen(),"Back did not close Start");++*step;break;
         default:
             if(child->state()!=QProcess::NotRunning){child->kill();child->waitForFinished(2000);}
             const auto stderrText=child->readAllStandardError();check(stderrText.isEmpty(),QString::fromUtf8(stderrText));

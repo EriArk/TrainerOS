@@ -1,72 +1,108 @@
 import QtQuick
 
-Panel {
+Rectangle {
     id: root
+    objectName: "start-dashboard"
     required property var shell
-    property var board: shell.controls
+    readonly property var board: shell.controls
+    readonly property int selectedRadio: ["wifi","bluetooth","airplane"].indexOf(board.selected)
+    readonly property var selectedRadioData: selectedRadio<0 ? ({}) : (shell.device.radios[selectedRadio] || {})
+    readonly property string selectedDescription: board.selectedTitle + (selectedRadio<0 ? "" : " · "+(selectedRadioData.level===1?"On":selectedRadioData.level===0?"Off":"Unavailable"))
     readonly property int displayRows: board.editing ? 4 : Math.max(2, ...board.widgets.map(w => w.y+w.h))
-    implicitWidth: 660
-    implicitHeight: 122+displayRows*48
-    radius: 20
-    surface: Qt.tint(Theme.paper,"#09c29948")
-    patterned: true
-    Text { x: 22; y: 19; text: "Start"; font.family: Theme.displayFamily; font.pixelSize: 23; color: Theme.ink }
-    CapButton { x: 104; y: 19; width: 72; height: 28; label: root.board.editing?"Done":"Edit"; textSize: 15; centered: true; tint: Theme.paper; selected: root.board.selected === "edit"; onActivated: root.board.edit() }
-    Row { anchors.right: parent.right; anchors.rightMargin: 53; y: 14; spacing: 8
+    implicitWidth: 760
+    implicitHeight: (board.editing ? 178 : 148) + displayRows*52
+    radius: 18
+    color: Theme.paper
+    border.color: Theme.divider
+    CrtTexture { anchors.fill: parent; anchors.margins: 2 }
+
+    component ActionButton: Rectangle {
+        property string label
+        property string glyph: ""
+        property bool selected: false
+        signal activated()
+        implicitWidth: glyph.length ? 58 : 80
+        implicitHeight: 38
+        radius: 8
+        color: selected ? Theme.selection : "transparent"
+        border.width: selected ? 1 : 0
+        border.color: Theme.focusGlow
+        opacity: enabled ? 1 : .35
+        MenuGlyph { anchors.horizontalCenter: parent.horizontalCenter; y: 0; width: 21; height: 21; glyph: parent.glyph; visible: parent.glyph.length>0 }
+        Text { anchors.horizontalCenter: parent.horizontalCenter; y: parent.glyph.length ? 25 : (parent.height-height)/2; text: parent.label; color: Theme.ink; font.pixelSize: parent.glyph.length ? 10 : 13 }
+        MouseArea { anchors.fill: parent; onClicked: parent.activated() }
+        Accessible.role: Accessible.Button
+        Accessible.name: label
+        Accessible.onPressAction: activated()
+    }
+    Text { x: 24; y: 21; text: "Start"; font.family: Theme.displayFamily; font.pixelSize: 25; color: Theme.ink }
+    ActionButton { objectName: "start-edit"; x: 112; y: 18; label: root.board.editing ? "Done" : "Edit widgets"; width: 96; selected: root.board.selected==="edit"; onActivated: root.board.edit() }
+    Row { anchors.right: closeButton.left; anchors.rightMargin: 14; y: 17; spacing: 8; visible: !root.board.editing
         Repeater { model: [{id:"settings",title:"Settings",icon:"settings"},{id:"power",title:"Power",icon:"power"},{id:"switch",title:"Switch",icon:"desktop"}]
-            Item { required property var modelData; width: 48; height: 45
-                Rectangle { anchors.horizontalCenter: parent.horizontalCenter; width: 34; height: 34; radius: 17; color: Theme.paper; border.color: root.board.selected === modelData.id?Theme.focusGlow:Theme.screenContact; border.width: root.board.selected===modelData.id?2:1 }
-                MenuGlyph { anchors.horizontalCenter: parent.horizontalCenter; y: 6; width: 22; height: 22; glyph: modelData.icon }
-                Text { anchors.bottom: parent.bottom; width: parent.width; text: modelData.title; color: Theme.ink; font.pixelSize: 10; horizontalAlignment: Text.AlignHCenter }
-                MouseArea { anchors.fill: parent; onClicked: root.board.activate(modelData.id) }
-            }
+            ActionButton { required property var modelData; label: modelData.title; glyph: modelData.icon; selected: root.board.selected===modelData.id; onActivated: root.board.activate(modelData.id) }
         }
     }
-    SocialIconButton { anchors.right: parent.right; anchors.rightMargin: 14; y: 16; icon: "x"; label: "Close Start"; onClicked: root.shell.closeControls() }
+    SocialIconButton { id: closeButton; anchors.right: parent.right; anchors.rightMargin: 18; y: 20; icon: "x"; label: "Close Start"; onClicked: root.shell.closeControls() }
+    Rectangle { x: 24; y: 65; width: parent.width-48; height: 1; color: Theme.divider }
     Item {
-        id: grid; x: 22; y: 69; width: parent.width-44; height: parent.height-y-48
-        readonly property real cellW: (width+9)/12
-        readonly property real cellH: (height+9)/root.displayRows
+        id: grid; x: 24; y: 80; width: parent.width-48; height: parent.height-y-(root.board.editing ? 98 : 68)
+        readonly property real cellW: (width+8)/12
+        readonly property real cellH: (height+8)/root.displayRows
+        // Empty space also accepts a horizontal swipe. Widget drags own their input.
+        MouseArea { anchors.fill: parent; property real startX
+            onPressed: mouse => startX=mouse.x
+            onReleased: mouse => { if(Math.abs(mouse.x-startX)>50)root.board.changePage(mouse.x<startX?1:-1) }
+        }
+        Repeater { model: root.board.editing ? 48 : 0
+            Rectangle { required property int index; x: (index%12)*grid.cellW+grid.cellW/2-1; y: Math.floor(index/12)*grid.cellH+grid.cellH/2-1; width: 2; height: 2; radius: 1; color: Theme.divider
+                visible: !root.board.widgets.some(w => index%12>=w.x && index%12<w.x+w.w && Math.floor(index/12)>=w.y && Math.floor(index/12)<w.y+w.h)
+            }
+        }
         Repeater { model: root.board.widgets
             ControlWidget { shell: root.shell
                 x: modelData.x*grid.cellW; y: modelData.y*grid.cellH
-                width: modelData.w*grid.cellW-9; height: modelData.h*grid.cellH-9
-                onMoved: (dx,dy) => {
-                    const x=Math.round(modelData.x+dx/grid.cellW)
-                    if(x<0 || x+modelData.w>12){root.board.activate(modelData.id);root.board.changePage(x<0?-1:1);root.board.activate(modelData.id)}
-                    else root.board.drop(modelData.id,x,Math.round(modelData.y+dy/grid.cellH))
+                width: modelData.w*grid.cellW-8; height: modelData.h*grid.cellH-8
+                onMoved: (dx,dy) => root.board.drop(modelData.id,Math.round(modelData.x+dx/grid.cellW),Math.round(modelData.y+dy/grid.cellH))
+                onSwiped: delta => root.board.changePage(delta)
+            }
+        }
+        Text { anchors.centerIn: parent; visible: root.board.widgets.length===0; text: "Your space for quick controls\nEdit widgets to add something here"; horizontalAlignment: Text.AlignHCenter; lineHeight: 1.6; color: Theme.muted; font.pixelSize: 15 }
+    }
+    Text { x: 24; y: grid.y+grid.height+13; width: parent.width-48; color: root.board.status.length || root.shell.device.error.length ? Theme.ink : Theme.muted; font.pixelSize: 12; elide: Text.ElideRight
+        text: root.board.status || root.shell.device.error || (root.board.moving ? "Moving " + root.board.selectedTitle + " · choose a space or another page" : root.selectedDescription) }
+    Row { x: 20; anchors.bottom: parent.bottom; anchors.bottomMargin: 12; spacing: 4; visible: root.board.editing
+        ActionButton { objectName: "start-add"; label: "+ Add"; enabled: !root.board.moving; onActivated: root.board.pick() }
+        ActionButton { objectName: "start-size"; label: Theme.buttonLabel("X")+" Size"; enabled: root.board.widgetSelected&&!root.board.moving; onActivated: root.board.resize() }
+        ActionButton { objectName: "start-hide"; label: Theme.buttonLabel("Y")+" Hide"; enabled: root.board.widgetSelected&&!root.board.moving; onActivated: root.board.hide() }
+        ActionButton { objectName: "start-move"; label: root.board.moving ? "Place" : "Move"; enabled: root.board.widgetSelected; onActivated: root.board.activate(root.board.selected) }
+        ActionButton { objectName: "start-cancel"; label: "Cancel move"; width: 94; visible: root.board.moving; onActivated: root.board.back() }
+    }
+    Text { x: 24; anchors.bottom: parent.bottom; anchors.bottomMargin: root.board.editing ? 54 : 16; width: parent.width-230; elide: Text.ElideRight; color: Theme.muted; font.pixelSize: 11
+        text: root.board.moving ? Theme.buttonLabel("A")+" Place · "+Theme.buttonLabel("B")+" Cancel" : root.board.editing ? Theme.buttonLabel("A")+" Move · "+Theme.buttonLabel("L2")+" Add · "+Theme.buttonLabel("B")+" Done" : root.board.adjusting ? "← → / ↑ ↓ Adjust · "+(root.board.selected==="volume"?Theme.buttonLabel("X")+" Mute · ":"")+Theme.buttonLabel("B")+" Done" : Theme.buttonLabel("A")+" Select · "+Theme.buttonLabel("B")+" Close" }
+    Row { anchors.right: parent.right; anchors.rightMargin: 20; anchors.bottom: parent.bottom; anchors.bottomMargin: 10; spacing: 4; visible: root.board.pages>1 || root.board.editing
+        ActionButton { objectName: "start-previous-page"; width: 46; label: "‹ "+Theme.buttonLabel("L1"); enabled: root.board.page>0; onActivated: root.board.changePage(-1) }
+        Text { width: 43; y: 12; text: (root.board.page+1)+" / "+root.board.pages; horizontalAlignment: Text.AlignHCenter; color: Theme.muted; font.pixelSize: 12 }
+        ActionButton { objectName: "start-next-page"; width: 46; label: Theme.buttonLabel("R1")+" ›"; enabled: root.board.page+1<root.board.pages || root.board.moving&&root.board.page<7; onActivated: root.board.changePage(1) }
+    }
+    Rectangle { anchors.fill: parent; z: 10; radius: root.radius; color: Qt.alpha("black",.55); visible: root.board.picking
+        MouseArea { anchors.fill: parent; onClicked: root.board.back() }
+        Rectangle { anchors.centerIn: parent; width: Math.min(420,root.width-40); height: Math.min(root.height-24,100+Math.max(1,root.board.available.length)*44); radius: 14; color: Theme.paper; border.color: Theme.divider
+            MouseArea { anchors.fill: parent }
+            Text { x: 24; y: 20; text: "Add a widget"; color: Theme.ink; font.family: Theme.displayFamily; font.pixelSize: 23 }
+            SocialIconButton { anchors.right: parent.right; anchors.rightMargin: 16; y: 17; icon: "x"; label: "Close"; onClicked: root.board.back() }
+            Text { anchors.centerIn: parent; visible: !root.board.available.length; text: "All available widgets are on your pages"; font.pixelSize: 13; color: Theme.muted }
+            ListView { currentIndex: root.board.available.findIndex(w => w.selected); onCurrentIndexChanged: positionViewAtIndex(currentIndex,ListView.Contain); x: 18; y: 64; width: parent.width-36; height: parent.height-y-16; clip: true; spacing: 4; model: root.board.available
+                delegate: Rectangle { required property var modelData; width: ListView.view.width; height: 40; radius: 7; color: modelData.selected ? Theme.selection : "transparent"; border.color: modelData.selected ? Theme.focusGlow : "transparent"
+                    Text { anchors.left: parent.left; anchors.leftMargin: 12; anchors.verticalCenter: parent.verticalCenter; width: parent.width-24; text: modelData.title; textFormat: Text.PlainText; elide: Text.ElideRight; color: Theme.ink; font.pixelSize: 15 }
+                    MouseArea { anchors.fill: parent; onClicked: root.board.restore(modelData.id) }
                 }
             }
         }
-        Text { anchors.centerIn: parent; visible: root.board.widgets.length === 0; text: "Add the controls you use"; color: Theme.muted; font.pixelSize: 16 }
     }
-    Row { anchors.bottom: parent.bottom; anchors.bottomMargin: 15; x: 22; spacing: 9; visible: root.board.editing
-        Repeater { model: [{id:"add",name:"+ Add"},{id:"resize",name:Theme.buttonLabel("X")+" Size"},{id:"hide",name:Theme.buttonLabel("Y")+" Hide"}]
-            CapButton { required property var modelData; width: 87; height: 28; textSize: 13; label: modelData.name; centered: true; tint: Theme.paper; onActivated: root.board.activate(modelData.id) }
-        }
-    }
-    Row { anchors.horizontalCenter: parent.horizontalCenter; anchors.bottom: parent.bottom; anchors.bottomMargin: 15; spacing: 15; visible: !root.board.editing && root.board.pages > 1
-        Text { text: "‹ L1"; color: Theme.muted; font.pixelSize: 13; MouseArea { anchors.fill: parent; onClicked: root.board.changePage(-1) } }
-        Repeater { model: root.board.pages; Rectangle { required property int index; width: 7; height: 7; y: 5; radius: 4; color: index===root.board.page?Theme.chassis:Theme.screenContact } }
-        Text { text: "R1 ›"; color: Theme.muted; font.pixelSize: 13; MouseArea { anchors.fill: parent; onClicked: root.board.changePage(1) } }
-    }
-    Text { anchors.right: parent.right; anchors.rightMargin: 28; anchors.bottom: parent.bottom; anchors.bottomMargin: 15; color: Theme.muted; font.pixelSize: 12
-        text: root.board.moving?Theme.buttonLabel("A")+" Place · "+Theme.buttonLabel("B")+" Cancel · "+Theme.buttonLabel("L1/R1")+" Page":root.board.editing?Theme.buttonLabel("A")+" Move · "+Theme.buttonLabel("L2")+" Add":root.board.adjusting?(root.board.selected==="volume"?"↑↓ Adjust · "+Theme.buttonLabel("X")+" Mute · "+Theme.buttonLabel("B")+" Done":"↑↓ Adjust · "+Theme.buttonLabel("B")+" Done"):Theme.buttonLabel("A")+" Select · "+Theme.buttonLabel("B")+" Close" }
-    Text { x: 30; y: grid.y+grid.height+4; width: parent.width-60; color: Theme.muted; text: root.board.status || root.shell.device.error; font.pixelSize: 11; elide: Text.ElideRight }
-    Rectangle { anchors.fill: parent; radius: 15; color: Theme.surfaceColor("#99182b29"); visible: root.board.picking
-        MouseArea { anchors.fill: parent; onClicked: {} }
-        Panel { anchors.centerIn: parent; width: 360; height: Math.min(root.height-40,105+root.board.available.length*40)
-            Text { x: 24; y: 22; text: "Add a control"; color: Theme.ink; font.family: Theme.displayFamily; font.pixelSize: 23 }
-            SocialIconButton { anchors.right: parent.right; anchors.rightMargin: 18; y: 17; icon: "x"; label: "Close"; onClicked: root.board.back() }
-            Text { anchors.centerIn: parent; visible: !root.board.available.length; text: "All controls are already placed"; font.pixelSize: 16; color: Theme.muted }
-            ListView { currentIndex: root.board.available.findIndex(w => w.selected); onCurrentIndexChanged: positionViewAtIndex(currentIndex,ListView.Contain); x: 23; y: 65; width: parent.width-46; height: parent.height-y-18; clip: true; spacing: 4; model: root.board.available
-                delegate: CapButton { required property var modelData; width: ListView.view.width; height: 36; label: modelData.title; selected: modelData.selected; tint: Theme.paper; textSize: 16; onActivated: root.board.restore(modelData.id) }
-            }
-        }
-    }
-    Rectangle { anchors.fill: parent; radius: 15; color: Theme.surfaceColor("#99182b29"); visible: root.board.switching
-        MouseArea { anchors.fill: parent }
-        Panel { anchors.centerIn: parent; width: 390; height: 220
+    Rectangle { anchors.fill: parent; z: 10; radius: root.radius; color: Qt.alpha("black",.55); visible: root.board.switching
+        MouseArea { anchors.fill: parent; onClicked: root.board.back() }
+        Rectangle { anchors.centerIn: parent; width: Math.min(390,root.width-32); height: 220; radius: 14; color: Theme.paper; border.color: Theme.divider
+            MouseArea { anchors.fill: parent }
             Text { x: 25; y: 23; text: "Switch environment"; font.family: Theme.displayFamily; font.pixelSize: 24; color: Theme.ink }
             SocialIconButton { anchors.right: parent.right; anchors.rightMargin: 17; y: 17; icon: "x"; label: "Cancel"; onClicked: root.board.back() }
             ActivityRow { x: 24; y: 76; width: parent.width-48; label: "Desktop"; detail: "Maintenance and desktop apps"; glyph: "desktop"; selected: root.board.switchIndex===0; onActivated: root.board.activate("desktop") }

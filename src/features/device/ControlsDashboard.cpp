@@ -24,8 +24,27 @@ ControlsDashboard::ControlsDashboard(QObject* parent):QObject(parent) {
     });
 }
 QList<ControlsDashboard::Widget> ControlsDashboard::defaults(){return {
-    {"volume",{0,0,1,4}},{"brightness",{1,0,1,4}},{"wifi",{2,0,2,2}},{"bluetooth",{4,0,1,2}},{"airplane",{5,0,1,2}},{"downloads",{6,0,6,2}},
-    {"battery",{2,2,2,2}},{"clock",{4,2,2,2}},{"storage",{6,2,4,2}},{"scraper",{10,2,2,2}}};}
+    {"volume",{0,0,1,4}},{"brightness",{1,0,1,4}},{"wifi",{2,0,1,1}},{"bluetooth",{3,0,1,1}},{"airplane",{2,1,1,1}},{"downloads",{4,0,4,4}},
+    {"battery",{2,2,2,1}},{"clock",{2,3,2,1}},{"storage",{8,0,4,4}},{"scraper",{3,1,1,1}}};}
+QList<QSize> ControlsDashboard::sizes(const QString& id) const {
+    if(external_.contains(id))return {{4,2},{2,2}};
+    if(id=="volume"||id=="brightness")return {{3,2},{1,4},{2,2}};
+    if(id=="wifi")return {{1,1},{2,2},{4,2}};
+    if(id=="bluetooth"||id=="airplane")return {{1,1},{2,2},{4,2},{1,2}};
+    if(id=="downloads")return {{4,4},{3,2},{6,2},{2,2}};
+    if(id=="storage")return {{4,4},{3,2},{4,2},{2,2}};
+    if(id=="battery"||id=="clock")return {{2,1},{2,2},{4,2}};
+    if(id=="scraper")return {{1,1},{2,2},{4,2}};
+    return {{2,2},{4,2}};
+}
+QString ControlsDashboard::selectedTitle() const {
+    if(external_.contains(selected_))return external_[selected_].value("title").toString();
+    return widgetSelected()?title(selected_):QString();
+}
+bool ControlsDashboard::widgetSelected() const {
+    for(const auto& w:items_)if(w.id==selected_)return !w.hidden&&w.page==page_;
+    return false;
+}
 ControlsDashboard::Widget* ControlsDashboard::find(const QString& id){for(auto& w:items_)if(w.id==id)return &w;return nullptr;}
 bool ControlsDashboard::fits(const Widget& w,const QList<Widget>& items) const {
     if(w.page<0||w.page>7||w.rect.x()<0||w.rect.y()<0||w.rect.right()>=12||w.rect.bottom()>=4)return false;
@@ -55,11 +74,34 @@ void ControlsDashboard::setOwner(const QString& owner){
         for(const auto& v:rows){const auto r=v.toObject();const auto id=r["id"].toString();auto* def=find(id);
             if(!def||seen.contains(id)){valid=false;break;}seen.insert(id);
             Widget w{id,{r["x"].toInt(-1),r["y"].toInt(-1),r["w"].toInt(),r["h"].toInt()},r["page"].toInt(-1),r["hidden"].toBool()};
-            const auto size=w.rect.size();const bool compact=size==QSize(2,2);
-            if((size!=def->rect.size()&&!compact)||(!w.hidden&&!fits(w,loaded))){valid=false;break;}
+            if(!sizes(id).contains(w.rect.size())||(!w.hidden&&!fits(w,loaded))){valid=false;break;}
             loaded.append(w);
         }
         if(valid)items_=loaded;
+    }
+    if(!key_.isEmpty()&&QSettings().value(key_+"/layoutRevision",0).toInt()<2){
+        // Owner's 25 October layout: compact radios, two full-height information columns.
+        // Retain visibility and unrelated sizes/pages; keep the old serialized layout for recovery.
+        if(!data.isEmpty())QSettings().setValue(key_+"/beforeRevision2",data);
+        auto requested=items_;QList<Widget> placed;
+        for(auto& w:requested){
+            if(w.id=="wifi"||w.id=="bluetooth"||w.id=="airplane")w.rect.setSize({1,1});
+            if(w.id=="downloads"||w.id=="storage"){w.rect={w.id=="downloads"?4:8,0,4,4};w.page=0;placed.append(w);}
+        }
+        for(auto& w:requested){
+            if(w.id=="downloads"||w.id=="storage")continue;
+            if(!w.hidden&&!fits(w,placed)){
+                bool found=false;
+                for(int offset=0;offset<8&&!found;++offset)for(int y=0;y<=4-w.rect.height()&&!found;++y)for(int x=0;x<=12-w.rect.width();++x){
+                    auto candidate=w;candidate.page=(w.page+offset)%8;candidate.rect.moveTo(x,y);
+                    if(fits(candidate,placed)){w=candidate;found=true;break;}
+                }
+            }
+            placed.append(w);
+        }
+        // Keep stable enumeration/order for focus and the picker.
+        for(auto& w:items_)for(const auto& p:placed)if(w.id==p.id){w=p;break;}
+        normalize();save();QSettings().setValue(key_+"/layoutRevision",2);
     }
     normalize();emit changed();
 }
@@ -86,7 +128,16 @@ void ControlsDashboard::setExternalWidgets(const QVariantList& rows){
             const auto saved=externalLayout_.value(i.key()).toMap();
             if(!saved.isEmpty()){
                 Widget restored{i.key(),{saved["x"].toInt(),saved["y"].toInt(),saved["w"].toInt(),saved["h"].toInt()},saved["page"].toInt(),saved["hidden"].toBool()};
-                if((restored.rect.size()==QSize(4,2)||restored.rect.size()==QSize(2,2))&&fits(restored,items_))w=restored;
+                if(restored.rect.size()==QSize(4,2)||restored.rect.size()==QSize(2,2)){
+                    if(restored.hidden||fits(restored,items_))w=restored;
+                    else {
+                        bool found=false;
+                        for(int p=0;p<8&&!found;++p)for(int y=0;y<=4-restored.rect.height()&&!found;++y)for(int x=0;x<=12-restored.rect.width();++x){
+                            auto candidate=restored;candidate.page=p;candidate.rect.moveTo(x,y);
+                            if(fits(candidate,items_)){w=candidate;found=true;break;}
+                        }
+                    }
+                }
             }
             items_.append(w);
         }
@@ -97,12 +148,13 @@ void ControlsDashboard::normalize(){
     QList<int> used;for(const auto& w:items_)if(!w.hidden&&!used.contains(w.page))used.append(w.page);std::sort(used.begin(),used.end());
     const auto old=page_;for(auto& w:items_)if(!w.hidden)w.page=used.indexOf(w.page);
     page_=std::max(0,int(used.indexOf(old)));
-    if(auto* w=find(selected_);!w||w->hidden||w->page!=page_) {const auto rows=widgets();selected_=rows.isEmpty()?"edit":rows.first().toMap()["id"].toString();}
+    const bool header=selected_=="edit"||(!editing_&&(selected_=="settings"||selected_=="power"||selected_=="switch"));
+    if(auto* w=find(selected_);!header&&(!w||w->hidden||w->page!=page_)) {const auto rows=widgets();selected_=rows.isEmpty()?"edit":rows.first().toMap()["id"].toString();}
 }
 void ControlsDashboard::begin(){if(items_.isEmpty())items_=defaults();editing_=moving_=picking_=adjusting_=switching_=false;status_.clear();normalize();emit changed();}
-void ControlsDashboard::leave(){if(moving_)items_=moveOriginal_;editing_=moving_=picking_=adjusting_=switching_=false;normalize();emit changed();}
-void ControlsDashboard::select(QString id){if(moving_||picking_)return;selected_=id;adjusting_=false;emit changed();}
-void ControlsDashboard::edit(){if(moving_){items_=moveOriginal_;moving_=false;}editing_=!editing_;picking_=adjusting_=false;normalize();save();emit changed();}
+void ControlsDashboard::leave(){if(moving_){items_=moveOriginal_;page_=original_.page;}editing_=moving_=picking_=adjusting_=switching_=false;normalize();emit changed();}
+void ControlsDashboard::select(QString id){if(moving_||picking_||switching_)return;const auto* w=find(id);if(!w||w->hidden||w->page!=page_)return;selected_=id;adjusting_=false;status_.clear();emit changed();}
+void ControlsDashboard::edit(){if(moving_){items_=moveOriginal_;page_=original_.page;moving_=false;}editing_=!editing_;picking_=adjusting_=false;status_.clear();normalize();save();emit changed();}
 void ControlsDashboard::activate(QString id){
     if(switching_){if(id=="desktop"||id=="steam"){switching_=false;emit actionRequested(id);emit changed();}return;}
     if(picking_){restore(id);return;}
@@ -110,41 +162,70 @@ void ControlsDashboard::activate(QString id){
     if(id=="edit"){edit();return;}
     if(id=="add"){pick();return;}
     if(id=="resize"){resize();return;}if(id=="hide"){hide();return;}
+    if(editing_&&(id=="settings"||id=="power"||id=="switch"))return;
     if(moving_){moving_=false;normalize();save();emit changed();return;}
+    if(auto* w=find(id);w&&(w->hidden||w->page!=page_))return;
+    if(!find(id)&&id!="settings"&&id!="power"&&id!="switch")return;
     selected_=id;status_.clear();
     if(editing_){if(auto* w=find(id)){original_=*w;moveOriginal_=items_;moving_=true;}emit changed();return;}
     if(id=="volume"||id=="brightness"){adjusting_=!adjusting_;emit changed();return;}
     if(id.startsWith("sdk:")){const auto* w=find(id);if(w&&!w->hidden&&external_.contains(id))emit contributionActivated(id);emit changed();return;}
     emit actionRequested(id);emit changed();
 }
-void ControlsDashboard::pick(){if(!editing_)return;picking_=true;pickIndex_=0;emit changed();}
+void ControlsDashboard::pick(){if(!editing_||moving_)return;picking_=true;pickIndex_=0;status_.clear();emit changed();}
 void ControlsDashboard::restore(QString id){
     if(!editing_||!picking_)return;auto* w=find(id);if(!w||!w->hidden)return;
     auto candidate=*w;candidate.hidden=false;
-    for(int p=0;p<8;++p)for(int y=0;y<=4-w->rect.height();++y)for(int x=0;x<=12-w->rect.width();++x){candidate.page=p;candidate.rect.moveTo(x,y);if(fits(candidate,items_)){*w=candidate;selected_=id;page_=p;picking_=false;normalize();save();emit changed();return;}}
+    for(int offset=0;offset<8;++offset)for(int y=0;y<=4-w->rect.height();++y)for(int x=0;x<=12-w->rect.width();++x){const int p=(page_+offset)%8;candidate.page=p;candidate.rect.moveTo(x,y);if(fits(candidate,items_)){*w=candidate;selected_=id;page_=p;picking_=false;status_.clear();normalize();save();emit changed();return;}}
+    status_="All pages are full. Hide a widget to make room.";emit changed();
 }
 void ControlsDashboard::hide(){if(!editing_||moving_)return;if(auto* w=find(selected_)){w->hidden=true;normalize();save();emit changed();}}
 void ControlsDashboard::resize(){
     if(!editing_||moving_)return;auto* w=find(selected_);if(!w)return;
-    auto candidate=*w;QSize full=external_.contains(w->id)?QSize(4,2):QSize();for(const auto& d:defaults())if(d.id==w->id)full=d.rect.size();
-    candidate.rect.setSize(w->rect.size()==full?QSize(2,2):full);
+    auto candidate=*w;const auto allowed=sizes(w->id);
+    candidate.rect.setSize(allowed[(allowed.indexOf(w->rect.size())+1)%allowed.size()]);
     if(candidate.rect==w->rect)return;
-    for(int p=page_;p<8;++p)for(int y=0;y<=4-candidate.rect.height();++y)for(int x=0;x<=12-candidate.rect.width();++x){candidate.page=p;candidate.rect.moveTo(x,y);if(fits(candidate,items_)){*w=candidate;page_=p;normalize();save();emit changed();return;}}
+    if(fits(candidate,items_)){*w=candidate;status_.clear();save();emit changed();return;}
+    for(int offset=0;offset<8;++offset)for(int y=0;y<=4-candidate.rect.height();++y)for(int x=0;x<=12-candidate.rect.width();++x){const int p=(page_+offset)%8;candidate.page=p;candidate.rect.moveTo(x,y);if(fits(candidate,items_)){*w=candidate;page_=p;status_.clear();normalize();save();emit changed();return;}}
+    status_="No room for this size";emit changed();
 }
-void ControlsDashboard::drop(QString id,int x,int y){if(!editing_)return;auto* w=find(id);if(!w)return;auto c=*w;c.rect.moveTo(x,y);c.page=page_;if(fits(c,items_)){*w=c;moving_=false;selected_=id;normalize();save();}else status_="Choose a free space";emit changed();}
-void ControlsDashboard::move(int dx,int dy){auto* w=find(selected_);if(!w)return;auto c=*w;c.rect.translate(dx,dy);
-    if(fits(c,items_)){*w=c;status_.clear();}
-    else { // Equal-size neighbours can exchange places without losing either control.
-        bool swapped=false;for(auto& other:items_)if(!other.hidden&&other.id!=w->id&&other.page==w->page&&other.rect==c.rect){auto o=other;o.rect=w->rect;auto trial=items_;for(auto& t:trial)if(t.id==other.id)t=o;if(fits(c,trial)){other=o;*w=c;swapped=true;break;}}
-        if(!swapped)status_="Free space needed · L1/R1 moves to another page";
-    }emit changed();}
+bool ControlsDashboard::place(const Widget& candidate){
+    auto* w=find(candidate.id);if(!w)return false;
+    if(fits(candidate,items_)){*w=candidate;return true;}
+    // Only equal rectangles exchange positions. Test the entire transaction first.
+    for(const auto& other:items_)if(!other.hidden&&other.id!=w->id&&other.page==candidate.page&&other.rect==candidate.rect){
+        auto displaced=other;displaced.rect=w->rect;displaced.page=w->page;
+        auto trial=items_;for(auto& t:trial){if(t.id==other.id)t=displaced;else if(t.id==w->id)t=candidate;}
+        if(fits(candidate,trial)&&fits(displaced,trial)){items_=trial;return true;}
+    }
+    return false;
+}
+void ControlsDashboard::drop(QString id,int x,int y){
+    if(!editing_||picking_||moving_)return;auto* w=find(id);if(!w||w->hidden||w->page!=page_)return;
+    auto c=*w;c.rect.moveTo(x,y);
+    if(x<0||x+c.rect.width()>12){
+        c.page=page_+(x<0?-1:1);c.rect.moveTo(x<0?12-c.rect.width():0,std::clamp(y,0,4-c.rect.height()));
+    }
+    if(place(c)){page_=c.page;selected_=id;status_.clear();normalize();save();}
+    else status_="Choose a free space";
+    emit changed();
+}
+void ControlsDashboard::move(int dx,int dy){
+    const auto* w=find(selected_);if(!w)return;const auto original=*w;
+    // Skip blocked cells so a filled board can exchange adjacent multi-cell widgets.
+    for(int distance=1;distance<=(dx?12:4);++distance){auto c=original;c.rect.translate(dx*distance,dy*distance);
+        if(place(c)){status_.clear();emit changed();return;}
+    }
+    status_="Free space needed · L1/R1 moves to another page";emit changed();
+}
 void ControlsDashboard::changePage(int delta){
     const int target=page_+delta;if(target<0||target>=std::min(8,pages()+(moving_?1:0)))return;
     if(moving_){auto* w=find(selected_);if(!w)return;auto c=*w;c.page=target;bool placed=false;for(int y=0;y<=4-c.rect.height()&&!placed;++y)for(int x=0;x<=12-c.rect.width();++x){c.rect.moveTo(x,y);if(fits(c,items_)){*w=c;placed=true;break;}}if(!placed)return;}
-    page_=target;if(!moving_){const auto rows=widgets();selected_=rows.isEmpty()?"edit":rows.first().toMap()["id"].toString();}emit changed();
+    page_=target;adjusting_=false;status_.clear();if(!moving_){const auto rows=widgets();selected_=rows.isEmpty()?"edit":rows.first().toMap()["id"].toString();}emit changed();
 }
 void ControlsDashboard::navigate(int dx,int dy){
-    struct Target{QString id;QPointF center;};QList<Target> targets{{"edit",{1,-1}},{"settings",{9,-1}},{"power",{10,-1}},{"switch",{11,-1}}};
+    struct Target{QString id;QPointF center;};QList<Target> targets{{"edit",{2,-1}}};
+    if(!editing_)targets.append({{"settings",{9,-1}},{"power",{10,-1}},{"switch",{11,-1}}});
     for(const auto& w:items_)if(!w.hidden&&w.page==page_)targets.append({w.id,{w.rect.x()+w.rect.width()/2.,w.rect.y()+w.rect.height()/2.}});
     QPointF from(1,-1);for(const auto& t:targets)if(t.id==selected_)from=t.center;
     double best=std::numeric_limits<double>::max();QString chosen=selected_;
