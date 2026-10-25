@@ -1,0 +1,19 @@
+# Native x86_64 compiler + Fedora 44 ARM64 sysroot. No devices or host binfmt setup.
+FROM --platform=linux/amd64 fedora:44
+RUN dnf -y install clang lld cmake ninja-build git python3 qt6-qtbase-devel \
+      qt6-qtbase-private-devel qt6-qtsvg-devel qemu-user file \
+    && dnf clean all
+# Avoid libgcc creating /lib64 before filesystem can install its usr-merge link.
+RUN mkdir -p /opt/arm64/usr/lib64 \
+    && ln -s usr/lib64 /opt/arm64/lib64 \
+    && dnf -y --use-host-config --forcearch=aarch64 --releasever=44 \
+      --installroot=/opt/arm64 --setopt=tsflags=noscripts \
+      --setopt=install_weak_deps=False install \
+      filesystem gcc-c++ glibc-devel libstdc++-devel qt6-qtbase-devel qt6-qtbase-private-devel \
+      qt6-qtsvg-devel libcurl-devel libusb1-devel bluez-libs-devel libevdev-devel \
+      SDL3-devel libXrandr-devel libXi-devel libXcursor-devel libXinerama-devel \
+      pulseaudio-libs-devel alsa-lib-devel mesa-libGL-devel mesa-libEGL-devel \
+      openssl-devel zlib-devel libzstd-devel libpng-devel systemd-devel
+COPY arm64-fedora44.cmake /opt/arm64-fedora44.cmake
+ENV CMAKE_TOOLCHAIN_FILE=/opt/arm64-fedora44.cmake
+WORKDIR /work

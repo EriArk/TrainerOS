@@ -12,10 +12,11 @@
       "evidence": [
         "pinned-upstream-tapserver-contract",
         "linux-ice-dtls-native-frame-boundary-and-package",
-        "pinned-tapserver-eof-negative-control-and-patched-check"
+          "pinned-tapserver-eof-negative-control-and-patched-check",
+          "complete-arm64-dolphin-and-helper-packages-qemu-startup-dependencies-and-16-transport-checks"
       ],
       "remaining": [
-        "full-patched-dolphin-build",
+          "arm64-shell-build",
         "native-two-emulator-match",
         "handheld-delivery",
         "game-latency-and-internet-acceptance"

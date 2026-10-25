@@ -17,6 +17,11 @@ notices = [p for p in dependency.rglob('*') if p.is_file() and not p.is_symlink(
            and '.git' not in p.parts and p.name.lower().startswith(('license', 'copying'))]
 if not binary.is_file() or not 0 < binary.stat().st_size <= 64 * 1024 * 1024 or not notices:
     raise ValueError('Build the transport and retain dependency notices first')
+with binary.open('rb') as file:
+    header = file.read(20)
+if header[:6] != b'\x7fELF\x02\x01':
+    raise ValueError('Expected a 64-bit little-endian Linux executable')
+architecture = {183: 'aarch64', 62: 'x86_64'}[int.from_bytes(header[18:20], 'little')]
 args.output.mkdir(mode=0o755)  # Never overwrite an installed/previous package.
 shutil.copyfile(binary, args.output / 'stream_transport')
 (args.output / 'stream_transport').chmod(0o755)
@@ -25,7 +30,7 @@ for path in notices:
     target.parent.mkdir(parents=True, exist_ok=True)
     shutil.copyfile(path, target)
 shutil.copyfile(Path(__file__).resolve().parents[3] / 'LICENSE', args.output / 'notices/TrainerOS.LICENSE')
-manifest = {'protocol': 1, 'settings': 'dolphin-bba-tapserver-isolated-v1',
+manifest = {'protocol': 1, 'settings': 'dolphin-bba-tapserver-isolated-v1', 'architecture': architecture,
             'transportSource': '6b1e2e620f1e37f0eafeee702eaea0043cb305fd',
             'sha256': hashlib.sha256(binary.read_bytes()).hexdigest()}
 (args.output / 'manifest.json').write_text(json.dumps(manifest, indent=2) + '\n')
