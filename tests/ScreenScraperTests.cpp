@@ -174,7 +174,26 @@ private slots:
         QCOMPARE(commands.last(),QVariantList({QString("first"),QString("two"),QString("pause")}));
         downloads.controlAll("cancel-all");QCOMPARE(commands.size(),3);
         QCOMPARE(commands.last()[0].toString(),"second");
+        downloads.dispatch(Action::Back);QVERIFY(downloads.isOpen());QVERIFY(!downloads.actionsFocused());
         downloads.dispatch(Action::Back);QVERIFY(!downloads.isOpen());QCOMPARE(downloads.tasks().size(),3);
+    }
+    void downloadActionsKeepIdentityAndUnwindBeforeClosing() {
+        DownloadsController downloads;QSignalSpy commands(&downloads,&DownloadsController::commandRequested);
+        const auto action=[](QString id,bool enabled=true){return QVariantMap{{"id",id},{"label",id},{"enabled",enabled}};};
+        const auto row=[](QString id,QVariantList actions){return QVariantMap{{"id",id},{"state","queued"},{"actions",actions}};};
+        downloads.publish("one",{row("task",{action("pause"),action("cancel")})});
+        downloads.begin();downloads.showActions(0);downloads.dispatch(Action::Down);
+        downloads.publish("one",{row("task",{action("cancel"),action("pause")})});
+        QCOMPARE(downloads.actionIndex(),0);downloads.dispatch(Action::Confirm);
+        QCOMPARE(commands.takeFirst().last().toString(),"cancel");
+        downloads.publish("one",{row("task",{action("pause")})});
+        QVERIFY(!downloads.actionsFocused());QVERIFY(downloads.isOpen());
+        downloads.dispatch(Action::Confirm);QVERIFY(commands.isEmpty());QVERIFY(downloads.actionsFocused());
+        downloads.publish("one",{row("replacement",{action("pause",false)})});
+        QVERIFY(!downloads.actionsFocused());downloads.showActions(0);downloads.dispatch(Action::Confirm);QVERIFY(commands.isEmpty());
+        downloads.dispatch(Action::Back);QVERIFY(downloads.isOpen());QVERIFY(!downloads.actionsFocused());
+        downloads.publish("one",{row("done",{})});downloads.showActions(0);QVERIFY(!downloads.actionsFocused());
+        downloads.dispatch(Action::Back);QVERIFY(!downloads.isOpen());
     }
     void downloadQueueReordersPausesAndCancelsIndividualGames() {
         QTemporaryDir dir;ScrapeLibrary library;library.root=dir.filePath("roms");
