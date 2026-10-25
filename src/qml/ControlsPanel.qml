@@ -77,7 +77,11 @@ Rectangle {
         ActionButton { objectName: "start-move"; label: root.board.moving ? "Place" : "Move"; enabled: root.board.widgetSelected; onActivated: root.board.activate(root.board.selected) }
         ActionButton { objectName: "start-cancel"; label: "Cancel move"; width: 94; visible: root.board.moving; onActivated: root.board.back() }
     }
-    Text { x: 24; anchors.bottom: parent.bottom; anchors.bottomMargin: root.board.editing ? 54 : 16; width: parent.width-230; elide: Text.ElideRight; color: Theme.muted; font.pixelSize: 11
+    ActionButton { objectName: "start-audio-output"; x: parent.width-340; anchors.bottom: parent.bottom; anchors.bottomMargin: 10; width: 140
+        visible: !root.board.editing && root.board.selected==="volume"
+        label: Theme.buttonLabel("Y")+" Audio output"; onActivated: root.board.audioOutputs()
+    }
+    Text { x: 24; anchors.bottom: parent.bottom; anchors.bottomMargin: root.board.editing ? 54 : 16; width: parent.width-(!root.board.editing&&root.board.selected==="volume"?370:230); elide: Text.ElideRight; color: Theme.muted; font.pixelSize: 11
         text: root.board.moving ? Theme.buttonLabel("A")+" Place · "+Theme.buttonLabel("B")+" Cancel" : root.board.editing ? Theme.buttonLabel("A")+" Move · "+Theme.buttonLabel("L2")+" Add · "+Theme.buttonLabel("B")+" Done" : root.board.adjusting ? "← → / ↑ ↓ Adjust · "+(root.board.selected==="volume"?Theme.buttonLabel("X")+" Mute · ":"")+Theme.buttonLabel("B")+" Done" : Theme.buttonLabel("A")+" Select · "+Theme.buttonLabel("B")+" Close" }
     Row { anchors.right: parent.right; anchors.rightMargin: 20; anchors.bottom: parent.bottom; anchors.bottomMargin: 10; spacing: 4; visible: root.board.pages>1 || root.board.editing
         ActionButton { objectName: "start-previous-page"; width: 46; label: "‹ "+Theme.buttonLabel("L1"); enabled: root.board.page>0; onActivated: root.board.changePage(-1) }
@@ -107,6 +111,32 @@ Rectangle {
             SocialIconButton { anchors.right: parent.right; anchors.rightMargin: 17; y: 17; icon: "x"; label: "Cancel"; onClicked: root.board.back() }
             ActivityRow { x: 24; y: 76; width: parent.width-48; label: "Desktop"; detail: "Maintenance and desktop apps"; glyph: "desktop"; selected: root.board.switchIndex===0; onActivated: root.board.activate("desktop") }
             ActivityRow { x: 24; y: 140; width: parent.width-48; label: "Steam Gaming Mode"; glyph: "game-controller"; selected: root.board.switchIndex===1; onActivated: root.board.activate("steam") }
+        }
+    }
+
+    Rectangle { anchors.fill: parent; z: 20; radius: root.radius; color: Qt.alpha("black",.55); visible: root.shell.device.audioOpen
+        MouseArea { anchors.fill: parent; onClicked: root.shell.device.closeAudio() }
+        Rectangle { objectName: "start-audio-popup"; anchors.centerIn: parent; width: Math.min(490,root.width-32); height: Math.min(330,root.parent.height-24); radius: 18; color: Theme.paper; border.color: Theme.divider
+            MouseArea { anchors.fill: parent }
+            Text { x: 22; y: 18; text: "Audio output"; color: Theme.ink; font.family: Theme.displayFamily; font.pixelSize: 22 }
+            SocialIconButton { objectName: "start-audio-close"; anchors.right: parent.right; anchors.rightMargin: 15; y: 13; icon: "x"; label: "Close audio outputs"; onClicked: root.shell.device.closeAudio() }
+            Text { x: 22; y: 53; text: "Choose where system audio plays"; color: Theme.muted; font.pixelSize: 13 }
+            ListView { id: outputs; x: 22; y: 83; width: parent.width-44; height: parent.height-y-58; clip: true; spacing: 4
+                model: root.shell.device.audioOutputs; currentIndex: root.shell.device.audioFocus
+                onCurrentIndexChanged: positionViewAtIndex(currentIndex,ListView.Contain)
+                onCountChanged: positionViewAtIndex(currentIndex,ListView.Contain)
+                delegate: ActivityRow { required property var modelData; required property int index
+                    objectName: "audio-output-"+index; width: outputs.width; height: 54; glyph: "speaker"
+                    label: modelData.title; detail: !modelData.available ? "Not connected" : modelData.id===root.shell.device.audioOutput ? "Current output" : ""
+                    selected: index===root.shell.device.audioFocus; accent: modelData.id===root.shell.device.audioOutput ? Theme.green : Theme.paper
+                    enabled: modelData.available && !root.shell.device.busy
+                    onActivated: root.shell.device.selectOutput(modelData.id)
+                }
+                Text { anchors.centerIn: parent; width: parent.width-24; visible: !outputs.count; wrapMode: Text.Wrap; horizontalAlignment: Text.AlignHCenter
+                    text: root.shell.device.busy ? "Looking for audio devices…" : "No audio outputs available.\nConnect headphones or check your audio device."; color: Theme.muted; font.pixelSize: 15 }
+            }
+            Text { x: 22; anchors.bottom: parent.bottom; anchors.bottomMargin: 14; width: parent.width-44; height: 30; wrapMode: Text.Wrap; elide: Text.ElideRight; textFormat: Text.PlainText
+                text: root.shell.device.error || (root.shell.device.busy ? "Updating audio…" : Theme.buttonLabel("A")+" Choose · "+Theme.buttonLabel("B")+" Back"); color: Theme.muted; font.pixelSize: 12 }
         }
     }
 

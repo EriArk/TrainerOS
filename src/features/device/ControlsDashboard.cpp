@@ -172,6 +172,10 @@ void ControlsDashboard::activate(QString id){
     if(id.startsWith("sdk:")){const auto* w=find(id);if(w&&!w->hidden&&external_.contains(id))emit contributionActivated(id);emit changed();return;}
     emit actionRequested(id);emit changed();
 }
+void ControlsDashboard::audioOutputs(){
+    if(editing_||moving_||picking_||switching_||selected_!="volume"||!widgetSelected())return;
+    emit actionRequested("audio-output");
+}
 void ControlsDashboard::pick(){if(!editing_||moving_)return;picking_=true;pickIndex_=0;status_.clear();emit changed();}
 void ControlsDashboard::restore(QString id){
     if(!editing_||!picking_)return;auto* w=find(id);if(!w||!w->hidden)return;
@@ -240,6 +244,7 @@ void ControlsDashboard::dispatch(Action a){
     if(a==Action::LocalAction){edit();return;}
     if(a==Action::PreviousPage||a==Action::NextPage){changePage(a==Action::NextPage?1:-1);return;}
     if(a==Action::Secondary&&adjusting_&&selected_=="volume"){emit actionRequested("volume");return;}
+    if(a==Action::ToggleContinue&&!editing_&&selected_=="volume"){audioOutputs();return;}
     if(a==Action::Secondary&&editing_){resize();return;}
     if(a==Action::ToggleContinue&&editing_){hide();return;}
     if(a==Action::PreviousFace&&editing_){pick();return;}

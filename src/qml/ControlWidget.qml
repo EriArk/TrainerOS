@@ -80,7 +80,12 @@ Rectangle {
             }
         }
         Text { anchors.horizontalCenter: parent.horizontalCenter; anchors.bottom: parent.bottom; visible: root.slider
-            text: root.narrow&&!root.available?"—":root.valueText; font.pixelSize: root.narrow?12:13; color: root.available?Theme.ink:Theme.muted }
+            objectName: "start-output-"+root.kind
+            text: (root.narrow&&!root.available?"—":root.valueText)+(root.kind==="volume"?" ›":""); font.pixelSize: root.narrow?12:13; color: root.available?Theme.ink:Theme.muted
+            MouseArea { anchors.fill: parent; anchors.margins: 6; enabled: root.kind==="volume"
+                onClicked: {root.board.select(root.kind);root.board.audioOutputs()}
+            }
+        }
         Text { anchors.horizontalCenter: parent.horizontalCenter; y: root.narrow?35:32; width: parent.width; visible: root.radio&&!root.shortWidget
             text: root.narrow&&!root.available?"—":root.valueText; font.pixelSize: 11; color: Theme.muted; horizontalAlignment: Text.AlignHCenter }
         Column { width: parent.width; spacing: 7; visible: root.kind==="downloads"&&!root.tallDetails

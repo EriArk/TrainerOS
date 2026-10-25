@@ -48,6 +48,7 @@ public:
     Q_INVOKABLE void select(QString id);
     Q_INVOKABLE void activate(QString id);
     Q_INVOKABLE void edit();
+    Q_INVOKABLE void audioOutputs();
     Q_INVOKABLE void pick();
     Q_INVOKABLE void restore(QString id);
     Q_INVOKABLE void hide();

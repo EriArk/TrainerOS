@@ -29,6 +29,40 @@ void write(const QString& path, const QByteArray& value) {
 class DeviceTests : public QObject {
     Q_OBJECT
 private slots:
+    void audioOutputsRespectAvailabilityAndReadback() {
+        const auto rows=parseAudioOutputs(R"([{"name":"speaker","description":"Speakers"},{"name":"jack","active_port":"headphones","ports":[{"name":"headphones","availability":"not available"}]},{"description":"invalid"}])");
+        QCOMPARE(rows.size(),2);QVERIFY(rows[0].toMap()["available"].toBool());QVERIFY(!rows[1].toMap()["available"].toBool());
+        QVERIFY(parseAudioOutputs("invalid").isEmpty());
+        const auto virtualOutputs=parseAudioOutputs(R"([{"name":"auto_null","properties":{"factory.name":"support.null-audio-sink"}},{"name":"user_virtual","properties":{"factory.name":"support.null-audio-sink"}}])");
+        QCOMPARE(virtualOutputs.size(),1);QCOMPARE(virtualOutputs[0].toMap()["id"].toString(),"user_virtual");
+        DeviceSnapshot value;value.audioOutputs=rows;value.audioOutput="speaker";value.volume=0;value.muted=true;
+        value.audioOutputs.append(QVariantMap{{"id","usb"},{"title","USB audio"},{"available",true}});
+        int writes=0;bool apply=true;
+        DeviceService service({[&]{return value;},[](const QString&,int){return QString("Unexpected volume write");},[&](const QString& id){++writes;if(apply)value.audioOutput=id;return QString();}});
+        service.refresh();QTRY_VERIFY(!service.busy());
+        service.selectOutput("usb");QTRY_VERIFY(!service.busy());QCOMPARE(writes,1);QCOMPARE(service.snapshot().audioOutput,"usb");
+        QCOMPARE(service.snapshot().volume,0);QVERIFY(service.snapshot().muted);
+        service.selectOutput("jack");QTRY_VERIFY(!service.busy());QCOMPARE(writes,1);QVERIFY(!service.error().isEmpty());
+        apply=false;service.selectOutput("speaker");QTRY_VERIFY(!service.busy());QCOMPARE(writes,2);QVERIFY(service.error().contains("did not change"));
+        // Hot-unplug after the displayed snapshot must not address a stale device.
+        value.audioOutputs.clear();service.selectOutput("speaker");QTRY_VERIFY(!service.busy());QCOMPARE(writes,2);QVERIFY(service.error().contains("no longer available"));
+    }
+    void audioPopupPreservesVolumeFocusAndClosesWithGameHome() {
+        DeviceSnapshot value;value.volume=0;value.audioOutput="speaker";
+        value.audioOutputs={QVariantMap{{"id","speaker"},{"available",true}},QVariantMap{{"id","usb"},{"available",true}}};
+        DeviceService service({[&]{return value;},[](const QString&,int){return QString();},[&](const QString& id){value.audioOutput=id;return QString();}});
+        MockLibraryRepository library;MockTrainerRepository profiles;MockAdventureAdapter adapter;
+        DevelopmentPlatformService platform;MockPokedexRepository dex;MockHallOfFameRepository archive;MockAchievementProvider achievements;
+        ShellController shell(library,profiles,adapter,platform,builtinExperiences(dex,dex),archive,achievements);
+        shell.device()->configure(&service,false);shell.dispatch(Action::SystemMenu);QTRY_VERIFY(!service.busy());
+        shell.controls()->activate("volume");shell.dispatch(Action::ToggleContinue);QTRY_VERIFY(!service.busy());
+        QVERIFY(shell.device()->audioOpen());shell.dispatch(Action::Down);shell.dispatch(Action::Confirm);QTRY_VERIFY(!service.busy());
+        QCOMPARE(shell.device()->audioOutput(),"usb");shell.dispatch(Action::Back);
+        QVERIFY(!shell.device()->audioOpen());QVERIFY(shell.menuOpen());QCOMPARE(shell.controls()->selected(),"volume");QVERIFY(shell.controls()->adjusting());
+        shell.closeControls();shell.setGameControlsOpen(true);shell.controls()->audioOutputs();QVERIFY(shell.device()->audioOpen());
+        shell.dispatchGameControls(Action::Home);QVERIFY(!shell.device()->audioOpen());QVERIFY(!shell.gameControlsOpen());
+        QTRY_VERIFY(!service.busy());QVERIFY(!shell.device()->audioOpen());
+    }
     void bluetoothFromStartUsesPairingAndRestoresFocus() {
         MockLibraryRepository library; MockTrainerRepository profiles; MockAdventureAdapter adapter;
         DevelopmentPlatformService platform; MockPokedexRepository dex; MockHallOfFameRepository archive; MockAchievementProvider achievements;

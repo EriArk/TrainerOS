@@ -55,6 +55,10 @@ inline void startPlatformSmoke(QQuickWindow* window, trainer::ShellController& s
     QSettings::setPath(QSettings::IniFormat,QSettings::UserScope,settings->path());
     auto binding=std::make_shared<trainer::PlatformBinding>(shell,launch,settings->filePath("endpoint.json"));
     auto network=new StartNetworkFixture(window);shell.network()->configure(network);
+    auto audio=std::make_shared<trainer::DeviceSnapshot>();audio->volume=35;audio->brightness=60;audio->audioOutput="speaker";
+    audio->audioOutputs={QVariantMap{{"id","speaker"},{"title","Built-in speakers"},{"available",true}},QVariantMap{{"id","headphones"},{"title","Wireless headphones"},{"available",true}}};
+    auto device=new trainer::DeviceService({[audio]{return *audio;},[audio](const QString& control,int value){if(control=="volume")audio->volume=value;return QString();},[audio](const QString& id){audio->audioOutput=id;return QString();}},window);
+    shell.device()->configure(device,false);
     auto child=std::make_shared<QProcess>();
     child->start(QString::fromUtf8(SDK_PYTHON),{QString::fromUtf8(SDK_SOURCE)+"/sdk/examples/hello_traineros.py","--endpoint",settings->filePath("endpoint.json")});
     auto step=std::make_shared<int>(0);
@@ -193,6 +197,16 @@ inline void startPlatformSmoke(QQuickWindow* window, trainer::ShellController& s
         case 19:
             check(shell.network()->rows().size()==1,"Forget result missing");
             tap("start-network-close");check(!shell.controlsNetworkOpen()&&shell.menuOpen()&&board->selected()=="bluetooth","Bluetooth close lost dashboard focus");
+            tap("start-output-volume");++*step;break;
+        case 20:
+            check(shell.device()->audioOpen(),"Volume touch did not open audio outputs");
+            if(!directory.isEmpty())check(window->grabWindow().save(directory+"/start-audio-output.png"),"Cannot save audio output frame");
+            tap("audio-output-1");++*step;break;
+        case 21:
+            check(shell.device()->audioOutput()=="headphones","Audio output choice not read back");
+            tap("start-audio-close");check(!shell.device()->audioOpen()&&board->selected()=="volume"&&shell.menuOpen(),"Output close lost Volume focus");
+            shell.dispatch(trainer::Action::ToggleContinue);check(shell.device()->audioOpen(),"Controller output shortcut failed");
+            shell.dispatch(trainer::Action::Back);check(!shell.device()->audioOpen()&&shell.menuOpen(),"Audio Back closed dashboard");
             shell.dispatch(trainer::Action::Back);check(!shell.menuOpen(),"Back did not close Start");++*step;break;
         default:
             if(child->state()!=QProcess::NotRunning){child->kill();child->waitForFinished(2000);}

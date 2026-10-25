@@ -14,6 +14,13 @@ class ControlsDashboardTests: public QObject {
 private slots:
     void initTestCase(){QCoreApplication::setOrganizationName("TrainerControlsTest");QCoreApplication::setApplicationName("Dashboard");QSettings::setDefaultFormat(QSettings::IniFormat);QSettings::setPath(QSettings::IniFormat,QSettings::UserScope,directory.path());}
     void init(){QSettings().clear();}
+    void outputPickerDoesNotReplaceSliderOrEditor(){
+        ControlsDashboard b;b.setOwner("one");QSignalSpy actions(&b,&ControlsDashboard::actionRequested);
+        b.activate("volume");b.dispatch(Action::ToggleContinue);QVERIFY(b.adjusting());QCOMPARE(actions.last()[0].toString(),"audio-output");
+        b.dispatch(Action::Secondary);QCOMPARE(actions.last()[0].toString(),"volume");
+        actions.clear();b.edit();b.audioOutputs();QVERIFY(actions.isEmpty());
+        b.edit();b.select("brightness");b.audioOutputs();QVERIFY(actions.isEmpty());
+    }
     void cancelledMoveRestoresWholeLayout(){ControlsDashboard b;b.setOwner("one");b.begin();const auto original=b.widgets();b.edit();b.activate("volume");b.dispatch(Action::Right);QVERIFY(b.widgets()!=original);b.back();QCOMPARE(b.widgets(),original);QVERIFY(b.editing());}
     void ownerIsolationAndHiddenRestore(){ControlsDashboard b;b.setOwner("one");b.edit();b.select("downloads");b.hide();QCOMPARE(b.widgets().size(),9);b.setOwner("two");QCOMPARE(b.widgets().size(),10);b.setOwner("one");QCOMPARE(b.widgets().size(),9);b.edit();b.pick();b.restore("downloads");QCOMPARE(b.widgets().size(),10);QVERIFY(!b.picking());}
     void pagesAndCancel(){ControlsDashboard b;b.setOwner("one");const auto original=b.widgets();b.edit();b.activate("downloads");b.changePage(1);QCOMPARE(b.page(),1);QCOMPARE(b.pages(),2);b.back();QCOMPARE(b.page(),0);QCOMPARE(b.widgets(),original);}

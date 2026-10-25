@@ -1020,6 +1020,7 @@ QVariantList ShellController::continueRows(const QList<ContinueEntry>& entries, 
     return result;
 }
 void ShellController::closeControls() {
+    device_.closeAudio();
     closeControlsNetwork();
     downloads_.close();controls_.leave();
     if(gameControlsOpen_){gameControlsOpen_=false;emit changed();emit gameControlsClosed(false);return;}
@@ -1030,7 +1031,7 @@ void ShellController::closeControls() {
 void ShellController::setGameControlsOpen(bool value){
     if(gameControlsOpen_==value)return;gameControlsOpen_=value;device_.setMonitoring(value || menuOpen_);
     if(value){controls_.setOwner(trainer_.profile()["id"].toString());controls_.begin();}
-    else {closeControlsNetwork();controls_.leave();}emit changed();
+    else {device_.closeAudio();closeControlsNetwork();controls_.leave();}emit changed();
 }
 void ShellController::closeControlsNetwork(){
     if(!controlsNetworkOpen_)return;
@@ -1038,6 +1039,7 @@ void ShellController::closeControlsNetwork(){
 }
 void ShellController::dispatchControls(Action action){
     if(action==Action::SystemMenu||action==Action::Home){closeControls();return;}
+    if(device_.audioOpen()){device_.dispatchAudio(action);return;}
     if(controlsNetworkOpen_){
         if(keyboard_.isOpen()){
             keyboard_.dispatch(action);
@@ -1054,6 +1056,10 @@ void ShellController::dispatchGameControls(Action action){
     dispatchControls(action);
 }
 void ShellController::systemAction(const QString& id){
+    if(id=="audio-output"){
+        if((menuOpen_||gameControlsOpen_)&&!controls_.editing()&&!controlsNetworkOpen_)device_.beginAudio();
+        return;
+    }
     if(id=="volume"){device_.adjustQuick(0,Action::Confirm);return;}
     if(id=="wifi"||id=="bluetooth"){
         controlsNetworkOpen_=true;
@@ -1089,6 +1095,7 @@ void ShellController::openTrainers() {
 void ShellController::goToPage(int page) {
     PerformanceTrace::Scope perf("ShellController.goToPage");
     if(navigationLocked(true))return;
+    device_.closeAudio();
     closeControlsNetwork();
     const bool enteringApps=page_!=AppsPage;
     // Closing transient controllers emits their local notifications. Publish
