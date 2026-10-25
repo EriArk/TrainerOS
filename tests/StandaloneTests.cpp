@@ -506,6 +506,37 @@ private slots:
         StandaloneInstallation i{probe(),probe(),{},{"psp"},{}};
         QVERIFY(ppsspp::netplayIdentity(r,i,cancel).isEmpty()); // valid disc does not authorize an unknown runtime
     }
+    void pspPackedProbeRequiresVerifiedReaderAndStrictReply() {
+        const bool previous=QStandardPaths::isTestModeEnabled();QStandardPaths::setTestModeEnabled(true);
+        const auto restore=qScopeGuard([previous]{QStandardPaths::setTestModeEnabled(previous);});
+        const auto root=ppsspp::contentProbeRoot();
+        QVERIFY(!QFileInfo::exists(root));QVERIFY(QDir().mkpath(root));
+        const auto cleanup=qScopeGuard([root]{QDir(root).removeRecursively();});
+        QTemporaryDir dir;std::atomic_bool cancel=false;
+        const auto path=dir.filePath("Arbitrary PSP name.cso");
+        const QByteArray reply=R"({"protocol":1,"disc":"TEST00001","format":"cso"})";
+        write(path,reply);QVERIFY(ppsspp::discId(path,cancel).isEmpty());
+        QVERIFY(QFile::copy(probe(),ppsspp::contentProbeFile()));
+        QFile::setPermissions(ppsspp::contentProbeFile(),QFile::ReadOwner|QFile::WriteOwner|QFile::ExeOwner);
+        QFile executable(ppsspp::contentProbeFile());QVERIFY(executable.open(QIODevice::ReadOnly));
+        const auto hash=QString::fromLatin1(QCryptographicHash::hash(executable.readAll(),QCryptographicHash::Sha256).toHex());executable.close();
+        QJsonObject manifest{{"recipe","psp-content-v1"},{"source","fa50bb1976065c4f8b1b47af227d367fe9771555"},
+            {"files",QJsonObject{{QFileInfo(ppsspp::contentProbeFile()).fileName(),hash}}}};
+        const auto publish=[&]{write(root+"/manifest.json",QJsonDocument(manifest).toJson());};publish();
+        QCOMPARE(ppsspp::discId(path,cancel),QString("TEST00001"));
+        const auto pbp=dir.filePath("EBOOT.PBP");auto pbpReply=reply;pbpReply.replace("cso","pbp");write(pbp,pbpReply);
+        QCOMPARE(ppsspp::discId(pbp,cancel),QString("TEST00001"));
+        for(const auto& bad:{QByteArray("not json"),QByteArray(5000,'x'),QByteArray(R"({"protocol":2,"disc":"TEST00001","format":"cso"})"),pbpReply,
+            QByteArray(R"({"protocol":1,"disc":"TEST00001\n","format":"cso"})")}) {
+            write(path,bad);QVERIFY(ppsspp::discId(path,cancel).isEmpty());
+        }
+        write(path,reply);cancel=true;QVERIFY(ppsspp::discId(path,cancel).isEmpty());cancel=false;
+        manifest["recipe"]="unreviewed";publish();QVERIFY(ppsspp::discId(path,cancel).isEmpty());
+        manifest["recipe"]="psp-content-v1";manifest["source"]="unreviewed";publish();QVERIFY(ppsspp::discId(path,cancel).isEmpty());
+        manifest["source"]="fa50bb1976065c4f8b1b47af227d367fe9771555";
+        manifest["files"]=QJsonObject{{QFileInfo(ppsspp::contentProbeFile()).fileName(),QString(64,'0')}};publish();
+        QVERIFY(ppsspp::discId(path,cancel).isEmpty());
+    }
     void pspClockPolicyStaysScopedToTheReviewedLuminesBuild() {
         ppsspp::NetplayRequest r{{{"id","runtime.ppsspp.adhoc.v1"}},true,true,"socom.cc","Alice\n[Network]"};
         auto bytes=ppsspp::networkSettings(r);
@@ -785,6 +816,8 @@ private slots:
         QTest::newRow("3DS") << QString("azahar") << QString("n3ds") << QString("3dsx");
         QTest::newRow("DS") << QString("melonds") << QString("nds") << QString("nds");
         QTest::newRow("PSP") << QString("ppsspp") << QString("psp") << QString("cso");
+        QTest::newRow("PSP ISO") << QString("ppsspp") << QString("psp") << QString("iso");
+        QTest::newRow("PSP PBP") << QString("ppsspp") << QString("psp") << QString("pbp");
         QTest::newRow("PS2") << QString("armsx2") << QString("ps2") << QString("chd");
         QTest::newRow("WiiU") << QString("cemu") << QString("wiiu") << QString("wua");
         QTest::newRow("PS1") << QString("duckstation") << QString("psx") << QString("chd");

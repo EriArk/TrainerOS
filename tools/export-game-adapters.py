@@ -109,6 +109,9 @@ for path in sorted((root / "tools/ps2-lan").iterdir()):
         files[path.relative_to(root).as_posix()] = path.read_text(encoding="utf-8").encode("utf-8")
 path = root / "tools/remote-play-stream/transport/ps2_sockets.hpp"
 files[path.relative_to(root).as_posix()] = path.read_text(encoding="utf-8").encode("utf-8")
+for path in sorted((root / "tools/ppsspp-content").iterdir()):
+    if path.is_file():
+        files[path.relative_to(root).as_posix()] = path.read_text(encoding="utf-8").encode("utf-8")
 for directory in ("dolphin", "handheld", "rmg", "flycast", "melonds", "azahar", "vita3k", "native-lan", "lrps2"):
     for path in sorted((root / "packaging/emulators" / directory).iterdir()):
         if path.is_file():

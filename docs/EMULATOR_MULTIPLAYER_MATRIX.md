@@ -20,7 +20,7 @@ runtime и не увеличивает число мест. Полные фай�
 | GB/GBC/GBA | Общие linked-профили по аппаратным данным ROM; solo-фильтр исправлен также для SameBoy/DoubleCherryGB/mGBA rollback | Архивы не разбираются как cartridge header; RTC/особые mapper/save layouts и RFU зависят от core. Сохранено отрицательное exact-исключение отказавшего Hnefatafl |
 | PS1 | Общий PCSX-ReARMed, CUE с дорожками и CHD, без списка названий | PBP/M3U/ISO, CCD/TOC/MDS требуют полной сетевой идентификации/подготовки |
 | PS2 | Все 56 строк LAN-каталога / 164 serial, одиночный CRC-допуск уже снят; исправлен solo-фильтр | ISO/CHD, SYSTEM.CNF/ELF и DEV9-пакет. Каталог обозначает наличие LAN, не только проверенные матчи |
-| PSP | Общий Ad Hoc для PSP ISO/PARAM.SFO, без списка названий; исправлен solo-фильтр | CSO/PBP/CHD пока не имеют сетевого disc-ID reader, хотя могут открываться solo |
+| PSP | Общий Ad Hoc без списка названий; ISO и новый CSO/PBP reader на базе PPSSPP, исправлен solo-фильтр | Новый helper/оболочка ещё не установлены; CHD, wrappers и PBP без корректного PSP DISC_ID остаются открыты |
 | N64 | Общий RMG, все три порядка байт ROM, без списка названий | ZIP/7z не распаковываются для сетевой идентификации; до 64 MiB, установленные плагины/endpoint |
 | Dreamcast | Общий Flycast Dojo для CHD v5, без списка названий | GDI/CDI/M3U требуют подготовки/идентичности зависимых файлов; native game-server Online отдельно |
 | GameCube/Wii NetPlay | Общий Dolphin, без списка названий. GC получил RVZ/WIA/GCZ/CISO, Wii CISO/GCM; WIA добавлен в библиотеку/регистрацию; запуск согласован | Сжатые образы и консоль проверяет `dolphin-tool`; Wii требует Wiimote runtime. WAD/NAND и native Wii Online не реализованы этим изменением |

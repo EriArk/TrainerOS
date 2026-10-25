@@ -9,8 +9,10 @@ struct NetplayRequest {
     bool hostRelay = false;
 };
 QString hostRelayRoot();
+QString contentProbeRoot();
+QString contentProbeFile();
 QString configFile(const StandaloneInstallation&);
-// Read-only, bounded raw UMD probe. A disc ID establishes format/identity,
+// Read-only, bounded ISO/CSO/PBP probe. A disc ID establishes format/identity,
 // never the presence or compatibility of an in-game multiplayer mode.
 QString discId(const QString& path, const std::atomic_bool&);
 QJsonObject netplayIdentity(const AdventureRegistration&, const StandaloneInstallation&, const std::atomic_bool&);

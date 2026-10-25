@@ -349,7 +349,7 @@ void RuntimeMultiplayer::refresh(const RetroArchInstallation& installation,QStri
     const auto dolphinInstallation=dolphin_.installation();
     const auto stamp=[](const QString& path){const QFileInfo f(path);return qHashMulti(0,path,f.size(),f.lastModified().toMSecsSinceEpoch());};
     quint64 revision=qHashMulti(0,stamp(installation.runtimeFile),stamp(installation.configFile),
-        stamp(pspInstallation.runtimeFile),stamp(dolphin::bridgeFile()),stamp(dolphin::bridgeRoot()+"/bin/dolphin-tool"),stamp(dolphin::bridgeRoot()+"/manifest.json"),
+        stamp(pspInstallation.runtimeFile),stamp(ppsspp::contentProbeFile()),stamp(ppsspp::contentProbeRoot()+"/manifest.json"),stamp(dolphin::bridgeFile()),stamp(dolphin::bridgeRoot()+"/bin/dolphin-tool"),stamp(dolphin::bridgeRoot()+"/manifest.json"),
         stamp(installation.linkedSavePython),stamp(installation.linkedSaveHelper),stamp(dolphinlan::bundleRoot()+"/manifest.json"),stamp(ps2::bundleRoot()+"/manifest.json"),stamp(ps2lan::bundleRoot()+"/manifest.json"),stamp(rmg::bundleRoot()+"/manifest.json"),stamp(flycast::bundleRoot()+"/manifest.json"),stamp(melonds::bundleRoot()+"/manifest.json"),stamp(azahar::bundleRoot()+"/manifest.json"),stamp(vita::bundleRoot()+"/manifest.json"));
     for(auto it=installation.cores.cbegin();it!=installation.cores.cend();++it)revision=qHashMulti(revision,it.key(),stamp(it.value()));
     const auto candidate=[](const AdventureRegistration& r){return r.adventure.platformId=="ps2"||r.adventure.platformId=="psvita"||r.adventure.platformId=="n3ds"||r.adventure.platformId=="nds"||r.adventure.platformId=="psp"||r.adventure.platformId=="gc"||r.adventure.platformId=="wii"||r.adventure.platformId=="n64"||r.adventure.platformId=="dreamcast"||
