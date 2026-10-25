@@ -17,7 +17,19 @@
 #include <QtEndian>
 
 namespace trainer::retroarch {
+quint64 netplayFileRevision(const QString& path) {
+    const QFileInfo f(path);
+    return qHashMulti(0,f.exists(),f.isFile(),f.isReadable(),f.size(),f.permissions(),
+        f.canonicalFilePath(),f.symLinkTarget(),f.lastModified().toMSecsSinceEpoch(),
+        f.fileTime(QFileDevice::FileMetadataChangeTime).toMSecsSinceEpoch());
+}
+void NetplayDigestCache::observe(const QString& path) {
+    if(path.isEmpty())return;
+    const auto absolute=QFileInfo(path).absoluteFilePath();
+    if(!dependencies.contains(absolute))dependencies.insert(absolute,netplayFileRevision(absolute));
+}
 namespace {
+void observe(NetplayDigestCache* cache,const QString& path) {if(cache)cache->observe(path);}
 struct CoreProfile {const char *core,*platforms,*firmware;};
 // This table describes shared-console rollback, not handheld link emulation.
 const CoreProfile cores[] = {
@@ -56,8 +68,9 @@ QString identityLayout(const QJsonObject& identity) {
     return layout;
 }
 QString digest(const QString& path,qint64 limit,const std::atomic_bool& cancel,NetplayDigestCache* cache) {
+    observe(cache,path);
     const QFileInfo f(path);
-    const auto key=f.absoluteFilePath()+'|'+QString::number(f.size())+'|'+QString::number(f.lastModified().toMSecsSinceEpoch());
+    const auto key=f.absoluteFilePath()+'|'+QString::number(netplayFileRevision(path));
     if(cancel||!f.isFile()||f.size()<=0||f.size()>limit)return {};
     if(cache&&cache->contains(key))return cache->value(key);
     const auto value=fileDigest(path,limit,cancel);
@@ -65,12 +78,13 @@ QString digest(const QString& path,qint64 limit,const std::atomic_bool& cancel,N
     return value;
 }
 QString contentDigest(const QString& path,const std::atomic_bool& cancel,NetplayDigestCache* cache) {
+    observe(cache,path);
     const auto extension=QFileInfo(path).suffix().toLower();
     // These are manifests, not self-contained disc images. Never hash only the
     // descriptor and accidentally accept peers whose actual tracks differ.
     if(extension=="m3u"||extension=="ccd"||extension=="toc"||extension=="cmd")return {};
     if(extension!="cue")return digest(path,2LL*1024*1024*1024,cancel,cache);
-    if(!validateDiscContent(path,cancel).isEmpty())return {};
+    if(!validateDiscContent(path,cancel,[cache](const QString& file){observe(cache,file);}).isEmpty())return {};
     QFile cue(path);if(!cue.open(QIODevice::ReadOnly))return {};
     const auto bytes=cue.readAll();if(cue.error()!=QFile::NoError)return {};
     QCryptographicHash hash(QCryptographicHash::Sha256);hash.addData(bytes);
@@ -84,7 +98,7 @@ QString contentDigest(const QString& path,const std::atomic_bool& cancel,Netplay
     }
     return cancel?QString():QString::fromLatin1(hash.result().toHex());
 }
-QString playStationBios(const RetroArchInstallation& i) {
+QString playStationBios(const RetroArchInstallation& i,NetplayDigestCache* cache=nullptr) {
     const auto system=configuredPath(readSettings(i.configFile),"system_directory");
     if(system.isEmpty())return {};
     // Select one owned BIOS and give the core a private directory containing
@@ -93,6 +107,7 @@ QString playStationBios(const RetroArchInstallation& i) {
     for(const auto& name:{"scph5501.bin","scph5502.bin","scph5500.bin",
                          "psxonpsp660.bin","scph101.bin","scph7001.bin","scph1001.bin"}) {
         const auto path=QDir(system).filePath(name);
+        observe(cache,path);
         if(QFileInfo(path).isFile()&&QFileInfo(path).size()==512*1024)return path;
     }
     return {};
@@ -164,6 +179,7 @@ bool playStationIso(const QString& path) {
     return false;
 }
 QString playStationContent(const QString& path,const std::atomic_bool& cancel,NetplayDigestCache* cache,bool inPlaylist=false) {
+    observe(cache,path);
     const QFileInfo file(path);
     const auto extension=file.suffix().toLower();
     if(cancel||!file.isFile()||file.absoluteFilePath().toUtf8().size()>=1024)return {};
@@ -190,7 +206,7 @@ QString playStationContent(const QString& path,const std::atomic_bool& cancel,Ne
     }
     int discCount=1;
     if(extension=="cue"||extension=="chd") {
-        if(!validateDiscContent(path,cancel).isEmpty())return {};
+        if(!validateDiscContent(path,cancel,[cache](const QString& file){observe(cache,file);}).isEmpty())return {};
     } else if(extension=="pbp") {
         discCount=playStationPbpDiscs(path,cancel);
         // Native M3U exposes only internal disc zero for each PBP entry.
@@ -199,8 +215,12 @@ QString playStationContent(const QString& path,const std::atomic_bool& cancel,Ne
     const auto stem=file.dir().filePath(file.completeBaseName());
     // PCSX probes these descriptors before loading the requested disc. Until
     // their dependencies are supported, do not fingerprint only the main file.
-    for(const auto& suffix:{".toc",".ccd",".mds"})if(QFileInfo::exists(stem+suffix))return {};
-    if(extension!="cue"&&QFileInfo::exists(stem+".cue"))return {};
+    for(const auto& suffix:{".toc",".ccd",".mds"}) {
+        observe(cache,stem+suffix);if(QFileInfo::exists(stem+suffix))return {};
+    }
+    if(extension!="cue") {
+        observe(cache,stem+".cue");if(QFileInfo::exists(stem+".cue"))return {};
+    }
     const auto content=extension=="pbp"?digest(path,8LL*1024*1024*1024,cancel,cache):contentDigest(path,cancel,cache);
     if(content.isEmpty())return {};
     QJsonObject media{{"disc",content}};
@@ -210,6 +230,7 @@ QString playStationContent(const QString& path,const std::atomic_bool& cancel,Ne
     if(discCount>1)for(int n=1;n<=discCount;++n)sidecars.append(QString("_%1.sbi").arg(n));
     for(const auto& suffix:sidecars) {
         const auto candidate=stem+suffix;
+        observe(cache,candidate);
         if(!QFileInfo::exists(candidate))continue;
         const auto value=digest(candidate,2LL*1024*1024*1024,cancel,cache);
         if(value.isEmpty())return {};
@@ -342,6 +363,9 @@ QString netplayRelayEndpoint(const QByteArray& response) {
     return host+'|'+QString::number(port); // RetroArch's custom-relay host|port format.
 }
 QJsonObject netplayIdentity(const AdventureRegistration& r,const RetroArchInstallation& i,const std::atomic_bool& cancel,NetplayDigestCache* cache,int players) {
+    observe(cache,r.contentPath);observe(cache,i.configFile);observe(cache,i.runtimeFile);
+    for(const auto& core:i.cores)observe(cache,core);
+    observe(cache,i.linkedSaveHelper);observe(cache,i.linkedSavePython);observe(cache,i.ps2Bios);
     auto coreId=r.integrationConfig["core"].toString();
     const auto cartridgeImage=QStringList{"gb","gbc","gba"}.contains(r.adventure.platformId)
         ?cartridge::read(r.contentPath,r.adventure.platformId,cancel):cartridge::Image{};
@@ -385,7 +409,7 @@ QJsonObject netplayIdentity(const AdventureRegistration& r,const RetroArchInstal
         auto names=QString::fromLatin1(p->firmware).split('|',Qt::SkipEmptyParts);
         const auto platform=r.adventure.platformId;
         if(playStation) {
-            const auto bios=playStationBios(i);
+            const auto bios=playStationBios(i,cache);
             const auto value=digest(bios,512*1024,cancel,cache);
             if(value.isEmpty())return {};
             firmware[QFileInfo(bios).fileName()]=value;
@@ -419,6 +443,7 @@ QJsonObject netplayIdentity(const AdventureRegistration& r,const RetroArchInstal
                 dirs.removeDuplicates();
                 for(const auto& dir:dirs)for(const auto& extension:{"zip","7z"}) {
                     const auto candidate=QDir(dir).filePath(archive+'.'+extension);
+                    observe(cache,candidate);
                     if(!QFileInfo(candidate).isFile())continue;
                     const auto value=digest(candidate,2LL*1024*1024*1024,cancel,cache);
                     if(value.isEmpty())return {};
@@ -433,6 +458,7 @@ QJsonObject netplayIdentity(const AdventureRegistration& r,const RetroArchInstal
         for(const auto& name:names) {
             for(const auto& prefix:QStringList{QString(),coreId+'/'}) {
                 const auto candidate=QDir(system).filePath(prefix+name);
+                if(!system.isEmpty())observe(cache,candidate);
                 if(system.isEmpty()||!QFileInfo(candidate).exists())continue;
                 const auto value=digest(candidate,256LL*1024*1024,cancel,cache);
                 if(value.isEmpty())return {};
@@ -441,6 +467,7 @@ QJsonObject netplayIdentity(const AdventureRegistration& r,const RetroArchInstal
             // Arcade cores also search alongside the game archive.
             if(coreId=="fbneo") {
                 const auto candidate=QFileInfo(r.contentPath).dir().filePath(name);
+                observe(cache,candidate);
                 if(QFileInfo(candidate).exists()) {
                     const auto value=digest(candidate,256LL*1024*1024,cancel,cache);
                     if(value.isEmpty())return {};

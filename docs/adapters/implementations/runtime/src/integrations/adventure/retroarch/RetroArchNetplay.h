@@ -30,7 +30,13 @@ AdventureRegistration netplayRegistration(AdventureRegistration);
 int netplayCapacity(const QString& platform, const QString& core, const QVariantMap& metadata,
                     const QString& contentPath = {});
 // Worker-local scan cache; launch revalidation deliberately uses no cache.
-using NetplayDigestCache = QHash<QString, QString>;
+quint64 netplayFileRevision(const QString& path);
+struct NetplayDigestCache : QHash<QString, QString> {
+    // Worker-local observations include missing optional/required files, so
+    // restoring a track or adding a sidecar can invalidate an unsuccessful scan.
+    QMap<QString,quint64> dependencies;
+    void observe(const QString& path);
+};
 QJsonObject netplayProfile(QString platform,QString core,QString contentDigest,int players = 2);
 QStringList netplayControllerArguments(const QJsonObject& identity);
 QByteArray netplayControllers(const QJsonObject& identity, bool host, int slot);

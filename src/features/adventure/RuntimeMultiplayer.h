@@ -164,10 +164,22 @@ private:
     HotseatHandoff handoff_{this};
     QString controllerMode_="separate";
     bool partySession_=false,companyOverride_=false;
-    using ScannedGame = QPair<QString,QJsonObject>;
+    struct ScannedGame {
+        QString first;QJsonObject second;
+        QMap<QString,quint64> dependencies;
+        bool stale=false;
+        quint64 requestRevision=0;
+    };
     QFutureWatcher<ScannedGame> scan_{this};
+    QMap<QString,ScannedGame> scanResults_;
     std::shared_ptr<std::atomic_bool> scanCancel_;
     QTimer scanPublish_{this};
+    void pollScanDependencies();
+    void invalidateScan();
+    QMap<QString,quint64> scanDependencies_;
+    quint64 dependencyGeneration_=1;
+    QTimer dependencyPoll_{this};
+    QFutureWatcher<quint64> dependencyScan_{this};
     QNetworkAccessManager network_{this};QTimer timer_{this};
     QString trainer_,identity_,game_,status_,transportPeer_,lastRequest_,scanPriority_;
     QString lobbyProblem_;

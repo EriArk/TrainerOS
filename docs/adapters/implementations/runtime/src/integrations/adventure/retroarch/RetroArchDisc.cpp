@@ -38,7 +38,9 @@ bool verifiedDiscFirmware(const RetroArchInstallation& installation, const QStri
     }
     return !cancel;
 }
-QString validateDiscContent(const QString& path, const std::atomic_bool& cancel) {
+QString validateDiscContent(const QString& path, const std::atomic_bool& cancel,
+                            const std::function<void(const QString&)>& observe) {
+    if(observe)observe(path);
     if (cancel) return "Opening was cancelled.";
     QFile file(path); const QFileInfo info(path);
     if (!info.isAbsolute() || !info.isFile() || !file.open(QIODevice::ReadOnly))
@@ -58,6 +60,7 @@ QString validateDiscContent(const QString& path, const std::atomic_bool& cancel)
         if (!line.startsWith("FILE", Qt::CaseInsensitive)) continue;
         const auto match = entry.match(line);
         const auto name = match.captured(1).isEmpty() ? match.captured(2) : match.captured(1);
+        if(observe&&relativeFile(name))observe(info.dir().filePath(name));
         if (!match.hasMatch() || ++files > 99 || !containedFile(info.absolutePath(), name))
             return "A disc track is missing or outside this game's folder. Keep the track list and its files together.";
     }

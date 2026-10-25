@@ -1,5 +1,51 @@
 # Shared RetroArch multiplayer profiles
 
+## Dependency-aware Lobby refresh — 25 October 2026
+
+Source implementation in S03 `RetroArchNetplay` and S06 `RuntimeMultiplayer`
+now records exact local file dependencies while computing an identity, including
+failed checks. This covers CUE tracks (also inside PS1 M3U), PS1 SBI/SUB and
+numbered multi-disc PBP SBI files, overriding descriptors, selected/candidate
+PS1 BIOS files, classic firmware and FBNeo parent/BIOS archive locations. A
+missing required file or optional candidate remains observed, so restoring it,
+adding it or removing a conflicting descriptor can change availability without
+a library event or shell restart. Every candidate's main file is also observed.
+
+A two-second timer schedules metadata checks on a worker thread. It checks only
+the recorded paths: existence, readability, permissions, size, canonical/symlink
+target and modification/metadata-change timestamps. It does not traverse storage,
+read ROM contents on the UI thread or repeatedly hash unchanged files. One check
+may run at a time. Disabled multiplayer stops polling; late metadata replies are
+bound to the scan generation. Shutdown cancels workers without accessing destroyed
+owners. Metadata checking is not a replacement for uncached launch fingerprints;
+deliberately preserving all observable metadata is outside its detection contract.
+
+A changed dependency withdraws obsolete picker profiles and cancels an older
+in-flight identity scan. Files changing during identity calculation also prevent
+publication of that result. Unchanged RetroArch results are checked and republished
+before hashing changed media; unavailable results are cached too, with their
+missing dependencies. This avoids rehashing the classic library for one changed
+track. Native alternate runtimes still use their full checks because their complete
+dependency sets are not yet reported here; no partial native identity cache was
+introduced. Removed library records are pruned from retained results.
+
+Catalog invalidation no longer ends an existing game party just because the new
+catalog is temporarily empty. It changes future admission, not the running PID,
+current session descriptor, saves, room membership or consent. A real disable of
+multiplayer keeps its previous behavior. Explicit Start/Rejoin and independent
+voice/chat remain unchanged.
+
+This increment is source/build work only; no handheld connection or installation.
+
+Checks: the Windows application build passed. Focused runtime cases passed 7/7:
+PS1 M3U/CUE and PCE CD missing-track restoration, track/firmware mutation, optional
+SBI addition/removal, conflicting descriptor removal, idle/unrelated writes,
+retired in-flight scans and late metadata replies. A real fixture child process
+and its party remain alive when its track disappears; no library writes occur.
+The full `retroarch`, `game_party` and `runtime_multiplayer` suites passed 3/3
+(35.04 s / 0.08 s / 122.01 s). Adapter knowledge/export validation passed with
+209 runtime files. No full ARM64 shell build or hardware behavior is inferred.
+
 **Manual return expansion, 23 October 2026:** late admission/rejoin now reuses
 this family's platform/core table with separately reviewed local build hashes:
 FCEUmm, Snes9x, Genesis Plus GX, PicoDrive, Beetle PCE Fast/SuperGrafx, Stella,
