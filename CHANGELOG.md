@@ -1,5 +1,20 @@
 # TrainerOS — история изменений
 
+## 2026-10-25 — аккаунты и сессии Backend через Fluxer
+
+- Добавлен серверный [модуль Accounts](services/backend/accounts.md): постоянный
+  UUID по Fluxer subject, OAuth code + PKCE S256, browser/state binding,
+  ручное подтверждение кода с устройства и одноразовая выдача сессии оболочке.
+- Реализованы список/отзыв собственных устройств, ротация access/refresh,
+  отзыв сессии при повторе refresh, expiry/suspension и audit/outbox.
+  Provider credentials не сохраняются в БД и не выдаются играм.
+- Расширен draft-контракт LoginAttempt: `verification_code`; architecture-draft.3
+  сохраняет остальные модули как проект. [Серверные проверки](docs/evidence/backend-accounts-20261025/README.md)
+  отделены от live Fluxer, SDK и портативок.
+- Код установлен с отключённым provider login. Для активации остаются отдельное
+  OAuth-приложение TrainerOS в постоянном аккаунте владельца, HTTPS callback и
+  реальная проверка consent/cancel/relogin. Lobby-приложение не изменялось.
+
 ## 2026-10-25 — общий серверный каркас Backend
 
 - По указанию владельца сборка, PostgreSQL и дальнейшие runtime-проверки выполняются

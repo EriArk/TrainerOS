@@ -12,7 +12,7 @@ import pytest
 from trainer_backend.app import create_app
 from trainer_backend.commands import Conflict, Forbidden, Outcome, Principal, receipt, run_command
 from trainer_backend.config import Settings
-from trainer_backend.db import Database, MigrationError, migrate
+from trainer_backend.db import Database, MigrationError, migrate, migrations
 from trainer_backend.events import Consumer, EventSpec, deliver_once, publish
 from trainer_backend.jobs import LeaseLost, Worker, claim, complete, enqueue, fail
 from trainer_backend.modules import MODULES
@@ -44,8 +44,8 @@ def test_module_inventory_matches_design():
 
 
 def test_migration_repeat_and_runtime_privileges(postgres, db):
-    assert migrate(postgres[0]) == 1
-    assert migrate(postgres[0]) == 1
+    assert migrate(postgres[0]) == len(migrations())
+    assert migrate(postgres[0]) == len(migrations())
     assert db.ready()
     forbidden = [
         'CREATE TABLE trainer_backend.not_allowed(id integer)',
@@ -62,7 +62,7 @@ def test_migration_repeat_and_runtime_privileges(postgres, db):
 
 def test_migration_tamper_detected(postgres, db):
     with psycopg.connect(postgres[0]) as conn:
-        original = conn.execute('SELECT checksum FROM trainer_backend.schema_migrations').fetchone()[0]
+        original = conn.execute('SELECT version,checksum FROM trainer_backend.schema_migrations').fetchall()
         conn.execute("UPDATE trainer_backend.schema_migrations SET checksum=repeat('0',64)")
     try:
         with pytest.raises(MigrationError):
@@ -71,7 +71,8 @@ def test_migration_tamper_detected(postgres, db):
             db.ready()
     finally:
         with psycopg.connect(postgres[0]) as conn:
-            conn.execute('UPDATE trainer_backend.schema_migrations SET checksum=%s', (original,))
+            for version,checksum in original:
+                conn.execute('UPDATE trainer_backend.schema_migrations SET checksum=%s WHERE version=%s', (checksum,version))
 
 
 def test_concurrent_duplicate_command_applies_once(db, actor):
@@ -225,7 +226,10 @@ def test_api_has_only_real_foundation_routes(postgres, db):
         assert capabilities['capabilities'] == {}
         assert len(capabilities['modules']) == 13
         assert client.post('/v1/me/purchases', json={}).status_code == 404
-        assert set(client.get('/openapi.json').json()['paths']) == {'/health/live', '/health/ready', '/v1/capabilities'}
+        paths=set(client.get('/openapi.json').json()['paths'])
+        assert {'/health/live','/health/ready','/v1/capabilities','/v1/auth/refresh'}<=paths
+        assert '/v1/me/purchases' not in paths
+        assert client.post('/v1/auth/refresh',json={'refresh_token':'x'*43}).status_code==503
         response = client.get('/health/live')
         assert response.headers['cache-control'] == 'no-store'
         assert response.headers['x-request-id']

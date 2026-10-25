@@ -1,5 +1,13 @@
 # Структура TrainerOS: владельцы, контракты и связи
 
+**Accounts, позднее 25 октября:** S01 получил серверную реализацию identity и
+сессий в [`services/backend/trainer_backend/accounts`](../services/backend/trainer_backend/accounts).
+Вход опирается на S05/Fluxer OAuth и выдаёт собственную сессию оболочке; внешний
+subject уникально связан с внутренним Player UUID. Revocation пишет общий outbox.
+Сборка установлена, активация Fluxer ожидает приложение владельца/HTTPS callback.
+[Контракт](../services/backend/accounts.md). S03/SDK и локальный Trainer ещё не
+подключены к этому пути, доставки revocation в SDK пока нет; игры/аватар не менялись.
+
 **Backend, 25 октября:** общий [серверный каркас](../services/backend/README.md)
 теперь установлен отдельно от directory/catalogue. Владелец эксплуатации — S15;
 S01/S10/S11 используют общие транзакции/квитанции/задачи/события при последующей

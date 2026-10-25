@@ -1,5 +1,5 @@
 {
-  "version": "architecture-draft.2",
+  "version": "architecture-draft.3",
   "implemented": false,
   "kind": "logical-schema-not-migration",
   "tables": {

@@ -2,7 +2,7 @@
   "openapi": "3.1.1",
   "info": {
     "title": "TrainerOS Backend — architecture draft",
-    "version": "architecture-draft.2",
+    "version": "architecture-draft.3",
     "description": "Unimplemented design. No production server URL. Provider callbacks and normalized adapter ingress are different contracts."
   },
   "jsonSchemaDialect": "https://json-schema.org/draft/2020-12/schema",
@@ -4338,9 +4338,17 @@
               "invalid_evidence",
               "rate_limited",
               "provider_unavailable",
+              "provider_not_configured",
               "service_unavailable",
               "stale_context",
-              "policy_unresolved"
+              "policy_unresolved",
+              "login_restart_required",
+              "authorization_pending",
+              "login_cancelled",
+              "session_limit",
+              "confirmation_rejected",
+              "body_too_large",
+              "request_timeout"
             ]
           },
           "message": {
@@ -4471,14 +4479,22 @@
           },
           "expires_at": {
             "$ref": "#/components/schemas/Time"
+          },
+          "verification_code": {
+            "type": "string",
+            "minLength": 8,
+            "maxLength": 8,
+            "pattern": "^[0-9]{8}$"
           }
         },
         "additionalProperties": false,
         "required": [
           "attempt_id",
           "authorization_url",
-          "expires_at"
-        ]
+          "expires_at",
+          "verification_code"
+        ],
+        "description": "Show verification_code only on the initiating host. Browser asks the user to type it before OAuth; never auto-submit or put it in a URL."
       },
       "LoginClaim": {
         "type": "object",

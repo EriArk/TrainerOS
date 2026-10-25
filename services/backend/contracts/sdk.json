@@ -1,5 +1,5 @@
 {
-  "version": "architecture-draft.2",
+  "version": "architecture-draft.3",
   "implemented": false,
   "transport": "existing Platform SDK v1 JSON-lines",
   "max_frame_bytes": 65536,

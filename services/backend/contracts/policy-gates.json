@@ -1,5 +1,5 @@
 {
-  "version": "architecture-draft.2",
+  "version": "architecture-draft.3",
   "implemented": false,
   "default": "A missing/unresolved applicable gate prevents activation, never fabricates success.",
   "gates": [

@@ -10,7 +10,7 @@ import re
 
 ROOT = Path(__file__).resolve().parents[1]
 DEST = ROOT / 'services/backend/contracts'
-DRAFT = 'architecture-draft.2'
+DRAFT = 'architecture-draft.3'
 MODULES = {
     'accounts': 'S01', 'profiles': 'S01', 'registry': 'S10', 'results': 'S10',
     'boards': 'S10', 'competitions': 'S10', 'community_competitions': 'S10',
@@ -68,7 +68,9 @@ DEFS.update({
 })
 define('Error', {'code': enum('unauthenticated', 'forbidden', 'not_found', 'conflict',
     'invalid_request', 'unsupported_ruleset', 'invalid_evidence', 'rate_limited',
-    'provider_unavailable', 'service_unavailable', 'stale_context', 'policy_unresolved'),
+    'provider_unavailable', 'provider_not_configured', 'service_unavailable', 'stale_context', 'policy_unresolved',
+    'login_restart_required', 'authorization_pending', 'login_cancelled', 'session_limit',
+    'confirmation_rejected', 'body_too_large', 'request_timeout'),
     'message': string(500), 'request_id': ref('Id'), 'retryable': {'type': 'boolean'},
     'retry_after_seconds': integer(1, 86400)}, ('retry_after_seconds',))
 define('OperationReceipt', {'operation_id': ref('Id'), 'state': enum('pending',
@@ -82,7 +84,9 @@ define('LoginBegin', {'provider': enum('fluxer'), 'device_label': string(64),
     'claim_challenge': string(43, 43, pattern=r'^[A-Za-z0-9_-]{43}$'),
     'claim_challenge_method': {'const': 'S256'}})
 define('LoginAttempt', {'attempt_id': ref('Id'), 'authorization_url': string(2048,
-    format='uri', pattern=r'^https://'), 'expires_at': ref('Time')})
+    format='uri', pattern=r'^https://'), 'expires_at': ref('Time'),
+    'verification_code': string(8,8,pattern=r'^[0-9]{8}$')},
+    description='Show verification_code only on the initiating host. Browser asks the user to type it before OAuth; never auto-submit or put it in a URL.')
 define('LoginClaim', {'attempt_id': ref('Id'), 'claim_verifier': string(128, 43,
     pattern=r'^[A-Za-z0-9._~-]{43,128}$')})
 define('SessionTokens', {'player_id': ref('Id'), 'session_id': ref('Id'),

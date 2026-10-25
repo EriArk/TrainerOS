@@ -17,7 +17,9 @@ until docker exec "$name" pg_isready -U postgres >/dev/null 2>&1; do
   n=$((n+1)); test "$n" -lt 30; sleep 1
 done
 docker exec -i "$name" pg_restore -U postgres -d postgres --no-owner --no-privileges --exit-on-error < "$dump"
-count=$(docker exec "$name" psql -U postgres -Atc 'SELECT count(*) FROM trainer_backend.schema_migrations')
-test "$count" = 1
-docker exec "$name" psql -U postgres -Atc 'SELECT version,checksum FROM trainer_backend.schema_migrations'
+expected=$(docker compose exec -T db psql -U backend_owner -d traineros_backend -Atc 'SELECT version,checksum FROM trainer_backend.schema_migrations ORDER BY version' < /dev/null)
+actual=$(docker exec "$name" psql -U postgres -Atc 'SELECT version,checksum FROM trainer_backend.schema_migrations ORDER BY version')
+test -n "$expected"
+test "$actual" = "$expected"
+printf '%s\n' "$actual"
 printf 'isolated_restore_ok\n'

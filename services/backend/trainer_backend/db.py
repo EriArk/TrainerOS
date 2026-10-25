@@ -68,6 +68,9 @@ def grant_runtime(database_url, role):
         'event_index': 'SELECT,INSERT', 'outbox': 'SELECT,INSERT',
         'consumer_receipts': 'SELECT,INSERT', 'consumer_watermarks': 'SELECT,INSERT,UPDATE',
         'audit_events': 'SELECT,INSERT',
+        'players': 'SELECT,UPDATE', 'external_identities': 'SELECT',
+        'login_attempts': 'SELECT,INSERT,UPDATE', 'device_sessions': 'SELECT,INSERT,UPDATE',
+        'refresh_credentials': 'SELECT,INSERT,UPDATE',
     }
     with psycopg.connect(database_url, connect_timeout=3) as conn:
         conn.execute(sql_builder.SQL('GRANT USAGE ON SCHEMA trainer_backend TO {}').format(sql_builder.Identifier(role)))
@@ -75,6 +78,7 @@ def grant_runtime(database_url, role):
             conn.execute(sql_builder.SQL('GRANT {} ON TABLE trainer_backend.{} TO {}').format(
                 sql_builder.SQL(privileges), sql_builder.Identifier(table), sql_builder.Identifier(role)))
         conn.execute(sql_builder.SQL('GRANT EXECUTE ON FUNCTION trainer_backend.assert_principal(uuid,text) TO {}').format(sql_builder.Identifier(role)))
+        conn.execute(sql_builder.SQL('GRANT EXECUTE ON FUNCTION trainer_backend.resolve_fluxer_player(text,text) TO {}').format(sql_builder.Identifier(role)))
 
 
 class Database:

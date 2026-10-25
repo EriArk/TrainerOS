@@ -16,6 +16,13 @@ installation is now authorized in this chat. Keep the live Lobby bot independent
 handheld tests and GitHub publication remain outside this increment. Architecture
 is not runtime implementation or server acceptance.
 
+**Owner account clarification, 25 October:** sign in through Fluxer, with no
+separate TrainerOS username/password. A stable internal TrainerOS ID binds to
+the verified Fluxer subject, never its display name. Use a separate OAuth app
+named TrainerOS, owned by the owner's permanent account; preserve the existing
+Lobby Directory app. Keep provider credentials outside games/SDK. Server source
+and isolated provider tests do not prove live owner consent or shell integration.
+
 Global plans, milestones and mandatory execution queues are withdrawn. Work
 by the readiness of individual features, using [the readiness map](docs/FEATURE_READINESS.md).
 Keep unfinished requirements and unchecked acceptance; there is no deferred category.
