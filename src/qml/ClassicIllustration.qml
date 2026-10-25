@@ -18,8 +18,8 @@ Item {
         anchors.centerIn: parent
         width: Math.min(parent.width, parent.height) * 0.68; height: width
         visible: !root.ready; radius: width / 2
-        color: "#edf0de"; border.color: "#adc0ae"; border.width: 1
-        Text { anchors.centerIn: parent; text: "?"; color: "#799384"; font.pixelSize: parent.width * .45 }
+        color: Theme.surfaceColor("#edf0de"); border.color: Theme.surfaceColor("#adc0ae"); border.width: 1
+        Text { anchors.centerIn: parent; text: "?"; color: Theme.textColor("#799384"); font.pixelSize: parent.width * .45 }
     }
     Text {
         anchors { horizontalCenter: parent.horizontalCenter; bottom: parent.bottom }

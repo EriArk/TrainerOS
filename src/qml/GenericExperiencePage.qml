@@ -12,11 +12,11 @@ Item {
     }
     MountedPanel {
         x: 0; y: heading.height + 12; width: parent.width; height: parent.height - y
-        color: "#d9e5dd"
+        color: Theme.surfaceColor("#d9e5dd")
         visible: !root.history
         Rectangle {
             id: art; x: 20; y: 20; width: parent.width * 0.29; height: parent.height - 40
-            radius: 12; color: "#bdcfd0"; clip: true
+            radius: 12; color: Theme.surfaceColor("#bdcfd0"); clip: true
             Image { anchors.fill: parent; anchors.margins: 10; source: root.game.preview || ""; asynchronous: true; fillMode: Image.PreserveAspectFit }
             Text { anchors.centerIn: parent; visible: !root.game.preview; text: root.game.system || "Games"; color: Theme.ink; font.pixelSize: 23 }
         }
@@ -39,7 +39,7 @@ Item {
             required property var modelData
             required property int index
             width: sessions.width; height: 74
-            color: sessions.currentIndex === index ? "#f1e5b9" : "#d9e5dd"
+            color: sessions.currentIndex === index ? Theme.surfaceColor("#f1e5b9") : Theme.surfaceColor("#d9e5dd")
             Text { x: 22; y: 13; width: parent.width - 200; text: modelData.time; color: Theme.ink; font.pixelSize: 19; elide: Text.ElideRight }
             Text { x: 22; y: 42; text: modelData.status; color: Theme.muted; font.pixelSize: 14 }
             Text { anchors.right: parent.right; anchors.rightMargin: 22; y: 25; text: modelData.duration; color: Theme.ink; font.pixelSize: 17 }

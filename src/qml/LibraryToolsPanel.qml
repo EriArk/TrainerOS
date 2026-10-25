@@ -6,13 +6,13 @@ Item {
     readonly property var tools: shell.libraryTools
     readonly property bool takesFocus: visible && !shell.keyboard.open && !shell.menuOpen && !shell.notice.length && !tools.busy
     readonly property bool reviews: tools.route === "reviews"
-    Rectangle { anchors.fill: parent; color: "#660d2525" }
+    Rectangle { anchors.fill: parent; color: Theme.surfaceColor("#660d2525") }
     TapHandler { onTapped: {} }
     Rectangle {
         anchors.centerIn: parent; width: root.reviews ? Math.min(970,parent.width-36) : tools.route==="properties" ? 660 : 480
         height: Math.min(parent.height-24, header.implicitHeight+(body.text.length?body.implicitHeight:0)+list.height+(error.text.length?error.implicitHeight:0)+44)
-        radius: 18; color: "#e8edda"; border.color: "#35544f"; border.width: 3
-        Rectangle { x: 3; y: 3; width: parent.width-6; height: parent.height-6; radius: 15; color: "transparent"; border.color: "#ffffff"; opacity: 0.6 }
+        radius: 18; color: Theme.surfaceColor("#e8edda"); border.color: Theme.surfaceColor("#35544f"); border.width: 3
+        Rectangle { x: 3; y: 3; width: parent.width-6; height: parent.height-6; radius: 15; color: "transparent"; border.color: Theme.surfaceColor("#ffffff"); opacity: 0.6 }
         Column {
             x: 20; y: 18; width: parent.width-40; spacing: 8
             Text { id: header; width: parent.width; text: root.tools.title; textFormat: Text.PlainText; font.family: Theme.displayTypeface.name; font.pixelSize: 26; font.bold: true; color: Theme.ink; elide: Text.ElideRight }
@@ -38,7 +38,7 @@ Item {
             }
             Rectangle {
                 visible: root.reviews; anchors.left: list.right; anchors.right: parent.right; anchors.leftMargin: 18; height: parent.height
-                color: "#fff5d7"; radius: 12; border.color: "#b9a985"
+                color: Theme.surfaceColor("#fff5d7"); radius: 12; border.color: Theme.surfaceColor("#b9a985")
                 Column {
                     x: 18; y: 16; width: parent.width-36; spacing: 10
                     Text { width: parent.width; text: root.tools.selectedReview.name || "Adventure Reviews"; textFormat: Text.PlainText; color: Theme.ink; font.family: Theme.displayTypeface.name; font.pixelSize: 24; font.bold: true; elide: Text.ElideRight }
@@ -50,7 +50,7 @@ Item {
                 }
             }
             }
-            Text { id: error; width: parent.width; visible: text.length>0; text: root.tools.busy?"Saving…":root.tools.error; textFormat: Text.PlainText; font.pixelSize: 16; color: "#803724"; wrapMode: Text.WordWrap }
+            Text { id: error; width: parent.width; visible: text.length>0; text: root.tools.busy?"Saving…":root.tools.error; textFormat: Text.PlainText; font.pixelSize: 16; color: Theme.textColor("#803724"); wrapMode: Text.WordWrap }
         }
     }
     Connections { target: root.tools; function onScrollReview(direction) { reviewText.contentY=Math.max(0,Math.min(Math.max(0,reviewText.contentHeight-reviewText.height),reviewText.contentY+direction*140)) } }

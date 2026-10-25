@@ -21,7 +21,7 @@ Item {
     }
     Item {
         id: search; x: 20; y: root.compact?6:10; width: parent.width-40; height: root.compact?33:39
-        Rectangle { width: parent.width-230; height: parent.height; radius: 9; color: "#75ffffff"; border.width: root.takesFocus&&root.viewState.area==="search"?2:1; border.color: Qt.tint(Theme.paper,"#80516860")
+        Rectangle { width: parent.width-230; height: parent.height; radius: 9; color: Theme.surfaceColor("#75ffffff"); border.width: root.takesFocus&&root.viewState.area==="search"?2:1; border.color: Qt.tint(Theme.paper,Theme.surfaceColor("#80516860"))
             SocialIconButton { x: 4; y: 3; icon: "magnifying-glass"; label: "Search"; onClicked: root.social.discoverAction("search") }
             Text { x: 41; anchors.verticalCenter: parent.verticalCenter; width: parent.width-x-35; text: root.social.query || "Find people, communities or paste an invite…"; color: root.hasQuery?Theme.ink:Theme.muted; font.pixelSize: 13; elide: Text.ElideRight; textFormat: Text.PlainText }
             MouseArea { x: 37; width: parent.width-x-32; height: parent.height; onClicked: root.social.discoverAction("search") }
@@ -109,7 +109,7 @@ Item {
                 Item { x: 0; y: 2; width: 112; height: 100; scale: root.compact ? .6 : 1; transformOrigin: Item.TopLeft
                     Rectangle { x: 5; y: 22; width: 75; height: 66; radius: 16; rotation: -10; color: Theme.green; border.color: Qt.lighter(Theme.green,1.2) }
                     Rectangle { x: 37; y: 7; width: 75; height: 66; radius: 16; rotation: 8; color: Theme.blue; border.color: Qt.lighter(Theme.blue,1.2)
-                        Text { anchors.centerIn: parent; text: "✦"; font.pixelSize: 33; color: Theme.paper }
+                        Text { anchors.centerIn: parent; text: "✦"; font.pixelSize: 33; color: Theme.accentInk }
                     }
                 }
                 Text { x: root.compact?83:140; y: root.compact?0:8; width: parent.width-x; text: root.viewState.busy?"Looking around…":root.viewState.home?"Your next community is out there":"Keep looking"; font.family: Theme.displayFamily; font.pixelSize: root.compact?17:22; color: Theme.ink; wrapMode: Text.WordWrap; maximumLineCount: 1; elide: Text.ElideRight }
@@ -119,10 +119,10 @@ Item {
         }
     }
     Rectangle {
-        anchors.fill: parent; z: 5; color: "#6630433b"; visible: !!root.preview.id
+        anchors.fill: parent; z: 5; color: Theme.surfaceColor("#6630433b"); visible: !!root.preview.id
         MouseArea { anchors.fill: parent; onClicked: root.social.discoverAction("back") }
         Rectangle {
-            anchors.centerIn: parent; width: Math.min(460,parent.width-40); height: Math.min(357,parent.height-20); radius: 15; color: Theme.paper; border.color: Qt.tint(Theme.paper,"#60516c60"); border.width: 2
+            anchors.centerIn: parent; width: Math.min(460,parent.width-40); height: Math.min(357,parent.height-20); radius: 15; color: Theme.paper; border.color: Qt.tint(Theme.paper,Theme.surfaceColor("#60516c60")); border.width: 2
             MouseArea { anchors.fill: parent }
             Rectangle { id: previewBanner; x: 7; y: 7; width: parent.width-14; height: parent.height*.32; radius: 10; clip: true; gradient: Gradient { GradientStop { position: 0; color: Theme.chassis } GradientStop { position: 1; color: Theme.blue } }
                 Image { anchors.fill: parent; source: root.preview.banner || ""; fillMode: Image.PreserveAspectCrop; asynchronous: true }

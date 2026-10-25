@@ -33,6 +33,44 @@ class Sink:
 
 
 class MappingTests(unittest.TestCase):
+    def test_arbitrary_chords_and_gestures_cancel_on_focus_loss(self):
+        p=profile();p['bindings']['south']={'press':'Ctrl+Alt+K','hold':'Shift+W','double':'F8'}
+        m=mod.Mapper(p);m.frame(sample(),True,0)
+        self.assertFalse(m.frame(sample(['south']),True,.01)['held'])
+        self.assertFalse(m.frame(sample(),True,.10)['held'])
+        self.assertEqual(set(m.frame(sample(),True,.36)['held']),{'Ctrl','Alt','K'})
+        self.assertFalse(m.frame(sample(),True,.38)['held'])
+        m.frame(sample(['south']),True,.5)
+        self.assertEqual(set(m.frame(sample(['south']),True,1)['held']),{'Shift','W'})
+        self.assertFalse(m.frame(sample(),True,1.02)['held'])
+        m.frame(sample(['south']),True,1.1);m.frame(sample(),True,1.2)
+        self.assertEqual(m.frame(sample(['south']),True,1.3)['held'],['F8'])
+        self.assertFalse(m.frame(sample(['south']),True,1.4)['held'])
+        m.frame(sample(),True,1.5);m.frame(sample(['south']),True,1.6);m.frame(sample(),True,1.7)
+        m.frame(sample(),False,1.71);m.frame(sample(),True,1.8)
+        self.assertFalse(m.frame(sample(),True,2.1)['held'])
+
+    def test_gesture_modifier_transition_does_not_replay_pending_tap(self):
+        p=profile();p['bindings']['south']={'press':'E','double':'F'}
+        m=mod.Mapper(p);m.frame(sample(),True,0)
+        m.frame(sample(['south']),True,.1);m.frame(sample(),True,.2)
+        m.frame(sample(['leftShoulder']),True,.3)
+        self.assertFalse(m.frame(sample(),True,.7)['held'])
+
+    def test_ring_presentation_does_not_change_injected_action(self):
+        p=profile();p['ringPresentation']=[{'name':'Inventory','slots':[{'label':'Map','icon':'bag'}]}]
+        m=mod.Mapper(p);m.frame(sample(),True,0)
+        out=m.frame(sample(['select'],(0,-1,0,0)),True,.02)
+        self.assertEqual(out['radial']['presentation']['name'],'Inventory')
+        self.assertEqual(m.frame(sample((),(0,-1,0,0)),True,.04)['held'],['1'])
+
+    def test_invalid_chords_and_gesture_rings_are_rejected(self):
+        for target in ('Ctrl+Ctrl+A','Ctrl+run.exe','A+B','Shift+Ring 1'):
+            p=profile();p['bindings']['south']=target
+            with self.assertRaises(ValueError):mod.Mapper(p)
+        p=profile();p['bindings']['south']={'hold':'Ring 1'}
+        with self.assertRaises(ValueError):mod.Mapper(p)
+
     def mapper(self):
         mapper=mod.Mapper(profile()); mapper.frame(sample(),True,0); return mapper
 

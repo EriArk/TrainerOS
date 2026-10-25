@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="96" height="96" viewBox="0 0 96 96">
+  <defs>
+    <pattern id="scan" width="6" height="4" patternUnits="userSpaceOnUse">
+      <path d="M0 3.5h6" stroke="#000" stroke-opacity=".32"/>
+      <path d="M.5 0v2M2.5 0v2M4.5 0v2" stroke="#9ebbb2" stroke-opacity=".035"/>
+    </pattern>
+  </defs>
+  <path fill="url(#scan)" d="M0 0h96v96H0z"/>
+  <path fill="#b5c5ba" fill-opacity=".06" d="M7 9h1v1H7zM41 5h1v1h-1zM79 17h1v1h-1zM23 29h1v1h-1zM60 37h1v1h-1zM89 47h1v1h-1zM10 59h1v1h-1zM37 69h1v1h-1zM71 61h1v1h-1zM55 89h1v1h-1zM87 81h1v1h-1zM20 85h1v1h-1z"/>
+</svg>

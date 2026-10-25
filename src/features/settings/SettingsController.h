@@ -42,7 +42,10 @@ class SettingsController final : public QObject {
     Q_PROPERTY(QVariantList controls READ controls NOTIFY changed)
 public:
     GameInputProfiles* gameInput() {return &gameInput_;}
-    void setController(ControllerInput* value) { input_=value;connect(value,&ControllerInput::profileChanged,this,&SettingsController::changed); }
+    void setController(ControllerInput* value) { input_=value;connect(value,&ControllerInput::profileChanged,this,&SettingsController::changed);
+        connect(&gameInput_,&GameInputProfiles::captureRequested,value,&ControllerInput::beginCapture);
+        connect(value,&ControllerInput::buttonCaptured,&gameInput_,[this](QString button){if(category_==16&&gameInput_.editing())gameInput_.selectBinding(button);});
+        connect(value,&ControllerInput::keyCaptured,&gameInput_,[this](QString chord){if(category_==16)gameInput_.assignTarget(chord);}); }
     void setScraper(ScrapeController* value) { scraper_=value; }
     CommunicationSettings* communication() { return &communication_; }
     void configureNearby(NativeActivityProvider*);
@@ -73,7 +76,7 @@ public:
     Q_INVOKABLE void activateRow(int index);
     Q_INVOKABLE void cycleTheme(int direction = 1);
     bool creditsOpen() const { return category_==6 && pane_; }
-    QString theme() const { return value_.theme; }
+    QString theme() const { return value_.theme=="dark"?"dark":"light"; }
     QString displayProfile() const;
     int interfaceScale() const;
     Q_INVOKABLE void adjustDisplay(int row, int direction);

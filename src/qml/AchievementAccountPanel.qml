@@ -13,7 +13,7 @@ Item {
         PageHeader { y: 6; compact: true; title: "RetroAchievements"; subtitle: root.account.status; multilineStatus: true }
         MountedPanel {
             anchors { left: parent.left; right: parent.right; bottom: parent.bottom }
-            height: 266; color: "#d4e2d6"
+            height: 266; color: Theme.surfaceColor("#d4e2d6")
             Column {
                 x: 28; y: 14; spacing: 10
                 Repeater {

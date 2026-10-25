@@ -22,10 +22,10 @@ Item {
         anchors.horizontalCenter: parent.horizontalCenter
         width: Math.min(770,parent.width*.88); height: Math.min(374,parent.height-Theme.contentTopInset-18)
         y: Math.max(Theme.contentTopInset+4,(parent.height-height)/2)
-        Rectangle { x: 3; y: 6; width: parent.width; height: parent.height; radius: 19; color: "#50302232" }
+        Rectangle { x: 3; y: 6; width: parent.width; height: parent.height; radius: 19; color: Theme.surfaceColor("#50302232") }
         Rectangle { anchors.fill: parent; radius: 18; color: Theme.chassis; border.color: Theme.rim; border.width: 2 }
         Rectangle {
-            anchors.fill: parent; anchors.margins: 7; radius: 12; border.color: "#b0ffffff"
+            anchors.fill: parent; anchors.margins: 7; radius: 12; border.color: Theme.surfaceColor("#b0ffffff")
             gradient: Gradient { GradientStop { position: 0; color: Theme.paper } GradientStop { position: 1; color: Qt.tint(Theme.paper,Qt.alpha(root.accent,.13)) } }
         }
         MouseArea { anchors.fill: parent }
@@ -78,7 +78,7 @@ Item {
                 id: metadata; anchors.bottom: parent.bottom; anchors.bottomMargin: 50; width: parent.width; spacing: 5
                 Rectangle { width: parent.width; height: 1; color: Qt.alpha(Theme.rim,.5) }
                 Text { width: parent.width; text: root.project.busy ? root.project.job.detail : root.project.installedVersion ? "Installed · "+root.project.installedVersion : root.release.version ? "Version "+root.release.version+(root.release.channel ? " · "+root.release.channel : "") : "No Crates package yet"; textFormat: Text.PlainText; elide: Text.ElideRight; color: Theme.ink; font.pixelSize: 13 }
-                Text { width: parent.width; text: (root.release.architecture ? root.release.architecture+" · " : "")+root.compatibilityText(); textFormat: Text.PlainText; elide: Text.ElideRight; color: root.release.compatibility === "incompatible" ? "#984b51" : Theme.muted; font.pixelSize: 13 }
+                Text { width: parent.width; text: (root.release.architecture ? root.release.architecture+" · " : "")+root.compatibilityText(); textFormat: Text.PlainText; elide: Text.ElideRight; color: root.release.compatibility === "incompatible" ? Theme.textColor("#984b51") : Theme.muted; font.pixelSize: 13 }
                 Text { visible: text.length>0; text: root.sizeText(root.release.sizeBytes); color: Theme.muted; font.pixelSize: 12 }
             }
             CapButton { objectName: "crates-primary"; anchors.left: parent.left; anchors.bottom: parent.bottom; width: parent.width-(root.flow.actions.length ? 44 : 0); height: 36

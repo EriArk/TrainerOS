@@ -11,7 +11,7 @@ Item {
         anchors.topMargin: Theme.contentTopInset
         PageHeader { id: deviceHeader; compact: true; title: "Your handheld"; subtitle: "D-pad adjusts volume and brightness in steps of 5%." }
         MountedPanel {
-            x: 0; y: deviceHeader.height; width: parent.width; height: parent.height - y; color: "#d4e2d6"
+            x: 0; y: deviceHeader.height; width: parent.width; height: parent.height - y; color: Theme.surfaceColor("#d4e2d6")
             Column {
                 x: 24; y: 12; spacing: 7
                 Repeater {
@@ -37,7 +37,7 @@ Item {
                         Text { y: 24; width: parent.width; text: modelData.value; color: Theme.ink; font.pixelSize: 17; wrapMode: Text.WordWrap }
                     }
                 }
-                Text { width: 284; text: root.device.busy ? "Updating…" : root.device.error; color: "#853b24"; font.pixelSize: 14; wrapMode: Text.WordWrap }
+                Text { width: 284; text: root.device.busy ? "Updating…" : root.device.error; color: Theme.textColor("#853b24"); font.pixelSize: 14; wrapMode: Text.WordWrap }
             }
         }
     }

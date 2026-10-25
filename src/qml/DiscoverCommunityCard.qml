@@ -9,7 +9,7 @@ Item {
     Rectangle { x: 1; y: 3; width: parent.width-2; height: parent.height-3; radius: 12; color: Theme.chassis; opacity: .17 }
     Rectangle {
         anchors.fill: parent; anchors.bottomMargin: 3; radius: 12; color: Theme.paper
-        border.width: root.selected ? 2 : 1; border.color: root.selected ? Theme.chassis : Qt.tint(Theme.paper,"#40516c60")
+        border.width: root.selected ? 2 : 1; border.color: root.selected ? Theme.chassis : Qt.tint(Theme.paper,Theme.surfaceColor("#40516c60"))
         Rectangle {
             id: banner; x: 5; y: 5; width: parent.width-10; height: root.compact?parent.height*.28:parent.height*.47; radius: 8; clip: true
             gradient: Gradient { GradientStop { position: 0; color: Theme.chassis } GradientStop { position: 1; color: Theme.blue } }

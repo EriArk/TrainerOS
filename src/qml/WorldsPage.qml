@@ -27,8 +27,8 @@ Item {
         PageHeader { id: regionsHeader; title: "Pokémon"; compact: true; trailing: root.shell.canEditWorld ? "" : (root.worlds.regionTileIndex + 1) + " / " + root.worlds.regionTiles.length }
         MountedPanel {
             x: 0; y: regionsHeader.height; width: parent.width; height: parent.height - y
-            color: "#d4e2d6"
-            Rectangle { width: parent.width; height: 2; color: "#b6cbbb" }
+            color: Theme.surfaceColor("#d4e2d6")
+            Rectangle { width: parent.width; height: 2; color: Theme.surfaceColor("#b6cbbb") }
             GridView {
                 id: regionGrid
                 x: 22; y: 10; width: parent.width-44; height: parent.height-20
@@ -86,7 +86,7 @@ Item {
         anchors.fill: parent; visible: root.listOpen
         PageHeader { id: adventuresHeader; title: root.worlds.region.name; subtitle: "Choose an Adventure" }
         MountedPanel {
-            y: adventuresHeader.height; width: parent.width; height: parent.height - y; color: "#d4e2d6"
+            y: adventuresHeader.height; width: parent.width; height: parent.height - y; color: Theme.surfaceColor("#d4e2d6")
             LibraryWheel {
                 objectName: "adventure-list"
                 anchors.fill: parent
@@ -136,14 +136,14 @@ Item {
                 model: [{value: root.worlds.detail.badges, label: "BADGES"}, {value: root.worlds.detail.caught, label: "CAUGHT"}]
                 delegate: Rectangle {
                     required property var modelData
-                    width: 147; height: 70; radius: 12; color: "#edf2e7"; border.color: "#c5d6c4"
+                    width: 147; height: 70; radius: 12; color: Theme.surfaceColor("#edf2e7"); border.color: Theme.surfaceColor("#c5d6c4")
                     Text { x: 15; y: 4; text: modelData.value; color: Theme.ink; font.pixelSize: 30; font.weight: Font.DemiBold }
                     Text { x: 16; y: 46; text: modelData.label; color: Theme.muted; font.pixelSize: 11; font.letterSpacing: 1 }
                 }
             }
         }
         MountedPanel {
-            x: 568; y: 119; width: parent.width - x; height: 213; color: "#e1ecde"
+            x: 568; y: 119; width: parent.width - x; height: 213; color: Theme.surfaceColor("#e1ecde")
             AdventureArtwork { id: detailArtwork; x: 20; y: 10; width: parent.width - 40; height: parent.height - 20; media: root.worlds.detail.artwork || ({}) }
             Text { visible: !detailArtwork.available; x: 23; y: 21; text: "YOUR NEXT STEP"; color: Theme.muted; font.pixelSize: 12; font.letterSpacing: 1 }
             Text { visible: !detailArtwork.available; x: 23; y: 54; width: parent.width - 46; text: root.worlds.detail.availability; wrapMode: Text.WordWrap; color: Theme.ink; font.pixelSize: 22; font.weight: Font.DemiBold }
@@ -151,7 +151,7 @@ Item {
         }
         MountedPanel {
             anchors { bottom: parent.bottom; left: parent.left; right: parent.right }
-            height: 78; color: "#c6dcca"
+            height: 78; color: Theme.surfaceColor("#c6dcca")
             Row {
                 x: 30; y: 18; spacing: 16
                 Repeater {

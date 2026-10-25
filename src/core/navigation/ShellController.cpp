@@ -79,6 +79,7 @@ ShellController::ShellController(LibraryRepository& repo, TrainerRepository& pro
     connect(settings_.gameInput(),&GameInputProfiles::changed,&settings_,&SettingsController::changed);
     connect(settings_.gameInput(),&GameInputProfiles::backRequested,this,[this]{settings_.selectPage("game-input",false);});
     connect(&pcGames_,&PcGamesController::saved,this,[this](QString){refreshLibrary();});
+    connect(settings_.gameInput(),&GameInputProfiles::textRequested,this,[this](QString title,QString text,int limit){textTarget_=TextTarget::GameInput;keyboard_.begin(title,text,limit);});
     connect(&pcGames_,&PcGamesController::textRequested,this,[this](QString title,QString text,int limit){textTarget_=TextTarget::PcGame;keyboard_.begin(title,text,limit);});
 
     connect(&dashboard_,&HomeDashboardController::changed,this,&ShellController::changed);
@@ -339,7 +340,8 @@ ShellController::ShellController(LibraryRepository& repo, TrainerRepository& pro
     connect(&keyboard_, &TextEntryController::accepted, this, [this](const QString& text) {
         const auto target = textTarget_;
         textTarget_ = TextTarget::None;
-        if (target == TextTarget::SetupName) trainerSetup_.applyName(text);
+        if(target==TextTarget::GameInput)settings_.gameInput()->applyText(text);
+        else if (target == TextTarget::SetupName) trainerSetup_.applyName(text);
         else if (target == TextTarget::TrainerName) trainer_.setDraftName(text);
         else if (target == TextTarget::WorldsSearch) worlds_.applySearch(text);
         else if (target == TextTarget::MultiverseSearch) multiverse_.applySearch(text);

@@ -33,11 +33,11 @@ Item {
             onClicked: { root.anchorMenu(this); root.social.contextRow() } }
         Rectangle { anchors.bottom: parent.bottom; width: parent.width; height: 1; color: Theme.chassis; opacity: .18 }
     }
-    Rectangle { id: activityStrip; objectName: "active-call-bar"; y: chatHeading.height+3; width: parent.width; height: visible ? 40 : 0; radius: 10; color: Qt.tint(Theme.paper,"#2c92bf9b"); border.color: Qt.tint(Theme.paper,"#6684a88b")
+    Rectangle { id: activityStrip; objectName: "active-call-bar"; y: chatHeading.height+3; width: parent.width; height: visible ? 40 : 0; radius: 10; color: Qt.tint(Theme.paper,Theme.surfaceColor("#2c92bf9b")); border.color: Qt.tint(Theme.paper,Theme.surfaceColor("#6684a88b"))
         readonly property var voice: root.account.voice || ({})
         visible: !root.compact && !root.embeddedRoom && !!voice.channel
         readonly property bool connected: voice.state === "connected" || voice.state === "reconnecting"
-        Rectangle { x: 12; anchors.verticalCenter: parent.verticalCenter; width: 7; height: 7; radius: 4; color: activityStrip.voice.state==="connected" ? "#548b5d" : Theme.yellow }
+        Rectangle { x: 12; anchors.verticalCenter: parent.verticalCenter; width: 7; height: 7; radius: 4; color: activityStrip.voice.state==="connected" ? Theme.surfaceColor("#548b5d") : Theme.yellow }
         Column { x: 27; anchors.verticalCenter: parent.verticalCenter; width: parent.width-151; spacing: 2
             Text { width: parent.width; text: activityStrip.voice.name || "Voice call"; font.family: Theme.displayFamily; font.pixelSize: 14; color: Theme.ink; elide: Text.ElideRight; textFormat: Text.PlainText }
             Text { width: parent.width; text: activityStrip.voice.state==="connected" ? (activityStrip.voice.muted ? "Microphone off" : "Microphone on") : activityStrip.voice.state==="reconnecting" ? "Reconnecting…" : "Connecting…"; font.pixelSize: 10; color: Theme.muted; elide: Text.ElideRight }
@@ -54,7 +54,7 @@ Item {
     }
     Text { renderType: typeof Text.CurveRendering === "number" ? Text.CurveRendering : Text.QtRendering; id: connectionStatus; y: activityStrip.y + activityStrip.height; width: parent.width; height: visible ? 22 : 0
         visible: !!root.account.status && root.account.status !== "Connected"
-        text: root.account.status || ""; color: "#80542a"; font.pixelSize: 11; elide: Text.ElideRight; textFormat: Text.PlainText }
+        text: root.account.status || ""; color: Theme.textColor("#80542a"); font.pixelSize: 11; elide: Text.ElideRight; textFormat: Text.PlainText }
     ListView {
         id: log; objectName: "social-message-log"
         anchors { top: connectionStatus.bottom; topMargin: 7; bottom: fileTray.top; bottomMargin: 8; left: parent.left; right: parent.right }
@@ -104,12 +104,12 @@ Item {
                     font.pixelSize: root.streamChat || modelData.system ? 12 : 15; color: modelData.system ? Theme.muted : Theme.ink; wrapMode: Text.Wrap; textFormat: root.streamChat ? Text.StyledText : Text.PlainText }
                 Text { renderType: typeof Text.CurveRendering === "number" ? Text.CurveRendering : Text.QtRendering; visible: !!modelData.callDetail; width: parent.width; text: modelData.callDetail || ""; font.pixelSize: 11; color: Theme.muted; wrapMode: Text.Wrap; textFormat: Text.PlainText }
                 Repeater { model: modelData.attachments || []
-                    Rectangle { required property var modelData; width: content.width; height: 34; radius: 6; color: "#deedf3"
+                    Rectangle { required property var modelData; width: content.width; height: 34; radius: 6; color: Theme.surfaceColor("#deedf3")
                         Text { anchors { fill: parent; margins: 8 } text: root.embeddedRoom ? "↓  "+(modelData.filename || "File")+" · "+root.fileSize(modelData.size) : modelData.content_type && modelData.content_type.startsWith("audio/") ? "Voice message · " + (modelData.duration || 0) + " s" : (modelData.filename || "File"); font.pixelSize: 13; color: Theme.ink; textFormat: Text.PlainText; elide: Text.ElideMiddle }
                         MouseArea { anchors.fill: parent; enabled: true; onClicked: { const mime=parent.modelData.content_type || ""; if(!root.embeddedRoom && (mime.startsWith("audio/") || mime.startsWith("image/")))root.social.selectMessage(root.sourceIndex(messageRow.index));else root.social.downloadFile(messageRow.modelData.id,parent.modelData.id) } }
                     }
                 }
-                Text { renderType: typeof Text.CurveRendering === "number" ? Text.CurveRendering : Text.QtRendering; visible: !!modelData.delivery; width: parent.width; text: (modelData.delivery || "") + (modelData.retryable ? "  ·  Retry ↻" : ""); font.pixelSize: 12; color: "#80542a"; wrapMode: Text.Wrap; textFormat: Text.PlainText
+                Text { renderType: typeof Text.CurveRendering === "number" ? Text.CurveRendering : Text.QtRendering; visible: !!modelData.delivery; width: parent.width; text: (modelData.delivery || "") + (modelData.retryable ? "  ·  Retry ↻" : ""); font.pixelSize: 12; color: Theme.textColor("#80542a"); wrapMode: Text.Wrap; textFormat: Text.PlainText
                     MouseArea { anchors.fill: parent; anchors.topMargin: -4; anchors.bottomMargin: -4; enabled: !!messageRow.modelData.retryable && !root.readOnlyChat; onClicked: root.social.retryMessage(messageRow.modelData.id) }
                 }
             }
@@ -117,7 +117,7 @@ Item {
     }
     Text { renderType: typeof Text.CurveRendering === "number" ? Text.CurveRendering : Text.QtRendering; anchors.centerIn: log; width: log.width - 40; visible: log.count === 0
         text: root.account.historyBusy ? "Loading messages..." : root.readOnlyChat ? "No spectator messages yet" : "Say hello!"; horizontalAlignment: Text.AlignHCenter; wrapMode: Text.WordWrap; font.pixelSize: 18; color: Theme.muted }
-    Rectangle { visible: !!root.account.historyPast; anchors { right: log.right; bottom: log.bottom; margins: 5 } width: 85; height: 28; radius: 8; color: "#e7ddf1"; border.color: "#bdacce"
+    Rectangle { visible: !!root.account.historyPast; anchors { right: log.right; bottom: log.bottom; margins: 5 } width: 85; height: 28; radius: 8; color: Theme.surfaceColor("#e7ddf1"); border.color: Theme.surfaceColor("#bdacce")
         Text { renderType: typeof Text.CurveRendering === "number" ? Text.CurveRendering : Text.QtRendering; anchors.centerIn: parent; text: "↓ Latest"; color: Theme.ink; font.pixelSize: 12 }
         MouseArea { anchors.fill: parent; onClicked: root.social.latest() }
     }
@@ -126,7 +126,7 @@ Item {
         visible: !root.readOnlyChat; height: visible ? Math.min(95,fileList.contentHeight)+(fileStatus.visible?25:0) : 0
         ListView { id: fileList; width: parent.width; height: Math.min(95,contentHeight); clip: true; spacing: 3
             model: root.social.files.selected
-            delegate: Rectangle { required property int index; required property var modelData; width: fileList.width; height: 29; radius: 6; color: Qt.tint(Theme.paper,"#227eb9ad")
+            delegate: Rectangle { required property int index; required property var modelData; width: fileList.width; height: 29; radius: 6; color: Qt.tint(Theme.paper,Theme.surfaceColor("#227eb9ad"))
                 Text { x: 8; anchors.verticalCenter: parent.verticalCenter; width: parent.width-39; text: modelData.name+" · "+root.fileSize(modelData.size); color: Theme.ink; font.pixelSize: 12; elide: Text.ElideMiddle; textFormat: Text.PlainText }
                 SocialIconButton { anchors.right: parent.right; width: 27; height: 27; icon: "x"; label: "Remove file"; enabled: !root.social.files.busy; onClicked: root.social.files.remove(index) }
             }

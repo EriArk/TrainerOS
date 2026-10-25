@@ -8,7 +8,7 @@ Item {
         anchors.fill: parent
         anchors.topMargin: -Theme.screenBounds.y
         anchors.leftMargin: -Theme.screenBounds.x
-        color: "#70102927"
+        color: Theme.surfaceColor("#70102927")
     }
     ControlsPanel { anchors.centerIn: parent; width: Math.min(implicitWidth,parent.width-32); height: Math.min(implicitHeight,parent.height-24); shell: root.shell; visible: root.shell.menuOpen && !root.shell.powerMenu && !root.shell.notice.length }
     Rectangle {
@@ -50,7 +50,7 @@ Item {
                             visible:index===1;x:13;y:17;width:22;height:22;radius:6
                             color:root.shell.powerControl.keepAwake?Theme.chassis:Theme.paper
                             border.color:Qt.alpha(Theme.ink,.35)
-                            Text {anchors.centerIn:parent;text:root.shell.powerControl.keepAwake?"✓":"";color:Theme.paper;font.pixelSize:17}
+                            Text {anchors.centerIn:parent;text:root.shell.powerControl.keepAwake?"✓":"";color:Theme.accentInk;font.pixelSize:17}
                         }
                     }
                 }
@@ -71,7 +71,7 @@ Item {
             }
             MountedPanel {
                 x: 9; y: root.shell.powerMenu ? 65 : 48; width: parent.width - 18; height: parent.height - y - 9
-                color: "#d1e0d6"
+                color: Theme.surfaceColor("#d1e0d6")
                 visible: root.shell.notice.length === 0
                 Column { x: 18; y: 25; width: parent.width-36; spacing: 13
                     Repeater { model: root.shell.powerMenu ? root.shell.menuItems : []
@@ -91,7 +91,7 @@ Item {
             }
             MountedPanel {
                 anchors { bottom: parent.bottom; left: parent.left; right: parent.right; margins: 9 }
-                height: 74; color: "#ccdcd0"; visible: root.shell.notice.length > 0
+                height: 74; color: Theme.surfaceColor("#ccdcd0"); visible: root.shell.notice.length > 0
                 CapButton {
                     objectName: "notice-close"
                     x: 18; y: 15; width: 160; height: 42; label: root.shell.modeConfirmation ? "Continue" : "Got it"

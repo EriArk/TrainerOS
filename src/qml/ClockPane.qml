@@ -27,14 +27,14 @@ Item {
             onSelectedChanged: if(selected) forceActiveFocus(Qt.OtherFocusReason)
             onVisibleChanged: if(selected && visible) forceActiveFocus(Qt.OtherFocusReason)
             Component.onCompleted: if(selected) forceActiveFocus(Qt.OtherFocusReason)
-            color: root.flat ? "transparent" : !modelData.enabled ? "#dce3d9" : selected ? "#f4df99" : index%2 ? "#c6dfdf" : "#e5ead5"
-            border.width: root.flat ? 0 : selected ? 3 : 1; border.color: selected ? Theme.focus : "#a5b8a7"
-            Rectangle { x: 0; y: 8; width: 2; height: parent.height-16; color: "#64987b"; visible: root.flat && parent.selected }
-            Rectangle { x: 14; y: parent.height-1; width: parent.width-28; height: 1; color: "#e0e6dc"; visible: root.flat }
+            color: root.flat ? "transparent" : !modelData.enabled ? Theme.surfaceColor("#dce3d9") : selected ? Theme.surfaceColor("#f4df99") : index%2 ? Theme.surfaceColor("#c6dfdf") : Theme.surfaceColor("#e5ead5")
+            border.width: root.flat ? 0 : selected ? 3 : 1; border.color: selected ? Theme.focus : Theme.surfaceColor("#a5b8a7")
+            Rectangle { x: 0; y: 8; width: 2; height: parent.height-16; color: Theme.surfaceColor("#64987b"); visible: root.flat && parent.selected }
+            Rectangle { x: 14; y: parent.height-1; width: parent.width-28; height: 1; color: Theme.surfaceColor("#e0e6dc"); visible: root.flat }
             Text { x: 14; anchors.verticalCenter: parent.verticalCenter; width: parent.width*.54-15; text: modelData.label; font.family: root.flat ? Qt.application.font.family : Theme.displayFamily; font.pixelSize: root.flat ? 15 : root.compact ? 16 : 18; color: Theme.ink; elide: Text.ElideRight }
             Text { x: parent.width*.54; width: parent.width-x-14; anchors.verticalCenter: parent.verticalCenter; text: modelData.detail; font.pixelSize: root.compact ? 12 : 14; horizontalAlignment: Text.AlignRight; color: Theme.muted; elide: Text.ElideRight }
             TapHandler { enabled: !root.clock.busy; onTapped: root.clock.activate(index) }
         }
     }
-    Text { x: 8; anchors.bottom: parent.bottom; width: parent.width-16; height: 34; text: root.clock.busy ? "Updating…" : root.externalError || root.clock.error; color: "#853b24"; font.pixelSize: 13; wrapMode: Text.WordWrap; maximumLineCount: 2; elide: Text.ElideRight }
+    Text { x: 8; anchors.bottom: parent.bottom; width: parent.width-16; height: 34; text: root.clock.busy ? "Updating…" : root.externalError || root.clock.error; color: Theme.textColor("#853b24"); font.pixelSize: 13; wrapMode: Text.WordWrap; maximumLineCount: 2; elide: Text.ElideRight }
 }

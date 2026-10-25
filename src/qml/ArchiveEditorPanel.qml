@@ -11,7 +11,7 @@ Item {
         title: root.editor.route === "team" ? "Your champion team" : root.editor.route === "adventures" ? "Choose an Adventure" : "A journey to remember"
         subtitle: root.editor.route === "adventures" ? (root.editor.query.length ? "Search: " + root.editor.query : "Your library") : "Your own record · optional details can stay unknown"
     }
-    MountedPanel { x: 0; y: editorHeader.height; width: parent.width; height: parent.height - y; color: "#dce4d8" }
+    MountedPanel { x: 0; y: editorHeader.height; width: parent.width; height: parent.height - y; color: Theme.surfaceColor("#dce4d8") }
     Item {
         anchors.fill: parent; visible: root.editor.route !== "adventures"
         Repeater {
@@ -50,11 +50,11 @@ Item {
     }
     MountedPanel {
         anchors { left: parent.left; right: parent.right; bottom: parent.bottom }
-        height: 102; color: "#b8cbbc"
+        height: 102; color: Theme.surfaceColor("#b8cbbc")
         Text {
             x: 26; y: 7; width: parent.width - 52; height: 35; textFormat: Text.PlainText
             text: root.editor.error.length ? root.editor.error : root.editor.saving ? "Saving your memory…" : ""
-            color: root.editor.error.length ? "#873c32" : Theme.ink; font.pixelSize: 15; wrapMode: Text.WordWrap
+            color: root.editor.error.length ? Theme.textColor("#873c32") : Theme.ink; font.pixelSize: 15; wrapMode: Text.WordWrap
         }
         CapButton {
             objectName: "memory-save"; x: 25; y: 48; width: 337; height: 40

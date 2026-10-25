@@ -22,7 +22,7 @@ Item {
             id: lobbyCard; objectName: "home-lobby-card"; width: parent.width; height: visible ? 54 : 0
             visible: true
             Rectangle { x: 1; y: 3; width: parent.width-2; height: parent.height-4; radius: 10; color: Theme.chassisDark; opacity: .16 }
-            Rectangle { anchors.fill: parent; anchors.bottomMargin: 3; radius: 10; color: Qt.tint(Theme.paper,"#297eb9ad"); border.color: root.active && root.flow.focus==="lobbies"?Theme.focus:Theme.rim; border.width: root.active && root.flow.focus==="lobbies"?2:1 }
+            Rectangle { anchors.fill: parent; anchors.bottomMargin: 3; radius: 10; color: Qt.tint(Theme.paper,Theme.surfaceColor("#297eb9ad")); border.color: root.active && root.flow.focus==="lobbies"?Theme.focus:Theme.rim; border.width: root.active && root.flow.focus==="lobbies"?2:1 }
             MenuGlyph { x: 9; anchors.verticalCenter: parent.verticalCenter; width: 25; height: 25; glyph: "game-controller" }
             Text { x: 43; y: 7; width: parent.width-66; text: root.shell.social.homeLobby.title || "Create lobby"; font.family: Theme.displayFamily; font.pixelSize: 16; color: Theme.ink; elide: Text.ElideRight; textFormat: Text.PlainText }
             Text { x: 43; y: 30; width: parent.width-66; text: root.shell.social.homeLobby.id ? "My Lobbies · "+root.shell.social.homeLobby.count : "Get together and play"; font.pixelSize: 11; color: Theme.muted }
@@ -42,11 +42,11 @@ Item {
                     objectName: "home-person-"+index
                     width: (chatRow.width-3*chatRow.spacing)/4; height: chatRow.height
                     readonly property real diameter: Math.min(46,width-4)
-                    Rectangle { x: (parent.width-width)/2; y: 3; width: parent.diameter; height: width; radius: width / 2; color: "#88998d" }
+                    Rectangle { x: (parent.width-width)/2; y: 3; width: parent.diameter; height: width; radius: width / 2; color: Theme.surfaceColor("#88998d") }
                     Rectangle {
                         x: (parent.width-width)/2; width: parent.diameter; height: width; radius: width / 2
                         color: [Theme.blue,Theme.pink,Theme.green,Theme.yellow][index%4]
-                        border.color: root.active && root.flow.focus === modelData.key ? Theme.focus : "#f8fff1"
+                        border.color: root.active && root.flow.focus === modelData.key ? Theme.focus : Theme.surfaceColor("#f8fff1")
                         border.width: root.active && root.flow.focus === modelData.key ? 3 : 2
                         Image { id: avatar; anchors.fill: parent; anchors.margins: 5; source: modelData.avatar || ""; asynchronous: true; sourceSize: Qt.size(96,96); fillMode: Image.PreserveAspectFit; visible: status === Image.Ready }
                         Text { anchors.centerIn: parent; visible: avatar.status !== Image.Ready; text: (modelData.name || "?").substring(0,1); color: Theme.ink; font.family: Theme.displayFamily; font.pixelSize: 25 * root.unit }
@@ -59,21 +59,25 @@ Item {
             }
         }
         Item {
+            id: emptySocial
+            readonly property bool compact: height < 100
             visible: root.flow.people.length === 0 && root.flow.activities.length === 0
-            x: 3*root.unit; y: lobbyCard.height+16*root.unit; width: parent.width; height: 92*root.unit
+            x: 3*root.unit; y: lobbyCard.height+16*root.unit; width: parent.width; height: Math.max(0,parent.height-y)
             Rectangle {
+                visible: !emptySocial.compact
                 x: 3; y: 9*root.unit; width: 67*root.unit; height: 55*root.unit; radius: 17*root.unit
-                color: "#b484a5"; rotation: -10; border.color: "#edd3d9"; border.width: 2
+                color: Theme.surfaceColor("#b484a5"); rotation: -10; border.color: Theme.surfaceColor("#edd3d9"); border.width: 2
             }
             Rectangle {
+                visible: !emptySocial.compact
                 x: 17*root.unit; y: 2*root.unit; width: 65*root.unit; height: 55*root.unit; radius: 17*root.unit
-                color: Theme.blue; rotation: 7; border.color: "#e8faff"; border.width: 2
+                color: Theme.blue; rotation: 7; border.color: Theme.surfaceColor("#e8faff"); border.width: 2
                 Image { anchors.centerIn: parent; width: 36*root.unit; height: width; source: "qrc:/social-icons/users.svg" }
             }
             Column {
-                x: 98*root.unit; y: 8*root.unit; width: parent.width-x; spacing: 7*root.unit
-                Text { width: parent.width; text: "Better together"; color: Theme.ink; font.family: Theme.displayFamily; font.pixelSize: 19*root.unit; wrapMode: Text.WordWrap; maximumLineCount: 2; elide: Text.ElideRight }
-                Text { width: parent.width; text: "Friends, messages and invitations\nmeet here."; color: Theme.muted; font.pixelSize: 13*root.unit; wrapMode: Text.WordWrap }
+                x: emptySocial.compact ? 0 : 98*root.unit; y: emptySocial.compact ? 0 : 8*root.unit; width: parent.width-x; spacing: 5*root.unit
+                Text { width: parent.width; text: "Better together"; color: Theme.ink; font.family: Theme.displayFamily; font.pixelSize: emptySocial.compact ? 16 : 19; wrapMode: Text.WordWrap; maximumLineCount: emptySocial.compact ? 1 : 2; elide: Text.ElideRight }
+                Text { width: parent.width; visible: emptySocial.height>48; text: "Friends, messages and invitations"; color: Theme.muted; font.pixelSize: emptySocial.compact ? 11 : 13; wrapMode: Text.WordWrap; maximumLineCount: 2; elide: Text.ElideRight }
             }
         }
         Item { id: updateHeading; y: root.flow.people.length ? chatRow.y+chatRow.height+3 : lobbyCard.height+7; width: parent.width; height: root.flow.activities.length ? 26 : 0
@@ -94,13 +98,13 @@ Item {
                 required property var modelData
                 width: events.width; height: 52
                 readonly property bool selected: root.active && root.flow.focus===modelData.key
-                Rectangle { anchors.fill: parent; anchors.margins: 1; radius: 8; color: eventRow.selected ? "#30e8c66c" : eventPointer.containsMouse ? "#182f716b" : "transparent"; border.width: eventRow.selected ? 2 : 0; border.color: Theme.focus }
+                Rectangle { anchors.fill: parent; anchors.margins: 1; radius: 8; color: eventRow.selected ? Theme.surfaceColor("#30e8c66c") : eventPointer.containsMouse ? Theme.surfaceColor("#182f716b") : "transparent"; border.width: eventRow.selected ? 2 : 0; border.color: Theme.focus }
                 Rectangle { x: 5; y: 14; width: 24; height: 24; radius: 12; color: modelData.request ? Theme.pink : modelData.activity ? Theme.green : Theme.blue; opacity: .6 }
                 Text { x: 5; y: 13; width: 24; horizontalAlignment: Text.AlignHCenter; text: modelData.request ? "+" : modelData.activity ? "↗" : "·"; color: Theme.ink; font.pixelSize: 21 }
                 Text { x: 38; y: 6; width: parent.width-x-34; text: modelData.name || "Activity"; color: Theme.ink; font.pixelSize: 14; elide: Text.ElideRight }
                 Text { x: 38; y: 27; width: parent.width-x-34; text: modelData.detail || ""; color: Theme.muted; font.pixelSize: 12; elide: Text.ElideRight }
                 Text { anchors.right: parent.right; anchors.rightMargin: 6; anchors.verticalCenter: parent.verticalCenter; visible: !!modelData.ringing || !!modelData.pending; text: "›"; color: eventRow.selected ? Theme.ink : Theme.muted; font.pixelSize: 24 }
-                Rectangle { x: 38; y: parent.height-1; width: parent.width-x-8; height: 1; color: "#183c655e" }
+                Rectangle { x: 38; y: parent.height-1; width: parent.width-x-8; height: 1; color: Theme.surfaceColor("#183c655e") }
                 MouseArea { id: eventPointer; anchors.fill: parent; hoverEnabled: true; onClicked: root.shell.activateDashboard(modelData.key) }
                 SocialIconButton { anchors.right: parent.right; anchors.verticalCenter: parent.verticalCenter; icon: "x"; label: "Remove notification"; visible: !modelData.ringing && !modelData.pending; onClicked: root.shell.dismissNotificationById(modelData.id) }
                 Accessible.role: Accessible.Button; Accessible.name: (modelData.name || "Activity")+", "+(modelData.detail || "")
@@ -122,9 +126,9 @@ Item {
         y: root.generic ? parent.height-height-13 : root.usableHeight-height
         width: root.generic ? parent.width-play.width-60 : activity.width
         height: root.generic ? (compact ? 128 : 148) : 139
-        Rectangle { visible: !root.generic; width: parent.width; height: 1; color: "#70c6d6b6" }
-        Rectangle { visible: !root.generic; y: 1; width: parent.width; height: 1; color: "#203a4635" }
-        Text { y: root.generic ? 6 : 13; width: parent.width; elide: Text.ElideRight; text: "Recent achievements"; color: root.generic ? "#fff4ce" : Theme.ink; font.family: Theme.displayFamily; font.pixelSize: 19 * root.unit }
+        Rectangle { visible: !root.generic; width: parent.width; height: 1; color: Theme.surfaceColor("#70c6d6b6") }
+        Rectangle { visible: !root.generic; y: 1; width: parent.width; height: 1; color: Theme.surfaceColor("#203a4635") }
+        Text { y: root.generic ? 6 : 13; width: parent.width; elide: Text.ElideRight; text: "Recent achievements"; color: root.generic ? Theme.textColor("#fff4ce") : Theme.ink; font.family: Theme.displayFamily; font.pixelSize: 19 * root.unit }
         ListView {
             id: trophies; objectName: "home-achievements"
             y: root.generic ? (awards.compact ? 29 : 34) : 45; width: parent.width; height: root.generic ? (awards.compact ? 84 : 103) : 70
@@ -139,24 +143,24 @@ Item {
                 Rectangle {
                     id: medallion
                     x: root.generic ? (parent.width-width)/2 : 2; y: 5; width: root.generic ? Math.min(parent.width-6,awards.compact ? 46 : 58) : 58; height: width; radius: width/2
-                    color: "#234b46"; border.color: "#769f87"; border.width: 2
+                    color: Theme.surfaceColor("#234b46"); border.color: Theme.surfaceColor("#769f87"); border.width: 2
                     Rectangle {
                         anchors.fill: parent; anchors.margins: 4; radius: width/2
-                        gradient: Gradient { GradientStop { position: 0; color: "#ffe1a0" } GradientStop { position: 1; color: "#ae773f" } }
-                        border.color: "#f3cf85"; border.width: 2
+                        gradient: Gradient { GradientStop { position: 0; color: Theme.surfaceColor("#ffe1a0") } GradientStop { position: 1; color: Theme.surfaceColor("#ae773f") } }
+                        border.color: Theme.surfaceColor("#f3cf85"); border.width: 2
                         Image {
                             id: badge; anchors.fill: parent; anchors.margins: 7
                             source: root.visible ? modelData.icon || "" : ""
                             asynchronous: true; cache: true; sourceSize: Qt.size(96,96); fillMode: Image.PreserveAspectFit
                         }
-                        Text { anchors.centerIn: parent; visible: badge.status !== Image.Ready; text: "★"; font.pixelSize: 26*root.unit; color: "#80542e" }
+                        Text { anchors.centerIn: parent; visible: badge.status !== Image.Ready; text: "★"; font.pixelSize: 26*root.unit; color: Theme.textColor("#80542e") }
                     }
                     Rectangle { anchors.fill: parent; anchors.margins: -2; radius: width/2; color: "transparent"; border.color: Theme.focus; border.width: 3; visible: root.active && root.flow.focus===modelData.key }
                 }
                 Text {
                     objectName: "home-achievement-caption"
                     visible: root.generic; y: medallion.y+medallion.height+6; width: parent.width
-                    text: modelData.name; color: "#fff4ce"; font.pixelSize: 11
+                    text: modelData.name; color: Theme.textColor("#fff4ce"); font.pixelSize: 11
                     horizontalAlignment: Text.AlignHCenter; wrapMode: Text.WordWrap
                     maximumLineCount: 2; elide: Text.ElideRight
                 }
@@ -173,9 +177,9 @@ Item {
                         Rectangle {
                             anchors.horizontalCenter: parent.horizontalCenter
                             width: root.generic ? Math.min(parent.width-6,awards.compact ? 46 : 58) : 54
-                            height: width; radius: width/2; color: "#80244844"; border.color: "#9eae89"; border.width: 2
-                            Rectangle { anchors.fill: parent; anchors.margins: 5; radius: width/2; color: "transparent"; border.color: "#7d916f" }
-                            Text { anchors.centerIn: parent; text: "☆"; color: "#b9c6a2"; font.pixelSize: 29*root.unit }
+                            height: width; radius: width/2; color: Theme.surfaceColor("#80244844"); border.color: Theme.surfaceColor("#9eae89"); border.width: 2
+                            Rectangle { anchors.fill: parent; anchors.margins: 5; radius: width/2; color: "transparent"; border.color: Theme.surfaceColor("#7d916f") }
+                            Text { anchors.centerIn: parent; text: "☆"; color: Theme.textColor("#b9c6a2"); font.pixelSize: 29*root.unit }
                         }
                     }
                 }
@@ -190,7 +194,7 @@ Item {
                 for (let i=0; i<rows.length; ++i) if(rows[i].key===root.flow.focus) chosen=rows[i]
                 return chosen ? chosen.name + (chosen.offline ? " · Offline" : "") : "Your first achievements await"
             }
-            color: root.generic ? "#e1ebd4" : Theme.muted; font.pixelSize: 12*root.unit; elide: Text.ElideRight
+            color: root.generic ? Theme.textColor("#e1ebd4") : Theme.muted; font.pixelSize: 12*root.unit; elide: Text.ElideRight
         }
     }
     // A softly raised card: diffuse contact shadows, a darker lower edge,
@@ -202,7 +206,7 @@ Item {
             x: showcase.x-6+index; y: showcase.y+5+index
             width: showcase.width+12-index*2; height: showcase.height+5-index
             radius: showcase.radius+6-index
-            color: ["#04142220","#07142220","#0b142220","#10142220","#17142220"][index]
+            color: [Theme.surfaceColor("#04142220"),Theme.surfaceColor("#07142220"),Theme.surfaceColor("#0b142220"),Theme.surfaceColor("#10142220"),Theme.surfaceColor("#17142220")][index]
         }
     }
     Rectangle { x: showcase.x; y: showcase.y+5; width: showcase.width; height: showcase.height; radius: showcase.radius; color: Theme.chassisFoot; border.color: Theme.edgeShadow; border.width: 1 }
@@ -234,7 +238,7 @@ Item {
             compact: awards.compact
             game: root.shell.homeGame
         }
-        Rectangle { visible: root.generic; x: 20; y: awards.y; width: parent.width-play.width-50; height: 1; color: "#70c6d6b6" }
+        Rectangle { visible: root.generic; x: 20; y: awards.y; width: parent.width-play.width-50; height: 1; color: Theme.surfaceColor("#70c6d6b6") }
         AdventureButton {
             id: play
             anchors { right: parent.right; bottom: parent.bottom; rightMargin: 16*root.unit; bottomMargin: 29*root.unit }

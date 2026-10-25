@@ -59,11 +59,11 @@ Item {
             Accessible.onPressAction: if (root.takesFocus) root.activated(index)
             Rectangle {
                 x: frame.x+1; y: frame.y+4; width: frame.width; height: frame.height; radius: 9
-                color: tile.selected ? "#40172c29" : "#20172c29"
+                color: tile.selected ? Theme.surfaceColor("#40172c29") : Theme.surfaceColor("#20172c29")
             }
             Rectangle {
                 anchors.fill: frame; anchors.margins: -3; radius: 11
-                visible: tile.selected; color: "transparent"; border.color: "#65f4cc62"; border.width: 3
+                visible: tile.selected; color: "transparent"; border.color: Theme.surfaceColor("#65f4cc62"); border.width: 3
             }
             Rectangle {
                 id: frame; objectName: "grid-frame-"+tile.index
@@ -82,7 +82,7 @@ Item {
                     fallbackArt: tile.modelData.logo || ""
                     playbackAllowed: false
                 }
-                Rectangle { x: 7; y: 2; width: parent.width-14; height: 1; color: "#60ffffff" }
+                Rectangle { x: 7; y: 2; width: parent.width-14; height: 1; color: Theme.surfaceColor("#60ffffff") }
                 Text { anchors.left: parent.left; anchors.top: parent.top; anchors.margins: 7; visible: tile.modelData.linked === false; text: "!"; color: Theme.yellow; font.bold: true; font.pixelSize: 18 }
             }
             Text {

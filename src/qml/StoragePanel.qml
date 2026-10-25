@@ -4,7 +4,7 @@ Item {
     id: root
     required property var stateController
     Rectangle { anchors.fill: parent; color: Theme.chassisDark }
-    Text { x: 30; y: 25; text: "TRAINER / OS"; color: "#e5eee1"; font.pixelSize: 20; font.bold: true; font.letterSpacing: 2 }
+    Text { x: 30; y: 25; text: "TRAINER / OS"; color: Theme.textColor("#e5eee1"); font.pixelSize: 20; font.bold: true; font.letterSpacing: 2 }
     Panel {
         x: 14; y: 68; width: parent.width - 28; height: 430
         Text { x: 32; y: 30; text: root.stateController.title; color: Theme.ink; font.pixelSize: 30; font.weight: Font.DemiBold }
@@ -15,7 +15,7 @@ Item {
         }
         MountedPanel {
             anchors { left: parent.left; right: parent.right; bottom: parent.bottom; margins: 9 }
-            height: 211; color: "#c6dcca"
+            height: 211; color: Theme.surfaceColor("#c6dcca")
             Column {
                 x: 23; y: 18; spacing: 14
                 Repeater {

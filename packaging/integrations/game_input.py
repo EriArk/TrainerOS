@@ -11,9 +11,16 @@ BUTTONS = ('south', 'east', 'west', 'north', 'leftShoulder', 'rightShoulder',
            'up', 'down', 'left', 'right')
 KEYS = set(string.ascii_uppercase + string.digits) | {
     'Space', 'Enter', 'Escape', 'Tab', 'Backspace', 'Shift', 'Ctrl', 'Alt',
-    'Up', 'Down', 'Left', 'Right'} | {f'F{i}' for i in range(1, 13)}
+    'Up', 'Down', 'Left', 'Right', 'Insert', 'Delete', 'Home', 'End', 'PageUp', 'PageDown', 'Minus', 'Equal', 'Comma', 'Period', 'Slash', 'Backslash', 'Semicolon', 'Apostrophe', 'BracketLeft', 'BracketRight', 'Grave'} | {f'F{i}' for i in range(1, 13)}
 TARGETS = KEYS | {'None', 'MouseLeft', 'MouseRight', 'MouseMiddle', 'WheelUp',
                  'WheelDown', 'Ctrl+S', 'Ctrl+L', 'Alt+Enter'}
+
+
+def valid_target(target, rings=False):
+    if not isinstance(target,str): return False
+    if target in TARGETS or (rings and target in {f'Ring {i}' for i in range(1,5)}): return True
+    parts=target.split('+')
+    return 2<=len(parts)<=4 and len(set(parts))==len(parts) and set(parts[:-1])<={'Ctrl','Alt','Shift'} and parts[-1] in KEYS
 
 
 def validate(p):
@@ -31,12 +38,27 @@ def validate(p):
     if not isinstance(rings, list) or len(rings) > 4:
         raise ValueError('Invalid rings')
     for ring in rings:
-        if not isinstance(ring, list) or not 2 <= len(ring) <= 8 or any(not isinstance(x, str) or x not in TARGETS for x in ring):
+        if not isinstance(ring, list) or not 2 <= len(ring) <= 8 or any(not valid_target(x) for x in ring):
             raise ValueError('Invalid ring slot')
     for key in ('bindings', 'shiftBindings'):
         bindings = p.get(key)
-        if not isinstance(bindings, dict) or any(k not in BUTTONS or not isinstance(v, str) or v not in TARGETS | {f'Ring {i}' for i in range(1, 5)} for k, v in bindings.items()):
-            raise ValueError('Invalid button mapping')
+        if not isinstance(bindings, dict): raise ValueError('Invalid button mapping')
+        for k,v in bindings.items():
+            if k not in BUTTONS: raise ValueError('Reserved button')
+            if isinstance(v,str):
+                if not valid_target(v,True): raise ValueError('Invalid action')
+            elif isinstance(v,dict) and v and set(v)<={'press','hold','double'}:
+                if any(not valid_target(t) for t in v.values()): raise ValueError('Invalid gesture action')
+            else: raise ValueError('Invalid gesture mapping')
+    meta=p.get('ringPresentation',[])
+    if not isinstance(meta,list) or len(meta)>4: raise ValueError('Invalid ring presentation')
+    for r in meta:
+        if not isinstance(r,dict) or not isinstance(r.get('name',''),str) or len(r.get('name',''))>32: raise ValueError('Invalid ring name')
+        slots=r.get('slots',[])
+        if not isinstance(slots,list) or len(slots)>8: raise ValueError('Invalid slot presentation')
+        for slot in slots:
+            if not isinstance(slot,dict) or not isinstance(slot.get('label',''),str) or len(slot.get('label',''))>32 or slot.get('icon','') not in ('','star','bag','sword','heart','bolt','target'): raise ValueError('Invalid command label')
+
     return p
 
 
@@ -54,6 +76,10 @@ class Mapper:
         self.scroll_at = 0
         self.touch_target = None
         self.blocked_ring_button = None
+        self.gestures = {}
+        self.pending_taps = {}
+        self.previous_layer = None
+        self.gesture_blocked = set()
 
     def select_slot(self, index):
         if self.ring is None or type(index) is not int:
@@ -72,6 +98,7 @@ class Mapper:
         if not active or not sample.get('connected') or sample.get('home'):
             self.armed = False; self.ring = None; self.selected = -1
             self.touch_target = None
+            self.gestures.clear(); self.pending_taps.clear(); self.previous_layer=None; self.gesture_blocked.clear()
             return result
         if not self.armed:
             self.armed = bool(sample.get('neutral'))
@@ -87,6 +114,11 @@ class Mapper:
         modifier = self.p['modifier']
         bindings = self.p['shiftBindings'] if modifier in pressed else self.p['bindings']
         pressed.discard(modifier)
+        layer=modifier in set(sample.get('buttons',[]))
+        if self.previous_layer is not None and layer!=self.previous_layer:
+            self.gestures.clear();self.pending_taps.clear();self.gesture_blocked.update(pressed)
+        self.previous_layer=layer
+        self.gesture_blocked.intersection_update(pressed)
         axes = sample.get('sticks', [0, 0, 0, 0])
         dz = self.p['deadzone'] / 100
         def axis(v):
@@ -96,21 +128,25 @@ class Mapper:
         if self.ring is None:
             for button in BUTTONS:
                 target = bindings.get(button, 'None')
-                if button in pressed and target.startswith('Ring '):
+                if button in pressed and isinstance(target,str) and target.startswith('Ring '):
                     index = int(target[-1])-1
                     if index < len(self.p['rings']):
                         self.ring = (button, index); self.selected = -1
                         break
         if self.ring is not None:
+            self.gestures.clear();self.pending_taps.clear()
             button, index = self.ring
             slots = self.p['rings'][index]
+            if sample.get('back') and button != sample.get('backButton','east'):
+                self.blocked_ring_button=button;self.ring=None;self.selected=-1
+                return result
             if math.hypot(lx, ly) > .3:
                 angle = (math.atan2(lx, -ly)+2*math.pi) % (2*math.pi)
                 self.selected = int(angle/(2*math.pi)*len(slots)+.5) % len(slots)
             else:
                 self.selected = -1
             if button in pressed:
-                result['radial'] = {'ring': index, 'slots': slots, 'selected': self.selected}
+                result['radial'] = {'ring': index, 'slots': slots, 'selected': self.selected, 'presentation': self.p.get('ringPresentation',[])[index] if index<len(self.p.get('ringPresentation',[])) else {}}
                 return result
             if self.selected >= 0:
                 held.update(keys(slots[self.selected]))
@@ -118,8 +154,34 @@ class Mapper:
             # Suppress the release frame's normal stick/button actions.
             result['held'] = sorted(held)
             return result
-        for button in pressed:
-            held.update(keys(bindings.get(button, 'None')))
+        # Simple bindings remain immediate. Gesture bindings defer tap until
+        # release (and, for double press, until its 250 ms window expires).
+        for button in BUTTONS:
+            target=bindings.get(button,'None')
+            if isinstance(target,str):
+                if button in pressed: held.update(keys(target))
+                continue
+            if button in self.gesture_blocked: continue
+            state=self.gestures.get(button)
+            if button in pressed:
+                if state is None:
+                    double=button in self.pending_taps and now-self.pending_taps[button][0]<=.25
+                    self.pending_taps.pop(button,None)
+                    state=self.gestures[button]={'start':now,'double':double,'held':False}
+                    if double: held.update(keys(target.get('double','None')))
+                if not state['double'] and target.get('hold','None')!='None' and now-state['start']>=.45:
+                    state['held']=True
+                    held.update(keys(target.get('hold','None')))
+            elif state is not None:
+                if not state['held'] and not state['double']:
+                    tap=target.get('press','None')
+                    if target.get('double','None')!='None': self.pending_taps[button]=(now,tap)
+                    else: held.update(keys(tap))
+                del self.gestures[button]
+            pending=self.pending_taps.get(button)
+            if pending is not None and now-pending[0]>.25:
+                held.update(keys(pending[1]));del self.pending_taps[button]
+
         if self.p['leftStick'] != 'off':
             up, down, left, right = ('W', 'S', 'A', 'D') if self.p['leftStick'] == 'wasd' else ('Up', 'Down', 'Left', 'Right')
             if lx < -.3: held.add(left)
@@ -176,7 +238,7 @@ class XTestSink:
         x11.x.XKeysymToKeycode.argtypes = [c.c_void_p, c.c_ulong]; x11.x.XKeysymToKeycode.restype = c.c_uint
         self.codes = {}
         names = {'Enter':'Return', 'Escape':'Escape', 'Backspace':'BackSpace', 'Space':'space',
-                 'Ctrl':'Control_L', 'Shift':'Shift_L', 'Alt':'Alt_L'}
+                 'Ctrl':'Control_L', 'Shift':'Shift_L', 'Alt':'Alt_L', 'PageUp':'Prior', 'PageDown':'Next', **{k:k.lower() for k in ('Minus','Equal','Comma','Period','Slash','Backslash','Semicolon','Apostrophe','BracketLeft','BracketRight','Grave')}}
         for key in KEYS:
             name = names.get(key, key.lower() if len(key)==1 and key.isalpha() else key)
             code = x11.x.XKeysymToKeycode(x11.display, x11.x.XStringToKeysym(name.encode()))

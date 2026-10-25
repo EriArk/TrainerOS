@@ -14,10 +14,10 @@ Item {
         width: Theme.viewportWidth - 12 - Theme.brandWidth
         height: 8
         gradient: Gradient {
-            GradientStop { position: 0; color: "#b8101e1d" }
-            GradientStop { position: 0.3; color: "#70101e1d" }
-            GradientStop { position: 0.65; color: "#28101e1d" }
-            GradientStop { position: 1; color: "#00101e1d" }
+            GradientStop { position: 0; color: Theme.surfaceColor("#b8101e1d") }
+            GradientStop { position: 0.3; color: Theme.surfaceColor("#70101e1d") }
+            GradientStop { position: 0.65; color: Theme.surfaceColor("#28101e1d") }
+            GradientStop { position: 1; color: Theme.surfaceColor("#00101e1d") }
         }
     }
     Rectangle { width: root.width; height: 1; color: Theme.edgeShadow }

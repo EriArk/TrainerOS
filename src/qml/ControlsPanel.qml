@@ -53,7 +53,7 @@ Panel {
     Text { anchors.right: parent.right; anchors.rightMargin: 28; anchors.bottom: parent.bottom; anchors.bottomMargin: 15; color: Theme.muted; font.pixelSize: 12
         text: root.board.moving?Theme.buttonLabel("A")+" Place · "+Theme.buttonLabel("B")+" Cancel · "+Theme.buttonLabel("L1/R1")+" Page":root.board.editing?Theme.buttonLabel("A")+" Move · "+Theme.buttonLabel("L2")+" Add":root.board.adjusting?(root.board.selected==="volume"?"↑↓ Adjust · "+Theme.buttonLabel("X")+" Mute · "+Theme.buttonLabel("B")+" Done":"↑↓ Adjust · "+Theme.buttonLabel("B")+" Done"):Theme.buttonLabel("A")+" Select · "+Theme.buttonLabel("B")+" Close" }
     Text { x: 30; y: grid.y+grid.height+4; width: parent.width-60; color: Theme.muted; text: root.board.status || root.shell.device.error; font.pixelSize: 11; elide: Text.ElideRight }
-    Rectangle { anchors.fill: parent; radius: 15; color: "#99182b29"; visible: root.board.picking
+    Rectangle { anchors.fill: parent; radius: 15; color: Theme.surfaceColor("#99182b29"); visible: root.board.picking
         MouseArea { anchors.fill: parent; onClicked: {} }
         Panel { anchors.centerIn: parent; width: 360; height: Math.min(root.height-40,105+root.board.available.length*40)
             Text { x: 24; y: 22; text: "Add a control"; color: Theme.ink; font.family: Theme.displayFamily; font.pixelSize: 23 }
@@ -64,7 +64,7 @@ Panel {
             }
         }
     }
-    Rectangle { anchors.fill: parent; radius: 15; color: "#99182b29"; visible: root.board.switching
+    Rectangle { anchors.fill: parent; radius: 15; color: Theme.surfaceColor("#99182b29"); visible: root.board.switching
         MouseArea { anchors.fill: parent }
         Panel { anchors.centerIn: parent; width: 390; height: 220
             Text { x: 25; y: 23; text: "Switch environment"; font.family: Theme.displayFamily; font.pixelSize: 24; color: Theme.ink }
@@ -74,7 +74,7 @@ Panel {
         }
     }
 
-    Rectangle { anchors.fill: parent; z: 20; radius: root.radius; color: "#68182b29"; visible: root.shell.controlsNetworkOpen
+    Rectangle { anchors.fill: parent; z: 20; radius: root.radius; color: Theme.surfaceColor("#68182b29"); visible: root.shell.controlsNetworkOpen
         MouseArea { anchors.fill: parent; onClicked: root.shell.closeControlsNetwork() }
         Panel { objectName: "start-wifi-popup"; anchors.centerIn: parent; width: Math.min(490,root.width-32); height: Math.min(Math.max(350,root.height-16),root.parent.height-24); radius: 18
             MouseArea { anchors.fill: parent }

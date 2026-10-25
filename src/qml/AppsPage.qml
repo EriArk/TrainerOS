@@ -8,7 +8,7 @@ Item {
         id: notice
         x: 12; y: 0; width: parent.width - 24
         text: root.flow.status || (root.flow.hiddenView ? "Hidden applications" : "")
-        color: root.flow.status ? "#96502d" : Theme.muted; font.pixelSize: 14
+        color: root.flow.status ? Theme.textColor("#96502d") : Theme.muted; font.pixelSize: 14
         elide: Text.ElideRight
     }
     GridView {

@@ -4,7 +4,7 @@ import QtQuick
 // mount geometry and surface color; informational wells need no raised cap.
 Rectangle {
     id: root
-    color: "#d4e2d6"
+    color: Theme.surfaceColor("#d4e2d6")
     Rectangle {
         anchors.fill: parent; radius: root.radius
         gradient: Gradient {

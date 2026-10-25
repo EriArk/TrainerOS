@@ -9,14 +9,14 @@ Item {
     readonly property bool signedIn: !!account.userId
     visible: shell.service === "account-profile"
     objectName: "account-profile-overlay"
-    Rectangle { anchors.fill: parent; color: "#80132224" }
+    Rectangle { anchors.fill: parent; color: Theme.surfaceColor("#80132224") }
     MouseArea { anchors.fill: parent; acceptedButtons: Qt.AllButtons; onWheel: wheel => wheel.accepted=true }
-    Rectangle { x: card.x-3; y: card.y+5; width: card.width+6; height: card.height+4; radius: 22; color: "#35142120" }
+    Rectangle { x: card.x-3; y: card.y+5; width: card.width+6; height: card.height+4; radius: 22; color: Theme.surfaceColor("#35142120") }
     Rectangle {
         id: card; objectName: "account-profile-card"
         anchors.centerIn: parent; width: Math.min(430,parent.width-44); height: Math.min(440,parent.height-28)
         radius: 18; color: Theme.paper; border.color: Theme.rim; border.width: 2
-        Rectangle { anchors.fill: parent; anchors.margins: 4; radius: 14; color: "transparent"; border.color: "#80ffffff" }
+        Rectangle { anchors.fill: parent; anchors.margins: 4; radius: 14; color: "transparent"; border.color: Theme.surfaceColor("#80ffffff") }
         AccountAvatar { x: 22; y: 22; width: 62; name: root.account.name || "Player"; source: root.profile.avatar || ""; presence: root.account.state === "connected" ? root.account.presence || "" : "" }
         Column {
             x: 98; y: 24; width: parent.width-x-85; spacing: 4
@@ -39,9 +39,9 @@ Item {
                 required property int index; required property var modelData
                 objectName: "account-profile-action-"+index
                 width: actions.width; height: modelData.kind === "presence" ? 32 : 44; radius: 9
-                color: root.flow.focusIndex===index && !root.shell.keyboard.open ? "#f8e7b2" : pointer.containsMouse ? "#e9efe0" : "transparent"
-                border.color: "#d8c48d"; border.width: root.flow.focusIndex===index && !root.shell.keyboard.open ? 1 : 0
-                Rectangle { visible: modelData.kind === "presence"; x: 12; anchors.verticalCenter: parent.verticalCenter; width: 10; height: 10; radius: 5; color: modelData.presence === "online" ? "#70af72" : modelData.presence === "idle" ? Theme.yellow : modelData.presence === "dnd" ? Theme.pink : "#a0aaa4" }
+                color: root.flow.focusIndex===index && !root.shell.keyboard.open ? Theme.surfaceColor("#f8e7b2") : pointer.containsMouse ? Theme.surfaceColor("#e9efe0") : "transparent"
+                border.color: Theme.surfaceColor("#d8c48d"); border.width: root.flow.focusIndex===index && !root.shell.keyboard.open ? 1 : 0
+                Rectangle { visible: modelData.kind === "presence"; x: 12; anchors.verticalCenter: parent.verticalCenter; width: 10; height: 10; radius: 5; color: modelData.presence === "online" ? Theme.surfaceColor("#70af72") : modelData.presence === "idle" ? Theme.yellow : modelData.presence === "dnd" ? Theme.pink : Theme.surfaceColor("#a0aaa4") }
                 Image { visible: modelData.kind === "picture"; x: 7; y: 3; width: 38; height: 38; source: modelData.image || ""; fillMode: Image.PreserveAspectFit; asynchronous: true }
                 Text { x: modelData.kind === "picture" ? 54 : modelData.kind === "presence" ? 32 : 12; y: modelData.kind === "presence" ? 5 : 3; width: parent.width-x-26; text: modelData.title; color: Theme.ink; font.family: Theme.displayFamily; font.pixelSize: 16; elide: Text.ElideRight; textFormat: Text.PlainText }
                 Text { visible: modelData.kind !== "presence"; x: 12; y: 24; width: parent.width-30; text: modelData.detail || ""; color: Theme.muted; font.pixelSize: 11; elide: Text.ElideRight; textFormat: Text.PlainText }

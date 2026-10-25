@@ -15,8 +15,9 @@ Item {
         anchors.fill: parent; anchors.margins: 12
         PageHeader { id: heading; compact: true; title: "Settings"; height: 40 }
         Rectangle {
-            y: heading.height; width: parent.width; height: parent.height-y; color: "#fafbf7"; radius: 8
-            Rectangle { x: 181; y: 20; width: 1; height: parent.height-40; color: "#e0e6df" }
+            y: heading.height; width: parent.width; height: parent.height-y; color: Theme.surface; radius: 8
+            CrtTexture { anchors.fill: parent; anchors.margins: 8 }
+            Rectangle { x: 181; y: 20; width: 1; height: parent.height-40; color: Theme.divider }
             Flickable {
                 id: categoriesViewport; x: 10; y: 10; width: 168; height: parent.height-20; clip: true
                 contentHeight: categoriesColumn.height; boundsBehavior: Flickable.StopAtBounds
@@ -34,11 +35,11 @@ Item {
                         width: 160; height: 45; radius: 9
                         readonly property bool selected: root.takesFocus && !root.settings.controlsFocused && root.settings.sectionIndex===index
                         color: "transparent"
-                        Rectangle { x: 1; y: 13; width: 3; height: 22; radius: 1; color: "#5a998a"; visible: root.settings.sectionIndex===index }
+                        Rectangle { x: 1; y: 13; width: 3; height: 22; radius: 1; color: Theme.accent; visible: root.settings.sectionIndex===index }
                         onSelectedChanged: if(selected && visible) forceActiveFocus(Qt.OtherFocusReason)
                         onVisibleChanged: if(selected && visible) forceActiveFocus(Qt.OtherFocusReason)
                         Component.onCompleted: if(selected && visible) forceActiveFocus(Qt.OtherFocusReason)
-                        Text { x: 14; anchors.verticalCenter: parent.verticalCenter; text: modelData.title; width: parent.width-28; wrapMode: Text.WordWrap; color: root.settings.sectionIndex===index ? "#315b50" : "#7d8b82"; font.pixelSize: 15; font.bold: root.settings.sectionIndex===index }
+                        Text { x: 14; anchors.verticalCenter: parent.verticalCenter; text: modelData.title; width: parent.width-28; wrapMode: Text.WordWrap; color: root.settings.sectionIndex===index ? Theme.textColor("#315b50") : Theme.textColor("#7d8b82"); font.pixelSize: 15; font.bold: root.settings.sectionIndex===index }
                         TapHandler { enabled: !root.shell.trainer.editing && !root.shell.hall.account.open && !root.settings.storage.busy; onTapped: root.settings.selectSection(index) }
                     }
                 }
@@ -48,8 +49,8 @@ Item {
                 Row { y: -39; spacing: 6
                     Repeater { model: root.settings.pages
                         Item { required property var modelData; width: Math.max(64,(root.width-243)/Math.max(1,root.settings.pages.length)-6); height: 30
-                            Text { anchors.centerIn: parent; text: modelData.title; font.pixelSize: 12; color: root.settings.categoryId===modelData.id ? "#315b50" : "#8b958d"; font.weight: root.settings.categoryId===modelData.id ? Font.DemiBold : Font.Normal }
-                            Rectangle { anchors.bottom: parent.bottom; width: parent.width; height: 2; color: "#6d9e8d"; visible: root.settings.categoryId===modelData.id }
+                            Text { anchors.centerIn: parent; text: modelData.title; font.pixelSize: 12; color: root.settings.categoryId===modelData.id ? Theme.textColor("#315b50") : Theme.textColor("#8b958d"); font.weight: root.settings.categoryId===modelData.id ? Font.DemiBold : Font.Normal }
+                            Rectangle { anchors.bottom: parent.bottom; width: parent.width; height: 2; color: Theme.accent; visible: root.settings.categoryId===modelData.id }
                             TapHandler { enabled: !root.shell.trainer.editing && !root.shell.hall.account.open && !root.settings.storage.busy; onTapped: root.settings.selectPage(modelData.id) }
                         }
                     }
@@ -65,7 +66,7 @@ Item {
                     Text { x: 5; y: 13; text: "Game storage"; color: Theme.ink; font.family: Theme.displayFamily; font.pixelSize: 25 }
                     Text { x: 5; y: 48; width: parent.width-10; text: "Choose where to look for games. Existing files stay in place."; color: Theme.muted; font.pixelSize: 13; wrapMode: Text.WordWrap }
                     StorageChoices { x: 0; y: 75; width: parent.width; height: parent.height-y-43; compact: true; flow: root.settings.storage; takesFocus: root.takesFocus && root.settings.controlsFocused }
-                    Text { x: 5; y: parent.height-37; width: parent.width-10; height: 33; text: root.settings.storage.busy ? "Preparing your library…" : root.settings.storage.error || root.settings.storage.rows[root.settings.storage.focusIndex]?.path || ""; textFormat: Text.PlainText; color: root.settings.storage.error.length ? "#853b24" : Theme.muted; font.pixelSize: 12; wrapMode: Text.WrapAnywhere; maximumLineCount: 2; elide: Text.ElideMiddle }
+                    Text { x: 5; y: parent.height-37; width: parent.width-10; height: 33; text: root.settings.storage.busy ? "Preparing your library…" : root.settings.storage.error || root.settings.storage.rows[root.settings.storage.focusIndex]?.path || ""; textFormat: Text.PlainText; color: root.settings.storage.error.length ? Theme.textColor("#853b24") : Theme.muted; font.pixelSize: 12; wrapMode: Text.WrapAnywhere; maximumLineCount: 2; elide: Text.ElideMiddle }
                 }
                 Flickable {
                     id: controlsViewport; visible: root.settings.categoryId!=="controller" && root.settings.categoryId!=="game-input" && root.settings.category!==6 && root.settings.category!==10 && root.settings.category!==11 && root.settings.category!==13 && root.settings.category!==14 && !root.settings.storage.open; x: 0; y: root.settings.category===5 ? 158 : 13
@@ -110,7 +111,7 @@ Item {
                         Rectangle {
                             required property var modelData
                             width: parent.width; height: 44; color: "transparent"
-                            Rectangle { x: 13; y: parent.height-1; width: parent.width-13; height: 1; color: "#e1e6e0" }
+                            Rectangle { x: 13; y: parent.height-1; width: parent.width-13; height: 1; color: Theme.divider }
                             Text { x: 13; y: 4; text: modelData.title; color: Theme.ink; font.pixelSize: 14 }
                             Text { x: 13; y: 24; width: parent.width-26; text: modelData.value || "Unavailable"; textFormat: Text.PlainText; elide: Text.ElideRight; color: Theme.muted; font.pixelSize: 12 }
                         }
@@ -132,7 +133,7 @@ Item {
                     visible: root.settings.categoryId!=="controller" && root.settings.categoryId!=="game-input" && root.settings.category!==10 && root.settings.category!==11 && root.settings.category!==13 && root.settings.category!==14 && !root.settings.storage.open
                     x: 5; y: parent.height-58; width: parent.width-10; height: 52
                     text: root.statusText; textFormat: Text.PlainText
-                    font.pixelSize: 14; color: root.localError.length ? "#853b24" : Theme.muted
+                    font.pixelSize: 14; color: root.localError.length ? Theme.textColor("#853b24") : Theme.muted
                     wrapMode: Text.WordWrap; maximumLineCount: 3; elide: Text.ElideRight
                 }
             }

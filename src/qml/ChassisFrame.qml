@@ -77,11 +77,18 @@ Rectangle {
         }
     }
     ShellBackgroundPattern {
+        visible: !Theme.dark
         // Keep the ornament within the clear area below the title and tabs.
         x: Theme.screenBounds.x + 10
         y: Theme.screenBounds.y + Theme.contentTopInset
         width: Theme.screenBounds.width - 20
         height: Theme.screenBounds.y + Theme.screenBounds.height - 10 - y
         clip: true
+    }
+    CrtTexture {
+        x: Theme.screenBounds.x + Theme.screenBevel
+        y: Theme.brandHeight + Theme.screenBevel
+        width: Theme.screenBounds.width - 2 * Theme.screenBevel
+        height: Theme.screenBounds.y + Theme.screenBounds.height - Theme.screenBevel - y
     }
 }

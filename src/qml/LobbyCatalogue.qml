@@ -85,12 +85,12 @@ Item {
                     readonly property bool compact: height<86
                     width: (cards.width-12)/2; height: (cards.height-24)/3
                     objectName: "lobby-card-"+index
-                    Rectangle { x: 1; y: 3; width: parent.width-2; height: parent.height; radius: 13; color: "#25243e38" }
+                    Rectangle { x: 1; y: 3; width: parent.width-2; height: parent.height; radius: 13; color: Theme.surfaceColor("#25243e38") }
                     Rectangle {
                         anchors.fill: parent; radius: 13; border.width: card.focused ? 2 : 1; border.color: card.focused ? Theme.yellow : Qt.darker(card.accent,1.12)
                         gradient: Gradient { GradientStop { position: 0; color: Qt.tint(Theme.paper,Qt.rgba(card.accent.r,card.accent.g,card.accent.b,.24)) }
                             GradientStop { position: 1; color: Qt.tint(Theme.paper,Qt.rgba(card.accent.r,card.accent.g,card.accent.b,.49)) } }
-                        Rectangle { anchors.fill: parent; anchors.margins: 3; radius: 10; color: "transparent"; border.color: "#b3ffffff"; border.width: 1 }
+                        Rectangle { anchors.fill: parent; anchors.margins: 3; radius: 10; color: "transparent"; border.color: Theme.surfaceColor("#b3ffffff"); border.width: 1 }
                     }
                     Item {
                         id: host; x: 7; width: Math.min(70,card.width*.24); height: parent.height-(card.compact ? 8 : 14); anchors.verticalCenter: parent.verticalCenter

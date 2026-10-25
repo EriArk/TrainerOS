@@ -81,7 +81,17 @@ inline void startSettingsSmoke(QQuickWindow* window, trainer::ShellController& s
         case 9: capture("settings-audio");settings->selectPage("communication");break;
         case 10: capture("settings-communication");settings->selectPage("clock");break;
         case 11: capture("settings-clock");settings->selectPage("system");break;
-        case 12: capture("settings-system");break;
+        case 12: capture("settings-system");settings->selectPage("appearance");settings->cycleTheme(1);break;
+        case 13: check(settings->theme()=="dark","Dark mode selected");capture("settings-dark");settings->selectPage("controller",true);settings->activateRow(0);break;
+        case 14: check(input.captureMode()=="center","Calibration owns controller input");capture("settings-calibration-dark");input.cancelCapture();settings->selectPage("game-input",true);flow->setPage(1);flow->openTools();break;
+        case 15: capture("settings-input-tools-dark");flow->activateTool(1);break;
+        case 16: capture("settings-input-capture-dark");QTest::keyClick(window,Qt::Key_K,Qt::ControlModifier|Qt::AltModifier);break;
+        case 17: check(input.captureMode().isEmpty()&&!flow->choosing(),"Captured key returns to editor");flow->setPage(2);flow->editRingName(0);shell.keyboard()->cancel();flow->applyText("Quick actions");flow->cycleRingIcon(0,0);flow->previewRing(0);break;
+        case 18: capture("settings-ring-preview-dark");flow->back();settings->selectPage("appearance",false);settings->dispatch(trainer::Action::Back);shell.goToPage(0);break;
+        case 19: capture("home-dark");shell.goToPage(1);break;
+        case 20: capture("games-dark");shell.goToPage(3);break;
+        case 21: capture("social-dark");shell.goToPage(4);break;
+        case 22: capture("apps-dark");settings->cycleTheme(1);break;
         default:timer->stop();completed=true;qInfo()<<"Settings UI checks"<<diagnostics<<"warnings"<<warnings;QCoreApplication::exit(diagnostics.isEmpty()&&warnings==0?0:1);break;
         }
     });timer->start();

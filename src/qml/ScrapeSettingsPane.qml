@@ -14,7 +14,7 @@ Item {
         onCurrentIndexChanged: Qt.callLater(reveal)
         Rectangle {
             anchors.right: parent.right; width: 4; height: parent.height; radius: 2
-            visible: list.contentHeight>list.height; color: "#b5c7b8"; z: 2
+            visible: list.contentHeight>list.height; color: Theme.surfaceColor("#b5c7b8"); z: 2
             Rectangle { width: parent.width; height: Math.max(16,list.visibleArea.heightRatio*parent.height); y: list.visibleArea.yPosition*parent.height; radius: 2; color: Theme.muted }
         }
         delegate: SettingControl { flat: root.flat;

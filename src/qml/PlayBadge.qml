@@ -6,9 +6,9 @@ Rectangle {
     property bool online: false
     property bool solo: false
     width: caption.implicitWidth + 41; height: 28; radius: 6
-    color: online ? "#bedfe9" : solo ? "#dedfc9" : "#c5e2ad"
-    border.color: online ? "#6c9ca7" : solo ? "#9caa8f" : "#829e67"
-    Rectangle { x: 3; y: 2; width: parent.width - 6; height: 1; color: "#65ffffff" }
+    color: online ? Theme.surfaceColor("#bedfe9") : solo ? Theme.surfaceColor("#dedfc9") : Theme.surfaceColor("#c5e2ad")
+    border.color: online ? Theme.surfaceColor("#6c9ca7") : solo ? Theme.surfaceColor("#9caa8f") : Theme.surfaceColor("#829e67")
+    Rectangle { x: 3; y: 2; width: parent.width - 6; height: 1; color: Theme.surfaceColor("#65ffffff") }
     Canvas {
         id: icon
         x: 7; y: 5; width: 21; height: 18

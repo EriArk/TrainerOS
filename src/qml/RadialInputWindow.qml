@@ -25,7 +25,7 @@ Window {
     onRegionsChanged: bridge.setRegions(regions)
     Component.onCompleted: {bridge.attach(root);bridge.setRegions(regions)}
     Connections { target: root.bridge; function onPointer(target,phase,position) { if(phase==="release" && target.startsWith("slot:"))root.flow.selectRadialSlot(Number(target.slice(5))) } }
-    Rectangle { id: panel; anchors.centerIn: parent; width: Math.min(370*Theme.uiScale,parent.width*.6); height: width; radius: width/2; color: "#f5fafbf7"
-        RingDiagram { anchors.fill: parent; anchors.margins: 8; slots: flow.radial.slots || []; selected: flow.radial.selected ?? -1; caption: "Release or tap to choose"; onPicked: slot => root.flow.selectRadialSlot(slot) }
+    Rectangle { id: panel; anchors.centerIn: parent; width: Math.min(370*Theme.uiScale,parent.width*.6); height: width; radius: width/2; color: Theme.surfaceColor("#f5fafbf7")
+        RingDiagram { anchors.fill: parent; anchors.margins: 8; slots: flow.radial.slots || []; presentation: flow.radial.presentation || ({}); selected: flow.radial.selected ?? -1; caption: flow.radial.presentation?.name || "Release or tap to choose"; onPicked: slot => root.flow.selectRadialSlot(slot) }
     }
 }

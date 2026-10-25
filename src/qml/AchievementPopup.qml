@@ -17,7 +17,7 @@ Item {
         objectName: "achievement-popup-card"
         width: Math.min(650,parent.width*.82); height: Math.min(300,parent.height*.85)
         anchors.centerIn: parent
-        Rectangle { x: 3; y: 7; width: parent.width; height: parent.height; radius: 21; color: "#40302232" }
+        Rectangle { x: 3; y: 7; width: parent.width; height: parent.height; radius: 21; color: Theme.surfaceColor("#40302232") }
         Rectangle {
             anchors.fill: parent; radius: 20; border.color: Theme.rim; border.width: 2
             gradient: Gradient {
@@ -25,7 +25,7 @@ Item {
                 GradientStop { position: 1; color: Qt.tint(Theme.paper,Qt.alpha(Theme.rim,.12)) }
             }
         }
-        Rectangle { anchors.fill: parent; anchors.margins: 4; radius: 16; color: "transparent"; border.color: "#b3ffffff" }
+        Rectangle { anchors.fill: parent; anchors.margins: 4; radius: 16; color: "transparent"; border.color: Theme.surfaceColor("#b3ffffff") }
         MouseArea { anchors.fill: parent }
         Text {
             x: 22; y: 15; width: parent.width-76; height: 29
@@ -46,7 +46,7 @@ Item {
         Item {
             id: photo
             x: 24; y: 82; width: card.width*.38; height: card.height-111; rotation: -2
-            Rectangle { x: 2; y: 4; width: parent.width; height: parent.height; radius: 8; color: "#30263830" }
+            Rectangle { x: 2; y: 4; width: parent.width; height: parent.height; radius: 8; color: Theme.surfaceColor("#30263830") }
             Rectangle { anchors.fill: parent; radius: 7; color: Theme.paper; border.color: Qt.alpha(Theme.rim,.6) }
             Rectangle {
                 anchors.fill: parent; anchors.margins: 7; anchors.bottomMargin: 27; radius: 3
@@ -78,7 +78,7 @@ Item {
             Item {
                 id: medal
                 width: Math.min(90,info.height*.51); height: width
-                Rectangle { x: 2; y: 4; width: parent.width; height: parent.height; radius: 19; color: "#35263830" }
+                Rectangle { x: 2; y: 4; width: parent.width; height: parent.height; radius: 19; color: Theme.surfaceColor("#35263830") }
                 Rectangle {
                     anchors.fill: parent; radius: 18; border.width: 1; border.color: Qt.darker(root.metal,1.3)
                     gradient: Gradient {
@@ -87,7 +87,7 @@ Item {
                         GradientStop { position: 1; color: Qt.darker(root.metal,1.25) }
                     }
                 }
-                Rectangle { anchors.fill: parent; anchors.margins: 3; radius: 15; color: "transparent"; border.color: "#cffff8df" }
+                Rectangle { anchors.fill: parent; anchors.margins: 3; radius: 15; color: "transparent"; border.color: Theme.surfaceColor("#cffff8df") }
                 Image {
                     id: badge; anchors.fill: parent; anchors.margins: 8
                     source: root.visible ? root.detail.icon || "" : ""; sourceSize: Qt.size(192,192)
@@ -95,7 +95,7 @@ Item {
                 }
                 Text {
                     anchors.centerIn: parent; visible: badge.status!==Image.Ready
-                    text: root.earned ? "★" : root.unknown ? "?" : "◇"; color: Theme.paper; font.pixelSize: 38
+                    text: root.earned ? "★" : root.unknown ? "?" : "◇"; color: Theme.accentInk; font.pixelSize: 38
                 }
             }
             Column {

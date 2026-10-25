@@ -64,7 +64,7 @@ Item {
     }
     Rectangle {
         x: 0; y: root.quick?52:68; width: parent.width; height: parent.height-y-(root.quick?62:49)
-        visible: root.network.prompt.length>0; radius: 12; color: "#edf2e7"; border.color: "#bdcfbd"
+        visible: root.network.prompt.length>0; radius: 12; color: Theme.surfaceColor("#edf2e7"); border.color: Theme.surfaceColor("#bdcfbd")
         Text {
             x: 22; y: root.quick?12:24; width: parent.width-44; height: parent.height-(root.quick?70:110)
             text: root.network.prompt; textFormat: Text.PlainText; wrapMode: Text.WordWrap

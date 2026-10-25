@@ -312,6 +312,13 @@ Minimize сохраняет тот же сеанс. Обычный Exit прох
 может разрешить продолжение Lobby, сохраняя unclean save/frame outcome; это не
 доказательство сохранения внутри игры. Краш/stop не должны давать фиктивный успех.
 
+Light/Dark и presentation preferences принадлежат S01/текущему Trainer через
+существующий `shell_state` (`scope=preferences`, `trainer_id`); S04 только
+редактирует/отображает их. Калибровка принадлежит физическому устройству S15,
+игровая раскладка — паре Trainer/game; смена owner очищает черновик и не
+переносит активный ввод. F02/F12 сохраняют нейтральный барьер и освобождение
+выхода при Home/focus/disconnect.
+
 [Профили ввода 25.10](INPUT_PROFILES.md): S04 (`GameInputProfiles`) хранит
 owner/game черновик и атомарный профиль; S03 передаёт снимок следующему запуску
 через `AdventureOverlayService`. S15/InputPlumber перехватывает gamepad, отдельный

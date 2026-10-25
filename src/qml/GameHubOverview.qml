@@ -66,7 +66,7 @@ Item {
                         minimumPixelSize: 14; fontSizeMode: Text.HorizontalFit; elide: Text.ElideRight
                     }
                     Text { x: 15; y: 47; width: parent.width-15; text: modelData.note || ""; color: Theme.muted; font.pixelSize: 10; elide: Text.ElideRight }
-                    Rectangle { y: parent.height; width: parent.width; height: 1; color: "#24526d63"; visible: index < 2 }
+                    Rectangle { y: parent.height; width: parent.width; height: 1; color: Theme.surfaceColor("#24526d63"); visible: index < 2 }
                 }
             }
         }

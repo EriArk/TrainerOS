@@ -34,7 +34,7 @@ Item {
         visible: root.frameCount > 2
         x: Math.max(0,(parent.width-root.frameWidth*1.30)/2)-root.frameWidth*.12
         y: 12; width: root.frameWidth; height: root.frameHeight; rotation: -16
-        Rectangle { x: 2; y: 4; width: parent.width; height: parent.height; radius: 5; color: "#30362d24" }
+        Rectangle { x: 2; y: 4; width: parent.width; height: parent.height; radius: 5; color: Theme.surfaceColor("#30362d24") }
         Rectangle {
             anchors.fill: parent; radius: 4; color: Qt.lighter(Theme.rim,1.18); border.color: Theme.rim
             Rectangle { anchors.fill: parent; anchors.margins: 6; radius: 2; color: Theme.chassis; opacity: .35 }
@@ -46,21 +46,21 @@ Item {
     Item {
         x: Math.max(0,(parent.width-root.frameWidth*(root.balanced ? 1.30 : 1.38))/2)
         y: 0; width: root.frameWidth; height: root.frameHeight; rotation: -9
-        Rectangle { x: 2; y: 4; width: parent.width; height: parent.height; radius: 5; color: "#40362d24" }
+        Rectangle { x: 2; y: 4; width: parent.width; height: parent.height; radius: 5; color: Theme.surfaceColor("#40362d24") }
         Rectangle {
-            anchors.fill: parent; radius: 4; color: "#d3dbc0"; border.color: "#899b7c"
+            anchors.fill: parent; radius: 4; color: Theme.surfaceColor("#d3dbc0"); border.color: Theme.surfaceColor("#899b7c")
             Rectangle { anchors.fill: parent; anchors.margins: 6; color: Theme.homeLandscape[5]; radius: 2; opacity: .55 }
             Image { x: 6; y: 6; width: parent.width-12; height: parent.height-24; source: root.visible ? root.rearSource : ""; sourceSize: Qt.size(360,240); asynchronous: true; fillMode: Image.PreserveAspectFit }
-            Rectangle { x: 11; y: parent.height-12; width: parent.width*.44; height: 2; color: "#94a181" }
+            Rectangle { x: 11; y: parent.height-12; width: parent.width*.44; height: 2; color: Theme.surfaceColor("#94a181") }
         }
     }
     Item {
         x: Math.max(0,(parent.width-root.frameWidth*(root.balanced ? 1.30 : 1.38))/2)+root.frameWidth*(root.balanced ? .30 : .38)
         y: 11; width: root.frameWidth; height: root.frameHeight; rotation: 6
-        Rectangle { x: 2; y: 4; width: parent.width; height: parent.height; radius: 5; color: "#50362d24" }
+        Rectangle { x: 2; y: 4; width: parent.width; height: parent.height; radius: 5; color: Theme.surfaceColor("#50362d24") }
         Rectangle {
-            anchors.fill: parent; radius: 4; color: "#fff1cf"
-            border.color: root.selected ? Theme.focus : "#d2b883"; border.width: root.selected ? 3 : 1
+            anchors.fill: parent; radius: 4; color: Theme.surfaceColor("#fff1cf")
+            border.color: root.selected ? Theme.focus : Theme.surfaceColor("#d2b883"); border.width: root.selected ? 3 : 1
             Rectangle {
                 x: 6; y: 6; width: parent.width-12; height: parent.height-24
                 color: Theme.homeLandscape[1]; radius: 2; clip: true
@@ -74,9 +74,9 @@ Item {
                 Rectangle {
                     visible: photo.status !== Image.Ready
                     anchors.centerIn: parent; width: 32; height: 23; radius: 5
-                    color: "transparent"; border.color: "#c6d4b4"; border.width: 2
-                    Rectangle { x: 7; y: -4; width: 12; height: 4; radius: 2; color: "#c6d4b4" }
-                    Rectangle { anchors.centerIn: parent; width: 12; height: 12; radius: 6; color: "transparent"; border.color: "#c6d4b4"; border.width: 2 }
+                    color: "transparent"; border.color: Theme.surfaceColor("#c6d4b4"); border.width: 2
+                    Rectangle { x: 7; y: -4; width: 12; height: 4; radius: 2; color: Theme.surfaceColor("#c6d4b4") }
+                    Rectangle { anchors.centerIn: parent; width: 12; height: 12; radius: 6; color: "transparent"; border.color: Theme.surfaceColor("#c6d4b4"); border.width: 2 }
                 }
             }
             Text {

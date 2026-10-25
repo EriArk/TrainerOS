@@ -37,7 +37,7 @@ Item {
     Component.onCompleted: requestFocus()
     Rectangle {
         visible: !root.flat; x: -1; y: 2; width: parent.width + 2; height: parent.height + 3
-        radius: 10; color: "#50324438"
+        radius: 10; color: Theme.surfaceColor("#50324438")
     }
     Rectangle {
         visible: !root.flat; y: 3; width: parent.width; height: parent.height
@@ -55,8 +55,8 @@ Item {
                 GradientStop { position: 0.15; color: Qt.lighter(root.capTint, 1.08) }
                 GradientStop { position: 1; color: root.capTint }
             }
-            Rectangle { anchors.fill: parent; anchors.margins: 2; radius: 7; color: "transparent"; border.color: "#65ffffff" }
-            Rectangle { x: 7; y: 2; width: parent.width - 14; height: 1; color: "#b3ffffff" }
+            Rectangle { anchors.fill: parent; anchors.margins: 2; radius: 7; color: "transparent"; border.color: Theme.surfaceColor("#65ffffff") }
+            Rectangle { x: 7; y: 2; width: parent.width - 14; height: 1; color: Theme.surfaceColor("#b3ffffff") }
         }
         Column {
             anchors { left: parent.left; right: parent.right; margins: 13; verticalCenter: parent.verticalCenter }
@@ -82,8 +82,8 @@ Item {
         }
         Rectangle {
             x: 12; anchors.verticalCenter: parent.verticalCenter; width: 18; height: 18; radius: 9
-            visible: root.warning; color: "#713e37"
-            Text { anchors.centerIn: parent; text: "!"; color: "#fff0d8"; font.pixelSize: 13; font.bold: true }
+            visible: root.warning; color: Theme.surfaceColor("#713e37")
+            Text { anchors.centerIn: parent; text: "!"; color: Theme.textColor("#fff0d8"); font.pixelSize: 13; font.bold: true }
         }
     }
     // A bright core and broad inward bloom remain intact at clipped list edges.
@@ -111,10 +111,10 @@ Item {
         Rectangle {
             x: 1; y: 1; width: parent.width - 2; height: parent.height - 2
             radius: 8; color: "transparent"
-            border.width: 1; border.color: "#fff9d6"
+            border.width: 1; border.color: Theme.surfaceColor("#fff9d6")
         }
     }
-    Rectangle { x: 0; y: 7; width: 2; height: parent.height-14; visible: root.flat && root.selected; color: "#65967d" }
-    Rectangle { x: 10; y: parent.height-1; width: parent.width-20; height: 1; visible: root.flat; color: "#e0e6dc" }
+    Rectangle { x: 0; y: 7; width: 2; height: parent.height-14; visible: root.flat && root.selected; color: Theme.surfaceColor("#65967d") }
+    Rectangle { x: 10; y: parent.height-1; width: parent.width-20; height: 1; visible: root.flat; color: Theme.surfaceColor("#e0e6dc") }
     MouseArea { id: pointer; anchors.fill: parent; onClicked: { root.pressFeedback(); root.activated(); } }
 }

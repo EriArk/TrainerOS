@@ -68,7 +68,7 @@ Item {
         clip: true; boundsBehavior: Flickable.StopAtBounds; interactive: root.active
         Rectangle {
             x: picture.x + 1; y: picture.y + 4; width: picture.width; height: picture.height
-            radius: 12; color: "#30192e2b"
+            radius: 12; color: Theme.surfaceColor("#30192e2b")
         }
         Rectangle {
             id: picture; objectName: "library-detail-picture"
@@ -78,13 +78,13 @@ Item {
             height: (width - 14) / aspect + 14
             radius: 11; border.color: Qt.darker(Theme.rim, 1.2); border.width: 1
             gradient: Gradient {
-                GradientStop { position: 0; color: "#fff9df" }
-                GradientStop { position: 0.45; color: "#e9dfbc" }
-                GradientStop { position: 1; color: "#cabd98" }
+                GradientStop { position: 0; color: Theme.surfaceColor("#fff9df") }
+                GradientStop { position: 0.45; color: Theme.surfaceColor("#e9dfbc") }
+                GradientStop { position: 1; color: Theme.surfaceColor("#cabd98") }
             }
             Rectangle {
                 anchors.fill: parent; anchors.margins: 2; radius: 9; color: "transparent"
-                border.width: 1; border.color: "#fffdf0"
+                border.width: 1; border.color: Theme.surfaceColor("#fffdf0")
             }
             Rectangle { anchors.fill: parent; anchors.margins: 5; radius: 5; color: Theme.chassisDark }
             GamePreview {

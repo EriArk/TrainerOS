@@ -20,7 +20,7 @@ Item {
         spacing: 7
         Rectangle {
             width: Math.max(23,root.glyph.length*7+10); height: 23; radius: 7
-            color: root.subtle ? "transparent" : "#082f33"
+            color: root.subtle ? "transparent" : Theme.surfaceColor("#082f33")
             Rectangle {
                 width: parent.width; height: 20; radius: 7
                 gradient: Gradient {

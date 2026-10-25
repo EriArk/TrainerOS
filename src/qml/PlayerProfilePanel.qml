@@ -33,7 +33,7 @@ Panel {
                 onActivated: root.shell.activate(index,"profile")
             }
         }
-        Text { width: parent.width; text: root.profile.error; visible: text.length > 0; wrapMode: Text.WordWrap; font.pixelSize: 15; color: "#853b24" }
+        Text { width: parent.width; text: root.profile.error; visible: text.length > 0; wrapMode: Text.WordWrap; font.pixelSize: 15; color: Theme.textColor("#853b24") }
     }
     Loader {
         anchors.fill: parent

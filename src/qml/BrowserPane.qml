@@ -29,9 +29,9 @@ Item {
     readonly property bool startPage: !page || page.url.toString()==="about:blank"
     readonly property bool expanded: active && fullScreen
     readonly property var shortcuts: flow.bookmarks.length ? flow.bookmarks : [
-        {title:"Wikipedia",url:"https://www.wikipedia.org/",symbol:"W",color:"#d9e4db"},
-        {title:"itch.io",url:"https://itch.io/",symbol:"i",color:"#f1c4bd"},
-        {title:"Internet Archive",url:"https://archive.org/",symbol:"A",color:"#cedce8"}]
+        {title:"Wikipedia",url:"https://www.wikipedia.org/",symbol:"W",color:Theme.surfaceColor("#d9e4db")},
+        {title:"itch.io",url:"https://itch.io/",symbol:"i",color:Theme.surfaceColor("#f1c4bd")},
+        {title:"Internet Archive",url:"https://archive.org/",symbol:"A",color:Theme.surfaceColor("#cedce8")}]
     function reveal() {chrome=true}
     function scrolled(dy) {if(popup||toolsFocused)return;chrome=dy<0}
     function navigate(url) {error="";popup="";toolsFocused=false;flow.openUrl(url);reveal()}
@@ -198,7 +198,7 @@ Item {
     MouseArea {anchors.fill:parent;z:4;visible:!root.takesFocus;acceptedButtons:Qt.AllButtons;onWheel:wheel=>wheel.accepted=true}
     Item {
         anchors.fill:parent;visible:root.popup!=="";z:5
-        Rectangle {anchors.fill:parent;color:root.listPopover?"transparent":"#65162723";MouseArea {anchors.fill:parent;onClicked:if(root.popup!=="permission")root.dismiss()}}
+        Rectangle {anchors.fill:parent;color:root.listPopover?"transparent":Theme.surfaceColor("#65162723");MouseArea {anchors.fill:parent;onClicked:if(root.popup!=="permission")root.dismiss()}}
         Rectangle {
             width:Math.min(root.listPopover?370:540,parent.width-36)
             height:Math.min(root.listPopover?Math.max(116,Math.min(285,63+rows.count*46)):330,parent.height-24)

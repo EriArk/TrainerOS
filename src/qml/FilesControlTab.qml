@@ -23,15 +23,15 @@ Item {
         Shape {
             x: panel.x; y: 2; width: panel.width; height: panel.height
             ShapePath {
-                strokeColor: "#0a101e1d"; strokeWidth: 10; fillColor: "transparent"; joinStyle: ShapePath.RoundJoin
+                strokeColor: Theme.surfaceColor("#0a101e1d"); strokeWidth: 10; fillColor: "transparent"; joinStyle: ShapePath.RoundJoin
                 PathSvg { path: panel.shoulder }
             }
             ShapePath {
-                strokeColor: "#14101e1d"; strokeWidth: 6; fillColor: "transparent"; joinStyle: ShapePath.RoundJoin
+                strokeColor: Theme.surfaceColor("#14101e1d"); strokeWidth: 6; fillColor: "transparent"; joinStyle: ShapePath.RoundJoin
                 PathSvg { path: panel.shoulder }
             }
             ShapePath {
-                strokeColor: "#24101e1d"; strokeWidth: 3; fillColor: "transparent"; joinStyle: ShapePath.RoundJoin
+                strokeColor: Theme.surfaceColor("#24101e1d"); strokeWidth: 3; fillColor: "transparent"; joinStyle: ShapePath.RoundJoin
                 PathSvg { path: panel.shoulder }
             }
         }
@@ -60,7 +60,7 @@ Item {
                 Item { required property var modelData; required property int index; width: 31; height: 30
                     Accessible.role: Accessible.Button; Accessible.name: modelData.label
                     Accessible.onPressAction: root.flow.command(modelData.id)
-                    Rectangle { anchors.fill: parent; anchors.margins: 1; radius: 7; color: root.takesFocus && root.flow.view.area === "controls" && root.flow.view.controlIndex === index ? "#4476b3a4" : mouse.containsMouse ? "#2276b3a4" : "transparent"; border.width: root.takesFocus && root.flow.view.area === "controls" && root.flow.view.controlIndex === index ? 1 : 0; border.color: Theme.yellow }
+                    Rectangle { anchors.fill: parent; anchors.margins: 1; radius: 7; color: root.takesFocus && root.flow.view.area === "controls" && root.flow.view.controlIndex === index ? Theme.surfaceColor("#4476b3a4") : mouse.containsMouse ? Theme.surfaceColor("#2276b3a4") : "transparent"; border.width: root.takesFocus && root.flow.view.area === "controls" && root.flow.view.controlIndex === index ? 1 : 0; border.color: Theme.yellow }
                     Image { anchors.centerIn: parent; width: 19; height: 19; sourceSize: Qt.size(38,38); source: modelData.source || "qrc:/files-controls/"+modelData.icon+".svg" }
                     MouseArea { id: mouse; anchors.fill: parent; hoverEnabled: true; onClicked: {root.flow.focus("controls",index);root.flow.command(modelData.id)} }
                     ToolTip.visible: mouse.containsMouse; ToolTip.delay: 600; ToolTip.text: modelData.label

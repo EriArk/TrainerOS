@@ -6,12 +6,12 @@ Item {
     readonly property var model: shell.collectionManager
     readonly property bool takesFocus: visible && !shell.keyboard.open && !shell.menuOpen && !shell.notice.length
     readonly property bool picker: model.route === "membership" || model.route === "membership-new"
-    Rectangle { anchors.fill: parent; color: "#660d2525" }
+    Rectangle { anchors.fill: parent; color: Theme.surfaceColor("#660d2525") }
     TapHandler { onTapped: {} }
     Rectangle {
         visible: !root.picker
         anchors.centerIn: parent; width: Math.min(640,parent.width-40); height: Math.min(420,parent.height-24)
-        radius: 18; color: "#e8edda"; border.color: "#35544f"; border.width: 3
+        radius: 18; color: Theme.surfaceColor("#e8edda"); border.color: Theme.surfaceColor("#35544f"); border.width: 3
         Column {
             x: 20; y: 16; width: parent.width-40; spacing: 8
             Text { width: parent.width; text: root.model.title; textFormat: Text.PlainText; color: Theme.ink; font.family: Theme.displayFamily; font.pixelSize: 25; font.bold: true; elide: Text.ElideRight }
@@ -36,7 +36,7 @@ Item {
                     onActivated: root.shell.activate(index)
                 }
             }
-            Text { width: parent.width; text: root.model.error; visible: text.length>0; color: "#803724"; font.pixelSize: 14; wrapMode: Text.Wrap; textFormat: Text.PlainText }
+            Text { width: parent.width; text: root.model.error; visible: text.length>0; color: Theme.textColor("#803724"); font.pixelSize: 14; wrapMode: Text.Wrap; textFormat: Text.PlainText }
         }
     }
     Loader {
@@ -48,7 +48,7 @@ Item {
                 readonly property int collectionCount: Math.max(0, root.model.rows.length - 2)
                 Rectangle {
                     x: panel.x - 2; y: panel.y + 5; width: panel.width + 4; height: panel.height + 3
-                    radius: 20; color: "#50302529"
+                    radius: 20; color: Theme.surfaceColor("#50302529")
                 }
                 Rectangle {
                     id: panel; objectName: "collection-picker"
@@ -141,7 +141,7 @@ Item {
                         }
                         Text {
                             id: problem; width: parent.width; visible: text.length > 0; text: root.model.error
-                            textFormat: Text.PlainText; color: "#803724"; font.pixelSize: 14; wrapMode: Text.Wrap
+                            textFormat: Text.PlainText; color: Theme.textColor("#803724"); font.pixelSize: 14; wrapMode: Text.Wrap
                         }
                         Row {
                             width: parent.width; spacing: 12

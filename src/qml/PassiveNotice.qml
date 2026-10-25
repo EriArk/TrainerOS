@@ -6,7 +6,7 @@ Rectangle {
     signal dismissed()
     width: Theme.television ? 380 : 330
     height: contents.implicitHeight + 26
-    radius: 12; color: "#fff0bb"; border.color: "#8e713e"; border.width: 2
+    radius: 12; color: Theme.surfaceColor("#fff0bb"); border.color: Theme.surfaceColor("#8e713e"); border.width: 2
     // Dismiss by touch without stealing controller focus.
     Column {
         id: contents; x: 16; y: 13; width: parent.width - 54; spacing: 5

@@ -14,7 +14,7 @@ Item {
         anchors.topMargin: -Theme.screenBounds.y
         anchors.leftMargin: -Theme.screenBounds.x
         anchors.rightMargin: -Theme.screenBounds.x
-        color: "#65102927"
+        color: Theme.surfaceColor("#65102927")
     }
     MouseArea { anchors.fill: parent }
     Item {
@@ -43,13 +43,13 @@ Item {
         }
         Text {
             x: 22; y: 12; width: 400; elide: Text.ElideRight; text: root.keyboard.title.toUpperCase()
-            color: "#e5eee1"; font.pixelSize: 13; font.bold: true; font.letterSpacing: 1
+            color: Theme.textColor("#e5eee1"); font.pixelSize: 13; font.bold: true; font.letterSpacing: 1
         }
         Text {
             anchors { right: parent.right; rightMargin: 115 }
             y: 12
             text: root.keyboard.count + " / " + root.keyboard.maximumLength
-            color: "#e5eee1"; font.pixelSize: 13
+            color: Theme.textColor("#e5eee1"); font.pixelSize: 13
         }
         CapButton {
             x: 440; y: 6; width: 206; height: 25
@@ -73,8 +73,8 @@ Item {
                 font.pixelSize: 24; elide: Text.ElideLeft; textFormat: Text.PlainText
             }
         }
-        Rectangle { x: 12; y: 105; width: 637; height: tray.height - y; radius: 8; color: "#276b66"; border.color: "#488d7e" }
-        Rectangle { x: 663; y: 105; width: tray.width - x - 12; height: tray.height - y; radius: 8; color: "#234f5b"; border.color: "#59929a" }
+        Rectangle { x: 12; y: 105; width: 637; height: tray.height - y; radius: 8; color: Theme.surfaceColor("#276b66"); border.color: Theme.surfaceColor("#488d7e") }
+        Rectangle { x: 663; y: 105; width: tray.width - x - 12; height: tray.height - y; radius: 8; color: Theme.surfaceColor("#234f5b"); border.color: Theme.surfaceColor("#59929a") }
         Repeater {
             model: root.keyboard.keys
             delegate: CapButton {
@@ -100,7 +100,7 @@ Item {
         Text {
             x: 25; y: 307; width: 865
             text: root.keyboard.hint || root.keyboard.layoutHint
-            color: root.keyboard.hint.length ? "#ffe08c" : "#d4e4d8"
+            color: root.keyboard.hint.length ? Theme.textColor("#ffe08c") : Theme.textColor("#d4e4d8")
             font.pixelSize: 11; elide: Text.ElideRight
         }
     }

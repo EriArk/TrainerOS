@@ -357,6 +357,7 @@ qt_add_resources(traineros home_backdrops PREFIX "/home-backdrops" BASE assets/h
     FILES assets/home-backdrops/turquoise.png assets/home-backdrops/red.png assets/home-backdrops/green.png assets/home-backdrops/blue.png assets/home-backdrops/orange.png)
 qt_add_resources(traineros cover_fallbacks PREFIX "/cover-fallbacks" BASE assets/cover-fallbacks
     FILES assets/cover-fallbacks/fantasy-0.png assets/cover-fallbacks/fantasy-1.png assets/cover-fallbacks/fantasy-2.png assets/cover-fallbacks/fantasy-3.png assets/cover-fallbacks/fantasy-4.png assets/cover-fallbacks/fantasy-5.png assets/cover-fallbacks/racing-0.png assets/cover-fallbacks/racing-1.png assets/cover-fallbacks/sports-0.png assets/cover-fallbacks/sports-1.png assets/cover-fallbacks/scifi-0.png assets/cover-fallbacks/scifi-1.png assets/cover-fallbacks/puzzle-0.png assets/cover-fallbacks/puzzle-1.png assets/cover-fallbacks/action-0.png assets/cover-fallbacks/action-1.png assets/cover-fallbacks/neutral-0.png assets/cover-fallbacks/neutral-1.png)
+qt_add_resources(traineros crt_texture PREFIX "/textures" BASE assets/textures FILES assets/textures/crt.svg)
 qt_add_resources(traineros display_fonts PREFIX "/fonts" BASE assets/fonts
     FILES assets/fonts/Fredoka.ttf assets/fonts/OFL.txt
           assets/fonts/ChakraPetch-Bold.ttf assets/fonts/ChakraPetch-OFL.txt
@@ -514,6 +515,8 @@ qt_add_qml_module(traineros
         src/qml/SettingsRow.qml
         src/qml/ControllerDiagram.qml
         src/qml/ControllerSettingsPane.qml
+    src/qml/ControllerCalibration.qml
+    src/qml/CrtTexture.qml
         src/qml/RingDiagram.qml
         src/qml/GameInputPane.qml
         src/qml/RadialInputWindow.qml

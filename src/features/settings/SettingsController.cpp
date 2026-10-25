@@ -91,8 +91,8 @@ void SettingsController::activate(int index) {
     if(index<0 || index>3 || saving_) return;
     auto candidate = value_;
     if (index == 0) {
-        const QStringList themes{"turquoise", "red", "green", "blue", "orange"};
-        candidate.theme = themes[(themes.indexOf(value_.theme) + 1) % themes.size()];
+        const QStringList themes{"light", "dark"};
+        candidate.theme = themes[(themes.indexOf(theme()) + 1) % themes.size()];
     } else if(index==3) candidate.videoPreviews=!candidate.videoPreviews;
     else if(index==2) candidate.worldEditing=!candidate.worldEditing;
     else candidate.reducedMotion = !candidate.reducedMotion;
@@ -110,7 +110,7 @@ QVariantList SettingsController::controls() const {
         return QVariantMap{{"title",title},{"kind",kind},{"detail",detail}};
     };
     switch(category_) {
-    case 0: return {row("Shell color","theme",theme()),row("Reduced motion","toggle",reducedMotion()?"On":"Off"),row("Brightness","brightness",""),row("Display profile","stepper",displayProfile()=="auto"?"Auto · system density":displayProfile()=="tv"?"TV · larger controls":"Handheld"),row("Interface size","stepper",QString::number(interfaceScale())+"%"),row("Reset interface size","action","Restore 100%")};
+    case 0: return {row("Appearance","theme",theme()=="dark"?"Dark":"Light"),row("Reduced motion","toggle",reducedMotion()?"On":"Off"),row("Brightness","brightness",""),row("Display profile","stepper",displayProfile()=="auto"?"Auto · system density":displayProfile()=="tv"?"TV · larger controls":"Handheld"),row("Interface size","stepper",QString::number(interfaceScale())+"%"),row("Reset interface size","action","Restore 100%")};
     case 1: { const int volume=std::clamp(QSettings().value("achievements/volume",65).toInt(),0,100);
         return {row("Volume","volume",""),row("Achievement jingle","stepper",volume?QString::number(volume)+"%":"Off"),row("Background music","unavailable","Music playback is not available yet")}; }
     case 2: return {row("Video previews","toggle",videoPreviews()?"On · silent playback":"Off"),row("Adventure pictures","status","Clean exit pictures on Home and in Choose Adventure"),row("Field Guide illustrations","status","Illustrations and animated companions")};
@@ -175,7 +175,7 @@ void SettingsController::activateRow(int index) {
     else if(category_==2 && row_==0) activate(3);
     else if(category_==4) emit trainerRequested(row_);
     else if(category_==5) emit deviceRequested(row_);
-    else if(category_==7 && row_==0) emit controllerRequested();
+    else if(category_==7 && row_==0 && input_) input_->beginCapture("center");
     else if(category_==7 && row_>=1 && row_<=5) adjustDisplay(row_,1);
     else if(category_==7 && row_==6 && input_) input_->resetProfile();
     else if(category_==8 && row_==0) emit collectionsRequested();
@@ -193,9 +193,9 @@ void SettingsController::activateRow(int index) {
 }
 void SettingsController::cycleTheme(int direction) {
     if(saving_) return;
-    const QStringList themes{"turquoise","red","green","blue","orange"};
+    const QStringList themes{"light","dark"};
     auto candidate=value_;
-    candidate.theme=themes[(themes.indexOf(value_.theme)+(direction<0?4:1))%5];
+    candidate.theme=themes[(themes.indexOf(theme())+1)%2];
     error_.clear();saving_=true;emit changed();
     const auto completed=[this,candidate](const QString& error){saving_=false;error_=error;if(error.isEmpty())value_=candidate;else emit messageRequested(error);emit changed();};
     if(repository_) repository_->savePreferences(candidate,this,completed); else completed({});

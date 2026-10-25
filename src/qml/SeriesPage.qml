@@ -64,7 +64,7 @@ Item {
                 onSelectedChanged: if(selected)forceActiveFocus(Qt.OtherFocusReason)
                 Rectangle {
                     x: (parent.width-width)/2; y: 4; width: cap.diameter; height: width; radius: width/2
-                    color: "#4014262b"
+                    color: Theme.surfaceColor("#4014262b")
                 }
                 Rectangle {
                     id: rim
@@ -97,7 +97,7 @@ Item {
                     Text {
                         anchors.centerIn: parent; visible: art.status !== Image.Ready
                         text: modelData.id === "_create" ? "+" : modelData.id.startsWith("auto:") || modelData.dynamic ? "\u21bb" : "\u25a4"
-                        font.pixelSize: rim.width*0.5; color: Theme.paper
+                        font.pixelSize: rim.width*0.5; color: Theme.accentInk
                     }
                     Rectangle {
                         x: parent.width-width+3; y: parent.height-height-2

@@ -392,7 +392,7 @@ private:
     bool achievementPhotoReturn_=false;
     QJsonObject achievementPhotoNavigation_;
     QString service_;
-    enum class TextTarget { None, TrainerName, WorldsSearch, MultiverseSearch, Library, LibraryTools, Collections, Archive, Module, AchievementAccount, SetupName, Network, Social, Communication, Scraper, Files, Browser, PcGame };
+    enum class TextTarget { GameInput, None, TrainerName, WorldsSearch, MultiverseSearch, Library, LibraryTools, Collections, Archive, Module, AchievementAccount, SetupName, Network, Social, Communication, Scraper, Files, Browser, PcGame };
     TextTarget textTarget_ = TextTarget::None;
     QList<ContinueEntry> points_;
     QList<ContinueEntry> favorites_;

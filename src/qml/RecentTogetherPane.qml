@@ -7,8 +7,8 @@ Item {
     property bool takesFocus: false
     readonly property var selected: social.recentPeople[social.recentFocus] || ({})
     readonly property bool online: social.account.state === "connected"
-    Rectangle { anchors.fill: parent; color: "#fffaf0" }
-    Rectangle { width: people.width + 24; height: parent.height; color: "#e2ece3" }
+    Rectangle { anchors.fill: parent; color: Theme.surfaceColor("#fffaf0") }
+    Rectangle { width: people.width + 24; height: parent.height; color: Theme.surfaceColor("#e2ece3") }
     ListView {
         id: people
         x: 12; y: 12; width: parent.width * 0.46 - 24; height: parent.height - 24
@@ -18,8 +18,8 @@ Item {
             required property var modelData
             required property int index
             width: people.width; height: 62; radius: 9
-            color: index === people.currentIndex ? "#fff0b8" : "#f5f8ed"
-            border.color: index === people.currentIndex ? "#b79747" : "#c4d2c5"
+            color: index === people.currentIndex ? Theme.surfaceColor("#fff0b8") : Theme.surfaceColor("#f5f8ed")
+            border.color: index === people.currentIndex ? Theme.surfaceColor("#b79747") : Theme.surfaceColor("#c4d2c5")
             border.width: root.takesFocus && index === people.currentIndex ? 2 : 1
             Rectangle {
                 x: 9; y: 12; width: 36; height: 36; radius: 12

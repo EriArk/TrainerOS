@@ -20,7 +20,7 @@ Rectangle {
     property real dragY: 0
     signal moved(real dx,real dy)
     radius: 12
-    color: selected ? Qt.tint(Theme.paper,"#20edbd50") : Qt.tint(Theme.paper,Qt.alpha(accent,.18))
+    color: selected ? Qt.tint(Theme.paper,Theme.surfaceColor("#20edbd50")) : Qt.tint(Theme.paper,Qt.alpha(accent,.18))
     border.width: selected ? 2 : 1
     border.color: selected ? Theme.focusGlow : Qt.alpha(Theme.screenContact,.2)
     transform: Translate { x: root.dragX; y: root.dragY }

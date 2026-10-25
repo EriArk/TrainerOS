@@ -6,15 +6,15 @@ Item {
     required property bool takesFocus
     readonly property var choices: dex.artChoices
     readonly property var choice: choices.length ? choices[Math.min(dex.focusIndex, choices.length - 1)] : ({})
-    Rectangle { anchors.fill: parent; color: "#90103935" }
+    Rectangle { anchors.fill: parent; color: Theme.surfaceColor("#90103935") }
     MouseArea { anchors.fill: parent }
     MountedPanel {
         anchors { left: parent.left; right: parent.right; bottom: parent.bottom }
-        height: 348; color: "#d7e5d4"
+        height: 348; color: Theme.surfaceColor("#d7e5d4")
         Text { x: 26; y: 16; text: "Illustrations · " + root.dex.detail.name; color: Theme.ink; font.pixelSize: 24; font.bold: true }
         Text { x: 27; y: 50; text: root.dex.detail.form + "  ·  " + (root.choices.length ? (root.dex.focusIndex + 1) + " / " + root.choices.length : "No confirmed image"); color: Theme.muted; font.pixelSize: 14 }
         Rectangle {
-            x: 24; y: 79; width: 262; height: 211; radius: 12; color: Theme.paper; border.color: "#9bb5a2"
+            x: 24; y: 79; width: 262; height: 211; radius: 12; color: Theme.paper; border.color: Theme.surfaceColor("#9bb5a2")
             ClassicIllustration { x: 11; y: 5; width: 240; height: 200; art: root.choice; showLabel: true }
         }
         Text {

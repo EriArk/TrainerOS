@@ -4,7 +4,7 @@ Item {
     required property var flow
     readonly property bool protectedDialog: Object.keys(flow.dialog).length > 0
     visible: protectedDialog || flow.view.menuOpen
-    Rectangle { anchors.fill: parent; color: "#65162723"; MouseArea { anchors.fill: parent; onClicked: if(!root.protectedDialog)root.flow.leave() } }
+    Rectangle { anchors.fill: parent; color: Theme.surfaceColor("#65162723"); MouseArea { anchors.fill: parent; onClicked: if(!root.protectedDialog)root.flow.leave() } }
     Rectangle {
         anchors.centerIn: parent; width: Math.min(370,parent.width-44); height: Math.min(parent.height-24, body.implicitHeight+28)
         radius: 16; color: Theme.paper; border.width: 2; border.color: Theme.rim
@@ -14,7 +14,7 @@ Item {
             Repeater { model: root.protectedDialog ? root.flow.dialog.actions || [] : root.flow.menu
                 Rectangle { required property var modelData; required property int index; width: body.width; height: 29; radius: 6
                     color: (root.protectedDialog ? root.flow.view.dialogIndex : root.flow.view.menuIndex) === index ? Theme.yellow : "transparent"
-                    Text { x: 10; anchors.verticalCenter: parent.verticalCenter; text: modelData.label; font.pixelSize: 13; color: modelData.id === "delete" ? "#984b51" : Theme.ink }
+                    Text { x: 10; anchors.verticalCenter: parent.verticalCenter; text: modelData.label; font.pixelSize: 13; color: modelData.id === "delete" ? Theme.textColor("#984b51") : Theme.ink }
                     MouseArea { anchors.fill: parent; onClicked: root.protectedDialog ? root.flow.answer(index) : root.flow.command(modelData.id) }
                 }
             }

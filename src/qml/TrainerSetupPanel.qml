@@ -10,7 +10,7 @@ Item {
         anchors.fill: parent; anchors.margins: Theme.panelInset; anchors.topMargin: Theme.contentTopInset
         PageHeader { id: header; compact: true; title: root.flow.title; subtitle: root.flow.live ? "Your Trainers" : "DEVELOPMENT PREVIEW · Nothing is saved or locked" }
         MountedPanel {
-            x: 0; y: header.height; width: parent.width; height: parent.height - y; color: "#d4e2d6"
+            x: 0; y: header.height; width: parent.width; height: parent.height - y; color: Theme.surfaceColor("#d4e2d6")
             Text {
                 x: 28; y: 14; width: parent.width - 56; height: 43; text: root.flow.description
                 color: Theme.muted; font.pixelSize: 16; wrapMode: Text.WordWrap
@@ -74,7 +74,7 @@ Item {
                     onActivated: root.entry ? root.flow.activate(13) : root.shell.activate(13)
                 }
             }
-            Text { x: 28; y: parent.height - 24; width: parent.width - 56; text: root.flow.error; color: "#853b24"; font.pixelSize: 13; elide: Text.ElideRight }
+            Text { x: 28; y: parent.height - 24; width: parent.width - 56; text: root.flow.error; color: Theme.textColor("#853b24"); font.pixelSize: 13; elide: Text.ElideRight }
         }
     }
 }

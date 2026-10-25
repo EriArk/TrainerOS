@@ -29,6 +29,9 @@ class ControllerInput final : public QObject {
     Q_PROPERTY(QVariantMap profile READ profile NOTIFY profileChanged)
     Q_PROPERTY(QString deviceName READ deviceName NOTIFY profileChanged)
     Q_PROPERTY(QString profileError READ profileError NOTIFY profileChanged)
+    Q_PROPERTY(QVariantMap live READ live NOTIFY sampled)
+    Q_PROPERTY(QString captureMode READ captureMode NOTIFY captureChanged)
+    Q_PROPERTY(QString captureStatus READ captureStatus NOTIFY captureChanged)
 public:
     // Switch-style shell: printed A at the right confirms; printed B below
     // goes back. SDL names these positions B/east and A/south respectively.
@@ -47,6 +50,12 @@ public:
     Q_INVOKABLE bool setProfile(const QVariantMap&);
     Q_INVOKABLE void resetProfile() { setProfile(ControllerProfile{}.json()); }
     Q_INVOKABLE QString glyph(const QString& semanticHint) const;
+    QVariantMap live() const;
+    QString captureMode() const {return captureMode_;}
+    QString captureStatus() const {return captureStatus_;}
+    Q_INVOKABLE void beginCapture(const QString& mode);
+    Q_INVOKABLE void cancelCapture();
+    Q_INVOKABLE void advanceCalibration();
     int confirmButton() const;
     int backButton() const { return confirmButton()==SDL_CONTROLLER_BUTTON_A?SDL_CONTROLLER_BUTTON_B:SDL_CONTROLLER_BUTTON_A; }
     const ControllerSample& sample() const { return sample_; }
@@ -69,6 +78,9 @@ signals:
     void connectionChanged();
     void profileChanged();
     void sampled();
+    void captureChanged();
+    void buttonCaptured(QString button);
+    void keyCaptured(QString chord);
     void pointerMoved(qreal dx,qreal dy);
     void pageScrolled(qreal dx,qreal dy);
     void observedAction(trainer::Action action, bool fromController);
@@ -98,5 +110,11 @@ private:
     QString detectedFamily_="generic", profileError_, physicalName_, profileKey_;
     void loadProfile();
     void publishShellMapping();
+    QString captureMode_,captureStatus_;
+    bool captureArmed_=false;
+    int calibrationSamples_=0;
+    std::array<double,6> calibrationCenter_{},calibrationMin_{},calibrationMax_{};
+    std::array<bool,SDL_CONTROLLER_BUTTON_MAX> capturePrevious_{};
+    bool pollCapture();
 };
 }

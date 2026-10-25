@@ -16,12 +16,74 @@
 #include <QJsonObject>
 
 namespace trainer {
+namespace {
+const QStringList captureButtons{"south","east","west","north","select","home","start","leftStick","rightStick","leftShoulder","rightShoulder","up","down","left","right"};
+}
+QVariantMap ControllerInput::live() const {
+    QVariantList raw,axes;QStringList buttons;
+    for(int i=0;i<6;++i){raw.append(sample_.axes[i]/32768.0);axes.append(profile_.axis(i,sample_.axes[i]/32768.0));}
+    for(int i=0;i<std::min(int(captureButtons.size()),int(sample_.buttons.size()));++i)if(sample_.buttons[i])buttons.append(captureButtons[i]);
+    return {{"raw",raw},{"axes",axes},{"buttons",buttons},{"connected",sample_.connected}};
+}
+void ControllerInput::beginCapture(const QString& mode) {
+    if(!QStringList{"button","key","center"}.contains(mode) || (!connected()&&mode!="key"))return;
+    captureMode_=mode;captureArmed_=false;calibrationSamples_=0;
+    calibrationCenter_.fill(0);calibrationMin_.fill(1);calibrationMax_.fill(-1);capturePrevious_.fill(false);
+    captureStatus_=mode=="center"?"Leave sticks and triggers at rest for one second, then press Start.":mode=="button"?"Release controls, then press the button to edit. Home cancels.":"Press a key or chord. Home or the Cancel control cancels.";
+    requireNeutral();emit captureChanged();
+}
+void ControllerInput::cancelCapture(){captureMode_.clear();captureStatus_.clear();requireNeutral();emit captureChanged();}
+void ControllerInput::advanceCalibration() {
+    if(captureMode_=="center") {
+        if(calibrationSamples_<45){captureStatus_="Keep controls still for one second.";emit captureChanged();return;}
+        for(int i=0;i<6;++i)if(calibrationMax_[i]-calibrationMin_[i]>.06 || std::abs(calibrationCenter_[i]/calibrationSamples_)>.25) {
+            beginCapture("center");captureStatus_="Movement detected. Release all controls and try again.";emit captureChanged();return;
+        }
+        for(auto& c:calibrationCenter_)c/=calibrationSamples_;
+        captureMode_="range";calibrationMin_=calibrationCenter_;calibrationMax_=calibrationCenter_;
+        captureStatus_="Circle both sticks fully and squeeze both triggers. Start saves; Home cancels.";emit captureChanged();
+    } else if(captureMode_=="range") {
+        for(int i=0;i<6;++i)if(calibrationMax_[i]-calibrationCenter_[i]<.4 || (i<4&&calibrationCenter_[i]-calibrationMin_[i]<.4)) {
+            captureStatus_="Move both sticks to every edge and fully squeeze both triggers before saving.";emit captureChanged();return;
+        }
+        auto p=profile();QVariantList axes;
+        for(int i=0;i<6;++i)axes.append(QVariantMap{{"center",calibrationCenter_[i]},{"min",i<4?calibrationMin_[i]:0},{"max",calibrationMax_[i]}});
+        p["axes"]=axes;if(setProfile(p))cancelCapture();
+    }
+}
+bool ControllerInput::pollCapture() {
+    if(captureMode_.isEmpty())return false;
+    if(!connected()&&captureMode_!="key"){cancelCapture();return true;}
+    if(sample_.buttons[SDL_CONTROLLER_BUTTON_GUIDE]){cancelCapture();return true;}
+    const bool any=std::any_of(sample_.buttons.begin(),sample_.buttons.end(),[](bool b){return b;}) || sample_.axes[4]>12000 || sample_.axes[5]>12000;
+    if(!captureArmed_){captureArmed_=!any;return true;}
+    if(captureMode_=="button") {
+        QString button;
+        for(int i=0;i<captureButtons.size();++i)if(sample_.buttons[i]){button=captureButtons[i];break;}
+        if(sample_.axes[4]>18000)button="leftTrigger";
+        if(sample_.axes[5]>18000)button="rightTrigger";
+        if(!button.isEmpty()){cancelCapture();emit buttonCaptured(button);}return true;
+    }
+    if(captureMode_=="center"||captureMode_=="range") {
+        // Keep a bounded resting sample window; jitter cannot become a giant dead zone.
+        if(captureMode_=="range" || calibrationSamples_<60) {
+            ++calibrationSamples_;
+            for(int i=0;i<6;++i){const double v=sample_.axes[i]/32768.0;
+                if(captureMode_=="center")calibrationCenter_[i]+=v;
+                calibrationMin_[i]=std::min(calibrationMin_[i],v);calibrationMax_[i]=std::max(calibrationMax_[i],v);}
+        }
+        if(sample_.buttons[SDL_CONTROLLER_BUTTON_START]&&!capturePrevious_[SDL_CONTROLLER_BUTTON_START])advanceCalibration();
+    }
+    capturePrevious_=sample_.buttons;return true;
+}
 QString ControllerInput::family() const { return profile_.family=="auto"?detectedFamily_:profile_.family; }
 int ControllerInput::confirmButton() const {
     const bool south=profile_.confirm=="south" || (profile_.confirm=="auto" && QStringList{"xbox","playstation","steam"}.contains(family()));
     return south?SDL_CONTROLLER_BUTTON_A:SDL_CONTROLLER_BUTTON_B;
 }
 QString ControllerInput::glyph(const QString& hint) const {
+    const QMap<QString,QString> aliases{{"leftShoulder","L1"},{"rightShoulder","R1"},{"leftTrigger","L2"},{"rightTrigger","R2"},{"leftStick","L3"},{"rightStick","R3"},{"start","Start"},{"select","Select"}};
+    if(aliases.contains(hint))return glyph(aliases[hint]);
     QString position=hint;
     if(hint=="A")position=confirmButton()==SDL_CONTROLLER_BUTTON_A?"south":"east";
     if(hint=="B")position=backButton()==SDL_CONTROLLER_BUTTON_A?"south":"east";
@@ -89,7 +151,7 @@ void ControllerInput::publishShellMapping() {
     QSaveFile file(directory+"/traineros-shell-input.json");
     if(!file.open(QIODevice::WriteOnly))return;
     const auto data=QJsonDocument(QJsonObject{{"version",1},{"device",physicalName_.isEmpty()?kernelDeviceName():physicalName_},
-        {"southConfirms",confirmButton()==SDL_CONTROLLER_BUTTON_A},{"invertX",profile_.invertX},{"invertY",profile_.invertY}}).toJson(QJsonDocument::Compact);
+        {"calibration",QJsonObject::fromVariantMap(profile_.json())},{"southConfirms",confirmButton()==SDL_CONTROLLER_BUTTON_A},{"invertX",profile_.invertX},{"invertY",profile_.invertY}}).toJson(QJsonDocument::Compact);
     if(file.write(data)==data.size())file.commit();
 #endif
 }
@@ -131,6 +193,7 @@ void ControllerInput::setHoldConfirmEnabled(bool enabled) {
 void ControllerInput::setEnabled(bool enabled) {
     if (enabled_ == enabled) return;
     enabled_ = enabled;
+    if(!enabled)cancelCapture();
     confirmPending_=false;
     awaitingNeutral_ = true;
     heldDirection_.reset();
@@ -168,6 +231,7 @@ void ControllerInput::poll() {
     if (!initialized_) return;
     SDL_GameControllerUpdate();
     if (controller_ && !SDL_GameControllerGetAttached(controller_)) {
+        cancelCapture();
         SDL_GameControllerClose(controller_);
         controller_ = nullptr;
         confirmPending_=false;
@@ -212,12 +276,13 @@ void ControllerInput::poll() {
         for (int i = 0; i < SDL_CONTROLLER_AXIS_MAX; ++i)
             sample_.axes[i] = SDL_GameControllerGetAxis(controller_, static_cast<SDL_GameControllerAxis>(i));
     }
+    if(pollCapture()){emit sampled();return;}
     if (!controller_ || !enabled_) { emit sampled(); return; }
     std::array<bool, SDL_CONTROLLER_BUTTON_MAX> buttons{};
     for (int i = 0; i < SDL_CONTROLLER_BUTTON_MAX; ++i)
         buttons[i] = SDL_GameControllerGetButton(controller_, static_cast<SDL_GameControllerButton>(i));
     const auto normalized=[this](int axis,bool invert) {
-        const float v=sample_.axes[axis]/32768.0f, dz=profile_.deadzone/100.0f;
+        const float v=profile_.axis(axis,sample_.axes[axis]/32768.0f), dz=profile_.deadzone/100.0f;
         if(std::abs(v)<=dz)return 0.0f;
         // Keep the established 20% profile's navigation thresholds unchanged,
         // while making a larger dead zone require a larger physical deflection.
@@ -227,8 +292,8 @@ void ControllerInput::poll() {
     const float x = normalized(SDL_CONTROLLER_AXIS_LEFTX,profile_.invertX);
     const float y = normalized(SDL_CONTROLLER_AXIS_LEFTY,profile_.invertY);
     const std::array<float, 2> triggers{
-        sample_.axes[SDL_CONTROLLER_AXIS_TRIGGERLEFT] / 32768.0f,
-        sample_.axes[SDL_CONTROLLER_AXIS_TRIGGERRIGHT] / 32768.0f};
+        float(profile_.axis(4,sample_.axes[4]/32768.0f)),
+        float(profile_.axis(5,sample_.axes[5]/32768.0f))};
     if (awaitingNeutral_) {
         const bool anyButton = std::any_of(buttons.begin(), buttons.end(), [](bool b) { return b; });
         if (anyButton || std::abs(x) >= StickRelease || std::abs(y) >= StickRelease
@@ -296,6 +361,21 @@ void ControllerInput::poll() {
 bool ControllerInput::eventFilter(QObject*, QEvent* event) {
     if (event->type() != QEvent::KeyPress) return false;
     const auto* key = static_cast<QKeyEvent*>(event);
+    if(!captureMode_.isEmpty()) {
+        if(key->isAutoRepeat())return true;
+        if(captureMode_!="key"){if(key->key()==Qt::Key_Escape)cancelCapture();else if(key->key()==Qt::Key_Return)advanceCalibration();return true;}
+        QString name;
+        const int k=key->key();
+        if(k>=Qt::Key_A&&k<=Qt::Key_Z)name=QChar('A'+k-Qt::Key_A);
+        else if(k>=Qt::Key_0&&k<=Qt::Key_9)name=QChar('0'+k-Qt::Key_0);
+        else if(k>=Qt::Key_F1&&k<=Qt::Key_F12)name="F"+QString::number(k-Qt::Key_F1+1);
+        else {const QMap<int,QString> names{{Qt::Key_Insert,"Insert"},{Qt::Key_Delete,"Delete"},{Qt::Key_Home,"Home"},{Qt::Key_End,"End"},{Qt::Key_PageUp,"PageUp"},{Qt::Key_PageDown,"PageDown"},{Qt::Key_Minus,"Minus"},{Qt::Key_Equal,"Equal"},{Qt::Key_Comma,"Comma"},{Qt::Key_Period,"Period"},{Qt::Key_Slash,"Slash"},{Qt::Key_Backslash,"Backslash"},{Qt::Key_Semicolon,"Semicolon"},{Qt::Key_Apostrophe,"Apostrophe"},{Qt::Key_BracketLeft,"BracketLeft"},{Qt::Key_BracketRight,"BracketRight"},{Qt::Key_QuoteLeft,"Grave"},{Qt::Key_Space,"Space"},{Qt::Key_Return,"Enter"},{Qt::Key_Enter,"Enter"},{Qt::Key_Escape,"Escape"},{Qt::Key_Tab,"Tab"},{Qt::Key_Backspace,"Backspace"},{Qt::Key_Up,"Up"},{Qt::Key_Down,"Down"},{Qt::Key_Left,"Left"},{Qt::Key_Right,"Right"}};name=names.value(k);}
+        if(!name.isEmpty()&&!(key->modifiers()&Qt::MetaModifier)) {
+            QStringList parts;if(key->modifiers()&Qt::ControlModifier)parts<<"Ctrl";if(key->modifiers()&Qt::AltModifier)parts<<"Alt";if(key->modifiers()&Qt::ShiftModifier)parts<<"Shift";parts<<name;
+            cancelCapture();emit keyCaptured(parts.join('+'));
+        }
+        return true;
+    }
     if(nativeKeyboard_&&!textEntryEnabled_&&key->key()!=Qt::Key_F1&&key->key()!=Qt::Key_Escape)return false;
     if(textEntryEnabled_&&enabled_) {
         if(key->key()==Qt::Key_Backspace){emit textBackspace();return true;}

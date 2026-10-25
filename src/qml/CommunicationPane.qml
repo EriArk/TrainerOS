@@ -31,8 +31,8 @@ Item {
         }
     }
     Rectangle {
-        x: 5; y: parent.height-40; width: root.flow.testing ? parent.width*0.32 : 0; height: 13; radius: 6; color: "#9ebaa9"; visible: root.flow.testing
-        Rectangle { width: parent.width*root.flow.microphoneLevel/100; height: parent.height; radius: 6; color: "#6bab72" }
+        x: 5; y: parent.height-40; width: root.flow.testing ? parent.width*0.32 : 0; height: 13; radius: 6; color: Theme.surfaceColor("#9ebaa9"); visible: root.flow.testing
+        Rectangle { width: parent.width*root.flow.microphoneLevel/100; height: parent.height; radius: 6; color: Theme.surfaceColor("#6bab72") }
     }
     Text { x: root.flow.testing ? parent.width*0.35 : 5; y: parent.height-39; width: parent.width-x-5; height: 36; text: root.flow.status; textFormat: Text.PlainText; font.pixelSize: 13; color: Theme.muted; wrapMode: Text.WordWrap; maximumLineCount: 2; elide: Text.ElideRight }
 }

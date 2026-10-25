@@ -4,7 +4,7 @@ Item {
     id: root
     required property var flow
     Rectangle {
-        anchors.fill: parent; color: "#70162723"; visible: root.flow.menu.length > 0
+        anchors.fill: parent; color: Theme.surfaceColor("#70162723"); visible: root.flow.menu.length > 0
         MouseArea { anchors.fill: parent; onClicked: root.flow.menuAction(3) }
         Rectangle {
             anchors.centerIn: parent; width: 310; height: root.flow.menu.length * 49 + 24
@@ -15,7 +15,7 @@ Item {
                     model: root.flow.menu
                     Rectangle {
                         required property var modelData; required property int index
-                        width: 286; height: 44; radius: 10; color: root.flow.menuIndex === index ? Theme.yellow : "#e1e8df"
+                        width: 286; height: 44; radius: 10; color: root.flow.menuIndex === index ? Theme.yellow : Theme.surfaceColor("#e1e8df")
                         Text { anchors.centerIn: parent; text: modelData.label; font.pixelSize: 16; color: Theme.ink }
                         MouseArea { anchors.fill: parent; onClicked: root.flow.menuAction(index) }
                     }

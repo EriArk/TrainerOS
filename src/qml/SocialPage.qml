@@ -16,7 +16,7 @@ FocusScope {
     Component.onDestruction: if (social && social.stream.active) social.streamAction("stop-watch")
     Rectangle {
         anchors.fill: parent; z: 8; visible: root.social.stream.active
-        color: "#182521"
+        color: Theme.surfaceColor("#182521")
         MouseArea { anchors.fill: parent }
         GameStreamView {
             id: streamVideo; objectName: "game-stream-view"; anchors.fill: parent; anchors.bottomMargin: 48
@@ -25,7 +25,7 @@ FocusScope {
         }
         Text {
             anchors.centerIn: streamVideo; visible: !root.social.stream.hasFrame
-            text: "Connecting to stream…"; color: Theme.paper; font.pixelSize: 20
+            text: "Connecting to stream…"; color: Theme.accentInk; font.pixelSize: 20
         }
         Row {
             anchors { left: parent.left; bottom: parent.bottom; margins: 6 }
@@ -61,16 +61,16 @@ FocusScope {
     Item {
         anchors { top: heading.bottom; bottom: parent.bottom; left: parent.left; right: parent.right }
         visible: !root.connected && root.faceIndex !== 4
-        Rectangle { anchors.fill: parent; color: "#edf2e4" }
-        Rectangle { width: parent.width * 0.36; height: parent.height; color: "#d3e5dd"; border.color: "#b0c6b9" }
+        Rectangle { anchors.fill: parent; color: Theme.surfaceColor("#edf2e4") }
+        Rectangle { width: parent.width * 0.36; height: parent.height; color: Theme.surfaceColor("#d3e5dd"); border.color: Theme.surfaceColor("#b0c6b9") }
         Item {
             x: 34; width: parent.width * 0.36 - 68; height: 194; anchors.verticalCenter: parent.verticalCenter
-            Rectangle { x: 4; y: 7; width: parent.width; height: 150; radius: 24; color: "#6684947b" }
+            Rectangle { x: 4; y: 7; width: parent.width; height: 150; radius: 24; color: Theme.surfaceColor("#6684947b") }
             Rectangle {
-                width: parent.width; height: 150; radius: 24; color: Theme.blue; border.color: "#668f9f"; border.width: 2
-                Rectangle { x: 7; y: 7; width: parent.width - 14; height: parent.height - 14; radius: 19; color: "#bde3ec"; border.color: "#e9f6f4"; border.width: 2 }
-                Rectangle { x: 18; y: 22; width: parent.width - 36; height: 97; radius: 12; color: "#587d76" }
-                Rectangle { x: 24; y: 28; width: parent.width - 48; height: 84; radius: 9; color: "#e6f2c9"; border.color: "#7ba490"; border.width: 2
+                width: parent.width; height: 150; radius: 24; color: Theme.blue; border.color: Theme.surfaceColor("#668f9f"); border.width: 2
+                Rectangle { x: 7; y: 7; width: parent.width - 14; height: parent.height - 14; radius: 19; color: Theme.surfaceColor("#bde3ec"); border.color: Theme.surfaceColor("#e9f6f4"); border.width: 2 }
+                Rectangle { x: 18; y: 22; width: parent.width - 36; height: 97; radius: 12; color: Theme.surfaceColor("#587d76") }
+                Rectangle { x: 24; y: 28; width: parent.width - 48; height: 84; radius: 9; color: Theme.surfaceColor("#e6f2c9"); border.color: Theme.surfaceColor("#7ba490"); border.width: 2
                     Row { anchors.centerIn: parent; spacing: 21
                         Rectangle { width: 8; height: 15; radius: 4; color: Theme.ink }
                         Rectangle { width: 8; height: 15; radius: 4; color: Theme.ink }
@@ -79,8 +79,8 @@ FocusScope {
                     Rectangle { x: 21; y: 50; width: 16; height: 7; radius: 4; color: Theme.pink }
                     Rectangle { anchors.right: parent.right; anchors.rightMargin: 21; y: 50; width: 16; height: 7; radius: 4; color: Theme.pink }
                 }
-                Row { x: 22; y: 129; spacing: 5; Repeater { model: 4; Rectangle { width: 16; height: 3; radius: 1; color: "#719ea5" } } }
-                Rectangle { anchors.right: parent.right; anchors.rightMargin: 22; y: 126; width: 10; height: 10; radius: 5; color: Theme.yellow; border.color: "#927e3f" }
+                Row { x: 22; y: 129; spacing: 5; Repeater { model: 4; Rectangle { width: 16; height: 3; radius: 1; color: Theme.surfaceColor("#719ea5") } } }
+                Rectangle { anchors.right: parent.right; anchors.rightMargin: 22; y: 126; width: 10; height: 10; radius: 5; color: Theme.yellow; border.color: Theme.surfaceColor("#927e3f") }
             }
             Text { renderType: typeof Text.CurveRendering === "number" ? Text.CurveRendering : Text.QtRendering; y: 168; width: parent.width; text: "HELLO, FRIEND!"; horizontalAlignment: Text.AlignHCenter; font.family: Theme.brandFamily; font.pixelSize: 21; color: Theme.ink }
         }
@@ -89,7 +89,7 @@ FocusScope {
             anchors.verticalCenter: parent.verticalCenter; spacing: 14
             Text { renderType: typeof Text.CurveRendering === "number" ? Text.CurveRendering : Text.QtRendering; width: parent.width; text: root.account.state === "authorizing" ? "Let's get you connected" : "Your friends, along for the ride"; wrapMode: Text.WordWrap; color: Theme.ink; font.family: Theme.displayFamily; font.pixelSize: 26 }
             Text { renderType: typeof Text.CurveRendering === "number" ? Text.CurveRendering : Text.QtRendering; width: parent.width; text: root.account.state === "authorizing" ? (root.account.status || "Connecting...") : "Chat with your friends from your handheld."; wrapMode: Text.WordWrap; color: Theme.muted; font.pixelSize: 16; textFormat: Text.PlainText }
-            Rectangle { visible: (root.account.code || "").length > 0; width: parent.width; height: 60; radius: 10; color: "#fff4c6"; border.color: "#c5af66"; border.width: 2
+            Rectangle { visible: (root.account.code || "").length > 0; width: parent.width; height: 60; radius: 10; color: Theme.surfaceColor("#fff4c6"); border.color: Theme.surfaceColor("#c5af66"); border.width: 2
                 Text { renderType: typeof Text.CurveRendering === "number" ? Text.CurveRendering : Text.QtRendering; anchors.centerIn: parent; text: root.account.code || ""; font.family: Theme.brandFamily; font.pixelSize: 27; color: Theme.ink; textFormat: Text.PlainText }
             }
             CapButton { visible: root.account.state !== "authorizing"; width: parent.width; height: 54; label: root.account.state === "restoring" ? "Signing in..." : "Sign in"; tint: Theme.yellow; selected: root.takesFocus; enabled: !!root.account.available && root.account.state !== "restoring"; claimsFocus: false; onActivated: root.social.login() }
@@ -149,7 +149,7 @@ FocusScope {
                 required property var modelData; required property int index
                 width: people.width; height: 59
                 Rectangle { anchors.fill: parent; anchors.margins: 2; radius: 10
-                    color: index===people.currentIndex ? Qt.rgba(Theme.rim.r,Theme.rim.g,Theme.rim.b,.16) : mouse.containsMouse ? "#0c193f3b" : "transparent"
+                    color: index===people.currentIndex ? Qt.rgba(Theme.rim.r,Theme.rim.g,Theme.rim.b,.16) : mouse.containsMouse ? Theme.surfaceColor("#0c193f3b") : "transparent"
                     border.width: index===people.currentIndex && !root.social.reading && !root.social.menu.length ? 1 : 0
                     border.color: Qt.rgba(Theme.chassis.r,Theme.chassis.g,Theme.chassis.b,.45)
                 }
@@ -187,14 +187,14 @@ FocusScope {
         social: root.social; takesFocus: root.takesFocus && visible
     }
     Rectangle {
-        visible: root.social.menu.length > 0; anchors.fill: parent; color: "#6630433b"; z: 9
+        visible: root.social.menu.length > 0; anchors.fill: parent; color: Theme.surfaceColor("#6630433b"); z: 9
         MouseArea { anchors.fill: parent; onClicked: root.social.back() }
         Rectangle {
             width: Math.min(root.social.profileVisible || root.social.mediaPreview ? 350 : 310, parent.width - 24)
             x: root.social.profileVisible || root.social.mediaPreview ? (parent.width-width)/2 : Math.max(12,Math.min(root.menuAnchor.x,parent.width-width-12))
             y: root.social.profileVisible || root.social.mediaPreview ? (parent.height-height)/2 : Math.max(8,Math.min(root.menuAnchor.y,parent.height-height-8))
             height: Math.min(parent.height - 24, menuHeading.height + (root.social.emojiVisible ? 78 : menuList.contentHeight) + 32)
-            radius: 10; color: "#fffaf2"; border.color: "#c6b4d6"; border.width: 1
+            radius: 10; color: Theme.surfaceColor("#fffaf2"); border.color: Theme.surfaceColor("#c6b4d6"); border.width: 1
             MouseArea { anchors.fill: parent }
             SocialIconButton { anchors { right: parent.right; top: parent.top; margins: 5 } z: 2; icon: "x"; label: "Close"; onClicked: root.social.back() }
             Column {
@@ -218,13 +218,13 @@ FocusScope {
                 }
                 CapButton { visible: root.social.canCreateGroup; width: parent.width; height: visible ? 40 : 0; label: "Create group"; tint: Theme.yellow; claimsFocus: false; onActivated: root.social.createSelectedGroup() }
                 Image { visible: root.social.mediaPreview && root.social.media.picture.toString().length > 0; width: parent.width; height: visible ? 165 : 0; source: visible ? root.social.media.picture : ""; sourceSize: Qt.size(740,330); fillMode: Image.PreserveAspectFit; asynchronous: true }
-                Rectangle { visible: root.social.mediaPreview && root.social.media.state === "recording"; width: parent.width; height: visible ? 52 : 0; radius: 10; color: "#f1c8c4"
-                    Text { renderType: typeof Text.CurveRendering === "number" ? Text.CurveRendering : Text.QtRendering; anchors.centerIn: parent; text: "●  " + root.social.media.seconds + " s / 120 s"; font.family: Theme.displayFamily; font.pixelSize: 22; color: "#9d3942" }
+                Rectangle { visible: root.social.mediaPreview && root.social.media.state === "recording"; width: parent.width; height: visible ? 52 : 0; radius: 10; color: Theme.surfaceColor("#f1c8c4")
+                    Text { renderType: typeof Text.CurveRendering === "number" ? Text.CurveRendering : Text.QtRendering; anchors.centerIn: parent; text: "●  " + root.social.media.seconds + " s / 120 s"; font.family: Theme.displayFamily; font.pixelSize: 22; color: Theme.textColor("#9d3942") }
                 }
                 Item { visible: root.social.mediaPreview && root.social.media.state === "voice"; width: parent.width; height: visible ? 45 : 0
                     Row { anchors.centerIn: parent; spacing: 2
                         Repeater { model: root.social.media.levels
-                            Rectangle { required property int modelData; required property int index; width: 3; height: 5 + modelData / 8; anchors.verticalCenter: parent.verticalCenter; radius: 2; color: index / Math.max(1,root.social.media.levels.length) <= root.social.media.progress ? "#ba8d16" : "#779fa7" }
+                            Rectangle { required property int modelData; required property int index; width: 3; height: 5 + modelData / 8; anchors.verticalCenter: parent.verticalCenter; radius: 2; color: index / Math.max(1,root.social.media.levels.length) <= root.social.media.progress ? Theme.surfaceColor("#ba8d16") : Theme.surfaceColor("#779fa7") }
                         }
                     }
                 }
@@ -239,9 +239,9 @@ FocusScope {
                     required property string modelData; required property int index
                     objectName: "social-menu-action-" + index
                     width: menuList.width; height: Math.max(30, actionText.implicitHeight + 12); radius: 5
-                    color: index === root.social.menuIndex ? "#fbe6a1" : actionMouse.containsMouse ? "#eee3f4" : "transparent"
+                    color: index === root.social.menuIndex ? Theme.surfaceColor("#fbe6a1") : actionMouse.containsMouse ? Theme.surfaceColor("#eee3f4") : "transparent"
                     Text { renderType: typeof Text.CurveRendering === "number" ? Text.CurveRendering : Text.QtRendering; id: actionText; x: 9; y: 6; width: parent.width - 18; text: modelData; font.pixelSize: 14; font.family: Theme.displayFamily; wrapMode: Text.Wrap; maximumLineCount: 2; elide: Text.ElideRight; textFormat: Text.PlainText
-                        color: modelData.startsWith("Delete") || modelData.startsWith("Leave") || modelData.startsWith("Block") || modelData.startsWith("Remove") ? "#983e45" : Theme.ink }
+                        color: modelData.startsWith("Delete") || modelData.startsWith("Leave") || modelData.startsWith("Block") || modelData.startsWith("Remove") ? Theme.textColor("#983e45") : Theme.ink }
                     MouseArea { id: actionMouse; anchors.fill: parent; hoverEnabled: true; onClicked: root.social.selectMenu(index) }
                 }
             }
@@ -249,13 +249,13 @@ FocusScope {
                 Row { width: parent.width
                     Repeater { model: root.social.emojiVisible ? root.social.menu.slice(0,5) : []
                         Rectangle { required property string modelData; required property int index
-                            width: 56; height: 40; radius: 7; color: root.social.menuIndex === index ? "#fbe6a1" : "transparent"
+                            width: 56; height: 40; radius: 7; color: root.social.menuIndex === index ? Theme.surfaceColor("#fbe6a1") : "transparent"
                             Text { renderType: typeof Text.CurveRendering === "number" ? Text.CurveRendering : Text.QtRendering; anchors.centerIn: parent; text: modelData; font.pixelSize: 22 }
                             MouseArea { anchors.fill: parent; onClicked: root.social.selectMenu(index) }
                         }
                     }
                 }
-                Rectangle { width: parent.width; height: 30; radius: 5; color: root.social.menuIndex === 5 ? "#fbe6a1" : "transparent"
+                Rectangle { width: parent.width; height: 30; radius: 5; color: root.social.menuIndex === 5 ? Theme.surfaceColor("#fbe6a1") : "transparent"
                     Text { renderType: typeof Text.CurveRendering === "number" ? Text.CurveRendering : Text.QtRendering; x: 9; anchors.verticalCenter: parent.verticalCenter; text: "More emoji..."; color: Theme.ink; font.family: Theme.displayFamily; font.pixelSize: 14 }
                     MouseArea { anchors.fill: parent; onClicked: root.social.selectMenu(5) }
                 }

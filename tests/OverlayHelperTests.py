@@ -365,6 +365,17 @@ class OverlayHelperTests(unittest.TestCase):
             self.assertTrue(state['left']);self.assertGreater(state['sticks'][0],0)
             self.assertIn('south',state['buttons'])
             keys.clear();values.clear()
+            calibration={'axes':[{'center':.1,'min':-.8,'max':.8} for _ in range(4)]+[{'center':.05,'min':0,'max':.8} for _ in range(2)],'deadzone':30}
+            path.write_text(json.dumps(dict(version=1,device=pad.name,calibration=calibration)))
+            pad.mapping_stamp=None;values[0]=1126;values[20]=1242
+            state=pad.sample()
+            self.assertAlmostEqual(state['sticks'][0],1,places=2)
+            self.assertTrue(state['right']);self.assertTrue(state['previousFace'])
+            self.assertIn('leftTrigger',state['buttons']);self.assertFalse(state['neutral'])
+            calibration['axes'][0]['max']=float('nan')
+            path.write_text(json.dumps(dict(version=1,device=pad.name,calibration=calibration)));pad.mapping_stamp=None
+            self.assertAlmostEqual(pad.sample()['sticks'][0],1126/1408)
+            values.clear()
             for bad in ([], dict(version=1, device='unrelated', southConfirms=True)):
                 path.write_text(json.dumps(bad));pad.mapping_stamp=None
                 keys.add(305);self.assertTrue(pad.sample()['confirm']);keys.clear()

@@ -20,6 +20,20 @@ class TrainerProfilesTests final:public QObject {
         bool done=false;store.stageTrainerAsync(id,this,[&](auto e){QVERIFY2(e.isEmpty(),qPrintable(e));done=true;});QTRY_VERIFY(done);QTRY_COMPARE(store.pending(),0);
     }
 private slots:
+    void lightDarkIsIsolatedAcrossTrainerSwitchAndRestart() {
+        QTemporaryDir dir;
+        {
+            LocalStateStore store(dir.path());store.open();QTRY_VERIFY(store.ready());create(store,"one");create(store,"two");
+            auto prefs=store.preferences();prefs.theme="dark";bool done=false;
+            store.savePreferences(prefs,this,[&](auto error){QVERIFY(error.isEmpty());done=true;});QTRY_VERIFY(done);QTRY_COMPARE(store.pending(),0);stage(store,"two");
+        }
+        {
+            LocalStateStore store(dir.path());store.open();QTRY_VERIFY(store.ready());QVERIFY(store.preferences().theme!="dark");
+            auto prefs=store.preferences();prefs.theme="light";bool done=false;
+            store.savePreferences(prefs,this,[&](auto error){QVERIFY(error.isEmpty());done=true;});QTRY_VERIFY(done);QTRY_COMPARE(store.pending(),0);stage(store,"one");
+        }
+        LocalStateStore store(dir.path());store.open();QTRY_VERIFY(store.ready());QCOMPARE(store.preferences().theme,QString("dark"));
+    }
     void schemaEightMigrationRollsBackAndRetriesWithoutLosingProfile() {
         QTemporaryDir dir;
         const auto name=QUuid::createUuid().toString();

@@ -5,8 +5,8 @@ Rectangle {
     property var slots: []
     property string count: "—"
     property string badgePrefix: "badge-"
-    color: "#e3ebda"; border.color: "#b6c7b2"; radius: 13
-    Rectangle { anchors.fill: parent; anchors.margins: 2; radius: 11; color: "transparent"; border.color: "#f9fcf4" }
+    color: Theme.surfaceColor("#e3ebda"); border.color: Theme.surfaceColor("#b6c7b2"); radius: 13
+    Rectangle { anchors.fill: parent; anchors.margins: 2; radius: 11; color: "transparent"; border.color: Theme.surfaceColor("#f9fcf4") }
     Text { x: 13; y: 8; text: "BADGES"; color: Theme.muted; font.pixelSize: 11; font.bold: true; font.letterSpacing: 1.5 }
     Text { x: 85; y: 2; width: parent.width - 99; horizontalAlignment: Text.AlignRight; text: root.count + (root.slots.length && root.count !== "—" ? " / " + root.slots.length : ""); color: Theme.ink; font.pixelSize: 23; font.bold: true }
     Row {

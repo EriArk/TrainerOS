@@ -30,8 +30,8 @@ Item {
         transformOrigin: Item.Bottom
         Behavior on scale { NumberAnimation { duration: Theme.motion(140) } }
         Behavior on y { NumberAnimation { duration: Theme.motion(140) } }
-        Rectangle { x: 3; y: 5; width: parent.width+2; height: parent.height; radius: 3; color: "#21152b27" }
-        Rectangle { x: 2; y: 3; width: parent.width+1; height: parent.height; radius: 3; color: "#25152b27" }
+        Rectangle { x: 3; y: 5; width: parent.width+2; height: parent.height; radius: 3; color: Theme.surfaceColor("#21152b27") }
+        Rectangle { x: 2; y: 3; width: parent.width+1; height: parent.height; radius: 3; color: Theme.surfaceColor("#25152b27") }
         Rectangle { anchors.fill: parent; anchors.margins: -4; radius: 6; color: "transparent"; border.width: 6; border.color: Qt.alpha(Theme.focusGlow,0.12); visible: root.selected }
         Rectangle { anchors.fill: parent; anchors.margins: -2; radius: 4; color: "transparent"; border.width: 1.5; border.color: Theme.focus; visible: root.selected }
         Rectangle { anchors.fill: parent; radius: 2; color: Theme.chassisDark }
@@ -53,14 +53,14 @@ Item {
             anchors.fill: parent; visible: !root.realCover
             gradient: Gradient {
                 GradientStop { position: 0.4; color: "transparent" }
-                GradientStop { position: 1; color: "#bf182d35" }
+                GradientStop { position: 1; color: Theme.surfaceColor("#bf182d35") }
             }
         }
         Text {
             visible: !root.realCover
             x: 8; y: parent.height*0.56; width: parent.width-16; height: parent.height*0.31
             text: root.entry.title || ""; textFormat: Text.PlainText
-            color: "#fff6dc"; font.family: Theme.displayFamily; font.pixelSize: 17
+            color: Theme.textColor("#fff6dc"); font.family: Theme.displayFamily; font.pixelSize: 17
             fontSizeMode: Text.Fit; minimumPixelSize: 10; font.bold: true
             horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter
             wrapMode: Text.WordWrap; maximumLineCount: 3; elide: Text.ElideRight
@@ -74,10 +74,10 @@ Item {
             }
         }
         // The cover is a small physical case, not a button tile.
-        Rectangle { x: 0; y: 0; width: 4; height: parent.height; color: "#40172c29" }
-        Rectangle { x: 4; y: 1; width: 1; height: parent.height-2; color: "#40ffffff" }
-        Rectangle { x: 1; y: 0; width: parent.width-2; height: 1; color: "#85ffffff" }
-        Rectangle { anchors.fill: parent; radius: 2; color: "transparent"; border.width: 0.6; border.color: "#60182c2a" }
+        Rectangle { x: 0; y: 0; width: 4; height: parent.height; color: Theme.surfaceColor("#40172c29") }
+        Rectangle { x: 4; y: 1; width: 1; height: parent.height-2; color: Theme.surfaceColor("#40ffffff") }
+        Rectangle { x: 1; y: 0; width: parent.width-2; height: 1; color: Theme.surfaceColor("#85ffffff") }
+        Rectangle { anchors.fill: parent; radius: 2; color: "transparent"; border.width: 0.6; border.color: Theme.surfaceColor("#60182c2a") }
         Text { visible: root.entry.linked === false; anchors.left: parent.left; anchors.top: parent.top; anchors.margins: 4; text: "!"; font.bold: true; color: Theme.yellow; font.pixelSize: 20 }
         FavoriteStar {
             objectName: "shelf-favorite-"+(root.entry.id || "")

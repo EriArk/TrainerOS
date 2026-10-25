@@ -26,9 +26,9 @@ Item {
         id: stage
         x: 24; y: 70; width: root.width * .40 - 28; height: root.height - y - 22
         radius: 18
-        gradient: Gradient { GradientStop { position: 0; color: "#e4eee6" } GradientStop { position: 1; color: "#c6ded4" } }
-        Rectangle { width: parent.width*.74; height: width; radius: width/2; anchors.horizontalCenter: parent.horizontalCenter; y: 23; color: "#50ffffff" }
-        Rectangle { width: parent.width*.65; height: 22; radius: width/2; anchors.horizontalCenter: parent.horizontalCenter; y: parent.height-60; color: "#2e709a88" }
+        gradient: Gradient { GradientStop { position: 0; color: Theme.surfaceColor("#e4eee6") } GradientStop { position: 1; color: Theme.surfaceColor("#c6ded4") } }
+        Rectangle { width: parent.width*.74; height: width; radius: width/2; anchors.horizontalCenter: parent.horizontalCenter; y: 23; color: Theme.surfaceColor("#50ffffff") }
+        Rectangle { width: parent.width*.65; height: 22; radius: width/2; anchors.horizontalCenter: parent.horizontalCenter; y: parent.height-60; color: Theme.surfaceColor("#2e709a88") }
         Loader {
             id: view; anchors.fill: parent; anchors.topMargin: -15; anchors.bottomMargin: 35
             active: !!root.profile.avatarPreview && root.profile.avatarRendererAvailable
@@ -75,8 +75,8 @@ Item {
                             readonly property bool chosen: part.modelData.detail===modelData
                             readonly property bool highlighted: chosen && root.focused && root.profile.focusIndex===part.field
                             width: (part.width-7*(part.modelData.choices.length-1))/part.modelData.choices.length; height: parent.height
-                            radius: 9; color: chosen ? "#dcebe3" : "#f2f1e9"
-                            border.width: highlighted ? 2 : 1; border.color: highlighted ? Theme.focusGlow : chosen ? "#719d8d" : "#e1e4da"
+                            radius: 9; color: chosen ? Theme.surfaceColor("#dcebe3") : Theme.surfaceColor("#f2f1e9")
+                            border.width: highlighted ? 2 : 1; border.color: highlighted ? Theme.focusGlow : chosen ? Theme.surfaceColor("#719d8d") : Theme.surfaceColor("#e1e4da")
                             Accessible.role: Accessible.RadioButton; Accessible.name: root.name(modelData); Accessible.checked: chosen
                             Row {
                                 anchors.centerIn: parent; spacing: 8
@@ -96,7 +96,7 @@ Item {
                 }
             }
         }
-        Rectangle { width: parent.width; height: 1; color: "#e1e4da" }
+        Rectangle { width: parent.width; height: 1; color: Theme.surfaceColor("#e1e4da") }
         Repeater {
             id: colours
             model: root.rows.slice(2,7)
@@ -119,7 +119,7 @@ Item {
                             width: 26; height: parent.height
                             Accessible.role: Accessible.RadioButton; Accessible.name: colourRow.modelData.title+" "+modelData; Accessible.checked: chosen
                             Rectangle { anchors.centerIn: parent; width: 25; height: 25; radius: 13; color: "transparent"; border.width: swatch.chosen ? 2 : 0; border.color: root.focused && root.profile.focusIndex===colourRow.field ? Theme.focusGlow : Theme.ink }
-                            Rectangle { anchors.centerIn: parent; width: 18; height: 18; radius: 9; color: swatch.modelData; border.width: 1; border.color: "#30000000" }
+                            Rectangle { anchors.centerIn: parent; width: 18; height: 18; radius: 9; color: swatch.modelData; border.width: 1; border.color: Theme.surfaceColor("#30000000") }
                             MouseArea { anchors.fill: parent; enabled: !root.profile.saving; onClicked: root.profile.chooseAvatar(colourRow.field,swatch.modelData) }
                         }
                     }
@@ -132,9 +132,9 @@ Item {
     }
     Rectangle {
         x: choicesView.x+choicesView.width-3; y: choicesView.y
-        width: 3; height: choicesView.height; radius: 2; color: "#e1e4da"
+        width: 3; height: choicesView.height; radius: 2; color: Theme.surfaceColor("#e1e4da")
         visible: choicesView.contentHeight>choicesView.height
-        Rectangle { width: parent.width; radius: 2; color: "#719d8d"; height: parent.height*choicesView.visibleArea.heightRatio; y: parent.height*choicesView.visibleArea.yPosition }
+        Rectangle { width: parent.width; radius: 2; color: Theme.surfaceColor("#719d8d"); height: parent.height*choicesView.visibleArea.heightRatio; y: parent.height*choicesView.visibleArea.yPosition }
     }
     Row {
         x: choicesView.x; y: root.height-49; width: choicesView.width; spacing: 10

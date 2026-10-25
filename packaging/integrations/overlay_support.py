@@ -6,6 +6,7 @@ import signal
 from pathlib import Path
 import struct
 import json
+import math
 
 
 class RawPad:
@@ -57,24 +58,43 @@ class RawPad:
         buttons = [name for code, name in ((304,'south'),(305,'east'),(308,'west'),(307,'north'),
             (310,'leftShoulder'),(311,'rightShoulder'),(317,'leftStick'),(318,'rightStick'),
             (314,'select'),(315,'start'),(544,'up'),(545,'down'),(546,'left'),(547,'right')) if code in keys]
-        if positions[min(self.triggers)] > .55: buttons.append('leftTrigger')
-        if positions[max(self.triggers)] > .55: buttons.append('rightTrigger')
         right = (2,3) if 20 in self.triggers else (3,4)
+        calibration=self.shell_mapping.get('calibration',{})
+        calibration=calibration if isinstance(calibration,dict) else {}
+        axes=calibration.get('axes',[])
+        def calibrated(i,value):
+            if not isinstance(axes,list) or len(axes)!=6 or not isinstance(axes[i],dict):return value
+            a=axes[i];center,low,high=(a.get(k) for k in ('center','min','max'))
+            if any(type(v) not in (int,float) or not math.isfinite(v) for v in (center,low,high)):return value
+            if not (-1<=low<=center<=.25 and abs(center)<=.25 and center+.4<=high<=1):return value
+            if i<4 and center-low<.4:return value
+            if i>=4 and (low!=0 or center<0):return value
+            span=center-low if value<center else high-center
+            return max(-1 if i<4 else 0,min(1,(value-center)/span)) if span>0 else 0
+        sticks=[calibrated(i,positions[a]*2-1) for i,a in enumerate((0,1,*right))]
+        lt=calibrated(4,positions[min(self.triggers)]);rt=calibrated(5,positions[max(self.triggers)])
+        extra_axes=set(self.axes)-{0,1,*right,*self.triggers}
+        neutral=not keys and all(abs(v)<.35 for v in sticks) and lt<.15 and rt<.15 and all(abs(positions[a]-.5)<.175 for a in extra_axes)
+        if lt > .55: buttons.append('leftTrigger')
+        if rt > .55: buttons.append('rightTrigger')
         confirm, back = (304,305) if self.shell_mapping.get('southConfirms') is True else (305,304)
-        lx = 1-positions[0] if self.shell_mapping.get('invertX') is True else positions[0]
-        ly = 1-positions[1] if self.shell_mapping.get('invertY') is True else positions[1]
-        return {'buttons': buttons, 'sticks': [positions[a]*2-1 for a in (0,1,*right)],
+        lx = -sticks[0] if self.shell_mapping.get('invertX') is True else sticks[0]
+        ly = -sticks[1] if self.shell_mapping.get('invertY') is True else sticks[1]
+        dz=calibration.get('deadzone',20)
+        dz=dz/100 if type(dz) in (int,float) and 5<=dz<=40 else .2
+        engage=dz+.4375*(1-dz)
+        return {'buttons': buttons, 'sticks': sticks,
                 'connected': True, 'neutral': bool(neutral), 'confirm': confirm in keys,
-                'back': back in keys, 'home': 316 in keys,
-                'up': 544 in keys or ly < .225,
-                'down': 545 in keys or ly > .775,
-                'left': 546 in keys or lx < .225,
-                'right': 547 in keys or lx > .775,
+                'back': back in keys, 'backButton': 'south' if back==304 else 'east', 'home': 316 in keys,
+                'up': 544 in keys or ly < -engage,
+                'down': 545 in keys or ly > engage,
+                'left': 546 in keys or lx < -engage,
+                'right': 547 in keys or lx > engage,
                 'start': 315 in keys, 'select': 314 in keys,
                 'secondary': 307 in keys, 'recent': 308 in keys,
                 'previousPage': 310 in keys, 'nextPage': 311 in keys,
-                'previousFace': positions[min(self.triggers)] > .75,
-                'nextFace': positions[max(self.triggers)] > .75}
+                'previousFace': lt > .75,
+                'nextFace': rt > .75}
 
 
 def identity(pid):

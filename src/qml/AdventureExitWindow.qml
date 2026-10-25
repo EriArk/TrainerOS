@@ -28,7 +28,7 @@ Window {
         asynchronous: false
         cache: false
     }
-    Rectangle { anchors.fill: parent; color: "#38090f14" }
+    Rectangle { anchors.fill: parent; color: Theme.surfaceColor("#38090f14") }
     Item {
         x: (window.width - width) / 2; y: (window.height - height) / 2
         width: Theme.viewportWidth; height: Theme.viewportHeight
@@ -41,11 +41,11 @@ Window {
             Behavior on scale { NumberAnimation { duration: Theme.motion(130) } }
             Rectangle {
                 x: -8; y: 9; width: parent.width + 16; height: parent.height + 7
-                radius: 24; color: "#24000000"
+                radius: 24; color: Theme.surfaceColor("#24000000")
             }
             Rectangle {
                 x: -3; y: 6; width: parent.width + 6; height: parent.height + 2
-                radius: 19; color: "#48000000"
+                radius: 19; color: Theme.surfaceColor("#48000000")
             }
             Panel {
                 objectName: "exit-card"

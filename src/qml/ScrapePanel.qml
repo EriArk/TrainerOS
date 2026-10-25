@@ -5,12 +5,12 @@ Item {
     required property var shell
     readonly property var flow: shell.scraper
     readonly property bool takesFocus: visible && !shell.keyboard.open
-    Rectangle { anchors.fill: parent; color: "#770d2525" }
+    Rectangle { anchors.fill: parent; color: Theme.surfaceColor("#770d2525") }
     MouseArea { anchors.fill: parent }
     Rectangle {
         visible: root.flow.selectingSystems
         anchors.centerIn: parent; width: Math.min(680,parent.width-40); height: Math.min(414,parent.height-30)
-        radius: 18; color: "#e8edda"; border.color: "#35544f"; border.width: 3
+        radius: 18; color: Theme.surfaceColor("#e8edda"); border.color: Theme.surfaceColor("#35544f"); border.width: 3
         Text { x: 22; y: 14; text: "ScreenScraper"; color: Theme.ink; font.family: Theme.displayFamily; font.pixelSize: 26; font.bold: true }
         Text { x: 22; y: 51; width: parent.width-44; text: root.flow.detail; color: Theme.muted; font.pixelSize: 14; lineHeight: 1.25 }
         CapButton {
@@ -28,10 +28,10 @@ Item {
                 required property int index; required property var modelData
                 width: systems.width-8; height: 49; radius: 9
                 readonly property bool focused: root.takesFocus && root.flow.focusIndex===index+1
-                color: modelData.checked?"#c5ded4":"#dde5d8"; border.color: focused?Theme.ink:"#b4c5b8"; border.width: focused?2:1
+                color: modelData.checked?Theme.surfaceColor("#c5ded4"):Theme.surfaceColor("#dde5d8"); border.color: focused?Theme.ink:Theme.surfaceColor("#b4c5b8"); border.width: focused?2:1
                 opacity: modelData.enabled?1:0.6
                 Rectangle {
-                    x: 12; y: 13; width: 23; height: 23; radius: 5; color: modelData.checked?Theme.green:"#f7f3e5"; border.color: "#55796c"
+                    x: 12; y: 13; width: 23; height: 23; radius: 5; color: modelData.checked?Theme.green:Theme.surfaceColor("#f7f3e5"); border.color: Theme.surfaceColor("#55796c")
                     Text { anchors.centerIn: parent; text: modelData.checked?"✓":""; color: Theme.ink; font.pixelSize: 19; font.bold: true }
                 }
                 PlatformBadge { x: 47; y: 5; scale: 0.75; transformOrigin: Item.TopLeft; shape: modelData.shape || "console"; label: modelData.id.toUpperCase() }
@@ -39,7 +39,7 @@ Item {
                 Text { x: 116; y: 28; width: parent.width-130; text: modelData.count+" games"+(modelData.enabled?"":" · Unavailable on ScreenScraper"); color: Theme.muted; font.pixelSize: 12; elide: Text.ElideRight }
                 TapHandler { enabled: modelData.enabled; onTapped: root.shell.activate(index+1) }
             }
-            Rectangle { anchors.right: parent.right; width: 3; height: parent.height; color: "#b8cbbf"; visible: systems.contentHeight>systems.height
+            Rectangle { anchors.right: parent.right; width: 3; height: parent.height; color: Theme.surfaceColor("#b8cbbf"); visible: systems.contentHeight>systems.height
                 Rectangle { width: parent.width; height: Math.max(16,systems.visibleArea.heightRatio*parent.height); y: systems.visibleArea.yPosition*parent.height; color: Theme.muted; radius: 2 }
             }
             Text { anchors.centerIn: parent; width: parent.width-24; visible: systems.count===0; text: "No ROM games found. Add games to your library first."; horizontalAlignment: Text.AlignHCenter; wrapMode: Text.WordWrap; color: Theme.muted; font.pixelSize: 16 }
@@ -54,7 +54,7 @@ Item {
     Rectangle {
         visible: !root.flow.selectingSystems
         anchors.centerIn: parent; width: Math.min(680,parent.width-40); height: Math.min(content.implicitHeight+36,parent.height-30)
-        radius: 18; color: "#e8edda"; border.color: "#35544f"; border.width: 3
+        radius: 18; color: Theme.surfaceColor("#e8edda"); border.color: Theme.surfaceColor("#35544f"); border.width: 3
         Column {
             id: content
             x: 22; y: 18; width: parent.width-44; spacing: 10
