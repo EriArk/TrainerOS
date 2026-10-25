@@ -37,10 +37,15 @@ Artic Base, PS2 dumps/ELF/IRX, PSP homebrew без DISC_ID и CSOv2 требую
 
 Перед доставкой обнаружена новая оболочка SDK/Crates `af4f0d8c…`. Её ветка
 `1c772932` объединена с multiplayer в `a6c1518e`; сохранены оба набора изменений.
-Исходники предыдущего наложения сверены с `6f06f26b`. Состояние установки
-фиксируется отдельно после проверки объединённых артефактов. Production ARM64
-сборка готова; [проверки и UI evidence](evidence/multiplayer-formats-20261026/README.md)
-отделены от последующей установки.
+Исходники предыдущего наложения сверены с `6f06f26b`. Реализация `a21d9a50`
+собрана с `BUILD_TESTING=OFF` и установлена на **Flip и Odin**. SHA-256 оболочки:
+`45b97fc10b2db587fa7bb6718da62b670bcb2296984a8f9b1ab845f5d8cf5423`.
+Сверены 978 входных файлов сборки; пять native suites и focused Library checks
+прошли. На каждой портативке перед заменой прошли native Azahar CIA/ZCIA install,
+11 filesystem tests, 10 Dolphin reader cases и 14 PS2 launcher tests.
+Новые процессы работают без ошибок QML; история и проверенные личные файлы
+не изменились. Старые binary/packages сохранены для отката. Новых игровых матчей
+этот проход не заявляет. [Хеши, проверки, UI и границы](evidence/multiplayer-formats-20261026/README.md).
 
 Воспроизведение: [Azahar](emulators/azahar.md#native-content-installation--26-october-2026),
 [Dolphin](emulators/dolphin.md#native-executables-and-disc-sets--26-october-2026),

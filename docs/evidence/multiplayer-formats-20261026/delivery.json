@@ -1,0 +1,60 @@
+{
+  "flip": {
+    "source": "a21d9a5099d2740fa0351191039a70435daebe49",
+    "shell": "45b97fc10b2db587fa7bb6718da62b670bcb2296984a8f9b1ab845f5d8cf5423",
+    "live": true,
+    "packages": {
+      "ps2-lan": {
+        "manifest": "d304e811d7e521ca48fe4f8ff4c07fbf985711a4b5e920b9325a7a18d9653961",
+        "launcher": "3d812a4e7956375106577b7cf2d45a3c54c9ee8108f3560efc0c19872858d9b6"
+      },
+      "azahar-netplay": {
+        "manifest": "083ccf077e0641844e5d9543ad2efef848c8ea074f620fdb5bfb20a654dd6e82",
+        "runtime": "b1bf4e8a34268b7a4fee9847f4c267297afa61dda0d2cf2438c7ccadf96cbd2e"
+      },
+      "dolphin-netplay": {
+        "manifest": "66f4ecd01d7f39d65cac629934074f8b6c9f58411841690a0d79aefc96af5a8c",
+        "runtime": "b154a54418f156472e9271a39cb537420dc9c8fa7202bdd63d501b1ba9b65588"
+      }
+    },
+    "historyUnchanged": true,
+    "personalFilesUnchanged": true,
+    "protectedFiles": 75,
+    "qmlErrors": [],
+    "preflight": {
+      "nativeAzahar": "passed",
+      "azaharFilesystemTests": 11,
+      "nativeDolphinCases": 10,
+      "ps2LauncherTests": 14
+    }
+  },
+  "odin": {
+    "source": "a21d9a5099d2740fa0351191039a70435daebe49",
+    "shell": "45b97fc10b2db587fa7bb6718da62b670bcb2296984a8f9b1ab845f5d8cf5423",
+    "live": true,
+    "packages": {
+      "ps2-lan": {
+        "manifest": "d304e811d7e521ca48fe4f8ff4c07fbf985711a4b5e920b9325a7a18d9653961",
+        "launcher": "3d812a4e7956375106577b7cf2d45a3c54c9ee8108f3560efc0c19872858d9b6"
+      },
+      "azahar-netplay": {
+        "manifest": "083ccf077e0641844e5d9543ad2efef848c8ea074f620fdb5bfb20a654dd6e82",
+        "runtime": "b1bf4e8a34268b7a4fee9847f4c267297afa61dda0d2cf2438c7ccadf96cbd2e"
+      },
+      "dolphin-netplay": {
+        "manifest": "66f4ecd01d7f39d65cac629934074f8b6c9f58411841690a0d79aefc96af5a8c",
+        "runtime": "b154a54418f156472e9271a39cb537420dc9c8fa7202bdd63d501b1ba9b65588"
+      }
+    },
+    "historyUnchanged": true,
+    "personalFilesUnchanged": true,
+    "protectedFiles": 1263,
+    "qmlErrors": [],
+    "preflight": {
+      "nativeAzahar": "passed",
+      "azaharFilesystemTests": 11,
+      "nativeDolphinCases": 10,
+      "ps2LauncherTests": 14
+    }
+  }
+}
