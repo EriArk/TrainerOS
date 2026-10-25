@@ -1,5 +1,17 @@
 # Структура TrainerOS: владельцы, контракты и связи
 
+**25 октября — S01 → S14 → S10, серверный play preview.** Существующий
+BackendAccount владеет credentials и узкими grants; PlatformHost принимает
+[Play API](../sdk/PLAY.md) с привязкой к SDK-соединению. S10 владеет immutable
+registry, составом матча, append-only решениями и общими таблицами; он использует
+существующие receipts/jobs/outbox. Game/Lobby/transport/Avatar не меняют владельца.
+F05/F11: каждый Player вступает сам → Start фиксирует состав → карточки → worker →
+peer-confirmed board; изменение/отмена результата атомарно меняет revision таблицы.
+S01/F08: отзыв session запрещает дальнейшие записи; смена local Trainer закрывает
+старые SDK peers, поздний grant отзывается best effort. Полная identity/build
+аттестация и push revocation не заявлены. [Сервер](../services/backend/play.md),
+[приёмка и ограничения](evidence/backend-play-20261025/README.md).
+
 **Accounts, позднее 25 октября:** S01 получил серверную реализацию identity и
 сессий в [`services/backend/trainer_backend/accounts`](../services/backend/trainer_backend/accounts).
 Вход опирается на S05/Fluxer OAuth и выдаёт собственную сессию оболочке; внешний

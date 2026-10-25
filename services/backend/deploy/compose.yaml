@@ -1,6 +1,6 @@
 name: traineros-backend
 x-app: &app
-  image: traineros-backend:native-return-20261025
+  image: traineros-backend:play-20261025
   build:
     context: ..
     target: runtime
@@ -69,7 +69,7 @@ services:
     profiles: [maintenance]
     command: [python, /ops/bootstrap.py]
     secrets: [runtime-dsn, owner-password]
-    volumes: ['./bootstrap.py:/ops/bootstrap.py:ro']
+    volumes: ['./bootstrap.py:/ops/bootstrap.py:ro', './manage.py:/ops/manage.py:ro', '../registry:/registry:ro']
 volumes:
   pgdata:
 networks:

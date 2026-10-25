@@ -1,5 +1,13 @@
 # TrainerOS Backend — обязанности и границы серверных функций
 
+**25 октября — сквозной scorecard preview.** Реализована цепочка SDK → host grant →
+серверный матч → заявки → worker → общие records/wins/statistics. [Контракт](../sdk/PLAY.md),
+[сервер](../services/backend/play.md), [приёмка](evidence/backend-play-20261025/README.md).
+Доверие — подтверждение всех участников, не серверное воспроизведение физики.
+Эта поставка закрывает соответствующую часть ранее проектной архитектуры;
+конкретные production game rules, Golf integration, stronger validation, статус/Elo,
+турниры, экономика и эксплуатационные условия остаются открытыми.
+
 **Accounts, позднее 25 октября:** [серверный модуль](../services/backend/accounts.md)
 реализован и установлен. Отдельное приложение TrainerOS в постоянном аккаунте
 владельца и публичный HTTPS origin созданы, secret/callback настроены, provider login включён.

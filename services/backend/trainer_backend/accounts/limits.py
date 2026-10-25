@@ -3,6 +3,7 @@
 import asyncio
 from collections import OrderedDict
 import time
+import hashlib
 from uuid import uuid4
 
 from fastapi.responses import JSONResponse
@@ -11,9 +12,10 @@ from fastapi.responses import JSONResponse
 class AuthLimits:
     def __init__(self, app):
         self.app, self.clients = app, OrderedDict()
+        self.global_start,self.global_count=0,0
 
     async def __call__(self, scope, receive, send):
-        if scope['type']!='http' or not (scope['path'].startswith('/v1/auth/') or scope['path']=='/v1/me'):
+        if scope['type']!='http' or not scope['path'].startswith('/v1/'):
             return await self.app(scope,receive,send)
         async def reject(code,status):
             await JSONResponse({'code':code,'message':'Request rejected','retryable':status==429,
@@ -21,6 +23,16 @@ class AuthLimits:
                 headers={'Cache-Control':'no-store', **({'Retry-After':'60'} if status==429 else {})})(scope,receive,send)
         now = time.monotonic()
         client = (scope.get('client') or ('unknown',0))[0]
+        is_auth=scope['path'].startswith('/v1/auth/') or scope['path']=='/v1/me'
+        if not is_auth:
+            if now-self.global_start>=60:self.global_start,self.global_count=now,0
+            self.global_count+=1
+            if self.global_count>2400:return await reject('rate_limited',429)
+            header=dict(scope.get('headers',[])).get(b'authorization',b'')
+            # Distinguish players behind the same ingress without trusting forwarded IP headers.
+            # Unknown credentials still face a global bound and DB auth/creation quotas.
+            client=('play',hashlib.sha256(header).digest()) if header.startswith(b'Bearer ') and len(header)==50 else ('public',client)
+        else:client=('auth',client)
         start,n = self.clients.pop(client,(now,0))
         if now-start>=60:
             start,n = now,0

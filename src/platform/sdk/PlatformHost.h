@@ -12,6 +12,7 @@ class QTemporaryDir;
 namespace trainer {
 class ControlsDashboard;
 class SdkNetwork;
+class BackendAccount;
 
 // Local, optional app-to-host API. This bridge exposes only the services that
 // are actually bound here; it owns neither game execution nor application data.
@@ -26,6 +27,7 @@ public:
     void setContext(const QJsonObject& context);
     void notifyLifecycle(const QString& event);
     void setNetwork(SdkNetwork*);
+    void setBackend(BackendAccount*);
     void setAvatar(const QJsonObject& descriptor, bool available);
     QJsonObject context() const { return context_; }
 private:
@@ -35,6 +37,8 @@ private:
         bool authenticated = false, subscribed = false;
         bool avatarSubscribed = false;
         bool avatarResolving = false;
+        bool playBusy = false;
+        QString playChannel;
         std::shared_ptr<QTemporaryDir> avatarCache;
         QJsonObject widgets;
     };
@@ -47,6 +51,7 @@ private:
     QJsonObject avatar_;
     bool avatarAvailable_ = false;
     QPointer<SdkNetwork> network_;
+    QPointer<BackendAccount> backend_;
     quint64 revision_ = 0;
     int avatarJobs_ = 0;
     void accept();

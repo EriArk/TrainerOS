@@ -1,5 +1,10 @@
 # Platform API v1 preview — wire contract
 
+**Backend play preview:** [PLAY.md](PLAY.md) описывает реально подключённые
+`play.rules/open/create/join/start/cancel/submit/get/history/stats/board`, их
+payload, operation IDs и lifecycle. Capability — `play.scorecards:1`.
+Credentials остаются в host, вызовы асинхронные; один in-flight на peer.
+
 Transport: local IPv4 TCP on `127.0.0.1`, ephemeral port. UTF-8 JSON objects,
 one per newline, maximum 64 KiB including the newline. Only the local user can
 read the endpoint secret. No HTTP/WebSocket server, CORS route or internet listener.

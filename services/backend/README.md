@@ -1,5 +1,13 @@
 # TrainerOS Backend — серверный каркас
 
+**Обновление 25 октября — серверные матчи и общие таблицы.** Теперь реализованы
+Registry/Results/Boards scorecard preview и host-mediated SDK. Фактические
+маршруты, транзакции, правила доверия, операторские команды и ограничения —
+в [Play](play.md), авторский контракт — [SDK PLAY](../../sdk/PLAY.md).
+Предыдущие утверждения ниже «результаты/рейтинги не реализованы» относятся к
+состоянию каркаса до этого прохода. Новая часть даёт подтверждение участниками,
+не физический validator Golf, Elo, турниры или экономику.
+
 25 октября 2026. Общая основа реализована в `trainer_backend/`, развёртывание —
 `deploy/compose.yaml`. По последнему указанию владельца сборка, PostgreSQL и
 runtime-проверки выполняются на существующем сервере. Рабочий компьютер хранит
@@ -34,10 +42,10 @@ provider login включён с отдельным приложением вл�
 ## Что ещё не работает
 
 В установленной конфигурации объявлены `accounts.fluxer_login`,
-`accounts.sessions`, `accounts.native_return`; базовый запуск без OAuth overlay отключает их.
+`accounts.sessions`, `accounts.native_return`, `play.scorecards`, `boards.peer_confirmed`; базовый запуск без OAuth overlay отключает их.
 13 владельцев модулей зарегистрированы;
-профили, результаты, рейтинги, турниры, кошелёк, магазин и остальные провайдеры
-ещё не реализованы. Worker не имеет игровых обработчиков
+профили, соревновательный рейтинг силы, турниры, кошелёк, магазин и остальные провайдеры
+ещё не реализованы. Worker обрабатывает `results.verify` через ограниченный scorecard.v1
 и не подтверждает неизвестные задания. [67 операций проекта](contracts/README.md)
 не объявляются целиком работающим API. Реализованные auth/session routes указаны
 в [Accounts](accounts.md) и фактическом OpenAPI. `Principal` — внутренний тип
@@ -92,9 +100,9 @@ foundation-only с остановкой БД/перезапуском API: не 
 ```sh
 . deploy/images.env
 docker build --build-arg PYTHON_IMAGE="$PYTHON_IMAGE" --target test \
-  -t traineros-backend-test:oauth-live-20261025 .
+  -t traineros-backend-test:play-20261025 .
 docker run --rm --network none --cpus 1 --memory 768m --pids-limit 128 \
-  traineros-backend-test:oauth-live-20261025
+  traineros-backend-test:play-20261025
 ```
 
 Тестовый контейнер создаёт собственную PostgreSQL под непривилегированным

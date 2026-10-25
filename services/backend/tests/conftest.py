@@ -81,6 +81,8 @@ def db(postgres):
             trainer_backend.consumer_receipts,trainer_backend.consumer_watermarks,
             trainer_backend.audit_events,trainer_backend.players,trainer_backend.external_identities,
             trainer_backend.login_attempts,trainer_backend.device_sessions,trainer_backend.refresh_credentials,
+            trainer_backend.game_rulesets,trainer_backend.play_grants,trainer_backend.matches,trainer_backend.match_participants,
+            trainer_backend.result_submissions,trainer_backend.result_decisions,trainer_backend.result_outcomes,trainer_backend.board_revisions,
             public.fixture_effects''')
     database = Database(runtime_url, 8)
     yield database

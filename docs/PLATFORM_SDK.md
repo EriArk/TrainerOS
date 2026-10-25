@@ -1,5 +1,12 @@
 # Platform SDK: внешняя программа → консоль → результат
 
+**25 октября — backend play preview:** общий [Play API](../sdk/PLAY.md) подключён
+к существующим PlatformHost/BackendAccount. Grants остаются в host; смена owner/
+disconnect прекращает старые callbacks и отзывает доступ best effort. Сессии,
+результаты и общие таблицы доступны через одну bounded цепочку. Фактические
+[проверки](evidence/backend-play-20261025/README.md) не означают установки на
+портативки или интеграции экранов в существующие игры.
+
 **25 октября — Backend identity preview.** `BackendAccount` владеет браузерным
 входом и защищённой сессией отдельно для каждого local Trainer. PlatformBinding
 публикует только `context.account` и `account.get` (`account.identity:1`), без

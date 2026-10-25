@@ -12,6 +12,7 @@
 | --- | --- | --- |
 | `context: 1` | Текущий локальный profile ID, выбранная игра отдельно от живой game session, состояние процесса/minimize и текущая app activity | Snapshot + события изменений; смена профиля отзывает подключение |
 | `account.identity: 1` | `account.get` / `context.account`: состояние входа и серверный Player UUID | Смена аккаунта отзывает старое соединение; credentials доступны только host. [Границы](PROTOCOL.md#backend-identity-preview) |
+| `play.scorecards: 1` | [Серверные матчи, общие рекорды/победы](PLAY.md), 2–16 участников, команды 2/3 | Сессионный доступ хранит host; все карточки согласованы, спор снимает итог; preview без physics anti-cheat |
 | `lifecycle: 1` | Событие реального PowerControl `wake`, окончание подключения/остановка host | Закрытие сокета снимает подписки и вклады; автоматического запуска программы нет |
 | `ui.start.widget: 1` | Текстовый виджет с одной активацией: title/body → существующий Start → Edit → Add | Нажатие A или touch возвращает `widget.activated`; обновление, скрытие, resize, remove/disconnect |
 | `lobby.activity: 1` | Установленная игра объявляет app/protocol в `traineros-activity.json`; Lobby → выбор → Ready → Start запускает её | Клиент подключается после запуска; закрытие игры сохраняет комнату и запись в выборе. Нужен shared record helper; [контракт и миграция](NETWORK.md) |

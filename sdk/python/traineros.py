@@ -10,6 +10,7 @@ from pathlib import Path
 import select
 import socket
 import time
+import uuid
 
 
 class HostUnavailable(RuntimeError):
@@ -62,6 +63,21 @@ class Client:
     def account(self):
         """Public server identity only; sign-in and credentials belong to the host."""
         return self.call("account.get")["account"]
+
+    def play_open(self, ruleset_id):
+        """Host owns credentials. Use timeout >=20 for backend calls."""
+        return self.call("play.open", ruleset_id=ruleset_id)
+
+    def play(self, action, payload=None, operation_id=None):
+        """Persist operation_id BEFORE a mutation; reuse only for the exact same payload.
+
+        A timeout means unknown delivery. Reconnect explicitly under the same
+        player, reopen the ruleset and retry with that saved ID. No hidden retry.
+        """
+        return self.call("play."+action, payload=payload or {}, operation_id=operation_id or str(uuid.uuid4()))
+
+    def board(self, mode="individual", kind="records", **page):
+        return self.call("play.board", mode=mode, kind=kind, **page)
 
     def _receive(self, deadline):
         while b"\n" not in self._buffer:

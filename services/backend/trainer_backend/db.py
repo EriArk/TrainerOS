@@ -71,6 +71,10 @@ def grant_runtime(database_url, role):
         'players': 'SELECT,UPDATE', 'external_identities': 'SELECT',
         'login_attempts': 'SELECT,INSERT,UPDATE', 'device_sessions': 'SELECT,INSERT,UPDATE',
         'refresh_credentials': 'SELECT,INSERT,UPDATE',
+        'game_rulesets': 'SELECT', 'play_grants': 'SELECT,INSERT,UPDATE',
+        'matches': 'SELECT,INSERT,UPDATE', 'match_participants': 'SELECT,INSERT',
+        'result_submissions': 'SELECT,INSERT,UPDATE', 'result_decisions': 'SELECT,INSERT',
+        'result_outcomes': 'SELECT,INSERT', 'board_revisions': 'SELECT,UPDATE',
     }
     with psycopg.connect(database_url, connect_timeout=3) as conn:
         conn.execute(sql_builder.SQL('GRANT USAGE ON SCHEMA trainer_backend TO {}').format(sql_builder.Identifier(role)))

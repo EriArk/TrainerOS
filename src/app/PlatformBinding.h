@@ -32,6 +32,7 @@ public:
             qEnvironmentVariable("TRAINEROS_RECORD_PYTHON",interpreter),
             qEnvironmentVariable("TRAINEROS_RECORD_HELPER",root+"/secure-channel.py"));
         host_.setNetwork(network_.get());
+        host_.setBackend(shell_.backendAccount());
         network_->launchInstalled=[this](const QString& local){
             if(local.isEmpty()||launch_.active()||shell_.launchPreparation().busy())return false;
             shell_.launchPreparation().launch(local);return true;

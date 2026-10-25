@@ -1,0 +1,96 @@
+Start testing: Oct 25 20:58 UTC
+----------------------------------------------------------
+1/97 Testing: backend_account
+1/97 Test: backend_account
+Command: "/work/build-trixie/trainer_account_tests"
+Directory: /work/build-trixie
+"backend_account" start time: Oct 25 20:58 UTC
+Output:
+----------------------------------------------------------
+********* Start testing of BackendAccountTests *********
+Config: Using QtTest library 6.8.2, Qt 6.8.2 (x86_64-little_endian-lp64 shared (dynamic) release build; by GCC 14.2.0), debian 13
+PASS   : BackendAccountTests::initTestCase()
+PASS   : BackendAccountTests::gameFacadeScopesCredentialsAndRejectsArbitraryProxy()
+PASS   : BackendAccountTests::lateGameGrantIsRevokedAfterDisconnectOrOwnerChange()
+PASS   : BackendAccountTests::browserReturnPublishesOnlyIdentityAndLogoutRevokes()
+PASS   : BackendAccountTests::invalidHostAndDuplicateQueryCannotClaim()
+PASS   : BackendAccountTests::cancelledAndOldOwnerCompletionsCannotPublish()
+PASS   : BackendAccountTests::restartRefreshIsDurableAndAmbiguousFailureNeverReplays()
+PASS   : BackendAccountTests::restartRestoresAndSocialChangeInvalidates()
+PASS   : BackendAccountTests::storageFailureNeverPublishesSession()
+PASS   : BackendAccountTests::expiredAccessDoesNotPretendLogoutRevokedSession()
+PASS   : BackendAccountTests::browserCancellationDoesNotClaim()
+PASS   : BackendAccountTests::delayedVaultWriteRetainsOldOwnerLock()
+PASS   : BackendAccountTests::activeGameGuardPreventsBrowserLaunch()
+PASS   : BackendAccountTests::cleanupTestCase()
+Totals: 14 passed, 0 failed, 0 skipped, 0 blacklisted, 33ms
+********* Finished testing of BackendAccountTests *********
+<end of output>
+Test time =   0.08 sec
+----------------------------------------------------------
+Test Passed.
+"backend_account" end time: Oct 25 20:58 UTC
+"backend_account" time elapsed: 00:00:00
+----------------------------------------------------------
+
+3/97 Testing: platform_sdk
+3/97 Test: platform_sdk
+Command: "/work/build-trixie/trainer_platform_tests"
+Directory: /work/build-trixie
+"platform_sdk" start time: Oct 25 20:58 UTC
+Output:
+----------------------------------------------------------
+********* Start testing of PlatformHostTests *********
+Config: Using QtTest library 6.8.2, Qt 6.8.2 (x86_64-little_endian-lp64 shared (dynamic) release build; by GCC 14.2.0), debian 13
+PASS   : PlatformHostTests::initTestCase()
+PASS   : PlatformHostTests::backendGameFacadeUsesRealSdkSocketAndHidesCredentials()
+PASS   : PlatformHostTests::discoveryAndExclusiveEndpoint()
+PASS   : PlatformHostTests::localAvatarSubscriptionAndRevocation()
+PASS   : PlatformHostTests::accountIdentityChangeRevokesOldClient()
+PASS   : PlatformHostTests::asynchronousAvatarRecipes()
+SKIP   : PlatformHostTests::realGodotAvatarConsumer() External Godot and local pack required
+   Loc: [/work/source/tests/PlatformHostTests.cpp(143)]
+PASS   : PlatformHostTests::authVersionAndMalformedInput()
+PASS   : PlatformHostTests::widgetActivationAndCrashCleanup()
+PASS   : PlatformHostTests::namespaceAndStaleContext()
+PASS   : PlatformHostTests::pipelinedFramesAreNotOneOversizedMessage()
+PASS   : PlatformHostTests::subscribeUnsubscribeAndNoProfile()
+PASS   : PlatformHostTests::layoutSurvivesReconnectWithoutChangingBuiltins()
+PASS   : PlatformHostTests::realPythonProcess()
+PASS   : PlatformHostTests::cleanupTestCase()
+Totals: 14 passed, 0 failed, 1 skipped, 0 blacklisted, 2710ms
+********* Finished testing of PlatformHostTests *********
+<end of output>
+Test time =   2.79 sec
+----------------------------------------------------------
+Test Passed.
+"platform_sdk" end time: Oct 25 20:58 UTC
+"platform_sdk" time elapsed: 00:00:02
+----------------------------------------------------------
+
+54/97 Testing: settings_qml_smoke
+54/97 Test: settings_qml_smoke
+Command: "/work/build-trixie/traineros" "--ephemeral" "--settings-smoke-test" "--screenshot-dir" "/work/build-trixie/screenshots/settings"
+Directory: /work/build-trixie
+"settings_qml_smoke" start time: Oct 25 20:58 UTC
+Output:
+----------------------------------------------------------
+qt.multimedia.ffmpeg: Using Qt multimedia with FFmpeg version 7.1.5-0+deb13u1 GPL version 2 or later
+qt.multimedia.ffmpeg: Available HW decoding frameworks:
+qt.multimedia.ffmpeg: Available HW encoding frameworks:
+Model size of -1 is less than 0
+Model size of -1 is less than 0
+QStandardPaths: XDG_RUNTIME_DIR not set, defaulting to '/tmp/runtime-root'
+QStandardPaths: XDG_RUNTIME_DIR not set, defaulting to '/tmp/runtime-root'
+QStandardPaths: XDG_RUNTIME_DIR not set, defaulting to '/tmp/runtime-root'
+QStandardPaths: XDG_RUNTIME_DIR not set, defaulting to '/tmp/runtime-root'
+Settings UI checks QList() warnings 0
+<end of output>
+Test time =   8.92 sec
+----------------------------------------------------------
+Test Passed.
+"settings_qml_smoke" end time: Oct 25 20:58 UTC
+"settings_qml_smoke" time elapsed: 00:00:08
+----------------------------------------------------------
+
+End testing: Oct 25 20:58 UTC

@@ -19,6 +19,12 @@ struct Harness {
     QJsonObject claim;
     bool failStorage=false,loseRefresh=false,deferClaim=false,rejectDeleteOnce=false;
     BackendAccount::Reply pending;
+    BackendAccount::Reply pendingGrant;
+    bool deferGrant=false;
+    QList<QByteArray> playAuth;
+    QList<QJsonObject> playBodies;
+    QJsonObject grant() {return {{"grant_token",QString(43,'g')},{"ruleset",QJsonObject{{"id","test.v1"}}},{"trust","peer_confirmed"},
+        {"expires_at",QDateTime::currentDateTimeUtc().addSecs(7200).toString(Qt::ISODateWithMs)}};}
     BackendAccount::Services services() {
         return {
             [this](QByteArray method,QString path,QJsonObject body,QByteArray auth,BackendAccount::Reply done){
@@ -32,7 +38,9 @@ struct Harness {
                     bool tombstone=false;for(const auto& bytes:disk)tombstone|=QJsonDocument::fromJson(bytes).object()["pending"].toBool();
                     if(!tombstone){done(500,{});return;}
                     done(loseRefresh?0:200,loseRefresh?QJsonObject():credentials());
-                } else if(method=="DELETE"&&!auth.isEmpty()) {const int status=rejectDeleteOnce?401:204;rejectDeleteOnce=false;done(status,{});}
+                } else if(path=="/v1/play/grants") {playAuth<<auth;playBodies<<body;if(deferGrant)pendingGrant=std::move(done);else done(200,grant());}
+                else if(path=="/v1/play/commands") {playAuth<<auth;playBodies<<body;done(200,{{"state","accepted"}});}
+                else if(method=="DELETE"&&!auth.isEmpty()) {const int status=rejectDeleteOnce?401:204;rejectDeleteOnce=false;done(status,{});}
                 else done(500,{});
             },
             [this](QString key,auto done){done(true,disk.value(key));},
@@ -56,6 +64,32 @@ class BackendAccountTests:public QObject {
     Q_OBJECT
 private slots:
     void initTestCase(){QStandardPaths::setTestModeEnabled(true);QCoreApplication::setOrganizationName("TrainerOSAccountTests");QCoreApplication::setApplicationName(QUuid::createUuid().toString(QUuid::Id128));}
+    void gameFacadeScopesCredentialsAndRejectsArbitraryProxy() {
+        Harness h;BackendAccount a;a.setServices(h.services());a.configure("alice");a.activate();h.callback();
+        QJsonObject result;int status=0;auto done=[&](int s,QJsonObject r){status=s;result=r;};
+        a.playRequest("peer","org.test.game","play.open",{{"ruleset_id","test.v1"}},done);
+        QCOMPARE(status,200);QVERIFY(!QJsonDocument(result).toJson().contains("token"));
+        QCOMPARE(h.playAuth.last(),QByteArray(43,'a'));
+        const QString operation=QUuid::createUuid().toString(QUuid::WithoutBraces);
+        a.playRequest("peer","org.test.game","play.create",{{"operation_id",operation},{"payload",QJsonObject{{"mode","individual"}}}},done);
+        QCOMPARE(h.playAuth.last(),QByteArray(43,'g'));QCOMPARE(h.playBodies.last()["operation_id"].toString(),operation);
+        const int before=h.calls.size();
+        a.playRequest("peer","org.test.game","play.proxy",{{"url","https://evil.invalid"}},done);
+        QCOMPARE(status,409);QCOMPARE(h.calls.size(),before);
+        a.playRequest("other","org.test.game","play.history",{{"operation_id",operation},{"payload",QJsonObject{}}},done);
+        QCOMPARE(result["code"].toString(),"play_not_open");
+        a.closePlay("peer");QCOMPARE(h.playBodies.last()["action"].toString(),"revoke");
+        QCOMPARE(h.playAuth.last(),QByteArray(43,'g'));
+    }
+    void lateGameGrantIsRevokedAfterDisconnectOrOwnerChange() {
+        Harness h;BackendAccount a;a.setServices(h.services());a.configure("alice");a.activate();h.callback();h.deferGrant=true;
+        bool delivered=false;a.playRequest("peer","org.test.game","play.open",{{"ruleset_id","test.v1"}},[&](int,QJsonObject){delivered=true;});
+        a.closePlay("peer");h.pendingGrant(200,h.grant());QVERIFY(!delivered);
+        QCOMPARE(h.playBodies.last()["action"].toString(),"revoke");
+        a.playRequest("peer2","org.test.game","play.open",{{"ruleset_id","test.v1"}},[&](int,QJsonObject){delivered=true;});
+        a.configure("bob");h.pendingGrant(200,h.grant());QVERIFY(!delivered);
+        QCOMPARE(h.playBodies.last()["action"].toString(),"revoke");
+    }
     void browserReturnPublishesOnlyIdentityAndLogoutRevokes() {
         Harness h;BackendAccount account;account.setServices(h.services());account.configure("alice");account.setSocialSubject("12345");account.activate();
         QVERIFY(!h.browser.isEmpty());QVERIFY(h.returnUri.host()=="127.0.0.1");

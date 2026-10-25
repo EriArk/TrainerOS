@@ -1,5 +1,11 @@
 # Accounts: вход через Fluxer без второго логина
 
+**25 октября — scoped game access:** `play.scorecards:1` теперь использует
+session-bound grants внутри host, без передачи account/grant token в игру.
+[Жизненный цикл и ограничения](../../sdk/PLAY.md). Это закрывает bounded
+scorecard access, не trusted publisher/build attestation, push revocation или
+полный набор account/economy grants из целевой архитектуры.
+
 25 октября 2026. Владелец подтвердил: постоянный аккаунт TrainerOS привязан к
 Fluxer; отдельного логина/пароля TrainerOS нет. Для OAuth создаётся отдельное
 приложение **TrainerOS**, а существующее **TrainerOS Lobby Directory** остаётся

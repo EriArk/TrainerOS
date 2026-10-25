@@ -1,5 +1,11 @@
 # Backend — проверяемый проект контрактов
 
+**25 октября — runtime scorecard preview.** Ограниченные Registry/Results/Boards
+операции теперь реализованы отдельно в [Play](../play.md) и [SDK](../../../sdk/PLAY.md).
+Данный пакет остаётся architecture-draft.4 со всеми 67 целевыми операциями.
+Фактический OpenAPI установленного API — источник реализованных HTTP форматов;
+архитектурные draft paths не следует вызывать как уже доступные методы.
+
 **Architecture-draft.4, 25 октября:** `LoginBegin` допускает строго ограниченный
 loopback `return_uri` и ожидаемый Social subject; native claim требует дополнительный
 browser-only `handoff_token`. Host-only SessionTokens содержит проверенный

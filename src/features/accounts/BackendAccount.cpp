@@ -56,6 +56,7 @@ QString BackendAccount::actionLabel() const {
     return "Sign in to TrainerOS with Fluxer";
 }
 void BackendAccount::reset() {
+    const auto channels=playGrants_.keys();for(const auto& channel:channels)closePlay(channel);
     ++epoch_;expiry_.stop();refreshTimer_.stop();listener_.close();encrypted_.cancel();
     for(auto* socket:findChildren<QTcpSocket*>(QString(),Qt::FindDirectChildrenOnly)){socket->abort();socket->deleteLater();}
     attempt_.clear();verifier_.clear();callbackPath_.clear();player_.clear();session_.clear();subject_.clear();access_.clear();refresh_.clear();
@@ -202,6 +203,8 @@ void BackendAccount::request(QByteArray method,QString path,QJsonObject body,Rep
         // A late old-owner grant is never adopted; revoke it if its response arrived.
         if(status==200&&(path.endsWith("/claim")||path=="/v1/auth/refresh")&&uuid(result["session_id"].toString())&&token(result["access_token"].toString()))
             request("DELETE","/v1/auth/sessions/"+result["session_id"].toString(),{},[](int,QJsonObject){},result["access_token"].toString().toLatin1());
+        if(status==200&&path=="/v1/play/grants"&&token(result["grant_token"].toString()))
+            request("POST","/v1/play/commands",{{"action","revoke"},{"operation_id",QUuid::createUuid().toString(QUuid::WithoutBraces)},{"payload",QJsonObject{}}},[](int,QJsonObject){},result["grant_token"].toString().toLatin1());
     };
     if(services_.request){services_.request(method,path,body,access,std::move(finish));return;}
     QNetworkRequest request(QUrl(Origin+path));request.setRawHeader("User-Agent","TrainerOS-Backend/0.0.1");request.setHeader(QNetworkRequest::ContentTypeHeader,"application/json");
@@ -213,9 +216,56 @@ void BackendAccount::request(QByteArray method,QString path,QJsonObject body,Rep
     connect(reply,&QNetworkReply::readyRead,this,[reply,bytes]{bytes->append(reply->readAll());if(bytes->size()>65536)reply->abort();});
     connect(reply,&QNetworkReply::finished,this,[reply,bytes,finish=std::move(finish)]{
         bytes->append(reply->readAll());const int status=reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
-        const bool ok=bytes->size()<=65536&&reply->error()==QNetworkReply::NoError;
-        finish(ok?status:(status==401?401:0),ok?QJsonDocument::fromJson(*bytes).object():QJsonObject());reply->deleteLater();
+        const bool ok=bytes->size()<=65536&&(reply->error()==QNetworkReply::NoError||(status>=400&&status<500));
+        finish(ok?status:0,ok?QJsonDocument::fromJson(*bytes).object():QJsonObject());reply->deleteLater();
     });
+}
+void BackendAccount::closePlay(const QString& channel) {
+    const auto grant=playGrants_.take(channel);
+    if(grant.token.isEmpty())return;
+    request("POST","/v1/play/commands",{{"action","revoke"},{"operation_id",QUuid::createUuid().toString(QUuid::WithoutBraces)},{"payload",QJsonObject{}}},[](int,QJsonObject){},grant.token);
+}
+void BackendAccount::playRequest(const QString& channel,const QString& app,const QString& method,QJsonObject args,Reply done) {
+    auto reject=[&](const QString& code){done(409,{{"code",code}});};
+    static const QRegularExpression id("^[a-z][a-z0-9_.-]{0,63}$");
+    if(state_!="connected"||access_.isEmpty()){reject(player_.isEmpty()?"sign_in_required":"account_busy");return;}
+    if(QJsonDocument(args).toJson(QJsonDocument::Compact).size()>16000){reject("body_too_large");return;}
+    if(method=="play.rules") {
+        if(!args.isEmpty()){reject("invalid_request");return;}
+        request("GET","/v1/games",{},std::move(done),access_);return;
+    }
+    if(method=="play.open") {
+        const auto rule=args["ruleset_id"].toString();
+        if(args.size()!=1||!id.match(rule).hasMatch()){reject("invalid_request");return;}
+        closePlay(channel);playGrants_.insert(channel,{});
+        request("POST","/v1/play/grants",{{"app_id",app},{"ruleset_id",rule},{"operation_id",QUuid::createUuid().toString(QUuid::WithoutBraces)}},
+            [this,channel,rule,done=std::move(done)](int status,QJsonObject result){
+                const auto credential=result["grant_token"].toString().toLatin1();
+                if(!playGrants_.contains(channel)) {
+                    if(token(QString::fromLatin1(credential)))request("POST","/v1/play/commands",{{"action","revoke"},{"operation_id",QUuid::createUuid().toString(QUuid::WithoutBraces)},{"payload",QJsonObject{}}},[](int,QJsonObject){},credential);
+                    return;
+                }
+                if(status!=200||!token(QString::fromLatin1(credential))){playGrants_.remove(channel);done(status,{{"code",result["code"].toString("backend_unavailable")}});return;}
+                playGrants_[channel]={credential,rule,QDateTime::fromString(result["expires_at"].toString(),Qt::ISODateWithMs)};
+                done(200,{{"ruleset",result["ruleset"]},{"trust",result["trust"]},{"expires_at",result["expires_at"]}});
+            },access_);return;
+    }
+    if(!playGrants_.contains(channel)||playGrants_[channel].token.isEmpty()){reject("play_not_open");return;}
+    const auto grant=playGrants_[channel];
+    if(grant.expires<=QDateTime::currentDateTimeUtc()){closePlay(channel);reject("grant_expired");return;}
+    if(method=="play.board") {
+        const auto mode=args["mode"].toString(),kind=args["kind"].toString();
+        if((mode!="individual"&&mode!="teams")||(kind!="records"&&kind!="wins")){reject("invalid_request");return;}
+        const QSet<QString> allowed{"mode","kind","offset","limit","revision","around"};
+        QUrlQuery query;
+        for(auto i=args.begin();i!=args.end();++i){if(!allowed.contains(i.key())){reject("invalid_request");return;}if(i.key()!="mode"&&i.key()!="kind")query.addQueryItem(i.key(),i.value().toVariant().toString());}
+        request("GET","/v1/boards/"+grant.ruleset+"/"+mode+"/"+kind+"?"+query.toString(QUrl::FullyEncoded),{},std::move(done),grant.token);return;
+    }
+    static const QSet<QString> actions{"create","join","start","cancel","submit","get","history","stats"};
+    const auto action=method.mid(5);
+    if(!method.startsWith("play.")||!actions.contains(action)||!uuid(args["operation_id"].toString())||!args["payload"].isObject()||args.size()!=2){reject("invalid_request");return;}
+    args["action"]=action;
+    request("POST","/v1/play/commands",args,[done=std::move(done)](int status,QJsonObject result){done(status,std::move(result));},grant.token);
 }
 void BackendAccount::read(std::function<void(bool,QByteArray)> done) {
     done=[lease=lock_,callback=std::move(done)](bool ok,QByteArray bytes){callback(ok,std::move(bytes));};

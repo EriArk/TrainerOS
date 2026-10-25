@@ -35,6 +35,9 @@ public:
     QString detail() const { return detail_; }
     Q_INVOKABLE void activate();
     void cancel();
+    // Fixed, host-mediated game API. No caller-supplied URL or credential export.
+    void playRequest(const QString& channel,const QString& app,const QString& method,QJsonObject args,Reply done);
+    void closePlay(const QString& channel);
 signals:
     void changed();
     void returnRequested();
@@ -64,5 +67,7 @@ private:
     quint64 epoch_=0;
     bool encryptedStore_=false;
     bool logoutPending_=false;
+    struct PlayGrant { QByteArray token; QString ruleset; QDateTime expires; };
+    QHash<QString,PlayGrant> playGrants_;
 };
 }
