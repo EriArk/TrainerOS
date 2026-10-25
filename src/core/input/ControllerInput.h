@@ -75,6 +75,7 @@ signals:
     void textEntered(QString text);
     void textBackspace();
     void textSubmitted();
+    void textCommand(QString command);
     void connectionChanged();
     void profileChanged();
     void sampled();

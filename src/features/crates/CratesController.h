@@ -48,6 +48,7 @@ public:
     bool opened() const { return opened_; }
     bool opening() const { return opening_.isActive(); }
     QVariantList projects() const;
+    QVariantList downloadTasks() const;
     int projectIndex() const;
     int projectCount() const;
     int page() const {return projectIndex()/6;}

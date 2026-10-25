@@ -12,6 +12,13 @@
 #include <QImage>
 
 namespace trainer::scraper {
+bool validLocalMedia(const QString& path,bool video) {
+    QFile file(path);
+    if(!QFileInfo(path).isFile()||!file.open(QIODevice::ReadOnly)||file.size()<=0||file.size()>(video?64:8)*1024*1024)return false;
+    if(video){const auto header=file.read(32);return header.size()>=24&&header.mid(4,4)=="ftyp";}
+    QImageReader reader(&file);const auto size=reader.size();
+    return size.isValid()&&qint64(size.width())*size.height()<=16*1024*1024&&!reader.read().isNull();
+}
 QString storeMedia(const QString& directory,const QString& gameId,const QByteArray& bytes,bool video,const Cancellation& cancel) {
     const auto root=QFileInfo(directory).canonicalFilePath();bool numeric=false;const auto id=gameId.toLongLong(&numeric);
     if(root.isEmpty() || !numeric || id<=0 || bytes.isEmpty() || bytes.size()>(video?64:8)*1024*1024 || (cancel && cancel->load()))return {};
@@ -83,6 +90,16 @@ QString writeGamelist(const QString& directory,const Fingerprint& file,const Gam
     }
     const bool added=target.isNull();
     if(added) {target=doc.createElement("game");games.appendChild(target);}
+    if(refresh&&target.attribute("source")=="screenscraper"&&target.attribute("id")!=QString::number(id)) {
+        // A deliberate correction must not keep old provider-owned facts/art
+        // when the new catalogue entry lacks that field. User edits survive.
+        for(auto node=target.firstChildElement();!node.isNull();) {
+            const auto next=node.nextSiblingElement();
+            const auto digest=QString::fromLatin1(QCryptographicHash::hash(node.text().toUtf8(),QCryptographicHash::Sha256).toHex());
+            if(node.tagName()!="name"&&node.tagName()!="path"&&node.attribute("traineros-source")=="screenscraper"&&node.attribute("traineros-value")==digest)target.removeChild(node);
+            node=next;
+        }
+    }
     // EmulationStation/Batocera provider identity survives ordinary rescans.
     // Selection has already been exact-file matched or explicitly confirmed.
     target.setAttribute("source","screenscraper");
@@ -97,10 +114,15 @@ QString writeGamelist(const QString& directory,const Fingerprint& file,const Gam
         auto node=target.firstChildElement(it.key());
         if(!node.isNull() && !node.nextSiblingElement(it.key()).isNull())return "A metadata field is duplicated; the list was kept unchanged.";
         // Names may have been intentionally edited in Batocera or TrainerOS.
-        if(!node.isNull() && !node.text().isEmpty() && (!refresh || it.key()=="name"))continue;
+        const auto digest=[](const QString& value){return QString::fromLatin1(QCryptographicHash::hash(value.toUtf8(),QCryptographicHash::Sha256).toHex());};
+        const bool owned=node.attribute("traineros-source")=="screenscraper"&&node.attribute("traineros-value")==digest(node.text());
+        const bool broken=mediaTags.contains(it.key())&&!validLocalMedia(QDir(root).filePath(node.text()),it.key()=="video");
+        if(!node.isNull()&&!node.text().isEmpty()&&(it.key()=="name"||!owned||(!refresh&&!broken)))continue;
         if(node.isNull()){node=doc.createElement(it.key());target.appendChild(node);}
         while(!node.firstChild().isNull())node.removeChild(node.firstChild());
         node.appendChild(doc.createTextNode(it.value().left(it.key()=="desc"?8192:1024)));
+        node.setAttribute("traineros-source","screenscraper");
+        node.setAttribute("traineros-value",digest(node.text()));
     }
     if(stopped())return "Cancelled.";
     // Catch other applications changing the XML while the proposal was built.

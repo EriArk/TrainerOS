@@ -419,11 +419,13 @@ int main(int argc, char* argv[]) {
                 shell.files()->configure(stateDirectory,ready?store->ownerId():QString());
                 shell.pcGames()->configure(stateDirectory,ready?store->ownerId():QString());
                 shell.settings()->gameInput()->configure(&activeLibrary,stateDirectory,ready?store->ownerId():QString());
+                shell.settings()->setMediaOwner(ready?store->ownerId():QString());
                 shell.browser()->configure(stateDirectory,ready?store->ownerId():QString());
                 shell.album()->configure(stateDirectory,ready?store->ownerId():QString());
             });
             QObject::connect(store.get(), &LocalStateStore::accessNeeded, &shell, [&] {
                 shell.social()->setOwner({});
+                shell.settings()->setMediaOwner({});
                 shell.keyboard()->configure(stateDirectory,{});
                 shell.collectionManager()->configure(stateDirectory,{});
                 shell.apps()->configure(stateDirectory,{});
@@ -1076,6 +1078,11 @@ int main(int argc, char* argv[]) {
         });
         QObject::connect(&input,&ControllerInput::textEntered,shell.keyboard(),&TextEntryController::insertText);
         QObject::connect(&input,&ControllerInput::textBackspace,shell.keyboard(),&TextEntryController::backspace);
+        QObject::connect(&input,&ControllerInput::textCommand,&shell,[&](const QString& command){
+            auto* keyboard=shell.keyboard();
+            if(command=="left"||command=="right")keyboard->moveCursor(command=="left"?-1:1);
+            else keyboard->shortcut(command);
+        });
         QObject::connect(&input,&ControllerInput::textSubmitted,&shell,[&]{shell.keyboard()->dispatch(Action::LocalAction);});
         bool homeMenuWasOpen = false;
         QObject::connect(&shell, &ShellController::changed, &input, [&] {

@@ -112,6 +112,41 @@ QVariantList parseAudioOutputs(const QByteArray& output) {
     }
     return result;
 }
+QVariantList parseAudioStreams(const QByteArray& output) {
+    QVariantList result;if(output.size()>1024*1024)return result;
+    for(const auto& value:QJsonDocument::fromJson(output).array()) {
+        const auto item=value.toObject(),props=item["properties"].toObject();
+        if(!item["index"].isDouble()||item["index"].toDouble()<0)continue;
+        const auto index=QString::number(qint64(item["index"].toDouble()));
+        const auto serial=props["object.serial"].toString();
+        // A recycled sink-input index must never target a different process.
+        const auto identity=index+":"+serial+":"+props["application.process.id"].toString()+":"+props["application.process.binary"].toString()+":"+props["application.name"].toString();
+        int volume=-1;
+        const auto channels=item["volume"].toObject();
+        for(auto it=channels.begin();it!=channels.end();++it) {
+            const auto raw=it.value().toObject()["value"];
+            if(raw.isDouble()&&raw.toDouble()>=0)volume=std::max(volume,int(std::lround(raw.toDouble()*100/65536)));
+        }
+        if(volume<0)continue;
+        auto title=props["application.name"].toString();if(title.isEmpty())title=props["application.process.binary"].toString("Audio application");
+        result.append(QVariantMap{{"id",identity},{"index",index},{"title",title.left(100)},{"detail",props["media.name"].toString().left(120)},
+            {"level",volume},{"muted",item["mute"].toBool()},{"available",!serial.isEmpty()}});
+        if(result.size()>=64)break;
+    }return result;
+}
+QVariantList parseAudioInputs(const QByteArray& output) {
+    QVariantList result;if(output.size()>1024*1024)return result;
+    for(const auto& value:QJsonDocument::fromJson(output).array()) {
+        const auto item=value.toObject();const auto id=item["name"].toString();
+        if(id.isEmpty()||id.size()>512||id.endsWith(".monitor")||(!item["monitor_of_sink"].isNull()&&item["monitor_of_sink"].toInt(-1)>=0))continue;
+        int volume=-1;const auto channels=item["volume"].toObject();
+        for(auto it=channels.begin();it!=channels.end();++it){const auto raw=it.value().toObject()["value"];if(raw.isDouble()&&raw.toDouble()>=0)volume=std::max(volume,int(std::lround(raw.toDouble()*100/65536)));}
+        bool available=volume>=0;
+        for(const auto& p:item["ports"].toArray())if(p.toObject()["name"]==item["active_port"]&&p.toObject()["availability"]=="not available")available=false;
+        result.append(QVariantMap{{"id",id},{"title",item["description"].toString(id).left(100)},{"level",volume},{"muted",item["mute"].toBool()},{"available",available}});
+        if(result.size()>=32)break;
+    }return result;
+}
 DeviceBackend systemDeviceBackend(const QString& dataDirectory, const QString& libraryDirectory) {
     return {[dataDirectory, libraryDirectory] {
         DeviceSnapshot result;
@@ -119,6 +154,9 @@ DeviceBackend systemDeviceBackend(const QString& dataDirectory, const QString& l
         result = parseVolume(command("/usr/bin/wpctl", {"get-volume", "@DEFAULT_AUDIO_SINK@"}));
         result.audioOutputs=parseAudioOutputs(command("/usr/bin/pactl",{"-f","json","list","sinks"},1024*1024));
         result.audioOutput=QString::fromUtf8(command("/usr/bin/pactl",{"get-default-sink"})).trimmed();
+        result.audioStreams=parseAudioStreams(command("/usr/bin/pactl",{"-f","json","list","sink-inputs"},1024*1024));
+        result.audioInputs=parseAudioInputs(command("/usr/bin/pactl",{"-f","json","list","sources"},1024*1024));
+        result.audioInput=QString::fromUtf8(command("/usr/bin/pactl",{"get-default-source"})).trimmed();
         const auto light = readBacklight("/sys/class/backlight");
         if (light.maximum > 0) result.brightness = int(std::lround(double(light.current) * 100 / light.maximum));
         const auto network = command("/usr/bin/nmcli", {"-t", "-f", "STATE", "general"}).trimmed();
@@ -159,6 +197,21 @@ DeviceBackend systemDeviceBackend(const QString& dataDirectory, const QString& l
 #else
         Q_UNUSED(id);return "Audio output selection is unavailable on this host.";
 #endif
+    },[](const QString& index,int value,bool mute) -> QString {
+#ifdef Q_OS_LINUX
+        static const QRegularExpression numeric("^[0-9]{1,12}$");
+        if(!numeric.match(index).hasMatch())return "This audio source is unavailable.";
+        return changeCommand({mute?"set-sink-input-mute":"set-sink-input-volume",index,mute?QString::number(bool(value)):QString::number(std::clamp(value,0,100))+"%"},"/usr/bin/pactl");
+#else
+        return "Separate audio sources are unavailable on this host.";
+#endif
+    },[](const QString& id,int value,const QString& operation) -> QString {
+#ifdef Q_OS_LINUX
+        if(operation=="default")return changeCommand({"set-default-source",id},"/usr/bin/pactl");
+        return changeCommand({operation=="mute"?"set-source-mute":"set-source-volume",id,operation=="mute"?QString::number(bool(value)):QString::number(std::clamp(value,0,100))+"%"},"/usr/bin/pactl");
+#else
+        return "Microphone controls are unavailable on this host.";
+#endif
     }};
 }
 DeviceService::DeviceService(DeviceBackend backend, QObject* parent)
@@ -166,8 +219,29 @@ DeviceService::DeviceService(DeviceBackend backend, QObject* parent)
     worker_->moveToThread(&thread_);
     connect(&thread_, &QThread::finished, worker_, &QObject::deleteLater);
     thread_.start();
+    audioDebounce_.setSingleShot(true);audioDebounce_.setInterval(150);
+    connect(&audioDebounce_,&QTimer::timeout,this,[this]{if(busy_)audioDebounce_.start();else refresh();});
+    connect(&audioEvents_,&QProcess::readyReadStandardOutput,this,[this]{audioEvents_.readAllStandardOutput();audioDebounce_.start();});
+    audioEvents_.setStandardErrorFile(QProcess::nullDevice());
 }
-DeviceService::~DeviceService() { thread_.quit(); thread_.wait(); }
+DeviceService::~DeviceService() { audioEvents_.kill();audioEvents_.waitForFinished(1000);thread_.quit(); thread_.wait(); }
+void DeviceService::monitorAudio(bool enabled) {
+#ifdef Q_OS_LINUX
+    if(enabled&&audioEvents_.state()==QProcess::NotRunning)audioEvents_.start("/usr/bin/pactl",{"subscribe"});
+    if(!enabled){audioDebounce_.stop();audioEvents_.kill();}
+#endif
+}
+void DeviceService::setStream(const QString& id,int value,bool mute) {
+    if(id.isEmpty()||value<0||value>(mute?1:100))return;
+    const QString control=mute?"stream-mute":"stream-volume";
+    if(busy_){if(pendingAudio_.size()<64)pendingAudio_[control+"\n"+id]={control,value,id};return;}
+    execute(control,value,id);
+}
+void DeviceService::setInput(const QString& id,int value,const QString& operation) {
+    if(id.isEmpty()||!QStringList{"volume","mute","default"}.contains(operation)||value<0||value>(operation=="volume"?100:1))return;
+    if(busy_){if(pendingAudio_.size()<64)pendingAudio_["input-"+operation+"\n"+id]={"input-"+operation,value,id};return;}
+    execute("input-"+operation,value,id);
+}
 void DeviceService::refresh() { execute({}, 0); }
 int DeviceService::desired(const QString& control) const {
     if (pending_.contains(control)) return pending_.value(control);
@@ -217,7 +291,19 @@ void DeviceService::execute(const QString& control, int value, const QString& ou
     emit changed();
     QMetaObject::invokeMethod(worker_, [this, control, value, output] {
         QString error;
-        if(control=="audio-output"){
+        if(control.startsWith("input-")) {
+            const auto before=backend_.read();bool available=false;
+            for(const auto& row:before.audioInputs)if(row.toMap()["id"]==output&&row.toMap()["available"].toBool())available=true;
+            if(!available)error="This microphone is no longer available.";
+            else if(!backend_.setInput)error="Microphone controls are unavailable on this host.";
+            else error=backend_.setInput(output,value,control.mid(6));
+        }else if(control=="stream-volume"||control=="stream-mute") {
+            const auto before=backend_.read();QString index;
+            for(const auto& row:before.audioStreams)if(row.toMap()["id"]==output&&row.toMap()["available"].toBool())index=row.toMap()["index"].toString();
+            if(index.isEmpty())error="This audio source ended or changed. Select the current source.";
+            else if(!backend_.setStream)error="Separate volume is unavailable on this host.";
+            else error=backend_.setStream(index,value,control=="stream-mute");
+        }else if(control=="audio-output"){
             const auto before=backend_.read();bool available=false;
             for(const auto& row:before.audioOutputs)if(row.toMap()["id"]==output&&row.toMap()["available"].toBool())available=true;
             if(!available)error="This output is no longer available. Choose another device.";
@@ -232,9 +318,11 @@ void DeviceService::execute(const QString& control, int value, const QString& ou
         if(control=="audio-output"&&error.isEmpty()&&result.audioOutput!=output)error="The audio output did not change. Try again.";
         QMetaObject::invokeMethod(this, [this, error, result] {
             snapshot_ = result;
-            if (!error.isEmpty()) { error_ = error; pending_.clear(); }
+            if (!error.isEmpty()) { error_ = error; pending_.clear();pendingAudio_.clear(); }
             activeControl_.clear();
-            if (!pending_.isEmpty()) {
+            if(!pendingAudio_.isEmpty()) {
+                const auto change=pendingAudio_.take(pendingAudio_.firstKey());busy_=false;execute(change.control,change.value,change.target);
+            }else if (!pending_.isEmpty()) {
                 const auto control = pending_.firstKey(); const auto value = pending_.take(control);
                 busy_ = false; execute(control, value); // No idle signal between queued writes.
             } else { busy_ = false; emit changed(); }

@@ -136,8 +136,7 @@ ShellController::ShellController(LibraryRepository& repo, TrainerRepository& pro
     connect(&social_,&SocialController::filesDownloadRequested,&downloads_,&DownloadsController::begin);
     connect(social_.files(),&ChatFiles::changed,this,[this]{downloads_.publish("chat-files",social_.files()->downloads());});
     connect(social_.files(),&ChatFiles::folderRequested,this,[](const QString& folder){QDesktopServices::openUrl(QUrl::fromLocalFile(folder));});
-    connect(&scraper_,&ScrapeController::changed,this,[this]{downloads_.publish("screenscraper",scraper_.downloadTasks());});
-    connect(&scraper_,&ScrapeController::jobStarted,this,[this]{scraper_.hide();downloads_.begin();});
+    connect(&scraper_,&ScrapeController::jobStarted,this,[this]{scraper_.showOverview();});
     connect(&scraper_,&ScrapeController::systemSelectionClosed,this,[this]{menuOpen_=true;powerMenu_=false;menuFocus_=13;emit changed();});
     connect(&downloads_,&DownloadsController::commandRequested,this,[this](const QString& provider,const QString& task,const QString& command){
         if(provider=="screenscraper"){if(command=="open")downloads_.close();scraper_.downloadCommand(task,command);}
@@ -148,7 +147,7 @@ ShellController::ShellController(LibraryRepository& repo, TrainerRepository& pro
     connect(&scraper_,&ScrapeController::settingsBackRequested,this,[this]{settings_.selectCategory(14,false);});
     connect(&scraper_,&ScrapeController::textRequested,this,[this](QString title,QString initial,bool secret){textTarget_=TextTarget::Scraper;keyboard_.begin(title,initial,256,secret,"Save");});
     connect(&libraryTools_,&LibraryToolsController::scrapeRequested,this,[this](const QString& game,const QString& world){
-        if(scraper_.busy())downloads_.begin();else scraper_.begin(game,world);
+        if(scraper_.busy())scraper_.showOverview();else scraper_.begin(game,world);
     });
     connect(&libraryTools_,&LibraryToolsController::reviewRequested,&social_,&SocialController::reviewCommand);
     connect(&libraryTools_,&LibraryToolsController::togetherRequested,this,&ShellController::togetherRequested);
@@ -217,8 +216,28 @@ ShellController::ShellController(LibraryRepository& repo, TrainerRepository& pro
         trainerSettingsAction(index);
     });
     connect(&files_, &FilesController::changed, this, &ShellController::changed);
-    connect(&browser_, &BrowserController::textRequested, this, [this](QString title,QString text,int limit,bool secret){textTarget_=TextTarget::Browser;keyboard_.begin(title,text,limit,secret);});
+    connect(&browser_, &BrowserController::pageInputRequested,this,[this](int hints){textTarget_=TextTarget::Browser;keyboard_.beginLive(hints);});
+    connect(&browser_, &BrowserController::pageInputEnded,this,[this]{if(keyboard_.live())keyboard_.cancel();});
+    connect(&keyboard_, &TextEntryController::textCommitted,&browser_,&BrowserController::commitPageText);
+    connect(&keyboard_, &TextEntryController::keyRequested,&browser_,&BrowserController::pageKey);
+    connect(&keyboard_, &TextEntryController::keyStroke,&browser_,&BrowserController::pageKeyStroke);
+    connect(&keyboard_, &TextEntryController::changed,this,[this]{if(!keyboard_.isOpen())browser_.stopPageInput();});
+    connect(&browser_, &BrowserController::textRequested, this, [this](QString title,QString text,int limit,bool secret){
+        textTarget_=TextTarget::Browser;keyboard_.begin(title,text,limit,secret,"Go");
+        keyboard_.select(0,text.size());
+    });
     connect(&browser_, &BrowserController::downloadsChanged, this, [this]{downloads_.publish("browser",browser_.downloads());});
+    browser_.setFilesService(files_.service());
+    social_.files()->setFilesService(files_.service());
+    connect(&downloads_,&DownloadsController::destinationRequested,this,[this](QString provider,QString id,QString folder){
+        if(provider=="browser")browser_.setDownloadDestination(id,folder);
+        else if(provider=="chat-files")social_.files()->setDownloadDestination(id,folder);
+    });
+    connect(&downloads_,&DownloadsController::reorderRequested,this,[this](QString provider,QString id,QString before){
+        if(provider=="browser")browser_.moveDownloadBefore(id,before);
+        else if(provider=="crates")crates_.installer()->moveBefore(id,before);
+        else if(provider=="screenscraper")scraper_.moveDownloadBefore(id,before);
+    });
     connect(&downloads_, &DownloadsController::commandRequested, this, [this](QString provider,QString task,QString command){if(provider=="browser")browser_.controlDownload(task,command);});
     connect(&files_, &FilesController::textRequested, this, [this](QString title,QString text,int limit){textTarget_=TextTarget::Files;keyboard_.begin(title,text,limit);});
     connect(&files_, &FilesController::openRequested, &apps_, &AppsController::openFile);
@@ -229,7 +248,8 @@ ShellController::ShellController(LibraryRepository& repo, TrainerRepository& pro
         if(command=="resolve"){downloads_.close();goToPage(AppsPage);selectFace(3);}
     });
     connect(&apps_, &AppsController::changed, this, &ShellController::changed);
-    connect(crates_.installer(),&CratesInstaller::changed,this,[this]{downloads_.publish("crates",crates_.installer()->tasks());});
+    connect(crates_.installer(),&CratesInstaller::changed,this,[this]{downloads_.publish("crates",crates_.downloadTasks());});
+    connect(&crates_,&CratesController::catalogueChanged,this,[this]{downloads_.publish("crates",crates_.downloadTasks());});
     connect(&crates_,&CratesController::downloadsRequested,&downloads_,&DownloadsController::begin);
     connect(&downloads_,&DownloadsController::commandRequested,this,[this](QString provider,QString id,QString command){if(provider=="crates")crates_.installer()->command(id,command);});
     connect(&apps_, &AppsController::foregroundRequested, this, [this]{
@@ -251,6 +271,12 @@ ShellController::ShellController(LibraryRepository& repo, TrainerRepository& pro
         service_.clear(); goToPage(AppsPage); selectFace(destination=="crates"?1:0); emit changed();
     });
     connect(&settings_, &SettingsController::controllerRequested, this, [this] { service_ = "diagnostics"; diagnostics_.begin(); emit changed(); });
+    diagnostics_.configureLibrary(&repo,&adapter);
+    diagnostics_.canCheck=[this]{return liveGame_.isEmpty()&&!scraper_.busy()&&!navigationLocked();};
+    connect(&settings_,&SettingsController::healthRequested,this,[this]{service_="diagnostics";diagnostics_.beginHealth();emit changed();});
+    connect(&diagnostics_,&DiagnosticsController::reportsRequested,this,[this](const QString& path){service_.clear();goToPage(AppsPage);selectFace(3);files_.navigate(QUrl::fromLocalFile(path).toString());emit changed();});
+    connect(&diagnostics_,&DiagnosticsController::setupRequested,this,[this](const QString& id){service_.clear();libraryTools_.beginGame(id);libraryTools_.activate(3);emit changed();});
+    connect(&diagnostics_,&DiagnosticsController::recheckRequested,&settings_,&SettingsController::libraryRefreshRequested);
     connect(&device_, &DeviceController::changed, this, &ShellController::changed);
     connect(this, &ShellController::changed, this, [this] { device_.setMonitoring(onboardingConnections_ || menuOpen_ || gameControlsOpen_ || service_ == "device" || service_ == "settings"); });
     connect(&device_, &DeviceController::closeRequested, this, [this] { service_ = "settings"; emit changed(); });
@@ -363,6 +389,7 @@ ShellController::ShellController(LibraryRepository& repo, TrainerRepository& pro
     syncExperience();
 }
 void ShellController::configureServices(FileCatalog* files, PreferencesRepository* preferences) {
+    downloads_.picker()->setCatalog(files);
     pcGames_.setCatalog(files);
     libraryTools_.setCatalog(files);
     libraryManager_.files()->setCatalog(files); settings_.setRepository(preferences);
@@ -371,7 +398,6 @@ void ShellController::configureServices(FileCatalog* files, PreferencesRepositor
 }
 void ShellController::refreshLibrary() {
     worlds_.refresh(); libraryManager_.refresh(); multiverse_.refresh();
-    downloads_.publish("screenscraper",scraper_.downloadTasks());
     const auto records=repository_.registrations();
     settings_.setLegacyTrashAvailable(std::any_of(records.cbegin(),records.cend(),[](const auto& r){return r.removed && !r.trashPath.isEmpty();}));
     if(activeModule_ && adapterActive())activeModule_->show(experience_.screen());
@@ -417,7 +443,7 @@ bool ShellController::chooseAdventureAvailable() {
         && !localModalOpen() && !moduleActivityBusy() && !navigationLocked();
 }
 bool ShellController::navigationLocked(bool primaryRecovery) const {
-    return modulesBlocked(primaryRecovery) || launchPreparation_.busy() || settings_.clock()->busy() || settings_.storage()->busy() || libraryTools_.busy();
+    return diagnostics_.checking() || modulesBlocked(primaryRecovery) || launchPreparation_.busy() || settings_.clock()->busy() || settings_.storage()->busy() || libraryTools_.busy();
 }
 bool ShellController::modulesBlocked(bool recovery) const {for(const auto& module:modules_)if(module->navigationBlocked(recovery))return true;return false;}
 bool ShellController::moduleWriting() const {for(const auto& module:modules_)if(module->writing())return true;return false;}
@@ -1072,7 +1098,7 @@ void ShellController::systemAction(const QString& id){
     if(id=="clock"||id=="battery"||id=="storage")return;
     if(id=="downloads"){downloads_.begin();return;}
     if(gameControlsOpen_){setGameControlsOpen(false);emit gameSystemRequested(id);return;}
-    if(id=="scraper"){scraper_.beginMissing();downloads_.begin();return;}
+    if(id=="scraper"){scraper_.beginMissing();scraper_.showOverview();return;}
     if((id=="desktop"||id=="steam")&&!liveGame_.isEmpty()){showNotice("Save and exit the running game before switching environments.");return;}
     const QMap<QString,int> actions{{"settings",0},{"power",6},{"desktop",4},{"steam",5}};
     if(!actions.contains(id))return;
@@ -1359,7 +1385,7 @@ void ShellController::confirm() {
         if(!powerMenu_&&menuFocus_==12){menuOpen_=false;downloads_.begin();return;}
         if(!powerMenu_&&menuFocus_==13){
             menuOpen_=false;
-            if(scraper_.busy())downloads_.begin();else scraper_.beginSystems();
+            if(scraper_.busy())scraper_.showOverview();else scraper_.beginSystems();
             return;
         }
         if(scraper_.busy()&&((powerMenu_&&(menuFocus_==2||menuFocus_==3||menuFocus_==5))||(!powerMenu_&&(menuFocus_==2||menuFocus_==4||menuFocus_==5)))){showNotice("Finish or cancel downloads before switching Trainer or leaving this system session.");return;}

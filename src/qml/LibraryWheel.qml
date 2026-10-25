@@ -13,6 +13,8 @@ Item {
     signal focusRequested(int index)
     property bool wheelFocused: true
     property bool previewsEnabled: false
+    property bool previewSound: false
+    property int previewDelay: 1800
     property bool showBack: false
     property bool idsInNames: false
     property string itemPrefix: "multiverse-game-"
@@ -185,6 +187,8 @@ Item {
         onFavoriteRequested: gameId => root.favoriteRequested(gameId)
         active: root.visible && root.takesFocus && root.wheelFocused
         previewsEnabled: root.previewsEnabled
+        previewSound: root.previewSound
+        previewDelay: root.previewDelay
     }
     CapButton {
         objectName: root.emptyName

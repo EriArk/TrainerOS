@@ -34,7 +34,7 @@ QList<QSize> ControlsDashboard::sizes(const QString& id) const {
     if(id=="downloads")return {{4,4},{3,2},{6,2},{2,2}};
     if(id=="storage")return {{4,4},{3,2},{4,2},{2,2}};
     if(id=="battery"||id=="clock")return {{2,1},{2,2},{4,2}};
-    if(id=="scraper")return {{1,1},{2,2},{4,2}};
+    if(id=="scraper")return {{8,4},{12,4},{1,1},{2,2},{4,2}};
     return {{2,2},{4,2}};
 }
 QString ControlsDashboard::selectedTitle() const {
@@ -102,6 +102,19 @@ void ControlsDashboard::setOwner(const QString& owner){
         // Keep stable enumeration/order for focus and the picker.
         for(auto& w:items_)for(const auto& p:placed)if(w.id==p.id){w=p;break;}
         normalize();save();QSettings().setValue(key_+"/layoutRevision",2);
+    }
+    if(!key_.isEmpty()&&QSettings().value(key_+"/layoutRevision",0).toInt()<4){
+        const auto before=QSettings().value(key_).toByteArray();
+        QSettings().setValue(key_+"/beforeRevision4",before);
+        if(auto* scraper=find("scraper");scraper&&!scraper->hidden){
+            auto candidate=*scraper;candidate.rect=QRect(0,0,8,4);
+            bool placed=false;
+            for(int page=0;page<8&&!placed;++page)for(int x=0;x<=4;++x){
+                candidate.page=page;candidate.rect.moveLeft(x);
+                if(fits(candidate,items_)){*scraper=candidate;placed=true;break;}
+            }
+        }
+        normalize();save();QSettings().setValue(key_+"/layoutRevision",4);
     }
     normalize();emit changed();
 }

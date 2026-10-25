@@ -6,7 +6,10 @@
 #include <QFile>
 #include <QDir>
 #include <QSettings>
+#include <QClipboard>
 #include "features/settings/DisplayScale.h"
+#include "core/input/ControllerInput.h"
+#include <QKeyEvent>
 
 using namespace trainer;
 
@@ -27,6 +30,129 @@ void tap(TextEntryController& keyboard, Action action, int count = 1) {
 class InteractionTests : public QObject {
     Q_OBJECT
 private slots:
+    void touchLayoutEditingAndPreferences() {
+        QTemporaryDir directory;TextEntryController keyboard;keyboard.configure(directory.path(),"touch-owner");
+        QVERIFY(keyboard.touchLayout());QCOMPARE(keyboard.layoutUnits(),10.0);
+        keyboard.begin("Message","",128,false,"Send",true);
+        keyboard.activate(keyIndex(keyboard,"Q"));keyboard.activate(keyIndex(keyboard,"Q"));QCOMPARE(keyboard.text(),"Qq");
+        keyboard.activate(keyIndex(keyboard,"space"));keyboard.activate(keyIndex(keyboard,"space"));
+        keyboard.activate(keyIndex(keyboard,"Q"));QCOMPARE(keyboard.text(),"Qq. Q");
+        keyboard.activate(keyIndex(keyboard,"symbols"));QCOMPARE(keyboard.symbolPage(),1);
+        keyboard.activate(keyIndex(keyboard,"1"));keyboard.activate(keyIndex(keyboard,"space"));
+        QCOMPARE(keyboard.symbolPage(),0);QCOMPARE(keyboard.text(),"Qq. Q1 ");
+        QVERIFY(keyboard.alternatives(keyIndex(keyboard,"E")).contains(QString::fromUtf8("é")));
+        keyboard.typeAlternative(QString::fromUtf8("é"));QCOMPARE(keyboard.text(),QString::fromUtf8("Qq. Q1 é"));
+        keyboard.activateShifted(keyIndex(keyboard,"Q"));keyboard.activate(keyIndex(keyboard,"Q"));QVERIFY(keyboard.text().endsWith("Qq"));
+          keyboard.activate(keyIndex(keyboard,"shift"));keyboard.activate(keyIndex(keyboard,"shift"));keyboard.activate(keyIndex(keyboard,"Q"));
+          keyboard.activate(keyIndex(keyboard,"shift"));keyboard.activate(keyIndex(keyboard,"Q"));QVERIFY(keyboard.text().endsWith("Qq"));
+          keyboard.select(1,3);const auto draft=keyboard.text();keyboard.setLayout("pc");
+        QCOMPARE(keyboard.text(),draft);QCOMPARE(keyboard.anchor(),1);QCOMPARE(keyboard.cursor(),3);
+        QVERIFY(keyIndex(keyboard,"num-enter")>=0);keyboard.toggleNumberPad();keyboard.setLayout("touch");
+        QCOMPARE(keyboard.text(),draft);QVERIFY(keyIndex(keyboard,"num-enter")<0);
+        TextEntryController restored;restored.configure(directory.path(),"touch-owner");QVERIFY(restored.touchLayout());QVERIFY(!restored.numberPad());
+        restored.setLayout("pc");TextEntryController again;again.configure(directory.path(),"touch-owner");QVERIFY(!again.touchLayout());
+        keyboard.begin("Password","",128,true);keyboard.activate(keyIndex(keyboard,"Q"));keyboard.activate(keyIndex(keyboard,"space"));keyboard.activate(keyIndex(keyboard,"space"));QCOMPARE(keyboard.text(),"q  ");
+        keyboard.begin("Address","a",128,false,"Go");keyboard.activate(keyIndex(keyboard,"space"));keyboard.activate(keyIndex(keyboard,"space"));QCOMPARE(keyboard.text(),"a  ");
+    }
+    void touchKeysAreReachableWithoutOverlaps() {
+        TextEntryController keyboard;
+        for(int language=0;language<2;++language){
+            if(language)keyboard.cycleLanguage();
+            for(int page=0;page<4;++page){
+                keyboard.begin("Edit","",128,false,"Send",true);keyboard.setSymbolPage(page);const auto keys=keyboard.keys();
+                for(int i=0;i<keys.size();++i){const auto a=keys[i].toMap();if(a["row"].toInt()<0)continue;
+                    QVERIFY(a["column"].toDouble()>=0);QVERIFY(a["column"].toDouble()+a["span"].toDouble()<=keyboard.layoutUnits());
+                    for(int j=i+1;j<keys.size();++j){const auto b=keys[j].toMap();if(a["row"]!=b["row"])continue;
+                        QVERIFY2(a["column"].toDouble()+a["span"].toDouble()<=b["column"].toDouble()||b["column"].toDouble()+b["span"].toDouble()<=a["column"].toDouble(),qPrintable(a["id"].toString()+" / "+b["id"].toString()));}
+                }
+                QSet<int> visited{0};QList<QList<Action>> pending{{}};
+                while(!pending.isEmpty()){const auto path=pending.takeFirst();for(auto direction:{Action::Up,Action::Down,Action::Left,Action::Right}){
+                    keyboard.begin("Edit","",128,false,"Send",true);keyboard.setSymbolPage(page);for(auto step:path)keyboard.dispatch(step);keyboard.dispatch(direction);
+                    const int next=keyboard.focusIndex();if(!visited.contains(next)){visited.insert(next);auto nextPath=path;nextPath.append(direction);pending.append(nextPath);}
+                }}
+                QCOMPARE(visited.size(),keys.size());
+            }
+        }
+    }
+    void physicalKeyboardRespectsNativeAndBufferedInput() {
+        ControllerInput input;input.setEnabled(true);input.setTextEntryEnabled(true);
+        QObject target;
+        QSignalSpy submitted(&input,&ControllerInput::textSubmitted),commands(&input,&ControllerInput::textCommand);
+        QKeyEvent enter(QEvent::KeyPress,Qt::Key_Return,Qt::NoModifier,"\r");
+        QVERIFY(input.eventFilter(&target,&enter));QCOMPARE(submitted.size(),1);
+        QKeyEvent selectAll(QEvent::KeyPress,Qt::Key_A,Qt::ControlModifier);
+        QVERIFY(input.eventFilter(&target,&selectAll));QCOMPARE(commands.last()[0].toString(),"select-all");
+        input.setProperty("nativeKeyboard",true);
+        QVERIFY(!input.eventFilter(&target,&enter));QVERIFY(!input.eventFilter(&target,&selectAll));
+        QCOMPARE(submitted.size(),1);QCOMPARE(commands.size(),1);
+        input.setProperty("nativeKeyboard",false);target.setProperty("trainerBrowserKey",true);
+        QVERIFY(!input.eventFilter(&target,&enter));QCOMPARE(submitted.size(),1);
+    }
+    void keyboardLayoutPreferencePreservesDraftAndDigits() {
+        QTemporaryDir directory;TextEntryController keyboard;keyboard.setLayout("pc");keyboard.configure(directory.path(),"one");keyboard.setLayout("pc");
+        keyboard.begin("Edit","draft",128);keyboard.select(2,2);
+        keyboard.activate(keyIndex(keyboard,"layout"));QVERIFY(keyboard.optionsOpen());
+        keyboard.dispatch(Action::Down);keyboard.dispatch(Action::Confirm);QVERIFY(!keyboard.numberPad());
+        QCOMPARE(keyboard.text(),"draft");QCOMPARE(keyboard.cursor(),2);
+        keyboard.dispatch(Action::Back);QVERIFY(keyboard.isOpen());QVERIFY(!keyboard.optionsOpen());
+        QCOMPARE(focusedKey(keyboard),"layout");QCOMPARE(keyIndex(keyboard,"num-0"),-1);QVERIFY(keyIndex(keyboard,"0")>=0);
+        QString entered;
+        for(int page=0;page<2;++page) {
+            keyboard.symbols();const auto keys=keyboard.keys();
+            for(int i=0;i<26;++i)if(keys[i].toMap()["visible"].toBool()) {
+                entered+=keys[i].toMap()["label"].toString();keyboard.activate(i);
+            }
+        }
+        QString expected;
+        for(int code=33;code<=126;++code)if(!QChar(code).isLetterOrNumber())expected+=QChar(code);
+        QCOMPARE(entered,expected);QCOMPARE(keyboard.text(),"dr"+expected+"aft");
+        keyboard.configure(directory.path(),"two");keyboard.setLayout("pc");QVERIFY(keyboard.numberPad());
+        keyboard.configure(directory.path(),"one");keyboard.setLayout("pc");QVERIFY(!keyboard.numberPad());
+        keyboard.beginLive(0);QVERIFY(!keyboard.numberPad());keyboard.toggleOptions();keyboard.cancel();
+        QVERIFY(!keyboard.optionsOpen());
+    }
+    void editingSelectionAndGraphemes() {
+        TextEntryController keyboard;keyboard.setLayout("pc");
+        keyboard.begin("Edit","abcd",4);
+        keyboard.select(1,3);keyboard.insertText("XY");QCOMPARE(keyboard.text(),"aXYd");
+        keyboard.moveCursor(-1);keyboard.backspace();QCOMPARE(keyboard.text(),"aYd");
+        keyboard.select(1,1);keyboard.insertText(QString::fromUtf8("👩‍💻"));
+        QCOMPARE(keyboard.count(),4);keyboard.backspace();QCOMPARE(keyboard.text(),"aYd");
+        keyboard.begin("Long address",QString(3000,'a'),4096);
+        keyboard.insertText("b");QCOMPARE(keyboard.count(),3001);
+    }
+    void liveEntryNeverCopiesWebsiteSecrets() {
+        TextEntryController keyboard;keyboard.setLayout("pc");
+        QSignalSpy commits(&keyboard,&TextEntryController::textCommitted);
+        QSignalSpy keys(&keyboard,&TextEntryController::keyRequested);
+        QSignalSpy accepted(&keyboard,&TextEntryController::accepted);
+        keyboard.beginLive(Qt::ImhHiddenText);keyboard.insertText("private");keyboard.backspace();
+        QVERIFY(keyboard.text().isEmpty());QVERIFY(keyboard.displayText().isEmpty());
+        QCOMPARE(commits.first().first().toString(),"private");QCOMPARE(keys.first().first().toString(),"backspace");
+        keyboard.dispatch(Action::LocalAction);QCOMPARE(keys.last()[0].toString(),"enter");QVERIFY(keyboard.live());
+        keyboard.dispatch(Action::Back);QVERIFY(!keyboard.isOpen());QVERIFY(!keyboard.live());QVERIFY(accepted.isEmpty());
+        keyboard.beginLive(0);keyboard.shift();keyboard.activate(keyIndex(keyboard,"Q"));keyboard.activate(keyIndex(keyboard,"Q"));
+        QCOMPARE(commits[1][0].toString(),"Q");QCOMPARE(commits[2][0].toString(),"q");
+    }
+    void keyboardShortcutsAndThreeRows() {
+        TextEntryController keyboard;keyboard.setLayout("pc");
+        const auto shortcut=[&](const QString& letter){keyboard.activate(keyIndex(keyboard,"ctrl"));QVERIFY(keyboard.control());keyboard.activate(keyIndex(keyboard,letter));QVERIFY(!keyboard.control());};
+        keyboard.begin("Edit","draft",80);
+        for(const auto& item:keyboard.keys())if(item.toMap()["letter"].toBool())QVERIFY(item.toMap()["row"].toInt()<=4);
+        shortcut("A");QCOMPARE(keyboard.anchor(),0);QCOMPARE(keyboard.cursor(),5);
+        shortcut("C");QCOMPARE(QGuiApplication::clipboard()->text(),"draft");
+        shortcut("X");QVERIFY(keyboard.text().isEmpty());
+        shortcut("V");QCOMPARE(keyboard.text(),"draft");
+        shortcut("Z");QVERIFY(keyboard.text().isEmpty());
+        shortcut("Y");QCOMPARE(keyboard.text(),"draft");
+        keyboard.begin("Password","private",80,true);shortcut("A");shortcut("C");shortcut("X");
+        QCOMPARE(keyboard.text(),"private");QCOMPARE(QGuiApplication::clipboard()->text(),"draft");
+        keyboard.begin("New","clean",80);shortcut("Z");QCOMPARE(keyboard.text(),"clean");
+        keyboard.activate(keyIndex(keyboard,"shift"));keyboard.activate(keyIndex(keyboard,"shift"));
+        keyboard.activate(keyIndex(keyboard,"Q"));keyboard.activate(keyIndex(keyboard,"Q"));QCOMPARE(keyboard.text(),"cleanQQ");
+        keyboard.cycleLanguage();shortcut(QString::fromUtf8("Ф"));QCOMPARE(keyboard.anchor(),0);QCOMPARE(keyboard.cursor(),7);
+        for(const auto& item:keyboard.keys())if(item.toMap()["letter"].toBool())QVERIFY(item.toMap()["row"].toInt()<=4);
+    }
     void displayDensityUsesLogicalScreenAndFluidWindow() {
         QCOMPARE(displayDensity(1920,1080,1920,1080,"handheld",100),2.0);
         QCOMPARE(displayDensity(1280,720,1280,720,"handheld",100),720.0/540.0);
@@ -151,9 +277,10 @@ private slots:
         shell.dispatch(Action::SystemMenu);shell.activate(12);QVERIFY(shell.downloads()->isOpen());
     }
     void messageKeyboardSendsOnceAndKeepsEmojiWhole() {
-        TextEntryController keyboard;QSignalSpy accepted(&keyboard,&TextEntryController::accepted);
+        TextEntryController keyboard;keyboard.setLayout("pc");QSignalSpy accepted(&keyboard,&TextEntryController::accepted);
         keyboard.begin("Message",{},10,false,"Send",true);
-        QCOMPARE(keyboard.keys()[keyIndex(keyboard,"apply")].toMap()["label"].toString(),"Send");
+        QCOMPARE(keyboard.keys()[keyIndex(keyboard,"apply")].toMap()["label"].toString(),"Enter");
+        QCOMPARE(keyboard.submitLabel(),"Send"); // Physical key legend; contextual footer action.
         tap(keyboard,Action::ToggleContinue,2);QCOMPARE(keyboard.nextLayout(),"Emoji");
         keyboard.dispatch(Action::ToggleContinue);keyboard.activate(16);
         QCOMPARE(keyboard.text(),QString::fromUtf8("❤️"));QCOMPARE(keyboard.count(),1);
@@ -203,7 +330,7 @@ private slots:
         QVERIFY(shell.keyboard()->isOpen());QCOMPARE(shell.keyboard()->maximumLength(),8);
         shell.dispatch(Action::NextPage);QCOMPARE(shell.page(),2);
         QCOMPARE(entry.size(),1);QCOMPARE(entry.first()[0].toString(),"BOX");QCOMPARE(entry.first()[1].toInt(),8);
-        shell.keyboard()->activate(keyIndex(*shell.keyboard(),"clear"));
+        shell.keyboard()->shortcut("select-all");shell.keyboard()->backspace();shell.keyboard()->shift(true);
         shell.keyboard()->activate(keyIndex(*shell.keyboard(),"T"));
         shell.keyboard()->activate(keyIndex(*shell.keyboard(),"apply"));
         QVERIFY(!shell.keyboard()->isOpen());QCOMPARE(party.moveStage(),"name-confirm");QCOMPARE(service.moves,0);
@@ -1006,7 +1133,7 @@ private slots:
         QCOMPARE(shell.homeView(),"game-home"); // A missing game cannot expose another game's Pokemon services.
     }
     void caseSymbolsAndSecretEntry() {
-        TextEntryController keyboard;
+        TextEntryController keyboard;keyboard.setLayout("pc");
         QSignalSpy accepted(&keyboard, &TextEntryController::accepted);
         keyboard.begin("Password", "", 128, true);
         tap(keyboard, Action::Confirm);
@@ -1045,16 +1172,20 @@ private slots:
         QVERIFY(keyboard.metaObject()->indexOfProperty("text") < 0);
     }
     void symbolsKeepEveryVisibleKeyReachable() {
-        TextEntryController keyboard;
-        for (int page = 1; page <= 2; ++page) {
-            keyboard.begin("Search", "", 128);
+        TextEntryController keyboard;keyboard.setLayout("pc");
+        for(int layout=0;layout<2;++layout) {
+        if(layout)keyboard.toggleNumberPad();
+        for(int language=0;language<2;++language) {
+        if(language)keyboard.cycleLanguage();
+        for (int page = 0; page <= 3; ++page) {
+            keyboard.begin("Search", "", 128,false,"Apply",true);
             tap(keyboard, Action::ToggleContinue, page);
             const auto keys = keyboard.keys();
             QSet<int> visited{0}; QList<QList<Action>> pending{{}};
             while (!pending.isEmpty()) {
                 const auto path = pending.takeFirst();
                 for (const auto direction : {Action::Up, Action::Down, Action::Left, Action::Right}) {
-                    keyboard.begin("Search", "", 128);
+                    keyboard.begin("Search", "", 128,false,"Apply",true);
                     tap(keyboard, Action::ToggleContinue, page);
                     for (const auto step : path) tap(keyboard, step);
                     tap(keyboard, direction);
@@ -1066,6 +1197,10 @@ private slots:
             for (int i = 0; i < keys.size(); ++i)
                 if (keys[i].toMap()["visible"].toBool()) QVERIFY2(visited.contains(i), qPrintable(keys[i].toMap()["id"].toString()));
         }
+        }
+        keyboard.cycleLanguage();
+        }
+        keyboard.toggleNumberPad();
         keyboard.begin("Search", "", 128);
         keyboard.activate(keyIndex(keyboard, "Z"));
         tap(keyboard, Action::ToggleContinue, 2);
@@ -1116,64 +1251,56 @@ private slots:
         QVERIFY(exited.isEmpty());
     }
     void everyLetterAndNumber() {
-        TextEntryController keyboard;
-        keyboard.begin("Search", "", 80);
-        const auto row = [&](int count) {
-            for (int i = 0; i < count; ++i) {
-                keyboard.dispatch(Action::Confirm);
-                if (i + 1 < count) keyboard.dispatch(Action::Right);
-            }
-        };
-        row(10); // QWERTYUIOP
-        tap(keyboard, Action::Down); tap(keyboard, Action::Left, 9);
-        row(9); // ASDFGHJKL
-        tap(keyboard, Action::Down); tap(keyboard, Action::Left, 9);
-        QCOMPARE(focusedKey(keyboard), "Z");
-        row(7);
-        QCOMPARE(keyboard.text(), "QWERTYUIOPASDFGHJKLZXCVBNM");
-        tap(keyboard, Action::Right); tap(keyboard, Action::Up, 2);
-        QCOMPARE(focusedKey(keyboard), "1");
-        row(3);
-        tap(keyboard, Action::Down);
-        for (int i = 0; i < 3; ++i) {
-            tap(keyboard, Action::Confirm);
-            if (i < 2) tap(keyboard, Action::Left);
-        }
-        tap(keyboard, Action::Down); row(3); tap(keyboard, Action::Down); tap(keyboard, Action::Confirm);
-        QCOMPARE(keyboard.text(), "QWERTYUIOPASDFGHJKLZXCVBNM1236547890");
+        TextEntryController keyboard;keyboard.setLayout("pc");keyboard.begin("Search","",128);keyboard.shift(true);
+        for(const auto c:QString("QWERTYUIOPASDFGHJKLZXCVBNM0123456789"))keyboard.activate(keyIndex(keyboard,QString(c)));
+        for(int n=0;n<=9;++n)keyboard.activate(keyIndex(keyboard,"num-"+QString::number(n)));
+        QCOMPARE(keyboard.text(),"QWERTYUIOPASDFGHJKLZXCVBNM01234567890123456789");
     }
     void spatialEdgesAndWideKeys() {
-        TextEntryController keyboard;
-        keyboard.begin("Name", "", 24);
-        tap(keyboard, Action::Up); tap(keyboard, Action::Left);
-        QCOMPARE(focusedKey(keyboard), "Q");
-        tap(keyboard, Action::Right, 2); tap(keyboard, Action::Down, 3);
-        QCOMPARE(focusedKey(keyboard), "space");
-        tap(keyboard, Action::Up, 3);
-        QCOMPARE(focusedKey(keyboard), "E");
-        tap(keyboard, Action::Right, 7); tap(keyboard, Action::Down, 3);
-        QCOMPARE(focusedKey(keyboard), "apply");
-        tap(keyboard, Action::Up, 3);
-        QCOMPARE(focusedKey(keyboard), "P");
-        tap(keyboard, Action::Right); QCOMPARE(focusedKey(keyboard), "1");
-        tap(keyboard, Action::Left); QCOMPARE(focusedKey(keyboard), "P");
-        tap(keyboard, Action::Right, 3); QCOMPARE(focusedKey(keyboard), "3");
-        tap(keyboard, Action::Right); QCOMPARE(focusedKey(keyboard), "3");
-        tap(keyboard, Action::Down, 3); QCOMPARE(focusedKey(keyboard), "0");
-        tap(keyboard, Action::Down); QCOMPARE(focusedKey(keyboard), "0");
-        tap(keyboard, Action::Up, 3); QCOMPARE(focusedKey(keyboard), "3");
+        TextEntryController keyboard;keyboard.setLayout("pc");keyboard.begin("Name","draft",100);
+        keyboard.activate(keyIndex(keyboard,"num-6"));
+        tap(keyboard,Action::Right);QCOMPARE(focusedKey(keyboard),"num-+");
+        tap(keyboard,Action::Left);QCOMPARE(focusedKey(keyboard),"num-6");
+        tap(keyboard,Action::Down);QCOMPARE(focusedKey(keyboard),"num-3");
+        tap(keyboard,Action::Right);QCOMPARE(focusedKey(keyboard),"num-enter");
+        tap(keyboard,Action::Left);QCOMPARE(focusedKey(keyboard),"num-3");
+        tap(keyboard,Action::Down);QCOMPARE(focusedKey(keyboard),"num-decimal");
+        tap(keyboard,Action::Right);QCOMPARE(focusedKey(keyboard),"num-enter");
+        tap(keyboard,Action::Left);QCOMPARE(focusedKey(keyboard),"num-decimal");
+        tap(keyboard,Action::Left);QCOMPARE(focusedKey(keyboard),"num-0");
+        keyboard.toggleGroup("function-row");keyboard.activate(keyIndex(keyboard,"1"));
+        tap(keyboard,Action::Up);QCOMPARE(focusedKey(keyboard),"layout");
+    }
+    void pcGroupsPersistAndNativeKeysKeepIdentity() {
+        QTemporaryDir directory;TextEntryController keyboard;keyboard.setLayout("pc");keyboard.configure(directory.path(),"one");keyboard.setLayout("pc");
+        keyboard.begin("Edit","draft",100);keyboard.select(1,3);
+        keyboard.toggleOptions();keyboard.dispatch(Action::Down);
+        for(int i=0;i<4;++i){keyboard.dispatch(Action::Confirm);keyboard.dispatch(Action::Down);}
+        QVERIFY(!keyboard.functionRow());QVERIFY(!keyboard.navigationBlock());QVERIFY(!keyboard.systemKeys());QVERIFY(!keyboard.numberPad());
+        QCOMPARE(keyboard.layoutUnits(),15.0);QCOMPARE(keyboard.text(),"draft");QCOMPARE(keyboard.anchor(),1);QCOMPARE(keyboard.cursor(),3);
+        QVERIFY(keyIndex(keyboard,"f1")<0);QVERIFY(keyIndex(keyboard,"win")<0);QVERIFY(keyIndex(keyboard,"num-enter")<0);QVERIFY(keyIndex(keyboard,"up")<0);
+        TextEntryController reopened;reopened.configure(directory.path(),"one");reopened.setLayout("pc");QCOMPARE(reopened.layoutUnits(),15.0);QVERIFY(!reopened.functionRow());QVERIFY(!reopened.systemKeys());
+        reopened.configure(directory.path(),"two");reopened.setLayout("pc");QCOMPARE(reopened.layoutUnits(),23.0);QVERIFY(reopened.functionRow());QVERIFY(reopened.systemKeys());
+        reopened.beginLive(0);QSignalSpy strokes(&reopened,&TextEntryController::keyStroke);
+        reopened.activate(keyIndex(reopened,"f5"));QCOMPARE(strokes.last()[0].toInt(),int(Qt::Key_F5));
+        reopened.activate(keyIndex(reopened,"shift"));reopened.activate(keyIndex(reopened,"tab"));
+        QCOMPARE(strokes.last()[0].toInt(),int(Qt::Key_Tab));QVERIFY(strokes.last()[1].toInt()&Qt::ShiftModifier);
+        reopened.activate(keyIndex(reopened,"num-lock"));reopened.activate(keyIndex(reopened,"num-7"));
+        QCOMPARE(strokes.last()[0].toInt(),int(Qt::Key_Home));QVERIFY(strokes.last()[1].toInt()&Qt::KeypadModifier);
+        reopened.begin("Edit","A🙂B",20);reopened.select(1,1);reopened.pressKey(Qt::Key_Delete);QCOMPARE(reopened.text(),"AB");
+        reopened.pressKey(Qt::Key_End,Qt::ShiftModifier);QCOMPARE(reopened.anchor(),1);QCOMPARE(reopened.cursor(),2);
     }
     void keyboardLanguageIsIndependentAndScopedToTrainer() {
         QTemporaryDir directory; QVERIFY(directory.isValid());
-        TextEntryController keyboard;
-        keyboard.configure(directory.path(),"first");
-        keyboard.begin("Message","draft",100,false,"Send",true);
+        TextEntryController keyboard;keyboard.setLayout("pc");
+        keyboard.configure(directory.path(),"first");keyboard.setLayout("pc");
+        keyboard.begin("Message","draft",100,false,"Send",true);keyboard.shift(true);
         tap(keyboard,Action::Secondary);tap(keyboard,Action::NextFace);
         QCOMPARE(keyboard.language(),"ru");QCOMPARE(keyboard.text(),"draft");
         QString letters;
         for(const auto& v:keyboard.keys()) {
             const auto key=v.toMap();
-            if(!key["numeric"].toBool()&&key["id"].toString().size()==1)letters+=key["label"].toString();
+            if(key["letter"].toBool())letters+=key["label"].toString();
         }
         QCOMPARE(letters,QString::fromUtf8("йцукенгшщзхъфывапролджэячсмитьбюё"));
         keyboard.activate(keyIndex(keyboard,QString::fromUtf8("Ё")));
@@ -1181,15 +1308,15 @@ private slots:
         tap(keyboard,Action::ToggleContinue);const auto next=keyboard.nextLayout();
         tap(keyboard,Action::PreviousFace);QCOMPARE(keyboard.nextLayout(),next);
         tap(keyboard,Action::NextFace);keyboard.cancel();
-        keyboard.configure(directory.path(),"second");QCOMPARE(keyboard.language(),"en");
-        keyboard.configure(directory.path(),"first");QCOMPARE(keyboard.language(),"ru");
-        TextEntryController reopened;reopened.configure(directory.path(),"first");QCOMPARE(reopened.language(),"ru");
-        reopened.configure(directory.path(),{});QCOMPARE(reopened.language(),"en");
+        keyboard.configure(directory.path(),"second");keyboard.setLayout("pc");QCOMPARE(keyboard.language(),"en");
+        keyboard.configure(directory.path(),"first");keyboard.setLayout("pc");QCOMPARE(keyboard.language(),"ru");
+        TextEntryController reopened;reopened.configure(directory.path(),"first");reopened.setLayout("pc");QCOMPARE(reopened.language(),"ru");
+        reopened.configure(directory.path(),{});reopened.setLayout("pc");QCOMPARE(reopened.language(),"en");
     }
     void bufferApplyCancelAndLimit() {
-        TextEntryController keyboard;
+        TextEntryController keyboard;keyboard.setLayout("pc");
         QSignalSpy accepted(&keyboard, &TextEntryController::accepted);
-        keyboard.begin("Name", "ER", 3);
+        keyboard.begin("Name", "ER", 3);keyboard.shift(true);
         keyboard.activate(keyIndex(keyboard, "I"));
         keyboard.activate(keyIndex(keyboard, "2"));
         QCOMPARE(keyboard.text(), "ERI");
@@ -1198,7 +1325,7 @@ private slots:
         QCOMPARE(keyboard.text(), "ER");
         keyboard.activate(keyIndex(keyboard, "space"));
         QCOMPARE(keyboard.text(), "ER ");
-        keyboard.activate(keyIndex(keyboard, "clear"));
+        keyboard.shortcut("select-all");keyboard.backspace();
         QVERIFY(keyboard.text().isEmpty());
         keyboard.activate(keyIndex(keyboard, "0"));
         keyboard.activate(keyIndex(keyboard, "apply"));
@@ -1206,7 +1333,7 @@ private slots:
         QCOMPARE(accepted.first().first().toString(), "0");
         QVERIFY(!keyboard.isOpen());
         keyboard.begin("Name", "ORIGINAL", 24);
-        keyboard.activate(keyIndex(keyboard, "clear"));
+        keyboard.shortcut("select-all");keyboard.backspace();
         keyboard.dispatch(Action::Back);
         QCOMPARE(accepted.size(), 1);
         QVERIFY(!keyboard.isOpen());
@@ -1214,7 +1341,7 @@ private slots:
         QCOMPARE(accepted.size(), 1);
     }
     void existingUnicodeAndOversizedInput() {
-        TextEntryController keyboard;
+        TextEntryController keyboard;keyboard.setLayout("pc");
         const QString name = QString::fromUtf8("Aé🇯🇵é");
         keyboard.begin("Name", name, 4);
         QCOMPARE(keyboard.count(), 4);
@@ -1331,5 +1458,5 @@ private slots:
         QCOMPARE(shell.focusIndex(), 0);
     }
 };
-QTEST_GUILESS_MAIN(InteractionTests)
+QTEST_MAIN(InteractionTests)
 #include "InteractionTests.moc"

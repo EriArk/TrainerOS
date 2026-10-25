@@ -79,7 +79,7 @@ Rectangle {
     }
     ActionButton { objectName: "start-audio-output"; x: parent.width-340; anchors.bottom: parent.bottom; anchors.bottomMargin: 10; width: 140
         visible: !root.board.editing && root.board.selected==="volume"
-        label: Theme.buttonLabel("Y")+" Audio output"; onActivated: root.board.audioOutputs()
+        label: Theme.buttonLabel("Y")+" Sound"; onActivated: root.board.audioOutputs()
     }
     Text { x: 24; anchors.bottom: parent.bottom; anchors.bottomMargin: root.board.editing ? 54 : 16; width: parent.width-(!root.board.editing&&root.board.selected==="volume"?370:230); elide: Text.ElideRight; color: Theme.muted; font.pixelSize: 11
         text: root.board.moving ? Theme.buttonLabel("A")+" Place · "+Theme.buttonLabel("B")+" Cancel" : root.board.editing ? Theme.buttonLabel("A")+" Move · "+Theme.buttonLabel("L2")+" Add · "+Theme.buttonLabel("B")+" Done" : root.board.adjusting ? "← → / ↑ ↓ Adjust · "+(root.board.selected==="volume"?Theme.buttonLabel("X")+" Mute · ":"")+Theme.buttonLabel("B")+" Done" : Theme.buttonLabel("A")+" Select · "+Theme.buttonLabel("B")+" Close" }
@@ -116,12 +116,31 @@ Rectangle {
 
     Rectangle { anchors.fill: parent; z: 20; radius: root.radius; color: Qt.alpha("black",.55); visible: root.shell.device.audioOpen
         MouseArea { anchors.fill: parent; onClicked: root.shell.device.closeAudio() }
-        Rectangle { objectName: "start-audio-popup"; anchors.centerIn: parent; width: Math.min(490,root.width-32); height: Math.min(330,root.parent.height-24); radius: 18; color: Theme.paper; border.color: Theme.divider
+        Rectangle { objectName: "start-audio-popup"; anchors.centerIn: parent; width: Math.min(560,root.width-32); height: Math.min(410,root.parent.height-24); radius: 18; color: Theme.paper; border.color: Theme.divider
             MouseArea { anchors.fill: parent }
-            Text { x: 22; y: 18; text: "Audio output"; color: Theme.ink; font.family: Theme.displayFamily; font.pixelSize: 22 }
+            Text { x: 22; y: 18; text: "Sound"; color: Theme.ink; font.family: Theme.displayFamily; font.pixelSize: 22 }
             SocialIconButton { objectName: "start-audio-close"; anchors.right: parent.right; anchors.rightMargin: 15; y: 13; icon: "x"; label: "Close audio outputs"; onClicked: root.shell.device.closeAudio() }
-            Text { x: 22; y: 53; text: "Choose where system audio plays"; color: Theme.muted; font.pixelSize: 13 }
-            ListView { id: outputs; x: 22; y: 83; width: parent.width-44; height: parent.height-y-58; clip: true; spacing: 4
+            Row { x: 22; y: 51; spacing: 16
+                ActionButton { width: 126; label: "Sources"; selected: root.shell.device.mixer; onActivated: root.shell.device.showMixer(true) }
+                ActionButton { width: 126; label: "Microphones"; selected: root.shell.device.inputs; onActivated: root.shell.device.showInputs() }
+                ActionButton { width: 126; label: "Output device"; selected: !root.shell.device.mixer&&!root.shell.device.inputs; onActivated: root.shell.device.showMixer(false) }
+            }
+            ListView { id: streams; x: 22; y: 96; width: parent.width-44; height: parent.height-y-58; clip: true
+                visible: root.shell.device.mixer || root.shell.device.inputs; model: visible ? root.shell.device.inputs ? root.shell.device.audioInputs : root.shell.device.audioStreams : []; currentIndex: root.shell.device.audioFocus
+                onCurrentIndexChanged: if(currentIndex>=0) positionViewAtIndex(currentIndex,ListView.Contain)
+                delegate: Item { required property var modelData; required property int index; width: streams.width; height: 68
+                    SettingControl { width: parent.width-(root.shell.device.inputs ? 84 : 42); height: parent.height; flat: true; kind: modelData.available ? "volume" : "unavailable"
+                        title: (root.shell.device.inputs && modelData.id===root.shell.device.audioInput ? "✓ " : "")+modelData.title; level: modelData.level; muted: modelData.muted; detail: !modelData.available ? (root.shell.device.inputs ? "Not connected" : "Separate control unavailable") : (modelData.muted ? "Muted · " : "")+modelData.level+"%"; selected: index===streams.currentIndex
+                        onLevelRequested: value => { if(root.shell.device.inputs)root.shell.device.setInput(modelData.id,value);else root.shell.device.setStream(modelData.id,value) }
+                    }
+                    SocialIconButton { anchors.right: parent.right; y: 15; glyph: (root.shell.device.inputs ? "microphone" : "speaker")+(modelData.muted ? "-muted" : ""); label: modelData.muted ? "Unmute" : "Mute"
+                        enabled: modelData.available; onClicked: {if(root.shell.device.inputs)root.shell.device.muteInput(modelData.id);else root.shell.device.muteStream(modelData.id)} }
+                    SocialIconButton { anchors.right: parent.right; anchors.rightMargin: 42; y: 15; visible: root.shell.device.inputs; icon: "check"; label: "Use as default microphone"; enabled: modelData.available; onClicked: root.shell.device.selectInput(modelData.id) }
+                }
+                Text { anchors.centerIn: parent; width: parent.width-20; visible: !streams.count; wrapMode: Text.Wrap; horizontalAlignment: Text.AlignHCenter
+                    text: root.shell.device.inputs ? "No microphone available. Connect an input device. This panel never starts recording." : "No active audio sources.\nStart a game, music or a call. Sources mixed by one application share a slider."; color: Theme.muted; font.pixelSize: 15 }
+            }
+            ListView { id: outputs; visible: !root.shell.device.mixer && !root.shell.device.inputs; x: 22; y: 96; width: parent.width-44; height: parent.height-y-58; clip: true; spacing: 4
                 model: root.shell.device.audioOutputs; currentIndex: root.shell.device.audioFocus
                 onCurrentIndexChanged: positionViewAtIndex(currentIndex,ListView.Contain)
                 onCountChanged: positionViewAtIndex(currentIndex,ListView.Contain)
@@ -136,7 +155,7 @@ Rectangle {
                     text: root.shell.device.busy ? "Looking for audio devices…" : "No audio outputs available.\nConnect headphones or check your audio device."; color: Theme.muted; font.pixelSize: 15 }
             }
             Text { x: 22; anchors.bottom: parent.bottom; anchors.bottomMargin: 14; width: parent.width-44; height: 30; wrapMode: Text.Wrap; elide: Text.ElideRight; textFormat: Text.PlainText
-                text: root.shell.device.error || (root.shell.device.busy ? "Updating audio…" : Theme.buttonLabel("A")+" Choose · "+Theme.buttonLabel("B")+" Back"); color: Theme.muted; font.pixelSize: 12 }
+                text: root.shell.device.error || (root.shell.device.busy ? "Updating audio…" : root.shell.device.inputs ? "← → Level · "+Theme.buttonLabel("A")+" Mute · Select Default · L2/R2 Tabs" : root.shell.device.mixer ? "← → Volume · "+Theme.buttonLabel("A")+" Mute · L2/R2 Tabs · "+Theme.buttonLabel("B")+" Back" : Theme.buttonLabel("A")+" Choose · L2/R2 Tabs · "+Theme.buttonLabel("B")+" Back"); color: Theme.muted; font.pixelSize: 12 }
         }
     }
 

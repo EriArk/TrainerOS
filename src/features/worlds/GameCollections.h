@@ -17,6 +17,8 @@ class GameCollections final : public QObject {
     Q_PROPERTY(QVariantList rows READ rows NOTIFY changed)
     Q_PROPERTY(int focusIndex READ focusIndex NOTIFY changed)
     Q_PROPERTY(QString route READ route NOTIFY changed)
+    Q_PROPERTY(QVariantList preview READ preview NOTIFY changed)
+    Q_PROPERTY(bool smart READ smart NOTIFY changed)
 public:
     GameCollections(LibraryRepository& library, QObject* parent=nullptr):QObject(parent),library_(library){}
     void configure(const QString& directory,const QString& owner);
@@ -34,6 +36,9 @@ public:
     QVariantList rows() const;
     int focusIndex() const { return focus_; }
     QString route() const { return route_; }
+    bool smart() const{return draft_["dynamic"].toBool();}
+    QVariantList preview() const;
+    Q_INVOKABLE void overrideGame(const QString& id);
     void begin(const QString& id={});
     void beginMembership(const QString& game);
     void close();
@@ -49,6 +54,13 @@ private:
     void edit(const QJsonObject&);
     QStringList options(const QString& field) const;
     QList<Adventure> candidates() const;
+    bool matches(const QJsonObject&,const Adventure&) const;
+    QJsonObject ruleNode() const;
+    void replaceRule(const QJsonObject&);
+    void removeRule();
+    QList<int> rulePath_;
+    mutable QByteArray previewKey_;
+    mutable QVariantList previewCache_;
     LibraryRepository& library_;
     QJsonArray definitions_;
     QSet<QString> hidden_;

@@ -40,6 +40,94 @@ class ScreenScraperTests:public QObject {
             QJsonObject{{"type","video"},{"region","us"},{"url","https://untrusted.test/video.mp4"}}}}};}
     static Reply response(const QJsonObject& value){return {200,QJsonDocument(QJsonObject{{"response",value}}).toJson(),0};}
 private slots:
+    void completedSelectedFieldsSkipAccountAndHashWork() {
+        QTemporaryDir dir;ScrapeLibrary library;library.root=dir.filePath("roms");library.add("one");put(library.records[0].contentPath,"123456789");
+        const auto root=library.root+"/gba";QImage image(4,4,QImage::Format_RGB32);image.fill(Qt::blue);QVERIFY(image.save(root+"/art.png"));
+        put(root+"/preview.mp4",QByteArray::fromHex("000000186674797069736f6d0000020069736f6d69736f32"));
+        put(root+"/gamelist.xml","<gameList><game><path>./one.gba</path><desc>Local</desc><genre>RPG</genre><players>1</players><releasedate>2004</releasedate><developer>Dev</developer><publisher>Pub</publisher><image>./art.png</image><marquee>./art.png</marquee><screenshot>./art.png</screenshot><video>./preview.mp4</video></game></gameList>");
+        ScrapeController flow(library);flow.configure(dir.filePath("state"));std::atomic_int calls=0;
+        flow.setTransport([&](auto,auto,auto){++calls;return Reply{};});flow.beginMissing();QTRY_VERIFY(!flow.busy());QCOMPARE(calls.load(),0);
+        QCOMPARE(flow.downloadTasks()[0].toMap()["state"].toString(),"skipped");
+    }
+    void providerRefreshAndRepairPreserveEditedFields() {
+        QTemporaryDir dir;const auto root=dir.filePath("gba"),rom=root+"/game.gba";put(rom,"123");auto file=fingerprint(rom,flag());
+        Game g;g.id="42";g.system=12;g.fields={{"desc","Original provider description"},{"genre","RPG"}};
+        QImage image(4,4,QImage::Format_RGB32);image.fill(Qt::blue);QByteArray bytes;QBuffer buffer(&bytes);buffer.open(QIODevice::WriteOnly);QVERIFY(image.save(&buffer,"PNG"));
+        const auto art=storeMedia(root,"42",bytes,false,flag());QVERIFY(!art.isEmpty());
+        QVERIFY(writeGamelist(root,file,g,{{"image",art}},false,flag()).isEmpty());
+        auto xml=read(root+"/gamelist.xml");xml.replace("Original provider description","Owner description");put(root+"/gamelist.xml",xml);
+        g.fields["desc"]="Replacement";g.fields["genre"]="Adventure";QVERIFY(writeGamelist(root,file,g,{},true,flag()).isEmpty());
+        xml=read(root+"/gamelist.xml");QVERIFY(xml.contains("Owner description"));QVERIFY(xml.contains("Adventure"));QVERIFY(!xml.contains("Replacement"));
+        QVERIFY(QFile::remove(art));image.fill(Qt::red);bytes.clear();buffer.seek(0);QVERIFY(image.save(&buffer,"PNG"));const auto repaired=storeMedia(root,"42",bytes,false,flag());
+        QVERIFY(writeGamelist(root,file,g,{{"image",repaired}},false,flag()).isEmpty());QVERIFY(read(root+"/gamelist.xml").contains(QFileInfo(repaired).fileName().toUtf8()));
+        QVERIFY(!validLocalMedia(art,false));QVERIFY(validLocalMedia(repaired,false));
+    }
+    void correctedIdentityClearsOnlyUneditedProviderFields() {
+        QTemporaryDir dir;const auto root=dir.filePath("gba"),rom=root+"/game.gba";put(rom,"123");const auto file=fingerprint(rom,flag());
+        Game old;old.id="42";old.system=12;old.fields={{"desc","Provider description"},{"genre","Old genre"}};
+        QVERIFY(writeGamelist(root,file,old,{},false,flag()).isEmpty());
+        auto xml=read(root+"/gamelist.xml");xml.replace("Provider description","Owner description");put(root+"/gamelist.xml",xml);
+        Game corrected;corrected.id="43";corrected.system=12;
+        QVERIFY(writeGamelist(root,file,corrected,{},true,flag()).isEmpty());
+        xml=read(root+"/gamelist.xml");QVERIFY(xml.contains("Owner description"));QVERIFY(!xml.contains("Old genre"));
+        QVERIFY(Preferences{}.videos);QVERIFY(Preferences::fromJson({}).videos);
+    }
+    void catalogueRankingAcceptsStrongTitlesButKeepsEditionsAndPlatformsSeparate() {
+        const auto candidate=[](QString id,QString name,int system=12){Game g;g.id=id;g.system=system;g.fields["name"]=name;return g;};
+        Preferences prefs;
+        auto ranked=rankMatches({candidate("1","The Little Adventure")},"Owner title","Little Adventure, The (USA) (Rev 1) [!]",12,prefs);
+        QVERIFY(automaticMatch(ranked,prefs));QVERIFY(!ranked.first().exactFile);QCOMPARE(ranked.first().matchSource,"title");
+        ranked=rankMatches({candidate("1","Little Adventure 2"),candidate("2","Little Adventure")},"Little Adventure","Little Adventure (Europe)",12,prefs);
+        QVERIFY(automaticMatch(ranked,prefs));QCOMPARE(ranked.first().id,"2");
+        ranked=rankMatches({candidate("1","Little Adventure",9)},"Little Adventure","Little Adventure",12,prefs);QVERIFY(!automaticMatch(ranked,prefs));
+        ranked=rankMatches({candidate("1","Little Adventure"),candidate("2","Little Adventure")},"Little Adventure","Little Adventure",12,prefs);QVERIFY(!automaticMatch(ranked,prefs));
+        auto us=candidate("1","Little Adventure"),eu=candidate("2","Little Adventure");us.romName="Little Adventure (USA).gba";eu.romName="Little Adventure (Europe).gba";
+        ranked=rankMatches({us,eu},"Little Adventure","Little Adventure (Europe)",12,prefs);QVERIFY(automaticMatch(ranked,prefs));QCOMPARE(ranked.first().id,"2");
+        us.romName="Little Adventure (Rev 2).gba";
+        ranked=rankMatches({us},"Little Adventure","Little Adventure (Rev 1)",12,prefs);QVERIFY(!automaticMatch(ranked,prefs));
+        ranked=rankMatches({candidate("1","Little Adventure Disc 2")},"Little Adventure Disc 1","Little Adventure (Disc 1)",12,prefs);QVERIFY(!automaticMatch(ranked,prefs));
+        ranked=rankMatches({candidate("1","Little Adventure")},"Little Adventure","Little Adventure [T+Eng]",12,prefs);QVERIFY(automaticMatch(ranked,prefs));QCOMPARE(ranked.first().matchSource,"base-game-media");
+        auto alias=candidate("1","Another language");alias.aliases={"Little Adventure"};
+        ranked=rankMatches({alias},"Little Adventure","Little Adventure",12,prefs);QVERIFY(automaticMatch(ranked,prefs));
+        ranked=rankMatches({candidate("1","Little Adventure")},"Little Adventur","Little Adventur",12,prefs);QVERIFY(automaticMatch(ranked,prefs));prefs.aggressive=false;QVERIFY(!automaticMatch(ranked,prefs));
+        QCOMPARE(Preferences::fromJson(prefs.json()).aggressive,false);
+        QCOMPARE(searchTitle("Little Adventure (USA) (Rev 1) [!]"),"Little Adventure");
+    }
+    void strongTitleBatchFinishesWithoutReviewAndOverviewBackKeepsWorker() {
+        QTemporaryDir dir;ScrapeLibrary library;library.root=dir.filePath("roms");library.add("Fixture (USA)");put(library.records.first().contentPath,"123456789");
+        const auto state=dir.filePath("state");QVERIFY(writeCredentials(state+"/secrets/screenscraper.json",{"dev","secret",{}, {}}));
+        ScrapeController flow(library);flow.configure(state);
+        flow.setTransport([&](const QUrl& url,qint64,const Cancellation&){
+            if(url.path().endsWith("ssuserInfos.php"))return response({{"ssuser",QJsonObject{{"maxthreads","1"}}}});
+            auto g=game();g.remove("medias");return response({{"jeux",QJsonArray{g}}});
+        },[](qint64,const Cancellation& c){return !c->load();});
+        flow.beginMissing();flow.showOverview();QVERIFY(flow.overview());flow.dispatch(Action::Back);QVERIFY(!flow.isOpen());QVERIFY(flow.busy());
+        QTRY_VERIFY_WITH_TIMEOUT(!flow.busy(),3000);QCOMPARE(flow.downloadTasks().first().toMap()["state"],"done");
+        QVERIFY(read(library.root+"/gba/gamelist.xml").contains("English description"));
+    }
+    void manualCatalogueChoiceSurvivesProfileChangeAndOverridesHeuristic() {
+        QTemporaryDir dir;ScrapeLibrary library;library.root=dir.filePath("roms");library.add("Fixture");put(library.records.first().contentPath,"123456789");
+        const auto state=dir.filePath("state");QVERIFY(writeCredentials(state+"/secrets/screenscraper.json",{"dev","secret",{}, {}}));
+        ScrapeController flow(library);flow.configure(state);bool secondRun=false;
+        flow.setTransport([&](const QUrl& url,qint64,const Cancellation&){
+            if(url.path().endsWith("ssuserInfos.php"))return response({{"ssuser",QJsonObject{{"maxthreads","1"}}}});
+            auto a=game(),b=game();a.remove("medias");b.remove("medias");b["id"]="43";
+            if(secondRun)b["noms"]=QJsonArray{QJsonObject{{"region","us"},{"text","Old confirmed edition"}}};
+            return response({{"jeux",QJsonArray{a,b}}});
+        },[](qint64,const Cancellation& c){return !c->load();});
+        flow.beginMissing();QTRY_COMPARE(flow.downloadTasks().first().toMap()["state"],"attention");flow.downloadCommand("Fixture","open");flow.activate(1);
+        QTRY_VERIFY(!flow.busy());
+        const auto maps=QDir(state+"/cache/screenscraper/matches").entryList({"*.json"},QDir::Files);QCOMPARE(maps.size(),1);
+        QCOMPARE(QJsonDocument::fromJson(read(state+"/cache/screenscraper/matches/"+maps.first())).object()["id"].toString(),"43");
+        secondRun=true;flow.activateSetting(5);flow.beginMissing();QTRY_VERIFY(!flow.busy());
+        QCOMPARE(flow.downloadTasks().first().toMap()["state"],"done");
+        const auto caches=QDir(state+"/cache/screenscraper").entryList({"*.json"},QDir::Files);QCOMPARE(caches.size(),2);
+        for(const auto& file:caches)QCOMPARE(QJsonDocument::fromJson(read(state+"/cache/screenscraper/"+file)).object()["id"].toString(),"43");
+        flow.begin("Fixture");flow.activate(3);
+        QTRY_COMPARE(flow.downloadTasks().first().toMap()["state"],"attention");
+        flow.downloadCommand("Fixture","open");flow.activate(0);QTRY_VERIFY(!flow.busy());
+        QCOMPARE(QJsonDocument::fromJson(read(state+"/cache/screenscraper/matches/"+maps.first())).object()["id"].toString(),"42");
+    }
     void editionChoicesDoNotBlockWorkerOrStealAnOpenChoice() {
         QTemporaryDir dir;ScrapeLibrary library;library.root=dir.filePath("roms");
         for(const auto& id:QStringList{"first","second","third","fourth"})library.add(id);
@@ -177,6 +265,35 @@ private slots:
         downloads.dispatch(Action::Back);QVERIFY(downloads.isOpen());QVERIFY(!downloads.actionsFocused());
         downloads.dispatch(Action::Back);QVERIFY(!downloads.isOpen());QCOMPARE(downloads.tasks().size(),3);
     }
+    void downloadDirectCommandsAndReorderValidateStableProviderKeys() {
+        DownloadsController flow;QSignalSpy commands(&flow,&DownloadsController::commandRequested),moves(&flow,&DownloadsController::reorderRequested);
+        const auto row=[](QString id,bool pending){return QVariantMap{{"id",id},{"state",pending?"queued":"running"},{"reorderable",pending},
+            {"actions",QVariantList{QVariantMap{{"id","pause"},{"label","Pause"}},QVariantMap{{"id","cancel"},{"enabled",false}}}}};};
+        flow.publish("one",{row("a",false),row("b",true),row("c",true)});flow.publish("two",{row("b",true)});
+        flow.command("one:b","pause");QCOMPARE(commands.last(),QVariantList({QString("one"),QString("b"),QString("pause")}));
+        flow.command("one:b","cancel");flow.command("missing:b","pause");QCOMPARE(commands.size(),1);
+        flow.moveBefore("one:c","one:b");QCOMPARE(moves.size(),1);QCOMPARE(moves.last(),QVariantList({QString("one"),QString("c"),QString("b")}));
+        flow.moveBefore("one:b","two:b");flow.moveBefore("one:a","one:b");flow.moveBefore("one:b","one:a");QCOMPARE(moves.size(),1);
+        flow.moveBefore("one:b",{});QCOMPARE(moves.size(),2);
+    }
+    void downloadSpeedUsesBytesAndClearsWhenPaused() {
+        DownloadsController flow;QVariantMap row{{"id","one"},{"state","running"},{"received",0},{"total",10000}};
+        flow.publish("test",{row});QTest::qWait(1100);row["received"]=1000;flow.publish("test",{row});
+        QTRY_VERIFY_WITH_TIMEOUT(flow.tasks()[0].toMap()["speed"].toDouble()>0,1800);
+        QVERIFY(!flow.tasks()[0].toMap()["history"].toList().isEmpty());
+        row["state"]="paused";flow.publish("test",{row});QCOMPARE(flow.tasks()[0].toMap()["speed"].toDouble(),0.0);
+    }
+    void downloadFolderPickerKeepsOriginalJobAcrossSelectionChanges() {
+        QTemporaryDir folder;LocalFileCatalog catalog;DownloadsController flow;flow.picker()->setCatalog(&catalog);
+        QSignalSpy chosen(&flow,&DownloadsController::destinationRequested);
+        const auto row=[&](QString id,bool canChoose){return QVariantMap{{"id",id},{"state","queued"},{"destination",folder.path()},{"canChooseDestination",canChoose}};};
+        flow.publish("browser",{row("one",true),row("two",true)});flow.publish("crates",{row("package",false)});flow.begin();
+        flow.command("crates:package","destination");QVERIFY(!flow.picker()->isOpen());
+        flow.command("browser:one","destination");QVERIFY(flow.picker()->isOpen());
+        flow.select(1);QTRY_VERIFY(flow.picker()->canChoose());flow.picker()->choose();
+        QCOMPARE(chosen.size(),1);QCOMPARE(chosen.first(),QVariantList({QString("browser"),QString("one"),folder.path()}));
+        QVERIFY(flow.isOpen());QVERIFY(!flow.picker()->isOpen());QCOMPARE(flow.tasks()[flow.focusIndex()].toMap()["id"].toString(),"one");
+    }
     void downloadActionsKeepIdentityAndUnwindBeforeClosing() {
         DownloadsController downloads;QSignalSpy commands(&downloads,&DownloadsController::commandRequested);
         const auto action=[](QString id,bool enabled=true){return QVariantMap{{"id",id},{"label",id},{"enabled",enabled}};};
@@ -248,13 +365,13 @@ private slots:
         QTemporaryDir dir;ScrapeLibrary library;library.root=dir.filePath("roms");library.add("one");put(library.records.last().contentPath,"123456789");
         ScrapeController flow(library);flow.configure(dir.filePath("state"));flow.activateSetting(11);
         const auto before=flow.settingsRows()[11];
-        flow.beginMissing();QVERIFY(!flow.isOpen());QCOMPARE(flow.settingsRows()[11],before);
+        flow.beginMissing();QVERIFY(!flow.isOpen());QTRY_VERIFY(!flow.busy());QCOMPARE(flow.settingsRows()[11],before);
         QVERIFY(!flow.downloadTasks().isEmpty()); // Missing credentials are represented by the ordinary queue.
     }
     void allCataloguePlatformsHaveAnExplicitServiceBoundary() {
         QCOMPARE(systemId("msx"),113);QCOMPARE(systemId("msx2"),116);QCOMPARE(systemId("msx2+"),117);QCOMPARE(systemId("msxturbor"),118);
         // Vita entered the library catalogue after the original scraper matrix; no service mapping is registered.
-        const QStringList unavailable{"c128","enterprise","systemsp","videopacplus","psvita"};
+        const QStringList unavailable{"c128","enterprise","systemsp","videopacplus","psvita","xbox"};
         for(const auto& platform:romPlatforms())QVERIFY2(systemId(platform.id)>0||unavailable.contains(platform.id),qPrintable(platform.id));
     }
     void languageRegionAndDownloadPreferences() {
@@ -263,7 +380,7 @@ private slots:
         Preferences prefs;prefs.language="fr";prefs.region="jp";prefs.cover="";prefs.logos=false;prefs.screenshots=false;prefs.fanart=true;
         client.setPreferences(prefs);const auto r=client.search("gba","Fixture",flag());
         QCOMPARE(r.games.first().fields["desc"],"French");QCOMPARE(r.games.first().fields["name"],"Japan");
-        QCOMPARE(prefs.mediaTags(),QStringList{"fanart"});QCOMPARE(Preferences::fromJson(prefs.json()).json(),prefs.json());
+        QCOMPARE(prefs.mediaTags(),QStringList({"fanart","video"}));QCOMPARE(Preferences::fromJson(prefs.json()).json(),prefs.json());
     }
     void controllerDownloadsRescansAndUsesSecretFreeCache() {
         QTemporaryDir dir;ScrapeLibrary library;library.root=dir.filePath("roms");library.add("first");
@@ -453,7 +570,7 @@ private slots:
         auto bytes=read(xml);QVERIFY(bytes.contains("My name"));QVERIFY(bytes.contains("Existing"));QVERIFY(bytes.contains("<custom>Keep</custom>"));QVERIFY(bytes.contains("<name>Other</name>"));QVERIFY(bytes.contains("./media/preview.mp4"));
         const auto scan=scanBatoceraLibrary(dir.path(),{});QCOMPARE(scan.entries.size(),1);QVERIFY(!scan.entries[0].media.value("video").toString().isEmpty());
         QCOMPARE(scan.entries[0].media.value("experienceIdentity").toMap().value("catalog.screenscraper").toString(),QString("42"));
-        QVERIFY(writeGamelist(folder,f,g,{},true,flag()).isEmpty());QVERIFY(read(xml).contains("New description"));QVERIFY(read(xml).contains("My name"));
+        QVERIFY(writeGamelist(folder,f,g,{},true,flag()).isEmpty());QVERIFY(read(xml).contains("Existing"));QVERIFY(!read(xml).contains("New description"));QVERIFY(read(xml).contains("My name"));
         bytes=read(xml);auto cancel=flag();cancel->store(true);QVERIFY(!writeGamelist(folder,f,g,{},true,cancel).isEmpty());QCOMPARE(read(xml),bytes);
         put(rom,"changed");QVERIFY(!writeGamelist(folder,f,g,{},true,flag()).isEmpty());QCOMPARE(read(xml),bytes);
     }

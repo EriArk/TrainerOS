@@ -29,6 +29,21 @@ void write(const QString& path, const QByteArray& value) {
 class DeviceTests : public QObject {
     Q_OBJECT
 private slots:
+    void audioSourcesAndMicrophonesUseRealIdentityAndRejectStaleTargets() {
+        const auto rows=parseAudioStreams(R"([{"index":12,"properties":{"object.serial":"50","application.name":"Game","application.process.id":"300"},"volume":{"front-left":{"value":32768}},"mute":false}])");
+        QCOMPARE(rows.size(),1);QCOMPARE(rows[0].toMap()["level"].toInt(),50);
+        const auto inputs=parseAudioInputs(R"([{"name":"mic","description":"Microphone","monitor_of_sink":null,"volume":{"mono":{"value":65536}},"mute":true},{"name":"speaker.monitor","volume":{"mono":{"value":65536}}}])");
+        QCOMPARE(inputs.size(),1);QVERIFY(inputs[0].toMap()["muted"].toBool());
+        DeviceSnapshot value;value.audioStreams=rows;value.audioInputs=inputs;value.audioInput="mic";int streamWrites=0,inputWrites=0;
+        DeviceBackend backend;backend.read=[&]{return value;};backend.write=[](auto,auto){return QString();};
+        backend.setStream=[&](QString index,int level,bool mute){if(index!="12"||level!=25||mute)return QString("Bad stream command");++streamWrites;return QString();};
+        backend.setInput=[&](QString id,int level,QString operation){if(id!="mic"||level!=0||operation!="mute")return QString("Bad input command");++inputWrites;return QString();};
+        DeviceService service(backend);service.refresh();QTRY_VERIFY(!service.busy());const auto id=rows[0].toMap()["id"].toString();
+        service.setStream(id,25);QTRY_VERIFY(!service.busy());QCOMPARE(streamWrites,1);
+        service.setInput("mic",0,"mute");QTRY_VERIFY(!service.busy());QCOMPARE(inputWrites,1);
+        value.audioStreams.clear();value.audioInputs.clear();service.setStream(id,25);QTRY_VERIFY(!service.busy());QCOMPARE(streamWrites,1);QVERIFY(!service.error().isEmpty());
+        service.setInput("mic",0,"default");QTRY_VERIFY(!service.busy());QCOMPARE(inputWrites,1);QVERIFY(!service.error().isEmpty());
+    }
     void audioOutputsRespectAvailabilityAndReadback() {
         const auto rows=parseAudioOutputs(R"([{"name":"speaker","description":"Speakers"},{"name":"jack","active_port":"headphones","ports":[{"name":"headphones","availability":"not available"}]},{"description":"invalid"}])");
         QCOMPARE(rows.size(),2);QVERIFY(rows[0].toMap()["available"].toBool());QVERIFY(!rows[1].toMap()["available"].toBool());
@@ -56,7 +71,7 @@ private slots:
         ShellController shell(library,profiles,adapter,platform,builtinExperiences(dex,dex),archive,achievements);
         shell.device()->configure(&service,false);shell.dispatch(Action::SystemMenu);QTRY_VERIFY(!service.busy());
         shell.controls()->activate("volume");shell.dispatch(Action::ToggleContinue);QTRY_VERIFY(!service.busy());
-        QVERIFY(shell.device()->audioOpen());shell.dispatch(Action::Down);shell.dispatch(Action::Confirm);QTRY_VERIFY(!service.busy());
+        QVERIFY(shell.device()->audioOpen());shell.device()->showMixer(false);shell.dispatch(Action::Down);shell.dispatch(Action::Confirm);QTRY_VERIFY(!service.busy());
         QCOMPARE(shell.device()->audioOutput(),"usb");shell.dispatch(Action::Back);
         QVERIFY(!shell.device()->audioOpen());QVERIFY(shell.menuOpen());QCOMPARE(shell.controls()->selected(),"volume");QVERIFY(shell.controls()->adjusting());
         shell.closeControls();shell.setGameControlsOpen(true);shell.controls()->audioOutputs();QVERIFY(shell.device()->audioOpen());

@@ -53,13 +53,23 @@ QMap<QString,QString> localFields(const QString& root,const QString& path) {
     if(bytes.toUpper().contains("<!DOCTYPE")||!doc.setContent(bytes))return fields;
     for(auto game=doc.documentElement().firstChildElement("game");!game.isNull();game=game.nextSiblingElement("game")) {
         if(QFileInfo(QDir(root).filePath(game.firstChildElement("path").text())).canonicalFilePath()!=path)continue;
-        for(auto node=game.firstChildElement();!node.isNull();node=node.nextSiblingElement())fields[node.tagName()]=node.text();
+        for(auto node=game.firstChildElement();!node.isNull();node=node.nextSiblingElement()) {
+            fields[node.tagName()]=node.text();
+            const auto digest=QString::fromLatin1(QCryptographicHash::hash(node.text().toUtf8(),QCryptographicHash::Sha256).toHex());
+            if(node.attribute("traineros-source")=="screenscraper"&&node.attribute("traineros-value")==digest)fields["owned:"+node.tagName()]="yes";
+        }
         break;
     }
     return fields;
 }
 bool cachedMediaValid(const QString& root,const QString& path) {
-    const QFileInfo f(path);return f.isFile()&&f.isReadable()&&f.canonicalFilePath().startsWith(root+'/');
+    const QFileInfo f(path);return f.canonicalFilePath().startsWith(root+'/')&&validLocalMedia(path,f.suffix().toLower()=="mp4");
+}
+bool completeFields(const QString& root,const QString& path,const Preferences& prefs) {
+    const auto fields=localFields(root,path);
+    if(prefs.metadata)for(const auto& key:QStringList{"desc","genre","players","releasedate","developer","publisher"})if(fields.value(key).trimmed().isEmpty())return false;
+    for(const auto& tag:prefs.mediaTags())if(fields.value(tag).isEmpty()||!validLocalMedia(QDir(root).filePath(fields.value(tag)),tag=="video"))return false;
+    return true;
 }
 }
 ScrapeController::ScrapeController(LibraryRepository& library,QObject* parent):QObject(parent),library_(library) {}
@@ -90,7 +100,9 @@ QVariantList ScrapeController::settingsRows() const {
         row("Display · logos",display_["logos"].toBool(true)?"Game logos":"Text titles",enabled),
         row("Display · background",display_["background"].toBool(false)?"Downloaded artwork":"TrainerOS theme",enabled),
         row("Display · game facts",display_["facts"].toBool(true)?"On · year, genre, developer, publisher":"Off",enabled),
-        row("Display · descriptions",display_["description"].toBool(true)?"On":"Off",enabled)};
+        row("Display · descriptions",display_["description"].toBool(true)?"On":"Off",enabled),
+        row("Matching",preferences_.aggressive?"Aggressive · choose strong title matches automatically":"Cautious · send more candidates to review",enabled),
+        row("Download video previews",preferences_.videos?"On · local videos, up to 64 MB each":"Off",enabled)};
 }
 void ScrapeController::activateSetting(int index) {
     if(busy()||index<0||index>=settingsRows().size())return;
@@ -113,6 +125,8 @@ void ScrapeController::activateSetting(int index) {
     if(index==15)display_["background"]=!display_["background"].toBool(false);
     if(index==16)display_["facts"]=!display_["facts"].toBool(true);
     if(index==17)display_["description"]=!display_["description"].toBool(true);
+    if(index==18)preferences_.aggressive=!preferences_.aggressive;
+    if(index==19)preferences_.videos=!preferences_.videos;
     if(index>=4){savePreferences();if(index>=13)emit displayChanged();}
     emit changed();
 }
@@ -191,14 +205,28 @@ QList<ScrapeController::Item> ScrapeController::items() const {
 }
 void ScrapeController::begin(const QString& game,const QString& world) {
     if(busy())return;
+    overview_=false;correcting_=false;
     missingOnly_=false;open_=true;finished_=false;gameId_=game;worldId_=world;scope_=game.isEmpty()?2:0;focus_=0;status_.clear();results_.clear();emit changed();
 }
 void ScrapeController::beginMissing() {
     if(busy())return;
-    gameId_.clear();worldId_.clear();scope_=2;open_=false;finished_=false;missingOnly_=true;start();
+    correcting_=false;gameId_.clear();worldId_.clear();scope_=2;open_=false;finished_=false;missingOnly_=true;start();
+}
+void ScrapeController::showOverview() {overview_=true;choosing_=false;open_=true;overviewFocus_=0;emit changed();}
+void ScrapeController::overviewAction(int index) {
+    overviewFocus_=index;
+    if(index==0){if(!busy())beginMissing();else downloadCommand({},paused_?"resume-all":"pause-all");}
+    else if(index==1){if(busy())downloadCommand({},"cancel-all");else if(!failures_.isEmpty())start(true);}
+    else if(index==2){hide();return;}
+    else {
+        int n=3;for(const auto& v:downloadTasks()){const auto task=v.toMap();if(task["state"]!="attention"&&task["state"]!="failed")continue;
+            if(n++==index){downloadCommand(task["id"].toString(),task["state"]=="attention"?"open":"retry");return;}}
+    }
+    overview_=true;open_=true;emit changed();
 }
 void ScrapeController::beginSystems() {
     if(busy())return;
+    overview_=false;
     missingOnly_=false;gameId_.clear();worldId_.clear();scope_=2;
     QMap<QString,int> counts;
     for(const auto& item:items())++counts[item.platform];
@@ -226,11 +254,11 @@ int ScrapeController::selectedGameCount() const {
 }
 QString ScrapeController::title() const {return selectingSystems()?"ScreenScraper":choosing_?"Choose the matching game":"ScreenScraper";}
 QString ScrapeController::status() const {
-    if(choosing_)return choices_.value(choiceId_).games.isEmpty()?statusMessage(Status::NotFound):"Check the edition before choosing. A similar title is not an exact ROM match.";
+    if(choosing_)return choices_.value(choiceId_).games.isEmpty()?statusMessage(Status::NotFound):"Choose the game for artwork and catalogue information. Your game file stays unchanged.";
     return status_;
 }
 QString ScrapeController::detail() const {
-    if(choosing_)for(const auto& item:queue_)if(item.id==choiceId_)return item.title+"\nOther downloads continue while you choose.";
+    if(choosing_)for(const auto& item:queue_)if(item.id==choiceId_)return item.title+"\n"+QFileInfo(item.path).fileName()+" · "+item.platform.toUpper()+"\nOther downloads continue while you choose.";
     if(active_)return QString("%1 / %2 · %3 failed · %4 skipped\n%5\n%6").arg(done_).arg(queue_.size()).arg(failed_).arg(skipped_).arg(queue_.value(index_).title,paused_?"Paused after the current game":phase_);
     if(finished_)return QString("%1 / %2 processed · %3 failed · %4 skipped\n").arg(done_).arg(queue_.size()).arg(failed_).arg(skipped_)+results_.mid(std::max(0,int(results_.size())-3)).join('\n');
     if(selectingSystems())return QString("%1 systems selected · %2 games\n%3 · ScreenScraper").arg(selectedSystems_.size()).arg(selectedGameCount()).arg(preferences_.refresh?"Replace selected fields":"Fill empty fields only");
@@ -254,10 +282,17 @@ QVariantList ScrapeController::rows() const {
     const auto selected=library_.registration(gameId_);
     const auto collection=selected?seriesDefinition(selected->adventure.domain=="pokemon"?QString("pokemon"):seriesForTitle(selected->adventure.title)).name:QString();
     return {row("Scope",!worldId_.isEmpty()?"Current collection":scope_==0?"This game":scope_==1?"Current system":scope_==3?collection+" collection":"Whole library",!gameId_.isEmpty()),
-        row("Start scraping",{},!items().isEmpty()),row("Cancel")};
+        row("Start scraping",{},!items().isEmpty()),row("Cancel"),row("Correct this game's match","Choose another result; only ScreenScraper-owned fields can be replaced",scope_==0&&!gameId_.isEmpty())};
 }
 void ScrapeController::close(){if(busy())return;const bool systems=selectingSystems();open_=false;emit changed();if(systems)emit systemSelectionClosed();}
 void ScrapeController::dispatch(Action a) {
+    if(overview_) {
+        int count=3;for(const auto& v:downloadTasks())if(v.toMap()["state"]=="attention"||v.toMap()["state"]=="failed")++count;
+        if(a==Action::Back||a==Action::SystemMenu){hide();return;}
+        if(a==Action::Up||a==Action::Left)overviewFocus_=std::max(0,overviewFocus_-1);
+        if(a==Action::Down||a==Action::Right)overviewFocus_=std::min(count-1,overviewFocus_+1);
+        if(a==Action::Confirm)overviewAction(overviewFocus_);else emit changed();return;
+    }
     if(a==Action::Back&&choosing_){choosing_=false;choiceId_.clear();focus_=0;emit jobStarted();emit changed();return;}
     if(a==Action::Back){if(active_){cancel_->store(true);if(!working_)finish();else {phase_="Stopping";emit changed();}}else close();return;}
     if(selectingSystems()&&(a==Action::Left||a==Action::Right)) {
@@ -271,6 +306,7 @@ void ScrapeController::dispatch(Action a) {
     if(a==Action::Confirm)activate(focus_);else emit changed();
 }
 void ScrapeController::activate(int i) {
+    if(overview_){overviewAction(i);return;}
     if(i<0||i>=rows().size()||!rows()[i].toMap()["enabled"].toBool())return;
     focus_=i;
     if(selectingSystems()) {
@@ -290,19 +326,19 @@ void ScrapeController::activate(int i) {
             for(const auto& item:queue_)if(item.id==choiceId_){emit textRequested("Find this game",item.title,false);break;}
             return;
         }
-        if(i<games.size()){matches_[choiceId_]=games[i];taskStates_[choiceId_]="queued";}
+        if(i<games.size()){matches_[choiceId_]=games[i];matches_[choiceId_].matchSource="manual";taskStates_[choiceId_]="queued";}
         else if(i==games.size()+1){taskStates_[choiceId_]="skipped";choices_.remove(choiceId_);}
         else {downloadCommand({},"cancel-all");return;}
         choosing_=false;choiceId_.clear();focus_=0;emit jobStarted();next();emit changed();return;
     }
     if(active_){if(i==0){paused_=!paused_;if(!paused_&&!working_)next();}else {cancel_->store(true);if(!working_)finish();else phase_="Stopping";}}
     else if(finished_){if(i==0)start(true);else close();}
-    else if(i==0){scope_=scope_==0?1:scope_==1?3:scope_==3?2:0;}else if(i==1)start();else close();
+    else if(i==0){scope_=scope_==0?1:scope_==1?3:scope_==3?2:0;}else if(i==1)start();else if(i==3){correcting_=true;start();}else close();
     emit changed();
 }
 void ScrapeController::start(bool retry) {
     if(busy())return;
-    if(!retry){jobPreferences_=preferences_;if(missingOnly_)jobPreferences_.refresh=false;}
+    if(!retry){jobPreferences_=preferences_;if(missingOnly_)jobPreferences_.refresh=false;if(correcting_)jobPreferences_.refresh=true;}
     if(directory_.isEmpty()||(canStart&&!canStart())){status_="Wait for the current game or library operation to finish.";emit changed();return;}
     if(!preferences_.metadata&&preferences_.mediaTags().isEmpty()){status_="Choose what to download in Settings > ScreenScraper first.";emit changed();return;}
     queue_=retry?failures_:items();failures_.clear();results_.clear();done_=failed_=skipped_=index_=0;wrote_=paused_=choosing_=finished_=false;active_=true;focus_=0;
@@ -310,7 +346,16 @@ void ScrapeController::start(bool retry) {
     choices_.clear();matches_.clear();searches_.clear();choiceId_.clear();searchId_.clear();pending_={};
     for(const auto& item:queue_)taskStates_[item.id]="queued";
     emit jobStarted();
-    checkAccount(true);
+    // Inspect local fields off the UI thread before any hash or account request.
+    const auto queue=queue_;const auto prefs=jobPreferences_;
+    cancel_=std::make_shared<std::atomic_bool>(false);const auto cancel=cancel_;
+    phase_="Checking existing media";
+    run([queue,prefs,cancel]{Outcome o;if(!prefs.refresh)for(const auto& item:queue){if(cancel->load())break;if(completeFields(item.root,item.path,prefs))o.readyIds<<item.id;}return o;},[this](Outcome o){
+        if(handleCancellation())return;
+        for(const auto& id:o.readyIds)taskStates_[id]="skipped";
+        if(o.readyIds.size()==queue_.size()){done_=skipped_=queue_.size();index_=queue_.size();finish();return;}
+        checkAccount(true);
+    });
 }
 void ScrapeController::next() {
     if(!active_||working_)return;
@@ -349,7 +394,11 @@ void ScrapeController::next() {
     run([item,client,cancel,prefs,directory]{
         Outcome o;o.file=fingerprint(item.path,cancel);
         if(!o.file.valid()){o.error="Could not read a stable game file.";return o;}
-        auto options=prefs.json();options.remove("refresh");
+        auto options=prefs.json();options.remove("refresh");options.remove("aggressive");
+        const auto identity=QCryptographicHash::hash((item.path+o.file.md5+QString::number(o.file.size)).toUtf8(),QCryptographicHash::Sha256).toHex();
+        o.mapping=QDir(directory).filePath("cache/screenscraper/matches/"+QString(identity)+".json");
+        const auto mapping=readJson(o.mapping);
+        if(mapping["system"].toInt()==systemId(item.platform))o.manualId=mapping["id"].toString();
         const auto key=QCryptographicHash::hash((item.path+o.file.md5+QString::number(o.file.size)).toUtf8()+QJsonDocument(options).toJson(QJsonDocument::Compact),QCryptographicHash::Sha256).toHex();
         o.cache=QDir(directory).filePath("cache/screenscraper/"+QString(key)+".json");
         const auto cached=readJson(o.cache);
@@ -358,7 +407,8 @@ void ScrapeController::next() {
             const auto fields=cached["fields"].toObject();for(auto it=fields.begin();it!=fields.end();++it)g.fields[it.key()]=it.value().toString();
             const auto local=cached["local"].toObject();bool valid=g.system==systemId(item.platform)&&!g.id.isEmpty();
             for(auto it=local.begin();it!=local.end();++it){const auto path=QDir(item.root).filePath(it.value().toString());valid&=cachedMediaValid(item.root,path);o.local[it.key()]=path;}
-            if(valid){o.cachedId=g.id;if(cached["complete"].toBool()){o.cached=true;o.games={g};return o;}}else o.local.clear();
+            valid&=o.manualId.isEmpty()||o.manualId==g.id;
+            if(valid){o.cachedId=g.id;g.matchSource=cached["matchSource"].toString();g.matchScore=cached["matchScore"].toInt();if(cached["complete"].toBool()){o.cached=true;o.games={g};return o;}}else o.local.clear();
         }
         // ZIP/7z/CHD use their actual container bytes, as accepted by jeuInfos.
         // CUE/M3U are descriptors, never evidence of the referenced disc identity.
@@ -367,7 +417,9 @@ void ScrapeController::next() {
         if(extension!="cue"&&extension!="m3u"&&extension!="m3u8")r=client->lookup(item.platform,o.file,cancel);
         else r.status=Status::NotFound;
         if(r.status==Status::Busy)r=client->lookup(item.platform,o.file,cancel); // one bounded, paced retry
-        if(r.status==Status::NotFound)r=client->search(item.platform,QFileInfo(item.path).completeBaseName().left(256),cancel);
+        if(r.status==Status::NotFound)r=client->search(item.platform,searchTitle(QFileInfo(item.path).completeBaseName()),cancel);
+        if(!o.manualId.isEmpty()&&r.status==Status::Ready&&std::none_of(r.games.begin(),r.games.end(),[&](const Game& g){return g.id==o.manualId;}))
+            r=client->search(item.platform,mapping["name"].toString().left(256),cancel);
         o.status=r.status;o.games=r.games;return o;
     },[this](Outcome o){found(std::move(o));});
 }
@@ -377,7 +429,11 @@ void ScrapeController::found(Outcome o) {
     if(o.status==Status::Quota||o.status==Status::Denied||o.status==Status::MissingCredentials||o.status==Status::MembersOnly||o.status==Status::ClientRejected){status_=statusMessage(o.status);for(int i=index_;i<queue_.size();++i){failures_<<queue_[i];taskStates_[queue_[i].id]="failed";taskErrors_[queue_[i].id]=status_;}finish();return;}
     if(o.status!=Status::Ready&&o.status!=Status::NotFound){complete(statusMessage(o.status));return;}
     pending_=std::move(o);
-    if(pending_.games.size()==1&&(pending_.cached||pending_.games.first().exactFile)){apply(pending_.games.first());return;}
+    if(pending_.cached&&pending_.games.size()==1){apply(pending_.games.first());return;}
+    if(!correcting_&&!pending_.manualId.isEmpty())for(auto g:pending_.games)if(g.id==pending_.manualId){g.matchSource="manual";apply(g);return;}
+    const auto& item=queue_[index_];
+    pending_.games=rankMatches(pending_.games,item.title,QFileInfo(item.path).completeBaseName(),systemId(item.platform),jobPreferences_);
+    if(!correcting_&&pending_.manualId.isEmpty()&&automaticMatch(pending_.games,jobPreferences_)){apply(pending_.games.first());return;}
     const auto id=queue_[index_].id;choices_[id]=std::move(pending_);pending_={};taskStates_[id]="attention";
     // Attention is per item. Open its choices only on an explicit player action;
     // neither the worker nor a background result may take over the interface.
@@ -388,24 +444,31 @@ void ScrapeController::apply(const Game& game) {
     const auto item=queue_[index_];const auto client=client_;const auto cancel=cancel_;const auto prefs=jobPreferences_;auto pending=pending_;
     run([item,client,cancel,prefs,pending,game]() mutable {
         Outcome o=pending;o.games={game};auto g=game;auto local=o.cachedId==g.id?o.local:QMap<QString,QString>{};const auto existing=localFields(item.root,item.path);
+        if(g.matchSource=="manual"&&!o.cached&&!o.mapping.isEmpty()&&!saveJson(o.mapping,{{"id",g.id},{"system",g.system},{"name",g.fields.value("name")}})){o.error="Could not save your game choice.";return o;}
         const auto cache=[&](bool complete){
             QJsonObject fields,media;
             for(auto it=g.fields.begin();it!=g.fields.end();++it)fields[it.key()]=it.value();
             for(auto it=local.begin();it!=local.end();++it)media[it.key()]=QDir(item.root).relativeFilePath(it.value());
-            return saveJson(o.cache,{{"version",1},{"complete",complete},{"id",g.id},{"system",g.system},{"fields",fields},{"local",media}});
+            return saveJson(o.cache,{{"version",1},{"complete",complete},{"id",g.id},{"system",g.system},{"fields",fields},{"local",media},{"matchSource",g.matchSource},{"matchScore",g.matchScore}});
         };
         for(const auto& tag:prefs.mediaTags()) {
             if(cancel->load())return o;
             if(local.contains(tag))continue;
-            if(!prefs.refresh&&!existing.value(tag).isEmpty())continue; // preserve owner media, including intentionally unavailable mounts
+            if(!existing.value(tag).isEmpty()&&(existing.value("owned:"+tag)!="yes"||(!prefs.refresh&&validLocalMedia(QDir(item.root).filePath(existing.value(tag)),tag=="video"))))continue;
             if(!g.media.contains(tag))continue;
-            auto reply=client->media(g.media[tag],false,cancel);
-            if(reply.status==423||reply.status==429)reply=client->media(g.media[tag],false,cancel);
+            auto reply=client->media(g.media[tag],tag=="video",cancel);
+            if(reply.status==423||reply.status==429)reply=client->media(g.media[tag],tag=="video",cancel);
             if(reply.status!=200){o.error=reply.status==430||reply.status==431?statusMessage(Status::Quota):"Artwork download failed. Retry this game later.";if(reply.status==430||reply.status==431)o.status=Status::Quota;return o;}
-            const auto path=storeMedia(item.root,g.id,reply.bytes,false,cancel);
+            const auto path=storeMedia(item.root,g.id,reply.bytes,tag=="video",cancel);
             if(path.isEmpty()){o.error="Could not validate or store the downloaded image.";return o;}local[tag]=path;cache(false);
         }
-        if(!prefs.metadata)g.fields.clear();else g.fields["name"]=item.title;
+        if(!prefs.metadata)g.fields.clear();else {
+            if(g.matchSource=="base-game-media"){
+                auto description=g.fields.value("desc");if(!description.startsWith("Base-game media fallback. "))description.prepend("Base-game media fallback. ");
+                g.fields={{"desc",description}};
+            }
+            g.fields["name"]=item.title;
+        }
         if(cancel->load())return o;
         o.error=writeGamelist(item.root,o.file,g,local,prefs.refresh,cancel);
         if(!o.error.isEmpty())return o;
@@ -464,6 +527,7 @@ QVariantList ScrapeController::downloadTasks() const {
             if(current&&working_)add(paused_?"resume-all":"pause-all",paused_?"Resume queue":"Pause after game");
             else if(state!="attention")add(state=="paused"||paused_?"resume":"pause",state=="paused"||paused_?"Resume":"Pause");
             if(i>firstMovable)add("earlier","Move up");
+            if(i>=firstMovable&&state!="attention")add("first","Download next");
             if(i>=firstMovable&&i+1<queue_.size())add("later","Move down");
             if(phase_!="Checking connection"||!current)add("cancel","Cancel");
         }
@@ -472,12 +536,12 @@ QVariantList ScrapeController::downloadTasks() const {
         for(const auto& tag:QStringList{"cover","image","screenshot","thumbnail","marquee"})if(!art.value(tag).toString().isEmpty()){picture=art.value(tag).toString();break;}
         if(!picture.isEmpty()&&QUrl(picture).scheme().isEmpty())picture=QUrl::fromLocalFile(picture).toString();
         const auto platform=platformLabel(item.platform);
-        rows<<QVariantMap{{"id",item.id},{"title",item.title},{"source","ScreenScraper"},{"platform",platform.badge},{"shape",platform.shape},{"picture",picture},{"state",state},{"detail",detail},{"terminal",!pending&&state!="running"&&state!="attention"},{"actions",actions}};
+        rows<<QVariantMap{{"id",item.id},{"title",item.title},{"source","ScreenScraper"},{"description","Selected artwork and catalogue information for this game."},{"reorderable",pending&&i>=firstMovable},{"platform",platform.badge},{"shape",platform.shape},{"picture",picture},{"state",state},{"detail",detail},{"terminal",!pending&&state!="running"&&state!="attention"},{"actions",actions}};
     }
     return rows;
 }
 void ScrapeController::downloadCommand(const QString& id,const QString& command) {
-    if(command=="open"&&active_&&taskStates_.value(id)=="attention"&&choices_.contains(id)){choiceId_=id;choosing_=true;focus_=0;open_=true;emit changed();return;}
+    if(command=="open"&&active_&&taskStates_.value(id)=="attention"&&choices_.contains(id)){overview_=false;choiceId_=id;choosing_=true;focus_=0;open_=true;emit changed();return;}
     if(command=="retry"&&!busy()) {
         if(!failures_.isEmpty())start(true);
         return;
@@ -506,10 +570,20 @@ void ScrapeController::downloadCommand(const QString& id,const QString& command)
     } else if(command=="resume") {
         if(taskStates_.value(id)=="attention")return;
         taskStates_[id]="queued";paused_=false;next();
+    } else if(command=="first") {
+        const int first=index_+(working_?1:0);
+        if(position>=first&&taskStates_.value(id)!="attention"){queue_.move(position,first);taskStates_[id]="queued";paused_=false;next();}
     } else if(command=="earlier"||command=="later") {
         const int first=index_+(working_?1:0),target=position+(command=="earlier"?-1:1);
         if(position>=first&&target>=first&&target<queue_.size())queue_.move(position,target);
     }
     emit changed();
+}
+void ScrapeController::moveDownloadBefore(const QString& id,const QString& before) {
+    if(!active_||id==before)return;
+    const int first=index_+(working_?1:0);int from=-1,to=queue_.size();
+    for(int i=first;i<queue_.size();++i){if(queue_[i].id==id)from=i;if(!before.isEmpty()&&queue_[i].id==before)to=i;}
+    if(from<0||(!before.isEmpty()&&to==queue_.size())||!QStringList{"queued","paused"}.contains(taskStates_.value(id)))return;
+    if(to>from)--to;queue_.move(from,to);emit changed();
 }
 }

@@ -2,10 +2,37 @@
 #include <QtTest>
 #include <QTemporaryDir>
 #include <QSignalSpy>
+#include <QJsonDocument>
+#include <QJsonArray>
+#include <QJsonObject>
+#include "platform/files/FilesService.h"
 using namespace trainer;
 class BrowserTests:public QObject {
     Q_OBJECT
 private slots:
+    void completedDownloadMovesWithoutReplacingExistingFile() {
+        FilesService files;if(!files.available())QSKIP("Linux libfm backend required");
+        QTemporaryDir temp;QDir().mkpath(temp.path()+"/target");
+        const auto source=temp.path()+"/one.txt",target=temp.path()+"/target/one.txt";
+        const auto write=[](QString path,QByteArray text){QFile f(path);return f.open(QIODevice::WriteOnly)&&f.write(text)==text.size();};
+        QVERIFY(write(source,"download"));QVERIFY(write(target,"keep"));QString state;
+        {BrowserController b;b.configure(temp.path(),"test");state=b.storagePath();}
+        QVERIFY(write(state+"/downloads.json",QJsonDocument(QJsonArray{QJsonObject{{"id","one"},{"name","one.txt"},{"path",source},{"state","done"}}}).toJson()));
+        {BrowserController b;b.configure(temp.path(),"test");b.setFilesService(&files);b.setDownloadDestination("one",temp.path()+"/target");
+            QTRY_COMPARE(b.downloads()[0].toMap()["state"].toString(),"done");
+            QTRY_VERIFY(!QFile::exists(source));QTRY_VERIFY(b.downloads()[0].toMap()["path"].toString().endsWith("one (1).txt"));
+        }
+        QFile original(target);QVERIFY(original.open(QIODevice::ReadOnly));QCOMPARE(original.readAll(),QByteArray("keep"));
+        BrowserController restored;restored.configure(temp.path(),"test");QVERIFY(restored.downloads()[0].toMap()["path"].toString().endsWith("one (1).txt"));
+    }
+    void interruptedDownloadRetainsChosenFolder() {
+        QTemporaryDir temp;QString state;
+        {BrowserController b;b.configure(temp.path(),"test");state=b.storagePath();}
+        QFile f(state+"/downloads.json");QVERIFY(f.open(QIODevice::WriteOnly));
+        f.write(QJsonDocument(QJsonArray{QJsonObject{{"id","one"},{"name","one.txt"},{"path",temp.path()+"/one.txt"},{"state","queued"},{"destination",temp.path()+"/target"}}}).toJson());f.close();
+        BrowserController b;b.configure(temp.path(),"test");QCOMPARE(b.downloads()[0].toMap()["destination"].toString(),temp.path()+"/target");
+        QCOMPARE(b.downloads()[0].toMap()["state"].toString(),"error");QVERIFY(b.downloads()[0].toMap()["terminal"].toBool());
+    }
     void navigationBoundary(){
         QCOMPARE(BrowserController::navigationUrl("example.com"),QString("https://example.com"));
         QCOMPARE(BrowserController::navigationUrl("https://example.com/path?q=a"),QString("https://example.com/path?q=a"));

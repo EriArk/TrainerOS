@@ -21,6 +21,7 @@ public:
     QVariantList activities() const;
     void request(const QString& id,const QString& version={},const QString& operation="install");
     void command(const QString& id,const QString& command);
+    void moveBefore(const QString& id,const QString& before);
     QString root() const {return root_;}
     QString helper() const {return helper_;}
     std::function<QString()> replacementGuard;

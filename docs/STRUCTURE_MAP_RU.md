@@ -131,7 +131,7 @@ flowchart LR
 | **E13** | Patreon/Ko-fi + S01 → S11 | Проверенная привязка и действующее право поддержки | Отмена прекращает временные преимущества; покупки/остаток не удаляются. Локального флажка недостаточно. |
 | **E14** | S11 → S04/игра | Инвентарь и права на конкретное оформление/предмет | Каждый потребитель применяет совместимые предметы. Общий баланс не означает совместимость каждого предмета со всеми играми. |
 | **E15** | Дополнение → S14 → S04/сервисы | Роль, совместимость, именованный вклад, owner/game/session context | Disable/update/remove снимают вклад и stale actions; fallback сохраняет игру и личные данные. |
-| **E16** | Files/Browser/PC/ScreenScraper → S13/S15 | Provider/task identity, источник, назначение, progress и поддерживаемые команды | Downloads показывает опубликованные задания и направляет команды владельцу. Отмена/очередь/хранение остаются исполнителю; закрытие панели не отменяет работу. Не требовать нового общего планировщика. |
+| **E16** | Files/Browser/PC → S13/S15; ScreenScraper → свой виджет S04 | Provider/task identity, источник, назначение, progress и поддерживаемые команды | Downloads показывает опубликованные задания и направляет команды владельцу; ScreenScraper использует свой информационный виджет над тем же контроллером. Отмена/очередь/хранение остаются исполнителю; закрытие панели не отменяет работу. Не требовать нового общего планировщика. |
 | **E17** | S09/S13 → S12 | Доказательства eligibility: Crates install history либо отдельная non-Crates play/completion policy | Crates: любая прежняя установка, без 2h gate; account+project score один на все версии. Non-Crates имеет отдельную политику F10; валюта не даёт право отзыва. |
 | **E18** | S06 ↔ S05/S07 | Зритель/игрок, разрешения на media/input, текущий поток/место | Spectator через Fluxer и interactive Remote Play через P2P различны; смена роли требует нового допуска. |
 | **E19** | S06/S07/S13 ↔ S08/S03 | Guest-content lease, content identity, временное размещение и допустимый сеанс | Временный контент не регистрируется как постоянная собственная игра; конец lease/сбой имеет отдельную очистку и сохраняет личные saves по принятой политике. |
@@ -207,7 +207,23 @@ Built-in Experience реализован; внешние SPI/SDK-вклады т
 | S12 | [CratesCatalogue](../src/features/crates/CratesCatalogue.h), [CratesController](../src/features/crates/CratesController.h), [FluxerReviews](../src/integrations/social/FluxerReviews.cpp), [поставка](CRATES77_CATALOGUE.md) | Полные reviews/Top Rated, публикации и donation UX не закрыты. |
 | S13 | [CratesInstaller](../src/features/crates/CratesInstaller.h), [DownloadsController](../src/features/downloads/DownloadsController.h), [FilesService](../src/platform/files/FilesService.h), [PC](../packaging/pc/README.md) | Разные исполнители корректно публикуют свои задания через общий интерфейс. Полный набор команд/providers, software updater и installer/recovery не завершены; централизация всех очередей не требуется. |
 | S14 | [ExperienceModule](../src/core/experience/ExperienceModule.h), [manifest](../src/core/experience/ExperienceManifest.h), [composition](../src/adapters/BuiltinExperiences.cpp), [правила](../src/adapters/AGENTS.md), [PlatformHost](../src/platform/sdk/PlatformHost.cpp) | Trusted built-ins, local SDK context/widget и app Lobby/records существуют; #92, SPI и остальные service facades #235–244 остаются незавершёнными контрактами. |
-| S15 | [PlatformService](../src/platform/PlatformService.h), [device](../src/platform/device), [FilesService](../src/platform/files/FilesService.h), [power](../src/platform/power), [Apps](../src/features/apps/AppsController.h), [Browser](../src/features/browser/BrowserController.h) | Микшер, сон/recovery, providers и все host/device profiles не завершены. [Восстановление ADSP/батареи после rootfs](POWER86.md#прочерк-батареи-odin--24-октября-2026) принадлежит S15; S04 только показывает системные данные. Apps/Browser — потребители общих служб, не отдельные владельцы профиля. |
+| S15 | [PlatformService](../src/platform/PlatformService.h), [device](../src/platform/device), [FilesService](../src/platform/files/FilesService.h), [power](../src/platform/power), [Apps](../src/features/apps/AppsController.h), [Browser](../src/features/browser/BrowserController.h) | DeviceService владеет реальными аудиопотоками/микрофонами, проверкой их идентичности и системными командами; S04 только маршрутизирует Sound. DiagnosticsService пишет ограниченный локальный support TAR; DiagnosticsController запрашивает readonly-проверку у существующих S03-адаптеров. [Core-блок и границы](CORE_POLISH_20261025.md). Все хосты, сон/recovery и providers не завершены. [Восстановление ADSP/батареи](POWER86.md#прочерк-батареи-odin--24-октября-2026) также принадлежит S15. Apps/Browser — потребители общих служб. |
+
+**Browser / общий ввод, 25 октября:** S04 `TextEntryController` владеет локальным
+буфером/курсором обычных форм, но в режиме Browser только публикует клавиши и
+текстовые commits. S15 `BrowserController` проверяет активную поверхность и
+направляет их в настоящий Qt focus object; Chromium владеет текстом, выделением,
+паролем, событиями страницы и переходами между полями. Смена профиля/поверхности
+и выход из Browser прекращают ввод; Hide не отменяет уже введённое на сайте.
+Общие формы Settings/Social/SDK сохраняют Apply/cancel и собственный лимит.
+S04 также владеет переключением Touch/PC, сенсорными жестами, стандартной
+геометрией PC-клавиатуры, кодами/модификаторами, Num Lock и настройками
+раскладки/видимости групп в trainer-scoped keyboard.ini.
+В Touch двойной пробел запрашивает у S15 ограниченный контекст редактора через
+IME; секретные/адресные/числовые поля исключены, контекст не сохраняется.
+Скрытие групп меняет геометрию, сохраняя текущую сессию редактирования.
+Передача экранных клавиш действующему игровому сеансу пока не реализована.
+[Механизм и проверка](BROWSER71_IMPLEMENTATION.md#мобильный-ввод--25-октября-2026).
 
 ## 7. Внешние системы и пределы их роли
 
@@ -295,6 +311,15 @@ sequenceDiagram
 ```
 
 <a id="f02"></a>
+Уточнение Downloads 25.10: S04 показывает очередь и сведения рядом; S13
+маршрутизирует stable provider/id, reorder и выбор папки через общий Picker.
+Browser и Social/Lobby хранят назначение queued/running/done и после скачивания передают перенос
+S15 `FilesService`; отказ не удаляет исходный файл. Crates хранит паузу/частичный
+архив и выполняет собственную очередь, без выбора папки. ScreenScraper показывает
+текущую игру/остаток и карточки выбора в собственном информационном виджете,
+сохраняя того же владельца очереди; в Downloads не дублируется. Телеметрия — реальные bytes,
+не процент распаковки. [Контракт и доказательства](CONTROLS78_HOME_START.md#downloads-details-20261025).
+
 ### F02. Запуск → Home/возврат → завершение
 
 **Участники:** S01, S02, S03, S04, S08, S15, S09; E01,E04,E05,E08,E10.

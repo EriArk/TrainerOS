@@ -52,6 +52,8 @@ Item {
                 onTriggered: if(web.canFreeze)web.lifecycleState=WebEngineView.LifecycleState.Frozen
             }
             settings.fullScreenSupportEnabled: true
+            settings.touchIconsEnabled: true
+            settings.scrollAnimatorEnabled: true
             settings.playbackRequiresUserGesture: true
             settings.focusOnNavigationEnabled: false
             settings.localContentCanAccessRemoteUrls: false
@@ -60,7 +62,7 @@ Item {
             // Keep live DOM/downloads across shell navigation. Chromium throttles
             // invisible views; never discard them as a side effect of tab switching.
             function publish(visited) { engine.flow.updateTab(tabId,url.toString(),title,icon.toString(),visited) }
-            onUrlChanged: { publish(false);if(selected)engine.surface.reveal() }
+            onUrlChanged: { if(selected)engine.flow.stopPageInput();publish(false);if(selected)engine.surface.reveal() }
             onTitleChanged: publish(false)
             onIconChanged: publish(false)
             onActiveFocusChanged: if(activeFocus&&selected)engine.surface.queueFieldCheck()

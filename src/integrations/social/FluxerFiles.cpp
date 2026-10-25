@@ -88,6 +88,13 @@ void FluxerSession::fileCommand(QString operation,const QVariantMap& args){
         if(!transport_)for(const auto& value:QSettings().value(key).toList()){
             auto row=value.toMap();const auto id=row["id"].toString();if(id.isEmpty())continue;
             if(row["state"]=="running"||row["state"]=="queued"){row["state"]="error";row["detail"]="Interrupted. Retry to continue.";}
+            if(row["path"].toString().isEmpty()&&row["state"]=="done")row["path"]=QDir(row["folder"].toString()).filePath(row["title"].toString());
+            if(row["state"]=="moving"){
+                const auto target=row["moveTarget"].toString();
+                if(!QFile::exists(row["path"].toString())&&QFileInfo(target).isFile()){row["path"]=target;row["folder"]=QFileInfo(target).absolutePath();}
+                else {row["moveFailed"]=true;row["detail"]="Move interrupted. Choose the folder again.";}
+                row["state"]="done";row.remove("moveTarget");
+            }
             fileJobs_[id]=row;
         }
     }
@@ -104,6 +111,29 @@ void FluxerSession::fileCommand(QString operation,const QVariantMap& args){
     }
     if(operation!="files-control")return;
     const auto action=args["action"].toString(),id=args["id"].toString();
+    if(action=="destination"||action=="prepare-move"||action=="moved"||action=="move-failed"){
+        if(!fileJobs_.contains(id))return;auto& job=fileJobs_[id];
+        if(action=="destination"){
+            if(!QStringList{"queued","running","done"}.contains(job["state"].toString()))return;
+            const QFileInfo folder(args["folder"].toString());
+            if(!folder.isAbsolute()||!folder.isDir()||!folder.isWritable()){job["detail"]="Destination unavailable or read-only";publishFiles();return;}
+            job["destination"]=folder.canonicalFilePath();job["moveFailed"]=false;
+        }else if(action=="prepare-move"){
+            const QFileInfo target(args["path"].toString());
+            if(job["state"]!="done")return;
+            if(!QFileInfo(job["path"].toString()).isFile()||target.absolutePath()!=job["destination"].toString()){
+                job["moveFailed"]=true;job["detail"]="Downloaded. File or destination unavailable.";publishFiles(true);return;
+            }
+            job["moveTarget"]=target.absoluteFilePath();job["state"]="moving";job["detail"]="Moving to chosen folder";
+        }else {
+            const QFileInfo target(args["path"].toString());
+            if(job["state"]!="moving"&&job["state"]!="done")return;
+            if(action=="moved"&&target.isFile()&&target.absolutePath()==job["destination"].toString()&&!QFile::exists(job["path"].toString())){
+                job["path"]=target.absoluteFilePath();job["folder"]=target.absolutePath();job["title"]=target.fileName();job["detail"]="Saved to chosen folder";job["moveFailed"]=false;
+            }else {job["moveFailed"]=true;job["detail"]="Downloaded. Move did not finish; original file kept.";}
+            job["state"]="done";job.remove("moveTarget");
+        }publishFiles(true);return;
+    }
     const auto ids=id.isEmpty()?fileJobs_.keys():QStringList{id};
     for(const auto& key:ids){if(!fileJobs_.contains(key))continue;auto& job=fileJobs_[key];
         if((action=="retry"||action=="resume-all")&&job["state"]=="error")downloadFile(key);
@@ -112,18 +142,20 @@ void FluxerSession::fileCommand(QString operation,const QVariantMap& args){
         }
     }publishFiles();
 }
-void FluxerSession::publishFiles(){
+void FluxerSession::publishFiles(bool persist){
     QVariantList rows;bool running=false;for(auto job:fileJobs_){
         job["source"]="Lobby files";
         const auto state=job["state"].toString();const bool done=state=="done",error=state=="error";
         running|=state=="running";
         job["terminal"]=done||error||state=="cancelled";
+        job["canChooseDestination"]=done||state=="queued"||state=="running";
+        if(job["destination"].toString().isEmpty())job["destination"]=job.value("folder",QStandardPaths::writableLocation(QStandardPaths::DownloadLocation));
         job["actions"]=done?QVariantList{QVariantMap{{"id","open"},{"label","Show in folder"}}}:
             error?QVariantList{QVariantMap{{"id","retry"},{"label","Retry"}}}:
-            state=="cancelled"?QVariantList():QVariantList{QVariantMap{{"id","cancel"},{"label","Cancel"}}};
+            state=="cancelled"||state=="moving"?QVariantList():QVariantList{QVariantMap{{"id","cancel"},{"label","Cancel"}}};
         rows.append(job);
     }
-    if(!transport_&&!fileStoreKey_.isEmpty()&&!running)QSettings().setValue(fileStoreKey_,rows);
+    if(!transport_&&!fileStoreKey_.isEmpty()&&(!running||persist))QSettings().setValue(fileStoreKey_,rows);
     emit fileEvent(generation_,{{"kind","downloads"},{"rows",rows}});
 }
 void FluxerSession::downloadFile(QString task){
@@ -153,18 +185,18 @@ void FluxerSession::downloadFile(QString task){
         // Signed CDN URLs need no account token, including on redirects.
         auto* reply=network_->get(request);reply->setReadBufferSize(256*1024);fileReplies_[task]=reply;
         auto bytes=std::make_shared<qint64>(0);auto failed=std::make_shared<bool>(false);
-        auto& job=fileJobs_[task];job["state"]="running";job["title"]=name;job["detail"]="Downloading";job["progress"]=0.;publishFiles();
+        auto& job=fileJobs_[task];job["state"]="running";job["title"]=name;job["detail"]="Downloading";job["progress"]=0.;job["received"]=0;job["total"]=size;publishFiles();
         connect(reply,&QIODevice::readyRead,this,[this,epoch,task,reply,output,bytes,failed,size]{
             const auto data=reply->readAll();*bytes+=data.size();
             if(epoch!=epoch_||*bytes>size||output->write(data)!=data.size()){*failed=true;reply->abort();return;}
-            if(fileJobs_.contains(task)){fileJobs_[task]["progress"]=size?double(*bytes)/size:0.;publishFiles();}
+            if(fileJobs_.contains(task)){fileJobs_[task]["progress"]=size?double(*bytes)/size:0.;fileJobs_[task]["received"]=*bytes;publishFiles();}
         });
         connect(reply,&QNetworkReply::finished,this,[this,epoch,task,reply,output,bytes,failed,size,folder]{
             const bool ok=!*failed&&reply->error()==QNetworkReply::NoError&&reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt()==200&&*bytes==size;
             reply->deleteLater();
             if(epoch!=epoch_){output->cancelWriting();QDir().rmdir(folder);return;}
             fileReplies_.remove(task);auto& job=fileJobs_[task];
-            if(ok&&job["state"]!="cancelled"&&output->commit()){job["state"]="done";job["progress"]=1.;job["folder"]=folder;job["detail"]="Saved in Downloads";}
+            if(ok&&job["state"]!="cancelled"&&output->commit()){job["state"]="done";job["progress"]=1.;job["folder"]=folder;job["path"]=output->fileName();job["detail"]="Saved in Downloads";}
             else {output->cancelWriting();QDir().rmdir(folder);if(job["state"]!="cancelled"){job["state"]="error";job["detail"]="Download interrupted. Retry to refresh the attachment.";}}
             publishFiles();
         });

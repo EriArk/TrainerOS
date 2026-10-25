@@ -200,33 +200,63 @@ class ReleaseRedirect(urllib.request.HTTPRedirectHandler):
         return super().redirect_request(req,fp,code,msg,headers,newurl)
 
 
-def download(record, target, progress, cancelled):
+class DownloadPaused(Exception):
+    pass
+
+
+def download(record, target, progress, cancelled, paused=lambda: False):
     opener = urllib.request.build_opener(ReleaseRedirect())
-    with opener.open(record['url'],timeout=20) as response, Path(target).open('wb') as out:
-        received = 0
-        while True:
-            if cancelled(): raise InterruptedError('Cancelled')
-            data = response.read(128*1024)
-            if not data: break
-            received += len(data)
-            if received > record['size']: raise ValueError('Download exceeds declared size')
-            out.write(data); progress(received / record['size'])
-        out.flush(); os.fsync(out.fileno())
+    target = Path(target)
+    if target.is_symlink(): raise ValueError('Unsafe partial download')
+    received = target.stat().st_size if target.exists() else 0
+    if received > record['size']: target.unlink(); received = 0
+    if received == record['size']:
+        progress(1)
+        return
+    request = urllib.request.Request(record['url'])
+    if received: request.add_header('Range', f'bytes={received}-')
+    with opener.open(request,timeout=20) as response:
+        if received and response.status == 206:
+            expected = f"bytes {received}-{record['size']-1}/{record['size']}"
+            if response.headers.get('Content-Range') != expected: raise ValueError('Invalid resumed download range')
+        elif response.status == 200: received = 0
+        else: raise ValueError('Unexpected download response')
+        with target.open('ab' if received else 'wb') as out:
+            progress(received / record['size'])
+            while True:
+                if cancelled(): raise InterruptedError('Cancelled')
+                if paused():
+                    out.flush(); os.fsync(out.fileno())
+                    raise DownloadPaused()
+                data = response.read(128*1024)
+                if not data: break
+                received += len(data)
+                if received > record['size']: raise ValueError('Download exceeds declared size')
+                out.write(data); progress(received / record['size'])
+            out.flush(); os.fsync(out.fileno())
 
 
 def main():
     # Separate short-lived worker: GUI never blocks on HTTP, extraction or disk.
     import signal
     cancelled = False
+    paused = False
     def stop(*_):
         nonlocal cancelled
         cancelled = True
     signal.signal(signal.SIGTERM,stop)
+    def pause(*_):
+        nonlocal paused
+        paused = True
+    signal.signal(signal.SIGUSR1,pause)
     registry, root, operation, project, version = sys.argv[1:6]
     store = Store(root)
     def emit(stage, progress=None):
         event={'stage':stage}
-        if progress is not None: event['progress']=progress
+        if progress is not None:
+            event['progress']=progress
+            event['received']=round(progress*record['size'])
+            event['total']=record['size']
         print(json.dumps(event),flush=True)
     try:
         if operation == 'remove':
@@ -244,18 +274,29 @@ def main():
             emit('Reserving space')
             if shutil.disk_usage(store.root).free < record['size']+record['unpackedSize']+16*1024**2:
                 raise ValueError('Not enough storage space')
-            with tempfile.TemporaryDirectory(dir=store.root/'staging',prefix='download-') as temp:
-                target = Path(temp)/'package.tar.gz'
-                emit('Downloading',0)
-                download(record,target,lambda p:emit('Downloading',p),lambda:cancelled)
-                while True:
-                    try:
-                        store.activate(target,record,emit,lambda:cancelled); break
-                    except BlockingIOError:
-                        emit('Waiting for the application to close')
-                        import time
-                        time.sleep(.5)
-                        if cancelled: raise InterruptedError('Cancelled')
+            # A second launcher/updater must not write the retained partial.
+            with store.lock('download-'+record['sha256']):
+                target = store.root/'staging'/(project+'-'+record['sha256']+'.part')
+                try:
+                    emit('Downloading')
+                    download(record,target,lambda p:emit('Downloading',p),lambda:cancelled,lambda:paused)
+                    if cancelled: raise InterruptedError('Cancelled')
+                    if paused: raise DownloadPaused()
+                    while True:
+                        try:
+                            store.activate(target,record,emit,lambda:cancelled); break
+                        except BlockingIOError:
+                            emit('Waiting for the application to close')
+                            import time
+                            time.sleep(.5)
+                            if cancelled: raise InterruptedError('Cancelled')
+                except DownloadPaused:
+                    return 75
+                except Exception:
+                    target.unlink(missing_ok=True)
+                    raise
+                else:
+                    target.unlink(missing_ok=True)
         else: raise ValueError('Unknown operation')
         emit('Done')
     except Exception as e:

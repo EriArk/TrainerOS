@@ -41,6 +41,10 @@ struct Game {
     QMap<QString,QString> fields;
     QMap<QString,QUrl> media;
     bool exactFile = false;
+    QStringList aliases;
+    QString romName;
+    QString matchSource;
+    int matchScore = 0;
 };
 struct Result {
     Status status = Status::InvalidResponse;
@@ -51,13 +55,19 @@ struct Result {
 struct Preferences {
     QString language = "en", region = "us", cover = "box-2D";
     bool metadata = true, logos = true, screenshots = true, fanart = false, refresh = false;
+    bool aggressive = true;
+    bool videos = true;
     QStringList mediaTags() const;
     QJsonObject json() const;
     static Preferences fromJson(const QJsonObject&);
 };
+// Catalogue/media selection only; never authorizes semantic save access.
+QString searchTitle(const QString& filename);
+QList<Game> rankMatches(QList<Game>, const QString& title, const QString& filename,
+                       int system, const Preferences&);
+bool automaticMatch(const QList<Game>&, const Preferences&);
 // Synchronous worker API. No network during construction, discovery or rendering.
-// Results of search (and lookup without matching returned ROM hashes) require
-// explicit choice; no silent filename-based binding or catalogue-ID replacement.
+// exactFile remains hash evidence; title ranking is a separate catalogue decision.
 class Client {
 public:
     explicit Client(Credentials credentials, Transport transport = httpsTransport(), Delay delay = {});
@@ -80,6 +90,7 @@ private:
     bool reserve(const Cancellation& cancel);
 };
 bool allowedUrl(const QUrl& url);
+bool validLocalMedia(const QString& path, bool video);
 // Content-addressed media never overwrites existing unrelated user files.
 // Returns an absolute local filename, or empty on invalid bytes/cancellation.
 QString storeMedia(const QString& systemDirectory, const QString& gameId, const QByteArray& bytes,

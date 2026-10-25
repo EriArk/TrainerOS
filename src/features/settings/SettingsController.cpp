@@ -4,6 +4,7 @@
 #include "core/experience/ExperienceProviders.h"
 #include <algorithm>
 #include <QSettings>
+#include <QCryptographicHash>
 
 namespace trainer {
 namespace {
@@ -35,6 +36,9 @@ QString SettingsController::displayProfile() const {
     const auto value = QSettings().value("display/profile", "handheld").toString();
     return QStringList{"auto", "handheld", "tv"}.contains(value) ? value : "handheld";
 }
+void SettingsController::setMediaOwner(const QString& owner){mediaPrefix_="media/"+QString::fromLatin1(QCryptographicHash::hash(owner.toUtf8(),QCryptographicHash::Sha256).toHex())+"/";emit changed();}
+bool SettingsController::previewSound() const{return QSettings().value(mediaPrefix_+"sound",false).toBool();}
+int SettingsController::previewDelay() const{return std::clamp(QSettings().value(mediaPrefix_+"delay",1800).toInt(),1500,3000);}
 int SettingsController::interfaceScale() const {
     return std::clamp(QSettings().value("display/interfaceScale", 100).toInt(), 75, 150);
 }
@@ -113,10 +117,10 @@ QVariantList SettingsController::controls() const {
     case 0: return {row("Appearance","theme",theme()=="dark"?"Dark":"Light"),row("Reduced motion","toggle",reducedMotion()?"On":"Off"),row("Brightness","brightness",""),row("Display profile","stepper",displayProfile()=="auto"?"Auto · system density":displayProfile()=="tv"?"TV · larger controls":"Handheld"),row("Interface size","stepper",QString::number(interfaceScale())+"%"),row("Reset interface size","action","Restore 100%")};
     case 1: { const int volume=std::clamp(QSettings().value("achievements/volume",65).toInt(),0,100);
         return {row("Volume","volume",""),row("Achievement jingle","stepper",volume?QString::number(volume)+"%":"Off"),row("Background music","unavailable","Music playback is not available yet")}; }
-    case 2: return {row("Video previews","toggle",videoPreviews()?"On · silent playback":"Off"),row("Adventure pictures","status","Clean exit pictures on Home and in Choose Adventure"),row("Field Guide illustrations","status","Illustrations and animated companions")};
+    case 2: return {row("Video previews","toggle",videoPreviews()?"On · local files only":"Off"),row("Preview sound","action",previewSound()?"On":"Muted"),row("Preview delay","action",QString::number(previewDelay()/1000.0,'f',1)+" seconds"),row("Adventure pictures","status","Clean exit pictures on Home and in Choose Adventure"),row("Field Guide illustrations","status","Illustrations and animated companions")};
     case 3: return {row("Charger vibration","unavailable","Patterns have not been verified on this handheld"),row("Device lighting","unavailable","Lighting support has not been verified")};
     case 4: return {row("Your profile","action","Name and emblem"),row("RetroAchievements","action","Manage your account"), trainersAvailable_ ? row("Trainers","action","Choose a player or create a Trainer") : row("Separate Trainers & PIN","unavailable","Not available yet"),row("Trainer PIN",trainersAvailable_?"action":"unavailable","Set, change or remove your PIN"),row("Family code",trainersAvailable_?"action":"unavailable","A parent can reset forgotten PINs")};
-    case 5: return {row("Refresh status","action",""),row("Restart","action",""),row("Power off","action","")};
+    case 5: return {row("Refresh status","action",""),row("Restart","action",""),row("Power off","action",""),row("System health & game setup","action","Runtime, BIOS and a private support report")};
     case 7: {
         const auto p=input_?input_->profile():ControllerProfile{}.json();
         const char* kind=input_&&input_->connected()?"stepper":"unavailable";
@@ -173,7 +177,9 @@ void SettingsController::activateRow(int index) {
     else if(category_==1 && row_==0) emit quickAdjustment(0,Action::Confirm);
     else if(category_==1 && row_==1) {adjustDisplay(1,1);return;}
     else if(category_==2 && row_==0) activate(3);
+    else if(category_==2 && (row_==1||row_==2)){QSettings s;if(row_==1)s.setValue(mediaPrefix_+"sound",!previewSound());else s.setValue(mediaPrefix_+"delay",previewDelay()>=3000?1500:std::min(3000,previewDelay()+500));s.sync();if(s.status()!=QSettings::NoError)error_="Could not save preview preferences.";}
     else if(category_==4) emit trainerRequested(row_);
+    else if(category_==5 && row_==3) emit healthRequested();
     else if(category_==5) emit deviceRequested(row_);
     else if(category_==7 && row_==0 && input_) input_->beginCapture("center");
     else if(category_==7 && row_>=1 && row_<=5) adjustDisplay(row_,1);

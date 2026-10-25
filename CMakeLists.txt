@@ -507,6 +507,7 @@ qt_add_qml_module(traineros
         src/qml/CollectionsPanel.qml
         src/qml/LibraryToolsPanel.qml
         src/qml/ScrapePanel.qml
+        src/qml/ScrapeWidget.qml
         src/qml/ScrapeSettingsPane.qml
         src/qml/DownloadsPanel.qml
         src/qml/LibraryPanel.qml
@@ -817,6 +818,7 @@ if(BUILD_TESTING)
     qt_add_executable(trainer_interaction_tests tests/InteractionTests.cpp)
     target_link_libraries(trainer_interaction_tests PRIVATE trainer_core Qt6::Test)
     add_test(NAME interactions COMMAND trainer_interaction_tests)
+    set_tests_properties(interactions PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software")
     qt_add_executable(trainer_experience_tests tests/ExperienceTests.cpp)
     target_link_libraries(trainer_experience_tests PRIVATE trainer_core Qt6::Test)
     add_test(NAME experience COMMAND trainer_experience_tests)

@@ -16,6 +16,8 @@ public:
     void setWindow(QWindow* window);
     QJsonObject runtime() const;
     void save(const QJsonObject& observations);
+    void saveSupport(const QJsonObject& health);
+    QString reportDirectory() const{return directory_;}
     bool saving() const { return saving_; }
     QString lastReportPath() const { return lastReportPath_; }
 signals:

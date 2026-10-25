@@ -8,6 +8,7 @@ Item {
     property bool active: false
     property bool mediaAllowed: active
     property bool takesFocus: false
+    property bool typing: false
     property bool fullScreen: false
     property bool chrome: true
     property var page: null
@@ -33,7 +34,7 @@ Item {
         {title:"itch.io",url:"https://itch.io/",symbol:"i",color:Theme.surfaceColor("#f1c4bd")},
         {title:"Internet Archive",url:"https://archive.org/",symbol:"A",color:Theme.surfaceColor("#cedce8")}]
     function reveal() {chrome=true}
-    function scrolled(dy) {if(popup||toolsFocused)return;chrome=dy<0}
+    function scrolled(dy) {if(popup||toolsFocused||typing)return;chrome=dy<0}
     function navigate(url) {error="";popup="";toolsFocused=false;flow.openUrl(url);reveal()}
     function openPopup(kind,rows) {
         if(kind==="tabs"&&page)captureTab(flow.selected,page)
@@ -52,7 +53,16 @@ Item {
     function forgetTab(id){delete thumbs[id];thumbs=Object.assign({},thumbs)}
     function queueFieldCheck(){fieldCheck.restart()}
     property var thumbs: ({})
-    Timer {id:fieldCheck;interval:140;onTriggered:if(root.takesFocus&&!root.popup)root.flow.editPageField()}
+    Timer {id:fieldCheck;interval:140;onTriggered:if((root.takesFocus||root.typing)&&!root.popup)root.flow.editPageField(root.page)}
+    // Chromium's editable focus can change after a tap (scripts/iframes), while
+    // QQuickItem activeFocus remains on the same render widget.
+    Timer { interval: 120; repeat: true; running: root.active
+        onTriggered: {
+            if(root.page && !root.popup && (root.takesFocus || root.typing))
+                root.flow.editPageField(root.page,false)
+            else root.flow.stopPageInput()
+        }
+    }
     Timer {id:popupScrollGate;interval:110}
     function activateRow(index) {
         const rows=popup==="tabs"?flow.tabs:popup==="bookmarks"?flow.bookmarks:popup==="history"?flow.history:popupRows
@@ -60,7 +70,7 @@ Item {
         if(popup==="tabs")flow.select(row.id)
         else if(popup==="bookmarks"||popup==="history")navigate(row.url)
         else if(popup==="permission"){const callback=answer;answer=null;if(callback)callback(index===1)}
-        else if(row.keyboard)flow.editPageField()
+        else if(row.keyboard)flow.editPageField(root.page)
         else if(row.search)navigate("https://duckduckgo.com/?q="+encodeURIComponent(row.search))
         else if(page)page.triggerWebAction(row.action)
         popup=""
@@ -78,7 +88,7 @@ Item {
         // Isolated application world: only inspect/focus ordinary DOM controls;
         // never expose native objects or an execute bridge to website scripts.
         const js="(()=>{const dir='"+direction+"';const all=[...document.querySelectorAll('a[href],button,input,textarea,select,[tabindex]')].filter(e=>{const r=e.getBoundingClientRect();return !e.disabled&&e.tabIndex>=0&&r.width>0&&r.height>0&&getComputedStyle(e).visibility!=='hidden'});const a=document.activeElement;const ar=a&&a!==document.body?a.getBoundingClientRect():{x:innerWidth/2,y:innerHeight/2,width:0,height:0};const x=ar.x+ar.width/2,y=ar.y+ar.height/2;let best=null,score=Infinity;for(const e of all){if(e===a)continue;const r=e.getBoundingClientRect(),dx=r.x+r.width/2-x,dy=r.y+r.height/2-y;const primary=dir==='right'?dx:dir==='left'?-dx:dir==='down'?dy:-dy;const secondary=(dir==='left'||dir==='right')?Math.abs(dy):Math.abs(dx);if(primary>1&&primary+secondary*3<score){best=e;score=primary+secondary*3}}if(!best)best=all[0];if(!best)return null;best.focus({preventScroll:true});best.scrollIntoView({block:'nearest',inline:'nearest'});const r=best.getBoundingClientRect();return {x:r.x+r.width/2,y:r.y+r.height/2}})()"
-        page.runJavaScript(js,1,function(p){if(p){root.pointerX=p.x;root.pointerY=p.y;root.pointerVisible=true}})
+        page.runJavaScript(js,1,function(p){if(p){root.pointerX=p.x+webLoader.x;root.pointerY=p.y+webLoader.y;root.pointerVisible=true}})
     }
     function handle(action) {
         if(action==="chrome"){chrome=!chrome;toolsFocused=chrome;toolIndex=0;return}
@@ -128,7 +138,7 @@ Item {
         function command(id){root.command(id)}
     }
     property alias toolFlow: toolFlow
-    onActiveChanged: if(!active){dismiss();pointerVisible=false}
+    onActiveChanged: if(!active){flow.stopPageInput();dismiss();pointerVisible=false}
     onTakesFocusChanged: if(!takesFocus){pointerVisible=false;if(!shellController.keyboard.open&&popup!=="permission")dismiss()}
     Connections {target:flow
         function onCommandRequested(command){if(root.active)root.handle(command)}
@@ -145,7 +155,13 @@ Item {
         function onPointerMoved(dx,dy){if(!root.takesFocus||root.popup)return;root.toolsFocused=false;root.pointerVisible=true;root.pointerX=Math.max(2,Math.min(root.width-4,root.pointerX+dx));root.pointerY=Math.max(2,Math.min(root.height-4,root.pointerY+dy));flow.pointerEvent(root,root.pointerX,root.pointerY,0)}
     }
     Rectangle {anchors.fill:parent;color:Theme.paper}
-    Loader {id:webLoader;anchors.fill:parent;active:!!flow.profile&&flow.available;source:"BrowserEngine.qml";onLoaded:{item.flow=root.flow;item.surface=root;item.reconcile()}}
+    Loader {
+        id:webLoader;anchors.fill:parent
+        anchors.topMargin: root.chrome&&!root.typing ? 50 : 0
+        anchors.bottomMargin: root.chrome&&!root.typing ? 24 : 0
+        active:!!flow.profile&&flow.available;source:"BrowserEngine.qml"
+        onLoaded:{item.flow=root.flow;item.surface=root;item.reconcile()}
+    }
     Rectangle {
         anchors.fill:parent;visible:root.startPage;color:Theme.paper
         // A quiet, themed start page; no network requests for suggested tiles.
@@ -174,7 +190,7 @@ Item {
         Text {anchors.centerIn:parent;visible:!flow.available;text:"This build has no embedded web engine.";color:Theme.ink}
     }
     Rectangle {
-        id:addressBar;objectName:"browser-address";x:8;y:root.chrome?8:-height-4;width:parent.width-16;height:34;radius:10;color:Qt.alpha(Theme.paper,.95);border.color:Qt.alpha(Theme.chassis,.24);z:2
+        id:addressBar;objectName:"browser-address";visible:!root.typing;x:8;y:root.chrome?8:-height-4;width:parent.width-16;height:34;radius:10;color:Qt.alpha(Theme.paper,.95);border.color:Qt.alpha(Theme.chassis,.24);z:2
         Behavior on y {NumberAnimation {duration:Theme.motion(150);easing.type:Easing.OutCubic}}
         Text {x:12;width:parent.width-67;anchors.verticalCenter:parent.verticalCenter;text:root.startPage?"Search or enter an address":root.page.url.toString();font.pixelSize:13;color:Theme.ink;elide:Text.ElideMiddle;textFormat:Text.PlainText}
         MouseArea {anchors.fill:parent;anchors.rightMargin:48;onClicked:flow.requestAddress(root.page?root.page.url.toString():"")}
@@ -195,7 +211,7 @@ Item {
     }
     // Keep native field focus for IME commit, but block page touches outside a
     // global modal's geometry (including the physical bottom in fullscreen).
-    MouseArea {anchors.fill:parent;z:4;visible:!root.takesFocus;acceptedButtons:Qt.AllButtons;onWheel:wheel=>wheel.accepted=true}
+    MouseArea {anchors.fill:parent;z:4;visible:!root.takesFocus&&!root.typing;acceptedButtons:Qt.AllButtons;onWheel:wheel=>wheel.accepted=true}
     Item {
         anchors.fill:parent;visible:root.popup!=="";z:5
         Rectangle {anchors.fill:parent;color:root.listPopover?"transparent":Theme.surfaceColor("#65162723");MouseArea {anchors.fill:parent;onClicked:if(root.popup!=="permission")root.dismiss()}}

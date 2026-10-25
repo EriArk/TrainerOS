@@ -13,7 +13,7 @@ Window {
     readonly property real uiScale: shell.settings.displayDensity(Screen.width, Screen.height,
         width, height, shell.settings.displayProfile, shell.settings.interfaceScale)
     Binding { target: controllerInput; property: "pointerMode"; value: !shell.social.incomingCall.id && (filesPane.takesFocus || browserPane.takesFocus) && (!adventureLaunch.active || adventureLaunch.minimized) && !sessionState.blocked }
-    Binding { target: controllerInput; property: "nativeKeyboard"; value: !shell.social.incomingCall.id && browserPane.takesFocus && !browserPane.popup && !browserPane.toolsFocused }
+    Binding { target: controllerInput; property: "nativeKeyboard"; value: !shell.social.incomingCall.id && !browserPane.popup && (browserPane.typing || (browserPane.takesFocus && !browserPane.toolsFocused)) }
     Binding { target: controllerInput; property: "browserMode"; value: !shell.social.incomingCall.id && browserPane.takesFocus }
     RadialInputWindow { flow: shell.settings.gameInput; bridge: radialOverlay; permitted: adventureLaunch.active && !adventureLaunch.minimized && !sessionState.blocked && !adventureExitPresentation.visible }
     AppControlsWindow { flow: shell.apps; bridge: appsOverlay }
@@ -299,10 +299,13 @@ Window {
             mediaAllowed: active && window.active && (!adventureLaunch.active || adventureLaunch.minimized)
             visible: active
             takesFocus: active && !shell.notice.length && !shell.drawerOpen && !shell.quickAppsOpen && !shell.keyboard.open && !shell.menuOpen && !shell.homeMenuOpen && !shell.downloads.open && !sessionState.blocked && (!adventureLaunch.active || adventureLaunch.minimized)
+            typing: active && !shell.notice.length && !shell.drawerOpen && !shell.quickAppsOpen && shell.keyboard.live && !shell.menuOpen && !shell.homeMenuOpen && !shell.downloads.open && !sessionState.blocked && (!adventureLaunch.active || adventureLaunch.minimized)
             x: expanded ? 0 : Theme.screenBounds.x + Theme.panelInset
             y: expanded ? 0 : Theme.screenBounds.y + Theme.contentTopInset
             width: expanded ? parent.width : Theme.screenBounds.width - 2*Theme.panelInset
-            height: expanded ? parent.height : Theme.screenBounds.y+Theme.screenBounds.height-Theme.panelInset-y
+            height: shell.keyboard.open && shell.keyboard.live
+                ? Math.max(80,keyboardPanel.y+keyboardPanel.height-keyboardPanel.occupiedHeight-y)
+                : expanded ? parent.height : Theme.screenBounds.y+Theme.screenBounds.height-Theme.panelInset-y
             z: expanded ? 1.8 : .5
             Behavior on x { NumberAnimation {duration:Theme.motion(180);easing.type:Easing.InOutCubic} }
             Behavior on y { NumberAnimation {duration:Theme.motion(180);easing.type:Easing.InOutCubic} }
@@ -400,8 +403,8 @@ Window {
                 if (shell.notice.length) return [h("A", shell.modeConfirmation ? "Continue" : "OK"), h("B","Cancel")]
                 if (shell.downloads.open) return [h("↑↓","Choose"),h("←→","Actions"),h("A","Select"),h("B","Close")]
                 if (shell.menuOpen) return shell.powerMenu ? [h("A","Select"),h("B","Back")] : [] // Controls owns its contextual hints.
-                if (shell.keyboard.open) return [h("X","Case"),h("Y",shell.keyboard.nextLayout),h("A","Type"),h("Select",shell.keyboard.submitLabel),h("B",shell.keyboard.submitLabel === "Send" ? "Keep draft" : "Cancel")]
-                if (shell.scraper.open) return shell.scraper.selectingSystems ? [h("↑↓","Systems"),h("←→","Actions"),h("A","Select"),h("B","Back")] : [h("A","Select"),h("B",shell.scraper.busy&&!shell.scraper.choosingMatch?"Stop":"Back")]
+                if (shell.keyboard.open) return shell.keyboard.optionsOpen ? [h("↑↓","Option"),h("A",shell.keyboard.optionIndex===0?"Layout":"On / Off"),h("B","Back")] : [h("X","Case"),h("Y",shell.keyboard.nextLayout),h("A","Type"),h("Select",shell.keyboard.submitLabel),h("B",shell.keyboard.live ? "Hide" : shell.keyboard.submitLabel === "Send" ? "Keep draft" : "Cancel")]
+                if (shell.scraper.open) return shell.scraper.selectingSystems&&!shell.scraper.overview ? [h("↑↓","Systems"),h("←→","Actions"),h("A","Select"),h("B","Back")] : [h("A","Select"),h("B",shell.scraper.busy&&!shell.scraper.choosingMatch&&!shell.scraper.overview?"Stop":"Back")]
                 if (shell.libraryTools.open) {
                     if(shell.libraryTools.route==="reviews")return shell.libraryTools.reviewReportAvailable
                         ? [h("A","Reveal"),h("← →","Read"),h("Select","Report"),h("B","Back")]
@@ -500,7 +503,7 @@ Window {
         Loader { anchors.fill: screen; active: shell.service === "device"; visible: active; sourceComponent: DevicePanel { shell: shellController } }
         Loader { anchors.fill: screen; active: shell.service === "diagnostics"; visible: active; sourceComponent: DiagnosticsPanel { shell: shellController } }
         Loader { anchors.fill: screen; z: 2.8; active: shell.primaryId === "apps" && shell.appsFace === "crates" && shell.crates.detailOpen && !shell.serviceOpen && !shell.quickAppsOpen && !shell.drawerOpen; visible: active; sourceComponent: CratesProjectPopup { flow: shell.crates } }
-        Loader { anchors.fill: screen; z: 3.1; active: shell.scraper.open && !shell.keyboard.open; visible: active; sourceComponent: ScrapePanel { shell: shellController } }
+        Loader { anchors.fill: screen; z: shell.menuOpen ? 4.2 : 3.1; active: shell.scraper.open && !shell.keyboard.open; visible: active; sourceComponent: ScrapePanel { shell: shellController } }
         Loader { anchors.fill: screen; z: shell.menuOpen ? 4.2 : 3.2; active: shell.downloads.open; visible: active; sourceComponent: DownloadsPanel { flow: shell.downloads } }
         MyLobbiesPopup { anchors.fill: screen; social: shell.social; z: 3.5 }
         ChatFilePicker { anchors.fill: screen; picker: shell.social.files.picker; z: 4 }
@@ -533,8 +536,9 @@ Window {
             visible: shell.apps.menu.length > 0 && !shell.serviceOpen && !shell.menuOpen
         }
         KeyboardPanel {
+            id: keyboardPanel
             anchors { left: screen.left; right: screen.right; top: screen.top; bottom: footer.top }
-            z: shell.controlsNetworkOpen ? 4.5 : shell.social.lobbyCreateOpen || shell.social.lobbyPickerOpen ? 3.9 : 3; takesFocus: shell.keyboard.open && (shell.controlsNetworkOpen || !shell.menuOpen) && !shell.notice.length; shell: shellController
+            z: shell.controlsNetworkOpen || shell.scraper.open ? 4.5 : shell.social.lobbyCreateOpen || shell.social.lobbyPickerOpen ? 3.9 : 3; takesFocus: shell.keyboard.open && (shell.controlsNetworkOpen || shell.scraper.open || !shell.menuOpen) && !shell.notice.length; shell: shellController
         }
         SystemPanel {
             anchors { left: screen.left; right: parent.right; top: screen.top; bottom: footer.top }
