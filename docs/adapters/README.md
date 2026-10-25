@@ -5,8 +5,10 @@ This is an engineering evidence index, not a runtime plugin ABI or a promise
 that another edition of the same game has the same format.
 
 **25 October 2026:** the [cross-family format pass](../MULTIPLAYER_CONTENT_FORMATS.md)
-extends the source-side content/launch owners in the table below. New shell/helper
-packages are not installed; historical gameplay evidence stays separate.
+extends the content/launch owners in the table below. The merged shell/helper
+packages are installed on Flip/Odin; [delivery evidence](../MULTIPLAYER_CONTENT_FORMATS.md#доставка-на-flip-и-odin--25-октября-2026)
+and historical gameplay evidence stay separate. This supersedes the older
+source-only/not-delivered labels for these formats below.
 
 | Record | Exact targets | Current boundary |
 |---|---|---|

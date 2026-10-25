@@ -1,5 +1,11 @@
 # Flycast: Dreamcast multiplayer and ordinary package
 
+**25 октября — доставка:** расширенные форматы и совместимая со свежим core/main
+оболочка установлены на Flip/Odin. [Хеши, native проверки, сохранность данных
+и откат](../MULTIPLAYER_CONTENT_FORMATS.md#доставка-на-flip-и-odin--25-октября-2026).
+Это заменяет прежние отметки «не установлено» для данного набора, не прежнюю
+историю игровой совместимости и не открытые ограничения native механизма.
+
 ## GDI/CDI/CUE/M3U preparation — 25 October 2026
 
 Исходный Dojo `d0e47e572b1e7b355e88bda8308c89d0c5156cbf`:

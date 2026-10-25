@@ -1,5 +1,11 @@
 # melonDS deterministic wireless preparation
 
+**25 октября — доставка:** расширенные форматы и совместимая со свежим core/main
+оболочка установлены на Flip/Odin. [Хеши, native проверки, сохранность данных
+и откат](../MULTIPLAYER_CONTENT_FORMATS.md#доставка-на-flip-и-odin--25-октября-2026).
+Это заменяет прежние отметки «не установлено» для данного набора, не прежнюю
+историю игровой совместимости и не открытые ограничения native механизма.
+
 ## ZIP/7z cartridges and save ownership — 25 October 2026
 
 Для закреплённого melonDS 1.1 сверены frontend CLI `--archive-file`,

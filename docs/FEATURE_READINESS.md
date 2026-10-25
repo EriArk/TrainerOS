@@ -1,5 +1,12 @@
 # Карта готовности функций TrainerOS
 
+**25 октября — доставка общего multiplayer-прохода, S02/S03 → S06/S08:**
+объединённая с актуальным main ARM64-оболочка и PSP/Dolphin/PS2 helpers установлены
+на Flip/Odin. Шесть native suites и проверки helpers прошли; обе оболочки работают,
+личные файлы в проверенном наборе и история сохранены. [Доказательства и границы](MULTIPLAYER_CONTENT_FORMATS.md#доставка-на-flip-и-odin--25-октября-2026).
+Это заменяет ниже отметки «устройства не обновлены» для форматов и доставки BBA;
+новых игровых матчей и новых сетевых механизмов эта запись не заявляет.
+
 **25 октября — общий проход форматов, S02/S03 → S06/S08:**
 [единая таблица](MULTIPLAYER_CONTENT_FORMATS.md) фиксирует PS1 descriptors/raw,
 PS2 compressed/raw, PSP CHD, Dreamcast GDI/CDI/CUE/M3U, Dolphin TGC/split/WAD,
@@ -175,7 +182,7 @@ R-ID не перенумеровывать; новая функция получ
 | ☑ | <a id="r038"></a>**R038** Dreamcast: Flycast Dojo / Soul Calibur | **[S03]**; [S06], [S07], [S08] | Сделано | Nearby/public relay, input/Home/Exit; [Flycast](emulators/flycast.md). |
 | ☐ | <a id="r039"></a>**R039** Dreamcast services, Naomi/Atomiswave cabinet link | **[S03]**; [S06], [S07], [S08] | Недоделано | GGPO не покрывает игровые серверы/соединение автоматов; интеграция не завершена. |
 | ☑ | <a id="r040"></a>**R040** GameCube/Wii: проверенные Dolphin NetPlay маршруты | **[S03]**; [S06], [S07], [S08] | Сделано | Melee/NSMB Wii, отдельные pads/remotes, lifecycle; [Dolphin](emulators/dolphin.md). |
-| ☐ | <a id="r041"></a>**R041** GameCube/Wii: BBA/native online, motion, широкая приёмка | **[S03]**; [S06], [S07], [S08] | Недоделано | 25.10 в исходниках добавлен [GameCube LAN/BBA](emulators/dolphin.md#gamecube-lan--bba--25-октября-2026-исходники): две независимые консоли, отдельный выбор в Lobby, штатный TAP server поверх ICE/DTLS, изолированный временный прогресс. Linux-транспорт, UI и lifecycle проверены; EOF-патч Dolphin воспроизведён на upstream TAP-классе. Полные ARM64-пакеты Dolphin/helper собраны: запуск, зависимости и 16 транспортных сценариев проверены через QEMU. ARM64-сборка оболочки, поставка и игровой матч открыты. Серверный Online, motion и более широкая совместимость остаются открытыми. |
+| ☐ | <a id="r041"></a>**R041** GameCube/Wii: BBA/native online, motion, широкая приёмка | **[S03]**; [S06], [S07], [S08] | Недоделано | 25.10 в исходниках добавлен [GameCube LAN/BBA](emulators/dolphin.md#gamecube-lan--bba--25-октября-2026-исходники): две независимые консоли, отдельный выбор в Lobby, штатный TAP server поверх ICE/DTLS, изолированный временный прогресс. Linux-транспорт, UI и lifecycle проверены; EOF-патч Dolphin воспроизведён на upstream TAP-классе. Полные ARM64-пакеты Dolphin/helper собраны: запуск, зависимости и 16 транспортных сценариев проверены через QEMU. ARM64-оболочка и пакеты установлены на обеих 25.10 после объединения со свежим core/main; native suites и сохранность проверенных данных подтверждены. Новый игровой матч не запускался. Серверный Online, motion и более широкая совместимость остаются открытыми. |
 | ☑ | <a id="r042"></a>**R042** DS: проверенный Mario Kart DS wireless | **[S03]**; [S06], [S07], [S08] | Сделано | Deterministic bundle, приглашения/Home/личные сейвы; [melonDS](emulators/melonds.md). |
 | ☐ | <a id="r043"></a>**R043** DS: WFC, четыре игрока и широкая приёмка | **[S03]**; [S06], [S07], [S08] | Недоделано | Отдельный WFC маршрут, saves/games/resources; #162–166. |
 | ☑ | <a id="r044"></a>**R044** 3DS: проверенный Minicraft3DS wireless | **[S03]**; [S06], [S07], [S08] | Сделано | Nearby/relay, приглашение/Home/save/Exit; [Azahar](emulators/azahar.md). |
