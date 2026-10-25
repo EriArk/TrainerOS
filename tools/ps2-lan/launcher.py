@@ -37,8 +37,10 @@ def manifest():
 def identify(path):
     if not path.is_absolute():raise ValueError('Absolute content path required')
     disc=disc_identity(path,ROOT/'libchdr.so')
-    profiles=json.loads((ROOT/'profiles.json').read_text())['games']
-    matches=[p for p in profiles if p['serial']==disc['serial'] and p['crc']==disc['crc'] and p['mode']=='lan']
+    profiles=json.loads((ROOT/'profiles.json').read_text(encoding='utf-8'))
+    if profiles.get('version')!=2:raise ValueError('Unsupported PS2 LAN catalogue')
+    matches=[p for p in profiles['games'] if p['mode']=='lan'
+             and any(r['serial']==disc['serial'] for r in p['releases'])]
     if len(matches)!=1:return {}
     setup=manifest()
     content=disc['content'] or digest(path)

@@ -24,6 +24,25 @@ Battlefront II SLUS-21240 / 02F4B541. On 25 October the owner confirmed working
 LAN play after completing network setup before the utility lost controller input.
 Utility input/graphics defects remain open; see the dated game evidence table.
 
+**25 October, source-only availability expansion:** the owner requested all 56
+titles in `docs/data/ps2/ps2_lan_full.csv`, without waiting for per-title gameplay
+checks. `profiles.json` v2 maps those titles to 164 disc serials from the pinned
+ARMSX2 game database. Admission uses the serial read from the actual ISO/CHD,
+never the library title/filename. The fixed Battlefront CRC allowlist is removed;
+the actual CRC and content identity still have to match between participants.
+Runtime verification, two-peer capacity, private settings and saves stay intact.
+CSV region restrictions are retained (PAL-only entries, NTSC-U TimeSplitters 2,
+Japanese Virtual-On). Availability is not certification of every regional release.
+Unknown serials and server-only titles outside this LAN list remain unavailable.
+No new emulator binary or shell change is required; repack the helper and update
+its manifest hashes when devices are available. This expansion is not installed.
+
+To reproduce the catalogue, install development dependency PyYAML and obtain
+`bin/resources/GameIndex.yaml` from ARMSX2 revision `90126bdfea` (source URL and
+SHA-256 are in `profiles.json`). Run `build_profiles.py --database <file>`; use
+`--check` to verify without rewriting. Explicit aliases cover alternate regional
+names; no fuzzy runtime matching or per-title network code is involved.
+
 `launcher.py` copies settings into the private session, removes library scanning
 from that copy and launches ARMSX2 plus `ps2_endpoint` in a loopback-only network
 namespace. An owner-only Unix socket connects the endpoint to the existing
@@ -46,6 +65,7 @@ This adds no automatic launch/rejoin or new networking mechanism.
 python3 tools/ps2-lan/check_config.py
 python3 tools/ps2-lan/check_disc.py
 python3 tools/ps2-lan/check_launcher.py
+python3 tools/ps2-lan/check_profiles.py
 cmake -S tools/remote-play-stream/transport -B build-ps2-sockets -DSOCKET_CHECK_ONLY=ON
 cmake --build build-ps2-sockets
 ctest --test-dir build-ps2-sockets --output-on-failure

@@ -1,5 +1,30 @@
 # ARMSX2: native LAN preparation
 
+## Full owner LAN catalogue available in source — 25 October 2026
+
+The owner explicitly removed the one-game gate and will try other LAN games
+manually. `profiles.json` v2 now contains all **56 CSV titles / 164 disc serials**,
+mapped from the pinned ARMSX2 `90126bdfea` game database. This supersedes the earlier
+requirement to wait for exact per-title gameplay evidence before making the mode
+available. The original CSV is unchanged; its explicit regional restrictions are
+retained. Unlisted/server-only titles are not enabled by filename guesses.
+
+The fixed Battlefront II CRC gate is gone. Actual disc serial, ELF CRC, content
+identity and runtime still participate in admission; different revisions/images
+cannot silently join each other. The two-peer transport, private own-card setup,
+explicit Start and no automatic rejoin remain unchanged. No per-game protocol or
+compatibility patch was introduced. Availability and the dated tested-games table
+are independent; a catalogue entry does not claim successful gameplay.
+
+Six new local catalogue tests passed, including real synthetic ISO parsing for
+**each of the 164 serials**, arbitrary filename rejection, different-revision
+identity, regional restrictions and the retained runtime guard. Existing 12
+launcher, 7 configuration and 5 disc tests also passed. Catalogue regeneration
+checks the pinned database checksum and covers every owner row once.
+The helper/catalogue update is **not installed**: the devices remain occupied
+by another chat and were not contacted. Deliver this package with the preceding
+atomic-preparation fix when available; gameplay findings then drive any exceptions.
+
 ## Owner result and local preparation repair — 25 October 2026
 
 The owner reports **working LAN play in Battlefront II** after completing the
@@ -25,9 +50,8 @@ cases passed. Launcher cases use real temporary files and injected copy failures
 runtime/disc admission and the Linux transport-file reader are fixture inputs,
 and `execvpe` is captured rather than launching a native emulator. The changed
 launcher has not been installed. No new profiles, utility fixes or LAN transport
-claims are implied. Next independent work is extending exact PS2 LAN profiles
-where edition/CRC and game-native LAN evidence are available; offline admission
-remains a separate unfinished feature.
+claims were implied by that repair. The subsequent owner-requested catalogue
+expansion is recorded above; offline admission remains a separate unfinished feature.
 
 ## Paired runtime alignment — 24 October 2026
 
