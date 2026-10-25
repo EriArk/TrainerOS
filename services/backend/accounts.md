@@ -5,8 +5,10 @@ Fluxer; отдельного логина/пароля TrainerOS нет. Для 
 приложение **TrainerOS**, а существующее **TrainerOS Lobby Directory** остаётся
 без изменений. Новое приложение зарегистрировано владельцем **EriArk** через
 его постоянный аккаунт. Отдельный HTTPS origin — `https://traineros-api.abysstail.art`.
-Получение client secret ожидает подтверждения владельцем в окне Fluxer;
-provider login до установки конфигурации остаётся выключен.
+Владелец подтвердил выдачу client secret в Fluxer. Секрет и независимый ключ
+Backend сохранены только в закрытом каталоге сервера; точный callback сохранён
+и проверен через public application metadata. Provider login активирован.
+Приложение не доступно для публичного приглашения как бот; запрашивается только `identify`.
 
 **Уточнение пользовательского сценария:** создание приложения и настройка HTTPS —
 разовая работа оператора. Игрок не создаёт OAuth-приложение и не настраивает сервер.
@@ -113,8 +115,10 @@ cd deploy
 docker compose -f compose.yaml -f compose.oauth.yaml up -d --wait api
 ```
 
-Далее в командах управления API сохранять оба Compose-файла. Базовый запуск без
-overlay намеренно отключает provider login (`provider_not_configured`, 503), а
+На действующем сервере в закрытом `deploy/.env` добавлено
+`COMPOSE_FILE=compose.yaml:compose.oauth.yaml`, чтобы последующие обычные команды
+Compose сохраняли OAuth overlay. Для отключения входа явно использовать только
+`-f compose.yaml`. Базовый запуск без overlay намеренно отключает provider login (`provider_not_configured`, 503), а
 capabilities остаётся пустым. Включение конфигурации объявляет только
 `accounts.fluxer_login`/`accounts.sessions`; оно само по себе не означает приёмку
 Fluxer, shell/SDK или портативок. Ключ обязателен в зашифрованной эксплуатационной
@@ -123,14 +127,22 @@ Fluxer, shell/SDK или портативок. Ключ обязателен в 
 
 ## Проверки и оставшиеся условия
 
+Реальный вход и отказ проверены через встроенный браузер и публичный HTTPS.
+Два входа в один Fluxer account получили один Player UUID; собственная сессия,
+refresh и отзыв отработали, обе временные Backend-сессии отозваны. Это проверка
+промежуточного code flow, не SDK/native handoff.
+[Живая приёмка и исправление Origin](../../docs/evidence/backend-oauth-live-20261025/README.md).
+Страница подтверждения использует `Referrer-Policy: same-origin`, чтобы HTML POST
+сохранял Origin; остальные ответы — `no-referrer`. Проверка Origin не ослаблена.
+
 Тесты выполняются на сервере с отдельной PostgreSQL, без service volume и
 внешней сети. OAuth upstream заменён контролируемым test provider/HTTP fixture.
 Проверяются cookies/state/PKCE/claim, конкурентная выдача, стабильность identity,
 изоляция устройств/игроков, rotation/replay/revoke/expiry/suspension, отсутствие
-секретов в БД/ошибках и границы HTTP adapter. Это не live OAuth round trip.
+секретов в БД/ошибках и границы HTTP adapter. 34 теста прошли после исправления
+браузерного Origin; fixture-проверки отделены от живой приёмки выше.
 
-Остаются: подтверждение получения client secret в Fluxer, сохранение callback,
-включение provider, реальный consent/cancel/relogin, безопасный native return без
+Остаются: безопасный native return без
 обязательного ручного кода, интеграция в оболочку с её текущим Fluxer account и
 локальным Trainer, защищённое хранение/очереди/отзыв SDK grants, recovery/смена
 привязки/удаление аккаунта и очистка auth-записей по принятой retention policy.

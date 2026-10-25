@@ -1,0 +1,13 @@
+{
+  "image": "sha256:d17832c1babb6b0f93d9fb3182a63281754cc5459ad9cbd1b551e2967a743ac9",
+  "image_tag": "traineros-backend:oauth-live-20261025",
+  "worker_same_image": true,
+  "loopback_only": true,
+  "non_root_readonly": true,
+  "services": {
+    "traineros-backend-tunnel": "active",
+    "traineros-crates-tunnel": "active",
+    "traineros-lobby-directory": "active"
+  },
+  "schema_changed": false
+}

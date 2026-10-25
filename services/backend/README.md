@@ -7,8 +7,9 @@ runtime-проверки выполняются на существующем с
 
 Позднее 25 октября добавлен [модуль Accounts](accounts.md): Fluxer-only identity,
 подтверждение входа кодом, OAuth/PKCE и собственные сессии. Код установлен, но
-provider login пока выключен. Приложение владельца и HTTPS origin уже созданы;
-получение секрета ждёт подтверждения в Fluxer, callback ещё не сохранён.
+provider login включён с отдельным приложением владельца и HTTPS callback.
+Живые consent/cancel/relogin, refresh и отзыв временных серверных сессий проверены.
+[Результаты](../../docs/evidence/backend-oauth-live-20261025/README.md).
 Обязательный ручной код не принят как обычный пользовательский сценарий:
 безопасный возврат в native shell и SDK integration остаются открытыми.
 
@@ -30,8 +31,9 @@ provider login пока выключен. Приложение владельц�
 
 ## Что ещё не работает
 
-В установленной базовой конфигурации capabilities остаётся пустым: Accounts
-не активирован без OAuth-конфигурации. 13 владельцев модулей зарегистрированы;
+В установленной конфигурации объявлены только `accounts.fluxer_login` и
+`accounts.sessions`; базовый запуск без OAuth overlay отключает их.
+13 владельцев модулей зарегистрированы;
 профили, результаты, рейтинги, турниры, кошелёк, магазин и остальные провайдеры
 ещё не реализованы. Worker не имеет игровых обработчиков
 и не подтверждает неизвестные задания. [67 операций проекта](contracts/README.md)
@@ -87,9 +89,9 @@ foundation-only с остановкой БД/перезапуском API: не 
 ```sh
 . deploy/images.env
 docker build --build-arg PYTHON_IMAGE="$PYTHON_IMAGE" --target test \
-  -t traineros-backend-test:accounts-20261025 .
+  -t traineros-backend-test:oauth-live-20261025 .
 docker run --rm --network none --cpus 1 --memory 768m --pids-limit 128 \
-  traineros-backend-test:accounts-20261025
+  traineros-backend-test:oauth-live-20261025
 ```
 
 Тестовый контейнер создаёт собственную PostgreSQL под непривилегированным

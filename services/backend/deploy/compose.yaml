@@ -1,6 +1,6 @@
 name: traineros-backend
 x-app: &app
-  image: traineros-backend:accounts-20261025
+  image: traineros-backend:oauth-live-20261025
   build:
     context: ..
     target: runtime

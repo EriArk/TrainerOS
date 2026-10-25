@@ -74,11 +74,15 @@ def test_complete_http_flow_uses_fluxer_identity_and_secret_claim(postgres,db):
         assert client.post('/v1/auth/login-attempts',json=body,headers=headers).status_code==409
         started=client.get(begin.json()['authorization_url'],follow_redirects=False)
         assert started.status_code==200 and 'Secure' in started.headers['set-cookie'] and 'HttpOnly' in started.headers['set-cookie']
+        assert started.headers['referrer-policy']=='same-origin'
+        assert begin.headers['referrer-policy']=='no-referrer'
         assert begin.json()['verification_code'] not in started.text
         form={'attempt_id':begin.json()['attempt_id'],'proof':client.cookies.get('__Host-traineros-login'),'code':begin.json()['verification_code']}
         assert client.post('/v1/auth/fluxer/confirm',data=form,headers={'Origin':'https://attacker.invalid'},follow_redirects=False).status_code==403
+        assert client.post('/v1/auth/fluxer/confirm',data=form,headers={'Origin':'null'},follow_redirects=False).status_code==403
         confirmed=client.post('/v1/auth/fluxer/confirm',data=form,headers={'Origin':CONFIG.public_base},follow_redirects=False)
         assert confirmed.status_code==303
+        assert confirmed.headers['referrer-policy']=='no-referrer'
         params=parse_qs(urlsplit(confirmed.headers['location']).query)
         assert params['scope']==['identify'] and params['code_challenge_method']==['S256']
         assert CONFIG.client_secret not in confirmed.headers['location']

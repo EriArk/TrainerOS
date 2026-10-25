@@ -58,7 +58,11 @@ def create_app(settings=None, *, provider=None):
         response.headers['X-Request-ID'] = request_id
         response.headers['Cache-Control'] = 'no-store'
         response.headers['X-Content-Type-Options'] = 'nosniff'
-        response.headers['Referrer-Policy'] = 'no-referrer'
+        # A navigate-mode form POST under no-referrer sends Origin: null.
+        # Keep the confirmation form same-origin without leaking its URL to Fluxer.
+        response.headers['Referrer-Policy'] = ('same-origin'
+            if request.url.path == '/v1/auth/fluxer/start' and response.status_code == 200
+            else 'no-referrer')
         response.headers['Content-Security-Policy'] = "default-src 'none'; form-action 'self' https://web.fluxer.app; frame-ancestors 'none'; base-uri 'none'"
         return response
 
