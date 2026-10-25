@@ -1,5 +1,9 @@
 # Каталог лобби Fluxer
 
+**25 октября 2026, исходники:** объявления TrainerOS принимают не больше
+16 участников комнаты, включая хозяина/игроков/зрителей. Квота 32 объявлений
+на аккаунт остаётся отдельным ограничением. Обновлённый бот ещё не развёрнут.
+
 **24 October 2026:** the [AbyssME v2 extension](ABYSSME_V2.md) is deployed on the
 existing service. TrainerOS retains **32 active listings per account**; AbyssME
 has **one independent active public room**. These are not a shared one-room quota.

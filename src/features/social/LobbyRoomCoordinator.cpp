@@ -1,4 +1,5 @@
 #include "LobbyRoomCoordinator.h"
+#include "core/model/LobbyLimits.h"
 #include "core/model/NetplayRelay.h"
 #include <QDateTime>
 #include <QJsonArray>
@@ -297,7 +298,7 @@ bool LobbyRoomCoordinator::validState(const QJsonObject& s,const QString& host) 
     if(s["owner"]!=host||s["revision"].toInteger()<1||s["generation"].toInteger()<1)return false;
     if(s["revision"].toInteger()>9007199254740990LL||s["generation"].toInteger()>9007199254740990LL)return false;
     if(!QStringList{"choosing","gathering","launching","playing"}.contains(s["phase"].toString()))return false;
-    const auto members=s["members"].toArray();if(members.isEmpty()||members.size()>32)return false;
+    const auto members=s["members"].toArray();if(members.isEmpty()||members.size()>lobbyLimits::MaxMembers)return false;
     QSet<QString> identities;QSet<int> seats;const auto capacity=s["game"].toObject()["seats"].toInt(-1);
     if(capacity<0||capacity>16)return false;
     const auto game=s["game"].toObject();

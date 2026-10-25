@@ -1,4 +1,5 @@
 #pragma once
+#include "core/model/LobbyLimits.h"
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QStringList>
@@ -46,7 +47,7 @@ inline QJsonObject listing(const QJsonObject& message,qint64 now) {
         {"revision",value["revision"]},{"listedAt",value["listedAt"]},{"expires",value["expires"]},{"access",value["access"]},
         {"status",status},{"seats",seats},{"available",available},{"streams",streams}};
     const auto starts=value["startsAt"].toInteger();const auto members=value["members"].toInt(seats-available);
-    if(starts<0||starts>4102444800LL||members<0||members>32||value["title"].toString().size()>80)return {};
+    if(starts<0||starts>4102444800LL||members<0||members>lobbyLimits::MaxMembers||value["title"].toString().size()>80)return {};
     result["title"]=value["title"].toString();result["startsAt"]=starts;result["members"]=members;
     const auto avatar=value["avatar"].toString();
     if(QRegularExpression("^(?:a_)?[0-9a-f]{32}$").match(avatar).hasMatch())result["avatar"]=avatar;

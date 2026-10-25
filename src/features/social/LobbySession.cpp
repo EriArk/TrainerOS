@@ -1,4 +1,5 @@
 #include "LobbySession.h"
+#include "core/model/LobbyLimits.h"
 #include "core/model/NetplayRelay.h"
 #include <QJsonArray>
 #include <QUuid>
@@ -57,7 +58,8 @@ bool LobbySession::setDetails(const QString& actor,QString title,qint64 startsAt
     title_=title;startsAt_=startsAt;publish();return true;
 }
 bool LobbySession::restore(const QJsonObject& s) {
-    if(phase_!="closed"||!netplayRelay::valid(s["relay"].toString("auto")))return false;
+    if(phase_!="closed"||!netplayRelay::valid(s["relay"].toString("auto"))
+       ||s["members"].toArray().size()>lobbyLimits::MaxMembers)return false;
     ballot_={};liveJoining_=rejoin_=false;
     id_=s["id"].toString();owner_=s["owner"].toString();access_=s["access"].toString();
     title_=s["title"].toString();startsAt_=s["startsAt"].toInteger();
@@ -89,13 +91,13 @@ bool LobbySession::join(QString peer,QString name,qint64 now,bool watch) {
     if(members_.contains(peer))return connected(peer,true);
     if(!editable()&&phase_!="playing")return false;
     const bool invited=invites_.contains(peer)&&invites_.value(peer)>now;
-    if(members_.size()>=32||(access_!="public"&&!invited))return false;
+    if(members_.size()>=lobbyLimits::MaxMembers||(access_!="public"&&!invited))return false;
     const bool spectator=watch||phase_=="playing"||(!game_.id.isEmpty()&&!freeSeat());
     invites_.remove(peer);members_.insert(peer,{name.trimmed(),spectator?0:freeSeat(),false,false,true,spectator});
     if(!spectator)resetReady();publish();return true;
 }
 bool LobbySession::approve(const QString& actor,const QString& peer,QString name,bool watch) {
-    if(!host(actor)||(!editable()&&phase_!="playing")||peer.isEmpty()||peer.size()>128||name.trimmed().isEmpty()||name.size()>100||members_.size()>=32)return false;
+    if(!host(actor)||(!editable()&&phase_!="playing")||peer.isEmpty()||peer.size()>128||name.trimmed().isEmpty()||name.size()>100||members_.size()>=lobbyLimits::MaxMembers)return false;
     if(members_.contains(peer))return false;
     const bool spectator=watch||phase_=="playing"||(!game_.id.isEmpty()&&!freeSeat());
     invites_.remove(peer);members_.insert(peer,{name.trimmed(),spectator?0:freeSeat(),false,false,true,spectator});

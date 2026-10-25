@@ -35,6 +35,49 @@ class LobbyTests final : public QObject {
         QVERIFY(l.claimSeat(peer,seat,l.generation()));QVERIFY(l.prepared(peer,l.generation(),true));
     }
 private slots:
+    void sixteenMembersIncludeOwnerPlayersAndSpectators_data() {
+        QTest::addColumn<QString>("access");
+        for(const auto& access:{"public","private","approval"})QTest::newRow(access)<<QString(access);
+    }
+    void sixteenMembersIncludeOwnerPlayersAndSpectators() {
+        QFETCH(QString,access);
+        LobbySession room;QVERIFY(room.create("1","Host",access));QVERIFY(room.selectGame("1",game()));
+        for(int i=2;i<=16;++i) {
+            const auto id=QString::number(i);
+            if(access=="approval")QVERIFY(room.approve("1",id,"Guest",i>2));
+            else {
+                if(access=="private")QVERIFY(room.invite("1",id,100));
+                QVERIFY(room.join(id,"Guest",1,i>2));
+            }
+        }
+        QCOMPARE(room.state()["members"].toArray().size(),16);
+        int spectators=0;for(const auto& m:room.state()["members"].toArray())if(m.toObject()["spectator"].toBool())++spectators;
+        QCOMPARE(spectators,14);
+        QVERIFY(room.invite("1","17",100));const auto full=room.state();
+        QVERIFY(!room.join("17","Extra player",1));QVERIFY(!room.join("17","Extra spectator",1,true));
+        QVERIFY(!room.approve("1","17","Extra player"));QVERIFY(!room.approve("1","17","Extra spectator",true));
+        QCOMPARE(room.state(),full);
+        QVERIFY(room.connected("2",false));QVERIFY(room.join("2","Guest",1));
+        QCOMPARE(room.state()["members"].toArray().size(),16);
+        QVERIFY(room.leave("16"));QVERIFY(room.join("17","Replacement spectator",1,true));
+        QCOMPARE(room.state()["members"].toArray().size(),16);
+    }
+    void oversizedStateCannotRestoreOrReplaceMembership() {
+        LobbySession room;QVERIFY(room.create("1","Host","public"));
+        for(int i=2;i<=16;++i)QVERIFY(room.join(QString::number(i),"Guest",1,true));
+        const auto valid=room.state();QVERIFY(LobbyRoomCoordinator::validState(valid,"1"));
+        LobbySession restored;QVERIFY(restored.restore(valid));QCOMPARE(restored.state()["members"].toArray().size(),16);
+        auto oversized=valid;auto members=valid["members"].toArray();auto extra=members.last().toObject();
+        extra["id"]="17";members.append(extra);oversized["members"]=members;
+        QVERIFY(!LobbyRoomCoordinator::validState(oversized,"1"));
+        LobbySession rejected;const auto before=rejected.state();QVERIFY(!rejected.restore(oversized));QCOMPARE(rejected.state(),before);
+        QTemporaryDir dir;const auto path=dir.filePath("room.json");
+        const auto bytes=QJsonDocument(QJsonObject{{"v",1},{"self","1"},{"state",oversized}}).toJson();
+        QFile file(path);QVERIFY(file.open(QIODevice::WriteOnly));QCOMPARE(file.write(bytes),qint64(bytes.size()));file.close();
+        LobbyRoomCoordinator recovery;recovery.configure("1","Host",false);recovery.setStorage(path);
+        QVERIFY(recovery.state().isEmpty());QVERIFY(recovery.recoveryUncertain());
+        QVERIFY(file.open(QIODevice::ReadOnly));QCOMPARE(file.readAll(),bytes);
+    }
     void returningPlayerKeepsPortWithoutOpeningAdmissionToStrangers() {
         LobbySession room;QVERIFY(room.create("1","Host","public"));QVERIFY(room.selectGame("1",game()));QVERIFY(room.join("2","Guest",1));
         prepare(room,"1",1);prepare(room,"2",2);QVERIFY(room.ready("1",room.generation(),true));QVERIFY(room.ready("2",room.generation(),true));
@@ -930,6 +973,11 @@ private slots:
             {"expires",200},{"status","choosing"},{"seats",0},{"available",0},{"access","public"},{"endpoint","private"}};
         QJsonObject message{{"author",QJsonObject{{"id",lobbyDirectory::bot}}},{"content",lobbyDirectory::encode(entry)}};
         const auto parsed=lobbyDirectory::listing(message,100);QCOMPARE(parsed["lobby"].toString(),id);QVERIFY(!parsed.contains("endpoint"));
+        entry["members"]=16;message["content"]=lobbyDirectory::encode(entry);
+        QCOMPARE(lobbyDirectory::listing(message,100)["members"].toInt(),16);
+        entry["members"]=17;message["content"]=lobbyDirectory::encode(entry);
+        QVERIFY(lobbyDirectory::listing(message,100).isEmpty());
+        entry["members"]=16;message["content"]=lobbyDirectory::encode(entry);
         QVERIFY(lobbyDirectory::listing(message,200).isEmpty());QVERIFY(lobbyDirectory::listing(message,-200).isEmpty());
         message["author"]=QJsonObject{{"id","123"}};QVERIFY(lobbyDirectory::listing(message,100).isEmpty());
         message["author"]=QJsonObject{{"id",lobbyDirectory::bot}};message["webhook_id"]="456";

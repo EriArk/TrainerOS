@@ -139,8 +139,17 @@ class Tests(unittest.TestCase):
     def test_scheduled_listing_validation(self):
         for values in ({'room': 'bad'}, {'title': 'x' * 81}, {'startsAt': True},
                        {'startsAt': -1}, {'startsAt': 4102444801},
-                       {'members': True}, {'members': -1}, {'members': 33}):
+                       {'members': True}, {'members': -1}, {'members': 17}, {'members': 33}):
             self.assertEqual(self.accept(**values), 'invalid')
+
+    def test_room_member_limit_preserves_last_valid_listing(self):
+        self.assertEqual(self.accept(members=16), 'accepted')
+        self.directory.reconcile(self.api, 100)
+        original = dict(self.api.messages)
+        self.assertEqual(self.accept(revision=2, members=17), 'invalid')
+        self.directory.reconcile(self.api, 100)
+        self.assertEqual(self.api.messages, original)
+        self.assertEqual(decode(next(iter(self.api.messages.values())))['members'], 16)
 
     def test_close_is_permanent_even_out_of_order(self):
         self.assertEqual(self.accept(op='close', revision=5), 'closed')

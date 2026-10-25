@@ -130,7 +130,7 @@ class Directory:
                 starts = command.get('startsAt', 0)
                 members = command.get('members', seats - available)
                 if (type(starts) is not int or not 0 <= starts <= 4102444800
-                        or type(members) is not int or not 0 <= members <= 32):
+                        or type(members) is not int or not 0 <= members <= 16):
                     return 'invalid'
                 payload.update(startsAt=starts, members=members)
                 if isinstance(avatar, str) and re.fullmatch(r'(?:a_)?[0-9a-f]{32}', avatar):
