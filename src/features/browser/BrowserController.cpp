@@ -174,6 +174,19 @@ void BrowserController::commitPageText(const QString& text) {
 }
 void BrowserController::pageKey(const QString& action) {
     if(!pageInput_||!validInputTarget()){stopPageInput();return;}
+    if(action=="period-space") {
+        // Only the active editor may replace its own preceding space. Never
+        // inspect hidden/URL/email/numeric fields or retain their surrounding text.
+        const int hints=QInputMethod::queryFocusObject(Qt::ImHints,{}).toInt();
+        if(!(hints&(Qt::ImhHiddenText|Qt::ImhSensitiveData|Qt::ImhUrlCharactersOnly|Qt::ImhEmailCharactersOnly|Qt::ImhDigitsOnly|Qt::ImhFormattedNumbersOnly|Qt::ImhDialableCharactersOnly))) {
+            const QString surrounding=QInputMethod::queryFocusObject(Qt::ImSurroundingText,{}).toString();
+            const int cursor=QInputMethod::queryFocusObject(Qt::ImCursorPosition,{}).toInt();
+            if(QInputMethod::queryFocusObject(Qt::ImCurrentSelection,{}).toString().isEmpty()&&cursor>=2&&cursor<=surrounding.size()&&surrounding[cursor-1]==' '&&surrounding[cursor-2].isLetterOrNumber()) {
+                QInputMethodEvent event;event.setCommitString(". ",-1,1);QCoreApplication::sendEvent(QGuiApplication::focusObject(),&event);return;
+            }
+        }
+        commitPageText(" ");return;
+    }
     static const QMap<QString,int> keys{{"backspace",Qt::Key_Backspace},{"left",Qt::Key_Left},
         {"right",Qt::Key_Right},{"enter",Qt::Key_Return},{"next",Qt::Key_Tab},
         {"paste",Qt::Key_V},{"select-all",Qt::Key_A},{"copy",Qt::Key_C},

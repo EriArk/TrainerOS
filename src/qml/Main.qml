@@ -403,7 +403,7 @@ Window {
                 if (shell.notice.length) return [h("A", shell.modeConfirmation ? "Continue" : "OK"), h("B","Cancel")]
                 if (shell.downloads.open) return [h("↑↓","Choose"),h("←→","Actions"),h("A","Select"),h("B","Close")]
                 if (shell.menuOpen) return shell.powerMenu ? [h("A","Select"),h("B","Back")] : [] // Controls owns its contextual hints.
-                if (shell.keyboard.open) return shell.keyboard.optionsOpen ? [h("↑↓","Group"),h("A","On / Off"),h("B","Back")] : [h("X","Case"),h("Y",shell.keyboard.nextLayout),h("A","Type"),h("Select",shell.keyboard.submitLabel),h("B",shell.keyboard.live ? "Hide" : shell.keyboard.submitLabel === "Send" ? "Keep draft" : "Cancel")]
+                if (shell.keyboard.open) return shell.keyboard.optionsOpen ? [h("↑↓","Option"),h("A",shell.keyboard.optionIndex===0?"Layout":"On / Off"),h("B","Back")] : [h("X","Case"),h("Y",shell.keyboard.nextLayout),h("A","Type"),h("Select",shell.keyboard.submitLabel),h("B",shell.keyboard.live ? "Hide" : shell.keyboard.submitLabel === "Send" ? "Keep draft" : "Cancel")]
                 if (shell.scraper.open) return shell.scraper.selectingSystems&&!shell.scraper.overview ? [h("↑↓","Systems"),h("←→","Actions"),h("A","Select"),h("B","Back")] : [h("A","Select"),h("B",shell.scraper.busy&&!shell.scraper.choosingMatch&&!shell.scraper.overview?"Stop":"Back")]
                 if (shell.libraryTools.open) {
                     if(shell.libraryTools.route==="reviews")return shell.libraryTools.reviewReportAvailable

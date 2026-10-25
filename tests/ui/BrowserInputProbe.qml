@@ -58,6 +58,7 @@ Window {
     }
     function ctrl(id) {tap("ctrl");tap(id)}
     Component.onCompleted: {
+        keyboard.setLayout("pc")
         shell.keyboard=keyboard
         browser.openUrl(probeUrl)
         engine.source=engineSource

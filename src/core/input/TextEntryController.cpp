@@ -15,11 +15,12 @@ void TextEntryController::configure(const QString& directory, const QString& own
     cancel();
     preferences_ = directory.isEmpty() ? QString() : QDir(directory).filePath("keyboard.ini");
     preferenceKey_ = owner.isEmpty() ? QString() : QString::fromLatin1(QCryptographicHash::hash(owner.toUtf8(),QCryptographicHash::Sha256).toHex()) + "/language";
-    language_ = "en";numberPad_=functionRow_=navigationBlock_=systemKeys_=true;
+    touchLayout_=true;language_ = "en";numberPad_=functionRow_=navigationBlock_=systemKeys_=true;
     if(!preferences_.isEmpty()&&!preferenceKey_.isEmpty()) {
         QSettings settings(preferences_,QSettings::IniFormat);
         if(settings.value(preferenceKey_).toString()=="ru")language_="ru";
         settings.beginGroup(preferenceKey_.section('/',0,0));
+        touchLayout_=settings.value("layout","touch").toString()!="pc";
         numberPad_=settings.value("number-pad",true).toBool();
         functionRow_=settings.value("function-row",true).toBool();
         navigationBlock_=settings.value("navigation-block",true).toBool();
@@ -29,6 +30,7 @@ void TextEntryController::configure(const QString& directory, const QString& own
 }
 void TextEntryController::rebuild() {
     keys_.clear();
+    if(touchLayout_){rebuildTouch();return;}
     const bool ru=language_=="ru";
     const QStringList rows=ru?QStringList{QString::fromUtf8("ЙЦУКЕНГШЩЗХЪ"),QString::fromUtf8("ФЫВАПРОЛДЖЭ"),QString::fromUtf8("ЯЧСМИТЬБЮ")}:QStringList{"QWERTYUIOP","ASDFGHJKL","ZXCVBNM"};
     const QStringList physical{"QWERTYUIOP[]","ASDFGHJKL;'","ZXCVBNM,."};
@@ -84,6 +86,68 @@ void TextEntryController::rebuild() {
     add("layout","Layout",-1,7,2,KeyKind::Options);add("paste","Paste",-1,9,2,KeyKind::Paste);add("symbols","Symbols",-1,11,2,KeyKind::Symbols);
     focus_=0;preferredColumn_=keys_.first().column+.5;preferredRow_=keys_.first().row;
 }
+void TextEntryController::rebuildTouch() {
+    const bool ru=language_=="ru";const qreal units=layoutUnits();int slot=0;
+    auto add=[&](QString id,QString text,int row,qreal column,qreal span,KeyKind kind,int code=0,int letter=-1){keys_.append({id,text,row,column,span,kind,false,letter,code});};
+    if(symbolPage_==0){
+        const QStringList rows=ru?QStringList{QString::fromUtf8("ЙЦУКЕНГШЩЗХ"),QString::fromUtf8("ФЫВАПРОЛДЖЭ"),QString::fromUtf8("ЯЧСМИТЬБЮ")}:QStringList{"QWERTYUIOP","ASDFGHJKL","ZXCVBNM"};
+        for(int row=0;row<3;++row){const qreal offset=(units-rows[row].size())/2;
+            for(int col=0;col<rows[row].size();++col){QString c(rows[row][col]);add(c,c,row,offset+col,1,KeyKind::Character,0,slot++);}}
+    }else if(symbolPage_==3){
+        // Keep the same emoji catalogue as the PC layout's alternate page.
+        for(int i=0;i<26;++i)add("emoji-"+QString::number(i),"",i/10,(i/10==2?2:0)+i%10,1,KeyKind::Character,0,i);
+    }else{
+        const QStringList rows=symbolPage_==1?QStringList{"1234567890",QString::fromUtf8("-/:;()$&@\""),".,?!'"}:QStringList{QString::fromUtf8("[]{}#%^*+="),QString::fromUtf8("_\\|~<>€£¥•"),".,?!'"};
+        for(int row=0;row<3;++row)for(int col=0;col<rows[row].size();++col){QString c(rows[row][col]);add(c,c,row,(10-rows[row].size())/2.0+col,1,KeyKind::Character);}
+    }
+    add("shift",symbolPage_==0?"⇧":symbolPage_==1?"#+=":"123",2,0,ru&&!symbolPage_?1:1.3,symbolPage_==0?KeyKind::Shift:KeyKind::Symbols);
+    add("delete","⌫",2,units-(ru&&!symbolPage_?1:1.3),ru&&!symbolPage_?1:1.3,KeyKind::Delete,Qt::Key_Backspace);
+    add("symbols",symbolPage_?"ABC":"123",3,0,1.4,symbolPage_?KeyKind::Letters:KeyKind::Symbols);
+    add("language",language_=="ru"?"РУС":"EN",3,1.4,1.1,KeyKind::Language);
+    add("space",language_=="ru"?"пробел":"space",3,2.5,units-5,KeyKind::Space,Qt::Key_Space);
+    add("apply",live_?"return":submitLabel_,3,units-2.5,2.5,KeyKind::Apply,Qt::Key_Return);
+    add("layout","Layout",-1,4,2,KeyKind::Options);add("paste","Paste",-1,6,2,KeyKind::Paste);
+    if(emoji_)add("emoji","☺",-1,8,2,KeyKind::Emoji);
+    focus_=0;preferredColumn_=keys_.first().column+.5;preferredRow_=keys_.first().row;
+}
+void TextEntryController::setLayout(const QString& layout) {
+    if(layout!="touch"&&layout!="pc")return;
+    touchLayout_=layout=="touch";symbolPage_=0;control_=alt_=meta_=false;spaceTap_.invalidate();optionIndex_=0;
+    if(!preferences_.isEmpty()&&!preferenceKey_.isEmpty()){QSettings settings(preferences_,QSettings::IniFormat);settings.setValue(preferenceKey_.section('/',0,0)+"/layout",layout);}
+    rebuild();emit layoutChanged();emit changed();
+}
+void TextEntryController::setSymbolPage(int page) {
+    symbolPage_=std::clamp(page,0,emoji_?3:2);spaceTap_.invalidate();
+    if(touchLayout_)rebuild();emit layoutChanged();emit changed();
+}
+QStringList TextEntryController::alternatives(int index) const {
+    if(!touchLayout_||index<0||index>=keys_.size())return {};
+    const auto key=keys_[index];if(key.kind!=KeyKind::Character||symbolPage_==3)return {};
+    static const QMap<QString,QString> variants{{"A","àáâäæãåā"},{"E","èéêëēėę"},{"I","ìíîïīį"},{"O","òóôöœõøō"},{"U","ùúûüū"},{"C","çćč"},{"N","ñń"},{"S","ßśš"},{"Y","ÿ"},{"Z","žźż"},{QString::fromUtf8("Е"),QString::fromUtf8("ё")},{QString::fromUtf8("Ь"),QString::fromUtf8("ъ")},{".","…"},{"-","–—"},{"'","‘’"},{"\"","“”«»"},{"$","€£¥₽"},{"0","°"}};
+    QStringList result;QString choices=variants.value(key.id);
+    if(shift_!=capsLock_)choices=choices.toUpper();
+    for(const auto c:choices)result.append(QString(c));return result;
+}
+void TextEntryController::typeAlternative(const QString& text) {
+    if(!open_||optionsOpen_)return;
+    insertText(text);shift_=false;spaceTap_.invalidate();updateAutomaticCase();emit layoutChanged();
+}
+void TextEntryController::activateShifted(int index) {shift_=!capsLock_;activate(index);}
+void TextEntryController::updateAutomaticCase() {
+    if(!touchLayout_||live_||secret_||capsLock_||submitLabel_=="Go")return;
+    const QString before=text_.left(std::min(anchor_,cursor_)).trimmed();
+    shift_=before.isEmpty()||QString(".!?\n").contains(before.back());
+}
+void TextEntryController::typeSpace() {
+    const bool twice=spaceTap_.isValid()&&spaceTap_.elapsed()<400;spaceTap_.invalidate();
+    if(touchLayout_&&twice&&!secret_&&submitLabel_!="Go"){
+        if(live_){emit keyRequested("period-space");return;}
+        if(anchor_==cursor_&&cursor_>=2&&text_[cursor_-1]==' '&&text_[cursor_-2].isLetterOrNumber()){
+            anchor_=cursor_-1;insertText(". ");updateAutomaticCase();return;
+        }
+    }
+    insertText(" ");spaceTap_.start();
+}
 void TextEntryController::cycleLanguage() {
     language_=language_=="en"?"ru":"en";
     if(!preferences_.isEmpty()&&!preferenceKey_.isEmpty()) {
@@ -101,7 +165,7 @@ void TextEntryController::toggleNumberPad() { toggleGroup("number-pad"); }
 void TextEntryController::toggleGroup(const QString& group) {
     bool* value=group=="number-pad"?&numberPad_:group=="function-row"?&functionRow_:group=="navigation-block"?&navigationBlock_:group=="system-keys"?&systemKeys_:nullptr;
     if(!value)return;*value=!*value;
-    optionIndex_=QStringList{"number-pad","function-row","navigation-block","system-keys"}.indexOf(group);
+    optionIndex_=1+QStringList{"number-pad","function-row","navigation-block","system-keys"}.indexOf(group);
     if(!systemKeys_)meta_=false;
     if(!preferences_.isEmpty()&&!preferenceKey_.isEmpty()) {
         QSettings settings(preferences_,QSettings::IniFormat);settings.setValue(preferenceKey_.section('/',0,0)+"/"+group,*value);
@@ -117,6 +181,7 @@ int TextEntryController::characterCount(const QString& text) {
 int TextEntryController::count() const { return characterCount(text_); }
 void TextEntryController::select(int anchor, int cursor) {
     if(!open_ || live_)return;
+    spaceTap_.invalidate();
     const auto boundary=[&](int value){
         QTextBoundaryFinder finder(QTextBoundaryFinder::Grapheme,text_);
         finder.setPosition(std::clamp(value,0,int(text_.size())));
@@ -127,6 +192,7 @@ void TextEntryController::select(int anchor, int cursor) {
 }
 void TextEntryController::moveCursor(int delta) {
     if(!open_)return;
+    spaceTap_.invalidate();
     if(live_){emit keyRequested(delta<0?"left":"right");return;}
     if(cursor_!=anchor_){const int edge=delta<0?std::min(cursor_,anchor_):std::max(cursor_,anchor_);select(edge,edge);return;}
     QTextBoundaryFinder finder(QTextBoundaryFinder::Grapheme,text_);finder.setPosition(cursor_);
@@ -148,21 +214,23 @@ void TextEntryController::insertText(const QString& text) {
     emit changed();
 }
 void TextEntryController::backspace() {
-    if(!open_)return;
+    if(!open_)return;spaceTap_.invalidate();
     if(live_){emit keyRequested("backspace");return;}
     if(cursor_==anchor_){
         QTextBoundaryFinder finder(QTextBoundaryFinder::Grapheme,text_);finder.setPosition(cursor_);
         const int previous=finder.toPreviousBoundary();if(previous<0)return;anchor_=previous;
     }
-    insertText({});
+    insertText({});updateAutomaticCase();emit layoutChanged();
 }
 void TextEntryController::paste() {
+    spaceTap_.invalidate();
     if(live_)emit keyRequested("paste");
     else insertText(QGuiApplication::clipboard()->text());
 }
 void TextEntryController::nativeAction(const QString& action) {if(open_&&live_)emit keyRequested(action);}
 void TextEntryController::shortcut(const QString& action) {
     if(!open_)return;
+    spaceTap_.invalidate();
     if(live_){emit keyRequested(action);return;}
     if(action=="select-all")select(0,text_.size());
     else if(action=="paste")paste();
@@ -183,6 +251,7 @@ void TextEntryController::shift(bool lock) {
     emit layoutChanged();
 }
 void TextEntryController::tapShift() {
+    if(touchLayout_&&capsLock_){capsLock_=shift_=false;shiftTap_.invalidate();emit layoutChanged();return;}
     const bool lock=shiftTap_.isValid()&&shiftTap_.elapsed()<350;
     shift(lock);if(!lock)shiftTap_.start();
 }
@@ -190,11 +259,14 @@ void TextEntryController::symbols() { dispatch(Action::ToggleContinue); }
 void TextEntryController::beginLive(int hints) {
     begin("Website",{},8192,hints&Qt::ImhHiddenText,"Enter",true);
     live_=true;shift_=capsLock_=false;
+    if(touchLayout_){symbolPage_=(hints&(Qt::ImhDigitsOnly|Qt::ImhFormattedNumbersOnly|Qt::ImhDialableCharactersOnly))?1:0;rebuild();}
 
     emit layoutChanged();emit changed();
 }
 QString TextEntryController::label(const Key& key) const {
-    if (key.kind == KeyKind::Apply) return "Enter";
+    if (key.kind == KeyKind::Apply) return touchLayout_?(live_?QString("return"):submitLabel_):QString("Enter");
+    if(touchLayout_&&key.kind==KeyKind::Shift)return capsLock_?QString::fromUtf8("⇪"):key.label;
+    if(touchLayout_&&(key.kind==KeyKind::Symbols||key.kind==KeyKind::Letters))return key.label;
     if (key.kind == KeyKind::Control) return control_ ? "Ctrl ●" : "Ctrl";
     if (key.kind == KeyKind::Symbols) return symbolPage_==0 ? "#+=" : symbolPage_==1 ? "~[]" : symbolPage_==2&&emoji_ ? "☺" : "ABC";
     if (control_ && key.kind == KeyKind::Character && !key.numeric) return key.id;
@@ -232,7 +304,7 @@ QVariantList TextEntryController::keys() const {
         result.append(QVariantMap{{"id", key.id}, {"label", label(key)}, {"visible", !label(key).isEmpty()}, {"row", key.row},
             {"column", key.column}, {"span", key.span}, {"height",key.height}, {"code",code(key)}, {"letter",key.slot>=0}, {"numeric", key.numeric},
             {"utility", key.kind!=KeyKind::Character&&key.kind!=KeyKind::Space},
-            {"latched", key.kind==KeyKind::Control?control_:key.kind==KeyKind::Shift?shift_:key.kind==KeyKind::Caps?capsLock_:key.kind==KeyKind::Alt?alt_:key.kind==KeyKind::Meta?meta_:key.kind==KeyKind::NumLock&&numLock_}});
+            {"latched", key.kind==KeyKind::Control?control_:key.kind==KeyKind::Shift?(shift_||(touchLayout_&&capsLock_)):key.kind==KeyKind::Caps?capsLock_:key.kind==KeyKind::Alt?alt_:key.kind==KeyKind::Meta?meta_:key.kind==KeyKind::NumLock&&numLock_}});
     }
     return result;
 }
@@ -246,8 +318,9 @@ void TextEntryController::begin(const QString& title, const QString& initial, in
     focus_ = 0;
     preferredColumn_ = keys_.first().column + 0.5;
     open_ = true;
-    secret_ = secret; shift_=!secret&&initial.isEmpty(); symbolPage_ = 0;preferredRow_=keys_.first().row;
-    submitLabel_ = submitLabel; emoji_ = emoji && !secret;
+    secret_ = secret; shift_=!secret&&initial.isEmpty()&&submitLabel!="Go"; symbolPage_ = 0;preferredRow_=keys_.first().row;
+    submitLabel_ = submitLabel; emoji_ = emoji && !secret;spaceTap_.invalidate();
+    if(touchLayout_)rebuild();
     emit layoutChanged();
     emit changed();
 }
@@ -310,7 +383,10 @@ void TextEntryController::activate(int index) {
     if(focus_!=index){focus_=index;preferredColumn_=keys_[index].column+keys_[index].span/2;preferredRow_=keys_[index].row;}
     const auto key=keys_[index];hint_.clear();
     if(key.kind==KeyKind::Options){toggleOptions();return;}
-    if(key.kind==KeyKind::Symbols){symbols();return;}
+    if(key.kind==KeyKind::Letters){setSymbolPage(0);return;}
+    if(key.kind==KeyKind::Language){cycleLanguage();return;}
+    if(key.kind==KeyKind::Emoji){setSymbolPage(symbolPage_==3?0:3);return;}
+    if(key.kind==KeyKind::Symbols){if(touchLayout_)setSymbolPage(symbolPage_==1?2:1);else symbols();return;}
     if(key.kind==KeyKind::Paste){paste();return;}
     if(key.kind==KeyKind::Shift){tapShift();return;}
     if(key.kind==KeyKind::Caps){capsLock_=!capsLock_;shift_=false;}
@@ -319,13 +395,16 @@ void TextEntryController::activate(int index) {
     else if(key.kind==KeyKind::Meta)meta_=!meta_;
     else if(key.kind==KeyKind::NumLock)numLock_=!numLock_;
     else {
+        if(key.kind!=KeyKind::Space)spaceTap_.invalidate();
         const int modifiers=(control_?Qt::ControlModifier:0)|(alt_?Qt::AltModifier:0)|(meta_?Qt::MetaModifier:0)|(shift_?Qt::ShiftModifier:0)|(key.numeric?Qt::KeypadModifier:0);
         const bool printable=(key.kind==KeyKind::Character||key.kind==KeyKind::Space)&&code(key)==key.code;
         const QString text=printable?(key.kind==KeyKind::Space?QString(" "):label(key)):key.kind==KeyKind::Apply?QString("\r"):QString();
-        if(printable&&!control_&&!alt_&&!meta_)insertText(text);
+        if(touchLayout_&&key.kind==KeyKind::Space)typeSpace();
+        else if(printable&&!control_&&!alt_&&!meta_)insertText(text);
         else if(live_&&key.kind==KeyKind::Apply&&!key.numeric&&!control_&&!alt_&&!meta_&&!shift_)emit keyRequested("enter");
         else pressKey(code(key),modifiers,text);
-        shift_=control_=alt_=meta_=false;shiftTap_.invalidate();
+        shift_=control_=alt_=meta_=false;shiftTap_.invalidate();updateAutomaticCase();
+        if(touchLayout_&&key.kind==KeyKind::Space&&symbolPage_){symbolPage_=0;rebuild();}
     }
     emit layoutChanged();emit changed();
 }
@@ -333,8 +412,8 @@ void TextEntryController::dispatch(Action action) {
     if (!open_) return;
     if(optionsOpen_) {
         if(action==Action::Back||action==Action::ContextMenu||action==Action::LocalAction)toggleOptions();
-        else if(action==Action::Up||action==Action::Down){optionIndex_=std::clamp(optionIndex_+(action==Action::Down?1:-1),0,3);emit changed();}
-        else if(action==Action::Confirm||action==Action::Left||action==Action::Right)toggleGroup(QStringList{"number-pad","function-row","navigation-block","system-keys"}[optionIndex_]);
+        else if(action==Action::Up||action==Action::Down){optionIndex_=std::clamp(optionIndex_+(action==Action::Down?1:-1),0,touchLayout_?0:4);emit changed();}
+        else if(action==Action::Confirm||action==Action::Left||action==Action::Right){if(!optionIndex_)setLayout(touchLayout_?"pc":"touch");else toggleGroup(QStringList{"number-pad","function-row","navigation-block","system-keys"}[optionIndex_-1]);}
         return;
     }
     if (action == Action::Back) cancel();
@@ -346,7 +425,7 @@ void TextEntryController::dispatch(Action action) {
     else if (action == Action::Confirm) activate(focus_);
     else if (action == Action::Secondary || action == Action::ToggleContinue) {
         if (action == Action::Secondary) { tapShift(); }
-        else symbolPage_ = (symbolPage_ + 1) % (emoji_ ? 4 : 3);
+        else {symbolPage_ = (symbolPage_ + 1) % (emoji_ ? 4 : 3);if(touchLayout_)rebuild();}
         if (label(keys_[focus_]).isEmpty()) { focus_ = 0; preferredColumn_ = keys_.first().column+.5;preferredRow_=keys_.first().row; }
         hint_.clear(); emit layoutChanged(); emit changed();
     }

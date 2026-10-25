@@ -33,6 +33,8 @@ class TextEntryController final : public QObject {
     Q_PROPERTY(qreal layoutUnits READ layoutUnits NOTIFY layoutChanged)
     Q_PROPERTY(bool optionsOpen READ optionsOpen NOTIFY changed)
     Q_PROPERTY(int optionIndex READ optionIndex NOTIFY changed)
+    Q_PROPERTY(bool touchLayout READ touchLayout NOTIFY layoutChanged)
+    Q_PROPERTY(int symbolPage READ symbolPage NOTIFY layoutChanged)
 public:
     explicit TextEntryController(QObject* parent = nullptr);
     void configure(const QString& directory, const QString& owner);
@@ -49,7 +51,14 @@ public:
     bool functionRow() const { return functionRow_; }
     bool navigationBlock() const { return navigationBlock_; }
     bool systemKeys() const { return systemKeys_; }
-    qreal layoutUnits() const { return 15+(navigationBlock_?3.5:0)+(numberPad_?4.5:0); }
+    qreal layoutUnits() const { return touchLayout_ ? (language_=="ru"&&!symbolPage_?11:10) : 15+(navigationBlock_?3.5:0)+(numberPad_?4.5:0); }
+    bool touchLayout() const { return touchLayout_; }
+    int symbolPage() const { return symbolPage_; }
+    Q_INVOKABLE void setLayout(const QString& layout);
+    Q_INVOKABLE void setSymbolPage(int page);
+    Q_INVOKABLE QStringList alternatives(int index) const;
+    Q_INVOKABLE void typeAlternative(const QString& text);
+    Q_INVOKABLE void activateShifted(int index);
     bool optionsOpen() const { return optionsOpen_; }
     int optionIndex() const { return optionIndex_; }
     Q_INVOKABLE void toggleOptions();
@@ -90,7 +99,7 @@ signals:
     void keyRequested(QString action);
     void keyStroke(int key, int modifiers, QString text);
 private:
-    enum class KeyKind { Character, Delete, Space, Apply, Shift, Caps, Control, Alt, Meta, NumLock, Native, Symbols, Paste, Options };
+    enum class KeyKind { Character, Delete, Space, Apply, Shift, Caps, Control, Alt, Meta, NumLock, Native, Symbols, Letters, Language, Emoji, Paste, Options };
     struct Key {
         QString id;
         QString label;
@@ -105,6 +114,9 @@ private:
         int height = 1;
     };
     void rebuild();
+    void rebuildTouch();
+    void updateAutomaticCase();
+    void typeSpace();
     void tapShift();
     void move(Action);
     QString language_ = "en", preferences_, preferenceKey_;
@@ -115,9 +127,11 @@ private:
     bool live_ = false, shift_ = false, capsLock_ = false, numLock_ = true;
     bool control_ = false, alt_ = false, meta_ = false;
     bool numberPad_ = true, optionsOpen_ = false;
+    bool touchLayout_ = true;
     bool functionRow_ = true, navigationBlock_ = true, systemKeys_ = true;
     int optionIndex_ = 0;
     QElapsedTimer shiftTap_;
+    QElapsedTimer spaceTap_;
     struct Edit { QString text; int anchor; int cursor; };
     QList<Edit> undo_, redo_;
     int cursor_ = 0, anchor_ = 0;

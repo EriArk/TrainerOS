@@ -13,9 +13,23 @@
 #include <QElapsedTimer>
 #include <QDebug>
 #include <QTemporaryDir>
+#include <QMouseEvent>
+#include <QQuickItem>
 #include "core/input/TextEntryController.h"
 #include "core/input/ControllerInput.h"
 #include "platform/files/FilesService.h"
+class KeyboardPointerProbe final : public QObject {
+    Q_OBJECT
+public:
+    using QObject::QObject;
+    Q_INVOKABLE void pointer(QObject* object,qreal x,qreal y,int phase) {
+        auto* item=qobject_cast<QQuickItem*>(object);if(!item||!item->window())return;
+        const auto point=item->mapToScene(QPointF(x,y));
+        const auto type=phase==1?QEvent::MouseButtonPress:phase==2?QEvent::MouseButtonRelease:QEvent::MouseMove;
+        QMouseEvent event(type,point,item->window()->mapToGlobal(point.toPoint()),phase?Qt::LeftButton:Qt::NoButton,phase==2?Qt::NoButton:Qt::LeftButton,Qt::NoModifier);
+        QCoreApplication::sendEvent(item->window(),&event);
+    }
+};
 int main(int argc,char** argv){
     QCoreApplication::setAttribute(Qt::AA_ShareOpenGLContexts);
     QtWebEngineQuick::initialize();QGuiApplication app(argc,argv);
@@ -26,6 +40,8 @@ int main(int argc,char** argv){
     engine.rootContext()->setContextProperty("probeUrl",qEnvironmentVariable("PROBE_URL"));
     engine.rootContext()->setContextProperty("probeData",qEnvironmentVariable("PROBE_DATA"));
     if(qEnvironmentVariable("PROBE_MODE")=="input") {
+        KeyboardPointerProbe pointer;
+        engine.rootContext()->setContextProperty("pointerProbe",&pointer);
         trainer::TextEntryController keyboard;
         trainer::ControllerInput input;app.installEventFilter(&input);
         QObject::connect(&browser,&trainer::BrowserController::pageInputRequested,&keyboard,&trainer::TextEntryController::beginLive);
@@ -143,3 +159,5 @@ Window {
     QTimer::singleShot(25000,&app,[&]{QFile f(qEnvironmentVariable("PROBE_DATA")+"/jobs.json");if(f.open(QIODevice::WriteOnly))f.write(QJsonDocument::fromVariant(browser.downloads()).toJson());qobject_cast<QQuickWindow*>(engine.rootObjects().first())->grabWindow().save(qEnvironmentVariable("PROBE_DATA")+"/probe.png");app.quit();});
     return app.exec();
 }
+
+#include "BrowserRuntimeProbe.moc"

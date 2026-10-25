@@ -224,7 +224,6 @@ ShellController::ShellController(LibraryRepository& repo, TrainerRepository& pro
     connect(&keyboard_, &TextEntryController::changed,this,[this]{if(!keyboard_.isOpen())browser_.stopPageInput();});
     connect(&browser_, &BrowserController::textRequested, this, [this](QString title,QString text,int limit,bool secret){
         textTarget_=TextTarget::Browser;keyboard_.begin(title,text,limit,secret,"Go");
-        if(text.isEmpty()&&!secret)keyboard_.shift();
         keyboard_.select(0,text.size());
     });
     connect(&browser_, &BrowserController::downloadsChanged, this, [this]{downloads_.publish("browser",browser_.downloads());});
