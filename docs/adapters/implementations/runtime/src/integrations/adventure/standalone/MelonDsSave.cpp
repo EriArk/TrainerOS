@@ -65,7 +65,7 @@ std::optional<QString> saveDirectory(const QByteArray& bytes) {
 bool supportsMelonDsSave(const AdventureRegistration& record, const StandaloneInstallation& installation) {
     return installation.melonDsSaveBackups && installation.platforms.contains("nds")
         && record.adventure.adapterId == "melonds" && record.adventure.platformId == "nds"
-        && !record.adventure.collectionOnly && QFileInfo(record.contentPath).suffix().compare("nds", Qt::CaseInsensitive) == 0;
+        && !record.adventure.collectionOnly && QStringList{"nds","srl"}.contains(QFileInfo(record.contentPath).suffix().toLower());
 }
 SaveTarget resolveMelonDsSave(const AdventureRegistration& record, const StandaloneInstallation& installation) {
     SaveTarget target; target.adventureId = record.adventure.id; target.title = record.adventure.title;

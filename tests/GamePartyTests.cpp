@@ -344,6 +344,23 @@ private slots:
         QVERIFY(!permitsMultiplayer({{"players","1-8"}},{}));
         QCOMPARE(gamePlayers({{"players","2-3000"}}).maximum,3000); // Does not become party capacity.
     }
+    void localSoloMetadataDoesNotHideIndependentMachines() {
+        const QVariantMap solo{{"players","1"}};
+        for(const auto& id:QStringList{"runtime.ppsspp.adhoc.v1","runtime.ppsspp.lumines-eu.v1",
+            "runtime.melonds.nds.v1","runtime.azahar.3ds.v1","runtime.vita3k.lan.v1",
+            "runtime.armsx2.lan.v1","runtime.dolphin.bba.v1"}) {
+            const QJsonObject profile{{"id",id},{"players",2}};
+            QVERIFY2(permitsMultiplayer(solo,profile),qPrintable(id));
+            QCOMPARE(profile["players"].toInt(),2);
+        }
+        for(const auto& settings:QStringList{"mgba-linked-party-v2","sameboy-linked-pair-battery-v1","dcgb-linked-pair-volatile-v1"})
+            QVERIFY(permitsMultiplayer(solo,{{"id","runtime.retroarch.link.v1"},{"transport","rollback"},{"settings",settings}}));
+        QVERIFY(permitsMultiplayer(solo,{{"id","runtime.handheld.gb-gen1-en.v1"},{"transport","netpacket"}}));
+        for(const auto& id:QStringList{"runtime.dolphin.gc.v1","runtime.dolphin.wii.v1","runtime.rmg.n64.v1",
+            "runtime.flycast-dojo.dc.v1","runtime.retroarch.psx.pcsx_rearmed.v1","runtime.future.v1"})
+            QVERIFY2(!permitsMultiplayer(solo,{{"id",id}}),qPrintable(id));
+        QVERIFY(!permitsMultiplayer(solo,{}));
+    }
     void soloMetadataExcludesInvitesReverseJoinAndCompanyAdmission() {
         Room r;
         const auto configure=[&](GameParty& node,const QVariantMap& metadata,bool current) {

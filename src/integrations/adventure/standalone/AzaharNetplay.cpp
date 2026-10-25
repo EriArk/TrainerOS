@@ -64,7 +64,7 @@ QJsonObject netplayIdentity(const AdventureRegistration& record,const std::atomi
     // CIA installations, encrypted/compressed images and remote Artic Base
     // require separate identity/data preparation. Filename/title never matches.
     if(!((suffix=="3dsx"&&header.startsWith("3DSX"))||
-         (suffix=="cci"&&header.mid(256,4)=="NCSD")||(suffix=="cxi"&&header.mid(256,4)=="NCCH")))return {};
+         ((suffix=="cci"||suffix=="3ds")&&header.mid(256,4)=="NCSD")||(suffix=="cxi"&&header.mid(256,4)=="NCCH")))return {};
     const auto installed=bundle(cancel);if(installed.isEmpty())return {};
     const auto content=digest(record.contentPath,cancel,8LL*1024*1024*1024);if(content.isEmpty())return {};
     return {{"id","runtime.azahar.3ds.v1"},{"label",record.adventure.title.left(96)},

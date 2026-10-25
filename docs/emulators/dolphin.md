@@ -34,9 +34,11 @@ Online — существующий signaling и публичный STUN. Сло
 для конкретной LAN-игры задержка через интернет этим не гарантируются.
 
 S03 `DolphinLan` проверяет хеши runtime/tool/helper и заголовок диска через
-проверенный `dolphin-tool header -j`. Доступны ISO/GCM/RVZ/WIA/GCZ для восьми
-изданий: Mario Kart Double Dash GM4E01/GM4J01/GM4P01, Kirby Air Ride
-GKYE01/GKYJ01/GKYP01, 1080 Avalanche GTEE01/GTEP01. Идентификаторы сверены с
+проверенный `dolphin-tool header -j`. Доступны ISO/GCM/RVZ/WIA/GCZ/CISO для
+семейств Mario Kart Double Dash GM4, Kirby Air Ride GKY, 1080 Avalanche GTE.
+Первоначальные восемь disc ID заменены 25 октября семейным правилом: регион и
+ревизия не ограничивают доступность; полный образ между участниками должен
+совпадать. Исходные идентификаторы сверены с
 [GM4](https://github.com/dolphin-emu/dolphin/blob/c77bbaa0f372c3f72281602a8b087206706542cb/Data/Sys/GameSettings/GM4.ini),
 [GKY](https://github.com/dolphin-emu/dolphin/blob/c77bbaa0f372c3f72281602a8b087206706542cb/Data/Sys/GameSettings/GKY.ini),
 [GTEE01](https://github.com/dolphin-emu/dolphin/blob/c77bbaa0f372c3f72281602a8b087206706542cb/Data/Sys/GameSettings/GTEE01.ini),
@@ -45,6 +47,13 @@ GKYE01/GKYJ01/GKYP01, 1080 Avalanche GTEE01/GTEP01. Идентификаторы
 назначение режимов. Это доступность, не результаты матчей. Сравниваются полные
 образы и runtime: разные контейнеры одного диска пока не считаются одинаковым
 содержимым. PSO/Homeland и серверный Online не включены.
+
+Обычный GameCube/Wii **NetPlay не ограничен этими тремя LAN-играми**. Аудит
+25 октября дополнительно снял исключение GC RVZ/WIA/GCZ/CISO и Wii CISO/GCM:
+родной reader проверяет платформу, runtime/tool проверяются по manifest.
+Raw ISO/GCM GameCube сохраняет путь без обязательного dolphin-tool. Библиотека,
+регистрация и запуск согласованы по форматам; временные карты памяти не изменены.
+[Общий аудит](../EMULATOR_MULTIPLAYER_MATRIX.md#аудит-доступности-игр-в-lobby--25-октября-2026).
 
 ### Сохранения и завершение
 

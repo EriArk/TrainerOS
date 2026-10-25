@@ -1,5 +1,69 @@
 # Мультиплеер — механизмы и подтверждённые границы
 
+## Аудит доступности игр в Lobby — 25 октября 2026
+
+Проверена цепочка S02 библиотека → S03 runtime/profile → S06 выбор и запуск.
+Портативки недоступны: изменения исходников, не поставка. Количество ранее
+проверенных игр не задаёт разрешённый список обычного NetPlay. В сканере и
+picker нет лимита числа игр; четыре предложения ограничивают голосование,
+не каталог. Большие библиотеки появляются постепенно по мере идентификации.
+
+**Исправлено:** локальные метаданные «1 игрок» больше не скрывают самостоятельные
+Link/wireless/LAN машины. Shared-console NetPlay сохраняет отсев однозначно
+одиночных игр; неизвестные метаданные не равны single-player. Каталог не создаёт
+runtime и не увеличивает число мест. Полные файлы, runtime, firmware и настройки
+между участниками продолжают сравниваться; Start остаётся ручным.
+
+| Семейство | Допуск и устранённые ограничения | Оставшаяся техническая граница |
+| --- | --- | --- |
+| Классические RetroArch | Общие профили NES/FDS/SNES, SG-1000/SMS/MD/Sega CD/32X, PCE/PCE CD/SuperGrafx, Atari 2600, FBNeo/Neo Geo/MAME. Старые exact-хеши — специальные совместимые профили, после них есть общий путь | Установленные core/firmware, determinism, реальные порты; CUE/arcade сравниваются с зависимыми файлами |
+| GB/GBC/GBA | Общие linked-профили по аппаратным данным ROM; solo-фильтр исправлен также для SameBoy/DoubleCherryGB/mGBA rollback | Архивы не разбираются как cartridge header; RTC/особые mapper/save layouts и RFU зависят от core. Сохранено отрицательное exact-исключение отказавшего Hnefatafl |
+| PS1 | Общий PCSX-ReARMed, CUE с дорожками и CHD, без списка названий | PBP/M3U/ISO, CCD/TOC/MDS требуют полной сетевой идентификации/подготовки |
+| PS2 | Все 56 строк LAN-каталога / 164 serial, одиночный CRC-допуск уже снят; исправлен solo-фильтр | ISO/CHD, SYSTEM.CNF/ELF и DEV9-пакет. Каталог обозначает наличие LAN, не только проверенные матчи |
+| PSP | Общий Ad Hoc для PSP ISO/PARAM.SFO, без списка названий; исправлен solo-фильтр | CSO/PBP/CHD пока не имеют сетевого disc-ID reader, хотя могут открываться solo |
+| N64 | Общий RMG, все три порядка байт ROM, без списка названий | ZIP/7z не распаковываются для сетевой идентификации; до 64 MiB, установленные плагины/endpoint |
+| Dreamcast | Общий Flycast Dojo для CHD v5, без списка названий | GDI/CDI/M3U требуют подготовки/идентичности зависимых файлов; native game-server Online отдельно |
+| GameCube/Wii NetPlay | Общий Dolphin, без списка названий. GC получил RVZ/WIA/GCZ/CISO, Wii CISO/GCM; WIA добавлен в библиотеку/регистрацию; запуск согласован | Сжатые образы и консоль проверяет `dolphin-tool`; Wii требует Wiimote runtime. WAD/NAND и native Wii Online не реализованы этим изменением |
+| GameCube BBA | Семейства GM4/GKY/GTE без allowlist регионов/ревизий; добавлен CISO | Встроенный LAN Mario Kart Double Dash/Kirby Air Ride/1080, а не ограничение общего NetPlay. PSO/Homeland и серверные режимы не подготовлены |
+| DS | Общий melonDS, NDS и добавленный SRL; alias проходит запуск и защиту сейвов; исправлен solo-фильтр | Архивы/DSi/WFC не становятся обычным DS wireless |
+| 3DS | Общий Azahar, 3DSX/CCI/CXI и добавленный `.3ds`, с проверкой заголовка; исправлен solo-фильтр | CIA/compressed/encrypted images, отдельная идентичность updates/DLC и серверные механизмы требуют подготовки |
+| Vita | Исправлен solo-фильтр действующего vitaQuake LAN | Exact EBOOT/extraContent нужны специальному native-IP профилю; общий commercial AdHoc/PSN не реализован |
+| Wii U / Xbox / прочие несвязанные механизмы | В этом admission pipeline общего сетевого профиля нет | Реальные незавершённые runtime-интеграции R046/R048/R049, не ограничение числа игр |
+
+Dolphin использует [штатный Blob reader](https://github.com/dolphin-emu/dolphin/blob/c77bbaa0f372c3f72281602a8b087206706542cb/Source/Core/DiscIO/Blob.cpp).
+Azahar вернул `.3ds` в [2124.3](https://github.com/azahar-emu/azahar/discussions/1702),
+раньше используемой 2126.2. [Warp Pipe](https://cubeonline.warppipe.com/gettingstarted/what_is_warp_pipe.php)
+перечисляет исходные LAN-игры GameCube. Разные контейнеры одного диска пока не
+считаются одним содержимым. Следующее расширение — недостающие контейнеры через
+существующие readers и незавершённые механизмы, без разрешения каждой игры вручную.
+
+### Проверки этого изменения
+
+- Собрана Windows-оболочка и профильные тесты. `standalone`: 48 passed,
+  6 platform skips; `game_party`, `save_backups`, полный `runtime_multiplayer`
+  (122,84 с) прошли. Новый сквозной случай проверяет публикацию wireless/LAN
+  при local-solo metadata, сохранение фильтра shared-console и обновление picker.
+- Обнаружение всех добавленных форматов и существующие два сценария picker
+  (включая 120 игр, обновление/переименование/удаление) прошли.
+- Два новых admission-случая DS SRL/3DS `.3ds` с реальными production-функциями
+  скомпилированы для Linux ARM64 и прошли под QEMU/Qt 6.11.2. Windows не
+  интерпретирует Unix executable-пути этих пакетов, поэтому эти случаи там skipped.
+- Настоящий собранный ARM64 `dolphin-tool` преобразовал собственный синтетический
+  ISO в RVZ/WIA/GCZ и прочитал их заголовки; также прочитал синтетический CISO.
+  ROM/BIOS игр не использовались. Устройств/игрового матча эти проверки не заменяют.
+- `export-game-adapters.py`, `check-adapter-knowledge.py` и `git diff --check`
+  пройдены.
+
+Полный `LibraryTests` дополнительно выявил три сбоя вне изменённых функций:
+`contextualMenuUsesWheelSelectionAndTrapsInput` (ожидание Settings),
+`contextualEditsDeleteRomAndPreserveIdentity` (World editing выключен),
+`settingsAreCommittedAndRetryable` (ожидание старой темы turquoise вместо light).
+Они не исправлены в этом multiplayer-проходе; весь suite не объявляется зелёным.
+Новая проверка обнаружения файлов прошла отдельно. Обновлённая ARM64-оболочка
+и установка на портативки не выполнены.
+
+## Ранее сохранённые доказательства
+
 Сводка записей репозитория на 18 октября 2026, **не новый прогон устройств**.
 С 21 октября глобальная очередь снята; состояние функций — в
 [карте готовности](FEATURE_READINESS.md). Датированные доказательства ниже сохранены.

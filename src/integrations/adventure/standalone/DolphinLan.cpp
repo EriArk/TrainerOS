@@ -29,13 +29,13 @@ bool write(const QString& path,const QByteArray& bytes) {
 }
 QString bundleRoot(){return QStandardPaths::writableLocation(QStandardPaths::GenericDataLocation)+"/TrainerOS/emulators/dolphin-lan";}
 bool supportedDisc(const QString& id) {
-    // Disc IDs, not filenames; actual full content must still match on both peers.
-    static const QStringList ids{"GM4E01","GM4P01","GM4J01","GKYE01","GKYP01","GKYJ01","GTEE01","GTEP01"};
-    return ids.contains(id);
+    // Native LAN families, independent of region/revision. These are not a
+    // NetPlay allowlist. Full content must still match on both peers.
+    return QRegularExpression("^(GM4|GKY|GTE)[A-Z0-9]01$").match(id).hasMatch();
 }
 QJsonObject netplayIdentity(const AdventureRegistration& r,const StandaloneInstallation& i,const std::atomic_bool& cancel) {
     if(cancel||r.adventure.collectionOnly||r.adventure.platformId!="gc"||r.adventure.adapterId!="dolphin"||!i.platforms.contains("gc")
-       ||!QStringList{"iso","gcm","rvz","wia","gcz"}.contains(QFileInfo(r.contentPath).suffix().toLower()))return {};
+       ||!QStringList{"iso","gcm","rvz","wia","gcz","ciso"}.contains(QFileInfo(r.contentPath).suffix().toLower()))return {};
     const auto m=manifest(dolphin::bridgeRoot()+"/manifest.json"),lan=manifest(bundleRoot()+"/manifest.json");
     const auto helper=bundleRoot()+"/stream_transport",tool=dolphin::bridgeRoot()+"/bin/dolphin-tool";
     if(m["protocol"]!=1||m["source"]!=Revision||m["bba"]!="tapserver-eof-v1"||lan["protocol"]!=1||lan["settings"]!=Settings

@@ -52,7 +52,7 @@ QJsonObject bundle(const std::atomic_bool& cancel) {
 }
 QJsonObject netplayIdentity(const AdventureRegistration& record,const std::atomic_bool& cancel) {
     if(record.adventure.platformId!="nds"||record.adventure.adapterId!="melonds"||record.adventure.collectionOnly
-       ||QFileInfo(record.contentPath).suffix().toLower()!="nds"||QFileInfo(record.contentPath).size()<512)return {};
+       ||!QStringList{"nds","srl"}.contains(QFileInfo(record.contentPath).suffix().toLower())||QFileInfo(record.contentPath).size()<512)return {};
     const auto installed=bundle(cancel);if(installed.isEmpty())return {};
     const auto content=digest(record.contentPath,cancel,512LL*1024*1024);if(content.isEmpty())return {};
     return {{"id","runtime.melonds.nds.v1"},{"label",record.adventure.title.left(96)},

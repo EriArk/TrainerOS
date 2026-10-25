@@ -70,6 +70,20 @@ private slots:
         QVERIFY(folders.libraryRevision()!=before);before=folders.libraryRevision();
         QVERIFY(folders.setRoot(dir.filePath("other")));QVERIFY(folders.libraryRevision()!=before);
     }
+    void multiplayerDiscFormatsAreDiscoveredWithoutTitleLists() {
+        QTemporaryDir dir;
+        const QStringList files{"gc/Unlisted.wia","gc/Unlisted.rvz","gc/Unlisted.gcz","gc/Unlisted.ciso",
+            "wii/Unlisted.wia","wii/Unlisted.ciso","wii/Unlisted.gcm","nds/Unlisted.srl","n3ds/Unlisted.3ds"};
+        for(const auto& name:files){QVERIFY(QDir().mkpath(QFileInfo(dir.filePath(name)).absolutePath()));fixtureFile(dir.filePath(name));}
+        const auto scan=scanBatoceraLibrary(dir.path(),{});
+        QCOMPARE(scan.entries.size(),files.size());
+        for(const auto& name:files) {
+            bool found=false;for(const auto& entry:scan.entries)if(entry.record.contentPath==dir.filePath(name)){
+                QCOMPARE(entry.record.adventure.platformId,name.section('/',0,0));found=true;
+            }
+            QVERIFY2(found,qPrintable(name));
+        }
+    }
     void vitaInstalledLinksAreGamesButNativeUserFilesAreNot() {
         QTemporaryDir dir;QVERIFY(QDir().mkpath(dir.filePath("psvita")));
         {QFile link(dir.filePath("psvita/Example.psvita"));QVERIFY(link.open(QIODevice::WriteOnly));link.write("QUAK00001\n");}

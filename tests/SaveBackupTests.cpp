@@ -296,10 +296,15 @@ private slots:
         QLockFile lock(QDir(f.root).filePath("service.lock"));QVERIFY(lock.tryLock(0));
         QVERIFY(!healSaveParty(f.root,f.record,fresh,f.resolve,healer).success);QCOMPARE(read(f.path),"NEW SAVE");
     }
+    void melonDsSaveRequiresVerifiedSingleInstanceLayout_data() {
+        QTest::addColumn<QString>("extension");
+        QTest::newRow("nds")<<QString("nds");QTest::newRow("srl")<<QString("srl");
+    }
     void melonDsSaveRequiresVerifiedSingleInstanceLayout() {
+        QFETCH(QString,extension);
         QTemporaryDir dir; AdventureRegistration record;
         record.adventure.id = "ds-fixture"; record.adventure.adapterId = "melonds"; record.adventure.platformId = "nds";
-        record.contentPath = dir.filePath("roms/original.v2.nds"); write(record.contentPath, "ORIGINAL DS FIXTURE");
+        record.contentPath = dir.filePath("roms/original.v2."+extension); write(record.contentPath, "ORIGINAL DS FIXTURE");
         StandaloneInstallation installation;
         installation.program = QCoreApplication::applicationFilePath(); installation.runtimeFile = dir.filePath("runtime");
         installation.configFile = dir.filePath("melonDS.toml"); installation.platforms = {"nds"}; installation.melonDsSaveBackups = true;

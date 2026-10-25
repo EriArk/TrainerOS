@@ -22,20 +22,23 @@ QJsonObject netplayIdentity(const AdventureRegistration& r,const StandaloneInsta
     if((!wii&&r.adventure.platformId!="gc")||r.adventure.adapterId!="dolphin"||!i.platforms.contains(r.adventure.platformId))return {};
     if(players<2||players>4)return {};
     const auto extension=QFileInfo(r.contentPath).suffix().toLower();
-    if(wii ? (extension!="iso"&&extension!="rvz"&&extension!="wbfs"&&extension!="wia"&&extension!="gcz") : (extension!="iso"&&extension!="gcm"))return {};
+    const bool raw=extension=="iso"||extension=="gcm";
+    if(!raw&&!QStringList{"rvz","wia","gcz","ciso"}.contains(extension)&&!(wii&&extension=="wbfs"))return {};
     const qint64 maxSize=wii?9LL*1024*1024*1024:1500LL*1024*1024;
     QFile file(r.contentPath);
     if(!file.open(QIODevice::ReadOnly)||file.size()<0x20||file.size()>maxSize)return {};
     const auto header=file.read(0x20);
-    if(!wii&&header.mid(0x1c,4)!=QByteArray::fromHex("c2339f3d"))return {}; // Raw GameCube disc, not Wii or an archive.
+    if(!wii&&raw&&header.mid(0x1c,4)!=QByteArray::fromHex("c2339f3d"))return {};
     QFile manifest(bridgeRoot()+"/manifest.json");
     if(!manifest.open(QIODevice::ReadOnly)||manifest.size()>8192)return {};
     const auto m=QJsonDocument::fromJson(manifest.readAll()).object();
     if(m["protocol"]!=1||m["source"]!="c77bbaa0f372c3f72281602a8b087206706542cb")return {};
     const auto runtime=retroarch::fileDigest(bridgeFile(),256*1024*1024,cancel);
     if(runtime.isEmpty()||runtime!=m["sha256"].toString())return {};
-    if(wii) {
-        if(m["wiimote"]!="dolphin-wiimote-v1")return {};
+    if(wii&&m["wiimote"]!="dolphin-wiimote-v1")return {};
+    if(wii||!raw) {
+        // Use Dolphin's own volume reader for compressed discs. Extensions do
+        // not establish the console type; preserve legacy raw-GC installations.
         const auto tool=bridgeRoot()+"/bin/dolphin-tool";
         const auto toolHash=retroarch::fileDigest(tool,128*1024*1024,cancel);
         if(toolHash.isEmpty()||toolHash!=m["toolSha256"].toString())return {};
@@ -50,7 +53,7 @@ QJsonObject netplayIdentity(const AdventureRegistration& r,const StandaloneInsta
         }
         const auto output=probe.readAllStandardOutput();
         if(cancel||probe.exitStatus()!=QProcess::NormalExit||probe.exitCode()!=0||output.size()>8192||
-           QJsonDocument::fromJson(output).object()["platform"]!="wii")return {};
+           QJsonDocument::fromJson(output).object()["platform"]!=r.adventure.platformId)return {};
     }
     const auto content=retroarch::fileDigest(r.contentPath,maxSize,cancel);
     if(content.isEmpty())return {};

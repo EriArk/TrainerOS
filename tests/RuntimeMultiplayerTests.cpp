@@ -23,6 +23,8 @@ class RuntimeMultiplayerTests final : public QObject {
     struct Library final : LibraryRepository {
         std::function<void()> inspect;
         QList<AdventureRegistration> records;
+        QMap<QString,QVariantMap> metadata;
+        QVariantMap artwork(const QString& id) const override {return metadata.value(id);}
         int writes=0;
         bool editable() const override {return true;}
         void saveAdventureAsync(const AdventureRegistration& r,QObject*,std::function<void(LibraryWriteResult)> done) override {++writes;records.append(r);done({true,{}});}
@@ -447,6 +449,28 @@ private slots:
         finishOrdinary(f);QCOMPARE(f.runtime.invitationId(),invitation);QVERIFY(f.runtime.invitationBadge());
         host.leave();QVERIFY(f.runtime.invitationId().isEmpty());QVERIFY(!f.runtime.invitationBadge());
         f.runtime.openInvitation(invitation);QVERIFY(f.social.face()!="lobby");
+    }
+    void localPlayerCountsFilterSharedConsoleButKeepWirelessAndLanInLobby() {
+        Fixture f;
+        const QMap<QString,QString> modes{{"psp","runtime.ppsspp.adhoc.v1"},{"nds","runtime.melonds.nds.v1"},
+            {"n3ds","runtime.azahar.3ds.v1"},{"ps2","runtime.armsx2.lan.v1"},{"psvita","runtime.vita3k.lan.v1"},
+            {"gc","runtime.dolphin.gc.v1"},{"nes","runtime.retroarch.nes.fceumm.v1"}};
+        for(auto it=modes.cbegin();it!=modes.cend();++it){
+            AdventureRegistration record;record.adventure.id=it.key();record.adventure.platformId=it.key();
+            record.adventure.title=it.key();record.contentAvailable=true;f.library.records.append(record);
+            f.library.metadata[it.key()]={{"players","1"}};
+        }
+        f.runtime.refresh({},"test-trainer",true);QTRY_VERIFY(!f.runtime.scan_.isRunning());
+        for(auto it=modes.cbegin();it!=modes.cend();++it)
+            f.runtime.profiles_[it.key()]={{"id",it.value()},{"content",it.key()},{"players",2}};
+        f.runtime.lanProfiles_["gc"]={{"id","runtime.dolphin.bba.v1"},{"content","gc"},{"players",2}};
+        f.runtime.refresh({},"test-trainer",true);
+        QCOMPARE(f.runtime.availableGames().size(),6);
+        QVERIFY(!f.runtime.games_.contains("gc"));QVERIFY(!f.runtime.games_.contains("nes"));
+        QVERIFY(f.runtime.lanGames_.contains("gc"));
+        QCOMPARE(f.social.lobbyPickerRows().size(),6);
+        f.library.metadata["nes"]["players"]="unknown";f.runtime.refresh({},"test-trainer",true);
+        QVERIFY(f.runtime.games_.contains("nes"));QCOMPARE(f.social.lobbyPickerRows().size(),7);
     }
     void gameCubeLanAndNetplayKeepSeparateLocalProfiles() {
         Fixture f;

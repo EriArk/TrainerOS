@@ -5,6 +5,7 @@
 #include "integrations/adventure/standalone/DolphinLan.h"
 #include "integrations/adventure/standalone/AzaharNetplay.h"
 #include "integrations/adventure/standalone/VitaNetplay.h"
+#include "integrations/adventure/standalone/MelonDsNetplay.h"
 #include "integrations/adventure/retroarch/RetroArchAdapter.h"
 #include "core/storage/LocalStateStore.h"
 #include "core/navigation/AdventureLaunchController.h"
@@ -67,7 +68,9 @@ private slots:
         QVERIFY(!dolphinlan::configure(command,installation,"/roms/game.rvz",connection,true,profile).isEmpty());
         command.settled({});QVERIFY(!QFileInfo::exists(root));
         QVERIFY(dolphinlan::supportedDisc("GM4E01"));QVERIFY(dolphinlan::supportedDisc("GKYJ01"));
+        QVERIFY(dolphinlan::supportedDisc("GTEJ01"));QVERIFY(dolphinlan::supportedDisc("GM4K01"));
         QVERIFY(!dolphinlan::supportedDisc("GALE01"));QVERIFY(!dolphinlan::supportedDisc("Mario Kart"));
+        QVERIFY(!dolphinlan::supportedDisc("GM4E01extra"));QVERIFY(!dolphinlan::supportedDisc("GM4E99"));
         QCOMPARE(multiplayerPresentation(profile)["label"].toString(),QString("LAN (in-game)"));QVERIFY(localLobbyRuntime(profile));
     }
 
@@ -129,6 +132,44 @@ private slots:
         env.executables.clear();const auto again=prepareEmulators(env);
         QCOMPARE(again.profiles["cemu"],found.profiles["cemu"]);
         QCOMPARE(again.profiles["duckstation"],found.profiles["duckstation"]);
+    }
+    void wirelessFileAliasesPreserveExactIdentity_data() {
+        QTest::addColumn<bool>("ds");
+        QTest::newRow("DS-nds-srl")<<true;QTest::newRow("3DS-cci-3ds")<<false;
+    }
+    void wirelessFileAliasesPreserveExactIdentity() {
+#ifdef Q_OS_WIN
+        QSKIP("Native Linux executable permissions; run these admission cases on Linux/ARM64.");
+#endif
+        QFETCH(bool,ds);
+        const bool previous=QStandardPaths::isTestModeEnabled();QStandardPaths::setTestModeEnabled(true);
+        const auto restore=qScopeGuard([previous]{QStandardPaths::setTestModeEnabled(previous);});
+        const auto root=ds?melonds::bundleRoot():azahar::bundleRoot();
+        QVERIFY(!QFileInfo::exists(root));QVERIFY(QDir().mkpath(root+"/transport/venv/bin"));QVERIFY(QDir().mkpath(root+"/bin"));
+        const auto cleanup=qScopeGuard([root]{QDir(root).removeRecursively();});
+        const QString native=ds?"bin/traineros-ds":"bin/azahar";
+        QVERIFY(QFile::copy(probe(),root+'/'+native));QVERIFY(QFile::copy(probe(),root+"/transport/venv/bin/python"));
+        QStringList names{native,"transport/secure-channel.py","transport/requirements.lock"};
+        if(!ds)names<<"transport/room-session.py";
+        QJsonObject files;
+        const auto hash=[](const QString& path){QFile file(path);if(!file.open(QIODevice::ReadOnly))return QString();return QString::fromLatin1(QCryptographicHash::hash(file.readAll(),QCryptographicHash::Sha256).toHex());};
+        for(const auto& name:names){if(name!=native)write(root+'/'+name,"fixture helper");files[name]=hash(root+'/'+name);}
+        write(root+"/manifest.json",QJsonDocument(QJsonObject{{"protocol",1},{"source",ds?melonds::sourceRevision:azahar::sourceRevision},
+            {"settings",ds?"detmp-two-owned-v1":"native-room-two-private-v1"},{"files",files},
+            {"interpreterSha256",hash(root+"/transport/venv/bin/python")}}).toJson());
+        QTemporaryDir dir;std::atomic_bool cancel=false;
+        AdventureRegistration r;r.adventure.platformId=ds?"nds":"n3ds";r.adventure.adapterId=ds?"melonds":"azahar";
+        QByteArray data(1024,'x');if(!ds)data.replace(256,4,"NCSD");
+        r.contentPath=dir.filePath(ds?"Unknown.nds":"Unknown.cci");write(r.contentPath,data);
+        const auto identify=[&]{return ds?melonds::netplayIdentity(r,cancel):azahar::netplayIdentity(r,cancel);};
+        const auto identity=identify();QVERIFY(!identity.isEmpty());
+        r.contentPath=dir.filePath(ds?"Any name.SRL":"Any name.3DS");write(r.contentPath,data);
+        QVERIFY(sameMultiplayerGame(identity,identify()));
+        data[700]='y';write(r.contentPath,data);QVERIFY(!sameMultiplayerGame(identity,identify()));
+        r.adventure.collectionOnly=true;QVERIFY(identify().isEmpty());r.adventure.collectionOnly=false;
+        if(!ds){data.replace(256,4,"nope");write(r.contentPath,data);QVERIFY(identify().isEmpty());}
+        r.contentPath=dir.filePath("unsupported.zip");write(r.contentPath,data);QVERIFY(identify().isEmpty());
+        cancel=true;QVERIFY(identify().isEmpty());
     }
     void azaharPreparationKeepsEachPlayersOwnStorageAndSettings() {
 #ifdef Q_OS_WIN
@@ -254,6 +295,40 @@ private slots:
         r.adventure.platformId="wii";QVERIFY(dolphin::netplayIdentity(r,i,cancel).isEmpty());
         r.adventure.platformId="gc";r.contentPath=dir.filePath("game.rvz");write(r.contentPath,disc);
         QVERIFY(dolphin::netplayIdentity(r,i,cancel).isEmpty());
+    }
+    void dolphinCompressedGameCubeUsesNativeReader_data() {
+        QTest::addColumn<QString>("extension");
+        for(const auto& extension:{"rvz","wia","gcz","ciso"})QTest::newRow(extension)<<QString(extension);
+    }
+    void dolphinCompressedGameCubeUsesNativeReader() {
+        QFETCH(QString,extension);
+        const bool previous=QStandardPaths::isTestModeEnabled();QStandardPaths::setTestModeEnabled(true);
+        const auto restore=qScopeGuard([previous]{QStandardPaths::setTestModeEnabled(previous);});
+        const auto root=dolphin::bridgeRoot();QVERIFY(!QFileInfo::exists(root));QVERIFY(QDir().mkpath(root+"/bin"));
+        const auto cleanup=qScopeGuard([root]{QDir(root).removeRecursively();}); // Fixture directory created above only.
+        write(dolphin::bridgeFile(),"fixture runtime");QVERIFY(QFile::copy(probe(),root+"/bin/dolphin-tool"));
+        QFile reader(probe());QVERIFY(reader.open(QIODevice::ReadOnly));
+        QJsonObject manifest{{"protocol",1},{"source","c77bbaa0f372c3f72281602a8b087206706542cb"},
+            {"sha256",QString::fromLatin1(QCryptographicHash::hash("fixture runtime",QCryptographicHash::Sha256).toHex())},
+            {"toolSha256",QString::fromLatin1(QCryptographicHash::hash(reader.readAll(),QCryptographicHash::Sha256).toHex())}};
+        const auto saveManifest=[&]{write(root+"/manifest.json",QJsonDocument(manifest).toJson());};saveManifest();
+        QTemporaryDir dir;std::atomic_bool cancel=false;
+        AdventureRegistration r;r.adventure.platformId="gc";r.adventure.adapterId="dolphin";
+        r.adventure.title="Any multiplayer title";r.contentPath=dir.filePath("unlisted."+extension);
+        write(r.contentPath,QJsonDocument(QJsonObject{{"platform","gc"},{"game_id","GXYZ01"},{"revision",0}}).toJson());
+        StandaloneInstallation installation;installation.platforms={"gc","wii"};
+        const auto identity=dolphin::netplayIdentity(r,installation,cancel,4);
+        QCOMPARE(identity["id"].toString(),QString("runtime.dolphin.gc.v1"));
+        QCOMPARE(identity["players"].toInt(),4);QVERIFY(identity["temporaryProgress"].toBool());
+        write(r.contentPath,QJsonDocument(QJsonObject{{"platform","gc"},{"revision",1}}).toJson());
+        QVERIFY(!sameMultiplayerGame(identity,dolphin::netplayIdentity(r,installation,cancel,4)));
+        manifest["toolSha256"]=QString(64,'0');saveManifest();QVERIFY(dolphin::netplayIdentity(r,installation,cancel).isEmpty());
+        manifest["toolSha256"]=QString::fromLatin1(QCryptographicHash::hash([&]{reader.seek(0);return reader.readAll();}(),QCryptographicHash::Sha256).toHex());saveManifest();
+        write(r.contentPath,QJsonDocument(QJsonObject{{"platform","wii"},{"revision",0}}).toJson());
+        QVERIFY(dolphin::netplayIdentity(r,installation,cancel).isEmpty());
+        write(r.contentPath,"Invalid compressed volume, even with the right extension.");
+        QVERIFY(dolphin::netplayIdentity(r,installation,cancel).isEmpty());
+        cancel=true;QVERIFY(dolphin::netplayIdentity(r,installation,cancel).isEmpty());
     }
     void dolphinWiiUsesVerifiedNativeVolumeReaderAndSeparateRemotes() {
         const bool previous=QStandardPaths::isTestModeEnabled();QStandardPaths::setTestModeEnabled(true);
@@ -718,6 +793,10 @@ private slots:
         QTest::newRow("Xbox-disc") << QString("xemu") << QString("xbox") << QString("iso");
         QTest::newRow("GameCube") << QString("dolphin") << QString("gc") << QString("iso");
         QTest::newRow("Wii") << QString("dolphin") << QString("wii") << QString("wad");
+        QTest::newRow("DS-SRL") << QString("melonds") << QString("nds") << QString("srl");
+        QTest::newRow("3DS-cartridge") << QString("azahar") << QString("n3ds") << QString("3ds");
+        for(const auto& platform:{"gc","wii"})for(const auto& extension:{"wia","gcz","ciso","rvz"})
+            QTest::newRow(qPrintable(QString(platform)+'-'+extension))<<QString("dolphin")<<QString(platform)<<QString(extension);
     }
     void literalLaunchRoundTripAndMissingFileRecovery() {
         QFETCH(QString, adapterId); QFETCH(QString, platform); QFETCH(QString, extension);

@@ -35,11 +35,11 @@ QStringList extensions(const QString& platform) {
     if (platform == "ps3") return {"self", "elf"};
     if (platform == "switch") return {"nro", "nsp", "xci"};
     if (platform == "xbox") return {"iso"};
-    if (platform == "n3ds") return {"3dsx", "cci", "cxi"};
+    if (platform == "n3ds") return {"3dsx", "3ds", "cci", "cxi"};
     if (platform == "psvita") return {"psvita"};
-    if (platform == "nds") return {"nds"};
-    if (platform == "gc") return {"iso", "gcm", "rvz"};
-    if (platform == "wii") return {"iso", "rvz", "wbfs", "wad"};
+    if (platform == "nds") return {"nds", "srl"};
+    if (platform == "gc") return {"iso", "gcm", "rvz", "wia", "gcz", "ciso"};
+    if (platform == "wii") return {"iso", "gcm", "rvz", "wia", "gcz", "ciso", "wbfs", "wad"};
     return {};
 }
 bool executable(const QString& path) {

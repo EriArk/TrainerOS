@@ -130,10 +130,16 @@ inline GamePlayers gamePlayers(const QVariantMap& metadata) {
 }
 inline bool permitsMultiplayer(const QVariantMap& metadata,const QJsonObject& runtimeProfile) {
     // Scraping never creates a transport or enlarges the runtime's party capacity.
-    // Handheld boxes often say one LOCAL player; a reviewed cable profile
-    // supplies the independent-machine capacity instead.
+    // One LOCAL player does not exclude link/wireless/LAN between independent
+    // machines. This includes linked cores using rollback, not only netpacket.
+    // Keep the solo filter for shared-console NetPlay and unknown future modes.
+    const auto id=runtimeProfile.value("id").toString();
     if(runtimeProfile.value("transport")=="netpacket"&&
-       runtimeProfile.value("id").toString().startsWith("runtime.handheld."))return true;
+       id.startsWith("runtime.handheld."))return true;
+    if(requiresLinkedSavePreparation(runtimeProfile)||
+       (id.startsWith("runtime.retroarch.")&&runtimeProfile["settings"]=="dcgb-linked-pair-volatile-v1")||
+       id.startsWith("runtime.ppsspp.")||id=="runtime.melonds.nds.v1"||id=="runtime.azahar.3ds.v1"||
+       id=="runtime.vita3k.lan.v1"||id=="runtime.armsx2.lan.v1"||id=="runtime.dolphin.bba.v1")return true;
     return !runtimeProfile.isEmpty()&&!gamePlayers(metadata).solo();
 }
 }
