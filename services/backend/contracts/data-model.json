@@ -1,0 +1,1225 @@
+{
+  "version": "architecture-draft.2",
+  "implemented": false,
+  "kind": "logical-schema-not-migration",
+  "tables": {
+    "players": {
+      "owner": "accounts",
+      "columns": {
+        "id": "uuid",
+        "status": "player_status",
+        "created_at": "utc",
+        "revision": "positive_int64"
+      },
+      "primary_key": [
+        "id"
+      ],
+      "unique": [],
+      "foreign_keys": {},
+      "delete_policy": "explicit-owner-command; no cascading historical erasure",
+      "invariants": []
+    },
+    "external_identities": {
+      "owner": "accounts",
+      "columns": {
+        "id": "uuid",
+        "player_id": "uuid",
+        "provider": "code",
+        "instance": "https_uri",
+        "subject": "bounded_text",
+        "verified_at": "utc"
+      },
+      "primary_key": [
+        "id"
+      ],
+      "unique": [
+        [
+          "provider",
+          "instance",
+          "subject"
+        ]
+      ],
+      "foreign_keys": {
+        "player_id": "players.id"
+      },
+      "delete_policy": "explicit-owner-command; no cascading historical erasure",
+      "invariants": []
+    },
+    "device_sessions": {
+      "owner": "accounts",
+      "columns": {
+        "id": "uuid",
+        "player_id": "uuid",
+        "token_hash": "sha256",
+        "refresh_hash": "sha256",
+        "family_id": "uuid",
+        "expires_at": "utc",
+        "revoked_at": "nullable_utc"
+      },
+      "primary_key": [
+        "id"
+      ],
+      "unique": [
+        [
+          "token_hash"
+        ],
+        [
+          "refresh_hash"
+        ]
+      ],
+      "foreign_keys": {
+        "player_id": "players.id"
+      },
+      "delete_policy": "explicit-owner-command; no cascading historical erasure",
+      "invariants": [
+        "refresh rotation is atomic; reused credential revokes family",
+        "never store raw access/refresh tokens"
+      ]
+    },
+    "login_attempts": {
+      "owner": "accounts",
+      "columns": {
+        "id": "uuid",
+        "claim_challenge": "sha256",
+        "oauth_state_hash": "sha256",
+        "target_player_id": "nullable_uuid",
+        "expires_at": "utc",
+        "consumed_at": "nullable_utc"
+      },
+      "primary_key": [
+        "id"
+      ],
+      "unique": [
+        [
+          "oauth_state_hash"
+        ]
+      ],
+      "foreign_keys": {
+        "target_player_id": "players.id"
+      },
+      "delete_policy": "explicit-owner-command; no cascading historical erasure",
+      "invariants": [
+        "callback bound to provider instance and intended login/link/recovery purpose",
+        "no session before provider proof and possession claim; expiry checked server-side"
+      ]
+    },
+    "recovery_credentials": {
+      "owner": "accounts",
+      "columns": {
+        "id": "uuid",
+        "player_id": "uuid",
+        "credential_hash": "sha256",
+        "consumed_at": "nullable_utc"
+      },
+      "primary_key": [
+        "id"
+      ],
+      "unique": [
+        [
+          "credential_hash"
+        ]
+      ],
+      "foreign_keys": {
+        "player_id": "players.id"
+      },
+      "delete_policy": "explicit-owner-command; no cascading historical erasure",
+      "invariants": []
+    },
+    "public_profiles": {
+      "owner": "profiles",
+      "columns": {
+        "id": "uuid",
+        "player_id": "uuid",
+        "display_name": "text_64",
+        "visibility": "profile_visibility",
+        "revision": "positive_int64"
+      },
+      "primary_key": [
+        "id"
+      ],
+      "unique": [
+        [
+          "player_id"
+        ]
+      ],
+      "foreign_keys": {
+        "player_id": "players.id"
+      },
+      "delete_policy": "explicit-owner-command; no cascading historical erasure",
+      "invariants": []
+    },
+    "avatar_recipes": {
+      "owner": "profiles",
+      "columns": {
+        "id": "uuid",
+        "player_id": "uuid",
+        "recipe": "AvatarRecipe",
+        "revision": "positive_int64"
+      },
+      "primary_key": [
+        "id"
+      ],
+      "unique": [
+        [
+          "player_id"
+        ]
+      ],
+      "foreign_keys": {
+        "player_id": "players.id"
+      },
+      "delete_policy": "explicit-owner-command; no cascading historical erasure",
+      "invariants": [
+        "expected revision checked atomically",
+        "preserve SDK v1 colors/presets/pack hash; no local paths"
+      ]
+    },
+    "games": {
+      "owner": "registry",
+      "columns": {
+        "id": "uuid",
+        "game_id": "code",
+        "title": "text_100"
+      },
+      "primary_key": [
+        "id"
+      ],
+      "unique": [
+        [
+          "game_id"
+        ]
+      ],
+      "foreign_keys": {},
+      "delete_policy": "explicit-owner-command; no cascading historical erasure",
+      "invariants": []
+    },
+    "policy_definitions": {
+      "owner": "registry",
+      "columns": {
+        "id": "uuid",
+        "kind": "code",
+        "content_digest": "sha256",
+        "document": "reviewed_policy_document",
+        "status": "definition_status",
+        "revision": "positive_int64"
+      },
+      "primary_key": [
+        "id"
+      ],
+      "unique": [
+        [
+          "kind",
+          "content_digest"
+        ]
+      ],
+      "foreign_keys": {},
+      "delete_policy": "explicit-owner-command; no cascading historical erasure",
+      "invariants": [
+        "policy body schema owned by kind",
+        "unresolved mandatory policy gates prevent publication"
+      ]
+    },
+    "validators": {
+      "owner": "registry",
+      "columns": {
+        "id": "uuid",
+        "artifact_digest": "sha256",
+        "runtime": "code",
+        "status": "definition_status",
+        "resource_policy_id": "uuid"
+      },
+      "primary_key": [
+        "id"
+      ],
+      "unique": [
+        [
+          "artifact_digest"
+        ]
+      ],
+      "foreign_keys": {
+        "resource_policy_id": "policy_definitions.id"
+      },
+      "delete_policy": "explicit-owner-command; no cascading historical erasure",
+      "invariants": [
+        "operator-approved binary only; no submitted code/URL"
+      ]
+    },
+    "game_rulesets": {
+      "owner": "registry",
+      "columns": {
+        "id": "uuid",
+        "game_ref": "uuid",
+        "rules_digest": "sha256",
+        "content_digest": "sha256",
+        "validator_id": "uuid",
+        "policy_id": "uuid",
+        "status": "definition_status"
+      },
+      "primary_key": [
+        "id"
+      ],
+      "unique": [
+        [
+          "game_ref",
+          "rules_digest",
+          "content_digest"
+        ]
+      ],
+      "foreign_keys": {
+        "game_ref": "games.id",
+        "validator_id": "validators.id",
+        "policy_id": "policy_definitions.id"
+      },
+      "delete_policy": "explicit-owner-command; no cascading historical erasure",
+      "invariants": []
+    },
+    "matches": {
+      "owner": "results",
+      "columns": {
+        "id": "uuid",
+        "ruleset_id": "uuid",
+        "host_player_id": "uuid",
+        "competition_id": "nullable_uuid",
+        "state": "match_state",
+        "revision": "positive_int64",
+        "origin": "online_or_offline_import",
+        "deadline": "utc"
+      },
+      "primary_key": [
+        "id"
+      ],
+      "unique": [],
+      "foreign_keys": {
+        "ruleset_id": "game_rulesets.id",
+        "host_player_id": "players.id",
+        "competition_id": "competitions.id"
+      },
+      "delete_policy": "explicit-owner-command; no cascading historical erasure",
+      "invariants": [
+        "frozen roster/rules after start",
+        "admission requires each participant proof",
+        "offline import eligibility checked independently of client timestamp"
+      ]
+    },
+    "match_participants": {
+      "owner": "results",
+      "columns": {
+        "id": "uuid",
+        "match_id": "uuid",
+        "player_id": "uuid",
+        "team_slot": "nullable_uint16",
+        "status": "admission_status"
+      },
+      "primary_key": [
+        "id"
+      ],
+      "unique": [
+        [
+          "match_id",
+          "player_id"
+        ]
+      ],
+      "foreign_keys": {
+        "match_id": "matches.id",
+        "player_id": "players.id"
+      },
+      "delete_policy": "explicit-owner-command; no cascading historical erasure",
+      "invariants": []
+    },
+    "evidence_refs": {
+      "owner": "results",
+      "columns": {
+        "id": "uuid",
+        "match_id": "uuid",
+        "player_id": "uuid",
+        "digest": "sha256",
+        "byte_length": "uint32",
+        "format": "code",
+        "state": "upload_state",
+        "expires_at": "utc"
+      },
+      "primary_key": [
+        "id"
+      ],
+      "unique": [],
+      "foreign_keys": {
+        "match_id": "matches.id",
+        "player_id": "players.id"
+      },
+      "delete_policy": "explicit-owner-command; no cascading historical erasure",
+      "invariants": [
+        "<=1048576 bytes, <=64 decoded chunks of <=16384 bytes",
+        "finalize only after all offsets, lengths and digest verify"
+      ]
+    },
+    "evidence_chunks": {
+      "owner": "results",
+      "columns": {
+        "id": "uuid",
+        "upload_id": "uuid",
+        "chunk_index": "uint16",
+        "digest": "sha256",
+        "byte_length": "uint32"
+      },
+      "primary_key": [
+        "id"
+      ],
+      "unique": [
+        [
+          "upload_id",
+          "chunk_index"
+        ]
+      ],
+      "foreign_keys": {
+        "upload_id": "evidence_refs.id"
+      },
+      "delete_policy": "explicit-owner-command; no cascading historical erasure",
+      "invariants": [
+        "same slot/different digest conflicts; immutable finalized upload"
+      ]
+    },
+    "submissions": {
+      "owner": "results",
+      "columns": {
+        "id": "uuid",
+        "match_id": "uuid",
+        "player_id": "uuid",
+        "evidence_id": "uuid",
+        "operation_id": "uuid",
+        "payload_digest": "sha256",
+        "state": "result_state"
+      },
+      "primary_key": [
+        "id"
+      ],
+      "unique": [
+        [
+          "player_id",
+          "operation_id"
+        ]
+      ],
+      "foreign_keys": {
+        "match_id": "matches.id",
+        "player_id": "players.id",
+        "evidence_id": "evidence_refs.id"
+      },
+      "delete_policy": "explicit-owner-command; no cascading historical erasure",
+      "invariants": [
+        "evidence owner and match must equal submission owner and match",
+        "submission + job + receipt one transaction"
+      ]
+    },
+    "result_decisions": {
+      "owner": "results",
+      "columns": {
+        "id": "uuid",
+        "submission_id": "uuid",
+        "match_id": "uuid",
+        "decision_revision": "positive_int64",
+        "state": "result_state",
+        "proof": "proof_level",
+        "reason": "text_500",
+        "outcomes": "ResultOutcome[]"
+      },
+      "primary_key": [
+        "id"
+      ],
+      "unique": [
+        [
+          "match_id",
+          "decision_revision"
+        ]
+      ],
+      "foreign_keys": {
+        "submission_id": "submissions.id",
+        "match_id": "matches.id"
+      },
+      "delete_policy": "explicit-owner-command; no cascading historical erasure",
+      "invariants": [
+        "append only; match-level final decision reconciles all submissions",
+        "no client-authored verified state"
+      ]
+    },
+    "board_definitions": {
+      "owner": "boards",
+      "columns": {
+        "id": "uuid",
+        "ruleset_id": "uuid",
+        "policy_id": "uuid",
+        "competition_id": "nullable_uuid",
+        "definition": "Board",
+        "revision": "positive_int64"
+      },
+      "primary_key": [
+        "id"
+      ],
+      "unique": [],
+      "foreign_keys": {
+        "ruleset_id": "game_rulesets.id",
+        "policy_id": "policy_definitions.id",
+        "competition_id": "competitions.id"
+      },
+      "delete_policy": "explicit-owner-command; no cascading historical erasure",
+      "invariants": []
+    },
+    "best_records": {
+      "owner": "boards",
+      "columns": {
+        "id": "uuid",
+        "board_id": "uuid",
+        "subject_key": "sha256",
+        "decision_id": "uuid",
+        "metrics": "int64[]",
+        "watermark": "positive_int64"
+      },
+      "primary_key": [
+        "id"
+      ],
+      "unique": [
+        [
+          "board_id",
+          "subject_key"
+        ]
+      ],
+      "foreign_keys": {
+        "board_id": "board_definitions.id",
+        "decision_id": "result_decisions.id"
+      },
+      "delete_policy": "explicit-owner-command; no cascading historical erasure",
+      "invariants": [
+        "subject is canonical roster or player; no display-name identity",
+        "voiding best exposes next eligible historical result"
+      ]
+    },
+    "statistics": {
+      "owner": "boards",
+      "columns": {
+        "id": "uuid",
+        "player_id": "uuid",
+        "game_ref": "uuid",
+        "counts": "Statistics",
+        "watermark": "positive_int64"
+      },
+      "primary_key": [
+        "id"
+      ],
+      "unique": [
+        [
+          "player_id",
+          "game_ref"
+        ]
+      ],
+      "foreign_keys": {
+        "player_id": "players.id",
+        "game_ref": "games.id"
+      },
+      "delete_policy": "explicit-owner-command; no cascading historical erasure",
+      "invariants": [
+        "bot wins do not increase unique human opponents"
+      ]
+    },
+    "rating_events": {
+      "owner": "boards",
+      "columns": {
+        "id": "uuid",
+        "player_id": "uuid",
+        "decision_id": "uuid",
+        "policy_id": "uuid",
+        "calculation_revision": "positive_int64",
+        "before": "int64",
+        "after": "int64"
+      },
+      "primary_key": [
+        "id"
+      ],
+      "unique": [
+        [
+          "player_id",
+          "decision_id",
+          "policy_id",
+          "calculation_revision"
+        ]
+      ],
+      "foreign_keys": {
+        "player_id": "players.id",
+        "decision_id": "result_decisions.id",
+        "policy_id": "policy_definitions.id"
+      },
+      "delete_policy": "explicit-owner-command; no cascading historical erasure",
+      "invariants": [
+        "deterministic replay ordering and checkpoints; corrections invalidate downstream affected calculations"
+      ]
+    },
+    "competitions": {
+      "owner": "competitions",
+      "columns": {
+        "id": "uuid",
+        "ruleset_id": "uuid",
+        "policy_id": "uuid",
+        "state": "competition_state",
+        "opens_at": "utc",
+        "closes_at": "utc",
+        "finalizes_at": "utc",
+        "revision": "positive_int64"
+      },
+      "primary_key": [
+        "id"
+      ],
+      "unique": [],
+      "foreign_keys": {
+        "ruleset_id": "game_rulesets.id",
+        "policy_id": "policy_definitions.id"
+      },
+      "delete_policy": "explicit-owner-command; no cascading historical erasure",
+      "invariants": [
+        "opens <= closes <= finalizes; state guards server-owned",
+        "policy immutable after publish"
+      ]
+    },
+    "competition_entries": {
+      "owner": "competitions",
+      "columns": {
+        "id": "uuid",
+        "competition_id": "uuid",
+        "subject_key": "sha256",
+        "subject": "Subject",
+        "status": "entry_status"
+      },
+      "primary_key": [
+        "id"
+      ],
+      "unique": [
+        [
+          "competition_id",
+          "subject_key"
+        ]
+      ],
+      "foreign_keys": {
+        "competition_id": "competitions.id"
+      },
+      "delete_policy": "explicit-owner-command; no cascading historical erasure",
+      "invariants": []
+    },
+    "entry_consents": {
+      "owner": "competitions",
+      "columns": {
+        "id": "uuid",
+        "entry_id": "uuid",
+        "player_id": "uuid",
+        "consented_at": "utc"
+      },
+      "primary_key": [
+        "id"
+      ],
+      "unique": [
+        [
+          "entry_id",
+          "player_id"
+        ]
+      ],
+      "foreign_keys": {
+        "entry_id": "competition_entries.id",
+        "player_id": "players.id"
+      },
+      "delete_policy": "explicit-owner-command; no cascading historical erasure",
+      "invariants": [
+        "each member signs for self; changes invalidate consent set"
+      ]
+    },
+    "fixtures": {
+      "owner": "competitions",
+      "columns": {
+        "id": "uuid",
+        "competition_id": "uuid",
+        "round_number": "uint16",
+        "slot": "uint16",
+        "match_id": "nullable_uuid",
+        "state": "fixture_state"
+      },
+      "primary_key": [
+        "id"
+      ],
+      "unique": [
+        [
+          "competition_id",
+          "round_number",
+          "slot"
+        ]
+      ],
+      "foreign_keys": {
+        "competition_id": "competitions.id",
+        "match_id": "matches.id"
+      },
+      "delete_policy": "explicit-owner-command; no cascading historical erasure",
+      "invariants": []
+    },
+    "disputes": {
+      "owner": "competitions",
+      "columns": {
+        "id": "uuid",
+        "competition_id": "uuid",
+        "decision_id": "uuid",
+        "claimant_player_id": "uuid",
+        "state": "dispute_state",
+        "reason": "text_500"
+      },
+      "primary_key": [
+        "id"
+      ],
+      "unique": [],
+      "foreign_keys": {
+        "competition_id": "competitions.id",
+        "decision_id": "result_decisions.id",
+        "claimant_player_id": "players.id"
+      },
+      "delete_policy": "explicit-owner-command; no cascading historical erasure",
+      "invariants": []
+    },
+    "community_refs": {
+      "owner": "community_competitions",
+      "columns": {
+        "id": "uuid",
+        "provider": "code",
+        "instance": "https_uri",
+        "subject": "bounded_text"
+      },
+      "primary_key": [
+        "id"
+      ],
+      "unique": [
+        [
+          "provider",
+          "instance",
+          "subject"
+        ]
+      ],
+      "foreign_keys": {},
+      "delete_policy": "explicit-owner-command; no cascading historical erasure",
+      "invariants": []
+    },
+    "roster_snapshots": {
+      "owner": "community_competitions",
+      "columns": {
+        "id": "uuid",
+        "community_id": "uuid",
+        "entry_id": "uuid",
+        "subject": "Subject",
+        "provider_evidence_id": "uuid",
+        "verified_at": "utc",
+        "valid_until": "utc"
+      },
+      "primary_key": [
+        "id"
+      ],
+      "unique": [],
+      "foreign_keys": {
+        "community_id": "community_refs.id",
+        "entry_id": "competition_entries.id",
+        "provider_evidence_id": "provider_events.id"
+      },
+      "delete_policy": "explicit-owner-command; no cascading historical erasure",
+      "invariants": [
+        "frozen for competition; live social role changes do not rewrite past fixtures"
+      ]
+    },
+    "delegations": {
+      "owner": "community_competitions",
+      "columns": {
+        "id": "uuid",
+        "community_id": "uuid",
+        "player_id": "uuid",
+        "competition_id": "uuid",
+        "valid_until": "utc",
+        "revoked_at": "nullable_utc"
+      },
+      "primary_key": [
+        "id"
+      ],
+      "unique": [],
+      "foreign_keys": {
+        "community_id": "community_refs.id",
+        "player_id": "players.id",
+        "competition_id": "competitions.id"
+      },
+      "delete_policy": "explicit-owner-command; no cascading historical erasure",
+      "invariants": []
+    },
+    "reward_claims": {
+      "owner": "rewards",
+      "columns": {
+        "id": "uuid",
+        "rule_id": "uuid",
+        "source_event_id": "uuid",
+        "player_id": "uuid",
+        "state": "reward_state"
+      },
+      "primary_key": [
+        "id"
+      ],
+      "unique": [
+        [
+          "rule_id",
+          "source_event_id",
+          "player_id"
+        ]
+      ],
+      "foreign_keys": {
+        "rule_id": "policy_definitions.id",
+        "player_id": "players.id",
+        "source_event_id": "event_index.id"
+      },
+      "delete_policy": "explicit-owner-command; no cascading historical erasure",
+      "invariants": []
+    },
+    "trophies": {
+      "owner": "rewards",
+      "columns": {
+        "id": "uuid",
+        "claim_id": "uuid",
+        "kind": "code",
+        "expires_at": "nullable_utc",
+        "state": "trophy_state"
+      },
+      "primary_key": [
+        "id"
+      ],
+      "unique": [
+        [
+          "claim_id",
+          "kind"
+        ]
+      ],
+      "foreign_keys": {
+        "claim_id": "reward_claims.id"
+      },
+      "delete_policy": "explicit-owner-command; no cascading historical erasure",
+      "invariants": []
+    },
+    "wallet_accounts": {
+      "owner": "wallet",
+      "columns": {
+        "id": "uuid",
+        "player_id": "nullable_uuid",
+        "kind": "wallet_kind",
+        "balance": "int64",
+        "revision": "positive_int64"
+      },
+      "primary_key": [
+        "id"
+      ],
+      "unique": [
+        [
+          "player_id",
+          "kind"
+        ]
+      ],
+      "foreign_keys": {
+        "player_id": "players.id"
+      },
+      "delete_policy": "explicit-owner-command; no cascading historical erasure",
+      "invariants": [
+        "one player coin wallet; unique system issuance/sink accounts via partial unique index",
+        "player available >=0; pending reversal debt policy unresolved, cannot silently overdraw"
+      ]
+    },
+    "ledger_transactions": {
+      "owner": "wallet",
+      "columns": {
+        "id": "uuid",
+        "source_kind": "code",
+        "source_id": "uuid",
+        "created_at": "utc",
+        "reverses_id": "nullable_uuid"
+      },
+      "primary_key": [
+        "id"
+      ],
+      "unique": [
+        [
+          "source_kind",
+          "source_id"
+        ]
+      ],
+      "foreign_keys": {
+        "reverses_id": "ledger_transactions.id"
+      },
+      "delete_policy": "explicit-owner-command; no cascading historical erasure",
+      "invariants": [
+        "append-only; reversal references original"
+      ]
+    },
+    "ledger_entries": {
+      "owner": "wallet",
+      "columns": {
+        "id": "uuid",
+        "transaction_id": "uuid",
+        "account_id": "uuid",
+        "delta": "int64"
+      },
+      "primary_key": [
+        "id"
+      ],
+      "unique": [],
+      "foreign_keys": {
+        "transaction_id": "ledger_transactions.id",
+        "account_id": "wallet_accounts.id"
+      },
+      "delete_policy": "explicit-owner-command; no cascading historical erasure",
+      "invariants": [
+        "sum delta per transaction ==0 enforced transactionally/deferred constraint, never a row CHECK",
+        "short account lock; debit+credit+grant atomic"
+      ]
+    },
+    "cosmetic_items": {
+      "owner": "inventory",
+      "columns": {
+        "id": "uuid",
+        "item_key": "code",
+        "revision": "positive_int64",
+        "asset_digest": "sha256",
+        "compatibility": "code[]",
+        "status": "asset_status"
+      },
+      "primary_key": [
+        "id"
+      ],
+      "unique": [
+        [
+          "item_key"
+        ]
+      ],
+      "foreign_keys": {},
+      "delete_policy": "explicit-owner-command; no cascading historical erasure",
+      "invariants": []
+    },
+    "shop_offers": {
+      "owner": "inventory",
+      "columns": {
+        "id": "uuid",
+        "item_id": "uuid",
+        "price": "uint64_safe_json",
+        "revision": "positive_int64",
+        "status": "definition_status"
+      },
+      "primary_key": [
+        "id"
+      ],
+      "unique": [
+        [
+          "item_id",
+          "revision"
+        ]
+      ],
+      "foreign_keys": {
+        "item_id": "cosmetic_items.id"
+      },
+      "delete_policy": "explicit-owner-command; no cascading historical erasure",
+      "invariants": []
+    },
+    "purchases": {
+      "owner": "wallet",
+      "columns": {
+        "id": "uuid",
+        "player_id": "uuid",
+        "item_id": "uuid",
+        "offer_id": "uuid",
+        "operation_id": "uuid",
+        "transaction_id": "nullable_uuid",
+        "state": "purchase_state"
+      },
+      "primary_key": [
+        "id"
+      ],
+      "unique": [
+        [
+          "player_id",
+          "operation_id"
+        ]
+      ],
+      "foreign_keys": {
+        "player_id": "players.id",
+        "item_id": "cosmetic_items.id",
+        "offer_id": "shop_offers.id",
+        "transaction_id": "ledger_transactions.id"
+      },
+      "delete_policy": "explicit-owner-command; no cascading historical erasure",
+      "invariants": []
+    },
+    "ownership_grants": {
+      "owner": "inventory",
+      "columns": {
+        "id": "uuid",
+        "player_id": "uuid",
+        "item_id": "uuid",
+        "source_id": "uuid",
+        "source_kind": "code",
+        "acquired_at": "utc"
+      },
+      "primary_key": [
+        "id"
+      ],
+      "unique": [
+        [
+          "player_id",
+          "item_id"
+        ]
+      ],
+      "foreign_keys": {
+        "player_id": "players.id",
+        "item_id": "cosmetic_items.id"
+      },
+      "delete_policy": "explicit-owner-command; no cascading historical erasure",
+      "invariants": [
+        "source_kind+source_id resolved by owner command; never unvalidated polymorphic FK",
+        "permanent ownership independent of subscription status"
+      ]
+    },
+    "support_links": {
+      "owner": "support",
+      "columns": {
+        "id": "uuid",
+        "player_id": "uuid",
+        "identity_id": "uuid",
+        "status": "link_status"
+      },
+      "primary_key": [
+        "id"
+      ],
+      "unique": [
+        [
+          "identity_id"
+        ]
+      ],
+      "foreign_keys": {
+        "player_id": "players.id",
+        "identity_id": "external_identities.id"
+      },
+      "delete_policy": "explicit-owner-command; no cascading historical erasure",
+      "invariants": []
+    },
+    "provider_events": {
+      "owner": "providers",
+      "columns": {
+        "id": "uuid",
+        "provider": "code",
+        "instance": "https_uri",
+        "external_event_id": "bounded_text",
+        "link_id": "uuid",
+        "payload": "ProviderEvent",
+        "received_at": "utc"
+      },
+      "primary_key": [
+        "id"
+      ],
+      "unique": [
+        [
+          "provider",
+          "instance",
+          "external_event_id"
+        ]
+      ],
+      "foreign_keys": {
+        "link_id": "external_identities.id"
+      },
+      "delete_policy": "explicit-owner-command; no cascading historical erasure",
+      "invariants": [
+        "normalized event only after provider-specific verification; unsupported adapter never fabricates proof"
+      ]
+    },
+    "support_periods": {
+      "owner": "support",
+      "columns": {
+        "id": "uuid",
+        "support_link_id": "uuid",
+        "provider_event_id": "uuid",
+        "valid_from": "utc",
+        "valid_until": "utc",
+        "verified_until": "utc"
+      },
+      "primary_key": [
+        "id"
+      ],
+      "unique": [],
+      "foreign_keys": {
+        "support_link_id": "support_links.id",
+        "provider_event_id": "provider_events.id"
+      },
+      "delete_policy": "explicit-owner-command; no cascading historical erasure",
+      "invariants": []
+    },
+    "entitlement_grants": {
+      "owner": "inventory",
+      "columns": {
+        "id": "uuid",
+        "player_id": "uuid",
+        "source_period_id": "uuid",
+        "kind": "code",
+        "valid_from": "utc",
+        "valid_until": "utc"
+      },
+      "primary_key": [
+        "id"
+      ],
+      "unique": [
+        [
+          "player_id",
+          "source_period_id",
+          "kind"
+        ]
+      ],
+      "foreign_keys": {
+        "player_id": "players.id",
+        "source_period_id": "support_periods.id"
+      },
+      "delete_policy": "explicit-owner-command; no cascading historical erasure",
+      "invariants": []
+    },
+    "operation_receipts": {
+      "owner": "operations",
+      "columns": {
+        "id": "uuid",
+        "actor_namespace": "code",
+        "actor_id": "uuid",
+        "operation_kind": "code",
+        "operation_id": "uuid",
+        "payload_digest": "sha256",
+        "state": "operation_state",
+        "resource_id": "nullable_uuid"
+      },
+      "primary_key": [
+        "id"
+      ],
+      "unique": [
+        [
+          "actor_namespace",
+          "actor_id",
+          "operation_kind",
+          "operation_id"
+        ]
+      ],
+      "foreign_keys": {},
+      "delete_policy": "explicit-owner-command; no cascading historical erasure",
+      "invariants": [
+        "actor resolved by credential audience, never request ID",
+        "same key/different digest conflicts; no tokens/recovery secrets cached in receipt"
+      ]
+    },
+    "jobs": {
+      "owner": "operations",
+      "columns": {
+        "id": "uuid",
+        "kind": "code",
+        "resource_id": "uuid",
+        "attempt": "uint16",
+        "fence": "positive_int64",
+        "lease_until": "nullable_utc",
+        "state": "job_state"
+      },
+      "primary_key": [
+        "id"
+      ],
+      "unique": [],
+      "foreign_keys": {},
+      "delete_policy": "explicit-owner-command; no cascading historical erasure",
+      "invariants": [
+        "job creation atomic with domain command; fenced completion only by current lease"
+      ]
+    },
+    "event_index": {
+      "owner": "operations",
+      "columns": {
+        "id": "uuid",
+        "aggregate_id": "uuid",
+        "aggregate_revision": "positive_int64",
+        "event_type": "code",
+        "created_at": "utc"
+      },
+      "primary_key": [
+        "id"
+      ],
+      "unique": [],
+      "foreign_keys": {},
+      "delete_policy": "explicit-owner-command; no cascading historical erasure",
+      "invariants": [
+        "minimal dedup tombstone survives payload retention; privacy cleanup separately governed"
+      ]
+    },
+    "outbox": {
+      "owner": "operations",
+      "columns": {
+        "id": "uuid",
+        "event_id": "uuid",
+        "payload": "DomainEvent",
+        "created_at": "utc"
+      },
+      "primary_key": [
+        "id"
+      ],
+      "unique": [
+        [
+          "event_id"
+        ]
+      ],
+      "foreign_keys": {
+        "event_id": "event_index.id"
+      },
+      "delete_policy": "explicit-owner-command; no cascading historical erasure",
+      "invariants": [
+        "insert in same transaction as source mutation",
+        "no provider side effects in database transaction"
+      ]
+    },
+    "consumer_receipts": {
+      "owner": "operations",
+      "columns": {
+        "id": "uuid",
+        "consumer": "code",
+        "event_id": "uuid",
+        "applied_at": "utc"
+      },
+      "primary_key": [
+        "id"
+      ],
+      "unique": [
+        [
+          "consumer",
+          "event_id"
+        ]
+      ],
+      "foreign_keys": {
+        "event_id": "event_index.id"
+      },
+      "delete_policy": "explicit-owner-command; no cascading historical erasure",
+      "invariants": [
+        "receipt and projection effect atomic; preserve dedup tombstones beyond outbox retention"
+      ]
+    },
+    "audit_events": {
+      "owner": "operations",
+      "columns": {
+        "id": "uuid",
+        "actor_namespace": "code",
+        "actor_id": "uuid",
+        "action": "code",
+        "resource_id": "uuid",
+        "reason": "text_500",
+        "created_at": "utc"
+      },
+      "primary_key": [
+        "id"
+      ],
+      "unique": [],
+      "foreign_keys": {},
+      "delete_policy": "explicit-owner-command; no cascading historical erasure",
+      "invariants": [
+        "append only; no raw credentials/evidence"
+      ]
+    }
+  },
+  "cross_table_invariants": [
+    "actor membership, evidence ownership and source-kind relation checked in domain transaction",
+    "no foreign-key ownership alone proves current authorization",
+    "deletion anonymizes retained history, not cascade deletion of ledger",
+    "wire bounded integers must be checked before int64 persistence",
+    "provider and result correction revisions are monotonic; stale events cannot restore revoked rights"
+  ]
+}

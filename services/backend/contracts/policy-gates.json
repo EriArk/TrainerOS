@@ -1,0 +1,124 @@
+{
+  "version": "architecture-draft.2",
+  "implemented": false,
+  "default": "A missing/unresolved applicable gate prevents activation, never fabricates success.",
+  "gates": [
+    {
+      "id": "auth.provider_contract",
+      "owner": "accounts",
+      "decision": "Exact Fluxer instance endpoints, registered callbacks and PKCE behavior verified.",
+      "blocks": [
+        "online-login"
+      ],
+      "status": "unresolved-before-activation"
+    },
+    {
+      "id": "auth.recovery_policy",
+      "owner": "accounts",
+      "decision": "Lost-all-factors recovery, identity relink and conflict procedure.",
+      "blocks": [
+        "account-recovery"
+      ],
+      "status": "unresolved-before-activation"
+    },
+    {
+      "id": "results.validator_policy",
+      "owner": "results",
+      "decision": "Game-specific evidence, resource budget, determinism and trust level.",
+      "blocks": [
+        "official-results"
+      ],
+      "status": "unresolved-before-activation"
+    },
+    {
+      "id": "boards.rating_formula",
+      "owner": "boards",
+      "decision": "Versioned skill algorithm, provisional period and repeated-opponent abuse policy.",
+      "blocks": [
+        "skill-rating"
+      ],
+      "status": "unresolved-before-activation"
+    },
+    {
+      "id": "competitions.rules",
+      "owner": "competitions",
+      "decision": "Format, attempts, deadlines, ties, no-show/disconnect and dispute window.",
+      "blocks": [
+        "competition-publication"
+      ],
+      "status": "unresolved-before-activation"
+    },
+    {
+      "id": "communities.membership",
+      "owner": "community_competitions",
+      "decision": "Provider membership freshness, delegation, freeze and substitution rules.",
+      "blocks": [
+        "community-competition-entry"
+      ],
+      "status": "unresolved-before-activation"
+    },
+    {
+      "id": "rewards.rates",
+      "owner": "rewards",
+      "decision": "Reward sources, rates, repeat limits, offline timing and subscription multiplier applicability.",
+      "blocks": [
+        "reward-issuance"
+      ],
+      "status": "unresolved-before-activation"
+    },
+    {
+      "id": "wallet.reversal",
+      "owner": "wallet",
+      "decision": "Resolution of revoked rewards already spent; no invented automatic debt/asset seizure.",
+      "blocks": [
+        "economic-awards"
+      ],
+      "status": "unresolved-before-activation"
+    },
+    {
+      "id": "inventory.catalogue",
+      "owner": "inventory",
+      "decision": "Item prices, asset rights, compatibility and exact SDK recipe/inventory mapping.",
+      "blocks": [
+        "shop-publication"
+      ],
+      "status": "unresolved-before-activation"
+    },
+    {
+      "id": "support.provider_contract",
+      "owner": "support",
+      "decision": "Actual Patreon/Ko-fi verification and reconciliation mechanisms per adapter.",
+      "blocks": [
+        "support-entitlements"
+      ],
+      "status": "unresolved-before-activation"
+    },
+    {
+      "id": "support.closed_artifacts",
+      "owner": "support",
+      "decision": "Protected artifact source and per-release access grant, separate from public Releases.",
+      "blocks": [
+        "private-release-channel"
+      ],
+      "status": "unresolved-before-activation"
+    },
+    {
+      "id": "operations.retention",
+      "owner": "operations",
+      "decision": "Retention per data class, deletion/export and backup deletion reconciliation.",
+      "blocks": [
+        "public-account-service"
+      ],
+      "status": "unresolved-before-activation"
+    },
+    {
+      "id": "operations.recovery",
+      "owner": "operations",
+      "decision": "Deployment topology, backup destination and measured RPO/RTO.",
+      "blocks": [
+        "production-deployment"
+      ],
+      "status": "unresolved-before-activation"
+    }
+  ]
+}
