@@ -1,5 +1,19 @@
 # TrainerOS — история изменений
 
+## 2026-10-25 — отдельное OAuth-приложение и HTTPS Backend
+
+- Создано приложение **TrainerOS** в постоянном аккаунте владельца, отдельно от
+  Lobby Directory. Получение client secret ожидает подтверждения паролем в Fluxer;
+  callback/provider login пока не активированы.
+- На сервере подключён отдельный HTTPS tunnel для `traineros-api.abysstail.art`,
+  с публикацией `/v1/*` и `/health/live`. Readiness/OpenAPI не публикуются.
+  [Семь проверок](docs/evidence/backend-oauth-setup-20261025/README.md) прошли;
+  Lobby/Crates службы сохранили работу. Добавлены конфигурационные шаблоны и
+  read-only `check-public.py`. Runtime image и схема БД не менялись.
+- Уточнён принятый UX: обычный вход через Fluxer с возвратом в TrainerOS,
+  без ручного кода как обязательного шага. Безопасный native return и SDK binding
+  ещё не реализованы; текущий кодовый flow остаётся промежуточным.
+
 ## 2026-10-25 — аккаунты и сессии Backend через Fluxer
 
 - Добавлен серверный [модуль Accounts](services/backend/accounts.md): постоянный

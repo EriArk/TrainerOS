@@ -23,6 +23,13 @@ named TrainerOS, owned by the owner's permanent account; preserve the existing
 Lobby Directory app. Keep provider credentials outside games/SDK. Server source
 and isolated provider tests do not prove live owner consent or shell integration.
 
+**Owner login UX correction, 25 October:** OAuth application creation and server
+configuration are one-time operator work, never player setup. Ordinary players
+sign in through Fluxer and return to TrainerOS; mandatory manual device-code
+entry is not the accepted ordinary flow. Preserve secure device/browser binding
+when implementing native return. The existing code-confirmation flow is an
+interim backend mechanism, not delivered SDK/handheld UX.
+
 Global plans, milestones and mandatory execution queues are withdrawn. Work
 by the readiness of individual features, using [the readiness map](docs/FEATURE_READINESS.md).
 Keep unfinished requirements and unchecked acceptance; there is no deferred category.

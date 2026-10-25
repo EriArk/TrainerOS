@@ -4,7 +4,10 @@
 сессий в [`services/backend/trainer_backend/accounts`](../services/backend/trainer_backend/accounts).
 Вход опирается на S05/Fluxer OAuth и выдаёт собственную сессию оболочке; внешний
 subject уникально связан с внутренним Player UUID. Revocation пишет общий outbox.
-Сборка установлена, активация Fluxer ожидает приложение владельца/HTTPS callback.
+Сборка установлена, отдельное приложение владельца и HTTPS origin созданы.
+S15 эксплуатирует отдельный API tunnel; получение секрета/регистрация callback
+и активация Fluxer ещё не завершены. Обычный вход должен возвращаться в native
+shell без обязательного ручного кода; этот handoff пока не реализован.
 [Контракт](../services/backend/accounts.md). S03/SDK и локальный Trainer ещё не
 подключены к этому пути, доставки revocation в SDK пока нет; игры/аватар не менялись.
 
