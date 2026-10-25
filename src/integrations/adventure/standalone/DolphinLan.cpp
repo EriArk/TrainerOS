@@ -1,12 +1,15 @@
 #include "DolphinLan.h"
 #include "DolphinNetplay.h"
 #include "NetplayCache.h"
+#include "integrations/adventure/DiscPlaylist.h"
 #include "core/model/GamePlayers.h"
 #include "integrations/adventure/retroarch/RetroArchConfiguration.h"
 #include <QDir>
 #include <QElapsedTimer>
 #include <QFile>
 #include <QJsonDocument>
+#include <QJsonArray>
+#include <QCryptographicHash>
 #include <QProcess>
 #include <QRegularExpression>
 #include <QSaveFile>
@@ -34,8 +37,21 @@ bool supportedDisc(const QString& id) {
     return QRegularExpression("^(GM4|GKY|GTE)[A-Z0-9]01$").match(id).hasMatch();
 }
 QJsonObject netplayIdentity(const AdventureRegistration& r,const StandaloneInstallation& i,const std::atomic_bool& cancel) {
+    if(disc::playlist(r.contentPath)) {
+        const auto paths=disc::entries(r.contentPath,{"iso","gcm","bin","rvz","wia","gcz","ciso","tgc"});
+        if(paths.isEmpty())return {};
+        QJsonObject identity;QJsonArray hashes;
+        for(const auto& path:paths) {
+            auto child=r;child.contentPath=path;
+            const auto value=netplayIdentity(child,i,cancel);if(value.isEmpty())return {};
+            if(identity.isEmpty())identity=value;
+            hashes.append(value["content"]);
+        }
+        identity["content"]=QString::fromLatin1(QCryptographicHash::hash(QJsonDocument(QJsonObject{{"dolphin-lan-list-v1",hashes}}).toJson(QJsonDocument::Compact),QCryptographicHash::Sha256).toHex());
+        return identity;
+    }
     if(cancel||r.adventure.collectionOnly||r.adventure.platformId!="gc"||r.adventure.adapterId!="dolphin"||!i.platforms.contains("gc")
-       ||!QStringList{"iso","gcm","rvz","wia","gcz","ciso","tgc"}.contains(QFileInfo(r.contentPath).suffix().toLower()))return {};
+       ||!QStringList{"iso","gcm","bin","rvz","wia","gcz","ciso","tgc"}.contains(QFileInfo(r.contentPath).suffix().toLower()))return {};
     const auto m=manifest(dolphin::bridgeRoot()+"/manifest.json"),lan=manifest(bundleRoot()+"/manifest.json");
     const auto helper=bundleRoot()+"/stream_transport",tool=dolphin::bridgeRoot()+"/bin/dolphin-tool";
     if(m["protocol"]!=1||m["source"]!=Revision||m["bba"]!="tapserver-eof-v1"||lan["protocol"]!=1||lan["settings"]!=Settings
@@ -57,6 +73,11 @@ QJsonObject netplayIdentity(const AdventureRegistration& r,const StandaloneInsta
         {"settings",Settings},{"disc",header["game_id"]},{"players",2},{"lateJoin",false},{"temporaryProgress",true}};
 }
 QString configure(ProcessCommand& cmd,const StandaloneInstallation& i,QString content,QString connection,bool host,const QJsonObject& expected) {
+    if(disc::playlist(content)) {
+        const auto paths=disc::entries(content,{"iso","gcm","bin","rvz","wia","gcz","ciso","tgc"});
+        if(paths.isEmpty())return "This disc list changed. Choose the game again.";
+        content=paths.first();
+    }
     QFile file(connection);QFileInfo info(connection);
     if(!info.isAbsolute()||info.isSymLink()||!file.open(QIODevice::ReadOnly)||file.size()>4096)return "Couldn't protect the GameCube LAN connection.";
 #ifndef Q_OS_WIN

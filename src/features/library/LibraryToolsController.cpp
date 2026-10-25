@@ -3,13 +3,15 @@
 #include <QFileInfo>
 #include <QDir>
 #include <algorithm>
+#include <QFutureWatcher>
+#include <QtConcurrentRun>
 
 namespace trainer {
 void LibraryToolsController::beginGame(const QString& id) {
     if(busy_ || !repository_.editable())return;
     const auto record=repository_.registration(id);
     if(!record || record->removed)return;
-    browserActions_=false;game_=*record;route_="game";focus_=0;error_.clear();emit changed();
+    browserActions_=false;game_=*record;route_="game";focus_=0;error_.clear();installNotice_.clear();emit changed();
 }
 void LibraryToolsController::beginBrowsing(const QString& id, const QString& view) {
     if(busy_)return;
@@ -43,6 +45,7 @@ QString LibraryToolsController::title() const {
     return game_.adventure.title;
 }
 QString LibraryToolsController::detail() const {
+    if(route_=="install-content")return "Installing package… You can cancel before it is applied.";
     if(route_=="reviews-edit")return reviewDraft_.isEmpty()?"A few words about your adventure…":reviewDraft_;
     if(route_=="reviews-delete")return "Delete your review?";
     if(route_=="reviews-report")return "Report this review to Fluxer";
@@ -53,7 +56,7 @@ QString LibraryToolsController::detail() const {
     if(route_=="restore")return game_.adventure.title;
     if(route_=="trash" && trash_.isEmpty())return "The trash is empty.";
     if(route_=="properties") {
-        QStringList information;
+        QStringList information;if(!installNotice_.isEmpty())information.append(installNotice_);
         information.append("Platform: "+platformLabel(game_.adventure.platformId).name);
         information.append("File: "+QFileInfo(game_.contentPath).fileName());
         information.append("Folder: "+QFileInfo(game_.contentPath).absolutePath());
@@ -63,6 +66,7 @@ QString LibraryToolsController::detail() const {
 }
 QVariantList LibraryToolsController::rows() const {
     const auto row=[](const QString& label,bool enabled=true){return QVariantMap{{"label",label},{"enabled",enabled}};};
+    if(route_=="install-content")return {row(installCancel_&&*installCancel_?"Cancelling…":"Cancel",installCancel_&&!*installCancel_)};
     if(route_=="reviews-edit")return {row("Edit text"),row(reviewSpoiler_?"Spoilers: Yes":"Spoilers: No"),row("Publish review",!reviewDraft_.trimmed().isEmpty()&&!reviews_["busy"].toBool()),row("Discard")};
     if(route_=="reviews-delete")return {row("Cancel"),row("Delete review")};
     if(route_=="reviews-report")return {row("Spam"),row("Harassment"),row("Other"),row("Cancel")};
@@ -87,6 +91,7 @@ QVariantList LibraryToolsController::rows() const {
     if(route_=="restore")return {row("Cancel"),row("Restore game")};
     if(route_=="properties"){
         QVariantList result{row("Reviews")};for(const auto& capability:capabilities_)result.append(row(capability,false));
+        if(contentPackage&&contentPackage(game_)&&installPackage)result.append(row("Install package / update / DLC"));
         result.append(row("Back"));return result;
     }
     QVariantList result;
@@ -104,7 +109,7 @@ QVariantList LibraryToolsController::rows() const {
     return result;
 }
 void LibraryToolsController::dispatch(Action action) {
-    if(busy_)return;
+    if(busy_){if(installCancel_&&(action==Action::Back||action==Action::Confirm)){*installCancel_=true;emit changed();}return;}
     if(action==Action::LocalAction && route_=="game"){close();return;}
     if(route_=="reviews"&&(action==Action::Left||action==Action::Right)){emit scrollReview(action==Action::Right?1:-1);return;}
     if(route_=="reviews"&&action==Action::LocalAction&&reviewReportAvailable()){
@@ -127,6 +132,7 @@ void LibraryToolsController::dispatch(Action action) {
     if(action==Action::Confirm){activate(focus_);return;}emit changed();
 }
 void LibraryToolsController::activate(int index) {
+    if(busy_&&installCancel_&&index==0){*installCancel_=true;emit changed();return;}
     const auto values=rows();if(busy_ || index<0 || index>=values.size())return;
     focus_=index;if(!values[index].toMap().value("enabled").toBool())return;
     if(route_=="browse" || (route_=="game" && browserActions_ && index>=6)) {
@@ -141,6 +147,7 @@ void LibraryToolsController::activate(int index) {
     if(route_=="world"&&index==2){const auto id=world_.id;close();emit scrapeRequested({},id);return;}
     if(route_.startsWith("reviews")){reviewAction(index);return;}
     if(route_=="properties"&&index==0){openReviews();return;}
+    if(route_=="properties"&&contentPackage&&contentPackage(game_)&&installPackage&&index==values.size()-2){installContent();return;}
     if(route_=="game") {
         if(index==0)emit textRequested("Game name",game_.adventure.title,96);
         else if(index==1){
@@ -180,6 +187,25 @@ void LibraryToolsController::activate(int index) {
         submit({route_=="remove"?LibraryEditKind::RemoveGame:LibraryEditKind::RestoreGame,game_.adventure.id,game_.revision});
     } else if(route_=="trash") {game_=trash_[index];route_="restore";focus_=0;}
     else if(route_=="properties" && index==values.size()-1)dispatch(Action::Back);
+    emit changed();
+}
+void LibraryToolsController::installContent() {
+    if(busy_||!installPackage)return;
+    error_=installGuard?installGuard():editGuard?editGuard():QString();
+    if(!error_.isEmpty()){emit changed();return;}
+    const auto current=repository_.registration(game_.adventure.id);
+    if(!current||current->revision!=game_.revision){error_="The game changed. Reopen its options.";emit changed();return;}
+    busy_=true;route_="install-content";focus_=0;
+    installCancel_=std::make_shared<std::atomic_bool>(false);
+    auto* watcher=new QFutureWatcher<QString>(this);
+    connect(this,&QObject::destroyed,watcher,[cancel=installCancel_]{*cancel=true;});
+    connect(watcher,&QFutureWatcher<QString>::finished,this,[this,watcher]{
+        error_=watcher->result();watcher->deleteLater();installCancel_.reset();busy_=false;
+        route_="properties";focus_=0;
+        if(error_.isEmpty()){installNotice_="Package installed. Open the base game to play.";emit saved();}
+        emit changed();
+    });
+    watcher->setFuture(QtConcurrent::run([record=*current,install=installPackage,cancel=installCancel_]{return install(record,*cancel);}));
     emit changed();
 }
 void LibraryToolsController::applyText(const QString& text) {

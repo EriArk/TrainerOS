@@ -1,5 +1,19 @@
 # ARMSX2: native LAN preparation
 
+## Disc lists and payload identity — 26 October 2026
+
+The existing reader/launcher now accepts bounded, ordered local M3U/M3U8 lists.
+Each member must have a valid PS2 disc identity; the first supplies the native
+boot serial/CRC and the existing LAN-catalogue match. All member payloads and
+their order enter content identity. CHD identity hashes the actual file instead
+of trusting a header's declared raw hash. Preparation and launch recheck the
+same identity; the native runtime receives the first disc. Live disc changes
+remain separate. No per-title workaround or new networking was introduced.
+
+`check_launcher.py` has 14 tests, including unchanged declared CHD hash with a
+changed payload, second-disc changes and list order. Runtime/config paths and
+personal cards retain the existing ownership contract. [Current delivery](../MULTIPLAYER_CONTENT_FORMATS.md).
+
 **25 октября — доставка:** расширенные форматы и совместимая со свежим core/main
 оболочка установлены на Flip/Odin. [Хеши, native проверки, сохранность данных
 и откат](../MULTIPLAYER_CONTENT_FORMATS.md#доставка-на-flip-и-odin--25-октября-2026).

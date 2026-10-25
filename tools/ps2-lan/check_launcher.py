@@ -15,7 +15,33 @@ import launcher
 from check_config import MATERIAL
 
 
+class IdentityTests(unittest.TestCase):
+    def test_payload_and_every_playlist_member_are_compared(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root=Path(temporary).resolve();a=root/'first.chd';b=root/'second.iso'
+            a.write_bytes(b'same declared CHD hash, original payload');b.write_bytes(b'disc two')
+            (root/'profiles.json').write_text(json.dumps({'version':2,'games':[{'mode':'lan','releases':[{'serial':'TEST-00001'}]}]}))
+            disc={'serial':'TEST-00001','crc':'12345678','sha256':'unchanged declared hash'}
+            with patch.object(launcher,'ROOT',root),patch.object(launcher,'disc_identity',return_value=disc),\
+                 patch.object(launcher,'manifest',return_value={'runtimeSha256':'runtime','settings':'settings'}):
+                first=launcher.identify(a)['content'];a.write_bytes(b'same declared CHD hash, changed payload')
+                self.assertNotEqual(first,launcher.identify(a)['content'])
+                listing=root/'set.m3u8';listing.write_text('first.chd\nsecond.iso\n')
+                first=launcher.identify(listing)['content'];b.write_bytes(b'changed disc two')
+                second=launcher.identify(listing)['content'];self.assertNotEqual(first,second)
+                listing.write_text('second.iso\nfirst.chd\n')
+                self.assertNotEqual(second,launcher.identify(listing)['content'])
+
+
 class LauncherTests(unittest.TestCase):
+    def test_disc_lists_are_ordered_local_and_bounded(self):
+        a=self.root/'disc1.iso';b=self.root/'disc2.chd';a.write_bytes(b'one');b.write_bytes(b'two')
+        path=self.root/'set.m3u8';path.write_text('\ufeff#EXTM3U\ndisc1.iso\ndisc2.chd\n',encoding='utf-8')
+        self.assertEqual(launcher.discs(path),[a,b])
+        for text in ('disc1.iso\ndisc1.iso','set.m3u8','https://invalid/disc.iso','missing.iso'):
+            path.write_text(text)
+            with self.assertRaises((ValueError,OSError)):launcher.discs(path)
+
     def setUp(self):
         self.temp=tempfile.TemporaryDirectory()
         self.addCleanup(self.temp.cleanup)

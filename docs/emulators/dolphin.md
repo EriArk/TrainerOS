@@ -1,5 +1,27 @@
 # Dolphin integration checkpoint
 
+## Native executables and disc sets — 26 October 2026
+
+On pinned `c77bbaa0f372c3f72281602a8b087206706542cb`, the new
+`traineros-content.patch` extends native `dolphin-tool header -j` with DolReader
+and ElfReader. It validates PowerPC/type/segments, nonzero entry and bounded
+size; native IsWii owns platform selection. The managed bridge applies the same
+checks and uses a stable private basename because homebrew's native identifier
+contains its name. Bundle marker: `dolphin-native-executable-v1`.
+
+The shell accepts native BIN aliases and ordered local M3U/M3U8 lists in both
+NetPlay and the existing BBA route, checks every member and boots the first.
+The native LAN catalogue remains distinct from general NetPlay support.
+Live synchronized disc swapping is separate.
+Wii NFS identity includes sequential `hif_*.nfs` parts and its own `code/htk.bin`;
+missing parts/key are observed for Lobby refresh. Dolphin still validates the
+actual Wii volume. Discovery creates one card, and generic move/delete refuses
+partial manipulation of a compound set. No keys or conversion assets are shipped.
+
+Build/bundle recipes include the new patch alongside the NetPlay and BBA patches.
+`check-formats.py [qemu-aarch64 -L SYSROOT] dolphin-tool` checks four volume cases
+and six executable cases using generated data. [Current delivery and limits](../MULTIPLAYER_CONTENT_FORMATS.md).
+
 **25 октября — доставка:** расширенные форматы и совместимая со свежим core/main
 оболочка установлены на Flip/Odin. [Хеши, native проверки, сохранность данных
 и откат](../MULTIPLAYER_CONTENT_FORMATS.md#доставка-на-flip-и-odin--25-октября-2026).

@@ -10,6 +10,8 @@
 #include <QSettings>
 #include <QStandardPaths>
 #include <QTemporaryDir>
+#include <QProcess>
+#include <QElapsedTimer>
 #include <QtEndian>
 
 namespace trainer::azahar {
@@ -55,6 +57,39 @@ bool writePrivate(const QString& path,const QByteArray& bytes) {
         &&file.setPermissions(QFile::ReadOwner|QFile::WriteOwner)&&file.write(bytes)==bytes.size()&&file.flush();
 }
 
+QJsonObject content(const AdventureRegistration& record,const std::atomic_bool& cancel,bool install=false,const QString& expected={}) {
+    QSettings original(QStandardPaths::writableLocation(QStandardPaths::GenericConfigLocation)+"/azahar-emu/qt-config.ini",QSettings::IniFormat);
+    const auto data=QStandardPaths::writableLocation(QStandardPaths::GenericDataLocation)+"/azahar-emu";
+    const bool custom=!original.value("Data Storage/use_custom_storage/default",false).toBool()
+        &&original.value("Data Storage/use_custom_storage",false).toBool();
+    QTemporaryDir directory(QDir::tempPath()+"/traineros-3ds-content-XXXXXX");
+    if(!directory.isValid())return {};
+    const QJsonObject request{{"source",record.contentPath},{"runtime",bundleRoot()+"/bin/azahar"},
+        {"nand",custom?original.value("Data Storage/nand_directory").toString():data+"/nand"},
+        {"sdmc",custom?original.value("Data Storage/sdmc_directory").toString():data+"/sdmc"},
+        {"state",QStandardPaths::writableLocation(QStandardPaths::GenericDataLocation)+"/TrainerOS/content/azahar"},
+        {"expected",expected}};
+    const auto path=directory.path()+"/request.json";
+    if(!writePrivate(path,QJsonDocument(request).toJson(QJsonDocument::Compact)))return {};
+    QProcess process;process.setProgram(bundleRoot()+"/transport/venv/bin/python");
+    process.setArguments({bundleRoot()+"/content.py",install?"install":"inspect",path});
+    process.setStandardErrorFile(QProcess::nullDevice());process.start();
+    if(!process.waitForStarted(3000))return {};
+    QElapsedTimer elapsed;elapsed.start();QByteArray output;
+    while(process.state()!=QProcess::NotRunning) {
+        process.waitForFinished(50);output+=process.readAllStandardOutput();
+        if(cancel||elapsed.elapsed()>(install?1200000:600000)||output.size()>2*1024*1024) {
+            process.terminate();if(!process.waitForFinished(3000)){process.kill();process.waitForFinished(1000);}return {};
+        }
+    }
+    output+=process.readAllStandardOutput();
+    if(process.exitStatus()!=QProcess::NormalExit||output.size()>2*1024*1024)return {};
+    auto result=QJsonDocument::fromJson(output).object();
+    if(process.exitCode()!=0){result["error"]=result["error"].toString("Couldn't prepare this 3DS content.");return result;}
+    if(result["protocol"]!=1||!hex(result["fingerprint"].toString())||!hex(result["title"].toString(),16))return {};
+    return result;
+}
+
 }
 QString bundleRoot() {return QStandardPaths::writableLocation(QStandardPaths::GenericDataLocation)+"/TrainerOS/emulators/azahar-netplay";}
 QJsonObject bundle(const std::atomic_bool& cancel) {
@@ -77,20 +112,63 @@ QJsonObject bundle(const std::atomic_bool& cancel) {
     if(!QFileInfo(root+"/bin/azahar").isExecutable()||!QFileInfo(python).isExecutable()
        ||!hex(value["interpreterSha256"].toString())||digest(python,cancel,64*1024*1024)!=value["interpreterSha256"].toString())return {};
     hash.addData(value["interpreterSha256"].toString().toLatin1());hash.addData(value["settings"].toString().toLatin1());
+    if(value.contains("content")) {
+        const auto content=value["content"].toObject();
+        if(content["protocol"]!="azahar-content-v1"||!hex(content["sha256"].toString())||
+           digest(root+"/content.py",cancel,1024*1024)!=content["sha256"].toString())return {};
+        hash.addData(content["sha256"].toString().toLatin1());
+    }
     value["digest"]=QString::fromLatin1(hash.result().toHex());return value;
 }
-QJsonObject netplayIdentity(const AdventureRegistration& record,const std::atomic_bool& cancel) {
+bool package(const AdventureRegistration& record) {
+    return record.adventure.platformId=="n3ds"&&QStringList{"cia","zcia"}.contains(QFileInfo(record.contentPath).suffix().toLower());
+}
+QString installContent(const AdventureRegistration& record,const std::atomic_bool& cancel) {
+    if(!package(record)||bundle(cancel)["content"].toObject()["protocol"]!="azahar-content-v1")return "Restore the 3DS content installer first.";
+    const auto installed=content(record,cancel,true);
+    if(cancel)return "Installation cancelled.";
+    if(installed.isEmpty())return "Couldn't install this package. Existing content and saves were kept.";
+    return installed["error"].toString();
+}
+QString prepareContent(ProcessCommand& command,const AdventureRegistration& record,const std::atomic_bool& cancel) {
+    if(!package(record))return {};
+    if(bundle(cancel)["content"].toObject()["protocol"]!="azahar-content-v1")return "Restore the 3DS content installer first.";
+    const auto inspected=content(record,cancel);
+    if(inspected["executable"]!=true)return inspected["error"].toString("This is an update or DLC package. Install it from the game's options, then open the base game.");
+    const auto installed=content(record,cancel,true,inspected["fingerprint"].toString());
+    if(cancel)return "Opening cancelled.";
+    if(!installed["error"].toString().isEmpty())return installed["error"].toString();
+    const auto entry=installed["entry"].toString();
+    if(entry.isEmpty()||!QFileInfo(entry).isFile())return "Couldn't prepare the installed 3DS game.";
+    const auto index=command.arguments.indexOf(record.contentPath);
+    if(index>=0)command.arguments[index]=entry;
+    command.runtimeControls["installedContent"]=entry;
+    return {};
+}
+QJsonObject netplayIdentity(const AdventureRegistration& record,const std::atomic_bool& cancel,const std::function<void(const QString&)>& observe) {
     if(record.adventure.platformId!="n3ds"||record.adventure.adapterId!="azahar"||record.adventure.collectionOnly)return {};
     const auto suffix=QFileInfo(record.contentPath).suffix().toLower();
+    if(observe) {
+        observe(bundleRoot()+"/manifest.json");observe(bundleRoot()+"/content.py");
+        observe(QStandardPaths::writableLocation(QStandardPaths::GenericConfigLocation)+"/azahar-emu/qt-config.ini");
+    }
     QFile file(record.contentPath);if(!file.open(QIODevice::ReadOnly)||file.size()<32)return {};
     const auto header=file.read(512);
+    const auto installed=bundle(cancel);if(installed.isEmpty())return {};
+    if(installed["content"].toObject()["protocol"]=="azahar-content-v1") {
+        const auto info=content(record,cancel);
+        if(observe)for(const auto& path:info["observed"].toArray())observe(path.toString());
+        if(info["executable"]!=true||!hex(info["fingerprint"].toString()))return {};
+        return {{"id","runtime.azahar.3ds.v1"},{"label",record.adventure.title.left(96)},
+            {"content",info["fingerprint"]},{"runtime",installed["digest"]},{"settings","native-room-two-content-v2"},
+            {"players",2},{"lateJoin",false},{"temporaryProgress",false}};
+    }
     // CIA/ZCIA installs and remote Artic Base are not launchable images.
     const bool packed=QStringList{"zcci","zcxi","z3dsx"}.contains(suffix);
     const bool elf=QStringList{"elf","axf"}.contains(suffix)&&header.startsWith(QByteArray("\x7f" "ELF\x01\x01",6))
         &&header.size()>=52&&qFromLittleEndian<quint16>(header.constData()+18)==40;
     if(!(elf||(packed&&compressedHeader(file,header,suffix))||(suffix=="3dsx"&&header.startsWith("3DSX"))||
          ((suffix=="cci"||suffix=="3ds")&&header.mid(256,4)=="NCSD")||((suffix=="cxi"||suffix=="app")&&header.mid(256,4)=="NCCH")))return {};
-    const auto installed=bundle(cancel);if(installed.isEmpty())return {};
     const auto content=digest(record.contentPath,cancel,8LL*1024*1024*1024);if(content.isEmpty())return {};
     return {{"id","runtime.azahar.3ds.v1"},{"label",record.adventure.title.left(96)},
         {"content",content},{"runtime",installed["digest"]},{"settings",installed["settings"]},
@@ -103,6 +181,13 @@ ProcessCommand command(const AdventureRegistration& record,const Request& reques
         if(!hex(request.identity)||(!request.host&&(!endpoint(request.endpoint)||request.endpoint["mode"]!=(request.online?"online":"nearby")))
            ||(!request.online&&QHostAddress(request.address).protocol()!=QAbstractSocket::IPv4Protocol))return "This 3DS invitation is invalid.";
         if(!sameMultiplayerGame(netplayIdentity(record,cancel),request.expected))return "Your 3DS game or emulator changed. Invite again.";
+        auto contentPath=record.contentPath;
+        if(package(record)) {
+            ProcessCommand preparation;preparation.arguments={record.contentPath};
+            const auto error=prepareContent(preparation,record,cancel);if(!error.isEmpty())return error;
+            contentPath=preparation.runtimeControls["installedContent"].toString();
+            if(!sameMultiplayerGame(netplayIdentity(record,cancel),request.expected))return "Your 3DS updates changed. Choose the game again.";
+        }
         auto directory=std::make_shared<QTemporaryDir>(QDir::tempPath()+"/traineros-3ds-XXXXXX");
         if(!directory->isValid())return "Couldn't prepare the 3DS session.";
         const auto path=QFileInfo(directory->path()).canonicalFilePath(),user=path+"/user";
@@ -113,7 +198,8 @@ ProcessCommand command(const AdventureRegistration& record,const Request& reques
         const int graphics=original.value("Renderer/graphics_api",2).toInt();
         if(graphics!=0&&graphics!=2)return "This 3DS renderer isn't available in the multiplayer build.";
         const auto data=QStandardPaths::writableLocation(QStandardPaths::GenericDataLocation)+"/azahar-emu";
-        const bool custom=original.value("Data Storage/use_custom_storage",false).toBool();
+        const bool custom=!original.value("Data Storage/use_custom_storage/default",false).toBool()
+            &&original.value("Data Storage/use_custom_storage",false).toBool();
         const auto prepareDirectory=[](const QString& value)->QString {
             if(!QDir::isAbsolutePath(value)||!QDir().mkpath(value))return {};
             return QFileInfo(value).canonicalFilePath();
@@ -136,7 +222,7 @@ ProcessCommand command(const AdventureRegistration& record,const Request& reques
         channel["host"]=request.host;channel["identity"]=request.identity;channel["mode"]=request.online?"online":"nearby";
         if(!request.online)channel["address"]=request.address;
         const auto root=bundleRoot(),python=root+"/transport/venv/bin/python";
-        const QJsonObject config{{"channel",channel},{"content",record.contentPath},{"runtime",root+"/bin/azahar"},
+        const QJsonObject config{{"channel",channel},{"content",contentPath},{"runtime",root+"/bin/azahar"},
             {"python",python},{"helper",root+"/transport/secure-channel.py"},{"user",user},{"sysdata",sysdata}};
         if(!writePrivate(path+"/network.json",QJsonDocument(config).toJson(QJsonDocument::Compact)))return "Couldn't protect the 3DS connection details.";
         out.finalize=[directory](const ProcessOutcome&){return QString();};

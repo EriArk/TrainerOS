@@ -15,11 +15,11 @@ QJsonObject runtimeIdentity(const AdventureRegistration& original,const RetroArc
     const auto r=retroarch::netplayRegistration(original);
     const auto platform=r.adventure.platformId;
     if(platform=="ps2") {
-        const auto native=ps2lan::netplayIdentity(r,cancel);
+        const auto native=ps2lan::netplayIdentity(r,cancel,[digests](const QString& path){if(digests)digests->observe(path);});
         return native.isEmpty()?ps2::netplayIdentity(r,installation,cancel):native;
     }
     if(platform=="psvita")return vita::netplayIdentity(r,cancel);
-    if(platform=="n3ds")return azahar::netplayIdentity(r,cancel);
+    if(platform=="n3ds")return azahar::netplayIdentity(r,cancel,[digests](const QString& path){if(digests)digests->observe(path);});
     if(platform=="nds")return melonds::netplayIdentity(r,cancel);
     if(platform=="dreamcast")return flycast::netplayIdentity(r,cancel,[digests](const QString& path){if(digests)digests->observe(path);});
     if(platform=="n64")return rmg::netplayIdentity(r,cancel,capacity);

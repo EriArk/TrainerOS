@@ -1318,6 +1318,7 @@ void ShellController::activate(int index, const QString& area) {
     if(scraper_.isOpen()) {if(keyboard_.isOpen())keyboard_.activate(index);else scraper_.activate(index);return;}
     if(homeMenuOpen_)return;
     if(collectionManager()->isOpen() && !menuOpen_ && notice_.isEmpty()) {if(keyboard_.isOpen())keyboard_.activate(index);else collectionManager()->activate(index);return;}
+    if(libraryTools_.busy()&&libraryTools_.canCancel()){libraryTools_.activate(index);return;}
     if(launchPreparation_.busy() || libraryTools_.busy() || moduleWriting())return;
     if(area=="world-edit" && canEditWorld()){libraryTools_.beginWorld(worlds_.region().value("id").toString(),true);return;}
     if (area == "continue") { dispatch(Action::ToggleContinue); return; }
@@ -1689,6 +1690,7 @@ void ShellController::dispatch(Action action) {
     }
     for(auto& module:modules_)if(module->intercept(action))return;
     if(scraper_.isOpen()){if(keyboard_.isOpen())keyboard_.dispatch(action);else scraper_.dispatch(action);return;}
+    if(libraryTools_.busy()&&libraryTools_.canCancel()){libraryTools_.dispatch(action);return;}
     if(launchPreparation_.busy() || libraryTools_.busy())return;
     if(navigationLocked(action==Action::PreviousPage || action==Action::NextPage) && (action==Action::Home || action==Action::PreviousPage || action==Action::NextPage || action==Action::SystemMenu || action==Action::PreviousFace || action==Action::NextFace))return;
     if(menuOpen_ && !powerMenu_ && notice_.isEmpty()) {

@@ -1,0 +1,34 @@
+Test project /work/build
+    Start  1: backend_account
+1/5 Test  #1: backend_account ..................   Passed    0.12 sec
+    Start  3: platform_sdk
+2/5 Test  #3: platform_sdk .....................   Passed    3.05 sec
+    Start 34: standalone
+3/5 Test #34: standalone .......................   Passed   18.97 sec
+    Start 52: retroarch
+4/5 Test #52: retroarch ........................   Passed   10.02 sec
+    Start 64: runtime_multiplayer
+5/5 Test #64: runtime_multiplayer ..............   Passed  119.23 sec
+
+100% tests passed, 0 tests failed out of 5
+
+Total Test time (real) = 151.40 sec
+********* Start testing of LibraryTests *********
+Config: Using QtTest library 6.11.2, Qt 6.11.2 (arm64-little_endian-lp64 shared (dynamic) release build; by GCC 16.2.1 20260819 (Red Hat 16.2.1-2)), fedora 44
+PASS   : LibraryTests::initTestCase()
+PASS   : LibraryTests::contentInstallationIsExplicitGuardedAndCancellable()
+PASS   : LibraryTests::multiplayerDiscFormatsAreDiscoveredWithoutTitleLists()
+PASS   : LibraryTests::splitDolphinImagesRemainOneLibraryGame()
+PASS   : LibraryTests::nfsDependenciesRemainOneLibraryGame()
+PASS   : LibraryTests::fileMovePreservesIdentityMetadataAndAdjacentSaves()
+PASS   : LibraryTests::compoundFormatsCannotBePartiallyMovedOrDeleted()
+PASS   : LibraryTests::cleanupTestCase()
+Totals: 8 passed, 0 failed, 0 skipped, 0 blacklisted, 2515ms
+********* Finished testing of LibraryTests *********
+Test project /work/build
+    Start 34: standalone
+1/1 Test #34: standalone .......................   Passed   19.85 sec
+
+100% tests passed, 0 tests failed out of 1
+
+Total Test time (real) =  19.85 sec

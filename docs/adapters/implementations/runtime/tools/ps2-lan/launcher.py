@@ -34,16 +34,39 @@ def manifest():
     return data
 
 
+def discs(path):
+    if path.suffix.lower() not in ('.m3u','.m3u8'):return [path]
+    if not path.is_file() or not 0<path.stat().st_size<=65536:raise ValueError('Invalid disc list')
+    result=[];seen=set()
+    for line in path.read_text(encoding='utf-8-sig').splitlines():
+        line=line.strip()
+        if not line or line.startswith('#'):continue
+        if any(c in line for c in ('\0','\t')) or '://' in line:raise ValueError('Invalid disc path')
+        child=Path(line.replace('\\','/'))
+        if not child.is_absolute():child=path.parent/child
+        child=child.resolve(strict=True)
+        if not child.is_file() or child.suffix.lower() not in ('.iso','.chd','.cso','.zso','.bin','.gz','.img','.mdf','.nrg') \
+           or child in seen or len(result)>=16:raise ValueError('Invalid disc list entry')
+        seen.add(child);result.append(child)
+    if not result:raise ValueError('Empty disc list')
+    return result
+
+
 def identify(path):
     if not path.is_absolute():raise ValueError('Absolute content path required')
-    disc=disc_identity(path,ROOT/'libchdr.so')
+    paths=discs(path)
+    contents=[disc_identity(p,ROOT/'libchdr.so') for p in paths]
+    disc=contents[0]
     profiles=json.loads((ROOT/'profiles.json').read_text(encoding='utf-8'))
     if profiles.get('version')!=2:raise ValueError('Unsupported PS2 LAN catalogue')
     matches=[p for p in profiles['games'] if p['mode']=='lan'
              and any(r['serial']==disc['serial'] for r in p['releases'])]
     if len(matches)!=1:return {}
     setup=manifest()
-    content=disc['content'] or digest(path)
+    # A CHD header's declared raw SHA is not verification of its current payload.
+    hashes=[digest(p) for p in paths]
+    content=hashes[0] if path.suffix.lower() not in ('.m3u','.m3u8') else hashlib.sha256(
+        json.dumps({'ps2-list-v1':hashes},separators=(',',':')).encode()).hexdigest()
     return {'id':'runtime.armsx2.lan.v1','content':content,'serial':disc['serial'],
             'crc':disc['crc'],'runtime':setup['runtimeSha256'],'settings':setup['settings'],
             'players':2,'lateJoin':False,'temporaryProgress':False,'connections':['online']}
@@ -144,7 +167,7 @@ def run(path):
           '--proc','/proc','--',str(ROOT/'ps2_endpoint'),data['connection'],setup['runtime'],
           '-batch','-fullscreen',
           '-gamecfg',str(ready/'game.ini'),'-logfile',str(path.parent/'native.log'),
-          '--',data['content']]
+          '--',str(discs(Path(data['content']))[0])]
     # ARMSX2 appends its application folder to the base configuration directory.
     # Passing the already-expanded root to -datapath creates a fresh nested setup.
     if Path(setup['configRoot']).name!='ARMSX2':raise ValueError('Unsupported PS2 data root')

@@ -1,5 +1,12 @@
 # Карта готовности функций TrainerOS
 
+**26 октября — S02/S03/S06/S08, оставшиеся форматы одним проходом:**
+реализованы native install/receipt/cancel/recovery CIA/ZCIA и compatibility
+с update/DLC, Dolphin ELF/DOL/NFS, PS2/Dolphin M3U/M3U8 и целостность составных
+файлов. [Реализация, проверки и поставка](MULTIPLAYER_CONTENT_FORMATS.md#единый-проход-оставшихся-форматов--26-октября-2026).
+Историческое «CIA/ZCIA не реализовано» ниже заменено этим контрактом; unsupported
+native/network routes остаются явными, расширение файла не объявляет их готовыми.
+
 **26 октября — CBN/CBIN доставлены на обе портативки:** оболочка `fcff5356`,
 отдельный native package, проверки чтения/старта и сохранности проверенных
 личных файлов. [Установленные хеши и границы](MULTIPLAYER_CONTENT_FORMATS.md#cbncbin-исправленный-native-reader).

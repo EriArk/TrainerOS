@@ -11,7 +11,7 @@ source, build, destination = map(Path, sys.argv[1:])
 revision = "c77bbaa0f372c3f72281602a8b087206706542cb"
 assert subprocess.check_output(["git", "-C", str(source), "rev-parse", "HEAD"], text=True).strip() == revision
 recipe = Path(__file__).resolve().parent
-for patch in ("traineros-netplay.patch", "traineros-bba-eof.patch"):
+for patch in ("traineros-netplay.patch", "traineros-bba-eof.patch", "traineros-content.patch"):
     subprocess.run(["git", "-C", str(source), "apply", "--reverse", "--check",
                     str(recipe / patch)], check=True)
 assert (source / "Source/Core/DolphinQt/TrainerNetplay.inc").read_bytes() == (recipe / "TrainerNetplay.inc").read_bytes()
@@ -33,12 +33,12 @@ shutil.copy2(tool, destination / "bin/dolphin-tool")
 shutil.copy2(source / "COPYING", destination / "notices/Dolphin.COPYING")
 shutil.copytree(source / "LICENSES", destination / "notices/LICENSES")
 (destination / "source-patches").mkdir()
-for name in ("traineros-netplay.patch", "traineros-bba-eof.patch", "TrainerNetplay.inc"):
+for name in ("traineros-netplay.patch", "traineros-bba-eof.patch", "traineros-content.patch", "TrainerNetplay.inc"):
     shutil.copy2(recipe / name, destination / "source-patches" / name)
 (destination / "source-patches/UPSTREAM.txt").write_text(
     "https://github.com/dolphin-emu/dolphin\n" + revision + "\n", encoding="utf-8")
 manifest = dict(protocol=1, source=revision, architecture=arch, sha256=hashlib.sha256(binary.read_bytes()).hexdigest(),
                 bba="tapserver-eof-v1", hotseat="dolphin-golf-p1-v1", wiimote="dolphin-wiimote-v1", wad="dolphin-wad-channel-v1",
-                toolSha256=hashlib.sha256(tool.read_bytes()).hexdigest())
+                executable="dolphin-native-executable-v1", toolSha256=hashlib.sha256(tool.read_bytes()).hexdigest())
 (destination / "manifest.json").write_text(json.dumps(manifest, indent=2) + "\n")
 print(manifest["sha256"])

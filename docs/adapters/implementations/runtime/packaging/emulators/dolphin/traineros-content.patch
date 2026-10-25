@@ -1,0 +1,52 @@
+--- a/Source/Core/DolphinTool/HeaderCommand.cpp
++++ b/Source/Core/DolphinTool/HeaderCommand.cpp
+@@ -12,6 +12,10 @@
+ #include <fmt/ostream.h>
+ #include <picojson.h>
+ 
++#include "Common/FileUtil.h"
++#include "Common/StringUtil.h"
++#include "Core/Boot/DolReader.h"
++#include "Core/Boot/ElfReader.h"
+ #include "DiscIO/Blob.h"
+ #include "DiscIO/Volume.h"
+ 
+@@ -70,6 +74,38 @@
+   // Open the volume
+   const std::unique_ptr<DiscIO::Volume> volume = DiscIO::CreateVolume(blob_reader->CopyReader());
+ 
++  // Native executable readers own GC/Wii detection. Do not infer it from the
++  // library folder or treat every file named .elf as a PowerPC executable.
++  if (enable_json && !volume)
++  {
++    const auto dot = input_file_path.find_last_of('.');
++    auto extension = dot == std::string::npos ? "" : input_file_path.substr(dot);
++    Common::ToLower(&extension);
++    std::unique_ptr<BootExecutableReader> executable;
++    if (extension == ".dol" || extension == ".elf")
++    {
++      if (File::GetSize(input_file_path) > 128 * 1024 * 1024)
++        return EXIT_FAILURE;
++      if (extension == ".dol")
++        executable = std::make_unique<DolReader>(input_file_path);
++      else
++      {
++        auto elf = std::make_unique<ElfReader>(input_file_path);
++        if (!elf->IsValid() || static_cast<int>(elf->GetMachine()) != 20 ||
++            static_cast<int>(elf->GetType()) != 2 || elf->GetNumSegments() == 0)
++          return EXIT_FAILURE;
++        executable = std::move(elf);
++      }
++      if (!executable->IsValid() || executable->GetEntryPoint() == 0)
++        return EXIT_FAILURE;
++      auto json = picojson::object();
++      json["platform"] = picojson::value(std::string(executable->IsWii() ? "wii" : "gc"));
++      json["executable"] = picojson::value(true);
++      std::cout << picojson::value(json) << '\n';
++      return EXIT_SUCCESS;
++    }
++  }
++
+   if (enable_json)
+   {
+     auto json = picojson::object();

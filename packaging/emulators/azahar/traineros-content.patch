@@ -1,0 +1,26 @@
+--- a/src/citra_qt/citra_qt.cpp
++++ b/src/citra_qt/citra_qt.cpp
+@@ -4502,6 +4502,8 @@
+ #include "TrainerRoom.inc"
++#include "TrainerContent.inc"
+ 
+ int LaunchQtFrontend(int argc, char* argv[]) {
++    if (const auto result = TrainerContent::Run(argc, argv)) return *result;
+     if (!TrainerRoom::Prepare()) return 2;
+ #ifdef __APPLE__
+     // Ensure that the linker doesn't optimize qt_swizzle.mm out of existence.
+--- a/src/citra_meta/main.cpp
++++ b/src/citra_meta/main.cpp
+@@ -60,6 +60,12 @@
+     }
+ #endif
+ 
++#if ENABLE_QT
++    if (argc == 3 && (strcmp(argv[1], "--traineros-content") == 0 ||
++                      strcmp(argv[1], "--traineros-install") == 0)) {
++        return LaunchQtFrontend(argc, argv);
++    }
++#endif
+     if (CitraCLI::CheckForOptions(CitraCLI::cli_capture_optstring, argc, argv)) {
+         return CitraCLI::ParseCommand(argc, argv);
+     }

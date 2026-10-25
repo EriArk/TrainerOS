@@ -118,7 +118,8 @@ QString moveLibraryFile(QSqlDatabase& db,const LibraryEdit& edit) {
     if(root.isEmpty() || !QFileInfo(root).isDir() || !file.isAbsolute() || !file.isFile() || file.isSymLink()
         || !inside(root,source) || !QDir::isAbsolutePath(destination) || !inside(root,destination,true))
         return fail("Choose a platform folder inside your ROM library.");
-    if(QStringList{"cue","m3u","gdi","ccd","rpx"}.contains(file.suffix().toLower())
+    if(QStringList{"cue","m3u","m3u8","gdi","ccd","mds","toc","nfs","rpx"}.contains(file.suffix().toLower())
+        || source.endsWith(".part0.iso") || (file.suffix().compare("wbfs",Qt::CaseInsensitive)==0&&QFileInfo::exists(source.chopped(1)+"1"))
         || QStringList{"fbneo","mame","neogeo","naomi","atomiswave"}.contains(platform))
         return fail("This game may share files with other games. Move its set in Desktop Mode.");
     if(QFileInfo(destination).exists() && !QFileInfo(destination).isDir())return fail("The destination isn't a folder.");
@@ -134,7 +135,7 @@ QString moveLibraryFile(QSqlDatabase& db,const LibraryEdit& edit) {
         if(other.canonicalFilePath()==file.canonicalFilePath() || QDir::cleanPath(other.absoluteFilePath())==target)
             return fail("Another library entry uses this file or destination.");
     }q.finish();
-    QDirIterator lists(root,{"*.m3u","*.M3U","*.cue","*.CUE","*.gdi","*.GDI"},QDir::Files,QDirIterator::Subdirectories);
+    QDirIterator lists(root,{"*.m3u","*.M3U","*.m3u8","*.M3U8","*.cue","*.CUE","*.gdi","*.GDI"},QDir::Files,QDirIterator::Subdirectories);
     while(lists.hasNext()) {
         QFile list(lists.next());
         if(list.size()>1024*1024 || !list.open(QIODevice::ReadOnly))return fail("Couldn't check the game's disc sets.");

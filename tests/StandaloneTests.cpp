@@ -6,6 +6,7 @@
 #include "integrations/adventure/standalone/AzaharNetplay.h"
 #include "integrations/adventure/standalone/VitaNetplay.h"
 #include "integrations/adventure/standalone/MelonDsNetplay.h"
+#include "integrations/adventure/DiscPlaylist.h"
 #include "integrations/adventure/retroarch/RetroArchAdapter.h"
 #include "core/storage/LocalStateStore.h"
 #include "core/navigation/AdventureLaunchController.h"
@@ -42,6 +43,33 @@ class StandaloneTests final : public QObject {
         QFile file(path); QVERIFY(file.open(QIODevice::WriteOnly)); QCOMPARE(file.write(data), data.size());
     }
 private slots:
+    void orderedDiscListsRejectAmbiguityAndWatchMissingMembers() {
+        QTemporaryDir dir;write(dir.filePath("one.iso"),"disc one");write(dir.filePath("two.chd"),"disc two");
+        const auto path=dir.filePath("set.m3u8");
+        write(path,QByteArray::fromHex("efbbbf")+"#EXTM3U\r\none.iso\r\ntwo.chd\r\n");
+        QStringList observed;
+        QCOMPARE(disc::entries(path,{"iso","chd"},[&](auto p){observed.append(p);}),QStringList({dir.filePath("one.iso"),dir.filePath("two.chd")}));
+        QVERIFY(observed.contains(path));QVERIFY(observed.contains(dir.filePath("two.chd")));
+        for(const auto& bytes:QList<QByteArray>{"one.iso\none.iso\n","set.m3u8\n","https://invalid/game.iso\n",QByteArray("one.iso\0x",9)}) {
+            write(path,bytes);QVERIFY(disc::entries(path,{"iso","chd"}).isEmpty());
+        }
+        write(path,"missing.iso\n");observed.clear();
+        QVERIFY(disc::entries(path,{"iso"},[&](auto p){observed.append(p);}).isEmpty());
+        QVERIFY(observed.contains(dir.filePath("missing.iso")));
+    }
+    void dolphinNfsIdentityIncludesKeyAndEveryPart() {
+        QTemporaryDir dir;QVERIFY(QDir().mkpath(dir.filePath("content")));QVERIFY(QDir().mkpath(dir.filePath("code")));
+        const auto path=dir.filePath("content/hif_000000.nfs"),key=dir.filePath("code/htk.bin"),next=dir.filePath("content/hif_000001.nfs");
+        write(path,"first encrypted part");write(key,QByteArray(16,'k'));std::atomic_bool cancel=false;QStringList observed;
+        const auto first=dolphin::contentIdentity(path,1024,cancel,[&](auto p){observed.append(p);});
+        QVERIFY(!first.isEmpty());QVERIFY(observed.contains(key));QVERIFY(observed.contains(next));
+        write(next,"second encrypted part");const auto both=dolphin::contentIdentity(path,1024,cancel);QVERIFY(both!=first);
+        const auto third=dir.filePath("content/hif_000002.nfs");write(third,"third encrypted part");
+        QVERIFY(QFile::remove(next));QVERIFY(dolphin::contentIdentity(path,1024,cancel).isEmpty());
+        QVERIFY(QFile::remove(third));write(next,"second encrypted part");
+        write(key,QByteArray(16,'x'));QVERIFY(dolphin::contentIdentity(path,1024,cancel)!=both);
+        write(key,"short");QVERIFY(dolphin::contentIdentity(path,1024,cancel).isEmpty());
+    }
     void gameCubeLanUsesNativeBbaAndIsolatedSaves() {
         QTemporaryDir dir;QVERIFY(dir.isValid());
         const auto connection=dir.filePath("session.conf");
@@ -63,6 +91,10 @@ private slots:
         QCOMPARE(config.value("Core/SIDevice1").toInt(),0);
         QCOMPARE(config.value("Core/BBA_TAPSERVER_DESTINATION").toString(),dir.filePath("bba.sock"));
         QVERIFY(!config.contains("Core/MemcardAPath"));QVERIFY(!config.contains("Core/GCIPathA"));
+        write(dir.filePath("disc.bin"),"disc fixture");write(dir.filePath("set.m3u8"),"disc.bin\n");
+        ProcessCommand listed;
+        QVERIFY(dolphinlan::configure(listed,installation,dir.filePath("set.m3u8"),connection,true,profile).isEmpty());
+        QCOMPARE(listed.arguments.last(),dir.filePath("disc.bin"));listed.settled({});
         QFile original(dir.filePath("Dolphin.ini"));QVERIFY(original.open(QIODevice::ReadOnly));QCOMPARE(original.readAll(),QByteArray("ordinary settings"));
         QVERIFY(!dolphinlan::configure(command,installation,"/roms/game.rvz",connection,false,profile).isEmpty());
         write(connection,"mode=bba\nhost=true\nmac=00:09:bf:ab:cd:01\nsocket=/tmp/foreign.sock\n");
