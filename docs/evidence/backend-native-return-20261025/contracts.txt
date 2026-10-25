@@ -1,0 +1,3 @@
+122 schemas, 67 operations, 12 events, 14 SDK methods; draft only
+PASS: OpenAPI 3.1, JSON Schema, 48 logical entities/FKs, 13 module owners, all operations/events/SDK references; 36 boundary examples.
+NOT PROVEN: authentication, DB transactions, provider calls, semantic authorization, actual server/gameplay, deployment.

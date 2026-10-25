@@ -1,0 +1,17 @@
+{
+  "checks": [
+    {
+      "path": "/v1/games",
+      "status": 200
+    },
+    {
+      "path": "/v1/boards/traineros.scorecard-demo.v1/individual/records",
+      "status": 200
+    },
+    {
+      "path": "/v1/play/grants",
+      "status": 401
+    }
+  ],
+  "production_matches_created": false
+}

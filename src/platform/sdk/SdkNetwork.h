@@ -2,6 +2,7 @@
 #include "features/social/LobbyRuntime.h"
 #include <QProcess>
 #include <QJsonArray>
+#include <memory>
 
 namespace trainer {
 // Optional native activity adapter to the existing Lobby and secure record helper.
@@ -9,6 +10,7 @@ namespace trainer {
 class SdkNetwork final : public LobbyRuntimeService {
     Q_OBJECT
 public:
+    static constexpr int MaxPlayers=16;
     SdkNetwork(LobbyCoordinator&, LobbyRuntime&, QString python, QString helper,
                QString nearbyAddress={}, QObject* parent=nullptr);
     ~SdkNetwork() override;
@@ -32,23 +34,30 @@ private:
     QMap<QString,QJsonObject> apps_;
     QMap<QString,QJsonObject> installed_;
     QMap<QString,QString> launchIds_;
-    QProcess process_;
+    struct Link {
+        QProcess process;
+        QString peer,connection,identity,channel;
+        QByteArray buffer;
+        QList<QJsonObject> pending;
+        bool connected=false;
+        quint64 sent=0,acked=0,received=0,consumed=0;
+    };
+    QMap<QString,std::shared_ptr<Link>> links_;
     QTimer deadline_;
-    QByteArray buffer_;
-    QString app_,operation_,ticket_,peer_,self_,connection_,identity_,channel_;
-    QJsonObject prepared_,binding_,endpoint_;
-    QList<QJsonObject> pendingData_;
+    QString app_,operation_,ticket_,self_;
+    QJsonObject prepared_,binding_;
     Completion completion_;
-    bool host_=false,connected_=false,announced_=false,stopping_=false;
-    quint64 sent_=0,acked_=0,received_=0,consumed_=0;
+    bool host_=false,announced_=false,stopping_=false;
+    bool allConnected() const;
+    void addLink(const QString&);
     QJsonObject channelState() const;
     bool matches() const;
     void reconcile();
     void completeLaunch();
     void signal(QString,QString,QString,QJsonObject);
-    void startHelper(const QJsonObject&);
-    bool write(const QJsonObject&);
-    void read();
+    void startHelper(Link&,const QJsonObject&);
+    bool write(Link&,const QJsonObject&);
+    void read(const QString&);
     void end(QString);
     void stop();
 };

@@ -1,0 +1,24 @@
+{
+  "architecture": "Linux x86_64",
+  "builder": "traineros-account-ci:20261025-ui",
+  "build": "passed",
+  "binaries": {
+    "traineros": {
+      "sha256": "50274426103949f1a82ef1690a1f2c9c0af780c5114577ed9bdde6ce81efa622",
+      "size": 150150752
+    },
+    "trainer_account_tests": {
+      "sha256": "057bbf290f1f01d370387afecf75e3b2bab485a50819ef4f8d72437835c31af4",
+      "size": 312960
+    },
+    "trainer_platform_tests": {
+      "sha256": "79a807173640d962dae550e5583681a4b881db19f43087b83f1355a5775fb466",
+      "size": 13343840
+    },
+    "trainer_backend_play_probe": {
+      "sha256": "a88c552b6509dd013b2424e60a943428093a9be7593d551991fbcf6acb569270",
+      "size": 13231744
+    }
+  },
+  "handhelds_tested": false
+}

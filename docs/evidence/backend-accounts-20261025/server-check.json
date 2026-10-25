@@ -1,0 +1,23 @@
+{
+  "ready": [
+    200,
+    {
+      "status": "ready",
+      "scope": "foundation-only"
+    }
+  ],
+  "provider_login": "not_configured",
+  "capabilities": {},
+  "implemented_paths": [
+    "/health/live",
+    "/health/ready",
+    "/v1/auth/login-attempts",
+    "/v1/auth/login-attempts/claim",
+    "/v1/auth/refresh",
+    "/v1/auth/sessions",
+    "/v1/auth/sessions/{session_id}",
+    "/v1/capabilities",
+    "/v1/me"
+  ],
+  "image": "sha256:1be494d552fd9c899c743af06bf17a05567cd0f05b4ee299b450474b68d9f292"
+}

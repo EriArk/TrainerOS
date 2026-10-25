@@ -1,0 +1,14 @@
+{
+  "id": "traineros.scorecard-demo.v1",
+  "game_id": "org.traineros.scorecard-demo",
+  "content_id": "three-segment-demo-v1",
+  "definition": {
+    "validator": "scorecard.v1",
+    "segments": 3,
+    "minimum": 1,
+    "maximum": 99,
+    "direction": "asc",
+    "trust": "peer_confirmed",
+    "label": "SDK integration demo (not Pocket Golf)"
+  }
+}

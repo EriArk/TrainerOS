@@ -1,0 +1,26 @@
+{
+  "containers": [
+    {
+      "name": "traineros-backend-api-1",
+      "image": "sha256:9b92b47a4573079859266cfeb2c70bc99836404a4e1a6249f04c8fca8a7a99cd",
+      "status": "running",
+      "health": "healthy"
+    },
+    {
+      "name": "traineros-backend-worker-1",
+      "image": "sha256:9b92b47a4573079859266cfeb2c70bc99836404a4e1a6249f04c8fca8a7a99cd",
+      "status": "running",
+      "health": "not_configured"
+    },
+    {
+      "name": "traineros-backend-db-1",
+      "image": "sha256:b8faeff7712663c2773a190181e1246e37e364b887611c04658c28b44e2408fe",
+      "status": "running",
+      "health": "healthy"
+    }
+  ],
+  "lobby": "active",
+  "schema_migrations": 5,
+  "backup_restore": "passed",
+  "production_game_rules_enabled": false
+}

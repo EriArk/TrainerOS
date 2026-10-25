@@ -1,0 +1,21 @@
+{
+  "cancelled_login_cannot_claim": true,
+  "first_login": {
+    "live_oauth_claim": true,
+    "me_and_session_list": true,
+    "refresh_rotation": true,
+    "old_access_rejected": true,
+    "own_test_session_revoked": true,
+    "revoked_access_and_refresh_rejected": true,
+    "same_identity_on_relogin": null
+  },
+  "relogin": {
+    "live_oauth_claim": true,
+    "me_and_session_list": true,
+    "refresh_rotation": true,
+    "old_access_rejected": true,
+    "own_test_session_revoked": true,
+    "revoked_access_and_refresh_rejected": true,
+    "same_identity_on_relogin": true
+  }
+}

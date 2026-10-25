@@ -1,0 +1,18 @@
+{
+  "sha256": "af4f0d8c27487ffefb5d90f9b25249b5b002217e4e46815ec081c8824812e26b",
+  "previous_sha256": "425986fedcfec07f7acf0b79a49ab92f043bd3990c734b242ac93ef63c465527",
+  "supervised_restart": true,
+  "capabilities": {
+    "account.identity": 1,
+    "avatar.local": 1,
+    "avatar.recipe": 1,
+    "context": 1,
+    "lifecycle": 1,
+    "lobby.activity": 1,
+    "network.group": 1,
+    "network.records": 1,
+    "play.scorecards": 1,
+    "ui.start.widget": 1
+  },
+  "backup_retained": true
+}

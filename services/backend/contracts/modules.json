@@ -1,0 +1,944 @@
+{
+  "version": "architecture-draft.4",
+  "implemented": false,
+  "owners": {
+    "accounts": "S01",
+    "profiles": "S01",
+    "registry": "S10",
+    "results": "S10",
+    "boards": "S10",
+    "competitions": "S10",
+    "community_competitions": "S10",
+    "rewards": "S11",
+    "wallet": "S11",
+    "inventory": "S11",
+    "support": "S11",
+    "providers": "S05/S11",
+    "operations": "S15"
+  },
+  "operations": [
+    {
+      "module": "accounts",
+      "method": "post",
+      "path": "/v1/auth/login-attempts",
+      "operation": "login_begin",
+      "request": "LoginBegin",
+      "response": "LoginAttempt",
+      "audience": "anonymous",
+      "success": 201,
+      "rule": "",
+      "sensitive": false
+    },
+    {
+      "module": "accounts",
+      "method": "post",
+      "path": "/v1/auth/login-attempts/claim",
+      "operation": "login_claim",
+      "request": "LoginClaim",
+      "response": "SessionTokens",
+      "audience": "attempt",
+      "success": 200,
+      "rule": "Possession proof, expiry, consumed state; provider exchange must be complete.",
+      "sensitive": false
+    },
+    {
+      "module": "accounts",
+      "method": "post",
+      "path": "/v1/auth/refresh",
+      "operation": "session_refresh",
+      "request": "Refresh",
+      "response": "SessionTokens",
+      "audience": "refresh",
+      "success": 200,
+      "rule": "Rotate once; concurrent replay revokes family; never blindly retry a consumed refresh.",
+      "sensitive": false
+    },
+    {
+      "module": "accounts",
+      "method": "post",
+      "path": "/v1/auth/reauth-attempts",
+      "operation": "reauth_begin",
+      "request": "ReauthBegin",
+      "response": "LoginAttempt",
+      "audience": "shell",
+      "success": 200,
+      "rule": "Fresh provider proof; bind purpose/current session/player; no game access.",
+      "sensitive": false
+    },
+    {
+      "module": "accounts",
+      "method": "post",
+      "path": "/v1/auth/reauth-attempts/claim",
+      "operation": "reauth_claim",
+      "request": "LoginClaim",
+      "response": "ReauthGrant",
+      "audience": "shell",
+      "success": 200,
+      "rule": "One-shot possession claim after fresh proof, same actor/session as begin.",
+      "sensitive": false
+    },
+    {
+      "module": "accounts",
+      "method": "get",
+      "path": "/v1/auth/sessions",
+      "operation": "sessions_list",
+      "request": null,
+      "response": "Sessions",
+      "audience": "shell",
+      "success": 200,
+      "rule": "",
+      "sensitive": false
+    },
+    {
+      "module": "accounts",
+      "method": "delete",
+      "path": "/v1/auth/sessions/{session_id}",
+      "operation": "session_revoke",
+      "request": null,
+      "response": "OperationReceipt",
+      "audience": "shell",
+      "success": 200,
+      "rule": "Only own session; revokes associated SDK grants.",
+      "sensitive": false
+    },
+    {
+      "module": "accounts",
+      "method": "get",
+      "path": "/v1/me",
+      "operation": "account_get",
+      "request": null,
+      "response": "Me",
+      "audience": "shell",
+      "success": 200,
+      "rule": "",
+      "sensitive": false
+    },
+    {
+      "module": "accounts",
+      "method": "get",
+      "path": "/v1/me/identities",
+      "operation": "identity_list",
+      "request": null,
+      "response": "IdentityLinks",
+      "audience": "shell",
+      "success": 200,
+      "rule": "",
+      "sensitive": false
+    },
+    {
+      "module": "accounts",
+      "method": "post",
+      "path": "/v1/me/identities",
+      "operation": "identity_link_begin",
+      "request": "LoginBegin",
+      "response": "LoginAttempt",
+      "audience": "shell",
+      "success": 200,
+      "rule": "Bind existing player; reject external identity already owned by another player.",
+      "sensitive": true
+    },
+    {
+      "module": "accounts",
+      "method": "delete",
+      "path": "/v1/me/identities/{identity_id}",
+      "operation": "identity_unlink",
+      "request": null,
+      "response": "OperationReceipt",
+      "audience": "shell",
+      "success": 200,
+      "rule": "Cannot remove last login path without tested recovery.",
+      "sensitive": true
+    },
+    {
+      "module": "accounts",
+      "method": "post",
+      "path": "/v1/me/recovery",
+      "operation": "recovery_rotate",
+      "request": "Empty",
+      "response": "RecoveryCodes",
+      "audience": "shell",
+      "success": 200,
+      "rule": "",
+      "sensitive": true
+    },
+    {
+      "module": "accounts",
+      "method": "post",
+      "path": "/v1/auth/recovery-attempts",
+      "operation": "recovery_begin",
+      "request": "RecoveryBegin",
+      "response": "LoginAttempt",
+      "audience": "anonymous",
+      "success": 201,
+      "rule": "Rate limit; require code plus fresh provider proof before account rebind.",
+      "sensitive": false
+    },
+    {
+      "module": "accounts",
+      "method": "post",
+      "path": "/v1/me/export",
+      "operation": "account_export",
+      "request": "Empty",
+      "response": "OperationReceipt",
+      "audience": "shell",
+      "success": 202,
+      "rule": "",
+      "sensitive": true
+    },
+    {
+      "module": "accounts",
+      "method": "post",
+      "path": "/v1/me/deletion",
+      "operation": "account_delete",
+      "request": "ReasonedRevision",
+      "response": "OperationReceipt",
+      "audience": "shell",
+      "success": 202,
+      "rule": "",
+      "sensitive": true
+    },
+    {
+      "module": "operations",
+      "method": "get",
+      "path": "/v1/me/operations/{operation_id}",
+      "operation": "operation_get",
+      "request": null,
+      "response": "OperationReceipt",
+      "audience": "shell",
+      "success": 200,
+      "rule": "Only actor-scoped receipt, never operation existence oracle.",
+      "sensitive": false
+    },
+    {
+      "module": "profiles",
+      "method": "get",
+      "path": "/v1/players/{player_id}/profile",
+      "operation": "profile_get",
+      "request": null,
+      "response": "PublicProfile",
+      "audience": "public",
+      "success": 200,
+      "rule": "",
+      "sensitive": false
+    },
+    {
+      "module": "profiles",
+      "method": "patch",
+      "path": "/v1/me/profile",
+      "operation": "profile_write",
+      "request": "ProfileWrite",
+      "response": "PublicProfile",
+      "audience": "shell",
+      "success": 200,
+      "rule": "",
+      "sensitive": false
+    },
+    {
+      "module": "profiles",
+      "method": "get",
+      "path": "/v1/me/avatar",
+      "operation": "avatar_get",
+      "request": null,
+      "response": "AvatarRecipe",
+      "audience": "shell",
+      "success": 200,
+      "rule": "",
+      "sensitive": false
+    },
+    {
+      "module": "profiles",
+      "method": "put",
+      "path": "/v1/me/avatar",
+      "operation": "avatar_write",
+      "request": "AvatarWrite",
+      "response": "AvatarRecipe",
+      "audience": "shell",
+      "success": 200,
+      "rule": "Existing SDK recipe adapter, owned compatible items, expected revision; reject slot duplicates.",
+      "sensitive": false
+    },
+    {
+      "module": "registry",
+      "method": "get",
+      "path": "/v1/games",
+      "operation": "games_list",
+      "request": null,
+      "response": "Games",
+      "audience": "public",
+      "success": 200,
+      "rule": "",
+      "sensitive": false
+    },
+    {
+      "module": "registry",
+      "method": "get",
+      "path": "/v1/games/{game_id}/rulesets",
+      "operation": "rulesets_list",
+      "request": null,
+      "response": "Rulesets",
+      "audience": "game",
+      "success": 200,
+      "rule": "",
+      "sensitive": false
+    },
+    {
+      "module": "boards",
+      "method": "get",
+      "path": "/v1/boards",
+      "operation": "boards_list",
+      "request": null,
+      "response": "Boards",
+      "audience": "public",
+      "success": 200,
+      "rule": "",
+      "sensitive": false
+    },
+    {
+      "module": "boards",
+      "method": "get",
+      "path": "/v1/boards/{board_id}/entries",
+      "operation": "board_entries",
+      "request": null,
+      "response": "BoardEntries",
+      "audience": "game",
+      "success": 200,
+      "rule": "Cursor bound to board/filter/revision; ties share rank; revoked decisions excluded.",
+      "sensitive": false
+    },
+    {
+      "module": "boards",
+      "method": "get",
+      "path": "/v1/players/{player_id}/statistics",
+      "operation": "statistics_get",
+      "request": null,
+      "response": "Statistics",
+      "audience": "public",
+      "success": 200,
+      "rule": "",
+      "sensitive": false
+    },
+    {
+      "module": "results",
+      "method": "post",
+      "path": "/v1/matches",
+      "operation": "match_create",
+      "request": "MatchCreate",
+      "response": "Match",
+      "audience": "game",
+      "success": 201,
+      "rule": "Caller actor derived from grant; offline_import allowed only by board policy.",
+      "sensitive": false
+    },
+    {
+      "module": "results",
+      "method": "get",
+      "path": "/v1/matches/{match_id}",
+      "operation": "match_get",
+      "request": null,
+      "response": "Match",
+      "audience": "game",
+      "success": 200,
+      "rule": "",
+      "sensitive": false
+    },
+    {
+      "module": "results",
+      "method": "post",
+      "path": "/v1/matches/{match_id}/admissions",
+      "operation": "match_admit",
+      "request": "Admission",
+      "response": "Match",
+      "audience": "game",
+      "success": 200,
+      "rule": "Only own identity; match admission independent of public Lobby announcement.",
+      "sensitive": false
+    },
+    {
+      "module": "results",
+      "method": "post",
+      "path": "/v1/matches/{match_id}/start",
+      "operation": "match_start",
+      "request": "ExpectedRevision",
+      "response": "Match",
+      "audience": "game",
+      "success": 200,
+      "rule": "Host scope plus all admitted identities; freeze roster/rules/policy.",
+      "sensitive": false
+    },
+    {
+      "module": "results",
+      "method": "post",
+      "path": "/v1/matches/{match_id}/abort",
+      "operation": "match_abort",
+      "request": "ReasonedRevision",
+      "response": "Match",
+      "audience": "game",
+      "success": 200,
+      "rule": "Policy checks host or own withdrawal; never unilaterally assign other players a loss.",
+      "sensitive": false
+    },
+    {
+      "module": "results",
+      "method": "post",
+      "path": "/v1/matches/{match_id}/evidence/uploads",
+      "operation": "evidence_begin",
+      "request": "EvidenceBegin",
+      "response": "EvidenceUpload",
+      "audience": "game",
+      "success": 201,
+      "rule": "",
+      "sensitive": false
+    },
+    {
+      "module": "results",
+      "method": "put",
+      "path": "/v1/matches/{match_id}/evidence/uploads/{upload_id}/chunks/{chunk_index}",
+      "operation": "evidence_chunk",
+      "request": "EvidenceChunk",
+      "response": "OperationReceipt",
+      "audience": "game",
+      "success": 200,
+      "rule": "Owner+match+upload; index 0..63; same chunk hash idempotent, different bytes conflict.",
+      "sensitive": false
+    },
+    {
+      "module": "results",
+      "method": "post",
+      "path": "/v1/matches/{match_id}/evidence/uploads/{upload_id}/finalize",
+      "operation": "evidence_finalize",
+      "request": "Empty",
+      "response": "EvidenceRef",
+      "audience": "game",
+      "success": 200,
+      "rule": "All lengths/offsets/hash checked; server-approved format; immutable after finalize.",
+      "sensitive": false
+    },
+    {
+      "module": "results",
+      "method": "post",
+      "path": "/v1/matches/{match_id}/submissions",
+      "operation": "result_submit",
+      "request": "Submission",
+      "response": "ResultReceipt",
+      "audience": "game",
+      "success": 202,
+      "rule": "Admission and finalized evidence owner; compare expected match revision; atomic job+receipt.",
+      "sensitive": false
+    },
+    {
+      "module": "results",
+      "method": "get",
+      "path": "/v1/results/{receipt_id}",
+      "operation": "result_get",
+      "request": null,
+      "response": "ResultReceipt",
+      "audience": "game",
+      "success": 200,
+      "rule": "Participant only; raw evidence not publicly returned.",
+      "sensitive": false
+    },
+    {
+      "module": "results",
+      "method": "get",
+      "path": "/v1/me/results",
+      "operation": "results_list",
+      "request": null,
+      "response": "Results",
+      "audience": "shell",
+      "success": 200,
+      "rule": "",
+      "sensitive": false
+    },
+    {
+      "module": "competitions",
+      "method": "get",
+      "path": "/v1/competitions",
+      "operation": "competitions_list",
+      "request": null,
+      "response": "Competitions",
+      "audience": "public",
+      "success": 200,
+      "rule": "",
+      "sensitive": false
+    },
+    {
+      "module": "competitions",
+      "method": "get",
+      "path": "/v1/competitions/{competition_id}",
+      "operation": "competition_get",
+      "request": null,
+      "response": "Competition",
+      "audience": "public",
+      "success": 200,
+      "rule": "",
+      "sensitive": false
+    },
+    {
+      "module": "competitions",
+      "method": "post",
+      "path": "/v1/competitions/{competition_id}/entries",
+      "operation": "competition_enter",
+      "request": "CompetitionEntry",
+      "response": "Entry",
+      "audience": "shell",
+      "success": 200,
+      "rule": "Entry pending until every roster member consents and provider/community checks pass.",
+      "sensitive": false
+    },
+    {
+      "module": "competitions",
+      "method": "post",
+      "path": "/v1/competitions/{competition_id}/entries/{entry_id}/consent",
+      "operation": "competition_consent",
+      "request": "ExpectedRevision",
+      "response": "Entry",
+      "audience": "shell",
+      "success": 200,
+      "rule": "Authenticated member consents only for self; no silent roster inclusion.",
+      "sensitive": false
+    },
+    {
+      "module": "competitions",
+      "method": "delete",
+      "path": "/v1/competitions/{competition_id}/entries/{entry_id}",
+      "operation": "competition_withdraw",
+      "request": null,
+      "response": "OperationReceipt",
+      "audience": "shell",
+      "success": 200,
+      "rule": "Own entry/delegation; freeze and withdrawal policy.",
+      "sensitive": false
+    },
+    {
+      "module": "competitions",
+      "method": "get",
+      "path": "/v1/competitions/{competition_id}/standings",
+      "operation": "competition_standings",
+      "request": null,
+      "response": "BoardEntries",
+      "audience": "public",
+      "success": 200,
+      "rule": "",
+      "sensitive": false
+    },
+    {
+      "module": "competitions",
+      "method": "post",
+      "path": "/v1/competitions/{competition_id}/disputes",
+      "operation": "dispute_create",
+      "request": "DisputeWrite",
+      "response": "Dispute",
+      "audience": "shell",
+      "success": 201,
+      "rule": "Participant, submission window and current decision revision.",
+      "sensitive": false
+    },
+    {
+      "module": "community_competitions",
+      "method": "get",
+      "path": "/v1/communities/{community_id}/competitions",
+      "operation": "community_competitions",
+      "request": null,
+      "response": "Competitions",
+      "audience": "game",
+      "success": 200,
+      "rule": "Internal community UUID maps to provider+instance+external subject.",
+      "sensitive": false
+    },
+    {
+      "module": "community_competitions",
+      "method": "get",
+      "path": "/v1/competitions/{competition_id}/rosters",
+      "operation": "community_rosters",
+      "request": null,
+      "response": "CommunityRosters",
+      "audience": "shell",
+      "success": 200,
+      "rule": "Only visible/authorized roster snapshots, not private social graph.",
+      "sensitive": false
+    },
+    {
+      "module": "rewards",
+      "method": "get",
+      "path": "/v1/me/rewards",
+      "operation": "rewards_list",
+      "request": null,
+      "response": "Rewards",
+      "audience": "shell",
+      "success": 200,
+      "rule": "",
+      "sensitive": false
+    },
+    {
+      "module": "rewards",
+      "method": "get",
+      "path": "/v1/me/trophies",
+      "operation": "trophies_list",
+      "request": null,
+      "response": "Trophies",
+      "audience": "shell",
+      "success": 200,
+      "rule": "",
+      "sensitive": false
+    },
+    {
+      "module": "wallet",
+      "method": "get",
+      "path": "/v1/me/wallet",
+      "operation": "wallet_get",
+      "request": null,
+      "response": "Wallet",
+      "audience": "shell",
+      "success": 200,
+      "rule": "",
+      "sensitive": false
+    },
+    {
+      "module": "wallet",
+      "method": "get",
+      "path": "/v1/me/ledger",
+      "operation": "ledger_list",
+      "request": null,
+      "response": "Ledger",
+      "audience": "shell",
+      "success": 200,
+      "rule": "",
+      "sensitive": false
+    },
+    {
+      "module": "wallet",
+      "method": "post",
+      "path": "/v1/me/purchases",
+      "operation": "purchase_create",
+      "request": "PurchaseWrite",
+      "response": "Purchase",
+      "audience": "shell",
+      "success": 200,
+      "rule": "Host confirmation, exact offer and price; debit+ownership+outbox in one transaction.",
+      "sensitive": false
+    },
+    {
+      "module": "inventory",
+      "method": "get",
+      "path": "/v1/shop/items",
+      "operation": "shop_list",
+      "request": null,
+      "response": "ShopItems",
+      "audience": "public",
+      "success": 200,
+      "rule": "",
+      "sensitive": false
+    },
+    {
+      "module": "inventory",
+      "method": "get",
+      "path": "/v1/me/inventory",
+      "operation": "inventory_list",
+      "request": null,
+      "response": "Inventory",
+      "audience": "shell",
+      "success": 200,
+      "rule": "",
+      "sensitive": false
+    },
+    {
+      "module": "inventory",
+      "method": "get",
+      "path": "/v1/me/entitlements",
+      "operation": "entitlements_list",
+      "request": null,
+      "response": "Entitlements",
+      "audience": "shell",
+      "success": 200,
+      "rule": "",
+      "sensitive": false
+    },
+    {
+      "module": "support",
+      "method": "post",
+      "path": "/v1/me/support-links",
+      "operation": "support_link_begin",
+      "request": "SupportLinkBegin",
+      "response": "OperationReceipt",
+      "audience": "shell",
+      "success": 202,
+      "rule": "Provider-specific verification required; unavailable adapter returns unsupported, not linked.",
+      "sensitive": true
+    },
+    {
+      "module": "providers",
+      "method": "post",
+      "path": "/v1/internal/provider-events",
+      "operation": "provider_event_ingest",
+      "request": "ProviderEvent",
+      "response": "OperationReceipt",
+      "audience": "adapter",
+      "success": 202,
+      "rule": "Normalized verified adapter fact; external webhook shape/signature is provider-owned and not this route.",
+      "sensitive": false
+    },
+    {
+      "module": "registry",
+      "method": "post",
+      "path": "/v1/ops/rulesets/{definition_id}/publish",
+      "operation": "registry_publish",
+      "request": "DefinitionPublish",
+      "response": "OperationReceipt",
+      "audience": "operator",
+      "success": 202,
+      "rule": "Reviewed immutable definition; all policy gates resolved; DB unique/version checks.",
+      "sensitive": true
+    },
+    {
+      "module": "boards",
+      "method": "post",
+      "path": "/v1/ops/boards/{definition_id}/publish",
+      "operation": "boards_publish",
+      "request": "DefinitionPublish",
+      "response": "OperationReceipt",
+      "audience": "operator",
+      "success": 202,
+      "rule": "Reviewed immutable definition; all policy gates resolved; DB unique/version checks.",
+      "sensitive": true
+    },
+    {
+      "module": "competitions",
+      "method": "post",
+      "path": "/v1/ops/competitions/{definition_id}/publish",
+      "operation": "competitions_publish",
+      "request": "DefinitionPublish",
+      "response": "OperationReceipt",
+      "audience": "operator",
+      "success": 202,
+      "rule": "Reviewed immutable definition; all policy gates resolved; DB unique/version checks.",
+      "sensitive": true
+    },
+    {
+      "module": "rewards",
+      "method": "post",
+      "path": "/v1/ops/reward-rules/{definition_id}/publish",
+      "operation": "rewards_publish",
+      "request": "DefinitionPublish",
+      "response": "OperationReceipt",
+      "audience": "operator",
+      "success": 202,
+      "rule": "Reviewed immutable definition; all policy gates resolved; DB unique/version checks.",
+      "sensitive": true
+    },
+    {
+      "module": "inventory",
+      "method": "post",
+      "path": "/v1/ops/shop-offers/{definition_id}/publish",
+      "operation": "inventory_publish",
+      "request": "DefinitionPublish",
+      "response": "OperationReceipt",
+      "audience": "operator",
+      "success": 202,
+      "rule": "Reviewed immutable definition; all policy gates resolved; DB unique/version checks.",
+      "sensitive": true
+    },
+    {
+      "module": "results",
+      "method": "post",
+      "path": "/v1/ops/results/{receipt_id}/corrections",
+      "operation": "result_correct",
+      "request": "Correction",
+      "response": "OperationReceipt",
+      "audience": "operator",
+      "success": 202,
+      "rule": "Append decision; corrections cascade via outbox, never edit scoreboard directly.",
+      "sensitive": true
+    },
+    {
+      "module": "competitions",
+      "method": "post",
+      "path": "/v1/ops/disputes/{dispute_id}/resolve",
+      "operation": "dispute_resolve",
+      "request": "Correction",
+      "response": "OperationReceipt",
+      "audience": "operator",
+      "success": 202,
+      "rule": "Authorized reviewer; affected result revision required.",
+      "sensitive": true
+    },
+    {
+      "module": "operations",
+      "method": "get",
+      "path": "/v1/ops/jobs",
+      "operation": "jobs_list",
+      "request": null,
+      "response": "Jobs",
+      "audience": "operator",
+      "success": 200,
+      "rule": "",
+      "sensitive": false
+    },
+    {
+      "module": "operations",
+      "method": "post",
+      "path": "/v1/ops/jobs/{job_id}/retry",
+      "operation": "job_retry",
+      "request": "ReasonedRevision",
+      "response": "OperationReceipt",
+      "audience": "operator",
+      "success": 202,
+      "rule": "Bounded retry with lease fencing and domain dedup.",
+      "sensitive": true
+    },
+    {
+      "module": "operations",
+      "method": "get",
+      "path": "/v1/ops/audit",
+      "operation": "audit_list",
+      "request": null,
+      "response": "Audit",
+      "audience": "operator",
+      "success": 200,
+      "rule": "",
+      "sensitive": false
+    },
+    {
+      "module": "operations",
+      "method": "post",
+      "path": "/v1/ops/auth/reauth-attempts",
+      "operation": "operator_reauth_begin",
+      "request": "OperatorReauthBegin",
+      "response": "LoginAttempt",
+      "audience": "operator",
+      "success": 200,
+      "rule": "Separate operator identity provider, session and role checks.",
+      "sensitive": false
+    },
+    {
+      "module": "operations",
+      "method": "post",
+      "path": "/v1/ops/auth/reauth-attempts/claim",
+      "operation": "operator_reauth_claim",
+      "request": "LoginClaim",
+      "response": "ReauthGrant",
+      "audience": "operator",
+      "success": 200,
+      "rule": "Grant only for same operator/session/purpose; never usable with player credentials.",
+      "sensitive": false
+    }
+  ],
+  "events": {
+    "account.session_revoked": {
+      "producer": "accounts",
+      "consumers": [
+        "operations"
+      ],
+      "payload_schema": "ExpectedRevision",
+      "delivery": "at-least-once",
+      "dedup": "consumer+event_id; reject stale aggregate_revision"
+    },
+    "account.deletion_requested": {
+      "producer": "accounts",
+      "consumers": [
+        "profiles",
+        "operations"
+      ],
+      "payload_schema": "ExpectedRevision",
+      "delivery": "at-least-once",
+      "dedup": "consumer+event_id; reject stale aggregate_revision"
+    },
+    "result.verified": {
+      "producer": "results",
+      "consumers": [
+        "boards",
+        "competitions",
+        "rewards"
+      ],
+      "payload_schema": "ResultReceipt",
+      "delivery": "at-least-once",
+      "dedup": "consumer+event_id; reject stale aggregate_revision"
+    },
+    "result.voided": {
+      "producer": "results",
+      "consumers": [
+        "boards",
+        "competitions",
+        "rewards"
+      ],
+      "payload_schema": "ResultReceipt",
+      "delivery": "at-least-once",
+      "dedup": "consumer+event_id; reject stale aggregate_revision"
+    },
+    "competition.finalized": {
+      "producer": "competitions",
+      "consumers": [
+        "rewards"
+      ],
+      "payload_schema": "Competition",
+      "delivery": "at-least-once",
+      "dedup": "consumer+event_id; reject stale aggregate_revision"
+    },
+    "competition.corrected": {
+      "producer": "competitions",
+      "consumers": [
+        "boards",
+        "rewards"
+      ],
+      "payload_schema": "Competition",
+      "delivery": "at-least-once",
+      "dedup": "consumer+event_id; reject stale aggregate_revision"
+    },
+    "reward.approved": {
+      "producer": "rewards",
+      "consumers": [
+        "wallet",
+        "inventory"
+      ],
+      "payload_schema": "Reward",
+      "delivery": "at-least-once",
+      "dedup": "consumer+event_id; reject stale aggregate_revision"
+    },
+    "reward.reversed": {
+      "producer": "rewards",
+      "consumers": [
+        "wallet",
+        "inventory"
+      ],
+      "payload_schema": "Reward",
+      "delivery": "at-least-once",
+      "dedup": "consumer+event_id; reject stale aggregate_revision"
+    },
+    "purchase.committed": {
+      "producer": "wallet",
+      "consumers": [
+        "inventory"
+      ],
+      "payload_schema": "Purchase",
+      "delivery": "at-least-once",
+      "dedup": "consumer+event_id; reject stale aggregate_revision"
+    },
+    "support.period_changed": {
+      "producer": "support",
+      "consumers": [
+        "inventory",
+        "rewards"
+      ],
+      "payload_schema": "ProviderEvent",
+      "delivery": "at-least-once",
+      "dedup": "consumer+event_id; reject stale aggregate_revision"
+    },
+    "avatar.recipe_changed": {
+      "producer": "profiles",
+      "consumers": [
+        "operations"
+      ],
+      "payload_schema": "AvatarRecipe",
+      "delivery": "at-least-once",
+      "dedup": "consumer+event_id; reject stale aggregate_revision"
+    },
+    "inventory.ownership_changed": {
+      "producer": "inventory",
+      "consumers": [
+        "profiles"
+      ],
+      "payload_schema": "OwnedItem",
+      "delivery": "at-least-once",
+      "dedup": "consumer+event_id; reject stale aggregate_revision"
+    }
+  }
+}

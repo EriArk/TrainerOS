@@ -1,0 +1,32 @@
+3/97 Testing: platform_sdk
+3/97 Test: platform_sdk
+Command: "/work/build-trixie/trainer_platform_tests"
+Directory: /work/build-trixie
+"platform_sdk" start time: Oct 25 19:17 UTC
+Output:
+----------------------------------------------------------
+********* Start testing of PlatformHostTests *********
+Config: Using QtTest library 6.8.2, Qt 6.8.2 (x86_64-little_endian-lp64 shared (dynamic) release build; by GCC 14.2.0), debian 13
+PASS   : PlatformHostTests::initTestCase()
+PASS   : PlatformHostTests::discoveryAndExclusiveEndpoint()
+PASS   : PlatformHostTests::localAvatarSubscriptionAndRevocation()
+PASS   : PlatformHostTests::accountIdentityChangeRevokesOldClient()
+PASS   : PlatformHostTests::asynchronousAvatarRecipes()
+SKIP   : PlatformHostTests::realGodotAvatarConsumer() External Godot and local pack required
+   Loc: [/work/source/tests/PlatformHostTests.cpp(114)]
+PASS   : PlatformHostTests::authVersionAndMalformedInput()
+PASS   : PlatformHostTests::widgetActivationAndCrashCleanup()
+PASS   : PlatformHostTests::namespaceAndStaleContext()
+PASS   : PlatformHostTests::pipelinedFramesAreNotOneOversizedMessage()
+PASS   : PlatformHostTests::subscribeUnsubscribeAndNoProfile()
+PASS   : PlatformHostTests::layoutSurvivesReconnectWithoutChangingBuiltins()
+PASS   : PlatformHostTests::realPythonProcess()
+PASS   : PlatformHostTests::cleanupTestCase()
+Totals: 13 passed, 0 failed, 1 skipped, 0 blacklisted, 2784ms
+********* Finished testing of PlatformHostTests *********
+<end of output>
+Test time =   2.84 sec
+----------------------------------------------------------
+Test Passed.
+"platform_sdk" end time: Oct 25 19:17 UTC
+"platform_sdk" time elapsed: 00:00:02

@@ -69,6 +69,12 @@ private slots:
         CratesInstaller installer;installer.configure({}, {},temp.path());
         QCOMPARE(installer.activities().size(),1);
         QCOMPARE(installer.activities()[0].toMap()["local"].toString(),QString("crates:fixture"));
+        auto group=activity;group["seats"]=16;
+        QVERIFY(write("objects/"+object+"/traineros-activity.json",group));
+        QCOMPARE(installer.activities()[0].toMap()["seats"].toInt(),16);
+        for(QJsonValue seats:{QJsonValue(1),QJsonValue(17),QJsonValue(2.5),QJsonValue("16")}){
+            group["seats"]=seats;QVERIFY(write("objects/"+object+"/traineros-activity.json",group));QVERIFY(installer.activities().isEmpty());
+        }
         auto invalid=activity;invalid["protocol"]="bad protocol";
         QVERIFY(write("objects/"+object+"/traineros-activity.json",invalid));QVERIFY(installer.activities().isEmpty());
         QVERIFY(write("objects/"+object+"/traineros-activity.json",activity));

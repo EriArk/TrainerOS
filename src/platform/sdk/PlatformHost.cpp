@@ -1,5 +1,6 @@
 #include "PlatformHost.h"
 #include "SdkNetwork.h"
+#include "features/accounts/BackendAccount.h"
 #include "features/trainer/AvatarAssets.h"
 #include <QFutureWatcher>
 #include <QtConcurrent/QtConcurrentRun>
@@ -28,7 +29,7 @@ bool identifier(const QString& value) {
 }
 QString widgetKey(const QString& app, const QString& id) { return "sdk:" + app + ":" + id; }
 QJsonObject capabilities() {
-    return {{"context", 1}, {"lifecycle", 1}, {"ui.start.widget", 1}};
+    return {{"context", 1}, {"lifecycle", 1}, {"ui.start.widget", 1}, {"account.identity",1}};
 }
 }
 PlatformHost::PlatformHost(ControlsDashboard& dashboard, QObject* parent)
@@ -37,8 +38,10 @@ PlatformHost::PlatformHost(ControlsDashboard& dashboard, QObject* parent)
     connect(&dashboard_, &ControlsDashboard::contributionActivated, this, &PlatformHost::activate);
 }
 PlatformHost::~PlatformHost() { stop(); }
+void PlatformHost::setBackend(BackendAccount* service) { backend_=service; }
 void PlatformHost::setAvatar(const QJsonObject& descriptor,bool available) {
     avatarAvailable_=available;
+    if(backend_)backend_->setPublicAvatar(context_["profile"].toString(),descriptor["recipe"].toObject());
     if(descriptor==avatar_)return;
     avatar_=descriptor;
     for(auto* socket:peers_.keys())if(peers_.value(socket).authenticated&&peers_.value(socket).avatarSubscribed)
@@ -110,8 +113,9 @@ QJsonObject PlatformHost::snapshot() const {
 void PlatformHost::setContext(const QJsonObject& value) {
     if (value == context_) return;
     const bool ownerChanged = value["profile"] != context_["profile"];
+    const bool accountChanged = value["account"].toObject()["player_id"] != context_["account"].toObject()["player_id"];
     context_ = value; ++revision_;
-    if (ownerChanged) {
+    if (ownerChanged||accountChanged) {
         avatar_={};
         // An old process must not automatically adopt the next player's context.
         // Clear all contributions together: releasing peers one by one must not
@@ -119,7 +123,7 @@ void PlatformHost::setContext(const QJsonObject& value) {
         for (auto& peer : peers_) peer.widgets = {};
         const auto sockets = peers_.keys();
         for (auto* socket : sockets) {
-            send(socket, {{"event", "context.revoked"}, {"reason", "profile_changed"}});
+            send(socket, {{"event", "context.revoked"}, {"reason", ownerChanged?"profile_changed":"account_changed"}});
             release(socket);
         }
     } else {
@@ -176,6 +180,7 @@ void PlatformHost::send(QTcpSocket* socket, const QJsonObject& packet) {
 void PlatformHost::release(QTcpSocket* socket) {
     if (!peers_.contains(socket)) return;
     const auto peer=peers_.take(socket);
+    if(backend_&&!peer.playChannel.isEmpty())backend_->closePlay(peer.playChannel);
     if(network_&&peer.authenticated)network_->disconnected(peer.app);
     disconnect(socket, nullptr, this, nullptr);
     publishWidgets();
@@ -199,14 +204,29 @@ void PlatformHost::request(QTcpSocket* socket, const QJsonObject& packet) {
         const auto app = args["app"].toString();
         if (!identifier(app)) { fail("invalid_app"); return; }
         for (const auto& other : peers_) if (other.authenticated && other.app == app) { fail("app_in_use"); return; }
-        peer.authenticated = true; peer.app = app;
+        peer.authenticated = true; peer.app = app;peer.playChannel=QUuid::createUuid().toString(QUuid::WithoutBraces);
         auto caps=capabilities();
         if(avatarAvailable_){caps["avatar.local"]=1;caps["avatar.recipe"]=1;}
-        if(network_&&network_->available()){caps["lobby.activity"]=1;caps["network.records"]=1;}
+        if(network_&&network_->available()){caps["lobby.activity"]=1;caps["network.records"]=1;caps["network.group"]=1;}
+        if(backend_)caps["play.scorecards"]=1;
         ok({{"protocol", 1}, {"capabilities", caps}, {"context", snapshot()}});
         return;
     }
     if (method == "context.get") { ok({{"context", snapshot()}}); return; }
+    if (method == "account.get") {
+        const auto account=context_["account"].toObject();
+        ok({{"account",QJsonObject{{"state",account["state"].toString("signed_out")},{"player_id",account["player_id"].toString()}}}});return;
+    }
+    if(method.startsWith("play.")&&backend_) {
+        if(peer.playBusy){fail("play_busy");return;}
+        peer.playBusy=true;const QPointer<QTcpSocket> target(socket);const auto channel=peer.playChannel;const QPointer<PlatformHost> guard(this);
+        backend_->playRequest(channel,peer.app,method,args,[this,guard,target,channel,id](int status,QJsonObject result){
+            if(!guard||!target||!peers_.contains(target)||peers_[target].playChannel!=channel)return;
+            peers_[target].playBusy=false;
+            if(status>=200&&status<300)send(target,{{"id",id},{"result",result}});
+            else send(target,{{"id",id},{"error",QJsonObject{{"code",result["code"].toString("backend_unavailable")}}}});
+        });return;
+    }
     if (method == "context.subscribe") { peer.subscribed = true; ok({{"context", snapshot()}}); return; }
     if (method == "context.unsubscribe") { peer.subscribed = false; ok({}); return; }
     if(method=="avatar.get"||method=="avatar.subscribe"||method=="avatar.unsubscribe") {
