@@ -1,5 +1,16 @@
 # TrainerOS — состояние проекта
 
+## 26 октября 2026 — NetPlay для Naomi / Naomi 2 / Atomiswave
+
+К существующему Lobby подключён общий Flycast Dojo GGPO для трёх аркадных семейств:
+Nearby/Online, ручной Start, проверка ZIP/7z/parent/BIOS/GD-ROM и отдельный временный
+прогресс. Нет списка избранных названий; используются определения самого эмулятора.
+Helper/native suites прошли, Dolphin Blue достиг общей native-сессии на Flip/Odin.
+[Реализация и ограничения](docs/emulators/flycast.md#naomi--naomi-2--atomiswave--26-october-2026),
+[состояние доставки](docs/evidence/arcade-netplay-20261026/README.md).
+Cabinet link и native Dreamcast services этим не реализованы. Пять нечитаемых
+Atomiswave архивов записаны отдельно; исходные ROM сохранены.
+
 **26 октября — оставшиеся multiplayer-форматы объединены в один проход.**
 На Flip/Odin установлены native CIA/ZCIA установка с отменой/восстановлением
 и учётом update/DLC, Dolphin ELF/DOL/NFS и списки дисков PS2/Dolphin.

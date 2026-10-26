@@ -15,6 +15,7 @@ remain in force. Distribution/image obligations need a separate review before re
 | Dolphin integration patch | [Source SPDX notice](packaging/emulators/dolphin/TrainerNetplay.inc), GPL-2.0-or-later; [maintenance](docs/emulators/dolphin.md) |
 | Linux Iris encoder patches | [Pinned source, upstream attribution, GPL-2.0 text and build procedure](packaging/kernel/iris/README.md); separate diagnostic kernel module, no firmware or binary bundled |
 | Emulator builds and changes | [Per-emulator records](docs/emulators/README.md); each upstream's actual license/source obligations apply |
+| Flycast arcade dependency catalogue | Generated from the pinned Flycast native table (GPL-2.0-or-later), containing MAME ROM metadata (LGPL-2.1-or-later); [authors, exact source and retained notices](packaging/emulators/flycast/arcade-catalog.NOTICE). No ROM/BIOS/key/EEPROM bytes included |
 | SameBoy linked-pair core | [Pinned source, MIT licence and maintained changes](docs/emulators/sameboy.md); retain upstream notices with source/binaries |
 | Linked-save preparation dependencies | [Pinned Python environment](packaging/emulators/handheld/linked-save-requirements.txt), including Magic Wormhole, Twisted and cryptography; retain each installed distribution's licence/notice and review the full tree under #115 before image redistribution |
 | Qt, SDL, OpenSSL, QtKeychain and other linked dependencies | External build/runtime dependencies; review the exact versions and redistribution conditions when packaging |

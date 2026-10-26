@@ -117,7 +117,7 @@ private:
     void resolvePspRelay();
     void prepareRmg();
     bool rmg() const { return descriptor_["id"]=="runtime.rmg.n64.v1"; }
-    bool flycast() const { return descriptor_["id"]=="runtime.flycast-dojo.dc.v1"; }
+    bool flycast() const { return descriptor_["id"]=="runtime.flycast-dojo.dc.v1"||descriptor_["id"]=="runtime.flycast-dojo.arcade.v1"; }
     bool azahar() const { return descriptor_["id"]=="runtime.azahar.3ds.v1"; }
     bool vita() const { return descriptor_["id"]=="runtime.vita3k.lan.v1"; }
     bool gcLan() const { return descriptor_["id"]=="runtime.dolphin.bba.v1"; }

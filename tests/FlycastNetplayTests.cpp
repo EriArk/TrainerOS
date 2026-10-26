@@ -1,5 +1,7 @@
 #include "integrations/adventure/standalone/FlycastNetplay.h"
 #include "core/model/GamePlayers.h"
+#include "features/adventure/RuntimeIdentity.h"
+#include <QProcess>
 #include <QCryptographicHash>
 #include <QDir>
 #include <QFile>
@@ -113,6 +115,55 @@ private slots:
         QVERIFY(flycast::event("RECEIVED RELAY KEY Ab12cD").isEmpty());
         QVERIFY(flycast::event("[TrainerOSFlycast] relay bad key").isEmpty());
         QVERIFY(flycast::event(QByteArray(200,'x')).isEmpty());
+    }
+    void arcadeNativeSetsUseSharedIdentityLaunchAndCleanup() {
+#ifndef Q_OS_UNIX
+        QSKIP("Native arcade helper uses the supported Linux libarchive installation.");
+#else
+        QStandardPaths::setTestModeEnabled(true);const auto root=flycast::bundleRoot();QVERIFY(!QFileInfo::exists(root));
+        const auto cleanup=qScopeGuard([&]{QDir(root).removeRecursively();QStandardPaths::setTestModeEnabled(false);});
+        const auto recipe=QFileInfo(QString::fromUtf8(__FILE__)).dir().absoluteFilePath("../packaging/emulators/flycast");
+        QCOMPARE(QProcess::execute("/usr/bin/python3",{recipe+"/check-arcade.py","--fixture",root}),0);
+        QVERIFY(QFile::copy(recipe+"/arcade.py",root+"/arcade.py"));
+        const QMap<QString,QByteArray> files={{"bin/flycast","fixture executable"},
+            {"firmware/dc_boot.bin",QByteArray(2*1024*1024,'B')},{"firmware/dc_flash.bin",QByteArray(128*1024,'F')}};
+        const auto sha=[](const QByteArray& b){return QString::fromLatin1(QCryptographicHash::hash(b,QCryptographicHash::Sha256).toHex());};
+        QJsonObject hashes;for(auto it=files.begin();it!=files.end();++it){write(root+'/'+it.key(),it.value());hashes[it.key()]=sha(it.value());}
+        QFile runtime(root+"/bin/flycast");QVERIFY(runtime.setPermissions(runtime.permissions()|QFileDevice::ExeOwner));
+        QJsonObject arcade{{"protocol","flycast-arcade-sets-v1"},{"arcade.py",sha(read(root+"/arcade.py"))},
+            {"arcade-catalog.json",sha(read(root+"/arcade-catalog.json"))}};
+        QJsonObject manifest{{"protocol",1},{"source",flycast::sourceRevision},{"files",hashes},{"arcade",arcade},
+            {"onlineRelay","udp://relay.example.invalid:8001"},{"renderer","opengl"}};
+        write(root+"/manifest.json",QJsonDocument(manifest).toJson());
+        std::atomic_bool cancel=false;
+        for(const auto platform:{"naomi","naomi2","atomiswave"}) {
+            AdventureRegistration r;r.adventure.id=platform;r.adventure.platformId=platform;r.adventure.adapterId="retroarch";
+            r.adventure.title="Arcade fixture";r.contentPath=root+'/'+platform+".zip";
+            QStringList observed;
+            const auto identity=flycast::netplayIdentity(r,cancel,[&](const QString& path){observed.append(path);});
+            QCOMPARE(identity["id"].toString(),"runtime.flycast-dojo.arcade.v1");
+            QCOMPARE(runtimeIdentity(r,{},{},{},cancel,2),identity);
+            QVERIFY(localLobbyRuntime(identity));QCOMPARE(multiplayerPresentation(identity)["label"].toString(),"Netplay");
+            QVERIFY(observed.contains(root+"/firmware/testbios.zip"));
+            auto command=flycast::command(r,{identity,true,true,{},QString(32,'b'),{}},{"/input-bridge","--"});
+            const auto error=command.prepare(command,cancel);QVERIFY2(error.isEmpty(),qPrintable(error));
+            const auto stage=command.workingDirectory;
+            QVERIFY(command.arguments.last().startsWith(stage+"/roms/"));
+            QVERIFY(QFileInfo(command.arguments.last()).isSymLink());
+            QVERIFY(!QFileInfo(stage+"/data/dc_flash.bin").exists());
+            QVERIFY(read(stage+"/emu.cfg").contains("IgnoreNetSave = yes"));
+            QVERIFY(read(stage+"/emu.cfg").contains("Relay = yes"));
+            write(stage+"/data/test.eeprom","private arcade progress");
+            command.settled={};QVERIFY(!QFileInfo::exists(stage));
+            QVERIFY(!QFileInfo(root+"/data/test.eeprom").exists());
+            auto stale=identity;stale["content"]=QString(64,'0');
+            auto changed=flycast::command(r,{stale,true,true,{},QString(32,'b'),{}});
+            QVERIFY(!changed.prepare(changed,cancel).isEmpty());
+        }
+        manifest.remove("arcade");write(root+"/manifest.json",QJsonDocument(manifest).toJson());
+        AdventureRegistration r;r.adventure.platformId="naomi";r.adventure.adapterId="retroarch";r.contentPath=root+"/naomi.zip";
+        QVERIFY(flycast::netplayIdentity(r,cancel).isEmpty());
+#endif
     }
 };
 QTEST_GUILESS_MAIN(FlycastNetplayTests)

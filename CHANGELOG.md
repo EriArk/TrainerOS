@@ -1,5 +1,17 @@
 # TrainerOS — история изменений
 
+## 2026-10-26 — общий arcade NetPlay
+
+- Naomi, Naomi 2 и Atomiswave подключены к существующему Flycast Dojo/Lobby:
+  Nearby и Online через public relay, два игрока, явный Start и временный прогресс.
+- ZIP/7z, parent/merged sets, BIOS и GD-ROM проверяются по полному native каталогу.
+  Одинаковые распакованные ROM/BIOS соединяются независимо от упаковки архива.
+- Helper/native проверки прошли; Dolphin Blue загрузился и начал общую GGPO-сессию
+  на Flip/Odin. Cabinet link остаётся отдельным режимом. Пять нечитаемых собственных
+  архивов отмечены в игровой таблице без удаления/замены файлов.
+  [Контракт](docs/emulators/flycast.md#naomi--naomi-2--atomiswave--26-october-2026) и
+  [доставка](docs/evidence/arcade-netplay-20261026/README.md).
+
 ## 2026-10-26 — единая поставка оставшихся multiplayer-форматов
 
 - CIA/ZCIA получили штатную установку Azahar, явную команду в свойствах,

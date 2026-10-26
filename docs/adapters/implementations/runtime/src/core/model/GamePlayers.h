@@ -24,7 +24,7 @@ inline bool localLobbyRuntime(const QJsonObject& profile) {
     const bool known=id.startsWith("runtime.retroarch.")||id.startsWith("runtime.handheld.")
         ||id.startsWith("runtime.fceumm.")||id.startsWith("runtime.snes9x.")||id.startsWith("runtime.genesis.")
         ||id.startsWith("runtime.ppsspp.")||id.startsWith("runtime.dolphin.")||id=="runtime.rmg.n64.v1"
-        ||id=="runtime.flycast-dojo.dc.v1"||id.startsWith("runtime.melonds.")||id.startsWith("runtime.azahar.")||id.startsWith("runtime.vita3k.");
+        ||(id=="runtime.flycast-dojo.dc.v1"||id=="runtime.flycast-dojo.arcade.v1")||id.startsWith("runtime.melonds.")||id.startsWith("runtime.azahar.")||id.startsWith("runtime.vita3k.");
     return known&&multiplayerConnectionAllowed(profile,"nearby");
 }
 // Display only LOCAL admitted runtime profiles. Catalogue player counts cannot
@@ -34,7 +34,7 @@ inline QVariantMap multiplayerPresentation(const QJsonObject& profile) {
     const auto id=profile["id"].toString();QString kind,label;
     if(id=="runtime.armsx2.lan.v1"||id=="runtime.dolphin.bba.v1"){kind="netplay";label="LAN (in-game)";}
     else if(id.startsWith("runtime.handheld.") && profile["transport"]=="netpacket"){kind="link";label="Link";}
-    else if(id.startsWith("runtime.retroarch.") || id.startsWith("runtime.dolphin.") || id=="runtime.rmg.n64.v1" || id=="runtime.flycast-dojo.dc.v1"){kind="netplay";label="Netplay";}
+    else if(id.startsWith("runtime.retroarch.") || id.startsWith("runtime.dolphin.") || id=="runtime.rmg.n64.v1" || (id=="runtime.flycast-dojo.dc.v1"||id=="runtime.flycast-dojo.arcade.v1")){kind="netplay";label="Netplay";}
     else if(id.startsWith("runtime.ppsspp.") || id=="runtime.azahar.3ds.v1" || id=="runtime.melonds.nds.v1" || id=="runtime.vita3k.lan.v1"){kind="wireless";label="Wireless";}
     if(kind.isEmpty())return {};
     return {{"id",kind},{"label",label},{"nearby",multiplayerConnectionAllowed(profile,"nearby")},{"online",multiplayerConnectionAllowed(profile,"online")}};

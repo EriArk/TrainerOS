@@ -1,5 +1,14 @@
 # Задачи и условия готовности
 
+**26 октября — arcade NetPlay:** реализован общий Flycast Dojo route для Naomi,
+Naomi 2 и Atomiswave: native set dependencies, общий Lobby/Start/exit и private
+progress. Helper/native suites и paired Dolphin Blue session start прошли.
+[Контракт и обновление](emulators/flycast.md#naomi--naomi-2--atomiswave--26-october-2026),
+[точная поставка](evidence/arcade-netplay-20261026/README.md). Cabinet link/native
+Dreamcast services — оставшийся отдельный механизм R039. Текущие нечитаемые
+Atomiswave ROM записаны в таблице; их восстановление не выполнено. Не повторять
+пройденные checks как самостоятельную задачу; Sonic/Battlefront не возобновлялись.
+
 **26 октября — единый проход форматов:** реализованы CIA/ZCIA native installation,
 учёт update/DLC, Dolphin ELF/DOL/NFS и disc lists PS2/Dolphin. Есть общий ручной
 install/cancel, защита сейвов и восстановления; [контракт и границы](MULTIPLAYER_CONTENT_FORMATS.md#единый-проход-оставшихся-форматов--26-октября-2026).

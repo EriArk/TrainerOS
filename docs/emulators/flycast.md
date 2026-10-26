@@ -1,4 +1,62 @@
-# Flycast: Dreamcast multiplayer and ordinary package
+# Flycast: Dreamcast and arcade multiplayer
+
+## Naomi / Naomi 2 / Atomiswave — 26 October 2026
+
+Реализован общий двухместный NetPlay через существующий GameHub Lobby:
+Nearby и Online/public relay, явный Start, input/Home/exit и временный прогресс.
+Это синхронизация одного автомата через GGPO. Соединение отдельных автоматов
+и native Dreamcast game-server Online остаются самостоятельными незавершёнными режимами.
+
+Используется прежний Dojo `d0e47e572b1e7b355e88bda8308c89d0c5156cbf` с уже
+поддерживаемыми им платформами, без нового сетевого протокола или изменения native binary.
+`runtime.flycast-dojo.arcade.v1` подключён к общим identity, picker, Local Lobby,
+save/leave и restart guards. Старый Dreamcast profile/digest сохранён; отсутствие
+arcade extension в старом пакете не отключает Dreamcast.
+
+### Content and package contract
+
+- Генератор экспортирует все **293 набора и 8 BIOS definitions** из закреплённого
+  [native table](https://github.com/blueminder/flycast-dojo/blob/d0e47e572b1e7b355e88bda8308c89d0c5156cbf/core/hw/naomi/naomi_roms.cpp).
+  Это каталог эмулятора, не список проверенных TrainerOS игр. Metadata не подтверждает
+  наличие второго игрока; явно одиночные игры сохраняют общий фильтр Lobby.
+- ZIP/7z читаются системным libarchive с ограничениями размеров/числа записей и
+  проверкой CRC. Учитываются parent/merged sets, выбранный BIOS region и CHD v5/GDI
+  dependencies. Native set basename обязателен, как в самом Dojo.
+- Идентичность строится по реально выбранным распакованным ROM/BIOS, а не ZIP
+  timestamps, методу сжатия или лишним BIOS entries. Обе стороны сравнивают content,
+  package и settings; изменение зависимостей обновляет Lobby и отменяет устаревший запуск.
+- Подготовка перепроверяет состав и создаёт отдельные ROM/data/config directories.
+  ROM/BIOS — ссылки на входные файлы; EEPROM/NVRAM создаются в частном сеансе.
+  Личные VMU/EEPROM не импортируются и не перезаписываются. Завершение удаляет stage.
+- `build.sh` генерирует каталог из pinned source; `install-arcade.py --base ...
+  --destination ... --firmware-root ...` готовит **новый** пакет из проверенного
+  существующего Dojo и явно указанных собственных BIOS. Установленный выбор не меняется.
+  Нужны Linux Python 3 и libarchive; BIOS/ROM не скачиваются и не входят в репозиторий.
+  Attribution и лицензии metadata лежат рядом с генератором и копируются в пакет.
+- При обновлении native source пересмотреть loader/table, pin и SHA генератора,
+  заново экспортировать каталог, пройти helper/native tests и собрать manifest.
+  Для отката восстановить прежнюю оболочку и весь прежний Flycast package из backup;
+  личные игровые данные откат не затрагивает.
+
+### Evidence and limits
+
+13 helper tests прошли на обеих портативках: все три семейства, ZIP/7z,
+parent/merged sets, BIOS/content changes, malformed archives, GD-ROM dependency,
+stale launch и private stage. ARM64 `flycast_netplay`, `runtime_multiplayer`,
+`local_lobby` прошли; production собрана с `BUILD_TESTING=OFF`.
+
+На исправном собственном `dolphin` (Dolphin Blue) обе машины через фактические
+`netplayIdentity`/`command` дошли до `[TrainerOSFlycast] running` и `Session Start`.
+Это прямой paired native probe в одной сети, не новая проверка публичного relay,
+полного пользовательского Lobby-пути или сыгранного матча. Через 100 секунд probe
+завершил свои процессы; оба native exit 0, private stages удалены, проверенные
+личные файлы неизменны. Первая попытка с ошибочным адресом в диагностическом runner
+не засчитана; исправленная попытка подтвердила оба peer.
+
+Пять текущих Atomiswave архивов на обеих машинах не читаются; это отдельно записано
+в [игровой таблице](../MULTIPLAYER_TESTED_GAMES.md#arcade--26-октября-2026).
+ROM-файлы не заменялись. Доставка и точная оболочка записываются в
+[публичном evidence](../evidence/arcade-netplay-20261026/README.md).
 
 **25 октября — доставка:** расширенные форматы и совместимая со свежим core/main
 оболочка установлены на Flip/Odin. [Хеши, native проверки, сохранность данных

@@ -783,12 +783,14 @@ private slots:
         QVERIFY(!f.runtime.active_);QVERIFY(!f.process.active());
     }
     void dreamcastHostSaveCancellationAndStaleMarkers() {
+      for(const auto id:{"runtime.flycast-dojo.dc.v1","runtime.flycast-dojo.arcade.v1"}) {
         Fixture f;QVERIFY(f.start());QTRY_COMPARE(f.lifecycle.state(),"running");
-        requestRestart(f,{{"id","runtime.flycast-dojo.dc.v1"}});
+        requestRestart(f,{{"id",id}});
         QVERIFY(f.process.active());QVERIFY(f.runtime.restarting_);
         f.lifecycle.exitController().cancel();QVERIFY(f.process.active());QVERIFY(!f.runtime.active_);
         f.runtime.output("[TrainerOSFlycast] running\n");QVERIFY(!f.runtime.active_);
         finishOrdinary(f);
+      }
     }
     void dreamcastRejectsChangedIdentityAndTracksDisconnect() {
         Fixture f;f.runtime.active_=true;f.runtime.descriptor_={{"id","runtime.flycast-dojo.dc.v1"},{"content","accepted"}};
