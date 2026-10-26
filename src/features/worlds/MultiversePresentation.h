@@ -105,5 +105,13 @@ private:
     mutable QHash<QString,QVariantMap> presentations_;
     mutable QVariantList systemsCache_, collectionsCache_;
     mutable bool systemsCached_ = false;
+    // Focus changes do not change membership. Keep one current projection, not
+    // a cache for every search/collection; refresh and source revisions invalidate it.
+    mutable QList<Game> filteredCache_;
+    mutable QVariantList gamesCache_;
+    mutable bool filteredCached_ = false, gamesCached_ = false;
+    mutable QString filteredCollection_, filteredSystem_, filteredQuery_;
+    mutable int filteredFilter_ = 0;
+    mutable std::optional<quint64> filteredRevision_;
 };
 }

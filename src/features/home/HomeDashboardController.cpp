@@ -13,11 +13,11 @@ HomeDashboardController::HomeDashboardController(LibraryRepository& library,Achi
         if(next!=account){account=next;focus_="play";}
         emit changed();
     });
-    connect(&provider_,&AchievementProvider::snapshotChanged,this,&HomeDashboardController::changed);
+    connect(&provider_,&AchievementProvider::snapshotChanged,this,[this]{achievementsCached_=false;emit changed();});
 }
 void HomeDashboardController::setContext(QString adventure,bool generic) {
     if(adventure_==adventure && generic_==generic)return;
-    adventure_=std::move(adventure);generic_=generic;focus_="play";emit changed();
+    adventure_=std::move(adventure);generic_=generic;focus_="play";achievementsCached_=false;emit changed();
 }
 QVariantList HomeDashboardController::people() const {
     auto rows=social_.quickPeople();
@@ -31,17 +31,23 @@ QVariantList HomeDashboardController::activities() const {
 }
 QVariantList HomeDashboardController::achievements() const {
     QVariantList rows;const auto context=provider_.context();
-    if(context.accountId.isEmpty())return rows;
+    if(context.accountId.isEmpty()){achievementsCached_=false;achievementsCache_.clear();return rows;}
+    const auto revision=library_.libraryRevision();
+    if(revision && achievementsCached_ && achievementsRevision_==revision && achievementsContext_==context)return achievementsCache_;
     QSet<QString> games;for(const auto& game:library_.adventures())games.insert(game.id);
     for(const auto& set:provider_.sets()) {
         if(!set.supported || !games.contains(set.adventureId) || (generic_ && set.adventureId!=adventure_))continue;
         const auto snapshot=provider_.snapshot(set.id);
         if(snapshot.context!=context || snapshot.setId!=set.id
            || (snapshot.state!=AchievementState::Ready && snapshot.state!=AchievementState::Offline))continue;
+        QHash<QString,int> definitions;
+        for(int i=0;i<snapshot.definitions.size();++i)
+            if(!definitions.contains(snapshot.definitions[i].id))definitions.insert(snapshot.definitions[i].id,i);
         for(const auto& unlock:snapshot.unlocks) {
             if(unlock.unlocked!=true)continue;
-            const auto definition=std::find_if(snapshot.definitions.cbegin(),snapshot.definitions.cend(),[&](const auto& d){return d.id==unlock.achievementId;});
-            if(definition==snapshot.definitions.cend())continue;
+            const auto found=definitions.constFind(unlock.achievementId);
+            if(found==definitions.cend())continue;
+            const auto* definition=&snapshot.definitions[found.value()];
             const auto identity=QJsonDocument(QJsonArray{context.providerId,context.accountId,set.id,definition->id}).toJson(QJsonDocument::Compact);
             const auto key="ra:"+QString::fromLatin1(QCryptographicHash::hash(identity,QCryptographicHash::Sha256).toHex());
             rows.append(QVariantMap{{"key",key},{"type","achievement"},{"id",definition->id},{"set",set.id},
@@ -53,6 +59,7 @@ QVariantList HomeDashboardController::achievements() const {
     }
     std::stable_sort(rows.begin(),rows.end(),[](const auto& a,const auto& b){return a.toMap()["date"].toDateTime()>b.toMap()["date"].toDateTime();});
     while(rows.size()>16)rows.removeLast();
+    achievementsCached_=revision.has_value();achievementsRevision_=revision;achievementsContext_=context;achievementsCache_=rows;
     return rows;
 }
 QList<QStringList> HomeDashboardController::zones() const {

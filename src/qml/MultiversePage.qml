@@ -4,6 +4,11 @@ Item {
     id: root
     required property var shell
     readonly property var model: shell.multiverse
+    // Keep the visited route's one active layout across primary-tab switches.
+    // Hiding a page must not empty its model and destroy all visible delegates.
+    property bool visited: false
+    Component.onCompleted: if (visible) visited = true
+    onVisibleChanged: if (visible) visited = true
     readonly property bool takesFocus: visible && !(root.pc && shell.pcAddFocused) && shell.pairedNavigationAvailable && !shell.collectionManager.open && !shell.serviceOpen && !shell.libraryTools.open && !shell.scraper.open && !shell.menuOpen && !shell.keyboard.open && !shell.notice.length
     readonly property bool pc: model.route === "games" && model.systemId === "pc"
     readonly property bool emptyPc: pc && model.games.length === 0
@@ -37,7 +42,7 @@ Item {
             cellWidth: width / 3; cellHeight: height/2; clip: true
             interactive: false; keyNavigationEnabled: false
             visible: root.model.route === "systems"
-            model: visible ? root.model.systems : []; currentIndex: root.model.focusIndex
+            model: root.visited && root.model.route === "systems" ? root.model.systems : []; currentIndex: root.model.focusIndex
             function reveal() {
                 if (!visible || !root.takesFocus || !currentItem) return
                 positionViewAtIndex(currentIndex, GridView.Contain)
@@ -68,8 +73,9 @@ Item {
         }
         LibraryGrid {
             anchors.fill: parent
-            visible: root.model.route === "games" && !root.emptyPc && root.model.viewStyle === "grid"
-            entries: visible ? root.model.games : []; selectionIndex: root.model.focusIndex
+            readonly property bool selectedLayout: root.model.route === "games" && !root.emptyPc && root.model.viewStyle === "grid"
+            visible: selectedLayout
+            entries: root.visited && selectedLayout ? root.model.games : []; selectionIndex: root.model.focusIndex
             takesFocus: root.takesFocus && visible
             onColumnsChanged: if (visible) root.model.gridColumns = columns
             onVisibleChanged: if (visible) root.model.gridColumns = columns
@@ -80,8 +86,9 @@ Item {
         }
         LibraryShelves {
             anchors.fill: parent
-            visible: root.model.route === "games" && !root.emptyPc && root.model.viewStyle === "shelves"
-            entries: visible ? root.model.games : []; selectionIndex: root.model.focusIndex
+            readonly property bool selectedLayout: root.model.route === "games" && !root.emptyPc && root.model.viewStyle === "shelves"
+            visible: selectedLayout
+            entries: root.visited && selectedLayout ? root.model.games : []; selectionIndex: root.model.focusIndex
             columns: root.model.shelfColumns; takesFocus: root.takesFocus && visible
             onFocusRequested: index => root.shell.focusLibraryGame(index)
             onActivated: index => root.shell.activate(index)
@@ -93,8 +100,9 @@ Item {
             favoritesAvailable: true
             viewStyle: root.model.viewStyle; listPageSize: root.model.listPageSize
             onFocusRequested: index => root.shell.focusLibraryGame(index)
-            anchors.fill: parent; visible: root.model.route === "games" && !root.emptyPc && (root.model.viewStyle === "wheel" || root.model.viewStyle === "list")
-            entries: visible ? root.model.games : []; entry: root.model.detail; selectionIndex: root.model.focusIndex
+            readonly property bool selectedLayout: root.model.route === "games" && !root.emptyPc && (root.model.viewStyle === "wheel" || root.model.viewStyle === "list")
+            anchors.fill: parent; visible: selectedLayout
+            entries: root.visited && selectedLayout ? root.model.games : []; entry: root.model.detail; selectionIndex: root.model.focusIndex
             takesFocus: root.takesFocus && visible
             previewsEnabled: root.shell.settings.videoPreviews && !root.shell.serviceOpen && !adventureLaunch.active && !sessionState.blocked
             previewSound: root.shell.settings.previewSound

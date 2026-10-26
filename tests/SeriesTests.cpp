@@ -17,12 +17,15 @@ public:
     QList<ResumePoint> moments;
     QHash<QString,QVariantMap> metadata;
     QString favoriteError;
+    std::optional<quint64> revision;
+    mutable int artworkReads=0;
+    std::optional<quint64> libraryRevision()const override{return revision;}
     void setFavoriteAsync(const QString& id,bool value,QObject*,std::function<void(QString)> done) override {
         if(favoriteError.isEmpty())metadata[id]["favorite"]=value;
         done(favoriteError);
     }
     QList<PlaySession> recentSessions()const override{return sessions;}
-    QVariantMap artwork(const QString& id)const override{return metadata.value(id);}
+    QVariantMap artwork(const QString& id)const override{++artworkReads;return metadata.value(id);}
     SeriesLibrary() {
         for(const auto& row:QList<QStringList>{{"m1","Super Mario World","snes"},{"m2","Mario Kart 64","n64"},
                 {"z1","The Legend of Zelda - The Minish Cap","gba"},{"x1","Advance Wars","gba"}}) {
@@ -48,6 +51,42 @@ public:
 class SeriesTests: public QObject {
     Q_OBJECT
 private slots:
+    void repeatedCollectionNavigationReusesProjection() {
+        SeriesLibrary library;library.records.clear();library.revision=1;
+        for(int i=0;i<400;++i) {
+            AdventureRegistration r;r.adventure.id=QString("game-%1").arg(i,3,10,QChar('0'));
+            r.adventure.title=QString("Game %1").arg(i,3,10,QChar('0'));r.adventure.platformId="gba";
+            r.adventure.domain="multiverse";r.contentAvailable=true;library.records.append(r);
+            library.metadata[r.adventure.id]={{"players","2"}};
+        }
+        SeriesAdapter adapter;MultiversePresentation model(library,adapter);
+        model.setCollection("auto:multiplayer");model.select("game-399");
+        QCOMPARE(model.games().size(),400);model.allSystems();
+        const auto reads=library.artworkReads;QElapsedTimer elapsed;elapsed.start();
+        for(int i=0;i<100;++i) {
+            model.focusGame(i);QCOMPARE(model.focusIndex(),i);
+            QCOMPARE(model.detail()["id"].toString(),QString("game-%1").arg(i,3,10,QChar('0')));
+            QCOMPARE(model.games().size(),400);QCOMPARE(model.selected()["id"].toString(),QString("game-399"));
+            model.allSystems();
+        }
+        qInfo()<<"400-game collection, 100 focus/detail/model reads:"<<elapsed.nsecsElapsed()/1e6<<"ms, metadata reads:"<<library.artworkReads-reads;
+        QVERIFY2(library.artworkReads-reads<=100,"Moving focus must not re-evaluate every game's collection metadata");
+        // A new committed metadata revision changes membership, even before a UI refresh.
+        library.metadata["game-000"]["players"]="1";
+        library.metadata["game-001"]["genre"]="Puzzle";++*library.revision;
+        QCOMPARE(model.games().size(),399);
+        QCOMPARE(model.games().first().toMap()["genre"].toString(),QString("Puzzle"));
+        model.applySearch("Game 01");QCOMPARE(model.games().size(),10);
+        model.applySearch({});QCOMPARE(model.games().size(),399);
+        library.records[1].contentAvailable=false;++*library.revision;model.refresh();
+        model.dispatch(Action::ToggleContinue);QCOMPARE(model.games().size(),398);
+        model.dispatch(Action::ToggleContinue);QCOMPARE(model.games().size(),1);
+        model.dispatch(Action::ToggleContinue);QCOMPARE(model.games().size(),399);
+        // Unversioned providers retain live evaluation, rather than stale caching.
+        library.revision.reset();library.metadata["game-000"]["players"]="2";
+        QCOMPARE(model.games().size(),400);
+        library.metadata["game-000"]["players"]="1";QCOMPARE(model.games().size(),399);
+    }
     void personalGenreCollectionsReplaceSeriesAndSurviveEdits() {
         QTemporaryDir directory;SeriesLibrary library;SeriesAdapter adapter;
         const auto key=QString::fromLatin1(QCryptographicHash::hash("owner",QCryptographicHash::Sha256).toHex());

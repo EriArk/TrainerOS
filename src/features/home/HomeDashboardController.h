@@ -36,5 +36,9 @@ private:
     SocialController& social_;
     QString focus_="play",adventure_;
     bool generic_=false;
+    mutable bool achievementsCached_=false;
+    mutable std::optional<quint64> achievementsRevision_;
+    mutable AchievementContext achievementsContext_;
+    mutable QVariantList achievementsCache_;
 };
 }

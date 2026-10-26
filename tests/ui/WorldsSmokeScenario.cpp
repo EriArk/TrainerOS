@@ -6,6 +6,7 @@
 #include <QTimer>
 #include <QSignalSpy>
 #include <QTest>
+#include <QPointer>
 #include <memory>
 using namespace trainer;
 void startWorldsSmoke(QQuickWindow* window, ShellController& shell, ControllerInput& input,
@@ -45,6 +46,18 @@ void startWorldsSmoke(QQuickWindow* window, ShellController& shell, ControllerIn
         case 2: check(shell.gamesRootZone()=="platforms","Down must enter platforms");focus();capture("games-platform-focus");press(a);break;
         case 3: {
             check(!shell.collectionsRoot() && shell.multiverse()->route()=="games","Platform must open games directly");capture("platform-browser");
+            const auto selected=shell.multiverse()->detail()["id"].toString();
+            const auto name="multiverse-game-"+QString::number(shell.multiverse()->focusIndex());
+            QPointer<QQuickItem> retained=visibleItem(name);
+            check(retained,"Selected wheel delegate missing before tab switch");
+            for(int i=0;i<3;++i) {
+                shell.goToSection("home");QCoreApplication::processEvents();
+                QCoreApplication::sendPostedEvents(nullptr,QEvent::DeferredDelete);
+                check(retained,"Switching primary destroyed the visited library delegate");
+                shell.goToSection("games");QCoreApplication::processEvents();
+                check(retained && visibleItem(name)==retained,"Returning to Games rebuilt its unchanged delegate");
+                check(shell.multiverse()->detail()["id"].toString()==selected,"Returning changed the selected game");
+            }
             auto* media=visibleItem("library-detail-picture");
             auto* facts=visibleItem("library-detail-facts");
             check(media && facts && facts->x()+facts->width()<media->x(),"Media frame and metadata must not overlap");

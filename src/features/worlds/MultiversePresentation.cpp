@@ -21,16 +21,16 @@ QString collectionCover(const QVariant& value) {
 QString placeholderCover(const QString& id, const QString& genre) {
     // Catalogue genre only: never infer a genre from a filename or game title.
     const auto text=genre.toCaseFolded();
-    const QList<QPair<QString,QString>> groups{
-        {"racing","racing|driving|race|гонк|course|conduite"},
-        {"sports","sport|football|soccer|basketball|tennis|golf|спорт"},
-        {"puzzle","puzzle|logic|логич|головолом|réflexion"},
-        {"scifi","science.fiction|sci.fi|space|космос|космич|shoot.em.up|shmup"},
-        {"fantasy","role.play|rpg|adventure|platform|приключ|ролевая|платформ|aventure"},
-        {"action","action|fight|shooter|beat.em.up|экшен|боевик|драк|стрелял|combat|tir"}
+    static const QList<QPair<QString,QRegularExpression>> groups{
+        {"racing",QRegularExpression("racing|driving|race|гонк|course|conduite")},
+        {"sports",QRegularExpression("sport|football|soccer|basketball|tennis|golf|спорт")},
+        {"puzzle",QRegularExpression("puzzle|logic|логич|головолом|réflexion")},
+        {"scifi",QRegularExpression("science.fiction|sci.fi|space|космос|космич|shoot.em.up|shmup")},
+        {"fantasy",QRegularExpression("role.play|rpg|adventure|platform|приключ|ролевая|платформ|aventure")},
+        {"action",QRegularExpression("action|fight|shooter|beat.em.up|экшен|боевик|драк|стрелял|combat|tir")}
     };
     QString group="neutral";
-    for(const auto& pair:groups)if(QRegularExpression(pair.second).match(text).hasMatch()){group=pair.first;break;}
+    for(const auto& pair:groups)if(pair.second.match(text).hasMatch()){group=pair.first;break;}
     const auto bytes=QCryptographicHash::hash((id+":"+group).toUtf8(),QCryptographicHash::Sha256);
     const auto variant=static_cast<unsigned char>(bytes[0])%(group=="fantasy"?6:2);
     return QString("qrc:/cover-fallbacks/%1-%2.png").arg(group).arg(variant);
@@ -64,6 +64,8 @@ void MultiversePresentation::refresh() {
     if (!repository_) return;
     if(collections_)collections_->refresh();
     const auto focused = route_ == "systems" ? QString() : detail().value("id").toString();
+    filteredCached_=gamesCached_=false;
+    filteredCache_.clear();gamesCache_.clear();
     presentations_.clear(); collectionsCache_.clear(); systemsCache_.clear(); systemsCached_=false;
     entries_.clear();
     for (const auto& a : repository_->adventures()) if (!a.collectionOnly) {
@@ -286,19 +288,32 @@ QVariantMap MultiversePresentation::present(const Game& game) const {
     presentations_.insert(game.id,result);return result;
 }
 QList<MultiversePresentation::Game> MultiversePresentation::filtered() const {
-    QList<Game> result;
+    const auto revision=repository_?repository_->libraryRevision():std::optional<quint64>{0};
+    const auto search=query();
     const int filter = filters_.value(system_);
-    for (const auto& game : entries_) if (belongs(game) && (collection_!="multiverse" || game.system == system_) && game.title.contains(query(), Qt::CaseInsensitive)
-        && (filter != 1 || game.linked) && (filter != 2 || !game.linked)) result.append(game);
+    if(revision && filteredCached_ && filteredRevision_==revision
+       && filteredCollection_==collection_ && filteredSystem_==system_
+       && filteredQuery_==search && filteredFilter_==filter)return filteredCache_;
+    if(revision && filteredRevision_ && filteredRevision_!=revision)presentations_.clear();
+    gamesCached_=false;
+    QList<Game> result;
+    for (const auto& game : entries_) if ((collection_!="multiverse" || game.system == system_)
+        && game.title.contains(search, Qt::CaseInsensitive)
+        && (filter != 1 || game.linked) && (filter != 2 || !game.linked) && belongs(game)) result.append(game);
     if(collection_=="auto:recent" && repository_) {
         QHash<QString,int> order;int index=0;for(const auto& session:repository_->recentSessions())
             if(!order.contains(session.adventureId))order[session.adventureId]=index++;
         std::stable_sort(result.begin(),result.end(),[&](const auto& a,const auto& b){return order.value(a.id,INT_MAX)<order.value(b.id,INT_MAX);});
     }
-    return result;
+    filteredCached_=revision.has_value();filteredRevision_=revision;
+    filteredCollection_=collection_;filteredSystem_=system_;filteredQuery_=search;filteredFilter_=filter;
+    filteredCache_=result;return result;
 }
 QVariantList MultiversePresentation::games() const {
-    QVariantList result; for (const auto& game : filtered()) result.append(present(game)); return result;
+    const auto list=filtered();
+    if(gamesCached_)return gamesCache_;
+    QVariantList result;for(const auto& game:list)result.append(present(game));
+    gamesCached_=filteredCached_;gamesCache_=result;return result;
 }
 int MultiversePresentation::focusIndex() const {
     if (route_ == "systems") return systemFocus_;
@@ -308,10 +323,10 @@ QVariantMap MultiversePresentation::detail() const {
     const auto list = filtered(); return list.isEmpty() ? QVariantMap{} : present(list[std::clamp(positions_.value(system_),0,int(list.size())-1)]);
 }
 QVariantMap MultiversePresentation::selected() const {
-    for (const auto& game : entries_) if (belongs(game) && game.id == selected_) return present(game);
+    for (const auto& game : entries_) if (game.id == selected_ && belongs(game)) return present(game);
     if(!selected_.isEmpty() && std::none_of(entries_.begin(),entries_.end(),[&](const auto& g){return g.id==selected_;}))return {{"id",selected_},{"title","Selected Adventure is unavailable"},{"linked",false},{"playable",false},{"action","Choose Adventure"}};
     if(repository_ && !sample_) for(const auto& session:repository_->recentSessions())
-        for(const auto& game:entries_) if(belongs(game) && game.id==session.adventureId)return present(game);
+        for(const auto& game:entries_) if(game.id==session.adventureId && belongs(game))return present(game);
     if(!sample_)for(const auto& game:entries_)if(belongs(game) && game.linked)return present(game);
     return {};
 }
@@ -331,7 +346,7 @@ QVariantList MultiversePresentation::choices() const {
     return result;
 }
 void MultiversePresentation::select(const QString& id) {
-    for (const auto& game : entries_) if (belongs(game) && game.id == id && game.linked) { selected_ = id; emit changed(); return; }
+    for (const auto& game : entries_) if (game.id == id && game.linked && belongs(game)) { selected_ = id; emit changed(); return; }
 }
 void MultiversePresentation::applySearch(const QString& text) {
     if (route_ != "games") return;

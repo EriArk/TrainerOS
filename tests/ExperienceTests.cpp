@@ -15,6 +15,52 @@ using namespace trainer;
 class ExperienceTests : public QObject {
     Q_OBJECT
 private slots:
+    void homeAchievementsAvoidRepeatedSnapshotsAndInvalidate() {
+        class Library final : public LibraryRepository {
+        public:
+            std::optional<quint64> revision=1;
+            QList<Adventure> games;
+            std::optional<quint64> libraryRevision()const override{return revision;}
+            QList<Adventure> adventures()const override{return games;}
+            QList<World> worlds()const override{return {};}
+            QList<ResumePoint> resumePoints()const override{return {};}
+            HomeSnapshot home()const override{return {};}
+        } library;
+        Adventure game;game.id="game";library.games={game};
+        class Provider final : public AchievementProvider {
+        public:
+            mutable int reads=0;
+            AchievementContext identity{"fixture","owner"};
+            AchievementSnapshot data;
+            AchievementContext context()const override{return identity;}
+            QList<AchievementSet> sets()const override{return {{"set","game","game","Game","",true}};}
+            AchievementSnapshot snapshot(const QString&)const override{++reads;return data;}
+            void refresh(const QString&)override{emit snapshotChanged("set");}
+        } provider;
+        provider.data.context=provider.identity;provider.data.setId="set";provider.data.state=AchievementState::Ready;
+        for(int i=0;i<1000;++i) {
+            const auto id=QString::number(i);
+            provider.data.definitions.append({id,"Achievement "+id,"","",5});
+            provider.data.unlocks.append({id,true,AchievementMode::Standard,QDateTime::fromSecsSinceEpoch(1000+i)});
+        }
+        SocialController social;HomeDashboardController dashboard(library,provider,social);
+        dashboard.setContext("game",true);const auto rows=dashboard.achievements();QCOMPARE(rows.size(),16);
+        const int reads=provider.reads;QElapsedTimer elapsed;elapsed.start();
+        for(int i=0;i<100;++i){dashboard.reset();QCOMPARE(dashboard.achievements(),rows);}
+        qInfo()<<"100 Home trophy reads:"<<elapsed.nsecsElapsed()/1e6<<"ms, provider snapshots:"<<provider.reads-reads;
+        QCOMPARE(provider.reads,reads);
+        provider.data.unlocks.clear();provider.refresh("set");QVERIFY(dashboard.achievements().isEmpty());
+        provider.data.unlocks.append({"1",true,AchievementMode::Standard,QDateTime::currentDateTimeUtc()});provider.refresh("set");
+        QCOMPARE(dashboard.achievements().size(),1);
+        library.games.clear();++*library.revision;QVERIFY(dashboard.achievements().isEmpty());
+        library.games={game};++*library.revision;QCOMPARE(dashboard.achievements().size(),1);
+        dashboard.setContext("other",true);QVERIFY(dashboard.achievements().isEmpty());
+        dashboard.setContext("game",true);QCOMPARE(dashboard.achievements().size(),1);
+        provider.identity.accountId="another";QVERIFY(dashboard.achievements().isEmpty());
+        provider.identity=provider.data.context;QCOMPARE(dashboard.achievements().size(),1);
+        library.revision.reset();library.games.clear();QVERIFY(dashboard.achievements().isEmpty());
+        library.games={game};QCOMPARE(dashboard.achievements().size(),1);
+    }
     void albumKeepsIdentityFiltersAndOwnerScopedStars() {
         QTemporaryDir temp;ScreensController album;
         album.configure(temp.path(),"one");
