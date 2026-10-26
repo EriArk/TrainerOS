@@ -69,6 +69,30 @@ private slots:
             nodes[count-1]->leave();QVERIFY(host.running());
         }
     }
+    void azaharGroupCredentialsGoOnlyToTheirAssignedGuest() {
+        for(int count:{2,3,4}) {
+            GameParty host,b,c,d;QList<GameParty*> nodes{&host,&b,&c,&d};
+            auto profile=game();profile["id"]="runtime.azahar.3ds.v1";profile["lateJoin"]=false;
+            QJsonArray roster;for(int i=0;i<count;++i)roster.append(QJsonObject{{"id",QString::number(i+1)},{"seat",i+1},{"connected",true},{"prepared",true},{"ready",true}});
+            QMap<int,int> launches;
+            for(int i=0;i<count;++i) {
+                auto* node=nodes[i];node->configure(QString::number(i+1),{profile},profile,true);
+                connect(node,&GameParty::outgoing,node,[&,i](QString peer,QJsonObject packet){const int target=peer.mid(7).toInt()-1;if(target>=0&&target<count)nodes[target]->receive("online:"+QString::number(i+1),QString::number(i+1),packet);});
+                connect(node,&GameParty::startRequested,node,[&,i](bool,QJsonObject endpoint){
+                    ++launches[i];if(i>0){QCOMPARE(endpoint["slot"].toInt(),i+1);QCOMPARE(endpoint["secret"].toString(),QString::number(i+1));}
+                });
+            }
+            const auto ticket=QUuid::createUuid().toString(QUuid::WithoutBraces);
+            QVERIFY(host.bindLobby(ticket,profile,roster,"1","1"));
+            for(int i=1;i<count;++i)QVERIFY(nodes[i]->bindLobby(ticket,profile,roster,QString::number(i+1),"1"));
+            for(int seat=count;seat>=2;--seat) {
+                const QJsonObject packet{{"kind","azahar-ready"},{"identity",profile},{"secret",QString::number(seat)}};
+                QVERIFY(host.readyMember(seat,packet));QVERIFY(!host.readyMember(seat,packet));
+                for(int i=1;i<count;++i)QCOMPARE(launches.value(i),i+1>=seat?1:0);
+            }
+            host.tick();for(int i=1;i<count;++i){nodes[i]->tick();QCOMPARE(launches.value(i),1);}
+        }
+    }
     void firstLiveGuestAndRejoinNeverRestartTheSoloHost() {
         GameParty host,guest;const auto profile=game(2);host.configure("Host",{profile},profile,true);guest.configure("Guest",{profile},{},true);
         connect(&host,&GameParty::outgoing,&guest,[&](QString,QJsonObject p){guest.receive("online:1","Host",p);});

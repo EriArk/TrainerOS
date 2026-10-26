@@ -757,6 +757,19 @@ private slots:
         f.runtime.output(line.left(5));QCOMPARE(f.runtime.deadline_,1);
         f.runtime.output(line.mid(5));QCOMPARE(f.runtime.deadline_,0);QCOMPARE(f.runtime.status_,"Playing together");
     }
+    void azaharGroupReadyBindsSeatAndRosterBeforeLaunch() {
+        for(int players:{2,3,4})for(int seat=2;seat<=players;++seat)for(int received:{1,2,3,4,5}) {
+            Fixture f;
+            const QJsonObject profile{{"id","runtime.azahar.3ds.v1"},{"content","exact"},{"players",4},{"lateJoin",false}};
+            auto& party=f.runtime.party_;party.configure("Guest",{profile},{},true);
+            QJsonArray roster;for(int i=1;i<=players;++i)roster.append(QJsonObject{{"id",QString::number(i)},{"seat",i},{"connected",true},{"prepared",true},{"ready",true}});
+            QVERIFY(party.bindLobby(QUuid::createUuid().toString(QUuid::WithoutBraces),profile,roster,QString::number(seat),"1"));
+            f.runtime.active_=true;f.runtime.host_=false;f.runtime.request_.slot=seat;f.runtime.descriptor_=profile;
+            int inspected=0;f.library.inspect=[&]{++inspected;};
+            f.runtime.frame({{"kind","azahar-ready"},{"identity",profile},{"players",players},{"slot",received}});
+            QCOMPARE(inspected>0,received==seat);QVERIFY(!f.process.active());
+        }
+    }
     void azaharRestartKeepsConsentAndRejectsStaleReady() {
         Fixture f;QVERIFY(f.start());QTRY_COMPARE(f.lifecycle.state(),"running");
         requestRestart(f,{{"id","runtime.azahar.3ds.v1"}});

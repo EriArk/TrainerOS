@@ -1,0 +1,13 @@
+Test project /work/combined26/build
+    Start 42: standalone
+1/4 Test #42: standalone .......................   Passed   14.71 sec
+    Start 72: lobby
+2/4 Test #72: lobby ............................   Passed    1.45 sec
+    Start 73: game_party
+3/4 Test #73: game_party .......................   Passed    0.52 sec
+    Start 74: runtime_multiplayer
+4/4 Test #74: runtime_multiplayer ..............   Passed  119.29 sec
+
+100% tests passed, 0 tests failed out of 4
+
+Total Test time (real) = 136.28 sec

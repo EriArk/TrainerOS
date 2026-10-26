@@ -838,6 +838,7 @@ void RuntimeMultiplayer::startParty(bool host,const QJsonObject& endpoint) {
         prepareHost();
     } else if(host&&azahar()) {
         azaharRequest_={selected,{},true,online_,randomToken()+randomToken(),(transportPeer_.startsWith("local:")?social_.localSocketAddress(transportPeer_.mid(6)):nearby_.localAddressFor(transportPeer_.mid(7)))};
+        azaharRequest_.players=roster.size();azaharRequest_.seat=1;
         prepareHost();
     } else if(host&&ds()) {
         dsRequest_={selected,{},true,online_,randomToken()+randomToken(),(transportPeer_.startsWith("local:")?social_.localSocketAddress(transportPeer_.mid(6)):nearby_.localAddressFor(transportPeer_.mid(7)))};
@@ -1105,10 +1106,13 @@ void RuntimeMultiplayer::frame(const QJsonObject& packet) {
     }
     if(azahar()) {
         if(host_||packet["kind"]!="azahar-ready"||lifecycle_.active()||launchPending_)return;
-        if(packet["identity"].toObject()!=descriptor_||packet["slot"]!=QJsonValue(2)) {
+        if(packet["identity"].toObject()!=descriptor_||packet["slot"]!=QJsonValue(request_.slot)
+           ||request_.slot<2||request_.slot>descriptor_["players"].toInt(2)
+           ||packet["players"].toInt(2)!=party_.state()["members"].toArray().size()) {
             fail("Your 3DS game or invitation changed. Invite again.");return;
         }
         azaharRequest_={descriptor_,packet["connection"].toObject(),false,online_,packet["key"].toString(),(transportPeer_.startsWith("local:")?social_.localPeerAddress(transportPeer_.mid(6)):nearby_.addressOf(transportPeer_.mid(7)))};
+        azaharRequest_.players=packet["players"].toInt(2);azaharRequest_.seat=request_.slot;
         launchPending_=true;launch();return;
     }
     if(ds()) {
@@ -1222,7 +1226,13 @@ void RuntimeMultiplayer::output(const QByteArray& bytes) {
             if(event["event"]=="ready"&&host_&&!relaySent_) {
                 const auto endpoint=event["endpoint"].toObject();
                 if(endpoint["mode"]!=(online_?"online":"nearby")){fail("The 3DS connection changed. Invite again.");return;}
-                relaySent_=true;send({{"kind","azahar-ready"},{"identity",descriptor_},{"key",azaharRequest_.identity},{"connection",endpoint}});
+                const QJsonObject packet{{"kind","azahar-ready"},{"identity",descriptor_},{"key",azaharRequest_.identity},
+                    {"connection",endpoint},{"players",azaharRequest_.players}};
+                if(event.contains("seat")) {
+                    if(event["seat"].toInt()>azaharRequest_.players||!party_.readyMember(event["seat"].toInt(),packet)) {
+                        fail("The 3DS player seats changed. Invite again.");return;
+                    }
+                } else {relaySent_=true;send(packet);}
                 status_="Waiting for your friend...";
             } else if(event["event"]=="running") {
                 deadline_=0;timer_.stop();status_="Playing together";emit changed();

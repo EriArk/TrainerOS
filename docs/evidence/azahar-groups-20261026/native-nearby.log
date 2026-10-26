@@ -1,0 +1,4 @@
+PASS nearby 2 players: independent admissions, all-player UDP, guest exit and cleanup
+PASS nearby 3 players: independent admissions, all-player UDP, guest exit and cleanup
+PASS nearby 4 players: independent admissions, all-player UDP, guest exit and cleanup
+PASS nearby 4 players: independent admissions, all-player UDP, guest exit and cleanup

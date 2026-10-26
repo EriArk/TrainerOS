@@ -97,7 +97,7 @@ QJsonObject bundle(const std::atomic_bool& cancel) {
     QFile file(root+"/manifest.json");
     if(canonical.isEmpty()||QFileInfo(file.fileName()).isSymLink()||!file.open(QIODevice::ReadOnly)||file.size()>16384)return {};
     auto value=QJsonDocument::fromJson(file.readAll()).object();
-    if(value["protocol"]!=1||value["source"]!=sourceRevision||value["settings"]!="native-room-two-private-v1")return {};
+    if(value["protocol"]!=1||value["source"]!=sourceRevision||(value["settings"]!="native-room-two-private-v1"&&value["settings"]!="native-room-group-private-v2"))return {};
     const auto files=value["files"].toObject();
     const QStringList expected{"bin/azahar","transport/room-session.py","transport/secure-channel.py","transport/requirements.lock"};
     if(files.size()!=expected.size())return {};
@@ -160,8 +160,8 @@ QJsonObject netplayIdentity(const AdventureRegistration& record,const std::atomi
         if(observe)for(const auto& path:info["observed"].toArray())observe(path.toString());
         if(info["executable"]!=true||!hex(info["fingerprint"].toString()))return {};
         return {{"id","runtime.azahar.3ds.v1"},{"label",record.adventure.title.left(96)},
-            {"content",info["fingerprint"]},{"runtime",installed["digest"]},{"settings","native-room-two-content-v2"},
-            {"players",2},{"lateJoin",false},{"temporaryProgress",false}};
+            {"content",info["fingerprint"]},{"runtime",installed["digest"]},{"settings",installed["settings"]=="native-room-group-private-v2"?"native-room-group-content-v3":"native-room-two-content-v2"},
+            {"players",installed["settings"]=="native-room-group-private-v2"?4:2},{"lateJoin",false},{"temporaryProgress",false}};
     }
     // CIA/ZCIA installs and remote Artic Base are not launchable images.
     const bool packed=QStringList{"zcci","zcxi","z3dsx"}.contains(suffix);
@@ -172,13 +172,15 @@ QJsonObject netplayIdentity(const AdventureRegistration& record,const std::atomi
     const auto content=digest(record.contentPath,cancel,8LL*1024*1024*1024);if(content.isEmpty())return {};
     return {{"id","runtime.azahar.3ds.v1"},{"label",record.adventure.title.left(96)},
         {"content",content},{"runtime",installed["digest"]},{"settings",installed["settings"]},
-        {"players",2},{"lateJoin",false},{"temporaryProgress",false}};
+        {"players",installed["settings"]=="native-room-group-private-v2"?4:2},{"lateJoin",false},{"temporaryProgress",false}};
 }
 ProcessCommand command(const AdventureRegistration& record,const Request& request,const QStringList& inputPrefix) {
     ProcessCommand result;result.runtimeControls={{"kind","azahar"},{"game",record.adventure.id},
         {"netplay",request.expected.toVariantMap()},{"temporaryProgress",false}};
     result.prepare=[record,request,inputPrefix](ProcessCommand& out,const std::atomic_bool& cancel)->QString {
-        if(!hex(request.identity)||(!request.host&&(!endpoint(request.endpoint)||request.endpoint["mode"]!=(request.online?"online":"nearby")))
+        if(request.players<2||request.players>request.expected["players"].toInt(2)||request.players>4
+           ||request.seat<1||request.seat>request.players||request.host!=(request.seat==1)
+           ||!hex(request.identity)||(!request.host&&(!endpoint(request.endpoint)||request.endpoint["mode"]!=(request.online?"online":"nearby")))
            ||(!request.online&&QHostAddress(request.address).protocol()!=QAbstractSocket::IPv4Protocol))return "This 3DS invitation is invalid.";
         if(!sameMultiplayerGame(netplayIdentity(record,cancel),request.expected))return "Your 3DS game or emulator changed. Invite again.";
         auto contentPath=record.contentPath;
@@ -220,6 +222,7 @@ ProcessCommand command(const AdventureRegistration& record,const Request& reques
         settings.sync();if(settings.status()!=QSettings::NoError)return "Couldn't prepare private 3DS settings.";
         QJsonObject channel=request.host?QJsonObject{}:request.endpoint;
         channel["host"]=request.host;channel["identity"]=request.identity;channel["mode"]=request.online?"online":"nearby";
+        if(request.expected["players"].toInt()==4){channel["players"]=request.players;channel["seat"]=request.seat;}
         if(!request.online)channel["address"]=request.address;
         const auto root=bundleRoot(),python=root+"/transport/venv/bin/python";
         const QJsonObject config{{"channel",channel},{"content",contentPath},{"runtime",root+"/bin/azahar"},
@@ -237,6 +240,11 @@ QJsonObject event(const QByteArray& bytes) {
     const auto decoded=QByteArray::fromBase64Encoding(line.mid(qstrlen(prefix)),QByteArray::AbortOnBase64DecodingErrors);if(!decoded)return {};
     const auto value=QJsonDocument::fromJson(decoded.decoded).object();
     if(value.size()==1&&(value["event"]=="running"||value["event"]=="error"))return value;
-    return value.size()==2&&value["event"]=="ready"&&endpoint(value["endpoint"].toObject())?value:QJsonObject{};
+    if(value["event"]=="ready"&&endpoint(value["endpoint"].toObject())) {
+        if(value.size()==2)return value;
+        const int seat=value["seat"].toInt();
+        if(value.size()==3&&seat>=2&&seat<=4&&value["seat"]==QJsonValue(seat))return value;
+    }
+    return {};
 }
 }

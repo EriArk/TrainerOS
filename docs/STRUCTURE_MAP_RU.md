@@ -1,5 +1,13 @@
 # Структура TrainerOS: владельцы, контракты и связи
 
+**26 октября — R045, S06 → S03/S07 → S08 (F04/F12):**
+для 3DS Lobby фиксирует последовательный состав P1–Pn; `GameParty::readyMember`
+доставляет индивидуальный endpoint назначенному гостю. Azahar launcher владеет
+одной штатной комнатой и отдельными каналами/UDP-сокетами гостей (2–4), общей
+готовностью и ограниченным завершением с квитанцией. Native ENet/Room сохраняют
+владение 3DS wireless; собственные NAND/SDMC — у S03/S08. Новая служба/транспорт
+не добавлены. [Контракт](emulators/azahar.md#lobby-groups--26-october-2026).
+
 **25 октября — S01 → S14 → S10, серверный play preview.** Существующий
 BackendAccount владеет credentials и узкими grants; PlatformHost принимает
 [Play API](../sdk/PLAY.md) с привязкой к SDK-соединению. S10 владеет immutable

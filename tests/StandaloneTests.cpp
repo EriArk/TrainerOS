@@ -279,11 +279,11 @@ private slots:
         const auto hash=[](const QString& path){QFile file(path);if(!file.open(QIODevice::ReadOnly))return QString();return QString::fromLatin1(QCryptographicHash::hash(file.readAll(),QCryptographicHash::Sha256).toHex());};
         QJsonObject files;for(const auto& name:QStringList{"bin/azahar","transport/room-session.py","transport/secure-channel.py","transport/requirements.lock"})files[name]=hash(root+'/'+name);
         write(root+"/manifest.json",QJsonDocument(QJsonObject{{"protocol",1},{"source",azahar::sourceRevision},
-            {"settings","native-room-two-private-v1"},{"files",files},{"interpreterSha256",hash(root+"/transport/venv/bin/python")}}).toJson());
+            {"settings","native-room-group-private-v2"},{"files",files},{"interpreterSha256",hash(root+"/transport/venv/bin/python")}}).toJson());
         AdventureRegistration r;r.adventure.id="homebrew";r.adventure.platformId="n3ds";r.adventure.adapterId="azahar";
         r.contentPath=dir.filePath("game.3dsx");write(r.contentPath,QByteArray("3DSX")+QByteArray(1024,'x'));
         std::atomic_bool cancel=false;const auto identity=azahar::netplayIdentity(r,cancel);QVERIFY(!identity.isEmpty());
-        QVERIFY(!identity["temporaryProgress"].toBool());
+        QVERIFY(!identity["temporaryProgress"].toBool());QCOMPARE(identity["players"].toInt(),4);
         const auto own=dir.filePath("custom-progress");QVERIFY(QDir().mkpath(own+"/nand"));QVERIFY(QDir().mkpath(own+"/sdmc"));
         write(own+"/sdmc/own-save","the owner's unchanged progress");
         QVERIFY(QDir().mkpath(dir.filePath("config/azahar-emu")));
@@ -300,6 +300,17 @@ private slots:
         QCOMPARE(QDir::cleanPath(privateConfig.value("Data Storage/nand_directory").toString()),QFileInfo(own+"/nand").canonicalFilePath());
         QCOMPARE(QDir::cleanPath(privateConfig.value("Data Storage/sdmc_directory").toString()),QFileInfo(own+"/sdmc").canonicalFilePath());
         QCOMPARE(privateConfig.value("Controls/profile").toInt(),3);
+        QCOMPARE(hash(configFile),configHash);QCOMPARE(hash(own+"/sdmc/own-save"),saveHash);
+        const QJsonObject endpoint{{"mode","nearby"},{"port",1234},{"fingerprint",QString(64,'a')},{"token",QString(32,'b')}};
+        for(int players=2;players<=4;++players)for(int seat=1;seat<=players;++seat) {
+            azahar::Request request{identity,seat==1?QJsonObject{}:endpoint,seat==1,false,QString(64,'a'),"127.0.0.1",players,seat};
+            auto launch=azahar::command(r,request);QCOMPARE(launch.prepare(launch,cancel),QString());
+            QFile file(launch.workingDirectory+"/network.json");QVERIFY(file.open(QIODevice::ReadOnly));
+            const auto channel=QJsonDocument::fromJson(file.readAll()).object()["channel"].toObject();
+            QCOMPARE(channel["players"].toInt(),players);QCOMPARE(channel["seat"].toInt(),seat);
+            QCOMPARE(channel["host"].toBool(),seat==1);
+            request.seat=players+1;auto invalid=azahar::command(r,request);QVERIFY(!invalid.prepare(invalid,cancel).isEmpty());
+        }
         QCOMPARE(hash(configFile),configHash);QCOMPARE(hash(own+"/sdmc/own-save"),saveHash);
         write(root+"/transport/room-session.py","changed helper");QVERIFY(azahar::netplayIdentity(r,cancel).isEmpty());
         auto stale=azahar::command(r,{identity,{},true,false,QString(64,'a'),"127.0.0.1"});
@@ -327,6 +338,8 @@ private slots:
         QVERIFY(azahar::event(line({{"event","running"},{"unexpected",true}})).isEmpty());
         const QJsonObject endpoint{{"mode","nearby"},{"port",12345},{"fingerprint",QString(64,'a')},{"token",QString(32,'b')}};
         QCOMPARE(azahar::event(line({{"event","ready"},{"endpoint",endpoint}}))["endpoint"].toObject(),endpoint);
+        for(int seat=2;seat<=4;++seat)QCOMPARE(azahar::event(line({{"event","ready"},{"endpoint",endpoint},{"seat",seat}}))["seat"].toInt(),seat);
+        for(double seat:{1.0,5.0,2.5})QVERIFY(azahar::event(line({{"event","ready"},{"endpoint",endpoint},{"seat",seat}})).isEmpty());
         auto bad=endpoint;bad["port"]=65536;
         QVERIFY(azahar::event(line({{"event","ready"},{"endpoint",bad}})).isEmpty());
         bad=endpoint;bad["fingerprint"]="";

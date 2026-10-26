@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: GPL-3.0-or-later
-"""Carry native Azahar ENet datagrams through an admitted two-person channel.
+"""Carry native Azahar ENet datagrams through an admitted two-to-four-person group.
 
 No 3DS wireless protocol, game state or save parsing occurs here. Each client
 runs one native console; the organizer also runs Azahar's native room. UDP is
@@ -139,46 +139,65 @@ def decode_datagrams(record):
     return packets
 
 
+def roster(channel):
+    host = channel.get("host")
+    players, seat = channel.get("players", 2), channel.get("seat", 1 if host else 2)
+    if (("players" in channel) != ("seat" in channel)
+            or type(host) is not bool or type(players) is not int or type(seat) is not int
+            or not 2 <= players <= 4 or not 1 <= seat <= players or host != (seat == 1)):
+        raise ValueError("room roster")
+    return host, players, seat
+
+
+def peer_config(channel, seat):
+    host, players, owner = roster(channel)
+    if not 2 <= seat <= players or (not host and seat != owner):
+        raise ValueError("channel seat")
+    value = {k: v for k, v in channel.items() if k not in ("players", "seat")}
+    if "players" in channel:
+        # A capability for one guest must never admit a different seat/session.
+        value["identity"] = hashlib.sha256(
+            ("traineros-azahar-group-v2:" + channel["identity"] + ":" + str(players) + ":" + str(seat)).encode()).hexdigest()
+    return value
+
+
 async def run(config, root):
     loop = asyncio.get_running_loop()
     stop = asyncio.Event()
     for signum in (signal.SIGTERM, signal.SIGINT):
         loop.add_signal_handler(signum, stop.set)
-    host = config["channel"]["host"]
-    if type(host) is not bool:
-        raise ValueError("host")
-    outgoing = asyncio.Queue(maxsize=128)
-    credits = asyncio.Semaphore(WINDOW)
-    children, tasks = [], []
-    channel = None
+    host, players, owner = roster(config["channel"])
+    children, tasks, edges = [], [], {}
     native = None
-    transport = None
-    connected = False
-    native_joined = peer_joined = announced = False
+    native_joined = announced = False
+    room_port = None
     deadline = loop.time() + 180
     password = hashlib.sha256(("traineros-azahar-room-v1:" + config["channel"]["identity"]).encode()).hexdigest()
 
-    async def channel_write(value):
-        channel.stdin.write(json.dumps(value, separators=(",", ":")).encode() + b"\n")
-        await channel.stdin.drain()
+    async def channel_write(edge, value):
+        edge["process"].stdin.write(json.dumps(value, separators=(",", ":")).encode() + b"\n")
+        await edge["process"].stdin.drain()
 
-    async def send_records():
+    async def send_records(edge):
         pending = None
         while True:
-            data = pending if pending is not None else await outgoing.get()
-            await credits.acquire()
+            data = pending if pending is not None else await edge["queue"].get()
+            await edge["credits"].acquire()
             if data[:1] == b"D":
-                # Native ENet flushes a burst across several UDP callbacks.
-                # One bounded millisecond collects that burst before consuming
-                # a WAN receipt slot, rather than exhausting credit on singletons.
                 await asyncio.sleep(0.001)
-            data, pending = batch_datagrams(data, outgoing)
-            await channel_write({"send": base64.b64encode(data).decode()})
+            data, pending = batch_datagrams(data, edge["queue"])
+            if data == b"Q":
+                edge["close_sequence"] = edge["written"]
+            edge["written"] += 1
+            await channel_write(edge, {"send": base64.b64encode(data).decode()})
 
-    def maybe_running():
+    async def maybe_running():
         nonlocal announced
-        if native_joined and peer_joined and not announced:
+        if not announced and native_joined and all(e["joined"] for e in edges.values()):
             announced = True
+            if host:
+                for edge in edges.values():
+                    await edge["queue"].put(b"G")
             emit({"event": "running"})
 
     async def start_native(port):
@@ -189,7 +208,7 @@ async def run(config, root):
         with native_config.open("x") as stream:
             os.chmod(native_config, 0o600)
             json.dump({"host": host, "user": config["user"], "sysdata": config["sysdata"], "port": port,
-                       "password": password, "nickname": "Player1" if host else "Player2"}, stream)
+                       "password": password, "nickname": "Player" + str(owner), "players": players}, stream)
         env = os.environ.copy()
         env["TRAINEROS_AZAHAR_SESSION"] = str(native_config)
         env["QT_QPA_PLATFORM"] = "xcb"
@@ -200,85 +219,114 @@ async def run(config, root):
 
         async def read_native():
             nonlocal native_joined
+            room_ready = False
             while line := await native.stdout.readline():
                 line = line.strip()
-                if line == b"[TrainerOS3DS] room-ready" and host:
-                    await outgoing.put(b"R")
-                elif line == b"[TrainerOS3DS] running":
+                if line == b"[TrainerOS3DS] room-ready" and host and not room_ready:
+                    room_ready = True
+                    for edge in edges.values():
+                        await edge["queue"].put(b"R")
+                elif line == b"[TrainerOS3DS] running" and not native_joined:
                     native_joined = True
-                    await outgoing.put(b"J")
-                    maybe_running()
+                    if not host:
+                        await edges[owner]["queue"].put(b"J")
+                    await maybe_running()
                 elif line == b"[TrainerOS3DS] error":
-                    emit({"event": "error"})
-                    stop.set()
-                    return
+                    raise ValueError("native room")
             code = await native.wait()
             if code:
-                print("[TrainerOS3DS] native-exit=" + str(code), flush=True)
-                emit({"event": "error"})
+                raise ValueError("native exit")
             stop.set()
         tasks.append(asyncio.create_task(read_native()))
 
-    try:
-        channel = await asyncio.create_subprocess_exec(config["python"], config["helper"],
-            stdin=asyncio.subprocess.PIPE, stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.DEVNULL, limit=32768)
-        children.append(channel)
-        await channel_write(config["channel"])
-        transport, bridge = await loop.create_datagram_endpoint(
-            lambda: DatagramBridge(host, outgoing, stop), local_addr=("127.0.0.1", 0))
-        guest_port = transport.get_extra_info("sockname")[1]
-
-        async def read_channel():
-            nonlocal connected, deadline, peer_joined
-            while line := await channel.stdout.readline():
-                value = json.loads(line)
-                event = value.get("event")
-                if event == "ready" and host and not connected:
-                    endpoint = ready_endpoint(value, config["channel"]["mode"])
-                    emit({"event": "ready", "endpoint": endpoint})
-                elif event == "connected" and not connected:
-                    connected = True
-                    deadline = loop.time() + 40
-                    tasks.append(asyncio.create_task(send_records()))
+    async def read_channel(seat, edge):
+        nonlocal deadline, room_port
+        while line := await edge["process"].stdout.readline():
+            value = json.loads(line)
+            event = value.get("event")
+            if event == "ready" and host and not edge["ready"] and not edge["connected"]:
+                edge["ready"] = True
+                endpoint = ready_endpoint(value, config["channel"]["mode"])
+                emit({"event": "ready", "endpoint": endpoint, "seat": seat})
+            elif event == "connected" and not edge["connected"]:
+                edge["connected"] = True
+                tasks.append(asyncio.create_task(send_records(edge)))
+                if all(e["connected"] for e in edges.values()):
+                    deadline = loop.time() + 60
                     if host:
-                        # Native ENet owns its socket. Reserve an unused loopback
-                        # port briefly; a bind race fails safely at Room::Create.
                         with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as probe:
                             probe.bind(("127.0.0.1", 0))
-                            port = probe.getsockname()[1]
-                        bridge.peer = ("127.0.0.1", port)
-                        await start_native(port)
-                elif event == "data" and connected:
-                    data = base64.b64decode(value["data"], validate=True)
-                    if data == b"R" and not host and native is None:
-                        await start_native(guest_port)
-                    elif data == b"J" and not peer_joined:
-                        peer_joined = True
-                        maybe_running()
-                    elif data[:1] in (b"D", b"B"):
-                        packets = decode_datagrams(data)
-                        if bridge.peer is not None:
-                            for packet in packets:
-                                transport.sendto(packet, bridge.peer)
-                    else:
-                        raise ValueError("room record")
-                    await channel_write({"consume": value["sequence"]})
-                elif event == "ack" and connected:
-                    credits.release()
-                elif event == "sent" and connected:
-                    pass
-                else:
-                    if event != "closed":
-                        emit({"event": "error"})
+                            room_port = probe.getsockname()[1]
+                        for e in edges.values():
+                            e["bridge"].peer = ("127.0.0.1", room_port)
+                        await start_native(room_port)
+            elif event == "data" and edge["connected"]:
+                if type(value.get("sequence")) is not int or value["sequence"] != edge["received"]:
+                    raise ValueError("receipt sequence")
+                edge["received"] += 1
+                data = base64.b64decode(value["data"], validate=True)
+                if data == b"R" and not host and native is None:
+                    await start_native(edge["transport"].get_extra_info("sockname")[1])
+                elif data == b"J" and host and native is not None and not edge["joined"]:
+                    edge["joined"] = True
+                    await maybe_running()
+                elif data == b"G" and not host and native_joined and not edge["joined"]:
+                    edge["joined"] = True
+                    await maybe_running()
+                elif data == b"Q":
+                    # Explicit end-of-room survives Dilation's reconnect policy.
+                    # Consume it below so the departing peer sees its receipt.
                     stop.set()
-                    return
-            stop.set()
-        tasks.append(asyncio.create_task(read_channel()))
+                elif data[:1] in (b"D", b"B"):
+                    packets = decode_datagrams(data)
+                    if edge["bridge"].peer is not None:
+                        for packet in packets:
+                            edge["transport"].sendto(packet, edge["bridge"].peer)
+                else:
+                    raise ValueError("room record")
+                await channel_write(edge, {"consume": value["sequence"]})
+            elif event == "ack" and edge["connected"]:
+                if value.get("sequence") != edge["acked"] or edge["acked"] >= edge["sent"]:
+                    raise ValueError("ack sequence")
+                edge["acked"] += 1
+                edge["credits"].release()
+                if value["sequence"] == edge["close_sequence"]:
+                    edge["close_ack"].set()
+            elif event == "sent" and edge["connected"]:
+                if value.get("sequence") != edge["sent"]:
+                    raise ValueError("send sequence")
+                edge["sent"] += 1
+            elif event == "closed":
+                # End the complete native room, including sockets and every helper.
+                stop.set()
+                return
+            else:
+                raise ValueError("channel event")
+        stop.set()
+
+    try:
+        # Construct every edge before any reader can start the room.
+        for seat in (range(2, players + 1) if host else (owner,)):
+            queue = asyncio.Queue(maxsize=128)
+            transport, bridge = await loop.create_datagram_endpoint(
+                lambda q=queue: DatagramBridge(host, q, stop), local_addr=("127.0.0.1", 0))
+            edge = {"queue": queue, "credits": asyncio.Semaphore(WINDOW), "bridge": bridge,
+                    "transport": transport, "ready": False, "connected": False, "joined": False,
+                    "sent": 0, "acked": 0, "received": 0, "written": 0,
+                    "close_sequence": None, "close_ack": asyncio.Event()}
+            edges[seat] = edge
+            child = await asyncio.create_subprocess_exec(config["python"], config["helper"],
+                stdin=asyncio.subprocess.PIPE, stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.DEVNULL, limit=32768)
+            children.append(child)
+            edge["process"] = child
+            await channel_write(edge, peer_config(config["channel"], seat))
+        for seat, edge in edges.items():
+            tasks.append(asyncio.create_task(read_channel(seat, edge)))
         while not stop.is_set():
             if not announced and loop.time() > deadline:
                 raise TimeoutError("room admission")
-            for task in tasks:
+            for task in list(tasks):
                 if task.done():
                     task.result()
                     stop.set()
@@ -287,20 +335,49 @@ async def run(config, root):
             except asyncio.TimeoutError:
                 pass
     finally:
-        if transport:
-            transport.close()
+        for edge in edges.values():
+            edge["transport"].close()
+        if native is not None and native.returncode is None:
+            native.terminate()
+        async def end_room(edge):
+            if not edge["connected"]:
+                return
+            try:
+                async def notify():
+                    await edge["queue"].put(b"Q")
+                    await edge["close_ack"].wait()
+                await asyncio.wait_for(notify(), 2)
+            except asyncio.TimeoutError:
+                pass
+        # Keep the readers/senders alive until the normal receipt arrives.
+        # All edges share this bound, including an already broken connection.
+        await asyncio.gather(*(end_room(edge) for edge in edges.values()))
         for task in tasks:
             task.cancel()
         await asyncio.gather(*tasks, return_exceptions=True)
+        # Tell Dilation to close the admitted subchannel before terminating the
+        # helper. SIGTERM alone can leave the peer waiting for reconnect/credit
+        # timeout, especially when the native room has become idle.
+        async def close_channel(edge):
+            process = edge.get("process")
+            if process is None or process.returncode is not None:
+                return
+            try:
+                await asyncio.wait_for(channel_write(edge, {"close": True}), 0.5)
+                await asyncio.wait_for(process.wait(), 3)
+            except (asyncio.TimeoutError, BrokenPipeError, ConnectionResetError):
+                pass
+        await asyncio.gather(*(close_channel(edge) for edge in edges.values()))
         for child in children:
             if child.returncode is None:
                 child.terminate()
-        for child in children:
+        async def reap(child):
             try:
                 await asyncio.wait_for(child.wait(), 5)
             except asyncio.TimeoutError:
                 child.kill()
                 await child.wait()
+        await asyncio.gather(*(reap(child) for child in children))
 
 
 if __name__ == "__main__":

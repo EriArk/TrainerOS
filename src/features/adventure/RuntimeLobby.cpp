@@ -93,7 +93,7 @@ void RuntimeMultiplayer::prepare(QString operation,QJsonObject context,Completio
     if(context["relay"]=="psp-host"&&(players!=2||ppsspp::hostRelayRoot().isEmpty())) {
         done(false,"The handheld relay needs two players and the PSP connection package on both devices. Choose the standard relay otherwise.");return;
     }
-    if(requiresLinkedSavePreparation(profile)||profile["id"]=="runtime.flycast.cabinet.v1"||profile["id"]=="runtime.armsx2.lan.v1"||profile["id"]=="runtime.dolphin.bba.v1") {
+    if(profile["id"]=="runtime.azahar.3ds.v1"||requiresLinkedSavePreparation(profile)||profile["id"]=="runtime.flycast.cabinet.v1"||profile["id"]=="runtime.armsx2.lan.v1"||profile["id"]=="runtime.dolphin.bba.v1") {
         if(players<2) {done(false,"This linked-machine mode needs another player.");return;}
         for(int i=1;i<=players;++i)if(!seats.contains(i)) {done(false,"Linked machines need consecutive seats starting at P1.");return;}
     }

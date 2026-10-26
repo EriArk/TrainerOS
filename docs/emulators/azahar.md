@@ -1,5 +1,49 @@
 # Azahar: native 3DS wireless rooms
 
+## Lobby groups — 26 October 2026
+
+The maintained Azahar 2126.2 room adapter now admits two to four independent
+consoles. The upstream [Room](https://github.com/azahar-emu/azahar/blob/219d743a1e698101fe1ab8bef43e6563126c3c27/src/network/room.cpp)
+already supports a configurable member count; no 3DS wireless protocol or
+per-game implementation is added. The former two-player profile below is historical.
+
+S06 fixes a consecutive P1–Pn roster. S03 supplies players/seat to the private
+launcher, and sends each ready endpoint through `GameParty::readyMember` only to
+that assigned guest. The host opens one existing secure channel and a distinct
+loopback UDP socket per guest; native ENet therefore sees separate clients.
+The channel identity binds the ticket-derived secret, roster size and guest seat.
+The native room password remains common to that admitted group. P1 creates the
+room once all channels connect; each client launches only from the accepted Start.
+Running is announced only after all native clients join. Late join/relaunch is
+not enabled. A missing game, changed seat/roster or profile rejects preparation.
+
+`native-room-group-private-v2` and, for installed-content matching,
+`native-room-group-content-v3` expose capacity four. Old installed two-player
+bundles retain capacity two. Own NAND/SDMC, shader cache and ordinary input/graphics
+preferences are preserved; the private launch configuration owns only this session.
+This extends all eligible 3DS content already supported by the profile, not a title list.
+
+Exit now sends a bounded end-of-room record and awaits its ordinary transport
+receipt before closing helpers. Directly terminating a Dilation helper could leave
+other players waiting for reconnect/receipt timeout; a native relay group reproduced
+that failure. Every edge gets the same bounded cleanup, with graceful helper close
+and final child reaping. Native traffic keeps its original ENet/datagram semantics.
+
+Rebuild using `build.sh` and the same pinned unified source and three patches.
+Stage via `install-runtime.py`; do not edit only the installed manifest capacity.
+Run `check-room-session.py`, the shared `../melonds/check-secure-channel.py`, and
+`check-groups.py --python <bundle-python> --helper <bundle-secure-channel>` on Linux.
+For native protocol coverage configure the upstream build with
+`-DCMAKE_PROJECT_INCLUDE=<absolute-recipe>/native-room-probe.cmake`, build
+`traineros_room_probe`, and pass it as `--runtime` to `check-groups.py`.
+The probe reuses upstream Room/RoomMember/ENet and tests broadcast and unicast;
+it is not an emulator or shipped runtime. Repeat with `--mode online --relay-only`
+and `--drop-channel --counts 4` for interrupted transport. Remove the optional
+CMake include when maintaining an ordinary release build. Rebase the room patch
+and its included file together; preserve the existing content patch and save paths.
+
+[Checks, delivery and rollback](../evidence/azahar-groups-20261026/README.md).
+
 ## Native content installation — 26 October 2026
 
 The pinned `219d743a1e698101fe1ab8bef43e6563126c3c27` source now has a bounded

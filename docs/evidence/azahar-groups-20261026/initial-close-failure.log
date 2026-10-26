@@ -1,0 +1,3 @@
+Online 2-player native group passed.
+Online 3-player native group exchanged packets but did not close within the 15-second guest-exit deadline.
+Corrected end-of-room receipt: Online 2/3/4/repeat-4 passed; see native-online.log.
