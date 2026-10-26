@@ -1,0 +1,34 @@
+{
+  "source": "531e9af1ed40802a4f0f2900de16926538c9dbf9",
+  "shell": "3317a810674c723f33df2ea928561aac558a0f96b0c5ada44bcdf67408a2f1f9",
+  "running": true,
+  "settings": "native-room-group-private-v2",
+  "manifest": "caf19300ecdd4e879da7c089578127f23e07ab7f478fab0ea5ff1b7efbdd13e5",
+  "files": {
+    "bin/azahar": "771246817546fcea5ca8f67a5c1b8fd0890289d53e9c0198195445fa95c85b03",
+    "transport/room-session.py": "a62a3446d7e83e246f8c5b493c3ff6cf0bcb7c6cfdf5401e3e83fca61a413eab",
+    "transport/secure-channel.py": "5d42c59b3b4d6b08a87715b1dd2738ee0e740d0a22f62ba3e08b6db302c5296e",
+    "transport/requirements.lock": "80aa2af03b9016ddc51f45c96ff4ddd1bed1239c0fde4948fbca76c3ef003b26"
+  },
+  "unchangedPackages": 18,
+  "protectedFileCount": 1539,
+  "changedPersonalFiles": [],
+  "historyUnchanged": true,
+  "sessions": 412,
+  "qmlErrors": [],
+  "volume": "Volume: 0.20",
+  "database": {
+    "play_sessions": {
+      "rows": 412,
+      "unchanged": true
+    },
+    "worlds": {
+      "rows": 36,
+      "unchanged": true
+    },
+    "adventures": {
+      "rows": 1208,
+      "unchanged": true
+    }
+  }
+}

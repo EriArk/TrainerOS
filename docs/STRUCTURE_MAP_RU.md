@@ -1,5 +1,13 @@
 # Структура TrainerOS: владельцы, контракты и связи
 
+**26 октября — R045, S06 → S03/S07 → S08 (F04/F12):**
+для 3DS Lobby фиксирует последовательный состав P1–Pn; `GameParty::readyMember`
+доставляет индивидуальный endpoint назначенному гостю. Azahar launcher владеет
+одной штатной комнатой и отдельными каналами/UDP-сокетами гостей (2–4), общей
+готовностью и ограниченным завершением с квитанцией. Native ENet/Room сохраняют
+владение 3DS wireless; собственные NAND/SDMC — у S03/S08. Новая служба/транспорт
+не добавлены. [Контракт](emulators/azahar.md#lobby-groups--26-october-2026).
+
 **25 октября — S01 → S14 → S10, серверный play preview.** Существующий
 BackendAccount владеет credentials и узкими grants; PlatformHost принимает
 [Play API](../sdk/PLAY.md) с привязкой к SDK-соединению. S10 владеет immutable
@@ -504,6 +512,13 @@ endpoint и ждёт готовности всех своих рёбер. PS2 na
 Ethernet, Dolphin получает ограниченный Unix Ethernet hub. Отзыв сети не
 закрывает игру; S08 сохраняет обычный Home/exit/save contract.
 [Групповой контракт](emulators/native-lan-groups.md).
+
+Xbox System Link принадлежит тем же S03/S06/S07/S08: `XboxLan` готовит собственный
+native HDD и временные TOML/EEPROM с адресом назначенного места; существующий
+Ethernet carrier доставляет кадры в loopback UDP штатного nvnet. S06 принимает
+явный Start, S07 не управляет сейвами; отзыв связи сохраняет процесс игры.
+Оригинальные EEPROM/настройки не заменяются; HDD остаётся у native xemu.
+[Контракт и границы](emulators/xemu.md).
 
 GameCube LAN/BBA также использует S03/S06/S07: `DolphinLan` отдельно от
 `DolphinNetplay` готовит временный user-dir, собственный P1 и upstream TAP server.

@@ -14,6 +14,21 @@ spec.loader.exec_module(room)
 
 
 class AdmissionTests(unittest.TestCase):
+    def test_group_roster_and_individual_admission(self):
+        identity="a"*64
+        for players in (2,3,4):
+            host={"host":True,"identity":identity,"mode":"nearby","address":"127.0.0.1","players":players,"seat":1}
+            seen=set()
+            for seat in range(2,players+1):
+                guest=dict(host,host=False,seat=seat)
+                expected=room.peer_config(host,seat)
+                self.assertEqual(expected["identity"],room.peer_config(guest,seat)["identity"])
+                self.assertNotIn(expected["identity"],seen);seen.add(expected["identity"])
+                self.assertNotIn("seat",expected);self.assertNotIn("players",expected)
+                with self.assertRaises(ValueError):room.peer_config(guest,1)
+        for players,seat,host in [(1,1,True),(5,1,True),(3,4,False),(3,0,False),(3,1,False),(3,2,True),(True,1,True),(3,2.5,False)]:
+            with self.assertRaises(ValueError):room.roster({"host":host,"players":players,"seat":seat})
+
     def test_burst_keeps_native_boundaries_order_and_control_marker(self):
         queue=asyncio.Queue()
         expected=[bytes([n])*1400 for n in range(20)]

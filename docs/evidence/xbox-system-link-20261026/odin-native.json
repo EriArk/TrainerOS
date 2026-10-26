@@ -1,0 +1,12 @@
+{
+  "source": "25e1ee2fd59a451f2ab57e825b4f8a5414220c8b",
+  "runtime": "0a2e4ff856644ae741a7476bc9c9dcd115b681f9faae26444df74ace2d275441",
+  "nativeNicAttached": true,
+  "nativeRunning": true,
+  "exit": 0,
+  "personalUnchanged": {
+    "hdd_path": true,
+    "eeprom_path": true
+  },
+  "configUnchanged": true
+}

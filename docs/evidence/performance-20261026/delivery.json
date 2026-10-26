@@ -1,0 +1,123 @@
+{
+  "production": {
+    "shell": "9310653dab6c8e4065424d69388f8203cc6ddaf8f5a513c5d3133bc4102903e0",
+    "bytes": 161159720,
+    "sourceInputs": 1421,
+    "production": true,
+    "core": "23fa1a215a517eada10d209d33d59f9a95e972fc",
+    "multiplayer": "5a7bca7dff968a5817b3ab4cd5a5567810465e51",
+    "sourceManifestSha256": "95b1890135c08022d92ea56b7065e4974371b638bd0872137397445a63113f3e"
+  },
+  "devices": {
+    "odin": {
+      "shell": "9310653dab6c8e4065424d69388f8203cc6ddaf8f5a513c5d3133bc4102903e0",
+      "previousShell": "207bc5112d544a823d31389d56bdb36a87b24d7a9e6e7eb8cad211bcacbef4ae",
+      "supervisedRestart": true,
+      "reboot": false,
+      "backupRetained": true,
+      "protectedFiles": 2222,
+      "changedProtectedFiles": 0,
+      "database": {
+        "worlds": {
+          "before": 37,
+          "after": 37,
+          "same": true
+        },
+        "play_sessions": {
+          "before": 245,
+          "after": 245,
+          "same": true
+        },
+        "adventures": {
+          "before": 445,
+          "after": 445,
+          "same": true
+        }
+      },
+      "integrity": "ok",
+      "runtimeManifestsRetained": 20,
+      "capabilities": {
+        "account.identity": 1,
+        "avatar.local": 1,
+        "avatar.recipe": 1,
+        "context": 1,
+        "lifecycle": 1,
+        "lobby.activity": 1,
+        "network.group": 1,
+        "network.records": 1,
+        "play.scorecards": 1,
+        "ui.start.widget": 1
+      },
+      "volume": "Volume: 0.00",
+      "qmlErrors": [],
+      "observedNavigation": [
+        "Home",
+        "Games",
+        "GameHub",
+        "Apps",
+        "Games",
+        "Home"
+      ],
+      "selectedGameRetainedOnReturn": true,
+      "finalPage": "Home"
+    },
+    "flip": {
+      "shell": "9310653dab6c8e4065424d69388f8203cc6ddaf8f5a513c5d3133bc4102903e0",
+      "previousShell": "207bc5112d544a823d31389d56bdb36a87b24d7a9e6e7eb8cad211bcacbef4ae",
+      "supervisedRestart": true,
+      "reboot": false,
+      "backupRetained": true,
+      "protectedFiles": 1593,
+      "changedProtectedFiles": 0,
+      "database": {
+        "worlds": {
+          "before": 36,
+          "after": 36,
+          "same": true
+        },
+        "play_sessions": {
+          "before": 412,
+          "after": 412,
+          "same": true
+        },
+        "adventures": {
+          "before": 1208,
+          "after": 1208,
+          "same": true
+        }
+      },
+      "integrity": "ok",
+      "runtimeManifestsRetained": 20,
+      "capabilities": {
+        "account.identity": 1,
+        "avatar.local": 1,
+        "avatar.recipe": 1,
+        "context": 1,
+        "lifecycle": 1,
+        "lobby.activity": 1,
+        "network.group": 1,
+        "network.records": 1,
+        "play.scorecards": 1,
+        "ui.start.widget": 1
+      },
+      "volume": "Volume: 0.20",
+      "qmlErrors": [],
+      "observedNavigation": [
+        "Home",
+        "Games",
+        "GameHub",
+        "Apps",
+        "Games",
+        "Home"
+      ],
+      "selectedGameRetainedOnReturn": true,
+      "finalPage": "Home"
+    }
+  },
+  "scope": {
+    "deepPhysicalAcceptance": false,
+    "latencyBenchmark": false,
+    "gameplayTest": false,
+    "newGameSessions": 0
+  }
+}

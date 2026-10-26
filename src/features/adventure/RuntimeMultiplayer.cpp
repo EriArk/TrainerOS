@@ -86,7 +86,7 @@ RuntimeMultiplayer::RuntimeMultiplayer(LibraryRepository& lib,RetroArchAdapter& 
     // This admits local verification only; exact runtime/content checks still gate play.
     connect(&social_,&SocialController::changed,this,[this]{
         const auto mode=social_.lobbyCoordinator()->state()["game"].toObject()["mode"].toString();
-        const QStringList prefixes{"runtime.retroarch.","runtime.handheld.","runtime.fceumm.","runtime.snes9x.","runtime.genesis.","runtime.ppsspp.","runtime.dolphin.","runtime.rmg.","runtime.flycast-dojo.","runtime.flycast.","runtime.melonds.","runtime.azahar.","runtime.vita3k.","runtime.armsx2."};
+        const QStringList prefixes{"runtime.retroarch.","runtime.handheld.","runtime.fceumm.","runtime.snes9x.","runtime.genesis.","runtime.ppsspp.","runtime.dolphin.","runtime.rmg.","runtime.flycast-dojo.","runtime.flycast.","runtime.melonds.","runtime.azahar.","runtime.vita3k.","runtime.armsx2.","runtime.xemu."};
         for(const auto& prefix:prefixes)if(mode.startsWith(prefix)){social_.lobbyRuntime()->registerService(mode,this);break;}
     });
     identity_=QSettings().value("runtimeMultiplayer/device").toString();
@@ -294,8 +294,8 @@ RuntimeMultiplayer::RuntimeMultiplayer(LibraryRepository& lib,RetroArchAdapter& 
             relaySent_=true;deadline_=0;timer_.stop();status_="Choose Online and the same room in the game";return;
         }
         if(nativeLan()) {
-            if(host_)send({{"kind",gcLan()?"bba-ready":cabinetLan()?"cabinet-ready":"ps2-ready"},{"identity",descriptor_}});
-            relaySent_=true;deadline_=0;timer_.stop();status_="Choose LAN multiplayer in the game";return;
+            if(host_)send({{"kind",gcLan()?"bba-ready":xboxLan()?"xbox-ready":cabinetLan()?"cabinet-ready":"ps2-ready"},{"identity",descriptor_}});
+            relaySent_=true;deadline_=0;timer_.stop();status_=xboxLan()?"Choose System Link in the game":"Choose LAN multiplayer in the game";return;
         }
         if(psp()) {
             // A running PSP is not proof of an ad hoc match. Players use the
@@ -386,10 +386,10 @@ void RuntimeMultiplayer::refresh(const RetroArchInstallation& installation,QStri
     const auto stamp=[](const QString& path){const QFileInfo f(path);return qHashMulti(0,path,f.size(),f.lastModified().toMSecsSinceEpoch());};
     quint64 revision=qHashMulti(0,stamp(installation.runtimeFile),stamp(installation.configFile),
         stamp(pspInstallation.runtimeFile),stamp(ppsspp::contentProbeFile()),stamp(ppsspp::contentProbeRoot()+"/manifest.json"),stamp(dolphin::bridgeFile()),stamp(dolphin::bridgeRoot()+"/bin/dolphin-tool"),stamp(dolphin::bridgeRoot()+"/manifest.json"),
-        stamp(installation.linkedSavePython),stamp(installation.linkedSaveHelper),stamp(dolphinlan::bundleRoot()+"/manifest.json"),stamp(ps2::bundleRoot()+"/manifest.json"),stamp(ps2lan::bundleRoot()+"/manifest.json"),stamp(rmg::bundleRoot()+"/manifest.json"),stamp(flycast::bundleRoot()+"/manifest.json"),stamp(flycast::cabinetRoot()+"/manifest.json"),stamp(flycast::onlineRoot()+"/manifest.json"),stamp(melonds::bundleRoot()+"/manifest.json"),stamp(azahar::bundleRoot()+"/manifest.json"),stamp(vita::bundleRoot()+"/manifest.json"));
+        stamp(installation.linkedSavePython),stamp(installation.linkedSaveHelper),stamp(dolphinlan::bundleRoot()+"/manifest.json"),stamp(ps2::bundleRoot()+"/manifest.json"),stamp(ps2lan::bundleRoot()+"/manifest.json"),stamp(rmg::bundleRoot()+"/manifest.json"),stamp(flycast::bundleRoot()+"/manifest.json"),stamp(flycast::cabinetRoot()+"/manifest.json"),stamp(flycast::onlineRoot()+"/manifest.json"),stamp(xboxlan::bundleRoot()+"/manifest.json"),stamp(melonds::bundleRoot()+"/manifest.json"),stamp(azahar::bundleRoot()+"/manifest.json"),stamp(vita::bundleRoot()+"/manifest.json"));
     for(auto it=installation.cores.cbegin();it!=installation.cores.cend();++it)revision=qHashMulti(revision,it.key(),stamp(it.value()));
     const auto installationRevision=revision;
-    const auto candidate=[](const AdventureRegistration& r){return flycast::arcadePlatform(r.adventure.platformId)||r.adventure.platformId=="ps2"||r.adventure.platformId=="psvita"||r.adventure.platformId=="n3ds"||r.adventure.platformId=="nds"||r.adventure.platformId=="psp"||r.adventure.platformId=="gc"||r.adventure.platformId=="wii"||r.adventure.platformId=="n64"||r.adventure.platformId=="dreamcast"||
+    const auto candidate=[](const AdventureRegistration& r){return r.adventure.platformId=="xbox"||flycast::arcadePlatform(r.adventure.platformId)||r.adventure.platformId=="ps2"||r.adventure.platformId=="psvita"||r.adventure.platformId=="n3ds"||r.adventure.platformId=="nds"||r.adventure.platformId=="psp"||r.adventure.platformId=="gc"||r.adventure.platformId=="wii"||r.adventure.platformId=="n64"||r.adventure.platformId=="dreamcast"||
         retroarch::netplaySupported(r.adventure.platformId,r.integrationConfig["core"].toString());};
     QMap<QString,int> capacities;
     QMap<QString,QVariantMap> metadata;
@@ -481,7 +481,7 @@ void RuntimeMultiplayer::refresh(const RetroArchInstallation& installation,QStri
         const auto id=QString::fromLatin1(QCryptographicHash::hash((profile["id"].toString()+"/"+content).toUtf8(),QCryptographicHash::Sha256).toHex());
         lobbyGames.append(QVariantMap{{"key",record.adventure.id+(profile["id"]=="runtime.dolphin.bba.v1"?"#bba":profile["id"]=="runtime.flycast.cabinet.v1"?"#cabinet":profile["id"]=="runtime.flycast.online.v1"?"#online":"")},{"adventure",record.adventure.id},{"id",id},{"title",profile["label"].toString()},
             {"platform",record.adventure.platformId},{"mode",profile["id"].toString()},{"modeLabel",multiplayerPresentation(profile).value("label",QString("Emulator multiplayer"))},
-            {"modeDetail",profile["id"]=="runtime.dolphin.bba.v1"?"Own screen / LAN menu / temporary progress":profile["id"]=="runtime.flycast.cabinet.v1"?"Linked cabinets / own screen / temporary progress":profile["id"]=="runtime.flycast.online.v1"?"Group launch / choose a room in-game / own saved VMUs":""},{"cover",library_.artwork(record.adventure.id).value("cover")},{"seats",qMin(4,capacity)},{"runtime",profile.toVariantMap()}});
+            {"modeDetail",profile["id"]=="runtime.xemu.lan.v1"?"Own Xbox / choose System Link in-game / own progress":profile["id"]=="runtime.dolphin.bba.v1"?"Own screen / LAN menu / temporary progress":profile["id"]=="runtime.flycast.cabinet.v1"?"Linked cabinets / own screen / temporary progress":profile["id"]=="runtime.flycast.online.v1"?"Group launch / choose a room in-game / own saved VMUs":""},{"cover",library_.artwork(record.adventure.id).value("cover")},{"seats",qMin(4,capacity)},{"runtime",profile.toVariantMap()}});
         social_.lobbyRuntime()->registerService(profile["id"].toString(),this);
         }
     }
@@ -838,6 +838,7 @@ void RuntimeMultiplayer::startParty(bool host,const QJsonObject& endpoint) {
         prepareHost();
     } else if(host&&azahar()) {
         azaharRequest_={selected,{},true,online_,randomToken()+randomToken(),(transportPeer_.startsWith("local:")?social_.localSocketAddress(transportPeer_.mid(6)):nearby_.localAddressFor(transportPeer_.mid(7)))};
+        azaharRequest_.players=roster.size();azaharRequest_.seat=1;
         prepareHost();
     } else if(host&&ds()) {
         dsRequest_={selected,{},true,online_,randomToken()+randomToken(),(transportPeer_.startsWith("local:")?social_.localSocketAddress(transportPeer_.mid(6)):nearby_.localAddressFor(transportPeer_.mid(7)))};
@@ -908,7 +909,7 @@ void RuntimeMultiplayer::launch() {
         if(!requestRuntimeLaunch||!nativeLanConnection_||nativeLanConfig_.isEmpty()) {fail("The LAN connection is unavailable.");return;}
         QStringList inputPrefix;const auto end=installation_.prefixArguments.indexOf("--");
         if(end>=0)inputPrefix=installation_.prefixArguments.mid(0,end+1);
-        const auto result=requestRuntimeLaunch(cabinetLan()?flycast::cabinetCommand(*record,descriptor_,nativeLanConfig_,host_,inputPrefix):gcLan()?dolphinlan::command(*record,dolphin_.installation(),descriptor_,nativeLanConfig_,host_):ps2lan::command(*record,descriptor_,nativeLanConfig_,host_,inputPrefix),game_);
+        const auto result=requestRuntimeLaunch(xboxLan()?xboxlan::command(*record,descriptor_,nativeLanConfig_,host_,inputPrefix):cabinetLan()?flycast::cabinetCommand(*record,descriptor_,nativeLanConfig_,host_,inputPrefix):gcLan()?dolphinlan::command(*record,dolphin_.installation(),descriptor_,nativeLanConfig_,host_):ps2lan::command(*record,descriptor_,nativeLanConfig_,host_,inputPrefix),game_);
         if(!result.success)fail(result.message);
         return;
     }
@@ -1079,7 +1080,7 @@ void RuntimeMultiplayer::linkedTransferCompleted(int slot,QByteArray bytes) {
     if(host_)launch();else if(!linkedEndpoint_.isEmpty()){const auto endpoint=linkedEndpoint_;linkedEndpoint_={};frame(endpoint);}
 }
 void RuntimeMultiplayer::send(QJsonObject packet) {
-    if(partySession_){if(packet["kind"]=="dc-online-ready"||packet["kind"]=="ready"||packet["kind"]=="psp-ready"||packet["kind"]=="ps2-ready"||packet["kind"]=="bba-ready"||packet["kind"]=="cabinet-ready"||packet["kind"]=="dolphin-ready"||packet["kind"]=="rmg-ready"||packet["kind"]=="flycast-ready"||packet["kind"]=="ds-ready"||packet["kind"]=="azahar-ready"||packet["kind"]=="vita-ready")party_.ready(packet);return;}
+    if(partySession_){if(packet["kind"]=="dc-online-ready"||packet["kind"]=="ready"||packet["kind"]=="psp-ready"||packet["kind"]=="ps2-ready"||packet["kind"]=="bba-ready"||packet["kind"]=="xbox-ready"||packet["kind"]=="cabinet-ready"||packet["kind"]=="dolphin-ready"||packet["kind"]=="rmg-ready"||packet["kind"]=="flycast-ready"||packet["kind"]=="ds-ready"||packet["kind"]=="azahar-ready"||packet["kind"]=="vita-ready")party_.ready(packet);return;}
 }
 void RuntimeMultiplayer::frame(const QJsonObject& packet) {
     if(!active_)return;
@@ -1089,7 +1090,7 @@ void RuntimeMultiplayer::frame(const QJsonObject& packet) {
         launchPending_=true;launch();return;
     }
     if(nativeLan()) {
-        if(host_||packet["kind"]!=(gcLan()?"bba-ready":cabinetLan()?"cabinet-ready":"ps2-ready")||lifecycle_.active()||launchPending_)return;
+        if(host_||packet["kind"]!=(gcLan()?"bba-ready":xboxLan()?"xbox-ready":cabinetLan()?"cabinet-ready":"ps2-ready")||lifecycle_.active()||launchPending_)return;
         if(packet["identity"].toObject()!=descriptor_||packet["slot"].toInt()!=request_.slot||request_.slot<2||request_.slot>descriptor_["players"].toInt(2)) {
             fail("Your LAN game or invitation changed. Invite again.");return;
         }
@@ -1105,10 +1106,13 @@ void RuntimeMultiplayer::frame(const QJsonObject& packet) {
     }
     if(azahar()) {
         if(host_||packet["kind"]!="azahar-ready"||lifecycle_.active()||launchPending_)return;
-        if(packet["identity"].toObject()!=descriptor_||packet["slot"]!=QJsonValue(2)) {
+        if(packet["identity"].toObject()!=descriptor_||packet["slot"]!=QJsonValue(request_.slot)
+           ||request_.slot<2||request_.slot>descriptor_["players"].toInt(2)
+           ||packet["players"].toInt(2)!=party_.state()["members"].toArray().size()) {
             fail("Your 3DS game or invitation changed. Invite again.");return;
         }
         azaharRequest_={descriptor_,packet["connection"].toObject(),false,online_,packet["key"].toString(),(transportPeer_.startsWith("local:")?social_.localPeerAddress(transportPeer_.mid(6)):nearby_.addressOf(transportPeer_.mid(7)))};
+        azaharRequest_.players=packet["players"].toInt(2);azaharRequest_.seat=request_.slot;
         launchPending_=true;launch();return;
     }
     if(ds()) {
@@ -1222,7 +1226,13 @@ void RuntimeMultiplayer::output(const QByteArray& bytes) {
             if(event["event"]=="ready"&&host_&&!relaySent_) {
                 const auto endpoint=event["endpoint"].toObject();
                 if(endpoint["mode"]!=(online_?"online":"nearby")){fail("The 3DS connection changed. Invite again.");return;}
-                relaySent_=true;send({{"kind","azahar-ready"},{"identity",descriptor_},{"key",azaharRequest_.identity},{"connection",endpoint}});
+                const QJsonObject packet{{"kind","azahar-ready"},{"identity",descriptor_},{"key",azaharRequest_.identity},
+                    {"connection",endpoint},{"players",azaharRequest_.players}};
+                if(event.contains("seat")) {
+                    if(event["seat"].toInt()>azaharRequest_.players||!party_.readyMember(event["seat"].toInt(),packet)) {
+                        fail("The 3DS player seats changed. Invite again.");return;
+                    }
+                } else {relaySent_=true;send(packet);}
                 status_="Waiting for your friend...";
             } else if(event["event"]=="running") {
                 deadline_=0;timer_.stop();status_="Playing together";emit changed();

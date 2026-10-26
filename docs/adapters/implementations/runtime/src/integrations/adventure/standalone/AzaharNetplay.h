@@ -14,6 +14,7 @@ struct Request {
     QJsonObject expected,endpoint;
     bool host=false,online=false;
     QString identity,address;
+    int players=2,seat=1;
 };
 ProcessCommand command(const AdventureRegistration&,const Request&,const QStringList& inputPrefix={});
 QJsonObject event(const QByteArray&);

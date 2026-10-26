@@ -30,9 +30,13 @@ static bool Prepare() {
     const auto user = config[QStringLiteral("user")].toString();
     const auto root = QFileInfo(user).canonicalFilePath();
     const int port = config[QStringLiteral("port")].toInt();
-    if (config.size() != 6 || !config[QStringLiteral("host")].isBool() ||
+    const int players = config[QStringLiteral("players")].toInt();
+    if (players < 2 || players > 4 || config[QStringLiteral("players")] != QJsonValue(players) ||
+        config[QStringLiteral("nickname")].toString().right(1).toInt() > players ||
+        config[QStringLiteral("host")].toBool() != (config[QStringLiteral("nickname")].toString() == QStringLiteral("Player1")) ||
+        config.size() != 7 || !config[QStringLiteral("host")].isBool() ||
         !QRegularExpression(QStringLiteral("^[a-f0-9]{64}$")).match(config[QStringLiteral("password")].toString()).hasMatch() ||
-        !QRegularExpression(QStringLiteral("^Player[12]$")).match(config[QStringLiteral("nickname")].toString()).hasMatch() ||
+        !QRegularExpression(QStringLiteral("^Player[1-4]$")).match(config[QStringLiteral("nickname")].toString()).hasMatch() ||
         root.isEmpty() || root != user || !QFileInfo(root).isDir() ||
         !root.startsWith(info.canonicalPath() + QLatin1Char('/')) || port < 1 || port > 65535 ||
         config[QStringLiteral("port")] != QJsonValue(port)) return false;
@@ -56,7 +60,7 @@ static void Start(GMainWindow& window, Core::System& system) {
     const auto port = static_cast<u16>(config[QStringLiteral("port")].toInt());
     const bool host = config[QStringLiteral("host")].toBool();
     if (!room || !member || !system.IsPoweredOn() ||
-        (host && !room->Create("TrainerOS", "", "127.0.0.1", port, password, 2,
+        (host && !room->Create("TrainerOS", "", "127.0.0.1", port, password, config[QStringLiteral("players")].toInt(),
                               "Player1", "", 0,
                               std::make_unique<Network::VerifyUser::NullBackend>()))) {
         std::cout << "[TrainerOS3DS] error" << std::endl;

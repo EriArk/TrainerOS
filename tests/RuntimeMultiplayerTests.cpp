@@ -221,6 +221,7 @@ private slots:
     void ps2TransportLossKeepsOwnedGameAndCannotRelaunch_data() {
         QTest::addColumn<QString>("mode");
         QTest::newRow("ps2")<<QString("runtime.armsx2.lan.v1");
+        QTest::newRow("xbox-system-link")<<QString("runtime.xemu.lan.v1");
         QTest::newRow("gamecube-bba")<<QString("runtime.dolphin.bba.v1");
         QTest::newRow("arcade-cabinets")<<QString("runtime.flycast.cabinet.v1");
     }
@@ -502,12 +503,12 @@ private slots:
         f.runtime.descriptor_=lan;QCOMPARE(f.runtime.nativeLan(),linked!="runtime.flycast.online.v1");QVERIFY(!f.runtime.dolphin());QVERIFY(!f.runtime.supportsLive(lan));
     }
     void nativeReadyIsBoundToEachAssignedSeat() {
-        for(const auto& mode:{QString("runtime.flycast.online.v1"),QString("runtime.flycast.cabinet.v1"),QString("runtime.armsx2.lan.v1"),QString("runtime.dolphin.bba.v1")})
+        for(const auto& mode:{QString("runtime.flycast.online.v1"),QString("runtime.flycast.cabinet.v1"),QString("runtime.armsx2.lan.v1"),QString("runtime.dolphin.bba.v1"),QString("runtime.xemu.lan.v1")})
         for(int slot=2;slot<=4;++slot)for(int received:{1,2,3,4,5}) {
             Fixture f;f.runtime.active_=true;f.runtime.host_=false;f.runtime.request_.slot=slot;
             f.runtime.descriptor_={{"id",mode},{"players",4}};
             int inspected=0;f.library.inspect=[&]{++inspected;};
-            f.runtime.frame({{"kind",mode.contains("online")?"dc-online-ready":mode.contains("armsx2")?"ps2-ready":mode.contains("dolphin")?"bba-ready":"cabinet-ready"},{"identity",f.runtime.descriptor_},{"slot",received}});
+            f.runtime.frame({{"kind",mode.contains("online")?"dc-online-ready":mode.contains("armsx2")?"ps2-ready":mode.contains("dolphin")?"bba-ready":mode.contains("xemu")?"xbox-ready":"cabinet-ready"},{"identity",f.runtime.descriptor_},{"slot",received}});
             // The valid seat reaches local content verification. Another seat
             // must fail before looking up or launching any game.
             QCOMPARE(inspected>0,received==slot);
@@ -756,6 +757,19 @@ private slots:
         const auto line=QByteArray("TRAINEROS_VITA ")+QJsonDocument(QJsonObject{{"event","running"}}).toJson(QJsonDocument::Compact).toBase64()+"\n";
         f.runtime.output(line.left(5));QCOMPARE(f.runtime.deadline_,1);
         f.runtime.output(line.mid(5));QCOMPARE(f.runtime.deadline_,0);QCOMPARE(f.runtime.status_,"Playing together");
+    }
+    void azaharGroupReadyBindsSeatAndRosterBeforeLaunch() {
+        for(int players:{2,3,4})for(int seat=2;seat<=players;++seat)for(int received:{1,2,3,4,5}) {
+            Fixture f;
+            const QJsonObject profile{{"id","runtime.azahar.3ds.v1"},{"content","exact"},{"players",4},{"lateJoin",false}};
+            auto& party=f.runtime.party_;party.configure("Guest",{profile},{},true);
+            QJsonArray roster;for(int i=1;i<=players;++i)roster.append(QJsonObject{{"id",QString::number(i)},{"seat",i},{"connected",true},{"prepared",true},{"ready",true}});
+            QVERIFY(party.bindLobby(QUuid::createUuid().toString(QUuid::WithoutBraces),profile,roster,QString::number(seat),"1"));
+            f.runtime.active_=true;f.runtime.host_=false;f.runtime.request_.slot=seat;f.runtime.descriptor_=profile;
+            int inspected=0;f.library.inspect=[&]{++inspected;};
+            f.runtime.frame({{"kind","azahar-ready"},{"identity",profile},{"players",players},{"slot",received}});
+            QCOMPARE(inspected>0,received==seat);QVERIFY(!f.process.active());
+        }
     }
     void azaharRestartKeepsConsentAndRejectsStaleReady() {
         Fixture f;QVERIFY(f.start());QTRY_COMPARE(f.lifecycle.state(),"running");

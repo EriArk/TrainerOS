@@ -1,4 +1,5 @@
 #include "RuntimeIdentity.h"
+#include "integrations/adventure/standalone/XboxLan.h"
 #include "integrations/adventure/retroarch/PS2Netplay.h"
 #include "integrations/adventure/standalone/PpssppNetplay.h"
 #include "integrations/adventure/standalone/DolphinNetplay.h"
@@ -18,6 +19,7 @@ QJsonObject runtimeIdentity(const AdventureRegistration& original,const RetroArc
         const auto native=ps2lan::netplayIdentity(r,cancel,[digests](const QString& path){if(digests)digests->observe(path);});
         return native.isEmpty()?ps2::netplayIdentity(r,installation,cancel):native;
     }
+    if(platform=="xbox")return xboxlan::netplayIdentity(r,cancel);
     if(platform=="psvita")return vita::netplayIdentity(r,cancel);
     if(platform=="n3ds")return azahar::netplayIdentity(r,cancel,[digests](const QString& path){if(digests)digests->observe(path);});
     if(platform=="nds")return melonds::netplayIdentity(r,cancel);
