@@ -486,6 +486,7 @@ qt_add_qml_module(traineros
         src/qml/GameHubOverview.qml
         src/qml/GameTimeline.qml
         src/qml/MenuGlyph.qml
+        src/qml/SparkIcon.qml
         src/qml/WorkspacePlaceholder.qml
         src/qml/PlayerProfilePanel.qml
         src/qml/AvatarEditor.qml

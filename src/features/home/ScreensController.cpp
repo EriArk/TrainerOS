@@ -55,6 +55,16 @@ QString ScreensController::filterLabel() const {
     for(const auto& row:filters())if(row.toMap()["id"].toString()==filter_)return row.toMap()["label"].toString();
     return filter_.startsWith("game:")?QString("This game"):QString("All games");
 }
+QVariantMap ScreensController::navigationState() const {
+    return {{"owner",owner_},{"filter",filter_},{"selected",selected_},{"favorites",favoritesView_},
+        {"bufferSelection",bufferSelection_},{"favoriteSelection",favoriteSelection_}};
+}
+void ScreensController::restoreNavigation(const QVariantMap& state) {
+    if(state["owner"].toString()!=owner_)return;
+    filter_=state["filter"].toString();selected_=state["selected"].toString();
+    favoritesView_=state["favorites"].toBool();bufferSelection_=state["bufferSelection"].toString();
+    favoriteSelection_=state["favoriteSelection"].toString();filtering_=false;index_=0;rebuild();
+}
 void ScreensController::select(int index) {if(index<0 || index>=count())return;index_=index;selected_=current()["id"].toString();emit changed();}
 void ScreensController::close() {filtering_=false;emit changed();}
 void ScreensController::forGame(const QString& id) {

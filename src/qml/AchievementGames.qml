@@ -4,7 +4,7 @@ Item {
     id: root
     required property var shell
     readonly property var hall: shell.hall
-    readonly property bool active: visible && !shell.serviceOpen && !shell.menuOpen && !shell.drawerOpen
+    readonly property bool active: visible && (!shell.serviceOpen || (shell.profileContentActive && shell.profileRoute === "ra")) && !shell.menuOpen && !shell.drawerOpen
         && !shell.quickAppsOpen && !shell.keyboard.open && !shell.notice.length && !hall.account.open && !hall.historyOpen
     objectName: "achievement-games"
     Text {

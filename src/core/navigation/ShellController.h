@@ -72,6 +72,11 @@ class ShellController final : public QObject {
     Q_PROPERTY(QString experienceView READ experienceView NOTIFY changed)
     Q_PROPERTY(QVariantList gameHistory READ gameHistory NOTIFY changed)
     Q_PROPERTY(QVariantMap story READ story NOTIFY changed)
+    Q_PROPERTY(QVariantMap playerProfile READ playerProfile NOTIFY changed)
+    Q_PROPERTY(int profileFocus READ profileFocus NOTIFY changed)
+    Q_PROPERTY(QString profileRoute READ profileRoute NOTIFY changed)
+    Q_PROPERTY(bool profileContentActive READ profileContentActive NOTIFY changed)
+    Q_PROPERTY(QVariantMap profileAccount READ profileAccount NOTIFY changed)
     Q_PROPERTY(QVariantList storyHistory READ storyHistory NOTIFY changed)
     Q_PROPERTY(QVariantList storyMedia READ storyMedia NOTIFY changed)
     Q_PROPERTY(trainer::ScreensController* album READ album CONSTANT)
@@ -252,6 +257,11 @@ public:
     QString experienceView() const {return adapterActive()?experience_.view():hubFace_=="ra"?QString("achievements"):overviewFace_=="timeline"?QString("game-history"):QString("game-details");}
     QVariantList gameHistory() const;
     QVariantMap story() const { return story_.summary(); }
+    QVariantMap playerProfile() const { return profileSnapshot_; }
+    int profileFocus() const { return profileFocus_; }
+    QString profileRoute() const { return profileRoute_; }
+    bool profileContentActive() const;
+    QVariantMap profileAccount() const;
     QVariantList storyHistory() const { return story_.history(); }
     QVariantList storyMedia() const { return story_.media(); }
     ScreensController* album() {return &album_;}
@@ -397,6 +407,13 @@ private:
     BackendAccount backendAccount_;
     HomeDashboardController dashboard_;
     PlayerStory story_;
+    QVariantMap profileSnapshot_;
+    QJsonObject profileReturnNavigation_;
+    int profileFocus_=0;
+    QString profileRoute_="summary";
+    void activateProfile(int index);
+    void dispatchProfile(Action action);
+    void closeProfile();
     ScreensController album_;
     bool dashboardReturn_=false;
     bool achievementPhotoReturn_=false;

@@ -83,18 +83,18 @@ Window {
             AccountAvatar {
                 id: headerAvatar
                 x: 14; y: (parent.height-height)/2; width: 44
-                name: shell.social.account.name || "Player"
+                name: shell.trainer.profile.name || shell.social.account.name || "Player"
                 source: (shell.social.account.profile || {}).avatar || ""
                 presence: shell.social.account.state === "connected" ? shell.social.account.presence || "" : ""
             }
             Text {
                 id: headerName; objectName: "header-account-name"
-                readonly property string fullName: (shell.social.account.userId ? (shell.social.account.profile || {}).name || shell.social.account.name || "Your profile" : "Sign in").trim()
+                readonly property string fullName: (shell.trainer.profile.name || "Your profile").trim()
                 readonly property var words: fullName.split(/\s+/)
                 readonly property bool twoLines: words.length === 2
                 x: headerAvatar.x + headerAvatar.width + 14
                 y: headerAvatar.y + (headerAvatar.height-height)/2
-                width: parent.width-x-16; height: twoLines ? 40 : 36
+                width: parent.width-x-88; height: twoLines ? 40 : 36
                 text: twoLines ? words.join("\n") : fullName
                 color: "#fffef9"; font.family: Theme.displayFamily; font.pixelSize: 26
                 minimumPixelSize: 16; fontSizeMode: Text.Fit
@@ -104,9 +104,19 @@ Window {
             MouseArea {
                 objectName: "account-profile-toggle"; anchors.fill: parent
                 enabled: shell.unobstructed && !shell.quickAppsOpen
-                onClicked: shell.openAccountProfile()
-                Accessible.role: Accessible.Button; Accessible.name: "Your Fluxer profile"
-                Accessible.onPressAction: shell.openAccountProfile()
+                onClicked: shell.openProfile()
+                Accessible.role: Accessible.Button; Accessible.name: "Your player profile"
+                Accessible.onPressAction: shell.openProfile()
+            }
+            Column {
+                objectName: "header-account-progress"
+                anchors.right: parent.right; anchors.rightMargin: 13; y: 17; width: 66; spacing: 3
+                Text { width: parent.width; text: "Lv " + shell.profileAccount.levelText; color: "#d6e8c2"; font.pixelSize: 12; elide: Text.ElideRight }
+                Row {
+                    width: parent.width; spacing: 4
+                    SparkIcon { width: 18; height: 18 }
+                    Text { width: parent.width-22; text: shell.profileAccount.sparksText; color: "#f2d38b"; font.pixelSize: 12; elide: Text.ElideRight; Accessible.name: "Sparks: " + text }
+                }
             }
             Text {
                 x: headerName.x; y: 51; width: parent.width-x-16
@@ -500,7 +510,18 @@ Window {
         }
         Loader { anchors.fill: screen; active: shell.service === "library"; visible: active; sourceComponent: LibraryPanel { shell: shellController } }
         Loader { anchors.fill: screen; active: shell.service === "trainer-settings"; visible: active; sourceComponent: TrainerSettingsPanel { shell: shellController } }
-        Loader { anchors.fill: screen; anchors.margins: Theme.panelInset; anchors.topMargin: Theme.contentTopInset; active: shell.service === "profile"; visible: active; sourceComponent: PlayerProfilePanel { shell: shellController } }
+        Item {
+            objectName: "profile-modal"
+            anchors.fill: parent; z: 2.7
+            visible: shell.service === "profile"
+            Rectangle { objectName: "profile-modal-backdrop"; anchors.fill: parent; color: "#a6000000" }
+            MouseArea { anchors.fill: parent; acceptedButtons: Qt.AllButtons; onWheel: wheel => wheel.accepted = true }
+            Loader {
+                anchors.fill: parent; anchors.margins: parent.height < 500 ? 12 : 20
+                active: parent.visible
+                sourceComponent: PlayerProfilePanel { shell: shellController }
+            }
+        }
         Loader { anchors.fill: screen; active: shell.service === "trainer-setup"; visible: active; sourceComponent: TrainerSetupPanel { shell: shellController } }
         Loader { anchors.fill: screen; active: shell.service === "device"; visible: active; sourceComponent: DevicePanel { shell: shellController } }
         Loader { anchors.fill: screen; active: shell.service === "diagnostics"; visible: active; sourceComponent: DiagnosticsPanel { shell: shellController } }

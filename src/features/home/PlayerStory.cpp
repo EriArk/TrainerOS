@@ -5,9 +5,48 @@
 #include <QSet>
 #include <QBuffer>
 #include <QImageReader>
+#include <QRegularExpression>
 #include <algorithm>
 
 namespace trainer {
+QVariantMap PlayerStory::profile() const {
+    auto result=summary();
+    const auto sessions=history();
+    result["latestSession"]=sessions.isEmpty()?QVariantMap{}:sessions.first().toMap();
+    if(!sessions.isEmpty()) {
+        auto latest=sessions.first().toMap();
+        const auto media=library_.exitMedia(latest["adventure"].toString());
+        if(media && media->sessionId==latest["id"].toString())latest["image"]="image://exit-media/"+media->sessionId;
+        result["latestSession"]=latest;
+    }
+    const auto context=achievements_.context();
+    QSet<QString> games;
+    for(const auto& game:library_.adventures())games.insert(game.id);
+    QMap<QString,QVariantMap> awards;
+    static const QRegularExpression badgeIdentity("^[0-9]+$");
+    if(!context.accountId.isEmpty())for(const auto& set:achievements_.sets()) {
+        if(!set.supported || !games.contains(set.adventureId))continue;
+        const auto snapshot=achievements_.snapshot(set.id);
+        if(snapshot.context!=context || snapshot.setId!=set.id
+           || snapshot.state==AchievementState::Disconnected || snapshot.state==AchievementState::Unsupported)continue;
+        for(const auto& unlock:snapshot.unlocks) {
+            if(unlock.unlocked!=true)continue;
+            const auto definition=std::find_if(snapshot.definitions.begin(),snapshot.definitions.end(),[&](const auto& d){return d.id==unlock.achievementId;});
+            if(definition==snapshot.definitions.end())continue;
+            const auto key=(set.gameId.isEmpty()?set.id:set.gameId)+QChar(0x1f)+definition->id;
+            if(awards.contains(key) && (!unlock.earnedAt.isValid() || awards[key]["earnedAt"].toDateTime()>=unlock.earnedAt))continue;
+            awards[key]={{"id",key},{"set",set.id},{"achievement",definition->id},{"title",definition->title},{"game",set.title},{"earnedAt",unlock.earnedAt},
+                {"date",unlock.earnedAt.isValid()?unlock.earnedAt.toLocalTime().toString("dd MMM · HH:mm"):QString("Date unavailable")},
+                {"icon",badgeIdentity.match(definition->badgeName).hasMatch()?"https://media.retroachievements.org/Badge/"+definition->badgeName+".png":QString()}};
+        }
+    }
+    QVariantList badges;
+    for(const auto& award:awards)badges.append(award);
+    std::stable_sort(badges.begin(),badges.end(),[](const auto& a,const auto& b){return a.toMap()["earnedAt"].toDateTime()>b.toMap()["earnedAt"].toDateTime();});
+    while(badges.size()>2)badges.removeLast();
+    result["badges"]=badges;
+    return result;
+}
 QVariantMap PlayerStory::summary() const {
     PerformanceTrace::Scope perf("PlayerStory::summary");
     const auto history=library_.playerHistory();

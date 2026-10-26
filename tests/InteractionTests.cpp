@@ -236,6 +236,53 @@ private slots:
             QCOMPARE(shell.navigationState(),origin);
         }
     }
+    void playerProfileOwnsHistoryAchievementsAndAccountReturn() {
+        MockLibraryRepository library;MockTrainerRepository profiles;MockAdventureAdapter adapter;
+        DevelopmentPlatformService platform;MockPokedexRepository dex;MockHallOfFameRepository archive;MockAchievementProvider achievements;
+        ShellController shell(library,profiles,adapter,platform,builtinExperiences(dex,dex),archive,achievements);
+        QSignalSpy launches(&shell,&ShellController::homeLaunchPressed);
+        for(int page=0;page<shell.primaryNames().size();++page) {
+            shell.goToPage(page);const auto origin=shell.navigationState();const auto albumOrigin=shell.album()->navigationState();
+            shell.openProfile();QVERIFY(shell.profileContentActive());
+            QVERIFY(!shell.profileAccount()["balanceKnown"].toBool());
+            QVERIFY(!shell.profileAccount()["levelKnown"].toBool());
+            shell.activate(2,"profile");QCOMPARE(shell.profileRoute(),"story");
+            QCOMPARE(shell.service(),"profile");QCOMPARE(shell.page(),page);
+            shell.dispatch(Action::Confirm);QCOMPARE(shell.overviewFace(),"timeline");
+            shell.dispatch(Action::Back);QCOMPARE(shell.overviewFace(),"summary");
+              shell.activate(1,"overview-screens");QCOMPARE(shell.overviewFace(),"screens");
+              shell.dispatch(Action::Back);QCOMPARE(shell.overviewFace(),"summary");
+            shell.dispatch(Action::Back);QCOMPARE(shell.profileRoute(),"summary");QCOMPARE(shell.profileFocus(),2);
+            shell.activate(5,"profile");QCOMPARE(shell.overviewFace(),"screens");
+            shell.album()->showFilters();shell.dispatch(Action::Back);QVERIFY(!shell.album()->filtering());
+            QCOMPARE(shell.profileRoute(),"story");shell.dispatch(Action::Back);QCOMPARE(shell.profileRoute(),"summary");
+            shell.activate(3,"profile");QCOMPARE(shell.profileRoute(),"ra");QCOMPARE(shell.hall()->route(),"sets");
+            shell.dispatch(Action::Back);QCOMPARE(shell.profileRoute(),"summary");QCOMPARE(shell.profileFocus(),3);
+            shell.activate(4,"profile");QCOMPARE(shell.profileRoute(),"account");
+            shell.dispatch(Action::Back);QCOMPARE(shell.profileFocus(),4);
+            shell.dispatch(Action::Back);QVERIFY(!shell.serviceOpen());
+            QCOMPARE(shell.navigationState(),origin);
+            QCOMPARE(shell.album()->navigationState(),albumOrigin);
+        }
+        QVERIFY(launches.isEmpty());
+    }
+    void profileRecentAwardOpensExactDetailAndReturnsToWardrobe() {
+        MockLibraryRepository library;MockTrainerRepository profiles;MockAdventureAdapter adapter;
+        profiles.save({"profile-test","Player"});
+        DevelopmentPlatformService platform;MockPokedexRepository dex;MockHallOfFameRepository archive;MockAchievementProvider achievements;
+        ShellController shell(library,profiles,adapter,platform,builtinExperiences(dex,dex),archive,achievements);
+        shell.openProfile();const auto awards=shell.playerProfile()["badges"].toList();QVERIFY(!awards.isEmpty());
+        const auto first=awards.first().toMap();
+        shell.activate(7,"profile");QCOMPARE(shell.profileRoute(),"ra");
+        QCOMPARE(shell.hall()->route(),"achievement-detail");
+        QCOMPARE(shell.hall()->navigationState()["set"].toString(),first["set"].toString());
+        QCOMPARE(shell.hall()->detail()["title"].toString(),first["title"].toString());
+        shell.dispatch(Action::Back);shell.dispatch(Action::Back);shell.dispatch(Action::Back);
+        QCOMPARE(shell.profileRoute(),"summary");QCOMPARE(shell.profileFocus(),7);
+        shell.dispatch(Action::NextFace);QVERIFY(shell.trainer()->avatarEditing() || !shell.trainer()->avatarAvailable());
+        if(shell.trainer()->editing())shell.dispatch(Action::Back);
+        shell.dispatch(Action::Back);QVERIFY(!shell.serviceOpen());
+    }
     void backgroundScrapingLeavesTouchControllerAndSettingsUsable() {
         class Library final : public LibraryRepository {
         public:

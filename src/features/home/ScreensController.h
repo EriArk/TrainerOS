@@ -40,6 +40,8 @@ public:
     QString error() const {return error_;}
     bool favoritesView() const {return favoritesView_;}
     bool busy() const {return busy_;}
+    QVariantMap navigationState() const;
+    void restoreNavigation(const QVariantMap& state);
     Q_INVOKABLE void switchLibrary();
     Q_INVOKABLE void select(int index);
     Q_INVOKABLE void close();

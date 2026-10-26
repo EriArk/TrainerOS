@@ -6,7 +6,7 @@ Item {
     readonly property var hall: shell.hall
     readonly property var summary: hall.gallery
     readonly property bool detailOpen: hall.route === "achievement-detail"
-    readonly property bool active: visible && !shell.serviceOpen && !shell.menuOpen && !shell.drawerOpen
+    readonly property bool active: visible && (!shell.serviceOpen || (shell.profileContentActive && shell.profileRoute === "ra")) && !shell.menuOpen && !shell.drawerOpen
         && !shell.quickAppsOpen && !shell.keyboard.open && !shell.notice.length && !hall.account.open && !hall.historyOpen
     readonly property bool browsing: active && hall.route !== "sets" && !detailOpen && !hall.galleryMenuOpen
     objectName: "achievement-gallery"

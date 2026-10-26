@@ -130,7 +130,9 @@ ShellController::ShellController(LibraryRepository& repo, TrainerRepository& pro
     connect(&hall_,&HallOfFameController::momentRequested,this,[this](const QString& id){
         if(!album_.showCapture(id))return;
         achievementPhotoNavigation_=hall_.navigationState();
-        setHubFace("overview");showOverview("screens");achievementPhotoReturn_=true;emit changed();
+        if(service_=="profile" && profileRoute_=="ra"){profileRoute_="story";overviewFace_="screens";}
+        else {setHubFace("overview");showOverview("screens");}
+        achievementPhotoReturn_=true;emit changed();
     });
     connect(&social_,&SocialController::presentationChanged,this,&ShellController::changed,Qt::QueuedConnection);
     settings_.setScraper(&scraper_);
@@ -375,6 +377,9 @@ ShellController::ShellController(LibraryRepository& repo, TrainerRepository& pro
     connect(&worlds_, &WorldsController::homeRequested, this, [this] { homeCollection_="pokemon"; multiverseHome_ = false; goToPage(0); });
     connect(&keyboard_, &TextEntryController::changed, this, &ShellController::changed);
     connect(&trainer_, &TrainerController::changed, this, &ShellController::changed);
+    connect(&achievements,&AchievementProvider::snapshotChanged,this,[this]{
+        if(service_=="profile"){profileSnapshot_=story_.profile();emit changed();}
+    });
     connect(&trainer_, &TrainerController::messageRequested, this, [this](const QString& message) {
         notice_ = message; emit changed();
     });
@@ -461,7 +466,7 @@ bool ShellController::localModalOpen() {
     if(pcGames_.isOpen()||gamePerformance_.isOpen())return true;
     return files_.modal() || social_.files()->picker()->isOpen() || (social_.myLobbiesOpen() || social_.lobbyCreateOpen() || social_.lobbyPickerOpen() || social_.lobbyVoteOpen()) || collectionManager()->isOpen() || downloads_.isOpen() || scraper_.isOpen() || (socialActive() && !social_.menu().isEmpty()) || libraryTools_.isOpen() || trainer_.editing()
         || (adapterActive() && activeModule_ && activeModule_->modalOpen())
-        || (page_==GameHubPage && hubFace_=="ra" && (hall_.editor()->isOpen() || hall_.account()->isOpen() || hall_.galleryMenuOpen() || hall_.historyOpen() || hall_.route()=="achievement-detail"));
+        || (((page_==GameHubPage && hubFace_=="ra") || (service_=="profile" && profileRoute_=="ra")) && (hall_.editor()->isOpen() || hall_.account()->isOpen() || hall_.galleryMenuOpen() || hall_.historyOpen() || hall_.route()=="achievement-detail"));
 }
 bool ShellController::chooseAdventureAvailable() {
     return !homeMenuOpen_ && (!adapterActive() || !activeModule_ || activeModule_->recentsAllowed())
@@ -552,7 +557,8 @@ void ShellController::showAdapterMenu() {
     adapterMenuOpen_=true;adapterMenuFocus_=qMax(0,experience_.index());emit changed();
 }
 void ShellController::showOverview(const QString& face) {
-    if(page_!=GameHubPage || hubFace_!="overview" || !pairedNavigationAvailable())return;
+    if(service_=="profile") {if(profileRoute_!="story" || !profileContentActive())return;}
+    else if(page_!=GameHubPage || hubFace_!="overview" || !pairedNavigationAvailable())return;
     if(!QStringList{"summary","timeline","screens"}.contains(face))return;
     if(overviewFace_=="timeline")overviewSessionId_=storyHistory().value(overviewFocus_).toMap()["id"].toString();
     const auto previous=overviewFace_;
@@ -660,7 +666,8 @@ void ShellController::syncExperience() {
     const auto game=homeAdventure();
     const auto record=game?repository_.registration(game->id):std::nullopt;
     const auto owner=trainer_.profile()["id"].toString();
-    if(experience_.owner()!=owner){overviewFocus_=0;overviewSessionId_.clear();overviewFace_="summary";}
+    const bool profileOwnerChanged=experience_.owner()!=owner;
+    if(profileOwnerChanged){overviewFocus_=0;overviewSessionId_.clear();overviewFace_="summary";profileSnapshot_.clear();profileReturnNavigation_={};profileRoute_="summary";achievementPhotoReturn_=false;}
     if(!experience_.owner().isEmpty() && experience_.owner()!=owner){dashboard_.reset();achievementNotifications_.clear();achievementToast_.clear();++achievementToastGeneration_;}
     album_.setOwner(owner);
     album_.setMedia(storyMedia());
@@ -688,6 +695,7 @@ void ShellController::syncExperience() {
         if(adapterActive())showExperienceScreen(experience_.screen());
         else if(hubFace_=="ra")hall_.showAchievementLibrary();
     }
+    if(profileOwnerChanged && service_=="profile")profileSnapshot_=story_.profile();
     syncingExperience_=false;
 }
 void ShellController::showExperienceScreen(const QString& screen) {
@@ -821,6 +829,7 @@ int ShellController::focusIndex() const {
     if (drawerOpen_) return drawerSelection();
     if (service_ == "library") return libraryManager_.files()->isOpen() ? libraryManager_.files()->focusIndex() : libraryManager_.focusIndex();
     if (service_ == "trainer-settings") return hall_.account()->isOpen() ? hall_.account()->focusIndex() : trainerSettingsFocus_;
+    if(service_=="profile")return trainer_.editing()?trainer_.focusIndex():profileRoute_=="ra"?hall_.focusIndex():profileRoute_=="story"?overviewFocus_:profileFocus_;
     if (service_ == "trainer-setup") return trainerSetup_.focusIndex();
     if (service_ == "settings") return hall_.account()->isOpen() ? hall_.account()->focusIndex() : trainer_.editing() ? trainer_.focusIndex() : settings_.focusIndex();
     if (service_ == "device") return device_.focusIndex();
@@ -1154,7 +1163,7 @@ void ShellController::goToPage(int page) {
     // only the completed shell transition, not every intermediate close, so
     // hidden Home/drawer bindings do not rebuild the library repeatedly.
     QSignalBlocker transition(this);
-    homeMenuOpen_ = false;dashboardReturn_=false;
+    homeMenuOpen_ = false;dashboardReturn_=false;profileRoute_="summary";
     if(adapterActive() && activeModule_)
         experience_.rememberNavigation({{"module",activeModule_->navigation()},{"hall",hall_.navigationState()}});
     for(auto& module:modules_)module->leave(page!=page_);
@@ -1356,7 +1365,20 @@ void ShellController::activate(int index, const QString& area) {
     else if (service_ == "library") { libraryManager_.activate(index, area); return; }
     else if (service_ == "trainer-settings") { trainerSettingsAction(index); return; }
     else if (service_ == "trainer-setup") { trainerSetup_.activate(index); return; }
-    else if(service_=="profile") {trainer_.activate(index);return;}
+    else if(service_=="profile") {
+        if(trainer_.editing())trainer_.activate(index);
+        else if(profileRoute_=="ra") {if(area.isEmpty())hall_.activate(index);else hall_.activateControl(area,index);}
+        else if(profileRoute_=="story") {
+            if(overviewFace_=="screens" && area=="overview-media")album_.select(index);
+            else {
+                overviewFocus_=std::clamp(index,0,qMax(0,int(overviewFace_=="timeline"?storyHistory().size():2)-1));
+                if(area=="overview-timeline")showOverview("timeline");
+                else if(area=="overview-screens")showOverview("screens");
+            }
+            emit changed();
+        } else activateProfile(index);
+        return;
+    }
     else if (service_ == "settings") { if(hall_.account()->isOpen()) { hall_.account()->activate(index); return; } if(trainer_.editing()) { trainer_.activate(index); return; } if(settings_.controlsFocused()) {if(settings_.category()==10)network_.activate(index);else settings_.activateRow(index);} else {settings_.selectSection(index);settings_.dispatch(Action::Confirm);} return; }
     else if (service_ == "device") { device_.activate(index); return; }
     else if (service_ == "diagnostics") { diagnostics_.activate(index); return; }
@@ -1534,9 +1556,100 @@ void ShellController::openAccountProfile() {
     if(!canReceiveNearby() || quickAppsOpen_ || moduleWriting() || !apps_.menu().isEmpty())return;
     service_="account-profile";settings_.communication()->beginProfile();emit changed();
 }
+bool ShellController::profileContentActive() const {
+    return service_=="profile" && !trainer_.editing() && !homeMenuOpen_ && !menuOpen_
+        && !drawerOpen_ && !quickAppsOpen_ && !keyboard_.isOpen() && !downloads_.isOpen()
+        && !scraper_.isOpen() && !libraryTools_.isOpen() && notice_.isEmpty();
+}
+QVariantMap ShellController::profileAccount() const {
+    // Accounts/Play are implemented; the Economy v2 read/preview contract is
+    // not live. Do not infer a level or balance from local playtime/RA points.
+    const auto identity=backendAccount_.snapshot();
+    return {{"signedIn",identity["state"].toString()=="signed_in"},
+        {"levelKnown",false},{"balanceKnown",false},{"previewKnown",false},
+        {"levelText",QString::fromUtf8("\xe2\x80\x94")},{"sparksText",QString::fromUtf8("\xe2\x80\x94")}};
+}
 void ShellController::openProfile() {
-    if(navigationLocked() || moduleWriting() || keyboard_.isOpen() || trainer_.saving())return;
-    homeMenuOpen_=false;service_="profile";trainer_.reload();emit changed();
+    if(navigationLocked() || moduleWriting() || keyboard_.isOpen() || trainer_.saving() || trainer_.editing())return;
+    if(service_=="profile")return;
+    profileReturnNavigation_={{"hall",hall_.navigationState()},{"overviewFace",overviewFace_},
+        {"overviewFocus",overviewFocus_},{"overviewSession",overviewSessionId_},
+        {"album",QJsonObject::fromVariantMap(album_.navigationState())}};
+    homeMenuOpen_=false;quickAppsOpen_=drawerOpen_=false;service_="profile";trainer_.reload();profileFocus_=0;
+    profileRoute_="summary";profileSnapshot_=story_.profile();emit changed();
+}
+void ShellController::closeProfile() {
+    hall_.closeHistory();hall_.closeGalleryMenu();album_.close();
+    achievementPhotoReturn_=false;service_.clear();
+    const auto previous=profileReturnNavigation_;profileReturnNavigation_={};
+    profileRoute_="summary";
+    // A transient profile does not leave its primary page. Restore only the
+    // shared presenters it borrowed, without replaying startup migrations.
+    if(!previous.isEmpty()) {
+        hall_.restoreNavigation(previous["hall"].toObject());
+        overviewFace_=previous["overviewFace"].toString("summary");
+        overviewFocus_=previous["overviewFocus"].toInt();overviewSessionId_=previous["overviewSession"].toString();
+        album_.restoreNavigation(previous["album"].toObject().toVariantMap());
+    }
+    emit changed();
+}
+void ShellController::activateProfile(int index) {
+    if(!profileContentActive())return;
+    if(profileRoute_=="account") {if(index==0)backendAccount_.activate();return;}
+    if(profileRoute_!="summary")return;
+    if(index<0 || index>8)return;
+    profileFocus_=index;
+    if(index<2)trainer_.activate(index);
+    else if(index==4)profileRoute_="account";
+    else if(index==3 || index>=7) {
+        hall_.showAchievementLibrary();profileRoute_="ra";
+        if(index>=7) {
+            const auto award=profileSnapshot_["badges"].toList().value(index-7).toMap();
+            if(!award.isEmpty()) {
+                auto state=hall_.navigationState();state["route"]="achievement-detail";
+                state["set"]=award["set"].toString();state["zone"]="actions";
+                auto ids=state["achievements"].toObject();ids[award["set"].toString()]=award["achievement"].toString();state["achievements"]=ids;
+                hall_.restoreNavigation(state);
+            }
+        }
+    } else {
+        profileRoute_="story";overviewFace_=index==5?"screens":index==6?"timeline":"summary";overviewFocus_=0;
+        if(index==5)album_.chooseFilter(0);
+        album_.setMedia(storyMedia());
+    }
+    emit changed();
+}
+void ShellController::dispatchProfile(Action action) {
+    if(trainer_.editing()){trainer_.dispatch(action,true);return;}
+    if(profileRoute_=="ra") {
+        if(action==Action::Back && hall_.route()=="sets" && !hall_.account()->isOpen() && !hall_.historyOpen() && !hall_.galleryMenuOpen())profileRoute_="summary";
+        else hall_.dispatch(action==Action::LocalAction?Action::ToggleContinue:action);
+    } else if(profileRoute_=="story") {
+        if(achievementPhotoReturn_ && action==Action::Back && !album_.filtering()) {
+            achievementPhotoReturn_=false;profileRoute_="ra";hall_.restoreNavigation(achievementPhotoNavigation_);
+        } else if(overviewFace_=="screens" && (action!=Action::Back || album_.filtering()))album_.dispatch(action);
+        else if(action==Action::Back) {
+            if(overviewFace_=="summary" || profileFocus_==5 || profileFocus_==6)profileRoute_="summary";
+            else showOverview("summary");
+        } else if(action==Action::Confirm && overviewFace_=="summary")showOverview(overviewFocus_==0?"timeline":"screens");
+        else if(action==Action::Up || action==Action::Down || action==Action::Left || action==Action::Right) {
+            const int count=overviewFace_=="summary"?2:storyHistory().size();
+            const int direction=action==Action::Down || action==Action::Right?1:-1;
+            overviewFocus_=std::clamp(overviewFocus_+(overviewFace_=="timeline"?-direction:direction),0,qMax(0,count-1));
+        }
+    } else if(profileRoute_=="account") {
+        if(action==Action::Back)profileRoute_="summary";
+        else if(action==Action::Confirm)backendAccount_.activate();
+    } else if(action==Action::Back)closeProfile();
+    else if(action==Action::Confirm)activateProfile(profileFocus_);
+    else if(action==Action::Up || action==Action::Left || action==Action::Down || action==Action::Right) {
+        QList<int> order{0,1,4,3};
+        for(int i=0;i<profileSnapshot_["badges"].toList().size();++i)order.append(7+i);
+        order.append(2);if(!profileSnapshot_["latestSession"].toMap().isEmpty())order.append(6);order.append(5);
+        const int delta=action==Action::Up || action==Action::Left?-1:1;
+        profileFocus_=order[std::clamp(int(order.indexOf(profileFocus_))+delta,0,int(order.size())-1)];
+    }
+    emit changed();
 }
 int ShellController::homeMenuFocus() const {
     const auto actions=homeMenuActions();
@@ -1716,7 +1829,7 @@ void ShellController::dispatch(Action action) {
                 && pairedNavigationAvailable() && !navigationLocked()
                 && !social_.online()["open"].toBool() && !moduleInvitation()["open"].toBool())
             emit multiverse_.scrollRequested(action==Action::ScrollDown?1:-1);
-        else if(page_==AppsPage && appsFace_=="files" && !keyboard_.isOpen() && !menuOpen_ && !homeMenuOpen_ && !files_.modal() && !drawerOpen_ && !quickAppsOpen_)files_.dispatch(action);
+        else if(service_.isEmpty() && page_==AppsPage && appsFace_=="files" && !keyboard_.isOpen() && !menuOpen_ && !homeMenuOpen_ && !files_.modal() && !drawerOpen_ && !quickAppsOpen_)files_.dispatch(action);
         return;
     }
     if(keyboard_.isOpen()&&!menuOpen_&&!homeMenuOpen_&&notice_.isEmpty()&&!downloads_.isOpen()&&!social_.online()["open"].toBool()
@@ -1777,7 +1890,7 @@ void ShellController::dispatch(Action action) {
         else settings_.communication()->dispatch(action);
         return;
     }
-    if(page_==AppsPage && appsFace_=="files" && !keyboard_.isOpen() && !menuOpen_ && !homeMenuOpen_ && notice_.isEmpty() && !quickAppsOpen_ && !drawerOpen_) {
+    if(service_.isEmpty() && page_==AppsPage && appsFace_=="files" && !keyboard_.isOpen() && !menuOpen_ && !homeMenuOpen_ && notice_.isEmpty() && !quickAppsOpen_ && !drawerOpen_) {
         if(files_.menuOpen() && action!=Action::PreviousPage && action!=Action::NextPage && action!=Action::PreviousFace && action!=Action::NextFace && action!=Action::Secondary && action!=Action::ToggleContinue && action!=Action::SystemMenu && action!=Action::Home){files_.dispatch(action);return;}
         if(action==Action::LocalAction || action==Action::ContextMenu){files_.dispatch(action);return;}
         if(action==Action::Secondary || action==Action::ToggleContinue)files_.leave();
@@ -1834,6 +1947,11 @@ void ShellController::dispatch(Action action) {
         return;
     }
     if (action == Action::PreviousFace || action == Action::NextFace) {
+        if(service_=="profile" && !menuOpen_ && !homeMenuOpen_ && !keyboard_.isOpen() && !drawerOpen_ && notice_.isEmpty()) {
+            if(trainer_.avatarEditing())trainer_.dispatch(Action::Back,true);
+            else if(profileRoute_=="summary" && !trainer_.editing())activateProfile(1);
+            return;
+        }
         if(service_=="settings" && !menuOpen_ && !homeMenuOpen_ && !keyboard_.isOpen() && !drawerOpen_ && notice_.isEmpty()) {
             if(!hall_.account()->isOpen() && !trainer_.editing())settings_.dispatch(action);
             return;
@@ -1877,12 +1995,7 @@ void ShellController::dispatch(Action action) {
         }
         if (service_ == "library") { libraryManager_.dispatch(action); return; }
         if (service_ == "trainer-setup") { trainerSetup_.dispatch(action); return; }
-        if(service_=="profile") {
-            if(trainer_.editing())trainer_.dispatch(action,true);
-            else if(action==Action::Back)service_.clear();
-            else trainer_.dispatch(action,true);
-            emit changed();return;
-        }
+        if(service_=="profile") {dispatchProfile(action);return;}
         if (service_ == "trainer-settings") {
             if (hall_.account()->isOpen()) hall_.account()->dispatch(action);
             else if (action == Action::Back) service_ = "settings";

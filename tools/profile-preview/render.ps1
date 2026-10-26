@@ -16,7 +16,7 @@ if (-not $AvatarPath) {
     $AvatarPath = (Get-Content (Join-Path $stage 'avatar.json') -Raw | ConvertFrom-Json).preview
 }
 if (-not $AvatarPath -or -not (Test-Path -LiteralPath $AvatarPath)) { throw 'Pass -AvatarPath for an already resolved shared Trainer avatar preview GLB.' }
-foreach ($file in @('AvatarPreview3D.qml','MenuGlyph.qml')) {
+foreach ($file in @('AvatarPreview3D.qml','MenuGlyph.qml','SparkIcon.qml')) {
     Copy-Item -LiteralPath (Join-Path $repo "src/qml/$file") -Destination (Join-Path $stage $file)
 }
 $assetUri = ([Uri](Join-Path $repo 'assets')).AbsoluteUri

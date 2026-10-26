@@ -9,8 +9,8 @@ Item {
     readonly property var latest: sessions.length ? sessions[0] : ({})
     readonly property bool summary: shell.overviewFace === "summary"
     readonly property bool screens: shell.overviewFace === "screens"
-    readonly property bool active: visible && shell.unobstructed
-    readonly property real bottomInset: Theme.adventureCutoutHeight
+    readonly property bool active: visible && (shell.unobstructed || (shell.profileContentActive && shell.profileRoute === "story"))
+    readonly property real bottomInset: shell.service === "profile" ? 0 : Theme.adventureCutoutHeight
     Item {
         id: heading; width: parent.width; height: root.screens ? 0 : 44; visible: !root.screens
         Text {

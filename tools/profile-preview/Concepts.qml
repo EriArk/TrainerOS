@@ -127,11 +127,9 @@ Window {
                     Rectangle { x: account.levelWidth; y: 0; width: 1; height: account.height-8; color: Theme.divider }
                     Item {
                         x: account.levelWidth+18; width: parent.width-x; height: parent.height
-                        Rectangle { width: 24; height: 24; radius: 12; y: 5; color: Theme.dark?"#b89245":"#e9bf63"; border.width: 1; border.color: Theme.dark?"#ead193":"#b9923c"
-                            Rectangle { anchors.centerIn: parent; width: 14; height: 14; radius: 7; color: "transparent"; border.color: Theme.dark?"#ead193":"#b9923c" }
-                        }
-                        Text { x: 33; y: -1; text: window.accountKnown?"1 250":"—"; font.family: Theme.displayFamily; font.pixelSize: 27; color: Theme.ink }
-                        Text { anchors.right: parent.right; y: 10; text: "Coins"; font.pixelSize: 12; color: Theme.muted }
+                        SparkIcon { width: 29; height: 29; y: 2 }
+                        Text { x: 36; y: -1; text: window.accountKnown?"1 250":"—"; font.family: Theme.displayFamily; font.pixelSize: 27; color: Theme.ink }
+                        Text { anchors.right: parent.right; y: 10; text: "Искры"; font.pixelSize: 12; color: Theme.muted }
                         Text { y: 35; text: window.accountFresh?"При поддержке ×3  →  4 250":window.accountState===2?"Последний известный баланс":window.accountState===3?"Войдите через Fluxer":"Баланс пока недоступен"; font.pixelSize: 11; color: window.accountFresh?window.accent:Theme.muted }
                         Text { y: 54; width: parent.width; text: window.accountFresh?"+3 000 за прошлые награды":window.accountState===2?"Доплата: нужен свежий расчёт":"Доплата: нет подтверждённого расчёта"; font.pixelSize: 10; color: Theme.muted; wrapMode: Text.WordWrap }
                         Text { y: 74; visible: !page.short; text: window.accountFresh?"Пример уровня поддержки · Подробнее ›":window.accountState===2?"Офлайн · данные из кеша":"История и локальный профиль доступны"; font.pixelSize: 9; color: Theme.muted }

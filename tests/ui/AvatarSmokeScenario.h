@@ -18,13 +18,14 @@ inline void startAvatarSmoke(QQuickWindow* window,trainer::ShellController& shel
     QObject::connect(timer,&QTimer::timeout,window,[=,&shell,&completed,&warnings,&diagnostics]{
         auto* controller=shell.trainer();
         auto check=[&](bool ok,QString why){if(!ok)diagnostics.append(why);};
-        if(++*ticks>100){diagnostics<<"Avatar editor timed out";*stage=9;}
+        if(++*ticks>100){diagnostics<<"Avatar editor timed out";*stage=99;}
         switch(*stage){
         case 0:
             if(controller->avatarBusy()||controller->avatarDescriptor().isEmpty())break;
             shell.openProfile();++*stage;break;
         case 1:
             if(controller->avatarBusy())break;
+            if(!directory.isEmpty())check(window->grabWindow().save(directory+"/profile-a-live.png"),"Profile screenshot failed");
             *original=controller->avatarDescriptor();shell.dispatch(trainer::Action::Down);shell.dispatch(trainer::Action::Confirm);
             check(controller->avatarEditing(),"Appearance did not open from controller");++*stage;break;
         case 2:
@@ -68,6 +69,33 @@ inline void startAvatarSmoke(QQuickWindow* window,trainer::ShellController& shel
             check(controller->avatarDescriptor()["appearance"].toObject()["eyes"]=="almond","Saved appearance not live");
             if(!directory.isEmpty())check(window->grabWindow().save(directory+"/avatar-profile.png"),"Profile screenshot failed");
             controller->beginAvatarEdit();shell.dispatch(trainer::Action::Back);check(!controller->avatarEditing(),"Back did not cancel");++*stage;break;
+        case 7:
+            shell.activate(3,"profile");check(shell.profileRoute()=="ra","Profile RA did not open");++*stage;break;
+        case 8:
+            if(!directory.isEmpty())check(window->grabWindow().save(directory+"/profile-ra.png"),"RA screenshot failed");
+            shell.dispatch(trainer::Action::Back);check(shell.profileRoute()=="summary","RA Back lost profile");
+            window->resize(800,450);shell.settings()->cycleTheme();++*stage;break;
+        case 9:
+            if(!directory.isEmpty())check(window->grabWindow().save(directory+"/profile-a-compact-dark.png"),"Compact profile screenshot failed");
+            shell.activate(2,"profile");++*stage;break;
+        case 10:
+            check(shell.profileRoute()=="story","Story did not open in profile");
+            shell.dispatch(trainer::Action::Back);shell.dispatch(trainer::Action::Back);
+            check(!shell.serviceOpen(),"Profile dismissal did not restore underlying screen");
+            ++*stage;break;
+        case 11: {
+            if(!directory.isEmpty())check(window->grabWindow().save(directory+"/header-progress-compact.png"),"Header screenshot failed");
+            const std::function<QQuickItem*(QQuickItem*)> find=[&](QQuickItem* item)->QQuickItem*{
+                if(item->objectName()=="account-profile-toggle"&&item->isVisible())return item;
+                for(auto* child:item->childItems())if(auto* result=find(child))return result;return nullptr;};
+            auto* header=find(window->contentItem());check(header,"Header profile touch target missing");
+            if(header) {
+                auto point=header->mapToScene({header->width()/2,header->height()/2});auto global=QPointF(window->mapToGlobal(point.toPoint()));
+                QMouseEvent down(QEvent::MouseButtonPress,point,global,Qt::LeftButton,Qt::LeftButton,Qt::NoModifier),up(QEvent::MouseButtonRelease,point,global,Qt::LeftButton,Qt::NoButton,Qt::NoModifier);
+                QCoreApplication::sendEvent(window,&down);QCoreApplication::sendEvent(window,&up);
+            }
+            check(shell.service()=="profile","Header touch did not open the player profile");++*stage;break;
+        }
         default:
             check(warnings==0,"QML warnings during avatar preview");
             if(!directory.isEmpty()){

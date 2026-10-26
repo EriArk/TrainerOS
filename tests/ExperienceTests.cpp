@@ -15,6 +15,13 @@ using namespace trainer;
 class ExperienceTests : public QObject {
     Q_OBJECT
 private slots:
+    void currentNavigationRoundTripDoesNotInventLegacySlots() {
+        ExperienceNavigation navigation;
+        navigation.select("owner","game",genericExperienceDescriptor());
+        navigation.rememberNavigation({{"selection","exact-item"}});
+        const auto saved=navigation.state();navigation.restore(saved);
+        QCOMPARE(navigation.state(),saved);
+    }
     void homeAchievementsAvoidRepeatedSnapshotsAndInvalidate() {
         class Library final : public LibraryRepository {
         public:
@@ -83,6 +90,9 @@ private slots:
         auto replacement=media;auto row=replacement[5].toMap();row["id"]="new-capture";replacement[5]=row;
         reopened.setMedia(replacement);QCOMPARE(reopened.count(),0);
         album.forGame("b");QCOMPARE(album.count(),3);album.select(2);const auto id=album.current()["id"];
+        const auto navigation=album.navigationState();
+        album.chooseFilter(0);album.select(0);album.switchLibrary();
+        album.restoreNavigation(navigation);QCOMPARE(album.navigationState(),navigation);QCOMPARE(album.current()["id"],id);
         media.prepend(QVariantMap{{"id","later"},{"adventure","b"},{"game","Second"},{"day","18 Oct 2026"}});
         album.setMedia(media);QCOMPARE(album.current()["id"],id);
         auto deleted=media;for(int i=deleted.size()-1;i>=0;--i)if(deleted[i].toMap()["id"]==id)deleted.removeAt(i);
@@ -181,11 +191,15 @@ private slots:
         } provider;
         PlayerStory story(library,provider);
         QCOMPARE(story.summary()["achievementCount"].toString(),"1");
+        const auto badges=story.profile()["badges"].toList();QCOMPARE(badges.size(),1);
+        QCOMPARE(badges.first().toMap()["achievement"].toString(),"award");
+        QCOMPARE(badges.first().toMap()["date"].toString(),"Date unavailable");
         provider.state=AchievementState::Offline;
         QCOMPARE(story.summary()["achievementCount"].toString(),"1");
         provider.state=AchievementState::Loading;
         QCOMPARE(story.summary()["achievementCount"].toString(),"1");
         provider.identity.accountId="another-owner";
+        QVERIFY(story.profile()["badges"].toList().isEmpty());
         QVERIFY(story.summary()["achievementCount"].toString()!="1");
         provider.identity.accountId.clear();
         QCOMPARE(story.summary()["achievementNote"].toString(),"Connect RetroAchievements");

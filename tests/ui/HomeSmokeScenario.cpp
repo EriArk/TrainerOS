@@ -513,17 +513,20 @@ void startHomeSmoke(QQuickWindow* window, ShellController& shell, SessionState& 
             shell.dispatch(Action::Back);check(shell.service().isEmpty() && shell.primaryId()=="gamehub","Profile Back restores the underlying route");break;
         case 62: {
             window->resize(960,540);shell.goToPage(0);
-            auto state=shell.social()->account();auto profile=state["profile"].toMap();profile["name"]="Ren";state["profile"]=profile;HomeSocialFixture::publish(*shell.social(),state);break;
+            shell.trainer()->beginEdit();shell.trainer()->setDraftName("Ren");shell.trainer()->activate(shell.trainer()->editRows().size()-2);break;
         }
         case 63: {
+            if(shell.trainer()->saving()){--*stage;break;}
             auto* name=itemNamed("header-account-name");check(name && name->property("lineCount").toInt()==1,"Short profile name stays on one line");capture("header-short-name-960");
-            auto state=shell.social()->account();auto profile=state["profile"].toMap();profile["name"]="VLADISLAV TVTIKAUSHI";state["profile"]=profile;HomeSocialFixture::publish(*shell.social(),state);break;
+            shell.trainer()->beginEdit();shell.trainer()->setDraftName("VLADISLAV TVTIKAUSHI");shell.trainer()->activate(shell.trainer()->editRows().size()-2);break;
         }
         case 64: {
+            if(shell.trainer()->saving()){--*stage;break;}
             auto* name=itemNamed("header-account-name");check(name && name->property("lineCount").toInt()==2,"Two-word profile name occupies two lines");capture("header-two-word-name-960");
-            auto state=shell.social()->account();auto profile=state["profile"].toMap();profile["name"]="ExtraordinarilyLongUnbrokenPlayerName";state["profile"]=profile;HomeSocialFixture::publish(*shell.social(),state);break;
+            shell.trainer()->beginEdit();shell.trainer()->setDraftName("ExtraordinarilyLongName");shell.trainer()->activate(shell.trainer()->editRows().size()-2);break;
         }
         case 65: {
+            if(shell.trainer()->saving()){--*stage;break;}
             auto* name=itemNamed("header-account-name");check(name && name->property("contentWidth").toReal()<=name->width()+1,"Long profile name stays within its chassis area");capture("header-long-name-960");break;
         }
         default:

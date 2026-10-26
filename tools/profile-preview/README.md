@@ -3,7 +3,7 @@
 Isolated QML design fixture of the selected **A** composition for
 [the profile and Online contract](../../docs/PLAYER_PROFILE.md).
 It uses the existing Theme, AvatarPreview3D and shared avatar pack. All profile
-statistics, levels, coins and awards are sample data, labelled on screen. No account, library or wallet is read or
+statistics, levels, sparks and awards are sample data, labelled on screen. No account, library or wallet is read or
 modified. Navigation labels are illustrative, not implemented application routes.
 
 On Windows with Qt Quick / Qt Quick 3D (the existing UCRT64 Qt environment):
@@ -25,7 +25,7 @@ unavailable, cached/offline, signed out); arrow keys or dragging rotate the avat
 small swatches change the backdrop; Escape closes the preview.
 The capture run writes seven `profile-a-*.png` frames: 1280×720 (light/dark),
 800×450, 1280×800, unavailable, offline and signed-out states.
-The sample wallet is 1500 eligible base coins minus 250 spent = 1250 available;
+The sample wallet is 1500 eligible base sparks minus 250 spent = 1250 available;
 an illustrative ×1→×3 top-up adds 3000 = 4250 prospective. This is not a reward
 schedule or an actual supporter tier. Level 12 and the progress bar are also
 illustrative, not a selected XP formula. Runtime must use verified server data.

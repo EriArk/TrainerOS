@@ -82,7 +82,7 @@ QtObject {
     readonly property int tabBaseline: 53
     readonly property int tabBevel: 13
     readonly property int activeTabOverlap: brandHeight + screenBevel - tabBaseline
-    readonly property int brandWidth: 206
+    readonly property int brandWidth: Math.min(286, Math.floor(viewportWidth * .35))
     readonly property int brandBevel: 18
     readonly property int tabSpacing: 4
     readonly property int screenBevel: 11

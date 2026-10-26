@@ -13,6 +13,7 @@ public:
     PlayerStory(LibraryRepository& library, AchievementProvider& achievements)
         : library_(library), achievements_(achievements) {}
     QVariantMap summary() const;
+    QVariantMap profile() const;
     QVariantList history() const;
     QVariantList media() const;
 private:

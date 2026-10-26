@@ -33,7 +33,8 @@ TrainerController::TrainerController(TrainerRepository& repository, QObject* par
 TrainerController::~TrainerController(){avatarJob_.waitForFinished();}
 QVariantMap TrainerController::profile() const {
     const TrainerProfile current = profile_.value_or(TrainerProfile{});
-    auto values=extraProfile(current);values.insert("id",current.id);values.insert("name",current.name);values.insert("emblem",current.emblemId);return values;
+    auto values=extraProfile(current);values.insert("id",current.id);values.insert("name",current.name);values.insert("emblem",current.emblemId);
+    values.insert("joined",current.createdAt.isValid()?current.createdAt.toString("MMM yyyy"):QString());return values;
 }
 QVariantList TrainerController::editRows() const {
     QVariantList rows{QVariantMap{{"title","Name"},{"detail",draftName()},{"kind","action"}},

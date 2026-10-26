@@ -76,9 +76,10 @@ void ExperienceNavigation::restore(const QJsonObject& state) {
         identity[2]=2;
         const auto object=it.value().toObject();QJsonObject saved;
         for(const auto& name:{QString("screen"),QString("0"),QString("1")}) {
+            if(!object.value(name).isString())continue;
             const auto value=object[name].toString();if(value.size()<=128)saved.insert(name,value);
         }
-        if(saved["screen"].toString().isEmpty())saved["screen"]=saved["0"];
+        if(saved.value("screen").toString().isEmpty() && saved.value("0").isString())saved["screen"]=saved.value("0");
         const auto navigation=object["navigation"].toObject();
         if(QJsonDocument(navigation).toJson(QJsonDocument::Compact).size()<=65536)saved.insert("navigation",navigation);
         states_.insert(QString::fromUtf8(QJsonDocument(identity).toJson(QJsonDocument::Compact)),saved);
