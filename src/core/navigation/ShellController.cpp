@@ -121,6 +121,7 @@ ShellController::ShellController(LibraryRepository& repo, TrainerRepository& pro
     });
     connect(&social_,&SocialController::presentationChanged,this,&ShellController::changed,Qt::QueuedConnection);
     settings_.setScraper(&scraper_);
+    settings_.setCrates(&crates_);
     connect(&libraryTools_,&LibraryToolsController::browserActionRequested,this,&ShellController::libraryAction);
     connect(&settings_,&SettingsController::collectionsRequested,this,[this]{goToPage(1);});
     connect(collectionManager(),&GameCollections::changed,this,&ShellController::changed);

@@ -20,6 +20,8 @@ public:
     QVariantList installed() const;
     QVariantList activities() const;
     void request(const QString& id,const QString& version={},const QString& operation="install");
+    void queueAutomaticUpdates();
+    void stopAutomaticUpdates();
     void command(const QString& id,const QString& command);
     void moveBefore(const QString& id,const QString& before);
     QString root() const {return root_;}

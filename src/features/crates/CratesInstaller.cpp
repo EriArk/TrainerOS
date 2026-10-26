@@ -7,6 +7,7 @@
 #include <QSaveFile>
 #include <QSysInfo>
 #include <QRegularExpression>
+#include <QVersionNumber>
 #ifdef Q_OS_UNIX
 #include <signal.h>
 #endif
@@ -16,6 +17,21 @@ bool canRun(const QVariantMap& record) {
     const auto cpu=QSysInfo::currentCpuArchitecture();
     const auto arch=cpu=="arm64"?QString("aarch64"):cpu;
     return record["architecture"]==arch;
+}
+bool newerRelease(const QString& installed,const QVariantList& releases) {
+    if(installed.isEmpty()||releases.isEmpty())return false;
+    const auto latest=releases.first().toMap()["version"].toString();
+    if(latest==installed)return false;
+    qsizetype oldEnd=0,newEnd=0;
+    const auto oldVersion=QVersionNumber::fromString(installed,&oldEnd);
+    const auto newVersion=QVersionNumber::fromString(latest,&newEnd);
+    if(!oldVersion.isNull()&&!newVersion.isNull()&&oldEnd==installed.size()&&newEnd==latest.size())
+        return QVersionNumber::compare(newVersion,oldVersion)>0;
+    // Non-numeric versions use the reviewed catalogue order only when the
+    // installed release is known. An unpublished build is never downgraded.
+    for(qsizetype i=1;i<releases.size();++i)
+        if(releases[i].toMap()["version"]==installed)return true;
+    return false;
 }
 }
 CratesInstaller::CratesInstaller(QObject* p):QObject(p) {
@@ -80,7 +96,7 @@ void CratesInstaller::readInventory(){
     inventory_=next;emit inventoryChanged();emit changed();
 }
 void CratesInstaller::useCatalogue(const QVariantList& packages,const QString& registry){packages_=packages;registry_=registry;emit changed();}
-void CratesInstaller::setOnline(bool online){if(online_==online)return;online_=online;emit changed();}
+void CratesInstaller::setOnline(bool online){if(online_==online)return;online_=online;emit changed();if(online_)pump();}
 QVariantList CratesInstaller::installed() const {QVariantList out;for(const auto& r:inventory_)out<<r;return out;}
 QVariantList CratesInstaller::activities() const {
     QVariantList out;QSet<QString> seen,ambiguous;
@@ -110,7 +126,7 @@ QVariantMap CratesInstaller::state(const QString& id) const {
     const auto installed=inventory_.value(id);const auto latest=releases.value(0).toMap();
     QVariantMap out{{"installedVersion",installed["version"]},{"availableVersion",latest["version"]},{"packageReleases",releases},
         {"canInstall",online_&&!releases.isEmpty()&&!helper_.isEmpty()&&latest["canRun"].toBool()},
-        {"offline",!online_},{"updateAvailable",online_&&!installed.isEmpty()&&!latest.isEmpty()&&latest["canRun"].toBool()&&installed["version"]!=latest["version"]}};
+        {"offline",!online_},{"updateAvailable",online_&&!helper_.isEmpty()&&newerRelease(installed["version"].toString(),releases)}};
     for(const auto& v:jobs_){auto r=v.toMap();if(r["id"]==id){out["job"]=r;out["busy"]=!r["terminal"].toBool();}}
     return out;
 }
@@ -142,11 +158,34 @@ void CratesInstaller::pump(){
     if(!active_.isEmpty())return;
     retry_.stop();
     for(auto& v:jobs_){auto r=v.toMap();if(r["state"]!="queued")continue;
+        if(r["operation"]!="remove"&&!online_)continue;
         const auto guard=replacementGuard?replacementGuard():QString();
         if(!guard.isEmpty()){r["detail"]=guard;v=r;retry_.start();emit changed();return;}
         active_=r["id"].toString();r["state"]="running";r["stage"]="Preparing";r["detail"]="Preparing installation";v=r;buffer_.clear();
         worker_.start("/usr/bin/python3",{helper_,registry_,root_,r["operation"].toString(),active_,r["version"].toString()});emit changed();return;
     }
+}
+void CratesInstaller::queueAutomaticUpdates(){
+    for(const auto& receipt:installed()){
+        const auto id=receipt.toMap()["id"].toString();const auto current=state(id);
+        const auto release=current["packageReleases"].toList().value(0).toMap();
+        if(!current["updateAvailable"].toBool()||current["busy"].toBool()||release["compatibility"]!="supported")continue;
+        const auto previous=current["job"].toMap();
+        // A user's pause/cancel, or an installation failure, must not become a
+        // retry loop on every catalogue refresh (also after shell restart).
+        if(previous["version"]==release["version"]&&previous["sha256"]==release["sha256"]&&!previous["automaticDisabled"].toBool())continue;
+        request(id,release["version"].toString());
+        for(auto& value:jobs_){auto job=value.toMap();if(job["id"]==id){job["automatic"]=true;value=job;}}
+    }
+    emit changed();
+}
+void CratesInstaller::stopAutomaticUpdates(){
+    for(auto& value:jobs_){auto job=value.toMap();
+        if(job["automatic"].toBool()&&(job["state"]=="queued"||job["state"]=="paused")){
+            job["state"]="cancelled";job["detail"]="Automatic updates disabled";job["terminal"]=true;job["automaticDisabled"]=true;value=job;
+        }
+    }
+    emit changed();
 }
 void CratesInstaller::event(const QByteArray& bytes){
     auto e=QJsonDocument::fromJson(bytes).object();

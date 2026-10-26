@@ -1,0 +1,71 @@
+[0/2] Re-checking globbed directories...
+[1/371] Copying traineros qml sources into build dir
+[2/371] Running qmlimportscanner for traineros
+[3/371] Automatic MOC for target traineros
+[4/370] Running AUTOMOC file extraction for target traineros
+[5/15] Automatic MOC for target trainer_crates_tests
+[6/14] Running rcc for resource traineros_raw_qml_0
+[7/14] Generating .rcc/qmlcache/traineros_src_qml_Main_qml.cpp, .rcc/qmlcache/traineros_src_qml_Main_qml.cpp.aotstats
+[8/14] Building CXX object CMakeFiles/traineros.dir/.qt/rcc/qrc_traineros_raw_qml_0.cpp.o
+[9/14] Building CXX object CMakeFiles/trainer_crates_tests.dir/tests/CratesTests.cpp.o
+[10/14] Building CXX object CMakeFiles/traineros.dir/tests/ui/CratesSmokeScenario.cpp.o
+[11/14] Linking CXX executable trainer_crates_tests
+[12/14] Building CXX object CMakeFiles/traineros.dir/.rcc/qmlcache/traineros_src_qml_Main_qml.cpp.o
+[13/14] Linking CXX executable traineros
+********* Start testing of CratesTests *********
+Config: Using QtTest library 6.11.2, Qt 6.11.2 (arm64-little_endian-lp64 shared (dynamic) release build; by GCC 16.2.1 20260819 (Red Hat 16.2.1-2)), fedora 44
+PASS   : CratesTests::initTestCase()
+QWARN  : CratesTests::enabledUpdatesCheckInBackgroundWithoutOpeningCrates() QFSFileEngine::open: No file name specified
+QINFO  : CratesTests::enabledUpdatesCheckInBackgroundWithoutOpeningCrates() Crates catalogue "" revision 0
+PASS   : CratesTests::enabledUpdatesCheckInBackgroundWithoutOpeningCrates()
+QWARN  : CratesTests::updatePrimaryAndAutomaticQueueRespectInstalledState() QFSFileEngine::open: No file name specified
+PASS   : CratesTests::updatePrimaryAndAutomaticQueueRespectInstalledState()
+QWARN  : CratesTests::automaticUpdateFailureSurvivesRestart() QFSFileEngine::open: No file name specified
+QWARN  : CratesTests::automaticUpdateFailureSurvivesRestart() QFSFileEngine::open: No file name specified
+PASS   : CratesTests::automaticUpdateFailureSurvivesRestart()
+QWARN  : CratesTests::queuePriorityPauseAndPersistentOrder() QFSFileEngine::open: No file name specified
+QWARN  : CratesTests::queuePriorityPauseAndPersistentOrder() QFSFileEngine::open: No file name specified
+PASS   : CratesTests::queuePriorityPauseAndPersistentOrder()
+QWARN  : CratesTests::externalAtomicUpgradeRefreshesLobbyInventory() QFSFileEngine::open: No file name specified
+PASS   : CratesTests::externalAtomicUpgradeRefreshesLobbyInventory()
+QWARN  : CratesTests::installedActivityDoesNotRequireRunningGame() QFSFileEngine::open: No file name specified
+QWARN  : CratesTests::installedActivityDoesNotRequireRunningGame() QFSFileEngine::open: No file name specified
+PASS   : CratesTests::installedActivityDoesNotRequireRunningGame()
+PASS   : CratesTests::packageArchitectureSelection()
+QINFO  : CratesTests::catalogueOnlySyncsOnExplicitEntry() Crates catalogue "snapshot" revision 1
+QINFO  : CratesTests::catalogueOnlySyncsOnExplicitEntry() Crates catalogue "snapshot" revision 1
+PASS   : CratesTests::catalogueOnlySyncsOnExplicitEntry()
+PASS   : CratesTests::activeWorkerCancellationIsNotFailure()
+QWARN  : CratesTests::promotedPackageYieldsActiveWorkerAndResumesItLater() QFSFileEngine::open: No file name specified
+PASS   : CratesTests::promotedPackageYieldsActiveWorkerAndResumesItLater()
+PASS   : CratesTests::packageActionsAndDeduplicatedQueue()
+PASS   : CratesTests::authoredIdentity()
+PASS   : CratesTests::directionalRowsAndEdges()
+PASS   : CratesTests::backAndSkipRestoreFocus()
+PASS   : CratesTests::interruptedOpenDoesNotNavigateLater()
+PASS   : CratesTests::reducedMotionAndRouteRetention()
+PASS   : CratesTests::cataloguePagingAndPopupReturn()
+PASS   : CratesTests::sharedIdentityAndPerCrateFocus()
+PASS   : CratesTests::detailImagesAndScrollWithoutVersionPicker()
+PASS   : CratesTests::invalidCatalogueKeepsCurrentData()
+PASS   : CratesTests::metadataHasNoExecutableOrRemoteCapabilities()
+PASS   : CratesTests::cleanupTestCase()
+Totals: 23 passed, 0 failed, 0 skipped, 0 blacklisted, 2490ms
+********* Finished testing of CratesTests *********
+********* Start testing of CoreTests *********
+Config: Using QtTest library 6.11.2, Qt 6.11.2 (arm64-little_endian-lp64 shared (dynamic) release build; by GCC 16.2.1 20260819 (Red Hat 16.2.1-2)), fedora 44
+PASS   : CoreTests::initTestCase()
+PASS   : CoreTests::disconnectedExchangeCanReachChatWithoutUnlockingSaveOperations()
+FAIL!  : CoreTests::navigationAndBack() Compared values are not the same
+   Actual   (shell.focusIndex()): 0
+   Expected (4)                 : 4
+   Loc: [/work/source/tests/CoreTests.cpp(63)]
+PASS   : CoreTests::repositoryAndAdapter()
+QWARN  : CoreTests::virtualController() QStandardPaths: XDG_RUNTIME_DIR not set, defaulting to '/tmp/runtime-root'
+QWARN  : CoreTests::virtualController() QStandardPaths: XDG_RUNTIME_DIR not set, defaulting to '/tmp/runtime-root'
+PASS   : CoreTests::virtualController()
+FAIL!  : CoreTests::emptyAndMissingData() '!empty.drawerOpen()' returned FALSE. ()
+   Loc: [/work/source/tests/CoreTests.cpp(276)]
+PASS   : CoreTests::cleanupTestCase()
+Totals: 5 passed, 2 failed, 0 skipped, 0 blacklisted, 2570ms
+********* Finished testing of CoreTests *********

@@ -1,12 +1,18 @@
 #include "SettingsController.h"
 #include "DisplayScale.h"
 #include "features/library/ScrapeController.h"
+#include "features/crates/CratesController.h"
 #include "core/experience/ExperienceProviders.h"
 #include <algorithm>
 #include <QSettings>
 #include <QCryptographicHash>
 
 namespace trainer {
+void SettingsController::setCrates(CratesController* value){
+    crates_=value;
+    connect(value,&CratesController::automaticUpdatesChanged,this,&SettingsController::changed);
+    connect(value,&CratesController::preferenceError,this,[this](QString message){error_=message;emit changed();});
+}
 namespace {
 const QStringList pageIds{"appearance","audio","media","feedback","trainer","system","credits","controller","library","saves","connections","clock","nearby","communication","scraper","software","game-input"};
 const QList<QList<int>> sectionPages{{0,2},{1,7,16,10,3},{4,13,12},{8,9,14},{15},{5,11,6}};
@@ -146,7 +152,11 @@ QVariantList SettingsController::controls() const {
     case 9: return {row("Read-only saves",savePolicy_?"toggle":"unavailable",readOnlySaves()?"On - reading and backups only":"Off - allow confirmed save changes")};
     case 10: return {}; // NetworkController owns the inline connections pane.
     case 12: return {row("Visible to nearby Trainers",nearby_?"toggle":"unavailable",nearby_ && nearby_->visibleNearby()?"On":"Off")};
-    case 15: return {row("Apps","action","Open installed applications"),row("Crates","action","Manage installed Crates and their data")};
+    case 15: {
+        auto automatic=row("Automatic Crates updates",crates_?"toggle":"unavailable",crates_&&crates_->automaticUpdates()?"On · updates wait until you finish playing":"Off · update manually in Crates");
+        automatic["checked"]=crates_&&crates_->automaticUpdates();
+        return {row("Apps","action","Open installed applications"),row("Crates","action","Manage installed Crates and their data"),automatic};
+    }
     case 16: return gameInput_.rows();
     default: return {};
     }
@@ -194,7 +204,7 @@ void SettingsController::activateRow(int index) {
         savePolicy_->setReadOnly(!readOnlySaves(),this,[this](const QString& error){saving_=false;error_=error;emit changed();});
     }
     else if(category_==12 && nearby_)nearby_->setVisibleNearby(!nearby_->visibleNearby());
-    else if(category_==15)emit softwareRequested(row_==0?"apps":"crates");
+    else if(category_==15){if(row_==2&&crates_)crates_->setAutomaticUpdates(!crates_->automaticUpdates());else if(row_<2)emit softwareRequested(row_==0?"apps":"crates");}
     emit changed();
 }
 void SettingsController::cycleTheme(int direction) {
@@ -242,6 +252,7 @@ void SettingsController::dispatch(Action action) {
         else if(category_==1 && row_==1) adjustDisplay(1,action==Action::Left?-1:1);
         else if(category_==2 && row_==0 && videoPreviews()!=(action==Action::Right)) activate(3);
         else if(category_==9 && readOnlySaves()!=(action==Action::Right)) activateRow(0);
+        else if(category_==15 && row_==2 && crates_) crates_->setAutomaticUpdates(action==Action::Right);
 
     }
     emit changed();
