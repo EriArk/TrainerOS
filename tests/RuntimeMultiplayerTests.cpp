@@ -222,6 +222,7 @@ private slots:
         QTest::addColumn<QString>("mode");
         QTest::newRow("ps2")<<QString("runtime.armsx2.lan.v1");
         QTest::newRow("gamecube-bba")<<QString("runtime.dolphin.bba.v1");
+        QTest::newRow("arcade-cabinets")<<QString("runtime.flycast.cabinet.v1");
     }
     void ps2TransportLossKeepsOwnedGameAndCannotRelaunch() {
         QFETCH(QString,mode);
@@ -472,10 +473,15 @@ private slots:
         f.library.metadata["nes"]["players"]="unknown";f.runtime.refresh({},"test-trainer",true);
         QVERIFY(f.runtime.games_.contains("nes"));QCOMPARE(f.social.lobbyPickerRows().size(),7);
     }
+    void gameCubeLanAndNetplayKeepSeparateLocalProfiles_data() {
+        QTest::addColumn<QString>("shared");QTest::addColumn<QString>("linked");
+        QTest::newRow("gamecube")<<QString("runtime.dolphin.gc.v1")<<QString("runtime.dolphin.bba.v1");
+        QTest::newRow("arcade")<<QString("runtime.flycast-dojo.arcade.v1")<<QString("runtime.flycast.cabinet.v1");
+    }
     void gameCubeLanAndNetplayKeepSeparateLocalProfiles() {
-        Fixture f;
-        const QJsonObject netplay{{"id","runtime.dolphin.gc.v1"},{"content","disc"},{"runtime","build"},{"players",4}};
-        auto lan=netplay;lan["id"]="runtime.dolphin.bba.v1";lan["players"]=2;lan["lateJoin"]=false;
+        QFETCH(QString,shared);QFETCH(QString,linked);Fixture f;
+        const QJsonObject netplay{{"id",shared},{"content","disc"},{"runtime","build"},{"players",4}};
+        auto lan=netplay;lan["id"]=linked;lan["players"]=2;lan["lateJoin"]=false;
         f.runtime.games_.insert("gc",netplay);f.runtime.lanGames_.insert("gc",lan);
         QCOMPARE(f.runtime.availableGames().values("gc").size(),2);
         QCOMPARE(f.runtime.localProfile("gc",netplay),netplay);

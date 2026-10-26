@@ -109,6 +109,8 @@ private slots:
         QVERIFY(!localLobbyRuntime({{"id","remoteplay.v1"}}));QVERIFY(!localLobbyRuntime({{"id","unknown"}}));
         QVERIFY(!localLobbyRuntime({{"id","runtime.ppsspp.psp.v1"},{"connections",QJsonArray{"online"}}}));
         QVERIFY(localLobbyRuntime({{"id","runtime.armsx2.lan.v1"},{"connections",QJsonArray{"online"}}}));
+        QVERIFY(localLobbyRuntime({{"id","runtime.flycast.cabinet.v1"}}));
+        QVERIFY(permitsMultiplayer({{"players",1}},{{"id","runtime.flycast.cabinet.v1"}}));
         QVERIFY(localLobbyRuntime({{"id","runtime.retroarch.nes.fceumm.v1"},{"connections",QJsonArray{"nearby","online"}}}));
         QVERIFY(c.activateRoom(local->state()["id"].toString()));local->leave();
         LobbyCoordinator inviter;inviter.configure("456","Online friend",true);QVERIFY(inviter.create("private"));

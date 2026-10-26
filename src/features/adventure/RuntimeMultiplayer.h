@@ -121,7 +121,8 @@ private:
     bool azahar() const { return descriptor_["id"]=="runtime.azahar.3ds.v1"; }
     bool vita() const { return descriptor_["id"]=="runtime.vita3k.lan.v1"; }
     bool gcLan() const { return descriptor_["id"]=="runtime.dolphin.bba.v1"; }
-    bool nativeLan() const { return ps2Lan()||gcLan(); }
+    bool cabinetLan() const { return descriptor_["id"]=="runtime.flycast.cabinet.v1"; }
+    bool nativeLan() const { return ps2Lan()||gcLan()||cabinetLan(); }
     bool ps2Lan() const { return descriptor_["id"]=="runtime.armsx2.lan.v1"; }
     bool ds() const { return descriptor_["id"]=="runtime.melonds.nds.v1"; }
     bool psp() const { return descriptor_["id"].toString().startsWith("runtime.ppsspp."); }

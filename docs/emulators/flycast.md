@@ -1,11 +1,17 @@
 # Flycast: Dreamcast and arcade multiplayer
 
+**26 октября — следующий шаг:** добавлен отдельный native cabinet route для двух
+автоматов через существующий Lobby/ICE/DTLS. [Контракт, сравнение реализаций и
+границы](flycast-cabinet.md). Это уточняет прежнюю отметку о полностью отсутствующем
+cabinet link; native Dreamcast game-server Online остаётся незавершённым.
+
 ## Naomi / Naomi 2 / Atomiswave — 26 October 2026
 
 Реализован общий двухместный NetPlay через существующий GameHub Lobby:
 Nearby и Online/public relay, явный Start, input/Home/exit и временный прогресс.
 Это синхронизация одного автомата через GGPO. Соединение отдельных автоматов
-и native Dreamcast game-server Online остаются самостоятельными незавершёнными режимами.
+реализуется отдельным [cabinet route](flycast-cabinet.md); native Dreamcast
+game-server Online остаётся незавершённым самостоятельным режимом.
 
 Используется прежний Dojo `d0e47e572b1e7b355e88bda8308c89d0c5156cbf` с уже
 поддерживаемыми им платформами, без нового сетевого протокола или изменения native binary.

@@ -1,0 +1,42 @@
+--- a/core/sdl/sdl.cpp
++++ b/core/sdl/sdl.cpp
+@@ -69,7 +69,8 @@
+ 	try {
+ 		// Each TrainerOS GGPO machine contributes one local player from port A.
+ 		// Device enumeration order (physical + virtual pads) must not choose the seat.
+-		const int port = config::GGPOEnable && !cfgLoadStr("dojo", "TrainerSession", "").empty()
++		const int port = (config::GGPOEnable && !cfgLoadStr("dojo", "TrainerSession", "").empty())
++			|| cfgLoadBool("network", "TrainerCabinet", false)
+ 			? 0 : (index < MAPLE_PORTS ? index : -1);
+ 		std::shared_ptr<SDLGamepad> gamepad = std::make_shared<SDLGamepad>(port, index, pJoystick);
+ 		SDLGamepad::AddSDLGamepad(gamepad);
+--- a/core/network/naomi_network.cpp
++++ b/core/network/naomi_network.cpp
+@@ -93,7 +93,7 @@
+ 	if (config::ActAsServer)
+ 	{
+ 		enableNetworkBroadcast(true);
+-		const auto timeout = seconds(20);
++		const auto timeout = seconds(cfgLoadBool("network", "TrainerCabinet", false) ? 60 : 20);
+ 		NOTICE_LOG(NETWORK, "Waiting for slave connections");
+ 		steady_clock::time_point start_time = steady_clock::now();
+ 
+@@ -108,7 +108,8 @@
+ 
+ 			poll();
+ 
+-			if (slaves.size() == 3 || (_startNow && !slaves.empty()))
++			if (slaves.size() == 3 || (_startNow && !slaves.empty())
++				|| (cfgLoadBool("network", "TrainerCabinet", false) && slaves.size() == 1))
+ 				break;
+ 			std::this_thread::sleep_for(milliseconds(20));
+ 		}
+@@ -134,7 +135,7 @@
+ 	}
+ 	else
+ 	{
+-		const auto timeout = seconds(30);
++		const auto timeout = seconds(cfgLoadBool("network", "TrainerCabinet", false) ? 60 : 30);
+ 		serverIp = INADDR_BROADCAST;
+ 		u16 serverPort = SERVER_PORT;
+ 		if (!config::NetworkServer.get().empty())

@@ -105,15 +105,17 @@ for relative in ("src/integrations/adventure/standalone/AzaharNetplay.cpp",
 for profile in registry.get("runtimeProfiles", []):
     exported_profile = dict(profile, evidenceBase="../../../")
     files[f"profiles/{profile['id']}.json"] = (json.dumps(exported_profile, indent=2) + "\n").encode()
-for path in sorted((root / "tools/ps2-lan").iterdir()):
-    if path.is_file():
-        files[path.relative_to(root).as_posix()] = path.read_text(encoding="utf-8").encode("utf-8")
-path = root / "tools/remote-play-stream/transport/ps2_sockets.hpp"
-files[path.relative_to(root).as_posix()] = path.read_text(encoding="utf-8").encode("utf-8")
+for directory in ("ps2-lan", "flycast-lan"):
+    for path in sorted((root / "tools" / directory).iterdir()):
+        if path.is_file():
+            files[path.relative_to(root).as_posix()] = path.read_text(encoding="utf-8").encode("utf-8")
+for name in ("ps2_sockets.hpp", "cabinet_channel.hpp"):
+    path = root / "tools/remote-play-stream/transport" / name
+    files[path.relative_to(root).as_posix()] = path.read_text(encoding="utf-8").encode("utf-8")
 for path in sorted((root / "tools/ppsspp-content").iterdir()):
     if path.is_file():
         files[path.relative_to(root).as_posix()] = path.read_text(encoding="utf-8").encode("utf-8")
-for directory in ("dolphin", "handheld", "rmg", "flycast", "melonds", "azahar", "vita3k", "native-lan", "lrps2", "pcsx-rearmed"):
+for directory in ("dolphin", "handheld", "rmg", "flycast", "flycast-lan", "melonds", "azahar", "vita3k", "native-lan", "lrps2", "pcsx-rearmed"):
     for path in sorted((root / "packaging/emulators" / directory).iterdir()):
         if path.is_file():
             files[path.relative_to(root).as_posix()] = path.read_text(encoding="utf-8").encode("utf-8")

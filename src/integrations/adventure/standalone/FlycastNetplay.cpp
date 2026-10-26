@@ -133,6 +133,86 @@ QJsonObject arcadeContent(const AdventureRegistration& r,const std::atomic_bool&
 }
 }
 bool arcadePlatform(const QString& platform) {return platform=="naomi"||platform=="naomi2"||platform=="atomiswave";}
+QString cabinetRoot(){return QStandardPaths::writableLocation(QStandardPaths::GenericDataLocation)+"/TrainerOS/emulators/flycast-lan";}
+namespace {
+QJsonObject cabinetBundle(const std::atomic_bool& cancel,const std::function<void(const QString&)>& observe={}) {
+    const auto root=cabinetRoot();
+    if(observe)for(const auto& name:{"manifest.json","bin/flycast","cabinet_endpoint","stream_transport"})observe(root+'/'+name);
+    QFile f(root+"/manifest.json");if(!f.open(QIODevice::ReadOnly)||f.size()>8192)return {};
+    auto m=QJsonDocument::fromJson(f.readAll()).object();const auto files=m["files"].toObject();
+    if(m["protocol"]!=1||m["source"]!=sourceRevision||m["settings"]!="flycast-cabinet-private-v1"
+       ||files.size()!=3||!QFileInfo("/usr/bin/bwrap").isExecutable())return {};
+    QCryptographicHash h(QCryptographicHash::Sha256);
+    for(const auto& name:{"bin/flycast","cabinet_endpoint","stream_transport"}) {
+        const auto expected=files[name].toString();
+        if(!hex(expected,64)||!QFileInfo(root+'/'+name).isExecutable()||digest(root+'/'+name,cancel,256LL*1024*1024)!=expected)return {};
+        h.addData(expected.toLatin1());
+    }
+    m["digest"]=QString::fromLatin1(h.result().toHex());return m;
+}
+QStringList cabinetEnvironment(const QString& root) {
+    return {"-u","TRAINEROS_FLYCAST_SESSION","-u","TRAINEROS_FLYCAST_INSPECT","FLYCAST_ROOT="+root,"XDG_CONFIG_HOME="+root,"XDG_DATA_HOME="+root,
+            "XDG_CONFIG_DIRS="+root,"XDG_DATA_DIRS="+root};
+}
+bool cabinetConfig(const QString& root,int region,bool host,const QString& renderer,bool inspect=false) {
+    return write(root+"/emu.cfg",QString("[config]\nDreamcast.AutoLoadState = no\nDreamcast.AutoSaveState = no\n"
+        "Dreamcast.Region = %1\nDreamcast.Language = 1\naica.Volume = %6\npvr.rend = %2\nFetchBoxart = no\n"
+        "[window]\nfullscreen = yes\n[network]\nGGPO = no\nEnable = yes\nTrainerCabinet = yes\nEnableUPnP = no\n"
+        "ActAsServer = %3\nLocalPort = %4\nserver = 127.0.0.1:%5\n"
+        "[dojo]\nEnable = no\nRelay = no\n")
+        .arg(region).arg(renderer=="vulkan"?4:0).arg(host?"yes":"no").arg(host?37391:37392).arg(host?37392:37391)
+        .arg(inspect?0:100).toUtf8());
+}
+}
+QJsonObject cabinetIdentity(const AdventureRegistration& r,const std::atomic_bool& cancel,
+                            const std::function<void(const QString&)>& observe) {
+    if(!arcadePlatform(r.adventure.platformId))return {};
+    const auto m=cabinetBundle(cancel,observe);if(m.isEmpty())return {};
+    auto identity=netplayIdentity(r,cancel,observe);if(identity.isEmpty())return {};
+    QTemporaryDir stage(QDir::tempPath()+"/trainer-cabinet-inspect-XXXXXX");if(!stage.isValid())return {};
+    const auto content=arcadeContent(r,cancel,stage.path(),identity["content"].toString());
+    if(content["entry"].toString().isEmpty()||!cabinetConfig(stage.path(),content["region"].toInt(),true,"opengl",true))return {};
+    QStringList args{"--die-with-parent","--unshare-net","--bind","/","/","--","/usr/bin/env"};
+    args+=cabinetEnvironment(stage.path());args<<"TRAINEROS_FLYCAST_INSPECT=1"<<cabinetRoot()+"/bin/flycast"<<content["entry"].toString();
+    QProcess probe;probe.setWorkingDirectory(stage.path());probe.setStandardErrorFile(QProcess::nullDevice());
+    probe.start("/usr/bin/bwrap",args);if(!probe.waitForStarted(3000))return {};
+    QElapsedTimer timer;timer.start();QByteArray output;
+    while(probe.state()!=QProcess::NotRunning) {
+        probe.waitForFinished(50);output+=probe.readAllStandardOutput();
+        if(cancel||timer.elapsed()>60000||output.size()>1024*1024){probe.kill();probe.waitForFinished(2000);return {};}
+    }
+    output+=probe.readAllStandardOutput();
+    if(output.size()>1024*1024||probe.exitCode()!=0||probe.exitStatus()!=QProcess::NormalExit)return {};
+    QJsonObject result;bool seen=false;const QByteArray marker="[TrainerOSArcade] ";
+    for(const auto& line:output.split('\n'))if(line.startsWith(marker)) {
+        if(seen)return {};
+        seen=true;result=QJsonDocument::fromJson(line.mid(marker.size())).object();
+    }
+    if(result.size()!=2||result["protocol"]!=1||(result["link"]!="naomi"&&result["link"]!="serial"))return {};
+    identity["id"]="runtime.flycast.cabinet.v1";
+    identity["runtime"]=QString::fromLatin1(QCryptographicHash::hash((identity["runtime"].toString()+m["digest"].toString()).toLatin1(),QCryptographicHash::Sha256).toHex());
+    identity["settings"]="flycast-cabinet-private-v1-"+r.adventure.platformId;
+    identity["link"]=result["link"];identity["connections"]=QJsonArray{"nearby","online"};return identity;
+}
+ProcessCommand cabinetCommand(const AdventureRegistration& r,const QJsonObject& expected,QString connection,bool host,const QStringList& inputPrefix) {
+    ProcessCommand cmd;cmd.runtimeControls={{"kind","flycast"},{"game",r.adventure.id},{"netplay",expected.toVariantMap()},{"temporaryProgress",true}};
+    cmd.prepare=[r,expected,connection,host,inputPrefix](ProcessCommand& out,const std::atomic_bool& cancel)->QString {
+        if(!sameMultiplayerGame(cabinetIdentity(r,cancel),expected))return "Your arcade game or connection package changed. Choose the game again.";
+        QFile file(connection);QFileInfo info(connection);
+        if(!info.isAbsolute()||info.isSymLink()||!file.open(QIODevice::ReadOnly)||file.size()>4096
+           ||(info.permissions()&(QFile::ReadGroup|QFile::WriteGroup|QFile::ReadOther|QFile::WriteOther)))return "Couldn't protect the arcade connection.";
+        const QByteArray config="mode=cabinet\nhost="+QByteArray(host?"true":"false")+"\nsocket="+info.absolutePath().toUtf8()+"/cabinet.sock\n";
+        if(file.readAll()!=config)return "Invalid arcade connection.";
+        auto stage=std::make_shared<QTemporaryDir>(QDir::tempPath()+"/trainer-cabinet-XXXXXX");if(!stage->isValid())return "Couldn't prepare arcade progress.";
+        const auto content=arcadeContent(r,cancel,stage->path(),expected["content"].toString());
+        if(content["entry"].toString().isEmpty()||!cabinetConfig(stage->path(),content["region"].toInt(),host,bundle(cancel)["renderer"].toString()))return "Couldn't prepare the arcade set.";
+        out.program="/usr/bin/bwrap";out.workingDirectory=stage->path();
+        out.arguments={"--die-with-parent","--unshare-net","--bind","/","/","--",cabinetRoot()+"/cabinet_endpoint",connection,"/usr/bin/env"};
+        out.arguments+=cabinetEnvironment(stage->path());
+        out.arguments+=inputPrefix;out.arguments<<cabinetRoot()+"/bin/flycast"<<content["entry"].toString();
+        out.settled=[stage](const ProcessOutcome&){};return {};
+    };return cmd;
+}
 QString bundleRoot(){return QStandardPaths::writableLocation(QStandardPaths::GenericDataLocation)+"/TrainerOS/emulators/flycast-netplay";}
 QJsonObject bundle(const std::atomic_bool& cancel) {
     const auto root=bundleRoot();QFile file(root+"/manifest.json");

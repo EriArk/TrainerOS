@@ -16,6 +16,11 @@ struct Request {
     QString address,token,key;
 };
 ProcessCommand command(const AdventureRegistration&,const Request&,const QStringList& inputPrefix={});
+QString cabinetRoot();
+QJsonObject cabinetIdentity(const AdventureRegistration&,const std::atomic_bool&,
+                           const std::function<void(const QString&)>& observe={});
+ProcessCommand cabinetCommand(const AdventureRegistration&,const QJsonObject& expected,
+                              QString connection,bool host,const QStringList& inputPrefix={});
 // Only explicit adapter markers may change session state; ordinary output is ignored.
 QJsonObject event(const QByteArray& line);
 }

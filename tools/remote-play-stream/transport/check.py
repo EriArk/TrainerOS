@@ -98,6 +98,51 @@ class TransportTests(unittest.TestCase):
             for path in self.pair.paths:
                 self.assertFalse(path.exists(), 'private material survived transport exit')
 
+    def test_cabinet_native_packets_private_bounded_and_bidirectional(self):
+        self.pair=Pair(modes=['cabinet','cabinet'])
+        self.assertTrue(self.pair.connect())
+        configs=[dict(line.split('=',1) for line in self.pair.ready[i].read_text().splitlines()) for i in (0,1)]
+        clients=[]
+        def exact(sock,n):
+            data=b''
+            while len(data)<n:
+                part=sock.recv(n-len(data));self.assertTrue(part);data+=part
+            return data
+        try:
+            for i in (0,1):
+                self.assertEqual(set(configs[i]),{'mode','host','socket'})
+                self.assertEqual(configs[i]['host'],'true' if i==0 else 'false')
+                self.assertEqual(self.pair.ready[i].stat().st_mode & 0o777,0o600)
+                self.assertEqual(Path(configs[i]['socket']).stat().st_mode & 0o777,0o600)
+                sock=socket.socket(socket.AF_UNIX,socket.SOCK_STREAM);sock.settimeout(3)
+                sock.connect(configs[i]['socket']);clients.append(sock)
+            time.sleep(.05)
+            for sender in (0,1):
+                for size in (1,10,256,4096,0x4004):
+                    packet=struct.pack('!H',size)+os.urandom(size)
+                    clients[sender].sendall(packet[:1]);clients[sender].sendall(packet[1:])
+                    self.assertEqual(exact(clients[1-sender],len(packet)),packet)
+                # A valid coalesced stream crosses the old 64 KiB queue boundary
+                # and ends reads in the middle of the next native packet.
+                burst=b''.join(struct.pack('!H',0x4004)+bytes([n])*0x4004 for n in range(32))
+                clients[sender].sendall(burst)
+                self.assertEqual(exact(clients[1-sender],len(burst)),burst)
+            with socket.socket(socket.AF_UNIX,socket.SOCK_STREAM) as duplicate:
+                duplicate.settimeout(2);duplicate.connect(configs[0]['socket'])
+                self.assertEqual(duplicate.recv(1),b'')
+            clients[0].sendall(struct.pack('!H',0x4005))
+            self.assertNotEqual(self.pair.processes[0].wait(timeout=5),0)
+        finally:
+            for sock in clients:sock.close()
+
+    def test_cabinet_cannot_join_other_modes(self):
+        for other in ('bba','ps2','psp','game',None):
+            with self.subTest(other=other):
+                pair=Pair(modes=['cabinet',other])
+                try:
+                    self.assertFalse(pair.connect());self.assertFalse(pair.ready)
+                finally:pair.close()
+
     def test_bba_native_frames_are_private_bounded_and_bidirectional(self):
         self.pair = Pair(modes=['bba', 'bba'])
         self.assertTrue(self.pair.connect())

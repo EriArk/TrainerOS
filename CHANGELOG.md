@@ -1,5 +1,15 @@
 # TrainerOS — история изменений
 
+## 2026-10-26 — native arcade cabinet link
+
+- Добавлен отдельный режим двух arcade-кабинетов в общий Lobby, с собственным
+  экраном у каждого игрока и автоматической подготовкой direct-соединения.
+- Native Flycast определяет поддержку; GGPO и личные настройки/прогресс сохранены.
+- Обрыв связи прекращает передачу, оставляет игру запущенной; автоматического
+  Rejoin нет. [Контракт](docs/emulators/flycast-cabinet.md),
+  [доставка и доказательства](docs/evidence/cabinet-link-20261026/README.md).
+- Native Dreamcast game-server Online и более двух кабинетов остаются незавершёнными.
+
 ## 2026-10-26 — общий arcade NetPlay
 
 - Naomi, Naomi 2 и Atomiswave подключены к существующему Flycast Dojo/Lobby:

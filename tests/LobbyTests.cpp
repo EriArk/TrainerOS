@@ -520,9 +520,11 @@ private slots:
         QTest::newRow("psp-host-invalid-address-batch")<<true<<false<<QString("psp");
         QTest::newRow("ps2-guest-removed")<<false<<false<<QString("ps2");
         QTest::newRow("ps2-invalid-address-batch")<<true<<false<<QString("ps2");
+        QTest::newRow("cabinet-guest-removed")<<false<<false<<QString("cabinet");
+        QTest::newRow("cabinet-invalid-address-batch")<<true<<false<<QString("cabinet");
     }
     void realLobbyConnectionOwnsHelperAndRevokesOnGuestRemoval() {
-        QFETCH(bool,badCandidates);QFETCH(bool,rejoin);QFETCH(QString,mode);const bool psp=mode=="psp",ps2=mode=="ps2";
+        QFETCH(bool,badCandidates);QFETCH(bool,rejoin);QFETCH(QString,mode);const bool psp=mode=="psp",ps2=mode=="ps2",cabinet=mode=="cabinet";
         const auto helper=qEnvironmentVariable("TRAINEROS_STREAM_TRANSPORT");if(helper.isEmpty())QSKIP("Real Linux transport supplied by the ARM integration check");
         LobbyCoordinator host,guest;host.configure("1","Host",true);guest.configure("2","Guest",true);
         connect(&host,&LobbyCoordinator::outgoing,&guest,[&](QString peer,QJsonObject p){if(peer=="2")guest.receive("1","Host",p);});
@@ -534,16 +536,16 @@ private slots:
         LobbyConnection hc(host),gc(guest);QSignalSpy hr(&hc,&LobbyConnection::connected),gr(&gc,&LobbyConnection::connected),ended(&hc,&LobbyConnection::ended),media(&gc,&LobbyConnection::mediaReady);
         connect(&host,&LobbyCoordinator::launchRequested,&hc,[&](QString ticket,QJsonObject){QVERIFY(hc.start("1",ticket,helper,{},mode));});
         connect(&guest,&LobbyCoordinator::launchRequested,&gc,[&](QString ticket,QJsonObject){QVERIFY(gc.start("2",ticket,helper,{},mode));});
-        QVERIFY(host.create("public"));auto selected=game();selected.mode=psp?"runtime.ppsspp.adhoc.v1":ps2?"runtime.armsx2.lan.v1":"remoteplay.v1";
-        if(psp||ps2)selected.runtime={{"id",selected.mode}};
+        QVERIFY(host.create("public"));auto selected=game();selected.mode=psp?"runtime.ppsspp.adhoc.v1":ps2?"runtime.armsx2.lan.v1":cabinet?"runtime.flycast.cabinet.v1":"remoteplay.v1";
+        if(psp||ps2||cabinet)selected.runtime={{"id",selected.mode}};
         QVERIFY(host.selectGame(selected));if(psp)QVERIFY(host.activeRoom()->setRelay("psp-host"));
         QVERIFY(guest.join("1",host.state()["id"].toString()));const auto gen=host.state()["generation"].toInteger();
         QVERIFY(host.prepared(gen,true));QVERIFY(guest.prepared(gen,true));QVERIFY(host.ready(true));QVERIFY(guest.ready(true));QVERIFY(host.start());
         QTRY_COMPARE_WITH_TIMEOUT(hr.size(),1,15000);QTRY_COMPARE_WITH_TIMEOUT(gr.size(),1,15000);QCOMPARE(hc.id(),gc.id());
         const auto hostFile=hr[0][0].toString(),guestFile=gr[0][0].toString();QFile file(hostFile);QVERIFY(file.open(QIODevice::ReadOnly));
         const auto config=file.readAll();QVERIFY(config.contains("mode="+mode.toUtf8()+"\n"));
-        if(psp||ps2)QVERIFY(config.contains("address=127.0.0.1\n"));else QVERIFY(config.contains("seconds=0\n"));file.close();
-        if(ps2)QVERIFY(config.contains("socket="));
+        if(psp||ps2)QVERIFY(config.contains("address=127.0.0.1\n"));else if(!cabinet)QVERIFY(config.contains("seconds=0\n"));file.close();
+        if(ps2||cabinet)QVERIFY(config.contains("socket="));
         const auto ticket=host.state()["ticket"].toString();QVERIFY(host.acknowledgeLaunch(ticket,true));QVERIFY(guest.acknowledgeLaunch(ticket,true));
         QVERIFY(hc.announceMedia());QCOMPARE(media.size(),1);
         if(rejoin) {

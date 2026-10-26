@@ -1,11 +1,18 @@
 # Задачи и условия готовности
 
+**26 октября — native cabinet link:** реализован отдельный двухместный arcade LAN
+через существующий Lobby/ICE/DTLS, с native проверкой поддержки, собственным экраном
+и временным прогрессом. [Контракт](emulators/flycast-cabinet.md),
+[проверки и доставка](evidence/cabinet-link-20261026/README.md). R039 частично выполнен;
+следующее самостоятельное направление — native Dreamcast Online/DCNet и его
+игровые сервисы. GGPO и существующие платформы сохранены.
+
 **26 октября — arcade NetPlay:** реализован общий Flycast Dojo route для Naomi,
 Naomi 2 и Atomiswave: native set dependencies, общий Lobby/Start/exit и private
 progress. Helper/native suites и paired Dolphin Blue session start прошли.
 [Контракт и обновление](emulators/flycast.md#naomi--naomi-2--atomiswave--26-october-2026),
-[точная поставка](evidence/arcade-netplay-20261026/README.md). Cabinet link/native
-Dreamcast services — оставшийся отдельный механизм R039. Реализация `f8b90298`
+[точная поставка](evidence/arcade-netplay-20261026/README.md). Native Dreamcast services — оставшийся отдельный механизм R039;
+cabinet link добавлен следующим шагом, описан выше. Реализация `f8b90298`
 установлена на обе портативки, состояние и другие packages сохранены. Текущие нечитаемые
 Atomiswave ROM записаны в таблице; их восстановление не выполнено. Не повторять
 пройденные checks как самостоятельную задачу; Sonic/Battlefront не возобновлялись.

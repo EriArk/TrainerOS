@@ -116,6 +116,78 @@ private slots:
         QVERIFY(flycast::event("[TrainerOSFlycast] relay bad key").isEmpty());
         QVERIFY(flycast::event(QByteArray(200,'x')).isEmpty());
     }
+    void cabinetCapabilityAndPrivateLaunch() {
+        if(!QFileInfo("/usr/bin/bwrap").isExecutable())QSKIP("Run this namespace integration check on the Linux host.");
+        QProcess namespaceProbe;namespaceProbe.setStandardErrorFile(QProcess::nullDevice());
+        namespaceProbe.start("/usr/bin/bwrap",{"--unshare-net","--bind","/","/","--","/bin/true"});
+        if(!namespaceProbe.waitForFinished(5000)||namespaceProbe.exitCode()!=0)
+            QSKIP("Builder disallows nested namespaces; run this check on the Linux host.");
+        QStandardPaths::setTestModeEnabled(true);
+        const auto root=flycast::bundleRoot(),cabinet=flycast::cabinetRoot();
+        QVERIFY(!QFileInfo::exists(root));QVERIFY(!QFileInfo::exists(cabinet));
+        const auto cleanup=qScopeGuard([&]{QDir(root).removeRecursively();QDir(cabinet).removeRecursively();QStandardPaths::setTestModeEnabled(false);});
+        const auto recipe=qEnvironmentVariable("TRAINEROS_TEST_FLYCAST_RECIPE",
+            QFileInfo(QString::fromUtf8(__FILE__)).dir().absoluteFilePath("../packaging/emulators/flycast"));
+        QCOMPARE(QProcess::execute("/usr/bin/python3",{recipe+"/check-arcade.py","--fixture",root}),0);
+        QVERIFY(QFile::copy(recipe+"/arcade.py",root+"/arcade.py"));
+        const auto sha=[](const QByteArray& bytes){return QString::fromLatin1(QCryptographicHash::hash(bytes,QCryptographicHash::Sha256).toHex());};
+        const QMap<QString,QByteArray> files={{"bin/flycast","fixture"},
+            {"firmware/dc_boot.bin",QByteArray(2*1024*1024,'B')},{"firmware/dc_flash.bin",QByteArray(128*1024,'F')}};
+        QJsonObject hashes;
+        for(auto it=files.begin();it!=files.end();++it){write(root+'/'+it.key(),it.value());hashes[it.key()]=sha(it.value());}
+        QVERIFY(QFile::setPermissions(root+"/bin/flycast",QFile::ReadOwner|QFile::WriteOwner|QFile::ExeOwner));
+        QJsonObject manifest{{"protocol",1},{"source",flycast::sourceRevision},{"files",hashes},{"renderer","vulkan"},
+            {"arcade",QJsonObject{{"protocol","flycast-arcade-sets-v1"},{"arcade.py",sha(read(root+"/arcade.py"))},
+                {"arcade-catalog.json",sha(read(root+"/arcade-catalog.json"))}}}};
+        write(root+"/manifest.json",QJsonDocument(manifest).toJson());
+        const auto capability=[&](const QByteArray& link) {
+            QJsonObject files;
+            for(const auto& name:{"bin/flycast","cabinet_endpoint","stream_transport"}) {
+                const QByteArray bytes=QByteArray(name)=="bin/flycast"
+                    ? "#!/bin/sh\n[ \"$TRAINEROS_FLYCAST_INSPECT\" = 1 ] || exit 2\n"
+                      "[ \"$FLYCAST_ROOT\" = \"$XDG_DATA_HOME\" ] || exit 3\n"
+                      "grep -q 'aica.Volume = 0' \"$FLYCAST_ROOT/emu.cfg\" || exit 4\n"
+                      "printf '%s\\n' '[TrainerOSArcade] {\"protocol\":1,\"link\":\""+link+"\"}'\n"
+                    : QByteArray("#!/bin/sh\nexit 1\n");
+                write(cabinet+'/'+name,bytes);files[name]=sha(bytes);
+                QVERIFY(QFile::setPermissions(cabinet+'/'+name,QFile::ReadOwner|QFile::WriteOwner|QFile::ExeOwner));
+            }
+            write(cabinet+"/manifest.json",QJsonDocument(QJsonObject{{"protocol",1},{"source",flycast::sourceRevision},
+                {"settings","flycast-cabinet-private-v1"},{"files",files}}).toJson());
+        };
+        std::atomic_bool cancel=false;
+        AdventureRegistration r;r.adventure.id="cabinet";r.adventure.platformId="naomi";
+        r.adventure.adapterId="retroarch";r.contentPath=root+"/naomi.zip";
+        capability("none");QVERIFY(flycast::cabinetIdentity(r,cancel).isEmpty());
+        QVERIFY(!flycast::netplayIdentity(r,cancel).isEmpty());
+        for(const auto& link:{QByteArray("naomi"),QByteArray("serial")}) {
+            capability(link);QStringList observed;
+            const auto identity=flycast::cabinetIdentity(r,cancel,[&](const QString& path){observed.append(path);});
+            QCOMPARE(identity["id"].toString(),"runtime.flycast.cabinet.v1");
+            QCOMPARE(identity["link"].toString(),QString::fromUtf8(link));
+            QVERIFY(observed.contains(cabinet+"/manifest.json"));
+            QVERIFY(identity["temporaryProgress"].toBool());QVERIFY(!identity["lateJoin"].toBool());
+            QTemporaryDir connection;
+            const auto config=connection.filePath("connection.cfg");
+            for(const bool host:{true,false}) {
+                write(config,"mode=cabinet\nhost="+QByteArray(host?"true":"false")+"\nsocket="+connection.path().toUtf8()+"/cabinet.sock\n");
+                QVERIFY(QFile::setPermissions(config,QFile::ReadOwner|QFile::WriteOwner));
+                auto command=flycast::cabinetCommand(r,identity,config,host,{"/input-bridge","--"});
+                const auto error=command.prepare(command,cancel);QVERIFY2(error.isEmpty(),qPrintable(error));
+                QCOMPARE(command.program,"/usr/bin/bwrap");QVERIFY(command.arguments.contains("--unshare-net"));
+                QVERIFY(command.arguments.contains(cabinet+"/cabinet_endpoint"));QVERIFY(command.arguments.contains("/input-bridge"));
+                const auto stage=command.workingDirectory;const auto ini=read(stage+"/emu.cfg");
+                QVERIFY(ini.contains("TrainerCabinet = yes"));QVERIFY(ini.contains("GGPO = no"));
+                QVERIFY(ini.contains(host?"LocalPort = 37391":"LocalPort = 37392"));
+                QVERIFY(ini.contains(host?"server = 127.0.0.1:37392":"server = 127.0.0.1:37391"));
+                write(stage+"/data/private.eeprom","session progress");command.settled={};
+                QVERIFY(!QFileInfo::exists(stage));QVERIFY(!QFileInfo::exists(root+"/data/private.eeprom"));
+            }
+            write(config,"mode=ps2\nhost=true\n");
+            auto invalid=flycast::cabinetCommand(r,identity,config,true);QVERIFY(!invalid.prepare(invalid,cancel).isEmpty());
+            write(cabinet+"/cabinet_endpoint","changed");QVERIFY(flycast::cabinetIdentity(r,cancel).isEmpty());
+        }
+    }
     void arcadeNativeSetsUseSharedIdentityLaunchAndCleanup() {
 #ifndef Q_OS_UNIX
         QSKIP("Native arcade helper uses the supported Linux libarchive installation.");

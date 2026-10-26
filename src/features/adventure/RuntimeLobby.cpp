@@ -130,10 +130,10 @@ void RuntimeMultiplayer::launch(QString operation,QString ticket,QJsonObject con
         relaySelector_.start(lobbyContext_["self"].toString(),context["owner"].toString(),peers,context["relay"].toString("auto"));
         if(!relayStarted_)return; // Synchronous context rejection already completed the launch.
     }
-    if(selected["id"]=="runtime.armsx2.lan.v1"||selected["id"]=="runtime.dolphin.bba.v1") {
-        const bool bba=selected["id"]=="runtime.dolphin.bba.v1";
+    if(selected["id"]=="runtime.armsx2.lan.v1"||selected["id"]=="runtime.dolphin.bba.v1"||selected["id"]=="runtime.flycast.cabinet.v1") {
+        const bool bba=selected["id"]=="runtime.dolphin.bba.v1",cabinet=selected["id"]=="runtime.flycast.cabinet.v1";
         nativeLanConnection_=true;nativeLaunchContext_=context;
-        if(!nativeConnection_.start(lobbyContext_["self"].toString(),ticket,(bba?dolphinlan::bundleRoot():ps2lan::bundleRoot())+"/stream_transport",online_?QJsonArray{"stun:stun.l.google.com:19302"}:QJsonArray{},bba?"bba":"ps2"))
+        if(!nativeConnection_.start(lobbyContext_["self"].toString(),ticket,(bba?dolphinlan::bundleRoot():cabinet?flycast::cabinetRoot():ps2lan::bundleRoot())+"/stream_transport",online_?QJsonArray{"stun:stun.l.google.com:19302"}:QJsonArray{},bba?"bba":cabinet?"cabinet":"ps2"))
             fail("Couldn't prepare the LAN connection. Reopen this game in the lobby.");
         return;
     }

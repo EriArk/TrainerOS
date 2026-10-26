@@ -27,6 +27,7 @@
 #include "psp_sockets.hpp"
 #include "ps2_channel.hpp"
 #include "bba_channel.hpp"
+#include "cabinet_channel.hpp"
 
 namespace {
 constexpr int FirstPort=49010, MaxDatagram=4096, MaxRecord=65536;
@@ -119,10 +120,11 @@ private:
         psp=value.size()==5&&value["mode"]=="psp";
         ps2=value.size()==5&&value["mode"]=="ps2";
         bba=value.size()==5&&value["mode"]=="bba";
+        cabinet=value.size()==5&&value["mode"]=="cabinet";
         const int lifetime=value["seconds"].toInt(-1);
-        if((value.size()!=4&&!game&&!psp&&!ps2&&!bba)||!value["host"].isBool()||!hex(value["identity"].toString(),64)
+        if((value.size()!=4&&!game&&!psp&&!ps2&&!bba&&!cabinet)||!value["host"].isBool()||!hex(value["identity"].toString(),64)
            ||!value["ice"].isArray()||!value["seconds"].isDouble()||value["seconds"].toDouble()!=lifetime
-           ||!((lifetime>=5&&lifetime<=120)||((game||psp||ps2||bba)&&lifetime==0)))throw std::runtime_error("config");
+           ||!((lifetime>=5&&lifetime<=120)||((game||psp||ps2||bba||cabinet)&&lifetime==0)))throw std::runtime_error("config");
         host=value["host"].toBool();identity=value["identity"].toString();seconds=value["seconds"].toInt();
         rtc::Configuration config;config.maxMessageSize=MaxRecord;config.mtu=1200;config.disableAutoNegotiation=true;
         const auto servers=value["ice"].toArray();if(servers.size()>4)throw std::runtime_error("ice bounds");
@@ -165,7 +167,7 @@ private:
         try {
             const auto c=channels[channel];if(!c||!c->isOpen()){fail();return false;}
             // PSP has at most 32 streams, each credit-limited to 64 KiB.
-            const int limit=psp&&channel==2?3*1024*1024:(channel==0?32768:MaxRecord);
+            const int limit=psp&&channel==2?3*1024*1024:cabinet&&channel==2?1024*1024:(channel==0?32768:MaxRecord);
             if(c->bufferedAmount()+bytes.size()>size_t(limit)) {
                 if(channel==0){++dropped;return false;}fail();return false;
             }
@@ -185,6 +187,7 @@ private:
         if(psp)hello["mode"]="psp";
         if(ps2)hello["mode"]="ps2";
         if(bba)hello["mode"]="bba";
+        if(cabinet)hello["mode"]="cabinet";
         control(hello);
         material();
     }
@@ -197,8 +200,9 @@ private:
     void receive(int channel,const QByteArray& bytes) {
         if(channel==1){admission(QJsonDocument::fromJson(bytes).object());return;}
         if(!ready){fail();return;}
-        if(channel==2){if(ps2||bba){fail();return;}if(psp)pspSockets->receive(bytes);else rtsp(bytes);return;}
+        if(channel==2){if(cabinet){cabinetChannel->receive(bytes);return;}if(ps2||bba){fail();return;}if(psp)pspSockets->receive(bytes);else rtsp(bytes);return;}
         if(psp){fail();return;}
+        if(cabinet){fail();return;}
         if(ps2){ps2Channel->receive(bytes);return;}
         if(bba){bbaChannel->receive(bytes);return;}
         if(bytes.size()<2){fail();return;}
@@ -211,7 +215,7 @@ private:
     void admission(const QJsonObject& value) {
         if(ready&&value==QJsonObject{{"close",true}}){closing=true;QCoreApplication::quit();return;}
         if(!verified) {
-            if(value.size()!=((psp||ps2||bba)?3:2)||(psp&&value["mode"]!="psp")||(ps2&&value["mode"]!="ps2")||(bba&&value["mode"]!="bba")||value["identity"]!=identity||!value["host"].isBool()||value["host"].toBool()==host)throw std::runtime_error("identity");
+            if(value.size()!=((psp||ps2||bba||cabinet)?3:2)||(psp&&value["mode"]!="psp")||(ps2&&value["mode"]!="ps2")||(bba&&value["mode"]!="bba")||(cabinet&&value["mode"]!="cabinet")||value["identity"]!=identity||!value["host"].isBool()||value["host"].toBool()==host)throw std::runtime_error("identity");
             verified=true;
             material();
             return;
@@ -229,6 +233,16 @@ private:
         event({{"event","ready"},{"config",directory.path()+"/session.conf"}});
     }
     void startSockets() {
+        if(cabinet) {
+            cabinetChannel=new CabinetChannel([this](const QByteArray& bytes){return send(2,bytes);},[this]{fail();},this);
+            if(!directory.isValid()||!cabinetChannel->start(directory.path()+"/cabinet.sock"))throw std::runtime_error("cabinet bind");
+            QFile file(directory.path()+"/session.conf");
+            const QByteArray config="mode=cabinet\nhost="+QByteArray(host?"true":"false")
+                +"\nsocket="+directory.path().toUtf8()+"/cabinet.sock\n";
+            if(!file.open(QIODevice::WriteOnly|QIODevice::NewOnly)||!file.setPermissions(QFile::ReadOwner|QFile::WriteOwner)
+               ||file.write(config)!=config.size()||!file.flush())throw std::runtime_error("private cabinet config");
+            key.fill(0);key.clear();return;
+        }
         if(bba) {
             bbaChannel=new BbaChannel([this](const QByteArray& bytes){return send(0,bytes);},[this]{fail();},this);
             if(!directory.isValid()||!bbaChannel->start(directory.path()+"/bba.sock"))throw std::runtime_error("bba bind");
@@ -343,7 +357,7 @@ private:
     QHostAddress mediaAddress,proxyAddress;
     QTcpServer tcpServer;QPointer<QTcpSocket> tcp;QByteArray tcpBytes,key,ping;uint32_t token=0;
     bool host=false,remoteDescription=false,greeted=false,verified=false,ready=false,requestSent=false,materialSent=false,closing=false;
-    QString identity;int seconds=0;bool game=false,psp=false,ps2=false,bba=false;BbaChannel* bbaChannel=nullptr;PspSockets* pspSockets=nullptr;Ps2Channel* ps2Channel=nullptr;quint64 sent=0,received=0,dropped=0;
+    QString identity;int seconds=0;bool game=false,psp=false,ps2=false,bba=false,cabinet=false;CabinetChannel* cabinetChannel=nullptr;BbaChannel* bbaChannel=nullptr;PspSockets* pspSockets=nullptr;Ps2Channel* ps2Channel=nullptr;quint64 sent=0,received=0,dropped=0;
 };
 }
 int main(int argc,char** argv) {

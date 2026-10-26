@@ -1,5 +1,16 @@
 # TrainerOS — состояние проекта
 
+## 26 октября 2026 — отдельные arcade-кабинеты
+
+Для поддерживаемых native Flycast игр Naomi / Naomi 2 / Atomiswave добавлен
+двухместный LAN-режим через общий GameHub Lobby. У каждого свой автомат и экран;
+соединение готовится через существующий ICE/DTLS. Совместимость проверяет native
+ROM decoder; личные EEPROM/NVRAM не подключаются. GGPO сохранён отдельным режимом.
+
+[Контракт и оставшиеся возможности](docs/emulators/flycast-cabinet.md),
+[проверки и состояние поставки](docs/evidence/cabinet-link-20261026/README.md).
+Native Dreamcast Online/DCNet и 3–4 кабинета этим не реализованы.
+
 ## 26 октября 2026 — NetPlay для Naomi / Naomi 2 / Atomiswave
 
 К существующему Lobby подключён общий Flycast Dojo GGPO для трёх аркадных семейств:
