@@ -39,7 +39,7 @@ runtime и не увеличивает число мест. Полные фай�
 | DS | Общий melonDS, NDS/SRL/ZIP/7z; подготовка запуска и защита собственных сейвов; исправлен solo-фильтр | Один картридж в архиве; DSi/WFC не становятся обычным DS wireless |
 | 3DS | Общий Azahar, 3DSX/CCI/CXI/3DS/APP/ELF/AXF/ZCCI/ZCXI/Z3DSX, с проверкой структуры; исправлен solo-фильтр | CIA/ZCIA installation/encrypted images, отдельная идентичность updates/DLC и серверные механизмы требуют подготовки |
 | Vita | Исправлен solo-фильтр действующего vitaQuake LAN | Exact EBOOT/extraContent нужны специальному native-IP профилю; общий commercial AdHoc/PSN не реализован |
-| Xbox original | [System Link](emulators/xemu.md): source-интеграция Lobby на 2–4 устройства через native xemu UDP/существующий Ethernet carrier; ISO без списка названий | Нужен System Link в самой игре и собственная native среда. Xbox Live отдельно; установка и игровой результат отмечаются отдельно |
+| Xbox original | [System Link](emulators/xemu.md): установленная на Flip/Odin интеграция Lobby на 2–4 устройства через native xemu UDP/существующий Ethernet carrier; ISO без списка названий | Нужен System Link в самой игре и собственная native среда. Xbox Live не реализован; установка не означает проверку всех игровых режимов |
 | Wii U / прочие несвязанные механизмы | В этом admission pipeline общего сетевого профиля нет | Реальные незавершённые runtime-интеграции R046/R048/R049, не ограничение числа игр |
 
 Dolphin использует [штатный Blob reader](https://github.com/dolphin-emu/dolphin/blob/c77bbaa0f372c3f72281602a8b087206706542cb/Source/Core/DiscIO/Blob.cpp).

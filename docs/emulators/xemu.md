@@ -60,6 +60,8 @@ preparation/loss. Rollback selects the previous shell and removes only this pack
 never restore an older HDD over new personal progress or discard a native-generated
 EEPROM. Source preparation and installation are separate below.
 
+Installed on Flip/Odin from `7220e65b`; production shell SHA-256
+`207bc5112d544a823d31389d56bdb36a87b24d7a9e6e7eb8cad211bcacbef4ae`.
 [Checks and delivery](../evidence/xbox-system-link-20261026/README.md).
 
 ## 18 October 2026 delivery

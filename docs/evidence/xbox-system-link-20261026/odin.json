@@ -1,0 +1,35 @@
+{
+  "source": "7220e65b4f43186f93d047259aa1ab353b0d3441",
+  "shell": "207bc5112d544a823d31389d56bdb36a87b24d7a9e6e7eb8cad211bcacbef4ae",
+  "running": true,
+  "settings": "xemu-system-link-owned-v1",
+  "manifest": "c4fdb1285cbe4da9669b9b973a83a4d3578b42a240b66c8a8c2af0ccb5b306c1",
+  "files": {
+    "xemu.AppImage": "0a2e4ff856644ae741a7476bc9c9dcd115b681f9faae26444df74ace2d275441",
+    "bba_endpoint": "362b8af0aad03da4ff52ae4fc77cb79fe521b445fc482b6dc3db93903acde263",
+    "stream_transport": "1a78644ef361fdf259dd479141fac1af943ea81bf9f8031386fdcaad11d4d077",
+    "session.py": "faef8d65786eb78de44385da8b2ef1be476580905ebbdc703b2ea778ed458efa"
+  },
+  "unchangedPackages": 19,
+  "protectedFileCount": 2169,
+  "changedPersonalFiles": [],
+  "nativePersonalUnchanged": true,
+  "nativeFiles": 6,
+  "database": {
+    "play_sessions": {
+      "rows": 245,
+      "unchanged": true
+    },
+    "worlds": {
+      "rows": 37,
+      "unchanged": true
+    },
+    "adventures": {
+      "rows": 445,
+      "unchanged": true
+    }
+  },
+  "qmlErrors": [],
+  "volume": "Volume: 0.00",
+  "freeMiB": 187
+}
