@@ -453,13 +453,15 @@ diff --git a/Source/Core/DolphinTool/HeaderCommand.cpp b/Source/Core/DolphinTool
 index 71e4772..77a186a 100644
 --- a/Source/Core/DolphinTool/HeaderCommand.cpp
 +++ b/Source/Core/DolphinTool/HeaderCommand.cpp
-@@ -88,6 +88,10 @@ int HeaderCommand(const std::vector<std::string>& args)
+@@ -88,6 +88,12 @@ int HeaderCommand(const std::vector<std::string>& args)
      // Game data
      if (volume)
      {
 +      // TrainerOS uses the native volume parser for compressed-disc admission.
 +      json["platform"] = picojson::value(std::string(
-+          volume->GetVolumeType() == DiscIO::Platform::WiiDisc ? "wii" :
++          (volume->GetVolumeType() == DiscIO::Platform::WiiDisc ||
++           (volume->GetVolumeType() == DiscIO::Platform::WiiWAD &&
++            (volume->GetTitleID().value_or(0) >> 32) == 0x00010001)) ? "wii" :
 +          volume->GetVolumeType() == DiscIO::Platform::GameCubeDisc ? "gc" : "other"));
        json["internal_name"] = picojson::value(volume->GetInternalName());
  

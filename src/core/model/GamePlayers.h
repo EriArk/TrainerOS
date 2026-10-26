@@ -15,14 +15,27 @@ inline bool multiplayerConnectionAllowed(const QJsonObject& profile,const QStrin
     for(const auto& value:list)if(value!="nearby"&&value!="online")return false;
     return list.contains(connection);
 }
+// Offline Lobby reuses implemented LAN runtime paths. Unknown/SDK/Remote Play
+// modes do not inherit support from missing metadata. PS2 uses its existing
+// secure direct helper with host ICE candidates only.
+inline bool localLobbyRuntime(const QJsonObject& profile) {
+    const auto id=profile["id"].toString();
+    if(id=="runtime.armsx2.lan.v1"||id=="runtime.flycast.cabinet.v1")return true;
+    const bool known=id.startsWith("runtime.retroarch.")||id.startsWith("runtime.handheld.")
+        ||id.startsWith("runtime.fceumm.")||id.startsWith("runtime.snes9x.")||id.startsWith("runtime.genesis.")
+        ||id.startsWith("runtime.ppsspp.")||id.startsWith("runtime.dolphin.")||id=="runtime.rmg.n64.v1"
+        ||(id=="runtime.flycast-dojo.dc.v1"||id=="runtime.flycast-dojo.arcade.v1")||id.startsWith("runtime.melonds.")||id.startsWith("runtime.azahar.")||id.startsWith("runtime.vita3k.");
+    return known&&multiplayerConnectionAllowed(profile,"nearby");
+}
 // Display only LOCAL admitted runtime profiles. Catalogue player counts cannot
 // create a mode, and an unknown future runtime does not inherit an icon.
 inline QVariantMap multiplayerPresentation(const QJsonObject& profile) {
     if(profile.isEmpty() || (!multiplayerConnectionAllowed(profile,"nearby") && !multiplayerConnectionAllowed(profile,"online")))return {};
     const auto id=profile["id"].toString();QString kind,label;
-    if(id=="runtime.armsx2.lan.v1"){kind="netplay";label="LAN (in-game)";}
+    if(id=="runtime.armsx2.lan.v1"||id=="runtime.dolphin.bba.v1"||id=="runtime.flycast.cabinet.v1"){kind="netplay";label="LAN (in-game)";}
+    else if(id=="runtime.flycast.online.v1"){kind="wireless";label="Online (in-game)";}
     else if(id.startsWith("runtime.handheld.") && profile["transport"]=="netpacket"){kind="link";label="Link";}
-    else if(id.startsWith("runtime.retroarch.") || id.startsWith("runtime.dolphin.") || id=="runtime.rmg.n64.v1" || id=="runtime.flycast-dojo.dc.v1"){kind="netplay";label="Netplay";}
+    else if(id.startsWith("runtime.retroarch.") || id.startsWith("runtime.dolphin.") || id=="runtime.rmg.n64.v1" || (id=="runtime.flycast-dojo.dc.v1"||id=="runtime.flycast-dojo.arcade.v1")){kind="netplay";label="Netplay";}
     else if(id.startsWith("runtime.ppsspp.") || id=="runtime.azahar.3ds.v1" || id=="runtime.melonds.nds.v1" || id=="runtime.vita3k.lan.v1"){kind="wireless";label="Wireless";}
     if(kind.isEmpty())return {};
     return {{"id",kind},{"label",label},{"nearby",multiplayerConnectionAllowed(profile,"nearby")},{"online",multiplayerConnectionAllowed(profile,"online")}};
@@ -118,10 +131,16 @@ inline GamePlayers gamePlayers(const QVariantMap& metadata) {
 }
 inline bool permitsMultiplayer(const QVariantMap& metadata,const QJsonObject& runtimeProfile) {
     // Scraping never creates a transport or enlarges the runtime's party capacity.
-    // Handheld boxes often say one LOCAL player; a reviewed cable profile
-    // supplies the independent-machine capacity instead.
+    // One LOCAL player does not exclude link/wireless/LAN between independent
+    // machines. This includes linked cores using rollback, not only netpacket.
+    // Keep the solo filter for shared-console NetPlay and unknown future modes.
+    const auto id=runtimeProfile.value("id").toString();
     if(runtimeProfile.value("transport")=="netpacket"&&
-       runtimeProfile.value("id").toString().startsWith("runtime.handheld."))return true;
+       id.startsWith("runtime.handheld."))return true;
+    if(requiresLinkedSavePreparation(runtimeProfile)||
+       (id.startsWith("runtime.retroarch.")&&runtimeProfile["settings"]=="dcgb-linked-pair-volatile-v1")||
+       id.startsWith("runtime.ppsspp.")||id=="runtime.melonds.nds.v1"||id=="runtime.azahar.3ds.v1"||
+       id=="runtime.vita3k.lan.v1"||id=="runtime.armsx2.lan.v1"||id=="runtime.dolphin.bba.v1"||id=="runtime.flycast.cabinet.v1"||id=="runtime.flycast.online.v1")return true;
     return !runtimeProfile.isEmpty()&&!gamePlayers(metadata).solo();
 }
 }

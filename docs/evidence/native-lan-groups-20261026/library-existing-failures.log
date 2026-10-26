@@ -1,0 +1,16 @@
+********* Start testing of LibraryTests *********
+Config: Using QtTest library 6.11.2, Qt 6.11.2 (arm64-little_endian-lp64 shared (dynamic) release build; by GCC 16.2.1 20260819 (Red Hat 16.2.1-2)), fedora 44
+PASS   : LibraryTests::initTestCase()
+FAIL!  : LibraryTests::contextualMenuUsesWheelSelectionAndTrapsInput() Compared values are not the same
+   Actual   (shell.service()): ""
+   Expected ("settings")     : settings
+   Loc: [/work/source/tests/LibraryTests.cpp(304)]
+FAIL!  : LibraryTests::contextualEditsDeleteRomAndPreserveIdentity() 'error.isEmpty()' returned FALSE. (Enable World editing in Settings first.)
+   Loc: [/work/source/tests/LibraryTests.cpp(325)]
+FAIL!  : LibraryTests::settingsAreCommittedAndRetryable() Compared values are not the same
+   Actual   (settings.theme()): "light"
+   Expected ("turquoise")     : turquoise
+   Loc: [/work/source/tests/LibraryTests.cpp(565)]
+PASS   : LibraryTests::cleanupTestCase()
+Totals: 2 passed, 3 failed, 0 skipped, 0 blacklisted, 920ms
+********* Finished testing of LibraryTests *********

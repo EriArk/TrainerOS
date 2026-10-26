@@ -1,5 +1,125 @@
 # PCSX ReARMed multiplayer preparation
 
+## CBN/CBIN reader repair — 25 October 2026
+
+The optional package in [packaging/emulators/pcsx-rearmed](../../packaging/emulators/pcsx-rearmed/)
+builds revision `c8816799b50388e61cfe237fe2cdbb7d8175f20a` with a bounded native
+reader patch. TrainerOS selects it for CBN/CBIN and M3U containing those images,
+both in ordinary RetroArch launch and shared-console NetPlay. Other PS1 content
+keeps the existing core and its retained handoff/rejoin evidence. New titles are
+not allowlisted. This new core does not inherit the older binary's handoff proof.
+
+The patch reads the terminal index, checks the actual block count before the
+cache, bounds index positions and sector layout, handles alignment padding and
+rejects wrong decompressed lengths. Invalid CBIN cannot fall through to raw-disc
+loading; a small valid compressed image cannot accidentally switch to a nearby
+BIN. Four-letter `.cbin` now finds same-basename metadata/SBI/SUB. The libretro
+extension declaration includes both aliases. The former CBN extension comparison
+itself was correct; the defects were in indices, bounds and companion paths.
+
+Admission checks CISO v1 / 2352-byte sectors, total size and the complete index;
+native miniz performs decompression. Full container bytes, descriptors, subchannel
+files and M3U dependencies enter the existing identity/watch mechanism. Launch
+rechecks content and the separate package manifest/hash. Personal cards, ordinary
+core selection, settings and the existing temporary-progress policy are preserved.
+
+Build from a clean archive (requires an ARM64 Linux C toolchain and Python 3):
+
+```sh
+git -c core.autocrlf=false archive --format=tar --output=pcsx-source.tar c8816799b50388e61cfe237fe2cdbb7d8175f20a
+sh /path/to/TrainerOS/packaging/emulators/pcsx-rearmed/build.sh pcsx-source.tar /new/build-directory
+python3 /path/to/TrainerOS/packaging/emulators/pcsx-rearmed/install-runtime.py /new/build-directory/package
+```
+
+Run the archive command in the upstream checkout. The recipe pins its SHA-256,
+checks/applies the patch and compiles/tests real reader functions with the same
+miniz implementation as the core. The package retains the pinned source archive
+with its original dependency notices, the patch, build/check recipes and GPL text.
+Installation rejects an active RetroArch,
+validates hashes/dependencies, stages the package and retains an existing version.
+The shell discovers `TrainerOS/emulators/pcsx-rearmed-cbin` under the ordinary
+data directory after restart. Roll back this package and the matching shell;
+no user card/configuration downgrade is required. For upstream updates, rebase
+the patch, re-run reader/admission/launch checks and update the source contract.
+
+Source implementation and native package checks are complete; the final device
+receipt is recorded in [the shared format register](../MULTIPLAYER_CONTENT_FORMATS.md).
+
+**25 октября — доставка:** расширенные форматы и совместимая со свежим core/main
+оболочка установлены на Flip/Odin. [Хеши, native проверки, сохранность данных
+и откат](../MULTIPLAYER_CONTENT_FORMATS.md#доставка-на-flip-и-odin--25-октября-2026).
+Это заменяет прежние отметки «не установлено» для данного набора, не прежнюю
+историю игровой совместимости и не открытые ограничения native механизма.
+
+## Raw images and descriptors — 25 October 2026
+
+По `cdriso.c` ревизии `c8816799b50388e61cfe237fe2cdbb7d8175f20a`
+добавлены BIN/IMG/MDF/EXE и CCD/TOC/MDS в `RetroArchNetplay.cpp`.
+В хеш входят metadata, все одноимённые native fallback candidates и CUE tracks.
+TOC допускается только с одним одноимённым backing image, как у этого reader.
+Перед запуском metadata разрешается в native data path; M3U переписывается
+в приватный список абсолютных путей. Личные настройки/карты не меняются.
+Полный `retroarch` suite прошёл, включая изменения/утрату зависимостей и запуск.
+CBN/CBIN пока исключены: `handlecbin` читает count индексных элементов,
+но последний блок использует также незаполненный элемент count. Нужен native fix.
+[Общая таблица и обновление/откат](../MULTIPLAYER_CONTENT_FORMATS.md).
+Core не пересобирался, нужна новая оболочка; прежний запрет CCD/TOC/MDS ниже заменён.
+
+## PBP, M3U and ISO admission — 25 October 2026
+
+S02 registration → S03 identity/preparation → S06 Lobby now accepts PS1 PBP,
+M3U and ISO in source, alongside existing CUE/CHD. No title whitelist or new
+transport is introduced. DuckStation's ordinary registration also accepts ISO;
+existing emulator/save bindings are not rewritten. The network session still
+routes a copy of the registration to PCSX ReARMed.
+
+The bounded PBP preflight follows `handlepbp` in the reviewed
+[cdriso.c](https://github.com/libretro/pcsx_rearmed/blob/c8816799b50388e61cfe237fe2cdbb7d8175f20a/libpcsxcore/cdriso.c):
+PBP offsets, PSISOIMG00 / PSTITLEIMG signatures, up to eight embedded images,
+TOC count/timestamps and block-table bounds. It reads at most roughly 1 MiB
+of index data per disc, then fingerprints the entire container (maximum 8 GiB).
+It does not decode or certify every compressed sector. PSP PBP and encrypted or
+unrecognized payloads do not become PS1 content merely by their extension.
+Multi-disc `_1.sbi` … `_8.sbi` companions are included as applicable, as are the
+existing SBI/SUB and BIN/IMG dependencies. Changing a later embedded disc or
+sidecar changes the fingerprint.
+
+ISO admission recognizes the native 2048-byte sector heuristic or raw 2352-byte
+sectors and requires a primary ISO9660 descriptor. It retains the 2 GiB disc
+bound. Unsupported same-basename TOC/CCD/MDS or overriding CUE descriptors remain
+excluded until their dependencies are integrated. Existing CUE/CHD identities
+are preserved; this is not content-normalized matching across ISO/CHD/PBP.
+
+M3U follows the native [eight-slot parser](https://github.com/libretro/pcsx_rearmed/blob/c8816799b50388e61cfe237fe2cdbb7d8175f20a/frontend/libretro.c),
+with a 64 KiB manifest bound and lines up to 1022 bytes. Relative paths (including
+parent directories) and Linux absolute paths resolve to local media. Order matters;
+comments, CRLF and the library's directory names do not affect the identity.
+Whitespace is not silently trimmed. Nested M3U, oversized lists, quoted paths,
+NUL/invalid UTF-8 and foreign drive/backslash syntax are not admitted. Multi-disc
+PBP inside M3U is excluded because this native path only exposes its first image;
+the PBP itself can be selected directly. Each admitted disc's full identity is
+checked, including CUE tracks and sidecars. No playlist or ROM is rewritten.
+
+Preparation revalidates without the scan digest cache, disables remembered initial
+disc selection for the private PS1 session and launches the original path through
+the existing RetroArch host/guest mechanism. Personal cards remain unattached;
+ordinary settings and history are preserved. No new disc-switch UI or synchronized
+mid-session disc-switch contract is claimed.
+
+This is source integration, not installation on Flip/Odin or a new emulator build.
+No handheld was contacted. Full retail decoding and gameplay are not established
+by the structural fixtures. CCD/TOC/MDS, additional formats and ordinary save-card
+migration remain separate unfinished work.
+
+Windows checks: RetroArchTests 73 passed, zero failed, one existing PS2 platform
+skip; the final focused PS1 run passed 8/8 after adding late-PBP-payload mutation.
+StandaloneTests passed 55, zero failed, six existing Linux-only skips, including
+literal child-process launch/return for ISO/PBP/M3U. Its obsolete GBA ZIP rejection
+expectation was updated to reflect the preceding archive increment; RAR remains
+rejected. `runtime_multiplayer` passed in 120.91 seconds. The Windows application
+build and adapter export/knowledge validation passed (209 runtime source files).
+No ARM64 shell build or device delivery was performed in this increment.
+
 ## Ordinary Hotseat delivery — 12 October 2026
 
 Flip and Odin now offer **Separate controllers** (the default) or **Take turns

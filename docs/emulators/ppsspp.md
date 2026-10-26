@@ -1,5 +1,54 @@
 # PPSSPP maintenance
 
+**25 октября — доставка:** расширенные форматы и совместимая со свежим core/main
+оболочка установлены на Flip/Odin. [Хеши, native проверки, сохранность данных
+и откат](../MULTIPLAYER_CONTENT_FORMATS.md#доставка-на-flip-и-odin--25-октября-2026).
+Это заменяет прежние отметки «не установлено» для данного набора, не прежнюю
+историю игровой совместимости и не открытые ограничения native механизма.
+
+## CHD identity — 25 October 2026
+
+Добавлен CHD v5 UMD через pinned libchdr
+`8bba7745d758627258b315997a860039244cedaf`; PPSSPP остаётся
+`fa50bb1976065c4f8b1b47af227d367fe9771555`.
+Изменены `tools/ppsspp-content/` и `PpssppNetplay.cpp`, не сетевой движок
+эмулятора. Native hunk reader подключён к прежнему ISO9660/SFO parser.
+33 проверки helper прошли под ARM64/QEMU; новый пакет собран, не установлен.
+[Общая таблица, SHA, обновление и откат](../MULTIPLAYER_CONTENT_FORMATS.md).
+Прежнее утверждение ниже «CHD не реализован» заменено этим результатом.
+
+## CSO/PBP multiplayer identity — 25 October 2026
+
+Source implementation adds CSO/PBP to the existing generic Ad Hoc admission
+and literal-path launch. Raw ISO remains independent of any helper. A separate
+Linux `psp-content-probe` reuses PPSSPP 1.20.4 CISOFileBlockDevice/PBPReader at
+`fa50bb1976065c4f8b1b47af227d367fe9771555`; the installed emulator and its network
+patches/hash allowlist are unchanged. [Reproducible build, pins, bounds, package,
+rollback and update procedure](../../tools/ppsspp-content/README.md).
+
+TrainerOS validates the local helper manifest/hash, bounds output/time and
+cancels the child with scanning. Helper installation/update invalidates the
+Lobby scan revision. PBP category/payload checks reject PS1 EBOOT; a valid PSP
+DISC_ID is not evidence of an Ad Hoc mode. Exact full-file matching remains:
+different containers are not interchangeable between players. CHD, unusual or
+missing DISC_ID and wrappers remain open. No title whitelist was added.
+
+Evidence: Linux ARM64 helper built with Clang 22/Qt 6.11.2, native-reader
+synthetic CSO/PBP cases through QEMU; Windows StandaloneTests cover manifest,
+reply, cancellation and original-path ISO/CSO/PBP launch/recovery. Six unrelated
+Unix-only cases are skipped on Windows. No handheld connection or installation.
+The helper package and a shell containing this change must both be delivered
+before an existing installation gains this format support.
+
+Retained results: 26 native reader cases passed; StandaloneTests 51 passed,
+0 failed, 6 platform skips (manifest/source/hash guards rerun after tightening).
+`game_party` and full `runtime_multiplayer` passed (121.49 seconds for the latter).
+Windows production composition built with `BUILD_TESTING=OFF`; adapter export
+and knowledge checks passed. These are distinct from a new ARM64 shell build.
+Local artifact: `build/psp-content/psp-content-arm64.tar.gz`, SHA-256
+`0d706fbdba8186b88d0b6e72a7429092a6a64d74dff8c04380e6e1b5e1c83555`;
+helper SHA-256 `07f380bf7412d51a6a4a03c7acc3f1194d920c5bcfcf486e0bd85755b386afc8`.
+
 
 ## Host relay and PDP threading — 24 October 2026
 

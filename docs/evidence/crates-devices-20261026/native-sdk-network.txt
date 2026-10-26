@@ -1,0 +1,12 @@
+********* Start testing of SdkNetworkTests *********
+Config: Using QtTest library 6.11.2, Qt 6.11.2 (arm64-little_endian-lp64 shared (dynamic) release build; by GCC 16.2.1 20260819 (Red Hat 16.2.1-2)), fedora 44
+PASS   : SdkNetworkTests::initTestCase()
+QINFO  : SdkNetworkTests::sixteenPeersCreditIsolationAndCleanup() 16 peers connected (real TLS helpers), ms 2764
+PASS   : SdkNetworkTests::sixteenPeersCreditIsolationAndCleanup()
+PASS   : SdkNetworkTests::pairedProcessesAndFreshSession()
+PASS   : SdkNetworkTests::installedGamesLaunchOnlyAfterLobbyStart()
+SKIP   : SdkNetworkTests::pairedGolfAvatars() Godot, Pocket Golf checkout and avatar pack required
+   Loc: [/work/source/tests/SdkNetworkTests.cpp(73)]
+PASS   : SdkNetworkTests::cleanupTestCase()
+Totals: 5 passed, 0 failed, 1 skipped, 0 blacklisted, 7783ms
+********* Finished testing of SdkNetworkTests *********

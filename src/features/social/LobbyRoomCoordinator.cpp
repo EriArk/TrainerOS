@@ -1,4 +1,5 @@
 #include "LobbyRoomCoordinator.h"
+#include "platform/network/LocalLobbyTransport.h"
 #include "core/model/LobbyLimits.h"
 #include "core/model/NetplayRelay.h"
 #include <QDateTime>
@@ -11,6 +12,7 @@ namespace trainer {
 namespace {
 qint64 now() {return QDateTime::currentSecsSinceEpoch();}
 bool identifier(const QString& id) {
+    if(LocalLobbyTransport::validIdentity(id))return true;
     if(id.isEmpty()||id.size()>20)return false;
     for(const auto c:id)if(c<'0'||c>'9')return false;
     return true;
@@ -36,7 +38,7 @@ LobbyRoomCoordinator::LobbyRoomCoordinator(QObject* parent):QObject(parent) {
         for(auto it=playRequests_.begin();it!=playRequests_.end();)if(!members.contains(it.key()))it=playRequests_.erase(it);else ++it;
         broadcast();emit changed();
     });
-    connect(&session_,&LobbySession::launchRequested,this,&LobbyRoomCoordinator::launchRequested);
+    connect(&session_,&LobbySession::launchRequested,this,[this](QString ticket,QJsonObject party){if(local())party["type"]="local";emit launchRequested(ticket,party);});
 }
 bool LobbyRoomCoordinator::hosting() const {return session_.ownedBy(self_);}
 bool LobbyRoomCoordinator::runtimePeer(const QString& peer,const QString& ticket) const {
@@ -65,10 +67,10 @@ void LobbyRoomCoordinator::receiveRuntimeSignal(const QString& peer,const QJsonO
     emit runtimeSignal(peer,ticket,connection,payload);
 }
 QJsonObject LobbyRoomCoordinator::state() const {
-    if(hosting()) {auto s=session_.state();s["connection"]=online_?storageError_:QString("Reconnecting to communication…");return s;}
-    if(remote_.isEmpty()&&!host_.isEmpty())return {{"id",joining_},{"owner",host_},{"phase","joining"}};
+    if(hosting()) {auto s=session_.state();if(local())s["type"]="local";s["connection"]=online_?storageError_:QString("Reconnecting to communication…");return s;}
+    if(remote_.isEmpty()&&!host_.isEmpty())return {{"id",joining_},{"owner",host_},{"phase","joining"},{"type",local()?"local":"online"}};
     if(remote_.isEmpty())return {};
-    auto s=remote_;s["recovering"]=restoring_;s["connection"]=storageError_.isEmpty()?connection_:storageError_;return s;
+    auto s=remote_;if(local())s["type"]="local";s["recovering"]=restoring_;s["connection"]=storageError_.isEmpty()?connection_:storageError_;return s;
 }
 QJsonArray LobbyRoomCoordinator::requests() const {
     QJsonArray list;for(auto it=requests_.cbegin();it!=requests_.cend();++it)list.append(QJsonObject{{"id",it.key()},{"name",it.value()}});
@@ -101,10 +103,10 @@ void LobbyRoomCoordinator::configure(QString self,QString name,bool online) {
 }
 bool LobbyRoomCoordinator::create(QString access) {
     if(!online_||hosting()||!host_.isEmpty())return false;
-    clearRemote();return session_.create(self_,name_,access);
+    clearRemote();return session_.create(self_,name_,local()?QString("approval"):access);
 }
 void LobbyRoomCoordinator::send(const QString& peer,QString kind,QJsonObject data,QString reply,QString targetLobby) {
-    if(!online_||!identifier(peer)||peer==self_)return;
+    if(!online_||!identifier(peer)||peer==self_||LocalLobbyTransport::validIdentity(peer)!=local())return;
     const auto lobby=!targetLobby.isEmpty()?targetLobby:hosting()?session_.id():!joining_.isEmpty()?joining_:remote_.value("id").toString();
     emit outgoing(peer,{{"ns","org.traineros.lobby"},{"v",1},{"kind",kind},{"lobby",lobby},
         {"boot",boot_},{"serial",qint64(++serial_)},
@@ -118,7 +120,7 @@ void LobbyRoomCoordinator::broadcast() {
     }
 }
 bool LobbyRoomCoordinator::invite(const QString& peer) {
-    if(!hosting()||!identifier(peer)||!session_.invite(self_,peer,now()+300))return false;
+    if(!hosting()||LocalLobbyTransport::validIdentity(peer)!=local()||!identifier(peer)||!session_.invite(self_,peer,now()+300))return false;
     pendingInvites_[peer]={{"until",now()+300},{"offer",QUuid::createUuid().toString(QUuid::WithoutBraces)}};
     sendInvitation(peer);return true;
 }
@@ -132,7 +134,7 @@ bool LobbyRoomCoordinator::setDetails(QString title,qint64 startsAt) {
     return hosting()&&session_.setDetails(self_,std::move(title),startsAt);
 }
 bool LobbyRoomCoordinator::join(const QString& host,const QString& lobby,bool request,bool watch) {
-    if(!online_||hosting()||!host_.isEmpty()||!identifier(host)||host==self_||QUuid(lobby).isNull())return false;
+    if(!online_||hosting()||!host_.isEmpty()||LocalLobbyTransport::validIdentity(host)!=local()||!identifier(host)||host==self_||QUuid(lobby).isNull())return false;
     host_=host;joining_=lobby;joiningRequest_=request;joiningWatch_=watch;joinedAt_=hostSeen_=now();reconnect();emit changed();return true;
 }
 void LobbyRoomCoordinator::answer(bool accept) {
@@ -156,9 +158,10 @@ void LobbyRoomCoordinator::leave() {
     clearRemote();requests_.clear();seen_.clear();pendingInvites_.clear();emit changed();
 }
 bool LobbyRoomCoordinator::selectGame(const LobbySession::Game& game) {return hosting()&&session_.selectGame(self_,game);}
-bool LobbyRoomCoordinator::setAccess(QString access) {return hosting()&&session_.setAccess(self_,access);}
-bool LobbyRoomCoordinator::setRelay(QString relay) {return hosting()&&session_.setRelay(self_,relay);}
-bool LobbyRoomCoordinator::setConversation(QString channel) {return hosting()&&session_.setConversation(self_,channel);}
+bool LobbyRoomCoordinator::setAccess(QString access) {return !local()&&hosting()&&session_.setAccess(self_,access);}
+bool LobbyRoomCoordinator::setRelay(QString relay) {return hosting()&&(!local()||relay=="auto")&&session_.setRelay(self_,relay);}
+bool LobbyRoomCoordinator::setConversation(QString channel) {
+    if(local())return false;return hosting()&&session_.setConversation(self_,channel);}
 bool LobbyRoomCoordinator::seat(int seat) {
     if(hosting())return session_.claimSeat(self_,seat,session_.generation());
     if(!online_||remote_.isEmpty()||restoring_||!connection_.isEmpty())return false;
@@ -294,6 +297,7 @@ bool LobbyRoomCoordinator::validState(const QJsonObject& s,const QString& host) 
     if(!netplayRelay::valid(s["relay"].toString("auto")))return false;
     if(s["title"].toString().size()>80||s["startsAt"].toInteger()<0||s["startsAt"].toInteger()>4102444800LL)return false;
     if(!identifier(host)||!QStringList{"private","public","approval"}.contains(s["access"].toString()))return false;
+    if(LocalLobbyTransport::validIdentity(host)&&(!s["conversation"].toString().isEmpty()||s["access"]!="approval"||s["relay"].toString("auto")!="auto"))return false;
     if(!s["conversation"].toString().isEmpty()&&!identifier(s["conversation"].toString()))return false;
     if(s["owner"]!=host||s["revision"].toInteger()<1||s["generation"].toInteger()<1)return false;
     if(s["revision"].toInteger()>9007199254740990LL||s["generation"].toInteger()>9007199254740990LL)return false;
@@ -307,7 +311,7 @@ bool LobbyRoomCoordinator::validState(const QJsonObject& s,const QString& host) 
     if(!game["id"].toString().isEmpty()&&(capacity<1||game["title"].toString().trimmed().isEmpty()||game["mode"].toString().isEmpty()||game["platform"].toString().isEmpty()))return false;
     for(const auto& value:members) {
         const auto m=value.toObject();const auto id=m["id"].toString();const auto seat=m["seat"].toInt(-1);
-        if(!identifier(id)||identities.contains(id)||m["name"].toString().trimmed().isEmpty()||m["name"].toString().size()>100||seat<0||seat>capacity||(seat&&seats.contains(seat)))return false;
+        if(LocalLobbyTransport::validIdentity(id)!=LocalLobbyTransport::validIdentity(host)||!identifier(id)||identities.contains(id)||m["name"].toString().trimmed().isEmpty()||m["name"].toString().size()>100||seat<0||seat>capacity||(seat&&seats.contains(seat)))return false;
         identities.insert(id);if(seat)seats.insert(seat);
         const auto returning=m["returnSeat"].toInt();
         if(returning<0||returning>capacity||(returning&&(!s["rejoin"].toBool()||s["phase"]!="playing"||seat||!m["spectator"].toBool()||id==host||returning==1||seats.contains(returning)||m["returnUntil"].toInteger()<=0)))return false;
@@ -327,7 +331,7 @@ bool LobbyRoomCoordinator::validState(const QJsonObject& s,const QString& host) 
     return identities.contains(host);
 }
 void LobbyRoomCoordinator::receive(QString peer,QString name,const QJsonObject& p) {
-    if(!online_||!identifier(peer)||peer==self_||p["ns"]!="org.traineros.lobby"||p["v"]!=1
+    if(!online_||LocalLobbyTransport::validIdentity(peer)!=local()||!identifier(peer)||peer==self_||p["ns"]!="org.traineros.lobby"||p["v"]!=1
        ||p["expires"].toInteger()<=now()||p["expires"].toInteger()>now()+90)return;
     const auto id=p["lobby"].toString(),kind=p["kind"].toString();const auto data=p["data"].toObject();
     const auto boot=p["boot"].toString();const auto serial=quint64(p["serial"].toInteger());

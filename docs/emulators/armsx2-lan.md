@@ -1,5 +1,95 @@
 # ARMSX2: native LAN preparation
 
+**26.10 — R035/R041:** добавлен групповой PS2 LAN / Dolphin BBA на 2–4
+независимые консоли через общий Lobby. [Контракт и состояние поставки](native-lan-groups.md).
+Старые парные описания относятся к предыдущей реализации; обычный Dolphin
+NetPlay и его совместимость этим не ограничиваются.
+
+## Disc lists and payload identity — 26 October 2026
+
+The existing reader/launcher now accepts bounded, ordered local M3U/M3U8 lists.
+Each member must have a valid PS2 disc identity; the first supplies the native
+boot serial/CRC and the existing LAN-catalogue match. All member payloads and
+their order enter content identity. CHD identity hashes the actual file instead
+of trusting a header's declared raw hash. Preparation and launch recheck the
+same identity; the native runtime receives the first disc. Live disc changes
+remain separate. No per-title workaround or new networking was introduced.
+
+`check_launcher.py` has 14 tests, including unchanged declared CHD hash with a
+changed payload, second-disc changes and list order. Runtime/config paths and
+personal cards retain the existing ownership contract. [Current delivery](../MULTIPLAYER_CONTENT_FORMATS.md).
+
+**25 октября — доставка:** расширенные форматы и совместимая со свежим core/main
+оболочка установлены на Flip/Odin. [Хеши, native проверки, сохранность данных
+и откат](../MULTIPLAYER_CONTENT_FORMATS.md#доставка-на-flip-и-odin--25-октября-2026).
+Это заменяет прежние отметки «не установлено» для данного набора, не прежнюю
+историю игровой совместимости и не открытые ограничения native механизма.
+
+## Native compressed/raw disc formats — 25 October 2026
+
+`tools/ps2-lan/disc.py` и `Ps2LanNetplay.cpp` расширены для CSO/ZSO/GZ,
+BIN/IMG/MDF/NRG. Layouts сверены с ARMSX2 `90126bdfea`,
+`pcsx2/CDVD/InputIsoFile.cpp` и `CsoFileReader.cpp`: raw sector stride
+2048/2336/2352/2448 с соответствующим data offset и NRG prefix.
+Сравнение всего контейнера, serial/CRC, DEV9 namespace и личные карты сохранены.
+ZSO загружает системный liblz4; нужно доставить новый Python reader вместе
+с оболочкой. Проверены disc/config/launcher/profiles — 31 метод суммарно.
+[Общая таблица и процедура обновления/отката](../MULTIPLAYER_CONTENT_FORMATS.md).
+Пакет PS2 на устройствах этим проходом не менялся.
+
+## Full owner LAN catalogue available in source — 25 October 2026
+
+The owner explicitly removed the one-game gate and will try other LAN games
+manually. `profiles.json` v2 now contains all **56 CSV titles / 164 disc serials**,
+mapped from the pinned ARMSX2 `90126bdfea` game database. This supersedes the earlier
+requirement to wait for exact per-title gameplay evidence before making the mode
+available. The original CSV is unchanged; its explicit regional restrictions are
+retained. Unlisted/server-only titles are not enabled by filename guesses.
+
+The fixed Battlefront II CRC gate is gone. Actual disc serial, ELF CRC, content
+identity and runtime still participate in admission; different revisions/images
+cannot silently join each other. The two-peer transport, private own-card setup,
+explicit Start and no automatic rejoin remain unchanged. No per-game protocol or
+compatibility patch was introduced. Availability and the dated tested-games table
+are independent; a catalogue entry does not claim successful gameplay.
+
+Six new local catalogue tests passed, including real synthetic ISO parsing for
+**each of the 164 serials**, arbitrary filename rejection, different-revision
+identity, regional restrictions and the retained runtime guard. Existing 12
+launcher, 7 configuration and 5 disc tests also passed. Catalogue regeneration
+checks the pinned database checksum and covers every owner row once.
+The helper/catalogue update is **not installed**: the devices remain occupied
+by another chat and were not contacted. Deliver this package with the preceding
+atomic-preparation fix when available; gameplay findings then drive any exceptions.
+
+## Owner result and local preparation repair — 25 October 2026
+
+The owner reports **working LAN play in Battlefront II** after completing the
+PS2 network setup during the brief interval before input failed. On Flip, analog
+input stopped first, then the controller stopped responding altogether. The
+system network utility also showed graphical corruption. This supersedes the
+earlier statement that missing setup still prevents a match; it does not establish
+the cause of the utility defects. The owner put that investigation aside.
+The report did not re-record runtime hashes or specify distinct Internet networks;
+retain the exact earlier build evidence separately in the game table.
+
+Source-only continuation, with **no handheld connections**: `launcher.py` now
+publishes all private INIs atomically in `prepared/`, with a receipt binding the
+request, connection material and copied settings. Failed copying/validation leaves
+no launchable partial state and permits retry; completed settings are never
+overwritten. Launch rechecks the receipt and admitted runtime/settings before
+executing the existing namespace endpoint. A changed or removed connection fails
+before emulation starts. Existing outer session ownership cleans abandoned staging;
+live-game network loss still leaves the game running with no automatic rejoin.
+
+Local Windows Python checks: 12 launcher cases, 7 configuration cases and 5 disc
+cases passed. Launcher cases use real temporary files and injected copy failures;
+runtime/disc admission and the Linux transport-file reader are fixture inputs,
+and `execvpe` is captured rather than launching a native emulator. The changed
+launcher has not been installed. No new profiles, utility fixes or LAN transport
+claims were implied by that repair. The subsequent owner-requested catalogue
+expansion is recorded above; offline admission remains a separate unfinished feature.
+
 ## Paired runtime alignment — 24 October 2026
 
 Both handhelds now use 2.8.4-433 / `90126bdfea`, SHA
@@ -67,12 +157,13 @@ private-settings probe left personal INIs and pre-existing card bytes unchanged.
 The initial ordinary startup updated Flip's INI through ARMSX2 itself; no existing
 card was replaced or formatted. PSP helper/PPSSPP remain separate.
 
-**Still incomplete:** neither card contains a PS2 network configuration. The
+**Historical blocker on 24 October (owner completed setup on 25 October):** neither card contained a PS2 network configuration. The
 game's built-in Network Configuration Utility opens but stops responding to input
 after its ELF transition on both devices; foreground ownership, input descriptors
 and rendering persist. Native peer admission is not a completed LAN match.
-Next: isolate that input transition, finish native setup/discovery/match and the
-installed Lobby/Home/Exit cycle. Offline admission remains separate unfinished work.
+The later owner result above supersedes the missing-setup/match blocker. Utility
+investigation is paused; the installed Lobby/Home/Exit cycle and offline admission
+remain separate unfinished work.
 No VPN, difficult NAT or new relay infrastructure was added.
 
 Build the two CMake projects under tools/remote-play-stream/transport and

@@ -23,6 +23,8 @@ class RuntimeMultiplayerTests final : public QObject {
     struct Library final : LibraryRepository {
         std::function<void()> inspect;
         QList<AdventureRegistration> records;
+        QMap<QString,QVariantMap> metadata;
+        QVariantMap artwork(const QString& id) const override {return metadata.value(id);}
         int writes=0;
         bool editable() const override {return true;}
         void saveAdventureAsync(const AdventureRegistration& r,QObject*,std::function<void(LibraryWriteResult)> done) override {++writes;records.append(r);done({true,{}});}
@@ -216,20 +218,27 @@ private slots:
         QCOMPARE(completions,1);QVERIFY(!f.runtime.party_.active());QCOMPARE(f.process.processId(),pid);
         finishOrdinary(f);
     }
+    void ps2TransportLossKeepsOwnedGameAndCannotRelaunch_data() {
+        QTest::addColumn<QString>("mode");
+        QTest::newRow("ps2")<<QString("runtime.armsx2.lan.v1");
+        QTest::newRow("gamecube-bba")<<QString("runtime.dolphin.bba.v1");
+        QTest::newRow("arcade-cabinets")<<QString("runtime.flycast.cabinet.v1");
+    }
     void ps2TransportLossKeepsOwnedGameAndCannotRelaunch() {
+        QFETCH(QString,mode);
         Fixture f;QVERIFY(f.start());QTRY_COMPARE(f.lifecycle.state(),"running");
         const auto pid=f.process.processId();
-        f.runtime.active_=true;f.runtime.ps2Connection_=true;
-        f.runtime.descriptor_={{"id","runtime.armsx2.lan.v1"},{"lateJoin",false}};
+        f.runtime.active_=true;f.runtime.nativeLanConnection_=true;
+        f.runtime.descriptor_={{"id",mode},{"lateJoin",false}};
         QVERIFY(!f.runtime.supportsRejoin(f.runtime.descriptor_));
-        f.runtime.ps2ConnectionConfig_="private connection";
+        f.runtime.nativeLanConfig_="private connection";
         f.runtime.nativeLaunchContext_={{"ticket","old"}};
         int completions=0;f.runtime.lobbyCompletion_=[&](bool ok,QString){QVERIFY(!ok);++completions;};
         emit f.runtime.nativeConnection_.ended("Lost connection");
-        QCOMPARE(completions,1);QVERIFY(!f.runtime.ps2Connection_);QVERIFY(f.runtime.ps2ConnectionConfig_.isEmpty());
+        QCOMPARE(completions,1);QVERIFY(!f.runtime.nativeLanConnection_);QVERIFY(f.runtime.nativeLanConfig_.isEmpty());
         QVERIFY(f.runtime.nativeLaunchContext_.isEmpty());QCOMPARE(f.process.processId(),pid);
         emit f.runtime.nativeConnection_.connected("stale config");
-        QVERIFY(f.runtime.ps2ConnectionConfig_.isEmpty());QVERIFY(!f.runtime.party_.active());QCOMPARE(f.process.processId(),pid);
+        QVERIFY(f.runtime.nativeLanConfig_.isEmpty());QVERIFY(!f.runtime.party_.active());QCOMPARE(f.process.processId(),pid);
         finishOrdinary(f);
     }
     void destructionCannotReenterFromExternalLobbySignals() {
@@ -442,24 +451,108 @@ private slots:
         host.leave();QVERIFY(f.runtime.invitationId().isEmpty());QVERIFY(!f.runtime.invitationBadge());
         f.runtime.openInvitation(invitation);QVERIFY(f.social.face()!="lobby");
     }
+    void localPlayerCountsFilterSharedConsoleButKeepWirelessAndLanInLobby() {
+        Fixture f;
+        const QMap<QString,QString> modes{{"psp","runtime.ppsspp.adhoc.v1"},{"nds","runtime.melonds.nds.v1"},
+            {"n3ds","runtime.azahar.3ds.v1"},{"ps2","runtime.armsx2.lan.v1"},{"psvita","runtime.vita3k.lan.v1"},
+            {"gc","runtime.dolphin.gc.v1"},{"nes","runtime.retroarch.nes.fceumm.v1"}};
+        for(auto it=modes.cbegin();it!=modes.cend();++it){
+            AdventureRegistration record;record.adventure.id=it.key();record.adventure.platformId=it.key();
+            record.adventure.title=it.key();record.contentAvailable=true;f.library.records.append(record);
+            f.library.metadata[it.key()]={{"players","1"}};
+        }
+        f.runtime.refresh({},"test-trainer",true);QTRY_VERIFY(!f.runtime.scan_.isRunning());
+        for(auto it=modes.cbegin();it!=modes.cend();++it)
+            f.runtime.profiles_[it.key()]={{"id",it.value()},{"content",it.key()},{"players",2}};
+        f.runtime.lanProfiles_["gc"]={{"id","runtime.dolphin.bba.v1"},{"content","gc"},{"players",2}};
+        f.runtime.refresh({},"test-trainer",true);
+        QCOMPARE(f.runtime.availableGames().size(),6);
+        QVERIFY(!f.runtime.games_.contains("gc"));QVERIFY(!f.runtime.games_.contains("nes"));
+        QVERIFY(f.runtime.lanGames_.contains("gc"));
+        QCOMPARE(f.social.lobbyPickerRows().size(),6);
+        f.library.metadata["nes"]["players"]="unknown";f.runtime.refresh({},"test-trainer",true);
+        QVERIFY(f.runtime.games_.contains("nes"));QCOMPARE(f.social.lobbyPickerRows().size(),7);
+    }
+    void gameCubeLanAndNetplayKeepSeparateLocalProfiles_data() {
+        QTest::addColumn<QString>("shared");QTest::addColumn<QString>("linked");
+        QTest::newRow("gamecube")<<QString("runtime.dolphin.gc.v1")<<QString("runtime.dolphin.bba.v1");
+        QTest::newRow("arcade")<<QString("runtime.flycast-dojo.arcade.v1")<<QString("runtime.flycast.cabinet.v1");
+        QTest::newRow("dreamcast-online")<<QString("runtime.flycast-dojo.dc.v1")<<QString("runtime.flycast.online.v1");
+    }
+    void gameCubeLanAndNetplayKeepSeparateLocalProfiles() {
+        QFETCH(QString,shared);QFETCH(QString,linked);Fixture f;
+        const QJsonObject netplay{{"id",shared},{"content","disc"},{"runtime","build"},{"players",4}};
+        auto lan=netplay;lan["id"]=linked;lan["players"]=2;lan["lateJoin"]=false;
+        f.runtime.games_.insert("gc",netplay);f.runtime.lanGames_.insert("gc",lan);
+        QCOMPARE(f.runtime.availableGames().values("gc").size(),2);
+        QCOMPARE(f.runtime.localProfile("gc",netplay),netplay);
+        QCOMPARE(f.runtime.localProfile("gc",lan),lan);
+        auto wrong=lan;wrong["runtime"]="other";QVERIFY(f.runtime.localProfile("gc",wrong).isEmpty());
+        f.runtime.allowed_=true;
+        AdventureRegistration record;record.adventure.id="gc";record.contentAvailable=true;f.library.records={record};
+        const auto digest=QString::fromLatin1(QCryptographicHash::hash((lan["id"].toString()+"/disc").toUtf8(),QCryptographicHash::Sha256).toHex());
+        bool prepared=false;
+        f.runtime.prepare("lan-prepare",{{"self",f.social.account()["userId"].toString()},{"owner","owner"},
+            {"game",QJsonObject{{"id",digest},{"mode",lan["id"]},{"runtime",lan}}},
+            {"members",QJsonArray{QJsonObject{{"id","owner"},{"seat",1},{"connected",true}},QJsonObject{{"id","guest"},{"seat",2},{"connected",true}}}}},
+            [&](bool ok,QString error){QVERIFY2(ok,qPrintable(error));prepared=true;});
+        QVERIFY(prepared);QCOMPARE(f.runtime.lobbyDescriptor_,lan);
+        f.runtime.lanGames_.clear();QVERIFY(f.runtime.localProfile("gc",lan).isEmpty());
+        QCOMPARE(f.runtime.localProfile("gc",netplay),netplay);
+        f.runtime.descriptor_=lan;QCOMPARE(f.runtime.nativeLan(),linked!="runtime.flycast.online.v1");QVERIFY(!f.runtime.dolphin());QVERIFY(!f.runtime.supportsLive(lan));
+    }
+    void nativeReadyIsBoundToEachAssignedSeat() {
+        for(const auto& mode:{QString("runtime.flycast.online.v1"),QString("runtime.flycast.cabinet.v1"),QString("runtime.armsx2.lan.v1"),QString("runtime.dolphin.bba.v1")})
+        for(int slot=2;slot<=4;++slot)for(int received:{1,2,3,4,5}) {
+            Fixture f;f.runtime.active_=true;f.runtime.host_=false;f.runtime.request_.slot=slot;
+            f.runtime.descriptor_={{"id",mode},{"players",4}};
+            int inspected=0;f.library.inspect=[&]{++inspected;};
+            f.runtime.frame({{"kind",mode.contains("online")?"dc-online-ready":mode.contains("armsx2")?"ps2-ready":mode.contains("dolphin")?"bba-ready":"cabinet-ready"},{"identity",f.runtime.descriptor_},{"slot",received}});
+            // The valid seat reaches local content verification. Another seat
+            // must fail before looking up or launching any game.
+            QCOMPARE(inspected>0,received==slot);
+            QVERIFY(!f.process.active());
+        }
+    }
+    void dreamcastOnlineLaunchIsNotAMatchAndLobbyLossKeepsTheGame() {
+        Fixture f;QVERIFY(f.start());QTRY_COMPARE(f.lifecycle.state(),"running");
+        const auto pid=f.process.processId();f.runtime.active_=true;f.runtime.host_=true;f.runtime.online_=true;
+        f.runtime.descriptor_={{"id","runtime.flycast.online.v1"},{"lateJoin",false},{"connections",QJsonArray{"online"}}};
+        f.runtime.deadline_=1;
+        emit f.lifecycle.adventureStarted(f.lifecycle.adventureId());
+        QCOMPARE(f.runtime.deadline_,0);QCOMPARE(f.runtime.status_,"Choose Online and the same room in the game");
+        QVERIFY(!f.runtime.supportsRejoin(f.runtime.descriptor_));QVERIFY(!f.runtime.nativeLanConnection_);
+        f.runtime.fail("Lobby connection ended");QCOMPARE(f.process.processId(),pid);
+        f.runtime.frame({{"kind","dc-online-ready"},{"identity",f.runtime.descriptor_},{"slot",2}});
+        QCOMPARE(f.process.processId(),pid);QVERIFY(!f.runtime.active_);finishOrdinary(f);
+    }
     void lobbyReadyRunsBothOwnedChildrenAndReturnsToTheSameRoom_data() {
-        QTest::addColumn<QString>("ending");
-        for(const auto& name:{"normal","connection-failure","party-left"})QTest::newRow(name)<<QString(name);
+        QTest::addColumn<QString>("ending");QTest::addColumn<bool>("local");
+        for(bool local:{false,true})for(const auto& name:{"normal","connection-failure","party-left"})QTest::newRow(qPrintable(QString(local?"local-":"online-")+name))<<QString(name)<<local;
     }
     void lobbyReadyRunsBothOwnedChildrenAndReturnsToTheSameRoom() {
-        QFETCH(QString,ending);
+        QFETCH(QString,ending);QFETCH(bool,local);
+        QString selfA="1",selfB="2";const QString prefix=local?"local:":"online:";
+        const QString mode=local?"runtime.retroarch.nes.fceumm.v1":"runtime.test";
         Fixture a,b;
-        const QJsonObject profile{{"id","runtime.test"},{"content","exact"},{"players",2},{"label","Game"}};
-        const auto digest=QString::fromLatin1(QCryptographicHash::hash(QByteArray("runtime.test/exact"),QCryptographicHash::Sha256).toHex());
+        const QJsonObject profile{{"id",mode},{"content","exact"},{"players",2},{"label","Game"}};
+        const auto digest=QString::fromLatin1(QCryptographicHash::hash((mode+"/exact").toUtf8(),QCryptographicHash::Sha256).toHex());
         for(auto* f:{&a,&b}) {
             const auto id=f==&a?QString("1"):QString("2");
             // The test wires authenticated metadata locally; the signed-out
             // provider worker must not also attempt to deliver those packets.
             disconnect(&f->social,&SocialController::commandRequested,f->social.session_,nullptr);
             disconnect(f->social.session_,nullptr,&f->social,nullptr);
-            f->social.snapshot_={{"state","connected"},{"userId",id},{"name",id}};
-            f->social.lobbyCoordinator()->configure(id,id,true);f->social.lobbyRuntime()->configure(id,true);
-            f->social.lobbyRuntime()->registerService("runtime.test",&f->runtime);
+            if(local) {
+                f->social.owner_="local-owner";f->social.localLobby_.loopbackOnly_=true;f->social.localLobby_.discoveryPort_=0;
+                f->social.configureLocalLobby(f->dir.path(),id);f->social.setLobbyScope("local");f->social.openLobby();
+                disconnect(f->social.lobbyCoordinator(),&LobbyCoordinator::outgoing,&f->social,nullptr);
+                if(f==&a)selfA=f->social.localLobby_.identity();else selfB=f->social.localLobby_.identity();
+            } else {
+                f->social.snapshot_={{"state","connected"},{"userId",id},{"name",id}};
+                f->social.lobbyCoordinator()->configure(id,id,true);f->social.lobbyRuntime()->configure(id,true);
+            }
+            f->social.lobbyRuntime()->registerService(mode,&f->runtime);
             f->runtime.allowed_=true;f->runtime.games_={{"local",profile}};
             AdventureRegistration record;record.adventure.id="local";f->library.records={record};
             disconnect(&f->runtime.party_,&GameParty::startRequested,&f->runtime,&RuntimeMultiplayer::startParty);
@@ -474,18 +567,24 @@ private slots:
         }
         auto* h=a.social.lobbyCoordinator();auto* g=b.social.lobbyCoordinator();
         QSignalSpy startsA(&a.lifecycle,&AdventureLaunchController::adventureStarted),startsB(&b.lifecycle,&AdventureLaunchController::adventureStarted);
-        connect(h,&LobbyCoordinator::outgoing,g,[&](QString,QJsonObject p){g->receive("1","Host",p);});
-        connect(g,&LobbyCoordinator::outgoing,h,[&](QString,QJsonObject p){h->receive("2","Guest",p);});
-        connect(&a.runtime.party_,&GameParty::outgoing,&b.runtime,[&](QString,QJsonObject p){b.runtime.party_.receive("online:1","Host",p);});
-        connect(&b.runtime.party_,&GameParty::outgoing,&a.runtime,[&](QString,QJsonObject p){a.runtime.party_.receive("online:2","Guest",p);});
-        QVERIFY(h->create());QVERIFY(h->invite("2"));g->answer(true);const auto room=h->state()["id"].toString();
-        QVERIFY(h->selectGame({digest,"Game","test","runtime.test",2,profile}));QVERIFY(h->seat(1));QVERIFY(g->seat(2));
+        connect(h,&LobbyCoordinator::outgoing,g,[&](QString,QJsonObject p){g->receive(selfA,"Host",p);});
+        connect(g,&LobbyCoordinator::outgoing,h,[&](QString,QJsonObject p){h->receive(selfB,"Guest",p);});
+        connect(&a.runtime.party_,&GameParty::outgoing,&b.runtime,[&](QString,QJsonObject p){b.runtime.party_.receive(prefix+selfA,"Host",p);});
+        connect(&b.runtime.party_,&GameParty::outgoing,&a.runtime,[&](QString,QJsonObject p){a.runtime.party_.receive(prefix+selfB,"Guest",p);});
+        if(local) {
+            auto* r=h->createRoom("private",true);QVERIFY(r);QVERIFY(h->activateRoom(r->state()["id"].toString()));
+            QVERIFY(g->join(selfA,h->state()["id"].toString(),true));QVERIFY(h->approve(selfB));
+        } else {QVERIFY(h->create());QVERIFY(h->invite("2"));g->answer(true);}
+        const auto room=h->state()["id"].toString();
+        QVERIFY(h->selectGame({digest,"Game","test",mode,2,profile}));QVERIFY(h->seat(1));QVERIFY(g->seat(2));
         QVERIFY(a.social.lobbyRuntime()->prepare());QVERIFY(b.social.lobbyRuntime()->prepare());
         QVERIFY(h->ready(true));QVERIFY(!a.process.active());QVERIFY(!b.process.active());QVERIFY(g->ready(true));
         QVERIFY(!a.process.active());QVERIFY(!b.process.active());QVERIFY(!g->start());QVERIFY(h->start());QVERIFY(!h->start());
         QTRY_VERIFY2_WITH_TIMEOUT(h->state()["phase"]=="playing",qPrintable(a.social.lobbyRuntime()->status()+" / "+b.social.lobbyRuntime()->status()+" / "+a.lifecycle.state()+" / "+b.lifecycle.state()),5000);
         QCOMPARE(g->state()["phase"].toString(),QString("playing"));
-        QVERIFY(a.process.active());QVERIFY(b.process.active());QVERIFY(a.runtime.party_.pending().isEmpty());QVERIFY(b.runtime.party_.pending().isEmpty());
+        QVERIFY(a.process.active());QVERIFY(b.process.active());
+        if(local){QVERIFY(!a.runtime.online_);QVERIFY(!b.runtime.online_);QVERIFY(!a.runtime.relayStarted_);QVERIFY(!b.runtime.relayStarted_);}
+        QVERIFY(a.runtime.party_.pending().isEmpty());QVERIFY(b.runtime.party_.pending().isEmpty());
         if(ending!="normal") {
             if(ending=="party-left")b.runtime.party_.leave();else b.runtime.fail("Connection lost after suspend");
             QTRY_COMPARE(h->state()["phase"].toString(),QString("gathering"));
@@ -500,8 +599,8 @@ private slots:
         QVERIFY(!a.process.active());QVERIFY(!b.process.active());
         auto next=profile;next["content"]="another-game";
         for(auto* f:{&a,&b}) {QVERIFY(QFile::remove(f->dir.filePath("control")));f->runtime.games_["local"]=next;}
-        const auto nextId=QString::fromLatin1(QCryptographicHash::hash(QByteArray("runtime.test/another-game"),QCryptographicHash::Sha256).toHex());
-        QVERIFY(h->selectGame({nextId,"Another game","test","runtime.test",2,next}));
+        const auto nextId=QString::fromLatin1(QCryptographicHash::hash((mode+"/another-game").toUtf8(),QCryptographicHash::Sha256).toHex());
+        QVERIFY(h->selectGame({nextId,"Another game","test",mode,2,next}));
         QVERIFY(a.social.lobbyRuntime()->prepare());QVERIFY(b.social.lobbyRuntime()->prepare());
         QVERIFY(g->ready(true));QVERIFY(h->ready(true));QVERIFY(h->start());QTRY_COMPARE(h->state()["phase"].toString(),QString("playing"));
         QCOMPARE(startsA.size(),2);QCOMPARE(startsB.size(),2);QCOMPARE(g->state()["id"].toString(),room);
@@ -716,12 +815,14 @@ private slots:
         QVERIFY(!f.runtime.active_);QVERIFY(!f.process.active());
     }
     void dreamcastHostSaveCancellationAndStaleMarkers() {
+      for(const auto id:{"runtime.flycast-dojo.dc.v1","runtime.flycast-dojo.arcade.v1"}) {
         Fixture f;QVERIFY(f.start());QTRY_COMPARE(f.lifecycle.state(),"running");
-        requestRestart(f,{{"id","runtime.flycast-dojo.dc.v1"}});
+        requestRestart(f,{{"id",id}});
         QVERIFY(f.process.active());QVERIFY(f.runtime.restarting_);
         f.lifecycle.exitController().cancel();QVERIFY(f.process.active());QVERIFY(!f.runtime.active_);
         f.runtime.output("[TrainerOSFlycast] running\n");QVERIFY(!f.runtime.active_);
         finishOrdinary(f);
+      }
     }
     void dreamcastRejectsChangedIdentityAndTracksDisconnect() {
         Fixture f;f.runtime.active_=true;f.runtime.descriptor_={{"id","runtime.flycast-dojo.dc.v1"},{"content","accepted"}};
@@ -919,6 +1020,95 @@ private slots:
         f.runtime.refresh({},"test-trainer",true);QVERIFY(scan.isCanceled());scan.finish();
         QTRY_COMPARE(f.runtime.scanPriority_,game.adventure.id);QTRY_VERIFY(!f.runtime.scan_.isRunning());
         finishOrdinary(f);
+    }
+    void discDependenciesRefreshWithoutLibraryEvents_data() {
+        QTest::addColumn<bool>("ps1");
+        QTest::newRow("ps1-m3u-cue-sidecars")<<true;
+        QTest::newRow("pcengine-cue-firmware")<<false;
+    }
+    void discDependenciesRefreshWithoutLibraryEvents() {
+        QFETCH(bool,ps1);Fixture f;
+        const auto write=[&](const QString& name,const QByteArray& bytes) {
+            QFile file(f.dir.filePath(name));return file.open(QIODevice::WriteOnly)&&file.write(bytes)==bytes.size();
+        };
+        QVERIFY(write("runtime","runtime"));QVERIFY(write("core","core"));
+        QVERIFY(write("retroarch.cfg","system_directory = \""+f.dir.path().toUtf8()+"\"\n"));
+        QVERIFY(write("game.cue","FILE \"track.bin\" BINARY\n TRACK 01 MODE1/2352\n"));
+        QVERIFY(write("game.m3u","game.cue\n"));
+        const auto bios=ps1?QString("scph5501.bin"):QString("syscard3.pce");
+        QVERIFY(write(bios,QByteArray(512*1024,'b')));
+        AdventureRegistration game;game.adventure.id="disc";game.adventure.platformId=ps1?"psx":"pcenginecd";
+        game.adventure.adapterId=ps1?"duckstation":"retroarch";
+        game.contentPath=f.dir.filePath(ps1?"game.m3u":"game.cue");
+        const auto core=ps1?QString("pcsx_rearmed"):QString("mednafen_pce_fast");
+        game.integrationConfig["core"]=core;f.library.records={game};
+        RetroArchInstallation installation;installation.configFile=f.dir.filePath("retroarch.cfg");
+        installation.runtimeFile=f.dir.filePath("runtime");installation.cores[core]=f.dir.filePath("core");
+        f.runtime.dependencyPoll_.setInterval(50);
+        f.runtime.refresh(installation,"test-trainer",true);
+        QTRY_VERIFY(!f.runtime.scan_.isRunning());QVERIFY(f.runtime.multiplayerGames().isEmpty());
+        QVERIFY(f.runtime.scanDependencies_.contains(f.dir.filePath("track.bin")));
+        // Restore a missing required track, without changing the descriptor or
+        // notifying the library. The timer must make the game available.
+        QVERIFY(write("track.bin","first track"));
+        QTRY_COMPARE(f.runtime.multiplayerGames(),QStringList{"disc"});
+        QTRY_VERIFY(!f.runtime.scan_.isRunning());
+        const auto first=f.runtime.profiles_.value("disc");QVERIFY(!first.isEmpty());
+        const auto generation=f.runtime.dependencyGeneration_;
+        QVERIFY(write("unrelated.srm","personal save activity"));
+        f.runtime.pollScanDependencies();QTRY_VERIFY(!f.runtime.dependencyScan_.isRunning());
+        QCOMPARE(f.runtime.dependencyGeneration_,generation); // Idle/unrelated writes do not rehash ROMs.
+        QVERIFY(write("track.bin","second longer track"));
+        QTRY_VERIFY(!f.runtime.profiles_.value("disc").isEmpty()&&f.runtime.profiles_.value("disc")!=first);
+        QTRY_VERIFY(!f.runtime.scan_.isRunning());
+        const auto second=f.runtime.profiles_.value("disc");
+        if(ps1) {
+            QVERIFY(write("game.sbi","new optional subchannel"));
+            QTRY_VERIFY(!f.runtime.profiles_.value("disc").isEmpty()&&f.runtime.profiles_.value("disc")!=second);
+            QVERIFY(QFile::remove(f.dir.filePath("game.sbi")));
+            QTRY_COMPARE(f.runtime.profiles_.value("disc"),second);
+            QVERIFY(write("game.ccd","overriding descriptor"));
+            QTRY_VERIFY(f.runtime.multiplayerGames().isEmpty());QTRY_VERIFY(!f.runtime.scan_.isRunning());
+            QVERIFY(QFile::remove(f.dir.filePath("game.ccd")));
+            QTRY_COMPARE(f.runtime.profiles_.value("disc"),second);
+        }
+        QVERIFY(write(bios,QByteArray(512*1024,'c')));
+        QTRY_VERIFY(!f.runtime.profiles_.value("disc").isEmpty()&&f.runtime.profiles_.value("disc")!=second);
+        QTRY_VERIFY(!f.runtime.scan_.isRunning());
+        const auto current=f.runtime.profiles_.value("disc");
+        QVERIFY(f.start(false,"disc"));QTRY_VERIFY(f.lifecycle.active());
+        f.runtime.active_=true;f.runtime.game_="disc";f.runtime.descriptor_=current;
+        f.runtime.party_.configure("test-trainer",{current},current,true);
+        f.runtime.party_.invite("friend");QVERIFY(f.runtime.party_.active());
+        const auto party=f.runtime.party_.state().value("party");
+        const auto pid=f.process.processId();
+        QVERIFY(QFile::remove(f.dir.filePath("track.bin")));
+        QTRY_VERIFY(f.runtime.multiplayerGames().isEmpty());QTRY_VERIFY(!f.runtime.scan_.isRunning());
+        QCOMPARE(f.runtime.party_.state()["party"],party);QVERIFY(f.runtime.active_);
+        QCOMPARE(f.process.processId(),pid);QVERIFY(f.lifecycle.active());
+        QCOMPARE(f.library.writes,0); // Catalog refresh grants no save/library write.
+        finishOrdinary(f);
+    }
+    void dependencyChangeRetiresPendingScanAndOldMetadataReply() {
+        Fixture f;const auto path=f.dir.filePath("media.bin");
+        const auto write=[&](QByteArray bytes){QFile file(path);return file.open(QIODevice::WriteOnly)&&file.write(bytes)==bytes.size();};
+        QVERIFY(write("before"));
+        f.runtime.refresh({},"test-trainer",true);QTRY_VERIFY(!f.runtime.scan_.isRunning());
+        f.runtime.dependencyPoll_.stop();
+        QPromise<RuntimeMultiplayer::ScannedGame> scan;scan.start();f.runtime.scan_.setFuture(scan.future());
+        f.runtime.scanDependencies_.insert(path,retroarch::netplayFileRevision(path));
+        QVERIFY(write("changed bytes"));f.runtime.pollScanDependencies();
+        QTRY_VERIFY(scan.isCanceled());QVERIFY(f.runtime.profiles_.isEmpty());
+        QVERIFY(!scan.addResult({"stale",retroarch::netplayProfile("nes","fceumm",QString(64,'a'))}));
+        scan.finish();QTRY_VERIFY(!f.runtime.scan_.isRunning());
+        QTRY_VERIFY(!f.runtime.dependencyScan_.isRunning());
+        QPromise<quint64> old;old.start();f.runtime.dependencyScan_.setFuture(old.future());
+        const auto previous=f.runtime.dependencyGeneration_;
+        f.runtime.invalidateScan();QTRY_VERIFY(!f.runtime.scan_.isRunning());
+        const auto current=f.runtime.dependencyGeneration_;QVERIFY(current!=previous);
+        old.addResult(previous);old.finish();QTRY_VERIFY(!f.runtime.dependencyScan_.isRunning());
+        QCoreApplication::processEvents();QCOMPARE(f.runtime.dependencyGeneration_,current);
+        QVERIFY(f.runtime.multiplayerGames().isEmpty());
     }
     void changedLibraryRetiresObsoleteDiscScan() {
         Fixture f;AdventureRegistration first;first.adventure.id="old";first.adventure.platformId="nes";

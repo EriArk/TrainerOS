@@ -3,7 +3,8 @@
 
 namespace trainer::ps2lan {
 QString bundleRoot();
-QJsonObject netplayIdentity(const AdventureRegistration&,const std::atomic_bool&);
+QJsonObject netplayIdentity(const AdventureRegistration&,const std::atomic_bool&,
+                           const std::function<void(const QString&)>& observe={});
 ProcessCommand command(const AdventureRegistration&,const QJsonObject& expected,
                        QString connection,bool host,const QStringList& inputPrefix={});
 }

@@ -1,8 +1,10 @@
 #pragma once
 #include "RetroArchNetplay.h"
+#include "integrations/adventure/CartridgeContent.h"
 namespace trainer::retroarch {
 // Source-backed separate-machine protocols; not an all-cartridge capability.
 QJsonObject handheldLinkProfile(const AdventureRegistration&);
+QJsonObject handheldLinkProfile(const AdventureRegistration&,const cartridge::Image&);
 QString handheldLinkCore(const QJsonObject&);
 bool handheldLinkContentCompatible(const QJsonObject&, const QString& sha256);
 QByteArray handheldLinkOptions(const QJsonObject&, int playerSlot = 1, int players = 2);

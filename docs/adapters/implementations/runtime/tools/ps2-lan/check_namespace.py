@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: GPL-3.0-or-later
 """Linux host check: real namespace UDP isolation and game lifetime on loss."""
+import json
 import os
 from pathlib import Path
 import socket
@@ -10,19 +11,19 @@ import sys
 import tempfile
 
 
-def packet():
+def packet(peer=1):
     value=bytearray(44);value[:6]=b'ECLX\x01\x01'
-    struct.pack_into('>H',value,6,44);struct.pack_into('>H',value,22,1)
+    struct.pack_into('>I',value,8,peer);struct.pack_into('>H',value,6,44);struct.pack_into('>H',value,22,1)
     return bytes(value)
 
 
 def game(role, root):
     udp=socket.socket(socket.AF_INET,socket.SOCK_DGRAM);udp.settimeout(8)
     udp.bind(('0.0.0.0',19072 if role=='host' else 0))
-    if role=='guest':udp.sendto(packet(),('127.0.0.1',19073))
+    if role=='guest':udp.sendto(packet(2),('127.0.0.1',19073))
     (root/'ready').touch()
-    data,peer=udp.recvfrom(2048);assert data==packet()
-    udp.sendto(data,peer)
+    data,peer=udp.recvfrom(2048);assert data==packet(2 if role=='host' else 1)
+    udp.sendto(packet(1 if role=='host' else 2),peer)
     # Parent closes the channel, then tells the still-owned game to finish.
     import time
     for _ in range(100):
@@ -37,7 +38,7 @@ def check(endpoint, role):
         server.bind(str(root/'ps2.sock'));server.listen(1);server.settimeout(8)
         host=role=='host'
         config=root/'session.conf'
-        config.write_text(f'mode=ps2\naddress=127.0.0.1\nhost={str(host).lower()}\nport={19072 if host else 19073}\npeer={1 if host else 2}\nroom=123456abcdef\nsocket={root}/ps2.sock\n')
+        config.write_text(json.dumps({'protocol':2,'mode':'ps2','room':'123456abcdef','seat':1 if host else 2,'players':2,'sockets':{'2' if host else '1':str(root/'ps2.sock')}}))
         config.chmod(0o600)
         # The exact same UDP port is occupied outside: namespace bind must work.
         outside=socket.socket(socket.AF_INET,socket.SOCK_DGRAM);outside.bind(('0.0.0.0',19072 if host else 19073))
@@ -57,9 +58,9 @@ def check(endpoint, role):
                 result=b''
                 while len(result)<46:
                     part=channel.recv(46-len(result));assert part,'Channel closed';result+=part
-                assert result==struct.pack('>H',44)+packet()
+                assert result==struct.pack('>H',44)+packet(1 if host else 2)
             if not host:receive()
-            channel.sendall(struct.pack('>H',44)+packet());receive()
+            channel.sendall(struct.pack('>H',44)+packet(2 if host else 1));receive()
             channel.close();time.sleep(.3)
             assert process.poll() is None,'Transport loss killed the game'
             (root/'exit').touch();assert process.wait(timeout=8)==0

@@ -1,5 +1,81 @@
 # Карта готовности функций TrainerOS
 
+**26.10 — R035/R041:** добавлен групповой PS2 LAN / Dolphin BBA на 2–4
+независимые консоли через общий Lobby. [Контракт и состояние поставки](emulators/native-lan-groups.md).
+Старые парные описания относятся к предыдущей реализации; обычный Dolphin
+NetPlay и его совместимость этим не ограничиваются. Установлено на Flip/Odin:
+`8751ae05`, shell `102adeb3…`; группы 2/3/4 с установленными helpers прошли,
+личные данные и 17 других пакетов сохранены.
+[Доставка и незакрытые проверки](evidence/native-lan-groups-20261026/README.md).
+
+**26 октября — S02/S03/S06/S08, оставшиеся форматы одним проходом:**
+реализованы native install/receipt/cancel/recovery CIA/ZCIA и compatibility
+с update/DLC, Dolphin ELF/DOL/NFS, PS2/Dolphin M3U/M3U8 и целостность составных
+файлов. Реализация `a21d9a50` установлена на Flip/Odin, native проверки прошли;
+история и проверенные личные файлы сохранены. [Реализация, проверки и поставка](MULTIPLAYER_CONTENT_FORMATS.md#единый-проход-оставшихся-форматов--26-октября-2026).
+Историческое «CIA/ZCIA не реализовано» ниже заменено этим контрактом; unsupported
+native/network routes остаются явными, расширение файла не объявляет их готовыми.
+
+**26 октября — CBN/CBIN доставлены на обе портативки:** оболочка `fcff5356`,
+отдельный native package, проверки чтения/старта и сохранности проверенных
+личных файлов. [Установленные хеши и границы](MULTIPLAYER_CONTENT_FORMATS.md#cbncbin-исправленный-native-reader).
+CIA/ZCIA installation/identity остаётся незавершённой функцией ниже.
+
+**25 октября — CBN/CBIN, S02/S03 → S06/S08:** отдельный исправленный PS1 reader
+подключён к регистрации, обычному запуску и NetPlay, включая M3U. Native miniz
+и ARM64 suites прошли; [доставка/границы](MULTIPLAYER_CONTENT_FORMATS.md#cbncbin-исправленный-native-reader)
+отделены от исходников. Прежние ядро/Rejoin/handoff других PS1-форматов сохранены.
+CIA/ZCIA: [native install изучен](emulators/azahar.md#ciazcia-installation-boundary--25-october-2026),
+интеграция установки и состава title+updates/DLC ещё не реализована.
+
+**25 октября — доставка общего multiplayer-прохода, S02/S03 → S06/S08:**
+объединённая с актуальным main ARM64-оболочка и PSP/Dolphin/PS2 helpers установлены
+на Flip/Odin. Шесть native suites и проверки helpers прошли; обе оболочки работают,
+личные файлы в проверенном наборе и история сохранены. [Доказательства и границы](MULTIPLAYER_CONTENT_FORMATS.md#доставка-на-flip-и-odin--25-октября-2026).
+Это заменяет ниже отметки «устройства не обновлены» для форматов и доставки BBA;
+новых игровых матчей и новых сетевых механизмов эта запись не заявляет.
+
+**25 октября — общий проход форматов, S02/S03 → S06/S08:**
+[единая таблица](MULTIPLAYER_CONTENT_FORMATS.md) фиксирует PS1 descriptors/raw,
+PS2 compressed/raw, PSP CHD, Dreamcast GDI/CDI/CUE/M3U, Dolphin TGC/split/WAD,
+DS archives и 3DS native/compressed aliases. Зависимости образов участвуют
+в идентичности; DS сохраняет собственный SAV. Профильные проверки и production
+build прошли, ARM64 PSP/Dolphin пакеты собраны. Устройства не обновлены.
+Этот результат заменяет ниже прежние открытые пункты CCD/TOC/MDS и PSP CHD;
+wrappers, живая смена дисков, установочные/шифрованные данные и отсутствующие
+сетевые механизмы остаются отдельными незавершёнными функциями.
+
+**25 октября — актуальность каталога Lobby, S03 → S06:** изменение/удаление/
+восстановление дорожки CUE, диска M3U, PS1 sidecar или проверяемого BIOS теперь
+вызывает фоновый пересчёт доступности. Неизменившиеся результаты RetroArch
+используются повторно; пустой каталог во время пересчёта не завершает живую пати.
+[Контракт и границы](RETROARCH_MULTIPLAYER_PROFILES.md#dependency-aware-lobby-refresh--25-october-2026).
+Реализовано в исходниках; устройства не обновлены.
+
+**25 октября — PS1 PBP/M3U/ISO, S02/S03 → S06/S08:** в исходниках добавлены
+идентификация и подготовка общего NetPlay для этих форматов. Учитываются
+все диски плейлиста/PBP и дополнительные данные; сеанс начинает с первого диска.
+Обычные карты и настройки сохраняются. [Механизм и границы](emulators/pcsx-rearmed.md#pbp-m3u-and-iso-admission--25-october-2026).
+Устройства не обновлены; CCD/TOC/MDS и смена диска во время сеанса отдельно.
+
+**25 октября — архивы GB/GBC/GBA/N64, S02/S03 → S06/S08:** ZIP/7z с одним
+картриджем проходят идентификацию и подготовку прежних сетевых режимов.
+Сравниваются байты ROM; привязка личных сохранений к контейнеру сохраняется.
+[Механизм, проверки и границы](HANDHELD_MULTIPLAYER.md#zip7z-cartridges--25-october-2026).
+Реализовано в исходниках, устройства не обновлены; libarchive — зависимость поставки.
+
+**25 октября — PSP CSO/PBP, S03 → S06:** добавлено чтение идентичности через
+штатные читатели PPSSPP, сохранены общий Ad Hoc и точное сравнение файлов.
+ARM64 helper собран; форматы, отказы и запуск проверены без устройств.
+[Рецепт и границы](emulators/ppsspp.md#csopbp-multiplayer-identity--25-october-2026).
+Новая оболочка и пакет ещё не установлены; CHD/wrappers остаются открыты.
+
+**25 октября — доступность игр, S02/S03 → S06:** [сквозной аудит](EMULATOR_MULTIPLAYER_MATRIX.md#аудит-доступности-игр-в-lobby--25-октября-2026)
+снял неверный local-solo фильтр с отдельных Link/wireless/LAN машин, добавил
+недостающие форматы GC/Wii/DS/3DS в обнаружение и запуск, убрал региональный
+allowlist GC BBA. Общий NetPlay не ограничивается проверенными названиями.
+Оставшиеся контейнеры/механизмы перечислены отдельно; портативки не обновлены.
+
 **25 октября — предел Lobby, R024/S06:** в исходниках общий состав комнаты
 ограничен 16 участниками вместе с хозяином и зрителями. Вход, одобрение,
 сетевое состояние, восстановление и каталог согласованы; повторный вход
@@ -118,7 +194,7 @@ R-ID не перенумеровывать; новая функция получ
 | ☑ | <a id="r024"></a>**R024** Комнаты, голосование, Ready и ручной Start хозяина | **[S06]**; [S05], [S03] | Сделано | Доставленная основа; [восстановление комнаты, подготовки и результата запуска](LOBBY63_PREPARATION.md). Ошибка доставки отделена от потери членства; сбой игровой пати освобождает запуск без удаления комнаты. #179/#208–211. |
 | ☐ | <a id="r025"></a>**R025** Полный вход/возврат, импорт игры, HUD/mini-chat | **[S06]**; [S03], [S04], [S13] | Недоделано | UI/bindings есть; [возврат NetPlay по кнопке](LOBBY_LIVE_JOIN.md) сохраняет матч хозяина и прежний контроллер, охватывает 20 пар платформ/ядер RetroArch; автоматический запуск удалён по уточнению владельца. ARM import, остальные runtime и подтверждение нового зрителя хозяином #184 не завершены; [HUD](LOBBY64_ENTRIES_HUD.md), #132/#135/#183–196/#212. |
 | ☐ | <a id="r121"></a>**R121** Lobby/Social: GIF, файлы, voice message и Downloads | **[S05]**; [S06], [S13], [S15] | Недоделано | #102/#213: существующая provider-модель; все форматы/разрешения/transfer и UI ещё не приняты. |
-| ☐ | <a id="r026"></a>**R026** Offline Lobby без Fluxer | **[S06]**; [S07], [S01] | Не сделано | Локальное обнаружение, создание и допуск #214. |
+| ☐ | <a id="r026"></a>**R026** Offline Lobby без Fluxer | **[S06]**; [S07], [S01] | Недоделано | #214: [Local Lobby](OFFLINE_LOBBY.md) в исходниках: LAN discovery/TLS, отдельная локальная личность, допуск, выбор игры, Ready/Start и восстановление. Поставка отдельно; общий PC LAN зависит от #251. |
 | ☐ | <a id="r027"></a>**R027** Пробуждение устройства к встрече | **[S06]**; [S15] | Не проверено | Прежнее требование сохранено отдельно от установки community bot; реализация/аппаратная проверка не подтверждены. |
 | ☐ | <a id="r122"></a>**R122** Установка directory bot в стороннем сообществе | **[S06]**; [S05] | Не проверено | Существующий owner bot не доказывает onboarding/права/публикацию в другом community; прежнее требование сохранено. |
 | ☑ | <a id="r028"></a>**R028** RetroArch netplay: подтверждённые профили | **[S03]**; [S06], [S07], [S08] | Сделано | Общая консоль/отдельные pads, invite/relay; [профили](RETROARCH_MULTIPLAYER_PROFILES.md). [Автоподбор/ручной relay и разные ARM/x86 бинарники](NETPLAY_RELAY_SELECTION.md); игровые профили/content и локальные возможности проверяются отдельно. [23 октября: исправления конфигурации](NETPLAY_STABILITY_2026_10_23.md), стабильность под нагрузкой открыта в R029. |
@@ -128,13 +204,13 @@ R-ID не перенумеровывать; новая функция получ
 | ☐ | <a id="r032"></a>**R032** N64: четыре устройства, другие игры/сети | **[S03]**; [S06], [S07], [S08] | Не проверено | Широкая приёмка и production service остаются открытыми. |
 | ☑ | <a id="r033"></a>**R033** PS1: проверенные shared-pad профили | **[S03]**; [S06], [S07], [S08] | Сделано | PCSX-ReARMed; [запись](emulators/pcsx-rearmed.md). |
 | ☐ | <a id="r034"></a>**R034** PS1: multitap/system link и широкая приёмка | **[S03]**; [S06], [S07], [S08] | Недоделано | Отдельный механизм и проверки карт/контента; DuckStation solo не доказывает netplay. |
-| ☐ | <a id="r035"></a>**R035** PS2 native DEV9/game online | **[S03]**; [S06], [S07], [S08] | Недоделано | 24.10: на Flip/Odin установлены Lobby-привязка, точная ISO/CHD-идентификация и Local Link через общий ICE/DTLS с приватной сетью ARMSX2. Linux transport/Lobby/lifecycle проверки пройдены, нативный хост увидел второго участника. Battlefront II пока не дошла до матча: после перехода к Network Configuration Utility теряется ввод. Это следующий дефект; полный Lobby/Home/Exit и offline-вход остаются открыты. Без VPN/сложных NAT; серверный Online отдельно. [Доставка и продолжение](emulators/armsx2-lan.md), [таблица игр](MULTIPLAYER_TESTED_GAMES.md). [LRPS2 остановлен](emulators/lrps2.md). |
+| ☐ | <a id="r035"></a>**R035** PS2 native DEV9/game online | **[S03]**; [S06], [S07], [S08] | Недоделано | 24.10 установлены Lobby, ISO/CHD-проверка и изолированный Local Link через ICE/DTLS. 25.10 владелец подтвердил LAN Battlefront II; дефекты системной утилиты открыты, игра отложена. В исходниках исправлена атомарная подготовка и по запросу владельца открыт полный LAN-каталог: 56 названий / 164 serial, без одиночного CRC-допуска. Образ/CRC/runtime между участниками по-прежнему сравниваются. 30 локальных проверок пройдены; новый пакет ещё не установлен, к занятым портативкам не подключались. Игровые результаты отмечаются отдельно; полный Lobby/Home/Exit не принят; offline-вход добавлен в исходниках [Local Lobby](OFFLINE_LOBBY.md). Без VPN/сложных NAT; серверный Online отдельно. [Доставка и продолжение](emulators/armsx2-lan.md), [таблица игр](MULTIPLAYER_TESTED_GAMES.md). [LRPS2 остановлен](emulators/lrps2.md). |
 | ☑ | <a id="r036"></a>**R036** PSP: обычный Ad Hoc Nearby/Online | **[S03]**; [S06], [S07], [S08] | Сделано | Lumines, два устройства, lifecycle; [PPSSPP](emulators/ppsspp.md). |
 | ☐ | <a id="r037"></a>**R037** PSP: private-party admission и другие игры | **[S03]**; [S06], [S07], [S08] | Недоделано | 24.10: relay/координация исправлены и установлены. [Все пять новых игр проверены](emulators/ppsspp.md#five-game-paired-checks--24-october-2026): Ridge Racer, Tennis, Killzone и Shin Budokai дошли до совместной игры, Tennis — до повторного матча. В Sonic Rivals 2 воспроизведены три отказа перехода к гонке; два запуска с debug-журналом не закрывают дефект. Добавлены [ручной host-relay и исправление гонки PDP](emulators/ppsspp.md#host-relay-and-pdp-threading--24-october-2026); отказ Sonic сохраняется на обоих путях. Новая оболочка/пакет реле установлены на обеих: доставка на Flip завершена после перезагрузки владельцем, сверены живой запуск, хеши и личные файлы. По последнему решению владельца Sonic пока убрана из работы; отказ сохранён в [таблице проверенных игр](MULTIPLAYER_TESTED_GAMES.md). Общая private-party изоляция, широкая совместимость и WAN-устойчивость не закрыты. |
-| ☑ | <a id="r038"></a>**R038** Dreamcast: Flycast Dojo / Soul Calibur | **[S03]**; [S06], [S07], [S08] | Сделано | Nearby/public relay, input/Home/Exit; [Flycast](emulators/flycast.md). |
-| ☐ | <a id="r039"></a>**R039** Dreamcast services, Naomi/Atomiswave cabinet link | **[S03]**; [S06], [S07], [S08] | Недоделано | GGPO не покрывает игровые серверы/соединение автоматов; интеграция не завершена. |
+| ☑ | <a id="r038"></a>**R038** Flycast Dojo: Dreamcast и arcade shared-console NetPlay | **[S03]**; [S06], [S07], [S08] | Установлено на Flip/Odin | Dreamcast Nearby/public relay, input/Home/Exit сохранены. Добавлены Naomi/Naomi 2/Atomiswave, общий Lobby, native content dependencies и private progress; paired Dolphin Blue session start. [Flycast: доказательства и границы](emulators/flycast.md), [поставка](evidence/arcade-netplay-20261026/README.md). |
+| ☐ | <a id="r039"></a>**R039** Dreamcast services, Naomi/Atomiswave cabinet link | **[S03]**; [S06], [S07], [S08] | Частично установлено на Flip/Odin | Native Naomi расширен до 2–4 кабинетов через Lobby/ICE/DTLS; Maximum Speed serial парный. Добавлен Dreamcast **Online (in-game)**: native product-code capability, явный Start, ручная комната в игре, постоянные owner VMU/flash и защищённый возврат. [DCNet: проверки и доставка](emulators/flycast-dcnet.md), [cabinet](emulators/flycast-cabinet.md). [Групповой контракт](emulators/flycast-groups.md): DCNet launch до четырёх клиентов, полный состав кабинетов, собственные P2/P3/P4. Дополнительные сервисы/редакции и реальный game-server матч остаются отдельными условиями. |
 | ☑ | <a id="r040"></a>**R040** GameCube/Wii: проверенные Dolphin NetPlay маршруты | **[S03]**; [S06], [S07], [S08] | Сделано | Melee/NSMB Wii, отдельные pads/remotes, lifecycle; [Dolphin](emulators/dolphin.md). |
-| ☐ | <a id="r041"></a>**R041** GameCube/Wii: BBA/native online, motion, широкая приёмка | **[S03]**; [S06], [S07], [S08] | Недоделано | Отдельные режимы, четыре физических участника и разные сети. |
+| ☐ | <a id="r041"></a>**R041** GameCube/Wii: BBA/native online, motion, широкая приёмка | **[S03]**; [S06], [S07], [S08] | Недоделано | 25.10 в исходниках добавлен [GameCube LAN/BBA](emulators/dolphin.md#gamecube-lan--bba--25-октября-2026-исходники): две независимые консоли, отдельный выбор в Lobby, штатный TAP server поверх ICE/DTLS, изолированный временный прогресс. Linux-транспорт, UI и lifecycle проверены; EOF-патч Dolphin воспроизведён на upstream TAP-классе. Полные ARM64-пакеты Dolphin/helper собраны: запуск, зависимости и 16 транспортных сценариев проверены через QEMU. ARM64-оболочка и пакеты установлены на обеих 25.10 после объединения со свежим core/main; native suites и сохранность проверенных данных подтверждены. Новый игровой матч не запускался. Серверный Online, motion и более широкая совместимость остаются открытыми. |
 | ☑ | <a id="r042"></a>**R042** DS: проверенный Mario Kart DS wireless | **[S03]**; [S06], [S07], [S08] | Сделано | Deterministic bundle, приглашения/Home/личные сейвы; [melonDS](emulators/melonds.md). |
 | ☐ | <a id="r043"></a>**R043** DS: WFC, четыре игрока и широкая приёмка | **[S03]**; [S06], [S07], [S08] | Недоделано | Отдельный WFC маршрут, saves/games/resources; #162–166. |
 | ☑ | <a id="r044"></a>**R044** 3DS: проверенный Minicraft3DS wireless | **[S03]**; [S06], [S07], [S08] | Сделано | Nearby/relay, приглашение/Home/save/Exit; [Azahar](emulators/azahar.md). |
@@ -171,20 +247,20 @@ R-ID не перенумеровывать; новая функция получ
 | ☐ | <a id="r064"></a>**R064** Browser: upload picker, JS dialogs, controller UX | **[S04]**; [S15], [S13] | Недоделано | [Мобильный ввод 25.10](BROWSER71_IMPLEMENTATION.md#мобильный-ввод--25-октября-2026): прямой IME ввод, сохранение фокуса/выделения, Tab/Enter/Hide, уменьшение viewport. Layout выбирает Touch с четырьмя рядами, вводом при отпускании, акцентами, трекпадом на пробеле и жестами Shift/123 либо полную PC-клавиатуру с numpad и отключаемыми группами. Настройки сохраняются для Trainer. На Odin проверены Chromium, iframe, shadow DOM, редактор, пароль и textarea. Автокоррекция/предиктивный словарь/набор слов свайпом, физические touch/controller, разнообразные сайты/вложения, общий upload picker и полный #230 остаются открытыми. |
 | ☑ | <a id="r065"></a>**R065** Files: базовый менеджер | **[S15]**; [S04] | Сделано | libfm-qt, breadcrumb и управление; [Files](FILES68_IMPLEMENTATION.md). |
 | ☐ | <a id="r066"></a>**R066** Files: сетевые места/auth и длительные задачи | **[S15]**; [S13], [S14] | Недоделано | Полный #229, backend операции и Downloads не приняты. |
-| ☑ | <a id="r067"></a>**R067** Crates: витрина, каталог, установка/обновление примеров | **[S12]**; [S13], [S02] | Сделано | [Установщик](CRATES76_INSTALLER.md), [каталог](CRATES77_CATALOGUE.md), #144–149. Ревизия 18: 15 проектов/33 записи; девять игр 0.1.1 для ARM64/x86_64. На Odin/Flip Update all обновил четыре игры с сохранением данных/истории, пять новинок установлены Download; Odin: реальный Versions/downgrade/Update. Запуски/Home и Timer widget проверены только в описанном объёме. |
+| ☑ | <a id="r067"></a>**R067** Crates: витрина, каталог, установка/обновление примеров | **[S12]**; [S13], [S02] | Сделано | [Установщик](CRATES76_INSTALLER.md), [каталог](CRATES77_CATALOGUE.md), #144–149. Ревизия 18: 15 проектов/33 записи; девять игр 0.1.1 для ARM64/x86_64. На Odin/Flip Update all обновил четыре игры с сохранением данных/истории, пять новинок установлены Download; Odin: реальный Versions/downgrade/Update. Это прежний интерфейс: [26 октября](CRATES76_INSTALLER.md#текущий-ux-обновлений--26-октября-2026) выбор версий убран, Update стал основным действием; добавлены включаемые фоновые обновления через Downloads. [Новая оболочка доставлена на Odin/Flip](evidence/crates-updates-20261026/README.md), 23 теста и UI-сценарий прошли; обновление следующего публичного пакета и физическая приёмка открыты. Запуски/Home и Timer widget проверены только в описанном объёме. |
 | ☐ | <a id="r068"></a>**R068** Отзывы V2: звёзды, optional text и legacy V1 | **[S12]**; [S05], [S09] | Недоделано | V1 существует; 1–5 stars, один эффективный отзыв и миграция #113 не завершены; [F10](STRUCTURE_MAP_RU.md#f10). |
 | ☑ | <a id="r091"></a>**R091** Отзывы V1: проверенный Emerald read/write/edit/delete | **[S12]**; [S05], [S09] | Сделано | Историческая парная проверка 2 октября, [доказательство](ADVENTURE_REVIEWS.md). Только champion-v1/text; не новая проверка и не универсальный V2. |
 | ☐ | <a id="r092"></a>**R092** Crates: право на отзыв по истории установки | **[S12]**; [S13], [S01] | Не сделано | #113: любая прежняя установка; сохранить eligibility после удаления. Сейчас V1 требует Emerald champion; [F10](STRUCTURE_MAP_RU.md#f10). |
 | ☐ | <a id="r093"></a>**R093** Обычные Adventure: новая eligibility по игре/прохождению | **[S09]**; [S12], [S08] | Недоделано | #113: 7200 допустимых секунд либо verified completion с meaningful local play. Старый import-only champion-v1 не выполняет целевой контракт. |
 | ☐ | <a id="r094"></a>**R094** Crates Top Rated: единый рейтинг всех типов проектов | **[S12]**; [S05] | Не сделано | #151: shared Fluxer source, sample-aware score, один project score для всех версий; без второй БД голосов. |
 | ☐ | <a id="r095"></a>**R095** Донат автору: QR и открытие проверенной ссылки | **[S12]**; [S04], [S15] | Не проверено | #150: реальный автор, QR/Browser, без обработки платежа TrainerOS; полный пользовательский путь не подтверждён. |
-| ☐ | <a id="r069"></a>**R069** Crates: совместимость внешних пакетов и recovery регистрации | **[S13]**; [S12], [S02], [S14] | Недоделано | [Девять игр 0.1.1 и Timer](CRATES77_CATALOGUE.md): install/update на обоих устройствах, сохранение данных при Update all и ручной downgrade/Update проверены. Локальные игры/Home/выход и Timer widget — только в описанном объёме; remove/reinstall остаются Linux/QEMU evidence. Timer Back требует исправления; общий Home → Minimize работает. Общая совместимость, физический ввод и crash/recovery receipt/desktop/library — [F07](STRUCTURE_MAP_RU.md#f07) — не приняты. |
+| ☐ | <a id="r069"></a>**R069** Crates: совместимость внешних пакетов и recovery регистрации | **[S13]**; [S12], [S02], [S14] | Недоделано | [Install/update прежних пакетов](CRATES77_CATALOGUE.md) проверены в описанном объёме. [Recovery 26 октября](evidence/crates-recovery-20261026/README.md): журнал, offline-восстановление receipt/desktop, корректный результат в Downloads и Retry после прерванного удаления; возврат той же записи библиотеки проверен ARM64-тестом. На Odin/Flip установлены helper и оболочка, по 13 проверок установленного helper с SIGKILL и remove/reinstall выполнены в изолированных каталогах; личные игры не удалялись. Общая совместимость, физический ввод, физический сбой питания и полный пользовательский цикл с внешним пакетом остаются открыты — [F07](STRUCTURE_MAP_RU.md#f07). Timer Back сохраняется отдельным незакрытым условием прежней проверки. |
 | ☐ | <a id="r096"></a>**R096** Crates: подготовка, принятие и публикация стороннего автора | **[S12]**; [S13], [S14] | Недоделано | Подписанный publisher pipeline существует; самостоятельный author onboarding/передача полномочий не определены. [F09](STRUCTURE_MAP_RU.md#f09), #147/#149. |
 | ☐ | <a id="r097"></a>**R097** Crates: отзыв релиза и сохранение установленных данных | **[S12]**; [S13], [S02] | Не проверено | withdrawn/snapshot механизм есть; полный пользовательский цикл отзыва/повторной публикации вне примеров не принят. [Публикация](../packaging/crates/README.md). |
 | ☐ | <a id="r070"></a>**R070** System modules/SPI: версии, роли, установка и lifecycle | **[S14]**; [S13], [S04] | Не сделано | #231: external module host, API compatibility, uninstall/quarantine/migration; built-in Experience не закрывает внешний SPI. [F11](STRUCTURE_MAP_RU.md#f11). |
 | ☐ | <a id="r098"></a>**R098** SDK core: service discovery, bridge и lifecycle | **[S14]**; [S01], [S03], [S15] | Недоделано | Protocol v1 preview: discovery/context/events/cleanup и managed launch; [SDK](PLATFORM_SDK.md). Доставлен на Odin/Flip вместе с pinned records helper; Timer подключается, внешний Start-виджет работает. Остальные service facades, живой парный сетевой цикл, Timer app-requested return и физическая приёмка открыты. |
 | ☐ | <a id="r099"></a>**R099** UI contributions: slots, widgets, actions и overlays | **[S14]**; [S04], [S03] | Недоделано | Plain-text Start widget, activation callback, текущий dashboard и снятие вклада реализованы; [SDK](PLATFORM_SDK.md). Полные slots/GameHub/overlays/TV/package lifecycle #237 не закрыты. |
-| ☐ | <a id="r100"></a>**R100** Network Fabric: API peer channels поверх текущих transport | **[S07]**; [S14], [S06] | Недоделано | [Reliable records preview](../sdk/NETWORK.md) для двух app peers поверх существующего защищённого helper; bounded send/consume/ack и session cleanup. Offline admission, ICE/unreliable/direct fast path, 5 peers, real internet/ARM ещё открыты. |
+| ☐ | <a id="r100"></a>**R100** Network Fabric: API peer channels поверх текущих transport | **[S07]**; [S14], [S06] | Недоделано | [Reliable records](../sdk/NETWORK.md): подготовлено расширение 2–16 peers, host-star, отдельный credit/sequence на связь и cleanup всего матча. Windows TLS-проверка 16 peers пройдена; [стык Lobby](SDK_GROUP_LOBBY_HANDOFF.md). Установленная версия, offline admission, ICE/unreliable/direct fast path, live join/migration, реальный internet/ARM и производительность остаются открыты. |
 | ☐ | <a id="r101"></a>**R101** Social Activities: приложение из разговора через тот же Lobby | **[S06]**; [S05], [S14], [S13] | Недоделано | 24.10: SDK обнаруживает установленную игру, Lobby/Ready/Start запускает процесс, клиент подключается к сессии; локальные Windows/ARM cold-start/rejoin проверки пройдены. Девять нативных игр мигрированы и опубликованы в каталоге revision 33, карточки общего аватара добавлены во все десять игр; установка обновлений на портативках ждёт штатного выхода из активной партии. #239: полный conversation/install/start/rejoin на реальных аккаунтах и persistent reference не приняты. [SDK](PLATFORM_SDK.md), [карточки](SHARED_AVATAR_MINIMUM.md). |
 | ☐ | <a id="r102"></a>**R102** SDK: owner-scoped shared objects и remote actions | **[S14]**; [S07], [S01], [S08] | Не сделано | #240: приложение владеет схемой/данными; revoke/replay/receipt без обязательной общей БД. [F11](STRUCTURE_MAP_RU.md#f11). |
 | ☐ | <a id="r103"></a>**R103** File Provider SDK: источник в Files/Picker/Downloads | **[S15]**; [S14], [S13] | Не сделано | #241: provider interface, auth/capabilities/job lifecycle; существующий Files не является публичным SDK. [F11](STRUCTURE_MAP_RU.md#f11). |
@@ -227,8 +303,8 @@ R-ID не перенумеровывать; новая функция получ
 | ☐ | <a id="r135"></a>**R135** System Image OTA и проверенный rollback | **[S13]**; [S15], [S08] | Недоделано | #71/#119/#153: отдельно от Software S/Crates G, совместимость данных и recoverable обновление. |
 | ☐ | <a id="r136"></a>**R136** Host update → audit/repair/convergence/uninstall | **[S13]**; [S15], [S08] | Недоделано | #122–125: host data/игры сохранены, перенос ownership и повторяемость; [F12](STRUCTURE_MAP_RU.md#f12). |
 | ☐ | <a id="r088"></a>**R088** Software updater и раздельные обновления | **[S13]**; [S14], [S15] | Не сделано | #153–155; каталог Crates не заменяет обновление TrainerOS. |
-| ☐ | <a id="r089"></a>**R089** TrainerOS ID: онлайн-привязки, сессия и восстановление | **[S01]**; [S05], [S11] | Не сделано | Локальный Trainer реализован отдельно. Собственный стабильный online ID/recovery — [целевой контракт](TRAINEROS_ACCOUNT_ECONOMY_RU.md), [F08](STRUCTURE_MAP_RU.md#f08). |
-| ☐ | <a id="r107"></a>**R107** Backend: проверка результатов матчей и статистика | **[S10]**; [S01], [S03], [S09] | Не сделано | Все матчи/победы/поражения/уникальные побеждённые; provenance, dedup, corrections; формула статуса открыта. [Backend](TRAINEROS_BACKEND_PLAN_RU.md), [F05](STRUCTURE_MAP_RU.md#f05). |
+| ☐ | <a id="r089"></a>**R089** TrainerOS ID: онлайн-привязки, сессия и восстановление | **[S01]**; [S04], [S05], [S14] | Частично: native вход, host session, SDK identity | [Accounts](../services/backend/accounts.md): Fluxer subject → Player UUID, PKCE/browser-only handoff без ручного кода, защищённая host session/rotation, Settings login/cancel/logout, `account.identity`. [Приёмка](evidence/backend-native-return-20261025/README.md): сервер и реальный браузерный возврат/refresh/revoke; SDK установлен на Odin/Flip ([доставка](evidence/crates-devices-20261026/README.md)), интерактивный вход на портативках ещё не проверен. Открыты целевое хранилище/foreground/input, cleanup при удалении Trainer, полные SDK grants/build attestation (bounded scorecard grants уже [реализованы](../sdk/PLAY.md)), push revocation, recovery/relink/deletion и auth retention. Локальный Trainer остаётся отдельным. [F08](STRUCTURE_MAP_RU.md#f08). |
+| ☐ | <a id="r107"></a>**R107** Backend: проверка результатов матчей и статистика | **[S10]**; [S01], [S03], [S09], [S14] | Частично: установлен scorecard preview | [SDK/контракт](../sdk/PLAY.md): host grants, матчи 2–16, команды 2/3, receipts/jobs, peer-confirmed результаты, records/wins/stats, ничьи/уникальные побеждённые, dispute/void/revision pages. [Приёмка](evidence/backend-play-20261025/README.md): 57 backend tests, 5 native hosts → SDK → HTTP/DB/worker, публичные маршруты и restore. [Golf integration](evidence/backend-golf-20261025/README.md): rules зарегистрированы, SDK/Golf source и пакеты подготовлены, реальные Godot/HTTP/DB/worker 2/4/5/8 пройдены. Публичные имена/аватары реализованы; SDK и Golf установлены на Odin/Flip ([доставка](evidence/crates-devices-20261026/README.md)). Physics validators, trusted admission, Elo/статус, турниры, эксплуатационные условия и полный матч на портативках не закрыты. [F05](STRUCTURE_MAP_RU.md#f05). |
 | ☐ | <a id="r108"></a>**R108** Экономика: журнал начислений/трат и награды | **[S11]**; [S10], [S01] | Не сделано | Авторитетный ledger, verified events, idempotency, offline/reversal; личный прогресс не становится валютой автоматически. [Backend](TRAINEROS_BACKEND_PLAN_RU.md), [F05](STRUCTURE_MAP_RU.md#f05). |
 | ☐ | <a id="r109"></a>**R109** Косметика: магазин, покупка, постоянный инвентарь | **[S11]**; [S01], [S04], [S14] | Не сделано | Открыт бесплатному пользователю; совместимость предмета, подтверждённая покупка, сохранение после отмены подписки. [Backend](TRAINEROS_BACKEND_PLAN_RU.md), [F05](STRUCTURE_MAP_RU.md#f05). |
 | ☐ | <a id="r110"></a>**R110** Patreon/Ko-fi: подтверждённая поддержка и права | **[S11]**; [S01], [S13] | Не сделано | Множитель до ×3, без monthly grants/скидок. Тарифы и dev/beta права открыты; донат автору Crates отдельный. [Backend](TRAINEROS_BACKEND_PLAN_RU.md), [F05](STRUCTURE_MAP_RU.md#f05). |
@@ -236,7 +312,7 @@ R-ID не перенумеровывать; новая функция получ
 | ☐ | <a id="r112"></a>**R112** Турниры: участие, сетка, результаты и споры | **[S10]**; [S06], [S01] | Не сделано | Отдельная незавершённая функция; формат и disputed/cancel outcomes не выбраны. [Backend](TRAINEROS_BACKEND_PLAN_RU.md), [F05](STRUCTURE_MAP_RU.md#f05). |
 | ☐ | <a id="r113"></a>**R113** Кланы: соревнования сообществ | **[S10]**; [S05], [S01] | Не сделано | Членство/полномочия и межсообщественный зачёт открыты; Fluxer community не доказывает готовую клановую систему. [Backend](TRAINEROS_BACKEND_PLAN_RU.md), [F05](STRUCTURE_MAP_RU.md#f05). |
 | ☐ | <a id="r114"></a>**R114** Соревновательные трофеи и награды | **[S10]**; [S09], [S11] | Не сделано | История/корона/награда только после результата; отображение, отмена и критерии открыты. [Backend](TRAINEROS_BACKEND_PLAN_RU.md), [F05](STRUCTURE_MAP_RU.md#f05). |
-| ☐ | <a id="r115"></a>**R115** Backend: backup/restore, мониторинг и эксплуатация | **[S15]**; [S01], [S10], [S11], [S12] | Не проверено | Рабочий directory bot/catalogue не доказывает эксплуатацию будущих account/competition/economy. Состав backup и restore drill не приняты. [Backend](TRAINEROS_BACKEND_PLAN_RU.md), [F05](STRUCTURE_MAP_RU.md#f05). |
+| ☐ | <a id="r115"></a>**R115** Backend: backup/restore, мониторинг и эксплуатация | **[S15]**; [S01], [S10], [S11], [S12] | Частично: установлен foundation | [Серверная приёмка](evidence/backend-foundation-20261025/README.md): отдельный Compose, ограниченные роли/ресурсы, health, dump и восстановление foundation schema в изолированную БД. Off-host backup/расписание/retention/оповещения и восстановление будущих account/competition/economy данных ещё не приняты. [Backend](TRAINEROS_BACKEND_PLAN_RU.md), [F05](STRUCTURE_MAP_RU.md#f05). |
 | ☐ | <a id="r090"></a>**R090** Публичная поставка: сборка, лицензии, материалы | **[S13]**; [S12], [S14] | Недоделано | GPL выбран; #115–117 и [public readiness](PUBLIC_READINESS.md) открыты. Бета не выпущена. |
 | ☐ | <a id="r137"></a>**R137** Права на artwork и публичный showcase | **[S12]**; [S14], [S13] | Недоделано | #116/#64: лицензии/авторство материалов отдельно от GPL кода; README screenshots не заменялись. |
 | ☐ | <a id="r138"></a>**R138** Чистый checkout и воспроизводимость разработки | **[S13]**; [S15] | Не проверено | #117: без приватного machine state. #7 исторически закрыт; GitHub Actions выключен по решению владельца, не возобновлять. |
@@ -293,3 +369,8 @@ issues массово по карте и не создавать новую гл
 [S13]: STRUCTURE_MAP_RU.md#s13
 [S14]: STRUCTURE_MAP_RU.md#s14
 [S15]: STRUCTURE_MAP_RU.md#s15
+
+
+### Public profiles — 26 October 2026
+
+Accounts/S01 owns verified display names and the shared avatar recipe. Boards/S10 project page-member profiles; SDK resolves installed models. Profile revisions are independent of score revisions. Source and server checks: [contract](../services/backend/profiles.md). Full account erasure and provider deletion detection remain open; R089/R107 remain partial. The owner now authorizes handheld installation/checks in this chat; delivery evidence follows separately.

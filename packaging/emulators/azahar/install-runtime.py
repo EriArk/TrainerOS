@@ -61,10 +61,18 @@ def main():
     channel = channel.replace('"traineros-ds-records-v1"', '"traineros-azahar-records-v1"')
     (output / "transport/secure-channel.py").write_text(channel)
     shutil.copyfile(recipe / "LICENSE.upstream", output / "LICENSE.upstream")
+    shutil.copyfile(recipe / "content.py", output / "content.py")
+    (output / "source-patches").mkdir()
+    for name in ("TrainerRoom.inc", "TrainerContent.inc", "traineros-room.patch",
+                 "traineros-content.patch", "libusb-init-failure.patch", "build.sh"):
+        shutil.copyfile(recipe / name, output / "source-patches" / name)
+    (output / "source-patches/UPSTREAM.txt").write_text(
+        "https://github.com/azahar-emu/azahar\n219d743a1e698101fe1ab8bef43e6563126c3c27\n")
     files = ["bin/azahar", "transport/room-session.py", "transport/secure-channel.py", "transport/requirements.lock"]
     manifest = {"protocol": 1, "source": "219d743a1e698101fe1ab8bef43e6563126c3c27",
                 "settings": "native-room-two-private-v1", "files": {name: digest(output / name) for name in files},
-                "interpreterSha256": digest(python)}
+                "interpreterSha256": digest(python),
+                "content": {"protocol": "azahar-content-v1", "sha256": digest(output / "content.py")}}
     with (output / "manifest.pending").open("x") as stream:
         json.dump(manifest, stream, indent=2)
         stream.write("\n")

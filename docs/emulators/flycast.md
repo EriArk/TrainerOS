@@ -1,4 +1,92 @@
-# Flycast: Dreamcast multiplayer and ordinary package
+# Flycast: Dreamcast and arcade multiplayer
+
+**26 октября — native Dreamcast Online:** [реализован отдельный Online (in-game)](flycast-dcnet.md)
+с запуском из Lobby, ручным выбором комнаты в игре и собственными постоянными VMU.
+Новый native пакет не заменяет Dojo/GGPO, cabinet или обычный Flatpak.
+Точная поставка и оставшиеся границы записаны в профильном документе.
+
+**26 октября — следующий шаг:** добавлен отдельный native cabinet route для двух
+автоматов через существующий Lobby/ICE/DTLS. [Контракт, сравнение реализаций и
+границы](flycast-cabinet.md). Это уточняет прежнюю отметку о полностью отсутствующем
+cabinet link; native Dreamcast Online добавлен отдельным следующим шагом выше.
+
+## Naomi / Naomi 2 / Atomiswave — 26 October 2026
+
+Реализован общий двухместный NetPlay через существующий GameHub Lobby:
+Nearby и Online/public relay, явный Start, input/Home/exit и временный прогресс.
+Это синхронизация одного автомата через GGPO. Соединение отдельных автоматов
+реализуется отдельным [cabinet route](flycast-cabinet.md); native Dreamcast
+game-server Online остаётся незавершённым самостоятельным режимом.
+
+Используется прежний Dojo `d0e47e572b1e7b355e88bda8308c89d0c5156cbf` с уже
+поддерживаемыми им платформами, без нового сетевого протокола или изменения native binary.
+`runtime.flycast-dojo.arcade.v1` подключён к общим identity, picker, Local Lobby,
+save/leave и restart guards. Старый Dreamcast profile/digest сохранён; отсутствие
+arcade extension в старом пакете не отключает Dreamcast.
+
+### Content and package contract
+
+- Генератор экспортирует все **293 набора и 8 BIOS definitions** из закреплённого
+  [native table](https://github.com/blueminder/flycast-dojo/blob/d0e47e572b1e7b355e88bda8308c89d0c5156cbf/core/hw/naomi/naomi_roms.cpp).
+  Это каталог эмулятора, не список проверенных TrainerOS игр. Metadata не подтверждает
+  наличие второго игрока; явно одиночные игры сохраняют общий фильтр Lobby.
+- ZIP/7z читаются системным libarchive с ограничениями размеров/числа записей и
+  проверкой CRC. Учитываются parent/merged sets, выбранный BIOS region и CHD v5/GDI
+  dependencies. Native set basename обязателен, как в самом Dojo.
+- Идентичность строится по реально выбранным распакованным ROM/BIOS, а не ZIP
+  timestamps, методу сжатия или лишним BIOS entries. Обе стороны сравнивают content,
+  package и settings; изменение зависимостей обновляет Lobby и отменяет устаревший запуск.
+- Подготовка перепроверяет состав и создаёт отдельные ROM/data/config directories.
+  ROM/BIOS — ссылки на входные файлы; EEPROM/NVRAM создаются в частном сеансе.
+  Личные VMU/EEPROM не импортируются и не перезаписываются. Завершение удаляет stage.
+- `build.sh` генерирует каталог из pinned source; `install-arcade.py --base ...
+  --destination ... --firmware-root ...` готовит **новый** пакет из проверенного
+  существующего Dojo и явно указанных собственных BIOS. Установленный выбор не меняется.
+  Нужны Linux Python 3 и libarchive; BIOS/ROM не скачиваются и не входят в репозиторий.
+  Attribution и лицензии metadata лежат рядом с генератором и копируются в пакет.
+- При обновлении native source пересмотреть loader/table, pin и SHA генератора,
+  заново экспортировать каталог, пройти helper/native tests и собрать manifest.
+  Для отката восстановить прежнюю оболочку и весь прежний Flycast package из backup;
+  личные игровые данные откат не затрагивает.
+
+### Evidence and limits
+
+13 helper tests прошли на обеих портативках: все три семейства, ZIP/7z,
+parent/merged sets, BIOS/content changes, malformed archives, GD-ROM dependency,
+stale launch и private stage. ARM64 `flycast_netplay`, `runtime_multiplayer`,
+`local_lobby` прошли; production собрана с `BUILD_TESTING=OFF`.
+
+На исправном собственном `dolphin` (Dolphin Blue) обе машины через фактические
+`netplayIdentity`/`command` дошли до `[TrainerOSFlycast] running` и `Session Start`.
+Это прямой paired native probe в одной сети, не новая проверка публичного relay,
+полного пользовательского Lobby-пути или сыгранного матча. Через 100 секунд probe
+завершил свои процессы; оба native exit 0, private stages удалены, проверенные
+личные файлы неизменны. Первая попытка с ошибочным адресом в диагностическом runner
+не засчитана; исправленная попытка подтвердила оба peer.
+
+Пять текущих Atomiswave архивов на обеих машинах не читаются; это отдельно записано
+в [игровой таблице](../MULTIPLAYER_TESTED_GAMES.md#arcade--26-октября-2026).
+ROM-файлы не заменялись. Доставка и точная оболочка записываются в
+[публичном evidence](../evidence/arcade-netplay-20261026/README.md).
+
+**25 октября — доставка:** расширенные форматы и совместимая со свежим core/main
+оболочка установлены на Flip/Odin. [Хеши, native проверки, сохранность данных
+и откат](../MULTIPLAYER_CONTENT_FORMATS.md#доставка-на-flip-и-odin--25-октября-2026).
+Это заменяет прежние отметки «не установлено» для данного набора, не прежнюю
+историю игровой совместимости и не открытые ограничения native механизма.
+
+## GDI/CDI/CUE/M3U preparation — 25 October 2026
+
+Исходный Dojo `d0e47e572b1e7b355e88bda8308c89d0c5156cbf`:
+проверены `core/imgread/` GDI/CDI readers и standalone launch.
+`FlycastNetplay.cpp` теперь проверяет и хеширует GDI layout/дорожки,
+CDI footer, CUE dependencies и все диски M3U. У native standalone нет M3U
+reader: запускается разрешённый первый диск. Смена диска в живом NetPlay
+этим не реализована. Наблюдение файлов подключено к общему обновлению Lobby.
+`flycast_netplay` прошёл, включая изменение/утрату дорожки и путь запуска;
+сам native Dojo decoder на этих синтетических файлах не проверялся.
+[Границы, обновление и откат](../MULTIPLAYER_CONTENT_FORMATS.md).
+Эмулятор/настройки/временные VMU не менялись; нужна новая оболочка.
 
 ## Handheld runtime continuation - 12 October 2026
 

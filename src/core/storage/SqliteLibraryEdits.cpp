@@ -88,7 +88,8 @@ QString editLibrary(QSqlDatabase& db, const LibraryEdit& edit) {
                 return fail("The ROM is unavailable. Reconnect its storage and retry.");
             // Multi-file installs require a reviewed file set, not recursive
             // deletion of a directory that may also contain saves or other games.
-            if(QStringList{"cue","m3u","gdi","ccd","rpx"}.contains(file.suffix().toLower()))
+            if(QStringList{"cue","m3u","m3u8","gdi","ccd","mds","toc","nfs","rpx"}.contains(file.suffix().toLower())
+               || file.filePath().endsWith(".part0.iso") || (file.suffix().compare("wbfs",Qt::CaseInsensitive)==0&&QFileInfo::exists(file.filePath().chopped(1)+"1")))
                 return fail("This game uses several files. Manage them in Desktop Mode.");
             q.prepare("SELECT content_path FROM adventures WHERE id<>?");
             q.addBindValue(edit.id);
@@ -97,7 +98,7 @@ QString editLibrary(QSqlDatabase& db, const LibraryEdit& edit) {
                 return fail("Another library entry uses this ROM. Its file has been kept.");
             q.finish();
             // A sibling playlist may use this disc even without its own entry.
-            QDirIterator lists(file.absolutePath(), {"*.m3u","*.M3U","*.cue","*.CUE","*.gdi","*.GDI"}, QDir::Files);
+            QDirIterator lists(file.absolutePath(), {"*.m3u","*.M3U","*.m3u8","*.M3U8","*.cue","*.CUE","*.gdi","*.GDI"}, QDir::Files);
             while(lists.hasNext()) {
                 QFile list(lists.next());
                 if(list.size()>1024*1024 || !list.open(QIODevice::ReadOnly))return fail("Couldn't check this game's related files. Its ROM has been kept.");

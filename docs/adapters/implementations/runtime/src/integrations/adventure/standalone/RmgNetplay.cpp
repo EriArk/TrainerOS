@@ -1,4 +1,5 @@
 #include "RmgNetplay.h"
+#include "integrations/adventure/CartridgeContent.h"
 #include "NetplayCache.h"
 #include "core/model/GamePlayers.h"
 #include <QCryptographicHash>
@@ -90,12 +91,13 @@ QJsonObject bundle(const std::atomic_bool& cancel) {
 }
 QJsonObject netplayIdentity(const AdventureRegistration& r,const std::atomic_bool& cancel,int players) {
     if(r.adventure.platformId!="n64"||r.adventure.adapterId!="retroarch"||players<2||players>4)return {};
-    QFile rom(r.contentPath);if(!rom.open(QIODevice::ReadOnly)||rom.size()<4096||rom.size()>64*1024*1024||rom.size()%4)return {};
+    const auto rom=cartridge::read(r.contentPath,"n64",cancel);
+    if(rom.bytes.size()<4096||rom.bytes.size()%4)return {};
     // All three cartridge byte orders are accepted, but exact bytes must match.
-    const auto magic=rom.read(4).toHex();
+    const auto magic=rom.bytes.first(4).toHex();
     if(magic!="80371240"&&magic!="37804012"&&magic!="40123780")return {};
     const auto m=bundle(cancel);if(m.isEmpty())return {};
-    const auto content=digest(r.contentPath,cancel,64*1024*1024);if(content.isEmpty())return {};
+    const auto content=rom.digest();if(content.isEmpty())return {};
     QJsonArray connections{"nearby"};
     if(m["privateLanVersion"]==1||!m["onlineServer"].toString().isEmpty())connections.append("online");
     return {{"id","runtime.rmg.n64.v1"},{"label",r.adventure.title.left(96)},
@@ -115,6 +117,9 @@ ProcessCommand command(const AdventureRegistration& r,const QJsonObject& expecte
         auto dir=std::make_shared<QTemporaryDir>(QDir::tempPath()+"/trainer-rmg-XXXXXX");
         if(!dir->isValid())return "Couldn't prepare temporary Nintendo 64 progress.";
         const auto root=dir->path();
+        const auto content=cartridge::archived(r.contentPath)?cartridge::stage(cartridge::read(r.contentPath,"n64",cancel),
+            r.contentPath,root+"/content",identity["content"].toString()):r.contentPath;
+        if(cancel||content.isEmpty())return "Your archived Nintendo 64 game changed. Invite again.";
         if(!QDir().mkpath(root+"/config/RMG")||!QDir().mkpath(root+"/data")||
            !prepareNetplayCache(root+"/cache","rmg",expected["runtime"].toString()))
             return "Couldn't prepare temporary Nintendo 64 progress.";
@@ -129,7 +134,7 @@ ProcessCommand command(const AdventureRegistration& r,const QJsonObject& expecte
         out.arguments+=inputPrefix;
         out.arguments<<bundleRoot()+"/bin/RMG"<<"--lib-path"<<bundleRoot()+"/lib/RMG"
             <<"--core-path"<<bundleRoot()+"/lib/RMG/Core"<<"--plugin-path"<<bundleRoot()+"/lib/RMG/Plugin"
-            <<"--shared-data-path"<<bundleRoot()+"/share/RMG"<<"-f"<<"-n"<<"-q"<<r.contentPath;
+            <<"--shared-data-path"<<bundleRoot()+"/share/RMG"<<"-f"<<"-n"<<"-q"<<content;
         out.settled=[dir](const ProcessOutcome&){};return {};
     };
     return cmd;
@@ -162,6 +167,9 @@ ProcessCommand privateCommand(const AdventureRegistration& r,const Lobby::Reques
         auto dir=std::make_shared<QTemporaryDir>(QDir::tempPath()+"/trainer-rmg-online-XXXXXX");
         if(!dir->isValid())return "Couldn't prepare temporary Nintendo 64 progress.";
         const auto user=dir->path()+"/user";
+        const auto content=cartridge::archived(r.contentPath)?cartridge::stage(cartridge::read(r.contentPath,"n64",cancel),
+            r.contentPath,dir->path()+"/content",request.identity["content"].toString()):r.contentPath;
+        if(cancel||content.isEmpty())return "Your archived Nintendo 64 game changed. Invite again.";
         for(const auto& name:{"config/RMG","data"})
             if(!QDir().mkpath(user+"/"+name))return "Couldn't prepare temporary Nintendo 64 progress.";
         if(!prepareNetplayCache(user+"/cache","rmg",request.identity["runtime"].toString()))
@@ -176,7 +184,7 @@ ProcessCommand privateCommand(const AdventureRegistration& r,const Lobby::Reques
         };
         if(request.host){for(const int peer:seats)if(peer!=1)addChannel(peer,peer);}
         else addChannel(1,request.slot);
-        const QJsonObject runtime{{"root",bundleRoot()},{"rom",QFileInfo(r.contentPath).absoluteFilePath()},
+        const QJsonObject runtime{{"root",bundleRoot()},{"rom",QFileInfo(content).absoluteFilePath()},
             {"content",request.identity["content"]},{"runtime",request.identity["runtime"]},
             {"token",request.token},{"renderer",installed["renderer"]},{"user",user}};
         const QJsonObject config{{"version",1},{"slot",request.slot},{"seats",request.seats},{"channels",channels},

@@ -1,19 +1,32 @@
 # Game-adapter knowledge base
 
+**26 October:** PS2 LAN and GameCube BBA now share the 2?4-console group launch
+owner. [Contract and delivery evidence](../emulators/native-lan-groups.md)
+supersede their pair-only capacity below. Native game limits and save boundaries
+remain independent; the runtime export includes the group config and endpoint.
+
 Start here before researching a game or changing its save adapter (#91).
 This is an engineering evidence index, not a runtime plugin ABI or a promise
 that another edition of the same game has the same format.
 
+**25 October 2026:** the [cross-family format pass](../MULTIPLAYER_CONTENT_FORMATS.md)
+extends the content/launch owners in the table below. The merged shell/helper
+packages are installed on Flip/Odin; [delivery evidence](../MULTIPLAYER_CONTENT_FORMATS.md#доставка-на-flip-и-odin--25-октября-2026)
+and historical gameplay evidence stay separate. This supersedes the older
+source-only/not-delivered labels for these formats below.
+
 | Record | Exact targets | Current boundary |
 |---|---|---|
+| [Arcade cabinet link](../emulators/flycast-cabinet.md) | Pinned Dojo native capability, matching ROM/BIOS and three package executables | Installed on Flip/Odin: two independent cabinets through common Lobby/ICE/DTLS; private temporary EEPROM/NVRAM. Build/namespace/transport and installation checks are separate from native matches; no semantic save capability |
+| [GameCube native BBA LAN](../emulators/dolphin.md) | Pinned Dolphin, GM4/GKY/GTE LAN families across regions | Source integration, two consoles, bounded ICE/DTLS frame checks; native match and delivery open; temporary cards only |
 | [Vita native LAN runtime](../emulators/vita3k.md) | Pinned Vita3K ARM64 and exact rebuilt vitaQuake 2.1 | Installed invitation/native discovery, paired gameplay, own native progress, Home and bounded close/loss. Commercial AdHoc/PSN and wider compatibility open; no semantic save capability |
 | [3DS native wireless rooms](../emulators/azahar.md) | Pinned Azahar 2126.2 and exact base content | Installed two-player Nearby/Online admission and Minicraft3DS gameplay/Home/own save/Exit; retail updates/DLC and external acceptance open; no semantic save capability |
 | [DS wireless runtime](../emulators/melonds.md) | Pinned melonDS frontend and identical DS cartridge identity | Two-player ordinary Nearby/Online friend invitation, launch and protected opaque save return installed on Flip/Odin; same-router checks. Four players, broader games and external acceptance remain open; no semantic save capability |
-| [PSP Ad Hoc runtime family](../emulators/ppsspp.md) | Matching raw UMD game ISO and reviewed PPSSPP 1.20.4 binary | Ordinary Nearby/Online installed; bounded Lumines gameplay/lifecycle evidence, own SAVEDATA retained. Generic formats/games remain open; private parties deferred; no semantic save capability |
+| [PSP Ad Hoc runtime family](../emulators/ppsspp.md) | Matching PSP ISO/CSO/PBP/CHD and reviewed PPSSPP 1.20.4 binary; compressed/package formats require the new native reader | Ordinary Nearby/Online installed; new formats implemented and built, not delivered. Own SAVEDATA retained; wrappers and wider game acceptance open; no semantic save capability |
 | [PS2 native LAN](../emulators/armsx2-lan.md) | Exact serial/ELF CRC and content descriptor, reviewed ARMSX2 Local Link binary | Private network namespace and own-card launch; existing Lobby/ICE transport. Native peer admission checked on both; game configuration/match and full Lobby lifecycle remain open. No semantic save capability |
-| [Dreamcast native runtime](../emulators/flycast.md) | Matching CHD, pinned Dojo executable and locally supplied boot/flash | Installed on both; Soul Calibur Nearby/public-relay gameplay and ordinary invitation/Home/Exit. Wider games, distinct networks and physical acceptance open; no semantic save capability |
-| [N64 native runtime](../emulators/RMG.md) | Matching raw cartridge, pinned RMG bundle and native server | Installed Nearby/Online; Mario Kart 64 forced-relay and ordinary invitation/Home/Exit evidence. Wider games, four physical clients and distinct networks open; no semantic save capability |
-| [PS1 shared-console runtime](../emulators/pcsx-rearmed.md) | Matching PCSX ReARMed/RetroArch, owned BIOS, CUE/CHD content | Installed separate-pad and bounded two-person handoff routes; paired Hot Shots Golf 2/relay evidence. Wider content, physical/distinct-network acceptance open; no semantic save capability |
+| [Dreamcast native runtime](../emulators/flycast.md) | Matching CHD/GDI/CDI/CUE/M3U content, pinned Dojo executable and locally supplied boot/flash | CHD installed; new formats in source only. Soul Calibur Nearby/public-relay gameplay and ordinary invitation/Home/Exit retained. Wider games, distinct networks and physical acceptance open; no semantic save capability |
+| [N64 native runtime](../emulators/RMG.md) | Matching cartridge bytes, pinned RMG bundle and native server; ZIP/7z implemented in source | Installed raw-cartridge Nearby/Online; new archive reader not delivered. Mario Kart 64 forced-relay and ordinary invitation/Home/Exit evidence retained; no semantic save capability |
+| [PS1 shared-console runtime](../emulators/pcsx-rearmed.md) | Matching PCSX ReARMed/RetroArch, owned BIOS; CUE/CHD/PBP/M3U/ISO/raw/descriptors/EXE identities | Installed separate-pad and bounded two-person handoff routes; new formats not delivered. Wider content, physical/distinct-network acceptance open; no semantic save capability |
 | [GameCube shared-console runtime](../emulators/dolphin.md) | Matching installed Dolphin bridge and validated content | Installed native port mapping/isolated cards with Melee gameplay, plus bounded Golf handoff; Wii has separate recorded delivery. Wider games, motion, four physical players and distinct networks open |
 | [Handheld network link](../HANDHELD_MULTIPLAYER.md) | Pinned gpSP / DoubleCherryGB; exact game eligibility under research | Partial: Emerald trade/invitation/return; Red invitation, actual trade, independent save return and Gambatte Party readback; Gen II clock bridge and Gold return/readback on both. Gen II/TCG transactions, GBA modes and external acceptance stay open |
 | [Emerald English](emerald-en.md) | One SHA-256 allowlisted GBA build | Integrated reads/Journey, healing, shops and protected Party/Box moves/occupied swaps, release and held items |

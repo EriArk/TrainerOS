@@ -1,0 +1,18 @@
+********* Start testing of PlatformHostTests *********
+Config: Using QtTest library 6.11.1, Qt 6.11.1 (x86_64-little_endian-llp64 shared (dynamic) release build; by GCC 16.1.0), windows 10
+PASS   : PlatformHostTests::initTestCase()
+PASS   : PlatformHostTests::discoveryAndExclusiveEndpoint()
+PASS   : PlatformHostTests::localAvatarSubscriptionAndRevocation()
+PASS   : PlatformHostTests::asynchronousAvatarRecipes()
+SKIP   : PlatformHostTests::realGodotAvatarConsumer() External Godot and local pack required
+D:/Projects/TrainerOs-sdk-group/tests/PlatformHostTests.cpp(104) : failure location
+PASS   : PlatformHostTests::authVersionAndMalformedInput()
+PASS   : PlatformHostTests::widgetActivationAndCrashCleanup()
+PASS   : PlatformHostTests::namespaceAndStaleContext()
+PASS   : PlatformHostTests::pipelinedFramesAreNotOneOversizedMessage()
+PASS   : PlatformHostTests::subscribeUnsubscribeAndNoProfile()
+PASS   : PlatformHostTests::layoutSurvivesReconnectWithoutChangingBuiltins()
+PASS   : PlatformHostTests::realPythonProcess()
+PASS   : PlatformHostTests::cleanupTestCase()
+Totals: 12 passed, 0 failed, 1 skipped, 0 blacklisted, 6017ms
+********* Finished testing of PlatformHostTests *********

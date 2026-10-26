@@ -1,5 +1,53 @@
 # Handheld link over the network (MP-02)
 
+## ZIP/7z cartridges — 25 October 2026
+
+Source implementation now reads GB/GBC/GBA cartridges from ZIP and 7z through
+the shared `CartridgeContent` service (S03), also used by N64/RMG. It uses
+[libarchive's native readers](https://github.com/libarchive/libarchive/blob/v3.8.7/libarchive/archive.h),
+not a shell extractor or a new archive decoder. One matching cartridge is required;
+multiple candidates, duplicate paths, links, encryption, unsafe names, malformed
+data and excessive sizes fail closed. Other ordinary entries such as a README
+are allowed and read within the same budget. There is no game-title allowlist.
+
+Bounds: 256 entries, 128 MiB total declared/actual decoded bytes, 8/32/64 MiB
+GB/GBA/N64 payload respectively, compressed input at most that platform limit
+plus 16 MiB, cancellation between reads and a 15-second read-loop deadline.
+Libarchive calls themselves are synchronous; this is a bounded worker operation,
+not a hard preemptive timeout for a single decoder call. No archive path is written
+to disk. A session writes one chosen payload under its own private directory.
+
+The original cartridge header chooses the existing cable/RFU/core profile.
+Admission compares SHA-256 of the decoded cartridge, so raw, ZIP and 7z copies
+with identical payload match; different ROM bytes and N64 byte orders still do
+not match. Existing incompatible-build exclusions also apply to archived copies.
+Launch re-reads and hashes the payload before staging; a changed archive cannot
+substitute different content. Netpacket/volatile pairs get a staged ordinary ROM;
+SameBoy/mGBA linked subsystems get the same decoded bytes for each private slot.
+Successful cleanup removes staging; save conflicts retain the established
+recovery folder. Ordinary user archives are never rewritten or removed.
+
+The archive's outer basename remains the TrainerOS save binding. GBA registration
+now accepts ZIP/7z and its owned-save resolver validates the single cartridge;
+the container hash remains the per-owner content revision. Multiplayer's decoded
+hash does not migrate/merge personal save namespaces or grant semantic save access.
+The ordinary CLI uses the container name; see RetroArch 1.22.2
+[basename handling](https://github.com/libretro/RetroArch/blob/v1.22.2/runloop.c#L8099).
+Archives with several games need a future explicit member-selection contract.
+
+Checks without handhelds: native ZIP/7z reader fixtures on Windows and Linux
+ARM64/QEMU (12 passed each); RMG Nearby/private-Online preparation, payload hashes
+and cleanup; linked GB/GBA and RFU save return, crash/conflict retention and GBA
+owner namespace. Build dependency is libarchive (checked 3.8.7), including its
+runtime library on delivery. No new shell has been installed on the handhelds.
+Retained results: RetroArchTests 68 passed, 0 failed, 1 existing PS2 platform
+skip; RMG, save-backup and full runtime-multiplayer suites passed (120.41 s for
+the latter). An outdated local-solo rejection assertion for linked GB was corrected
+to the accepted separate-machine policy. Windows production composition passed
+with `BUILD_TESTING=OFF`; adapter export/knowledge and diff checks passed. The
+ARM64 check compiled the shared reader/test against Qt 6.11.2 and libarchive
+3.8.7 in the isolated Fedora sysroot; it is not a new full ARM64 shell build.
+
 ## GBA Wireless Adapter profiles - 2026-10-10
 
 Reviewed Mario Golf and Mega Man RFU profiles now reuse gpSP's existing

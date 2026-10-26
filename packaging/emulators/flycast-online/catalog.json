@@ -1,0 +1,292 @@
+{
+  "protocol": 1,
+  "sourceSha256": "010a5b393fc6f0aee22fc9a1f6849bb7b7fa9a08ab75ac4602a810a1c3d23fa3",
+  "source": "https://github.com/libretro/libretro-database/blob/9a899f5b13ed1c355491e342203be29bc573323b/metadat/redump/Sega%20-%20Dreamcast.dat",
+  "services": "https://github.com/TheArcadeStriker/flycast-wiki/wiki/DCNet",
+  "entries": {
+    "51037": {
+      "title": "Daytona USA",
+      "bba": false
+    },
+    "5103750": {
+      "title": "Daytona USA 2001",
+      "bba": false
+    },
+    "51049": {
+      "title": "ChuChu Rocket!",
+      "bba": false
+    },
+    "5104950": {
+      "title": "ChuChu Rocket!",
+      "bba": false
+    },
+    "51061": {
+      "title": "Quake III - Arena",
+      "bba": false
+    },
+    "5106150": {
+      "title": "Quake III - Arena",
+      "bba": false
+    },
+    "51062": {
+      "title": "NFL 2K1",
+      "bba": false
+    },
+    "51063": {
+      "title": "NBA 2K1",
+      "bba": false
+    },
+    "51069": {
+      "title": "NFL 2K1",
+      "bba": false
+    },
+    "51100": {
+      "title": "Phantasy Star Online",
+      "bba": false
+    },
+    "5110050": {
+      "title": "Phantasy Star Online",
+      "bba": false
+    },
+    "51102": {
+      "title": "Outtrigger",
+      "bba": false
+    },
+    "5110250": {
+      "title": "Outtrigger",
+      "bba": false
+    },
+    "5112550": {
+      "title": "Planet Ring",
+      "bba": false
+    },
+    "51140": {
+      "title": "Ooga Booga",
+      "bba": false
+    },
+    "5114950": {
+      "title": "Toy Racer",
+      "bba": true
+    },
+    "51152": {
+      "title": "World Series Baseball 2K2",
+      "bba": false
+    },
+    "51168": {
+      "title": "NFL 2K2",
+      "bba": false
+    },
+    "51176": {
+      "title": "NCAA College Football 2K2 - Road to the Rose Bowl",
+      "bba": false
+    },
+    "51178": {
+      "title": "NBA 2K2",
+      "bba": false
+    },
+    "5117850": {
+      "title": "NBA 2K2",
+      "bba": false
+    },
+    "51193": {
+      "title": "Phantasy Star Online Ver. 2",
+      "bba": false
+    },
+    "5119350": {
+      "title": "Phantasy Star Online Ver. 2",
+      "bba": false
+    },
+    "5122550": {
+      "title": "Planet Ring",
+      "bba": false
+    },
+    "6107899": {
+      "title": "F355 Challenge",
+      "bba": false
+    },
+    "6107990": {
+      "title": "Phantasy Star Online",
+      "bba": false
+    },
+    "67302290": {
+      "title": "Daytona USA 2001",
+      "bba": false
+    },
+    "952004450": {
+      "title": "ChuChu Rocket!",
+      "bba": false
+    },
+    "952010650": {
+      "title": "Quake III - Arena",
+      "bba": false
+    },
+    "952010950": {
+      "title": "Planet Ring",
+      "bba": false
+    },
+    "952012650": {
+      "title": "Phantasy Star Online",
+      "bba": false
+    },
+    "952014150": {
+      "title": "StarLancer",
+      "bba": false
+    },
+    "952016250": {
+      "title": "Outtrigger",
+      "bba": false
+    },
+    "952017650": {
+      "title": "Phantasy Star Online Ver. 2",
+      "bba": false
+    },
+    "HDR0040": {
+      "title": "Dennou Senki - Virtual-On - Oratorio Tangram",
+      "bba": false
+    },
+    "HDR0073": {
+      "title": "Sega Tetris",
+      "bba": false
+    },
+    "HDR0100": {
+      "title": "F355 Challenge",
+      "bba": false
+    },
+    "HDR0106": {
+      "title": "Daytona USA 2001",
+      "bba": false
+    },
+    "HDR0113": {
+      "title": "Power Smash - Sega Professional Tennis",
+      "bba": false
+    },
+    "HDR0118": {
+      "title": "Outtrigger",
+      "bba": false
+    },
+    "HDR0124": {
+      "title": "Hundred Swords",
+      "bba": false
+    },
+    "HDR0127": {
+      "title": "Hundred Swords",
+      "bba": false
+    },
+    "HDR0129": {
+      "title": "Phantasy Star Online",
+      "bba": false
+    },
+    "HDR0144": {
+      "title": "NFL 2K1",
+      "bba": false
+    },
+    "HDR0150": {
+      "title": "NBA 2K1",
+      "bba": false
+    },
+    "HDR0163": {
+      "title": "Phantasy Star Online Ver. 2",
+      "bba": false
+    },
+    "HDR0196": {
+      "title": "NFL 2K2",
+      "bba": false
+    },
+    "HDR0197": {
+      "title": "NBA 2K2",
+      "bba": false
+    },
+    "HDR0198": {
+      "title": "World Series Baseball 2K2",
+      "bba": false
+    },
+    "MK51049B5": {
+      "title": "ChuChu Rocket!",
+      "bba": false
+    },
+    "T13306M": {
+      "title": "Kidou Senshi Gundam - Renpou vs. Zeon & DX",
+      "bba": false
+    },
+    "T13306M0": {
+      "title": "Kidou Senshi Gundam - Renpou vs. Zeon & DX",
+      "bba": false
+    },
+    "T13306M1": {
+      "title": "Kidou Senshi Gundam - Renpou vs. Zeon & DX",
+      "bba": false
+    },
+    "T14304M": {
+      "title": "Rune Jade",
+      "bba": false
+    },
+    "T17710D50": {
+      "title": "POD 2 - Multiplayer Online",
+      "bba": false
+    },
+    "T17713D50": {
+      "title": "Speed Devils - Online Racing",
+      "bba": false
+    },
+    "T17713N": {
+      "title": "POD - Speedzone",
+      "bba": false
+    },
+    "T17718N": {
+      "title": "Speed Devils - Online Racing",
+      "bba": false
+    },
+    "T17723D50": {
+      "title": "StarLancer",
+      "bba": false
+    },
+    "T22904N": {
+      "title": "Worms World Party",
+      "bba": false
+    },
+    "T40209N": {
+      "title": "StarLancer",
+      "bba": false
+    },
+    "T40214N": {
+      "title": "Next Tetris, The - On-Line Edition",
+      "bba": false
+    },
+    "T41903N": {
+      "title": "4x4 Evo",
+      "bba": false
+    },
+    "T44501M": {
+      "title": "Golf Shiyou yo 2 - Aratanaru Chousen",
+      "bba": false
+    },
+    "T45006D50": {
+      "title": "Racing Simulation 2 - Monaco Grand Prix On-Line",
+      "bba": false
+    },
+    "T6807M": {
+      "title": "Aero Dancing i",
+      "bba": false
+    },
+    "T6809M": {
+      "title": "Aero Dancing i - Jikai Saku made Matemasen",
+      "bba": false
+    },
+    "T7016D50": {
+      "title": "Worms World Party",
+      "bba": false
+    },
+    "T8118D05": {
+      "title": "F355 Challenge - Passione Rossa",
+      "bba": false
+    },
+    "T8118D18": {
+      "title": "F355 Challenge - Passione Rossa",
+      "bba": false
+    },
+    "T8119N": {
+      "title": "F355 Challenge - Passione Rossa",
+      "bba": false
+    }
+  }
+}

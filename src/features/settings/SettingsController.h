@@ -13,6 +13,7 @@
 namespace trainer {
 class ScrapeController;
 class NativeActivityProvider;
+class CratesController;
 class SettingsController final : public QObject {
     Q_OBJECT
     Q_PROPERTY(trainer::LibraryStorageController* storage READ storage CONSTANT)
@@ -49,6 +50,7 @@ public:
         connect(value,&ControllerInput::buttonCaptured,&gameInput_,[this](QString button){if(category_==16&&gameInput_.editing())gameInput_.selectBinding(button);});
         connect(value,&ControllerInput::keyCaptured,&gameInput_,[this](QString chord){if(category_==16)gameInput_.assignTarget(chord);}); }
     void setScraper(ScrapeController* value) { scraper_=value; }
+    void setCrates(CratesController* value);
     CommunicationSettings* communication() { return &communication_; }
     void configureNearby(NativeActivityProvider*);
     ClockController* clock() { return &clock_; }
@@ -61,6 +63,7 @@ public:
     void configureSavePolicy(SaveBackupService* service) { savePolicy_=service;connect(service,&SaveBackupService::policyChanged,this,&SettingsController::changed); }
     bool readOnlySaves() const { return savePolicy_ && savePolicy_->readOnly(); }
     void setTrainersAvailable(bool value) { trainersAvailable_ = value; emit changed(); }
+    void setBackendAccount(QString action,QString detail) { backendAction_=std::move(action);backendDetail_=std::move(detail);emit changed(); }
     void setLegacyTrashAvailable(bool value) { if(legacyTrash_==value)return;legacyTrash_=value;if(category_==8)row_=0;emit changed(); }
     void begin() { storage_.close(); category_ = 0; row_ = 0; pane_ = false; emit changed(); }
     int category() const { return category_; }
@@ -116,6 +119,7 @@ private:
     GameInputProfiles gameInput_;
     ControllerInput* input_=nullptr;
     ScrapeController* scraper_=nullptr;
+    CratesController* crates_=nullptr;
     QPointer<NativeActivityProvider> nearby_;
     ClockController clock_;
     CommunicationSettings communication_;
@@ -129,6 +133,7 @@ private:
     bool libraryAvailable_ = false, libraryScanning_ = false;
     QString libraryStatus_;
     QString error_;
+    QString backendAction_="Sign in to TrainerOS with Fluxer",backendDetail_="Open your Trainer to sign in";
     int category_ = 0, row_ = 0;
     bool pane_ = false;
 };

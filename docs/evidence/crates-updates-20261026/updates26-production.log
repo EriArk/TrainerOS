@@ -1,0 +1,475 @@
+[0/2] Re-checking globbed directories...
+[1/368] Automatic MOC for target trainer_core
+[2/367] Building CXX object CMakeFiles/trainer_core.dir/src/features/settings/SettingsController.cpp.o
+/work/source/src/features/settings/SettingsController.cpp: In member function 'void trainer::SettingsController::cycleTheme(int)':
+/work/source/src/features/settings/SettingsController.cpp:210:41: warning: unused parameter 'direction' [-Wunused-parameter]
+  210 | void SettingsController::cycleTheme(int direction) {
+      |                                     ~~~~^~~~~~~~~
+[3/367] Linking CXX static library libtrainer_core.a
+[4/367] Automatic MOC for target traineros
+[5/366] Running AUTOMOC file extraction for target traineros
+[6/9] Linking CXX executable trainer_crates_tests
+[7/9] Building CXX object CMakeFiles/traineros.dir/tests/ui/CratesSmokeScenario.cpp.o
+[8/9] Linking CXX executable traineros
+********* Start testing of CratesTests *********
+Config: Using QtTest library 6.11.2, Qt 6.11.2 (arm64-little_endian-lp64 shared (dynamic) release build; by GCC 16.2.1 20260819 (Red Hat 16.2.1-2)), fedora 44
+PASS   : CratesTests::initTestCase()
+QWARN  : CratesTests::enabledUpdatesCheckInBackgroundWithoutOpeningCrates() QFSFileEngine::open: No file name specified
+QINFO  : CratesTests::enabledUpdatesCheckInBackgroundWithoutOpeningCrates() Crates catalogue "" revision 0
+PASS   : CratesTests::enabledUpdatesCheckInBackgroundWithoutOpeningCrates()
+QWARN  : CratesTests::updatePrimaryAndAutomaticQueueRespectInstalledState() QFSFileEngine::open: No file name specified
+PASS   : CratesTests::updatePrimaryAndAutomaticQueueRespectInstalledState()
+QWARN  : CratesTests::automaticUpdateFailureSurvivesRestart() QFSFileEngine::open: No file name specified
+QWARN  : CratesTests::automaticUpdateFailureSurvivesRestart() QFSFileEngine::open: No file name specified
+PASS   : CratesTests::automaticUpdateFailureSurvivesRestart()
+QWARN  : CratesTests::queuePriorityPauseAndPersistentOrder() QFSFileEngine::open: No file name specified
+QWARN  : CratesTests::queuePriorityPauseAndPersistentOrder() QFSFileEngine::open: No file name specified
+PASS   : CratesTests::queuePriorityPauseAndPersistentOrder()
+QWARN  : CratesTests::externalAtomicUpgradeRefreshesLobbyInventory() QFSFileEngine::open: No file name specified
+PASS   : CratesTests::externalAtomicUpgradeRefreshesLobbyInventory()
+QWARN  : CratesTests::installedActivityDoesNotRequireRunningGame() QFSFileEngine::open: No file name specified
+QWARN  : CratesTests::installedActivityDoesNotRequireRunningGame() QFSFileEngine::open: No file name specified
+PASS   : CratesTests::installedActivityDoesNotRequireRunningGame()
+PASS   : CratesTests::packageArchitectureSelection()
+QINFO  : CratesTests::catalogueOnlySyncsOnExplicitEntry() Crates catalogue "snapshot" revision 1
+QINFO  : CratesTests::catalogueOnlySyncsOnExplicitEntry() Crates catalogue "snapshot" revision 1
+PASS   : CratesTests::catalogueOnlySyncsOnExplicitEntry()
+PASS   : CratesTests::activeWorkerCancellationIsNotFailure()
+QWARN  : CratesTests::promotedPackageYieldsActiveWorkerAndResumesItLater() QFSFileEngine::open: No file name specified
+PASS   : CratesTests::promotedPackageYieldsActiveWorkerAndResumesItLater()
+PASS   : CratesTests::packageActionsAndDeduplicatedQueue()
+PASS   : CratesTests::authoredIdentity()
+PASS   : CratesTests::directionalRowsAndEdges()
+PASS   : CratesTests::backAndSkipRestoreFocus()
+PASS   : CratesTests::interruptedOpenDoesNotNavigateLater()
+PASS   : CratesTests::reducedMotionAndRouteRetention()
+PASS   : CratesTests::cataloguePagingAndPopupReturn()
+PASS   : CratesTests::sharedIdentityAndPerCrateFocus()
+PASS   : CratesTests::detailImagesAndScrollWithoutVersionPicker()
+PASS   : CratesTests::invalidCatalogueKeepsCurrentData()
+PASS   : CratesTests::metadataHasNoExecutableOrRemoteCapabilities()
+PASS   : CratesTests::cleanupTestCase()
+Totals: 23 passed, 0 failed, 0 skipped, 0 blacklisted, 2500ms
+********* Finished testing of CratesTests *********
+-- Configuring done (1.0s)
+-- Generating done (0.4s)
+-- Build files have been written to: /work/build
+[0/2] Re-checking globbed directories...
+[1/386] Automatic MOC for target trainer_core
+[2/384] Automatic MOC for target traineros
+[3/384] Running AUTOMOC file extraction for target traineros
+[4/384] Running moc --collect-json for target traineros
+[5/384] Generating .rcc/qmlcache/traineros_qmlcache_loader.cpp
+[6/384] Automatic QML type registration for target traineros
+[7/384] Generating .rcc/qmlcache/traineros_src_qml_AdventureArtwork_qml.cpp, .rcc/qmlcache/traineros_src_qml_AdventureArtwork_qml.cpp.aotstats
+[8/384] Generating .rcc/qmlcache/traineros_src_qml_BrowserEngine_qml.cpp, .rcc/qmlcache/traineros_src_qml_BrowserEngine_qml.cpp.aotstats
+[9/384] Generating .rcc/qmlcache/traineros_src_qml_BrowserPane_qml.cpp, .rcc/qmlcache/traineros_src_qml_BrowserPane_qml.cpp.aotstats
+[10/384] Generating .rcc/qmlcache/traineros_src_qml_LibraryGameList_qml.cpp, .rcc/qmlcache/traineros_src_qml_LibraryGameList_qml.cpp.aotstats
+[11/384] Generating .rcc/qmlcache/traineros_src_qml_LibraryShelves_qml.cpp, .rcc/qmlcache/traineros_src_qml_LibraryShelves_qml.cpp.aotstats
+[12/384] Generating .rcc/qmlcache/traineros_src_qml_LibraryGrid_qml.cpp, .rcc/qmlcache/traineros_src_qml_LibraryGrid_qml.cpp.aotstats
+[13/384] Generating .rcc/qmlcache/traineros_src_qml_ShelfCover_qml.cpp, .rcc/qmlcache/traineros_src_qml_ShelfCover_qml.cpp.aotstats
+[14/384] Generating .rcc/qmlcache/traineros_src_qml_LibraryWheel_qml.cpp, .rcc/qmlcache/traineros_src_qml_LibraryWheel_qml.cpp.aotstats
+[15/384] Generating .rcc/qmlcache/traineros_src_qml_FavoriteStar_qml.cpp, .rcc/qmlcache/traineros_src_qml_FavoriteStar_qml.cpp.aotstats
+[16/384] Generating .rcc/qmlcache/traineros_src_qml_GameInformation_qml.cpp, .rcc/qmlcache/traineros_src_qml_GameInformation_qml.cpp.aotstats
+[17/384] Generating .rcc/qmlcache/traineros_src_qml_PlayBadge_qml.cpp, .rcc/qmlcache/traineros_src_qml_PlayBadge_qml.cpp.aotstats
+[18/384] Generating .rcc/qmlcache/traineros_src_qml_GamePreview_qml.cpp, .rcc/qmlcache/traineros_src_qml_GamePreview_qml.cpp.aotstats
+[19/384] Generating .rcc/qmlcache/traineros_src_qml_GameVideoPreview_qml.cpp, .rcc/qmlcache/traineros_src_qml_GameVideoPreview_qml.cpp.aotstats
+[20/384] Generating .rcc/qmlcache/traineros_src_qml_TrainerAccessPanel_qml.cpp, .rcc/qmlcache/traineros_src_qml_TrainerAccessPanel_qml.cpp.aotstats
+[21/384] Generating .rcc/qmlcache/traineros_src_qml_FilesIcon_qml.cpp, .rcc/qmlcache/traineros_src_qml_FilesIcon_qml.cpp.aotstats
+[22/384] Generating .rcc/qmlcache/traineros_src_qml_FilesPane_qml.cpp, .rcc/qmlcache/traineros_src_qml_FilesPane_qml.cpp.aotstats
+[23/384] Generating .rcc/qmlcache/traineros_src_qml_FilesPopup_qml.cpp, .rcc/qmlcache/traineros_src_qml_FilesPopup_qml.cpp.aotstats
+[24/384] Generating .rcc/qmlcache/traineros_src_qml_FilesControlTab_qml.cpp, .rcc/qmlcache/traineros_src_qml_FilesControlTab_qml.cpp.aotstats
+[25/384] Generating .rcc/qmlcache/traineros_src_qml_AppsPage_qml.cpp, .rcc/qmlcache/traineros_src_qml_AppsPage_qml.cpp.aotstats
+[26/384] Generating .rcc/qmlcache/traineros_src_qml_CratesProjectCard_qml.cpp, .rcc/qmlcache/traineros_src_qml_CratesProjectCard_qml.cpp.aotstats
+[27/384] Generating .rcc/qmlcache/traineros_src_qml_CratesCataloguePage_qml.cpp, .rcc/qmlcache/traineros_src_qml_CratesCataloguePage_qml.cpp.aotstats
+[28/384] Generating .rcc/qmlcache/traineros_src_qml_CratesPage_qml.cpp, .rcc/qmlcache/traineros_src_qml_CratesPage_qml.cpp.aotstats
+[29/384] Generating .rcc/qmlcache/traineros_src_qml_CratesProjectArt_qml.cpp, .rcc/qmlcache/traineros_src_qml_CratesProjectArt_qml.cpp.aotstats
+[30/384] Generating .rcc/qmlcache/traineros_src_qml_CratesProjectPopup_qml.cpp, .rcc/qmlcache/traineros_src_qml_CratesProjectPopup_qml.cpp.aotstats
+[31/384] Generating .rcc/qmlcache/traineros_src_qml_CrateTile_qml.cpp, .rcc/qmlcache/traineros_src_qml_CrateTile_qml.cpp.aotstats
+[32/384] Generating .rcc/qmlcache/traineros_src_qml_CrateEmblem_qml.cpp, .rcc/qmlcache/traineros_src_qml_CrateEmblem_qml.cpp.aotstats
+[33/384] Generating .rcc/qmlcache/traineros_src_qml_CrateIllustration_qml.cpp, .rcc/qmlcache/traineros_src_qml_CrateIllustration_qml.cpp.aotstats
+[34/384] Generating .rcc/qmlcache/traineros_src_qml_AppsMenu_qml.cpp, .rcc/qmlcache/traineros_src_qml_AppsMenu_qml.cpp.aotstats
+[35/384] Generating .rcc/qmlcache/traineros_src_qml_AppsDock_qml.cpp, .rcc/qmlcache/traineros_src_qml_AppsDock_qml.cpp.aotstats
+[36/384] Generating .rcc/qmlcache/traineros_src_qml_AppControlsWindow_qml.cpp, .rcc/qmlcache/traineros_src_qml_AppControlsWindow_qml.cpp.aotstats
+[37/384] Generating .rcc/qmlcache/traineros_src_qml_InvitationBadge_qml.cpp, .rcc/qmlcache/traineros_src_qml_InvitationBadge_qml.cpp.aotstats
+[38/384] Generating .rcc/qmlcache/traineros_src_qml_AdventureExitWindow_qml.cpp, .rcc/qmlcache/traineros_src_qml_AdventureExitWindow_qml.cpp.aotstats
+[39/384] Generating .rcc/qmlcache/traineros_src_qml_HomeMenuCard_qml.cpp, .rcc/qmlcache/traineros_src_qml_HomeMenuCard_qml.cpp.aotstats
+[40/384] Generating .rcc/qmlcache/traineros_src_qml_HomeCardBackdrop_qml.cpp, .rcc/qmlcache/traineros_src_qml_HomeCardBackdrop_qml.cpp.aotstats
+[41/384] Generating .rcc/qmlcache/traineros_src_qml_Theme_qml.cpp, .rcc/qmlcache/traineros_src_qml_Theme_qml.cpp.aotstats
+[42/384] Generating .rcc/qmlcache/traineros_src_qml_HomeMetadataChips_qml.cpp, .rcc/qmlcache/traineros_src_qml_HomeMetadataChips_qml.cpp.aotstats
+[43/384] Generating .rcc/qmlcache/traineros_src_qml_HomeScreensCollage_qml.cpp, .rcc/qmlcache/traineros_src_qml_HomeScreensCollage_qml.cpp.aotstats
+[44/384] Generating .rcc/qmlcache/traineros_src_qml_Main_qml.cpp, .rcc/qmlcache/traineros_src_qml_Main_qml.cpp.aotstats
+[45/384] Generating .rcc/qmlcache/traineros_src_qml_HomeConnectionMarks_qml.cpp, .rcc/qmlcache/traineros_src_qml_HomeConnectionMarks_qml.cpp.aotstats
+[46/384] Generating .rcc/qmlcache/traineros_src_qml_Panel_qml.cpp, .rcc/qmlcache/traineros_src_qml_Panel_qml.cpp.aotstats
+[47/384] Generating .rcc/qmlcache/traineros_src_qml_ChassisFrame_qml.cpp, .rcc/qmlcache/traineros_src_qml_ChassisFrame_qml.cpp.aotstats
+[48/384] Generating .rcc/qmlcache/traineros_src_qml_ChassisTopRim_qml.cpp, .rcc/qmlcache/traineros_src_qml_ChassisTopRim_qml.cpp.aotstats
+[49/384] Generating .rcc/qmlcache/traineros_src_qml_PageHeader_qml.cpp, .rcc/qmlcache/traineros_src_qml_PageHeader_qml.cpp.aotstats
+[50/384] Generating .rcc/qmlcache/traineros_src_qml_ShellBackgroundPattern_qml.cpp, .rcc/qmlcache/traineros_src_qml_ShellBackgroundPattern_qml.cpp.aotstats
+[51/384] Generating .rcc/qmlcache/traineros_src_qml_MountedPanel_qml.cpp, .rcc/qmlcache/traineros_src_qml_MountedPanel_qml.cpp.aotstats
+[52/384] Generating .rcc/qmlcache/traineros_src_qml_Hint_qml.cpp, .rcc/qmlcache/traineros_src_qml_Hint_qml.cpp.aotstats
+[53/384] Generating .rcc/qmlcache/traineros_src_qml_CapButton_qml.cpp, .rcc/qmlcache/traineros_src_qml_CapButton_qml.cpp.aotstats
+[54/384] Generating .rcc/qmlcache/traineros_src_qml_PlatformBadge_qml.cpp, .rcc/qmlcache/traineros_src_qml_PlatformBadge_qml.cpp.aotstats
+[55/384] Generating .rcc/qmlcache/traineros_src_qml_AccountAvatar_qml.cpp, .rcc/qmlcache/traineros_src_qml_AccountAvatar_qml.cpp.aotstats
+[56/384] Generating .rcc/qmlcache/traineros_src_qml_FaceStep_qml.cpp, .rcc/qmlcache/traineros_src_qml_FaceStep_qml.cpp.aotstats
+[57/384] Generating .rcc/qmlcache/traineros_src_qml_AccountProfilePanel_qml.cpp, .rcc/qmlcache/traineros_src_qml_AccountProfilePanel_qml.cpp.aotstats
+[58/384] Generating .rcc/qmlcache/traineros_src_adapters_pokemon_HomePage_qml.cpp, .rcc/qmlcache/traineros_src_adapters_pokemon_HomePage_qml.cpp.aotstats
+[59/384] Generating .rcc/qmlcache/traineros_src_adapters_pokemon_PokemonExperienceOverlay_qml.cpp, .rcc/qmlcache/traineros_src_adapters_pokemon_PokemonExperienceOverlay_qml.cpp.aotstats
+[60/384] Generating .rcc/qmlcache/traineros_src_adapters_pokemon_ExperienceHints_js.cpp
+[61/384] Generating .rcc/qmlcache/traineros_src_adapters_pokemon_PokemonExperienceViews_qml.cpp, .rcc/qmlcache/traineros_src_adapters_pokemon_PokemonExperienceViews_qml.cpp.aotstats
+[62/384] Generating .rcc/qmlcache/traineros_src_qml_ExperienceHost_qml.cpp, .rcc/qmlcache/traineros_src_qml_ExperienceHost_qml.cpp.aotstats
+[63/384] Generating .rcc/qmlcache/traineros_src_adapters_generic_GenericExperienceViews_qml.cpp, .rcc/qmlcache/traineros_src_adapters_generic_GenericExperienceViews_qml.cpp.aotstats
+[64/384] Generating .rcc/qmlcache/traineros_src_qml_GenericExperiencePage_qml.cpp, .rcc/qmlcache/traineros_src_qml_GenericExperiencePage_qml.cpp.aotstats
+[65/384] Generating .rcc/qmlcache/traineros_src_qml_AlbumPhoto_qml.cpp, .rcc/qmlcache/traineros_src_qml_AlbumPhoto_qml.cpp.aotstats
+[66/384] Generating .rcc/qmlcache/traineros_src_qml_HomeDashboard_qml.cpp, .rcc/qmlcache/traineros_src_qml_HomeDashboard_qml.cpp.aotstats
+[67/384] Generating .rcc/qmlcache/traineros_src_qml_GameHubPage_qml.cpp, .rcc/qmlcache/traineros_src_qml_GameHubPage_qml.cpp.aotstats
+[68/384] Generating .rcc/qmlcache/traineros_src_qml_ScreensAlbum_qml.cpp, .rcc/qmlcache/traineros_src_qml_ScreensAlbum_qml.cpp.aotstats
+[69/384] Generating .rcc/qmlcache/traineros_src_qml_GameHubOverview_qml.cpp, .rcc/qmlcache/traineros_src_qml_GameHubOverview_qml.cpp.aotstats
+[70/384] Generating .rcc/qmlcache/traineros_src_qml_GameTimeline_qml.cpp, .rcc/qmlcache/traineros_src_qml_GameTimeline_qml.cpp.aotstats
+[71/384] Generating .rcc/qmlcache/traineros_src_qml_MenuGlyph_qml.cpp, .rcc/qmlcache/traineros_src_qml_MenuGlyph_qml.cpp.aotstats
+[72/384] Generating .rcc/qmlcache/traineros_src_qml_WorkspacePlaceholder_qml.cpp, .rcc/qmlcache/traineros_src_qml_WorkspacePlaceholder_qml.cpp.aotstats
+[73/384] Generating .rcc/qmlcache/traineros_src_qml_PlayerProfilePanel_qml.cpp, .rcc/qmlcache/traineros_src_qml_PlayerProfilePanel_qml.cpp.aotstats
+[74/384] Generating .rcc/qmlcache/traineros_src_qml_AvatarEditor_qml.cpp, .rcc/qmlcache/traineros_src_qml_AvatarEditor_qml.cpp.aotstats
+[75/384] Generating .rcc/qmlcache/traineros_src_qml_AvatarPreview3D_qml.cpp, .rcc/qmlcache/traineros_src_qml_AvatarPreview3D_qml.cpp.aotstats
+[76/384] Generating .rcc/qmlcache/traineros_src_qml_GameOptions_qml.cpp, .rcc/qmlcache/traineros_src_qml_GameOptions_qml.cpp.aotstats
+[77/384] Generating .rcc/qmlcache/traineros_src_qml_ShellOptions_qml.cpp, .rcc/qmlcache/traineros_src_qml_ShellOptions_qml.cpp.aotstats
+[78/384] Generating .rcc/qmlcache/traineros_src_qml_GameActivity_qml.cpp, .rcc/qmlcache/traineros_src_qml_GameActivity_qml.cpp.aotstats
+[79/384] Generating .rcc/qmlcache/traineros_src_qml_GameFrame_qml.cpp, .rcc/qmlcache/traineros_src_qml_GameFrame_qml.cpp.aotstats
+[80/384] Generating .rcc/qmlcache/traineros_src_qml_GameSettingTile_qml.cpp, .rcc/qmlcache/traineros_src_qml_GameSettingTile_qml.cpp.aotstats
+[81/384] Generating .rcc/qmlcache/traineros_src_qml_ActivityRow_qml.cpp, .rcc/qmlcache/traineros_src_qml_ActivityRow_qml.cpp.aotstats
+[82/384] Generating .rcc/qmlcache/traineros_src_qml_IncomingCall_qml.cpp, .rcc/qmlcache/traineros_src_qml_IncomingCall_qml.cpp.aotstats
+[83/384] Generating .rcc/qmlcache/traineros_src_qml_LeagueBadge_qml.cpp, .rcc/qmlcache/traineros_src_qml_LeagueBadge_qml.cpp.aotstats
+[84/384] Generating .rcc/qmlcache/traineros_src_qml_PassiveNotice_qml.cpp, .rcc/qmlcache/traineros_src_qml_PassiveNotice_qml.cpp.aotstats
+[85/384] Generating .rcc/qmlcache/traineros_src_qml_AdventureButton_qml.cpp, .rcc/qmlcache/traineros_src_qml_AdventureButton_qml.cpp.aotstats
+[86/384] Generating .rcc/qmlcache/traineros_src_qml_BadgeTray_qml.cpp, .rcc/qmlcache/traineros_src_qml_BadgeTray_qml.cpp.aotstats
+[87/384] Generating .rcc/qmlcache/traineros_src_qml_HallOfFamePage_qml.cpp, .rcc/qmlcache/traineros_src_qml_HallOfFamePage_qml.cpp.aotstats
+[88/384] Generating .rcc/qmlcache/traineros_src_qml_AchievementHistory_qml.cpp, .rcc/qmlcache/traineros_src_qml_AchievementHistory_qml.cpp.aotstats
+[89/384] Generating .rcc/qmlcache/traineros_src_qml_AchievementGames_qml.cpp, .rcc/qmlcache/traineros_src_qml_AchievementGames_qml.cpp.aotstats
+[90/384] Generating .rcc/qmlcache/traineros_src_qml_AchievementGallery_qml.cpp, .rcc/qmlcache/traineros_src_qml_AchievementGallery_qml.cpp.aotstats
+[91/384] Generating .rcc/qmlcache/traineros_src_qml_AchievementPopup_qml.cpp, .rcc/qmlcache/traineros_src_qml_AchievementPopup_qml.cpp.aotstats
+[92/384] Generating .rcc/qmlcache/traineros_src_qml_AchievementCelebrationWindow_qml.cpp, .rcc/qmlcache/traineros_src_qml_AchievementCelebrationWindow_qml.cpp.aotstats
+[93/384] Generating .rcc/qmlcache/traineros_src_qml_JourneyPanel_qml.cpp, .rcc/qmlcache/traineros_src_qml_JourneyPanel_qml.cpp.aotstats
+[94/384] Generating .rcc/qmlcache/traineros_src_qml_ArchiveEditorPanel_qml.cpp, .rcc/qmlcache/traineros_src_qml_ArchiveEditorPanel_qml.cpp.aotstats
+[95/384] Generating .rcc/qmlcache/traineros_src_qml_AchievementAccountPanel_qml.cpp, .rcc/qmlcache/traineros_src_qml_AchievementAccountPanel_qml.cpp.aotstats
+[96/384] Generating .rcc/qmlcache/traineros_src_qml_ControllerList_qml.cpp, .rcc/qmlcache/traineros_src_qml_ControllerList_qml.cpp.aotstats
+[97/384] Generating .rcc/qmlcache/traineros_src_qml_QuickAppsDrawer_qml.cpp, .rcc/qmlcache/traineros_src_qml_QuickAppsDrawer_qml.cpp.aotstats
+[98/384] Generating .rcc/qmlcache/traineros_src_qml_ContinueDrawer_qml.cpp, .rcc/qmlcache/traineros_src_qml_ContinueDrawer_qml.cpp.aotstats
+[99/384] Generating .rcc/qmlcache/traineros_src_qml_ChassisDrawer_qml.cpp, .rcc/qmlcache/traineros_src_qml_ChassisDrawer_qml.cpp.aotstats
+[100/384] Generating .rcc/qmlcache/traineros_src_qml_ControlWidget_qml.cpp, .rcc/qmlcache/traineros_src_qml_ControlWidget_qml.cpp.aotstats
+[101/384] Generating .rcc/qmlcache/traineros_src_qml_SystemPanel_qml.cpp, .rcc/qmlcache/traineros_src_qml_SystemPanel_qml.cpp.aotstats
+[102/384] Generating .rcc/qmlcache/traineros_src_qml_ControlsPanel_qml.cpp, .rcc/qmlcache/traineros_src_qml_ControlsPanel_qml.cpp.aotstats
+[103/384] Generating .rcc/qmlcache/traineros_src_qml_ConnectionsPane_qml.cpp, .rcc/qmlcache/traineros_src_qml_ConnectionsPane_qml.cpp.aotstats
+[104/384] Generating .rcc/qmlcache/traineros_src_qml_LaunchPanel_qml.cpp, .rcc/qmlcache/traineros_src_qml_LaunchPanel_qml.cpp.aotstats
+[105/384] Generating .rcc/qmlcache/traineros_src_qml_StoragePanel_qml.cpp, .rcc/qmlcache/traineros_src_qml_StoragePanel_qml.cpp.aotstats
+[106/384] Generating .rcc/qmlcache/traineros_src_qml_LobbyImportPanel_qml.cpp, .rcc/qmlcache/traineros_src_qml_LobbyImportPanel_qml.cpp.aotstats
+[107/384] Generating .rcc/qmlcache/traineros_src_qml_CollectionsPanel_qml.cpp, .rcc/qmlcache/traineros_src_qml_CollectionsPanel_qml.cpp.aotstats
+[108/384] Generating .rcc/qmlcache/traineros_src_qml_LibraryToolsPanel_qml.cpp, .rcc/qmlcache/traineros_src_qml_LibraryToolsPanel_qml.cpp.aotstats
+[109/384] Generating .rcc/qmlcache/traineros_src_qml_ScrapePanel_qml.cpp, .rcc/qmlcache/traineros_src_qml_ScrapePanel_qml.cpp.aotstats
+[110/384] Generating .rcc/qmlcache/traineros_src_qml_ScrapeWidget_qml.cpp, .rcc/qmlcache/traineros_src_qml_ScrapeWidget_qml.cpp.aotstats
+[111/384] Generating .rcc/qmlcache/traineros_src_qml_ScrapeSettingsPane_qml.cpp, .rcc/qmlcache/traineros_src_qml_ScrapeSettingsPane_qml.cpp.aotstats
+[112/384] Generating .rcc/qmlcache/traineros_src_qml_DownloadsPanel_qml.cpp, .rcc/qmlcache/traineros_src_qml_DownloadsPanel_qml.cpp.aotstats
+[113/384] Generating .rcc/qmlcache/traineros_src_qml_TrainerSettingsPanel_qml.cpp, .rcc/qmlcache/traineros_src_qml_TrainerSettingsPanel_qml.cpp.aotstats
+[114/384] Generating .rcc/qmlcache/traineros_src_qml_LibraryPanel_qml.cpp, .rcc/qmlcache/traineros_src_qml_LibraryPanel_qml.cpp.aotstats
+[115/384] Generating .rcc/qmlcache/traineros_src_qml_TrainerSetupPanel_qml.cpp, .rcc/qmlcache/traineros_src_qml_TrainerSetupPanel_qml.cpp.aotstats
+[116/384] Generating .rcc/qmlcache/traineros_src_qml_SetupIllustration_qml.cpp, .rcc/qmlcache/traineros_src_qml_SetupIllustration_qml.cpp.aotstats
+[117/384] Generating .rcc/qmlcache/traineros_src_qml_FirstRunPanel_qml.cpp, .rcc/qmlcache/traineros_src_qml_FirstRunPanel_qml.cpp.aotstats
+[118/384] Generating .rcc/qmlcache/traineros_src_qml_StorageChoices_qml.cpp, .rcc/qmlcache/traineros_src_qml_StorageChoices_qml.cpp.aotstats
+[119/384] Generating .rcc/qmlcache/traineros_src_qml_SettingControl_qml.cpp, .rcc/qmlcache/traineros_src_qml_SettingControl_qml.cpp.aotstats
+[120/384] Generating .rcc/qmlcache/traineros_src_qml_SettingsRow_qml.cpp, .rcc/qmlcache/traineros_src_qml_SettingsRow_qml.cpp.aotstats
+[121/384] Generating .rcc/qmlcache/traineros_src_qml_ControllerDiagram_qml.cpp, .rcc/qmlcache/traineros_src_qml_ControllerDiagram_qml.cpp.aotstats
+[122/384] Generating .rcc/qmlcache/traineros_src_qml_SettingsPanel_qml.cpp, .rcc/qmlcache/traineros_src_qml_SettingsPanel_qml.cpp.aotstats
+[123/384] Generating .rcc/qmlcache/traineros_src_qml_ControllerSettingsPane_qml.cpp, .rcc/qmlcache/traineros_src_qml_ControllerSettingsPane_qml.cpp.aotstats
+[124/384] Generating .rcc/qmlcache/traineros_src_qml_ControllerCalibration_qml.cpp, .rcc/qmlcache/traineros_src_qml_ControllerCalibration_qml.cpp.aotstats
+[125/384] Generating .rcc/qmlcache/traineros_src_qml_CrtTexture_qml.cpp, .rcc/qmlcache/traineros_src_qml_CrtTexture_qml.cpp.aotstats
+[126/384] Generating .rcc/qmlcache/traineros_src_qml_RingDiagram_qml.cpp, .rcc/qmlcache/traineros_src_qml_RingDiagram_qml.cpp.aotstats
+[127/384] Generating .rcc/qmlcache/traineros_src_qml_RadialInputWindow_qml.cpp, .rcc/qmlcache/traineros_src_qml_RadialInputWindow_qml.cpp.aotstats
+[128/384] Generating .rcc/qmlcache/traineros_src_qml_GameInputPane_qml.cpp, .rcc/qmlcache/traineros_src_qml_GameInputPane_qml.cpp.aotstats
+[129/384] Generating .rcc/qmlcache/traineros_src_qml_CommunicationPane_qml.cpp, .rcc/qmlcache/traineros_src_qml_CommunicationPane_qml.cpp.aotstats
+[130/384] Generating .rcc/qmlcache/traineros_src_qml_ClockPane_qml.cpp, .rcc/qmlcache/traineros_src_qml_ClockPane_qml.cpp.aotstats
+[131/384] Generating .rcc/qmlcache/traineros_src_qml_DevicePanel_qml.cpp, .rcc/qmlcache/traineros_src_qml_DevicePanel_qml.cpp.aotstats
+[132/384] Generating .rcc/qmlcache/traineros_src_qml_DiagnosticsPanel_qml.cpp, .rcc/qmlcache/traineros_src_qml_DiagnosticsPanel_qml.cpp.aotstats
+[133/384] Generating .rcc/qmlcache/traineros_src_adapters_pokemon_TrainerPage_qml.cpp, .rcc/qmlcache/traineros_src_adapters_pokemon_TrainerPage_qml.cpp.aotstats
+[134/384] Generating .rcc/qmlcache/traineros_src_qml_KeyboardPanel_qml.cpp, .rcc/qmlcache/traineros_src_qml_KeyboardPanel_qml.cpp.aotstats
+[135/384] Generating .rcc/qmlcache/traineros_src_qml_PlayerChatPane_qml.cpp, .rcc/qmlcache/traineros_src_qml_PlayerChatPane_qml.cpp.aotstats
+[136/384] Generating .rcc/qmlcache/traineros_src_qml_QuickLobbyChat_qml.cpp, .rcc/qmlcache/traineros_src_qml_QuickLobbyChat_qml.cpp.aotstats
+[137/384] Generating .rcc/qmlcache/traineros_src_qml_PlayerBubbles_qml.cpp, .rcc/qmlcache/traineros_src_qml_PlayerBubbles_qml.cpp.aotstats
+[138/384] Generating .rcc/qmlcache/traineros_src_qml_ConversationPane_qml.cpp, .rcc/qmlcache/traineros_src_qml_ConversationPane_qml.cpp.aotstats
+[139/384] Generating .rcc/qmlcache/traineros_src_qml_PcGamePopup_qml.cpp, .rcc/qmlcache/traineros_src_qml_PcGamePopup_qml.cpp.aotstats
+[140/384] Generating .rcc/qmlcache/traineros_src_qml_ChatFilePicker_qml.cpp, .rcc/qmlcache/traineros_src_qml_ChatFilePicker_qml.cpp.aotstats
+[141/384] Generating .rcc/qmlcache/traineros_src_qml_DiscoverCommunityCard_qml.cpp, .rcc/qmlcache/traineros_src_qml_DiscoverCommunityCard_qml.cpp.aotstats
+[142/384] Generating .rcc/qmlcache/traineros_src_qml_SocialPage_qml.cpp, .rcc/qmlcache/traineros_src_qml_SocialPage_qml.cpp.aotstats
+[143/384] Generating .rcc/qmlcache/traineros_src_qml_DiscoverPane_qml.cpp, .rcc/qmlcache/traineros_src_qml_DiscoverPane_qml.cpp.aotstats
+[144/384] Generating .rcc/qmlcache/traineros_src_qml_LobbyPane_qml.cpp, .rcc/qmlcache/traineros_src_qml_LobbyPane_qml.cpp.aotstats
+[145/384] Generating .rcc/qmlcache/traineros_src_qml_MyLobbiesPopup_qml.cpp, .rcc/qmlcache/traineros_src_qml_MyLobbiesPopup_qml.cpp.aotstats
+[146/384] Generating .rcc/qmlcache/traineros_src_qml_LobbyRoom_qml.cpp, .rcc/qmlcache/traineros_src_qml_LobbyRoom_qml.cpp.aotstats
+[147/384] Generating .rcc/qmlcache/traineros_src_qml_LobbyCreatePopup_qml.cpp, .rcc/qmlcache/traineros_src_qml_LobbyCreatePopup_qml.cpp.aotstats
+[148/384] Generating .rcc/qmlcache/traineros_src_qml_LobbyGamePicker_qml.cpp, .rcc/qmlcache/traineros_src_qml_LobbyGamePicker_qml.cpp.aotstats
+[149/384] Generating .rcc/qmlcache/traineros_src_qml_LobbyVotePopup_qml.cpp, .rcc/qmlcache/traineros_src_qml_LobbyVotePopup_qml.cpp.aotstats
+[150/384] Generating .rcc/qmlcache/traineros_src_qml_LobbyAvatar_qml.cpp, .rcc/qmlcache/traineros_src_qml_LobbyAvatar_qml.cpp.aotstats
+[151/384] Generating .rcc/qmlcache/traineros_src_qml_LobbyCatalogue_qml.cpp, .rcc/qmlcache/traineros_src_qml_LobbyCatalogue_qml.cpp.aotstats
+[152/384] Generating .rcc/qmlcache/traineros_src_qml_RecentTogetherPane_qml.cpp, .rcc/qmlcache/traineros_src_qml_RecentTogetherPane_qml.cpp.aotstats
+[153/384] Generating .rcc/qmlcache/traineros_src_qml_SocialIconButton_qml.cpp, .rcc/qmlcache/traineros_src_qml_SocialIconButton_qml.cpp.aotstats
+[154/384] Generating .rcc/qmlcache/traineros_src_qml_TrainerEmblem_qml.cpp, .rcc/qmlcache/traineros_src_qml_TrainerEmblem_qml.cpp.aotstats
+[155/384] Generating .rcc/qmlcache/traineros_src_qml_SeriesPage_qml.cpp, .rcc/qmlcache/traineros_src_qml_SeriesPage_qml.cpp.aotstats
+[156/384] Generating .rcc/qmlcache/traineros_src_qml_WorldThemes_js.cpp
+[157/384] Generating .rcc/qmlcache/traineros_src_qml_WorldCard_qml.cpp, .rcc/qmlcache/traineros_src_qml_WorldCard_qml.cpp.aotstats
+[158/384] Generating .rcc/qmlcache/traineros_src_qml_WorldsPage_qml.cpp, .rcc/qmlcache/traineros_src_qml_WorldsPage_qml.cpp.aotstats
+[159/384] Generating .rcc/qmlcache/traineros_src_qml_PlatformThemes_js.cpp
+[160/384] Generating .rcc/qmlcache/traineros_src_qml_PlatformCard_qml.cpp, .rcc/qmlcache/traineros_src_qml_PlatformCard_qml.cpp.aotstats
+[161/384] Generating .rcc/qmlcache/traineros_src_qml_MultiverseHome_qml.cpp, .rcc/qmlcache/traineros_src_qml_MultiverseHome_qml.cpp.aotstats
+[162/384] Generating .rcc/qmlcache/traineros_src_qml_SystemGlyph_qml.cpp, .rcc/qmlcache/traineros_src_qml_SystemGlyph_qml.cpp.aotstats
+[163/384] Generating .rcc/qmlcache/traineros_src_qml_MultiversePage_qml.cpp, .rcc/qmlcache/traineros_src_qml_MultiversePage_qml.cpp.aotstats
+[164/384] Generating .rcc/qmlcache/traineros_src_adapters_pokemon_PokedexPage_qml.cpp, .rcc/qmlcache/traineros_src_adapters_pokemon_PokedexPage_qml.cpp.aotstats
+[165/384] Generating .rcc/qmlcache/traineros_src_qml_SpeciesPickerPanel_qml.cpp, .rcc/qmlcache/traineros_src_qml_SpeciesPickerPanel_qml.cpp.aotstats
+[166/384] Generating .rcc/qmlcache/traineros_src_qml_ClassicIllustration_qml.cpp, .rcc/qmlcache/traineros_src_qml_ClassicIllustration_qml.cpp.aotstats
+[167/384] Generating .rcc/qmlcache/traineros_src_qml_SpritePreview_qml.cpp, .rcc/qmlcache/traineros_src_qml_SpritePreview_qml.cpp.aotstats
+[168/384] Generating .rcc/qmlcache/traineros_src_qml_ArtworkPanel_qml.cpp, .rcc/qmlcache/traineros_src_qml_ArtworkPanel_qml.cpp.aotstats
+[169/384] Generating .rcc/qmlcache/traineros_src_qml_SpriteActor_qml.cpp, .rcc/qmlcache/traineros_src_qml_SpriteActor_qml.cpp.aotstats
+[170/384] Generating .rcc/qmlcache/traineros_src_adapters_pokemon_PokemonClinic_qml.cpp, .rcc/qmlcache/traineros_src_adapters_pokemon_PokemonClinic_qml.cpp.aotstats
+[171/384] Generating .rcc/qmlcache/traineros_src_adapters_pokemon_SaveCenterPanel_qml.cpp, .rcc/qmlcache/traineros_src_adapters_pokemon_SaveCenterPanel_qml.cpp.aotstats
+[172/384] Generating .rcc/qmlcache/traineros_src_adapters_pokemon_PartyPanel_qml.cpp, .rcc/qmlcache/traineros_src_adapters_pokemon_PartyPanel_qml.cpp.aotstats
+[173/384] Generating .rcc/qmlcache/traineros_src_adapters_pokemon_PokemonShop_qml.cpp, .rcc/qmlcache/traineros_src_adapters_pokemon_PokemonShop_qml.cpp.aotstats
+[174/384] Generating .rcc/qmlcache/traineros_src_adapters_pokemon_CenterActivitiesPanel_qml.cpp, .rcc/qmlcache/traineros_src_adapters_pokemon_CenterActivitiesPanel_qml.cpp.aotstats
+[175/384] Generating .rcc/qmlcache/traineros_src_adapters_pokemon_LinkPortrait_qml.cpp, .rcc/qmlcache/traineros_src_adapters_pokemon_LinkPortrait_qml.cpp.aotstats
+[176/384] Generating .rcc/qmlcache/traineros_src_adapters_pokemon_LinkPanel_qml.cpp, .rcc/qmlcache/traineros_src_adapters_pokemon_LinkPanel_qml.cpp.aotstats
+[177/384] Generating .rcc/qmlcache/traineros_src_adapters_pokemon_PracticePanel_qml.cpp, .rcc/qmlcache/traineros_src_adapters_pokemon_PracticePanel_qml.cpp.aotstats
+[178/384] Generating .rcc/qmlcache/traineros_src_adapters_pokemon_PracticeFighter_qml.cpp, .rcc/qmlcache/traineros_src_adapters_pokemon_PracticeFighter_qml.cpp.aotstats
+[179/384] Generating .rcc/qmlcache/traineros_src_adapters_pokemon_HomeParty_qml.cpp, .rcc/qmlcache/traineros_src_adapters_pokemon_HomeParty_qml.cpp.aotstats
+[180/384] Generating .rcc/qmlcache/traineros_src_adapters_pokemon_PartyPlayroom_qml.cpp, .rcc/qmlcache/traineros_src_adapters_pokemon_PartyPlayroom_qml.cpp.aotstats
+[181/384] Generating .rcc/qmlcache/traineros_src_adapters_pokemon_PlayroomMeadow_qml.cpp, .rcc/qmlcache/traineros_src_adapters_pokemon_PlayroomMeadow_qml.cpp.aotstats
+[182/384] Generating .rcc/qmlcache/traineros_src_adapters_pokemon_PlayroomActor_qml.cpp, .rcc/qmlcache/traineros_src_adapters_pokemon_PlayroomActor_qml.cpp.aotstats
+[183/384] Generating .rcc/qmlcache/traineros_src_qml_BatteryGauge_qml.cpp, .rcc/qmlcache/traineros_src_qml_BatteryGauge_qml.cpp.aotstats
+[184/384] Building CXX object CMakeFiles/traineros.dir/traineros_autogen/mocs_compilation.cpp.o
+[185/384] Building CXX object CMakeFiles/traineros.dir/.qt/rcc/qrc_series_art.cpp.o
+[186/384] Building CXX object CMakeFiles/traineros.dir/.qt/rcc/qrc_home_backdrops.cpp.o
+[187/384] Building CXX object CMakeFiles/traineros.dir/.qt/rcc/qrc_genre_art.cpp.o
+[188/384] Building CXX object CMakeFiles/traineros.dir/.qt/rcc/qrc_crt_texture.cpp.o
+[189/384] Building CXX object CMakeFiles/traineros.dir/.qt/rcc/qrc_display_fonts.cpp.o
+[190/384] Building CXX object CMakeFiles/traineros.dir/.qt/rcc/qrc_social_icons.cpp.o
+[191/384] Building CXX object CMakeFiles/traineros.dir/.qt/rcc/qrc_home_icons.cpp.o
+[192/384] Building CXX object CMakeFiles/traineros.dir/.qt/rcc/qrc_crates_showcase.cpp.o
+[193/384] Building CXX object CMakeFiles/traineros.dir/.qt/rcc/qrc_crates_art.cpp.o
+[194/384] Building CXX object CMakeFiles/traineros.dir/.qt/rcc/qrc_crates_projects.cpp.o
+[195/384] Building CXX object CMakeFiles/traineros.dir/.qt/rcc/qrc_profile_avatars.cpp.o
+[196/384] Building CXX object CMakeFiles/traineros.dir/.qt/rcc/qrc_cover_fallbacks.cpp.o
+[197/384] Building CXX object CMakeFiles/traineros.dir/.qt/rcc/qrc_qmake_TrainerOS.cpp.o
+[198/384] Building CXX object CMakeFiles/traineros.dir/traineros_qmltyperegistrations.cpp.o
+[199/384] Building CXX object CMakeFiles/traineros.dir/src/platform/media/GameStreamView.cpp.o
+[200/384] Building CXX object CMakeFiles/traineros.dir/.rcc/qmlcache/traineros_qmlcache_loader.cpp.o
+[201/384] Building CXX object CMakeFiles/traineros.dir/src/app/Main.cpp.o
+[202/384] Building CXX object CMakeFiles/traineros.dir/.rcc/qmlcache/traineros_src_qml_AdventureArtwork_qml.cpp.o
+[203/384] Building CXX object CMakeFiles/traineros.dir/.rcc/qmlcache/traineros_src_qml_BrowserEngine_qml.cpp.o
+[204/384] Building CXX object CMakeFiles/traineros.dir/.rcc/qmlcache/traineros_src_qml_BrowserPane_qml.cpp.o
+[205/384] Building CXX object CMakeFiles/traineros.dir/.rcc/qmlcache/traineros_src_qml_LibraryGameList_qml.cpp.o
+[206/384] Building CXX object CMakeFiles/traineros.dir/.rcc/qmlcache/traineros_src_qml_LibraryShelves_qml.cpp.o
+[207/384] Building CXX object CMakeFiles/traineros.dir/.rcc/qmlcache/traineros_src_qml_LibraryGrid_qml.cpp.o
+[208/384] Building CXX object CMakeFiles/traineros.dir/.rcc/qmlcache/traineros_src_qml_ShelfCover_qml.cpp.o
+[209/384] Building CXX object CMakeFiles/traineros.dir/.rcc/qmlcache/traineros_src_qml_LibraryWheel_qml.cpp.o
+[210/384] Building CXX object CMakeFiles/traineros.dir/.rcc/qmlcache/traineros_src_qml_GameInformation_qml.cpp.o
+[211/384] Building CXX object CMakeFiles/traineros.dir/.rcc/qmlcache/traineros_src_qml_FavoriteStar_qml.cpp.o
+[212/384] Building CXX object CMakeFiles/traineros.dir/.rcc/qmlcache/traineros_src_qml_PlayBadge_qml.cpp.o
+[213/384] Building CXX object CMakeFiles/traineros.dir/.rcc/qmlcache/traineros_src_qml_GamePreview_qml.cpp.o
+[214/384] Building CXX object CMakeFiles/traineros.dir/.rcc/qmlcache/traineros_src_qml_GameVideoPreview_qml.cpp.o
+[215/384] Building CXX object CMakeFiles/traineros.dir/.rcc/qmlcache/traineros_src_qml_TrainerAccessPanel_qml.cpp.o
+[216/384] Building CXX object CMakeFiles/traineros.dir/.rcc/qmlcache/traineros_src_qml_FilesIcon_qml.cpp.o
+[217/384] Building CXX object CMakeFiles/traineros.dir/.rcc/qmlcache/traineros_src_qml_FilesPane_qml.cpp.o
+[218/384] Building CXX object CMakeFiles/traineros.dir/.rcc/qmlcache/traineros_src_qml_FilesControlTab_qml.cpp.o
+[219/384] Building CXX object CMakeFiles/traineros.dir/.rcc/qmlcache/traineros_src_qml_AppsPage_qml.cpp.o
+[220/384] Building CXX object CMakeFiles/traineros.dir/.rcc/qmlcache/traineros_src_qml_FilesPopup_qml.cpp.o
+[221/384] Building CXX object CMakeFiles/traineros.dir/.rcc/qmlcache/traineros_src_qml_CratesPage_qml.cpp.o
+[222/384] Building CXX object CMakeFiles/traineros.dir/.rcc/qmlcache/traineros_src_qml_CratesCataloguePage_qml.cpp.o
+[223/384] Building CXX object CMakeFiles/traineros.dir/.rcc/qmlcache/traineros_src_qml_CratesProjectCard_qml.cpp.o
+[224/384] Building CXX object CMakeFiles/traineros.dir/.rcc/qmlcache/traineros_src_qml_CratesProjectArt_qml.cpp.o
+[225/384] Building CXX object CMakeFiles/traineros.dir/.rcc/qmlcache/traineros_src_qml_CratesProjectPopup_qml.cpp.o
+[226/384] Building CXX object CMakeFiles/traineros.dir/.rcc/qmlcache/traineros_src_qml_CrateEmblem_qml.cpp.o
+[227/384] Building CXX object CMakeFiles/traineros.dir/.rcc/qmlcache/traineros_src_qml_CrateTile_qml.cpp.o
+[228/384] Building CXX object CMakeFiles/traineros.dir/.rcc/qmlcache/traineros_src_qml_CrateIllustration_qml.cpp.o
+[229/384] Building CXX object CMakeFiles/traineros.dir/.rcc/qmlcache/traineros_src_qml_AppsMenu_qml.cpp.o
+[230/384] Building CXX object CMakeFiles/traineros.dir/.rcc/qmlcache/traineros_src_qml_AppsDock_qml.cpp.o
+[231/384] Building CXX object CMakeFiles/traineros.dir/.rcc/qmlcache/traineros_src_qml_AppControlsWindow_qml.cpp.o
+[232/384] Building CXX object CMakeFiles/traineros.dir/.rcc/qmlcache/traineros_src_qml_AdventureExitWindow_qml.cpp.o
+[233/384] Building CXX object CMakeFiles/traineros.dir/.rcc/qmlcache/traineros_src_qml_InvitationBadge_qml.cpp.o
+[234/384] Building CXX object CMakeFiles/traineros.dir/.rcc/qmlcache/traineros_src_qml_HomeMenuCard_qml.cpp.o
+[235/384] Building CXX object CMakeFiles/traineros.dir/.rcc/qmlcache/traineros_src_qml_Theme_qml.cpp.o
+[236/384] Building CXX object CMakeFiles/traineros.dir/.rcc/qmlcache/traineros_src_qml_HomeCardBackdrop_qml.cpp.o
+[237/384] Building CXX object CMakeFiles/traineros.dir/.rcc/qmlcache/traineros_src_qml_Main_qml.cpp.o
+[238/384] Building CXX object CMakeFiles/traineros.dir/.rcc/qmlcache/traineros_src_qml_HomeScreensCollage_qml.cpp.o
+[239/384] Building CXX object CMakeFiles/traineros.dir/.rcc/qmlcache/traineros_src_qml_HomeMetadataChips_qml.cpp.o
+[240/384] Building CXX object CMakeFiles/traineros.dir/.rcc/qmlcache/traineros_src_qml_HomeConnectionMarks_qml.cpp.o
+[241/384] Building CXX object CMakeFiles/traineros.dir/.rcc/qmlcache/traineros_src_qml_Panel_qml.cpp.o
+[242/384] Building CXX object CMakeFiles/traineros.dir/.rcc/qmlcache/traineros_src_qml_ChassisTopRim_qml.cpp.o
+[243/384] Building CXX object CMakeFiles/traineros.dir/.rcc/qmlcache/traineros_src_qml_ChassisFrame_qml.cpp.o
+[244/384] Building CXX object CMakeFiles/traineros.dir/.rcc/qmlcache/traineros_src_qml_ShellBackgroundPattern_qml.cpp.o
+[245/384] Building CXX object CMakeFiles/traineros.dir/.rcc/qmlcache/traineros_src_qml_PageHeader_qml.cpp.o
+[246/384] Building CXX object CMakeFiles/traineros.dir/.rcc/qmlcache/traineros_src_qml_MountedPanel_qml.cpp.o
+[247/384] Building CXX object CMakeFiles/traineros.dir/.rcc/qmlcache/traineros_src_qml_PlatformBadge_qml.cpp.o
+[248/384] Building CXX object CMakeFiles/traineros.dir/.rcc/qmlcache/traineros_src_qml_CapButton_qml.cpp.o
+[249/384] Building CXX object CMakeFiles/traineros.dir/.rcc/qmlcache/traineros_src_qml_Hint_qml.cpp.o
+[250/384] Building CXX object CMakeFiles/traineros.dir/.rcc/qmlcache/traineros_src_qml_AccountAvatar_qml.cpp.o
+[251/384] Building CXX object CMakeFiles/traineros.dir/.rcc/qmlcache/traineros_src_qml_FaceStep_qml.cpp.o
+[252/384] Building CXX object CMakeFiles/traineros.dir/.rcc/qmlcache/traineros_src_qml_AccountProfilePanel_qml.cpp.o
+[253/384] Building CXX object CMakeFiles/traineros.dir/.rcc/qmlcache/traineros_src_adapters_pokemon_PokemonExperienceViews_qml.cpp.o
+[254/384] Building CXX object CMakeFiles/traineros.dir/.rcc/qmlcache/traineros_src_adapters_pokemon_HomePage_qml.cpp.o
+[255/384] Building CXX object CMakeFiles/traineros.dir/.rcc/qmlcache/traineros_src_adapters_pokemon_PokemonExperienceOverlay_qml.cpp.o
+[256/384] Building CXX object CMakeFiles/traineros.dir/.rcc/qmlcache/traineros_src_adapters_pokemon_ExperienceHints_js.cpp.o
+[257/384] Building CXX object CMakeFiles/traineros.dir/.rcc/qmlcache/traineros_src_adapters_generic_GenericExperienceViews_qml.cpp.o
+[258/384] Building CXX object CMakeFiles/traineros.dir/.rcc/qmlcache/traineros_src_qml_ExperienceHost_qml.cpp.o
+[259/384] Building CXX object CMakeFiles/traineros.dir/.rcc/qmlcache/traineros_src_qml_GenericExperiencePage_qml.cpp.o
+[260/384] Building CXX object CMakeFiles/traineros.dir/.rcc/qmlcache/traineros_src_qml_GameHubPage_qml.cpp.o
+[261/384] Building CXX object CMakeFiles/traineros.dir/.rcc/qmlcache/traineros_src_qml_AlbumPhoto_qml.cpp.o
+[262/384] Building CXX object CMakeFiles/traineros.dir/.rcc/qmlcache/traineros_src_qml_HomeDashboard_qml.cpp.o
+[263/384] Building CXX object CMakeFiles/traineros.dir/.rcc/qmlcache/traineros_src_qml_ScreensAlbum_qml.cpp.o
+[264/384] Building CXX object CMakeFiles/traineros.dir/.rcc/qmlcache/traineros_src_qml_GameHubOverview_qml.cpp.o
+[265/384] Building CXX object CMakeFiles/traineros.dir/.rcc/qmlcache/traineros_src_qml_GameTimeline_qml.cpp.o
+[266/384] Building CXX object CMakeFiles/traineros.dir/.rcc/qmlcache/traineros_src_qml_WorkspacePlaceholder_qml.cpp.o
+[267/384] Building CXX object CMakeFiles/traineros.dir/.rcc/qmlcache/traineros_src_qml_MenuGlyph_qml.cpp.o
+[268/384] Building CXX object CMakeFiles/traineros.dir/.rcc/qmlcache/traineros_src_qml_PlayerProfilePanel_qml.cpp.o
+[269/384] Building CXX object CMakeFiles/traineros.dir/.rcc/qmlcache/traineros_src_qml_AvatarPreview3D_qml.cpp.o
+[270/384] Building CXX object CMakeFiles/traineros.dir/.rcc/qmlcache/traineros_src_qml_AvatarEditor_qml.cpp.o
+[271/384] Building CXX object CMakeFiles/traineros.dir/.rcc/qmlcache/traineros_src_qml_ShellOptions_qml.cpp.o
+[272/384] Building CXX object CMakeFiles/traineros.dir/.rcc/qmlcache/traineros_src_qml_GameOptions_qml.cpp.o
+[273/384] Building CXX object CMakeFiles/traineros.dir/.rcc/qmlcache/traineros_src_qml_GameActivity_qml.cpp.o
+[274/384] Building CXX object CMakeFiles/traineros.dir/.rcc/qmlcache/traineros_src_qml_GameFrame_qml.cpp.o
+[275/384] Building CXX object CMakeFiles/traineros.dir/.rcc/qmlcache/traineros_src_qml_GameSettingTile_qml.cpp.o
+[276/384] Building CXX object CMakeFiles/traineros.dir/.rcc/qmlcache/traineros_src_qml_PassiveNotice_qml.cpp.o
+[277/384] Building CXX object CMakeFiles/traineros.dir/.rcc/qmlcache/traineros_src_qml_ActivityRow_qml.cpp.o
+[278/384] Building CXX object CMakeFiles/traineros.dir/.rcc/qmlcache/traineros_src_qml_IncomingCall_qml.cpp.o
+[279/384] Building CXX object CMakeFiles/traineros.dir/.rcc/qmlcache/traineros_src_qml_LeagueBadge_qml.cpp.o
+[280/384] Building CXX object CMakeFiles/traineros.dir/.rcc/qmlcache/traineros_src_qml_BadgeTray_qml.cpp.o
+[281/384] Building CXX object CMakeFiles/traineros.dir/.rcc/qmlcache/traineros_src_qml_AdventureButton_qml.cpp.o
+[282/384] Building CXX object CMakeFiles/traineros.dir/.rcc/qmlcache/traineros_src_qml_HallOfFamePage_qml.cpp.o
+[283/384] Building CXX object CMakeFiles/traineros.dir/.rcc/qmlcache/traineros_src_qml_AchievementHistory_qml.cpp.o
+[284/384] Building CXX object CMakeFiles/traineros.dir/.rcc/qmlcache/traineros_src_qml_AchievementGames_qml.cpp.o
+[285/384] Building CXX object CMakeFiles/traineros.dir/.rcc/qmlcache/traineros_src_qml_AchievementPopup_qml.cpp.o
+[286/384] Building CXX object CMakeFiles/traineros.dir/.rcc/qmlcache/traineros_src_qml_AchievementGallery_qml.cpp.o
+[287/384] Building CXX object CMakeFiles/traineros.dir/.rcc/qmlcache/traineros_src_qml_AchievementCelebrationWindow_qml.cpp.o
+[288/384] Building CXX object CMakeFiles/traineros.dir/.rcc/qmlcache/traineros_src_qml_AchievementAccountPanel_qml.cpp.o
+[289/384] Building CXX object CMakeFiles/traineros.dir/.rcc/qmlcache/traineros_src_qml_JourneyPanel_qml.cpp.o
+[290/384] Building CXX object CMakeFiles/traineros.dir/.rcc/qmlcache/traineros_src_qml_ArchiveEditorPanel_qml.cpp.o
+[291/384] Building CXX object CMakeFiles/traineros.dir/.rcc/qmlcache/traineros_src_qml_ControllerList_qml.cpp.o
+[292/384] Building CXX object CMakeFiles/traineros.dir/.rcc/qmlcache/traineros_src_qml_QuickAppsDrawer_qml.cpp.o
+[293/384] Building CXX object CMakeFiles/traineros.dir/.rcc/qmlcache/traineros_src_qml_ContinueDrawer_qml.cpp.o
+[294/384] Building CXX object CMakeFiles/traineros.dir/.rcc/qmlcache/traineros_src_qml_ChassisDrawer_qml.cpp.o
+[295/384] Building CXX object CMakeFiles/traineros.dir/.rcc/qmlcache/traineros_src_qml_SystemPanel_qml.cpp.o
+[296/384] Building CXX object CMakeFiles/traineros.dir/.rcc/qmlcache/traineros_src_qml_ControlsPanel_qml.cpp.o
+[297/384] Building CXX object CMakeFiles/traineros.dir/.rcc/qmlcache/traineros_src_qml_ControlWidget_qml.cpp.o
+[298/384] Building CXX object CMakeFiles/traineros.dir/.rcc/qmlcache/traineros_src_qml_ConnectionsPane_qml.cpp.o
+[299/384] Building CXX object CMakeFiles/traineros.dir/.rcc/qmlcache/traineros_src_qml_StoragePanel_qml.cpp.o
+[300/384] Building CXX object CMakeFiles/traineros.dir/.rcc/qmlcache/traineros_src_qml_LaunchPanel_qml.cpp.o
+[301/384] Building CXX object CMakeFiles/traineros.dir/.rcc/qmlcache/traineros_src_qml_LobbyImportPanel_qml.cpp.o
+[302/384] Building CXX object CMakeFiles/traineros.dir/.rcc/qmlcache/traineros_src_qml_CollectionsPanel_qml.cpp.o
+[303/384] Building CXX object CMakeFiles/traineros.dir/.rcc/qmlcache/traineros_src_qml_LibraryToolsPanel_qml.cpp.o
+[304/384] Building CXX object CMakeFiles/traineros.dir/.rcc/qmlcache/traineros_src_qml_ScrapePanel_qml.cpp.o
+[305/384] Building CXX object CMakeFiles/traineros.dir/.rcc/qmlcache/traineros_src_qml_ScrapeSettingsPane_qml.cpp.o
+[306/384] Building CXX object CMakeFiles/traineros.dir/.rcc/qmlcache/traineros_src_qml_ScrapeWidget_qml.cpp.o
+[307/384] Building CXX object CMakeFiles/traineros.dir/.rcc/qmlcache/traineros_src_qml_LibraryPanel_qml.cpp.o
+[308/384] Building CXX object CMakeFiles/traineros.dir/.rcc/qmlcache/traineros_src_qml_TrainerSettingsPanel_qml.cpp.o
+[309/384] Building CXX object CMakeFiles/traineros.dir/.rcc/qmlcache/traineros_src_qml_DownloadsPanel_qml.cpp.o
+[310/384] Building CXX object CMakeFiles/traineros.dir/.rcc/qmlcache/traineros_src_qml_TrainerSetupPanel_qml.cpp.o
+[311/384] Building CXX object CMakeFiles/traineros.dir/.rcc/qmlcache/traineros_src_qml_FirstRunPanel_qml.cpp.o
+[312/384] Building CXX object CMakeFiles/traineros.dir/.rcc/qmlcache/traineros_src_qml_SetupIllustration_qml.cpp.o
+[313/384] Building CXX object CMakeFiles/traineros.dir/.rcc/qmlcache/traineros_src_qml_StorageChoices_qml.cpp.o
+[314/384] Building CXX object CMakeFiles/traineros.dir/.rcc/qmlcache/traineros_src_qml_SettingsPanel_qml.cpp.o
+[315/384] Building CXX object CMakeFiles/traineros.dir/.rcc/qmlcache/traineros_src_qml_SettingControl_qml.cpp.o
+[316/384] Building CXX object CMakeFiles/traineros.dir/.rcc/qmlcache/traineros_src_qml_SettingsRow_qml.cpp.o
+[317/384] Building CXX object CMakeFiles/traineros.dir/.rcc/qmlcache/traineros_src_qml_ControllerDiagram_qml.cpp.o
+[318/384] Building CXX object CMakeFiles/traineros.dir/.rcc/qmlcache/traineros_src_qml_ControllerSettingsPane_qml.cpp.o
+[319/384] Building CXX object CMakeFiles/traineros.dir/.rcc/qmlcache/traineros_src_qml_CrtTexture_qml.cpp.o
+[320/384] Building CXX object CMakeFiles/traineros.dir/.rcc/qmlcache/traineros_src_qml_ControllerCalibration_qml.cpp.o
+[321/384] Building CXX object CMakeFiles/traineros.dir/.rcc/qmlcache/traineros_src_qml_RingDiagram_qml.cpp.o
+[322/384] Building CXX object CMakeFiles/traineros.dir/.rcc/qmlcache/traineros_src_qml_RadialInputWindow_qml.cpp.o
+[323/384] Building CXX object CMakeFiles/traineros.dir/.rcc/qmlcache/traineros_src_qml_GameInputPane_qml.cpp.o
+[324/384] Building CXX object CMakeFiles/traineros.dir/.rcc/qmlcache/traineros_src_qml_CommunicationPane_qml.cpp.o
+[325/384] Building CXX object CMakeFiles/traineros.dir/.rcc/qmlcache/traineros_src_qml_DevicePanel_qml.cpp.o
+[326/384] Building CXX object CMakeFiles/traineros.dir/.rcc/qmlcache/traineros_src_qml_ClockPane_qml.cpp.o
+[327/384] Building CXX object CMakeFiles/traineros.dir/.rcc/qmlcache/traineros_src_qml_DiagnosticsPanel_qml.cpp.o
+[328/384] Building CXX object CMakeFiles/traineros.dir/.rcc/qmlcache/traineros_src_adapters_pokemon_TrainerPage_qml.cpp.o
+[329/384] Building CXX object CMakeFiles/traineros.dir/.rcc/qmlcache/traineros_src_qml_KeyboardPanel_qml.cpp.o
+[330/384] Building CXX object CMakeFiles/traineros.dir/.rcc/qmlcache/traineros_src_qml_PlayerChatPane_qml.cpp.o
+[331/384] Building CXX object CMakeFiles/traineros.dir/.rcc/qmlcache/traineros_src_qml_QuickLobbyChat_qml.cpp.o
+[332/384] Building CXX object CMakeFiles/traineros.dir/.rcc/qmlcache/traineros_src_qml_PlayerBubbles_qml.cpp.o
+[333/384] Building CXX object CMakeFiles/traineros.dir/.rcc/qmlcache/traineros_src_qml_PcGamePopup_qml.cpp.o
+[334/384] Building CXX object CMakeFiles/traineros.dir/.rcc/qmlcache/traineros_src_qml_ConversationPane_qml.cpp.o
+[335/384] Building CXX object CMakeFiles/traineros.dir/.rcc/qmlcache/traineros_src_qml_ChatFilePicker_qml.cpp.o
+[336/384] Building CXX object CMakeFiles/traineros.dir/.rcc/qmlcache/traineros_src_qml_DiscoverCommunityCard_qml.cpp.o
+[337/384] Building CXX object CMakeFiles/traineros.dir/.rcc/qmlcache/traineros_src_qml_LobbyPane_qml.cpp.o
+[338/384] Building CXX object CMakeFiles/traineros.dir/.rcc/qmlcache/traineros_src_qml_DiscoverPane_qml.cpp.o
+[339/384] Building CXX object CMakeFiles/traineros.dir/.rcc/qmlcache/traineros_src_qml_SocialPage_qml.cpp.o
+[340/384] Building CXX object CMakeFiles/traineros.dir/.rcc/qmlcache/traineros_src_qml_MyLobbiesPopup_qml.cpp.o
+[341/384] Building CXX object CMakeFiles/traineros.dir/.rcc/qmlcache/traineros_src_qml_LobbyCreatePopup_qml.cpp.o
+[342/384] Building CXX object CMakeFiles/traineros.dir/.rcc/qmlcache/traineros_src_qml_LobbyRoom_qml.cpp.o
+[343/384] Building CXX object CMakeFiles/traineros.dir/.rcc/qmlcache/traineros_src_qml_LobbyVotePopup_qml.cpp.o
+[344/384] Building CXX object CMakeFiles/traineros.dir/.rcc/qmlcache/traineros_src_qml_LobbyGamePicker_qml.cpp.o
+[345/384] Building CXX object CMakeFiles/traineros.dir/.rcc/qmlcache/traineros_src_qml_LobbyAvatar_qml.cpp.o
+[346/384] Building CXX object CMakeFiles/traineros.dir/.rcc/qmlcache/traineros_src_qml_RecentTogetherPane_qml.cpp.o
+[347/384] Building CXX object CMakeFiles/traineros.dir/.rcc/qmlcache/traineros_src_qml_SocialIconButton_qml.cpp.o
+[348/384] Building CXX object CMakeFiles/traineros.dir/.rcc/qmlcache/traineros_src_qml_LobbyCatalogue_qml.cpp.o
+[349/384] Building CXX object CMakeFiles/traineros.dir/.rcc/qmlcache/traineros_src_qml_TrainerEmblem_qml.cpp.o
+[350/384] Building CXX object CMakeFiles/traineros.dir/.rcc/qmlcache/traineros_src_qml_SeriesPage_qml.cpp.o
+[351/384] Building CXX object CMakeFiles/traineros.dir/.rcc/qmlcache/traineros_src_qml_WorldCard_qml.cpp.o
+[352/384] Building CXX object CMakeFiles/traineros.dir/.rcc/qmlcache/traineros_src_qml_WorldsPage_qml.cpp.o
+[353/384] Building CXX object CMakeFiles/traineros.dir/.rcc/qmlcache/traineros_src_qml_WorldThemes_js.cpp.o
+[354/384] Building CXX object CMakeFiles/traineros.dir/.rcc/qmlcache/traineros_src_qml_PlatformCard_qml.cpp.o
+[355/384] Building CXX object CMakeFiles/traineros.dir/.rcc/qmlcache/traineros_src_qml_PlatformThemes_js.cpp.o
+[356/384] Building CXX object CMakeFiles/traineros.dir/.rcc/qmlcache/traineros_src_qml_MultiversePage_qml.cpp.o
+[357/384] Building CXX object CMakeFiles/traineros.dir/.rcc/qmlcache/traineros_src_qml_SystemGlyph_qml.cpp.o
+[358/384] Building CXX object CMakeFiles/traineros.dir/.rcc/qmlcache/traineros_src_qml_MultiverseHome_qml.cpp.o
+[359/384] Building CXX object CMakeFiles/traineros.dir/.rcc/qmlcache/traineros_src_qml_ClassicIllustration_qml.cpp.o
+[360/384] Building CXX object CMakeFiles/traineros.dir/.rcc/qmlcache/traineros_src_qml_SpeciesPickerPanel_qml.cpp.o
+[361/384] Building CXX object CMakeFiles/traineros.dir/.rcc/qmlcache/traineros_src_adapters_pokemon_PokedexPage_qml.cpp.o
+[362/384] Building CXX object CMakeFiles/traineros.dir/.rcc/qmlcache/traineros_src_qml_SpritePreview_qml.cpp.o
+[363/384] Building CXX object CMakeFiles/traineros.dir/.rcc/qmlcache/traineros_src_qml_ArtworkPanel_qml.cpp.o
+[364/384] Building CXX object CMakeFiles/traineros.dir/.rcc/qmlcache/traineros_src_qml_SpriteActor_qml.cpp.o
+[365/384] Building CXX object CMakeFiles/traineros.dir/.rcc/qmlcache/traineros_src_adapters_pokemon_SaveCenterPanel_qml.cpp.o
+[366/384] Building CXX object CMakeFiles/traineros.dir/.rcc/qmlcache/traineros_src_adapters_pokemon_PokemonClinic_qml.cpp.o
+[367/384] Building CXX object CMakeFiles/traineros.dir/.rcc/qmlcache/traineros_src_adapters_pokemon_PartyPanel_qml.cpp.o
+[368/384] Building CXX object CMakeFiles/traineros.dir/.rcc/qmlcache/traineros_src_adapters_pokemon_CenterActivitiesPanel_qml.cpp.o
+[369/384] Building CXX object CMakeFiles/traineros.dir/.rcc/qmlcache/traineros_src_adapters_pokemon_PokemonShop_qml.cpp.o
+[370/384] Building CXX object CMakeFiles/traineros.dir/.rcc/qmlcache/traineros_src_adapters_pokemon_LinkPortrait_qml.cpp.o
+[371/384] Building CXX object CMakeFiles/traineros.dir/.rcc/qmlcache/traineros_src_adapters_pokemon_PracticePanel_qml.cpp.o
+[372/384] Building CXX object CMakeFiles/traineros.dir/.rcc/qmlcache/traineros_src_adapters_pokemon_LinkPanel_qml.cpp.o
+[373/384] Building CXX object CMakeFiles/traineros.dir/.rcc/qmlcache/traineros_src_adapters_pokemon_HomeParty_qml.cpp.o
+[374/384] Building CXX object CMakeFiles/traineros.dir/.rcc/qmlcache/traineros_src_adapters_pokemon_PracticeFighter_qml.cpp.o
+[375/384] Building CXX object CMakeFiles/traineros.dir/.rcc/qmlcache/traineros_src_adapters_pokemon_PlayroomMeadow_qml.cpp.o
+[376/384] Building CXX object CMakeFiles/traineros.dir/.rcc/qmlcache/traineros_src_adapters_pokemon_PartyPlayroom_qml.cpp.o
+[377/384] Building CXX object CMakeFiles/traineros.dir/.qt/rcc/qrc_traineros_raw_qml_0.cpp.o
+[378/384] Building CXX object CMakeFiles/traineros.dir/.qt/rcc/qrc_files_icons.cpp.o
+[379/384] Building CXX object CMakeFiles/traineros.dir/.qt/rcc/qrc_files_controls.cpp.o
+[380/384] Building CXX object CMakeFiles/traineros.dir/.qt/rcc/qrc_browser_controls.cpp.o
+[381/384] Building CXX object CMakeFiles/traineros.dir/.rcc/qmlcache/traineros_src_qml_BatteryGauge_qml.cpp.o
+[382/384] Building CXX object CMakeFiles/traineros.dir/.rcc/qmlcache/traineros_src_adapters_pokemon_PlayroomActor_qml.cpp.o
+[383/384] Linking CXX executable traineros
+CMake Warning (dev) at /usr/lib64/cmake/Qt6Core/Qt6CoreMacros.cmake:3573 (message):
+  Qt policy QTP0004 is not set: You need qmldir files for each extra
+  directory that contains .qml files for your module.  Check
+  https://doc.qt.io/qt-6/qt-cmake-policy-qtp0004.html for policy details.
+  Use the qt_policy command to set the policy and suppress this warning.
+
+Call Stack (most recent call first):
+  /usr/lib64/cmake/Qt6Qml/Qt6QmlMacros.cmake:4040 (__qt_internal_setup_policy)
+  /usr/lib64/cmake/Qt6Qml/Qt6QmlMacros.cmake:1035 (qt6_target_qml_sources)
+  /usr/lib64/cmake/Qt6Qml/Qt6QmlMacros.cmake:1513 (qt6_add_qml_module)
+  CMakeLists.txt:407 (qt_add_qml_module)
+This warning is for project developers.  Use -Wno-dev to suppress it.
+
+CMake Warning at /usr/lib64/cmake/Qt6Qml/Qt6QmlMacros.cmake:4840 (message):
+  The qml plugin 'qquick3dplugin' is a dependency of 'traineros', but the
+  link target it defines (Qt6::qquick3dplugin) does not exist in the current
+  scope.  The plugin will not be linked.
+Call Stack (most recent call first):
+  /usr/lib64/cmake/Qt6Core/Qt6CoreMacros.cmake:818 (qt6_import_qml_plugins)
+  /usr/lib64/cmake/Qt6Core/Qt6CoreMacros.cmake:818 (cmake_language)
+  /usr/lib64/cmake/Qt6Core/Qt6CoreMacros.cmake:898 (_qt_internal_finalize_executable)
+  /usr/lib64/cmake/Qt6Core/Qt6CoreMacros.cmake:867:EVAL:1 (qt6_finalize_target)
+  CMakeLists.txt:DEFERRED
+
+
+CMake Warning at /usr/lib64/cmake/Qt6Qml/Qt6QmlMacros.cmake:4840 (message):
+  The qml plugin 'qtquick3dassetutilsplugin' is a dependency of 'traineros',
+  but the link target it defines (Qt6::qtquick3dassetutilsplugin) does not
+  exist in the current scope.  The plugin will not be linked.
+Call Stack (most recent call first):
+  /usr/lib64/cmake/Qt6Core/Qt6CoreMacros.cmake:818 (qt6_import_qml_plugins)
+  /usr/lib64/cmake/Qt6Core/Qt6CoreMacros.cmake:818 (cmake_language)
+  /usr/lib64/cmake/Qt6Core/Qt6CoreMacros.cmake:898 (_qt_internal_finalize_executable)
+  /usr/lib64/cmake/Qt6Core/Qt6CoreMacros.cmake:867:EVAL:1 (qt6_finalize_target)
+  CMakeLists.txt:DEFERRED

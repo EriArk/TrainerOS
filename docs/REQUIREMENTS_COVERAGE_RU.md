@@ -299,7 +299,7 @@ S-владельцу [структуры](STRUCTURE_MAP_RU.md) и F-цепочк
 | --- | --- | --- |
 | Общие настройки VPN с информационным блоком; решение в чате 24.10, сейчас не реализовывать | [R145](FEATURE_READINESS.md#r145) | S15/S07/S04/S06; F04/F11/F12 |
 | TrainerOS ID и recovery — [решение](TRAINEROS_ACCOUNT_ECONOMY_RU.md) | [R089](FEATURE_READINESS.md#r089) | S01; F08/F12 |
-| Матчи, wins/losses/unique opponents — [backend](TRAINEROS_BACKEND_PLAN_RU.md) | [R107](FEATURE_READINESS.md#r107) | S10; F05 |
+| Матчи, wins/losses/unique opponents — [вся архитектура Backend до реализации сценариев](TRAINEROS_BACKEND_PLAN_RU.md#architecture-v1); данные/API/SDK и смежные модули спроектированы, runtime не реализован | [R107](FEATURE_READINESS.md#r107) | S10; F05 |
 | Ledger, награды, магазин, инвентарь, подписка | [R108](FEATURE_READINESS.md#r108), [R109](FEATURE_READINESS.md#r109), [R110](FEATURE_READINESS.md#r110) | S11; F05/F06 |
 | Arcade Today, турниры, кланы, трофеи | [R111](FEATURE_READINESS.md#r111), [R112](FEATURE_READINESS.md#r112), [R113](FEATURE_READINESS.md#r113), [R114](FEATURE_READINESS.md#r114) | S10; F05 |
 | Эксплуатация будущего backend / восстановление | [R115](FEATURE_READINESS.md#r115) | S15; F12 |

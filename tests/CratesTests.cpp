@@ -3,12 +3,171 @@
 #include <QFile>
 #include <QSysInfo>
 #include <QSaveFile>
+#include <QSettings>
 #include "features/crates/CratesController.h"
 #include "fixtures/crates/CatalogueFixture.h"
 using namespace trainer;
 class CratesTests: public QObject {
     Q_OBJECT
+    QTemporaryDir settingsDirectory_;
 private slots:
+    void initTestCase(){
+        QVERIFY(settingsDirectory_.isValid());QCoreApplication::setOrganizationName("TrainerOSCratesTests");
+        QSettings::setDefaultFormat(QSettings::IniFormat);
+        QSettings::setPath(QSettings::IniFormat,QSettings::UserScope,settingsDirectory_.path());
+    }
+    void enabledUpdatesCheckInBackgroundWithoutOpeningCrates(){
+#ifndef Q_OS_UNIX
+        QSKIP("Real catalogue helper uses the Linux Python interpreter");
+#else
+        QTemporaryDir temp;QVERIFY(temp.isValid());QDir root(temp.path());QVERIFY(root.mkpath("active"));
+        const auto write=[&](QString path,QByteArray data){QFile f(root.filePath(path));return f.open(QIODevice::WriteOnly)&&f.write(data)==data.size();};
+        QVERIFY(write("active/preview-0.json","{\"id\":\"preview-0\",\"version\":\"1\"}"));
+        QVERIFY(write("helper.py","import sys\nprint(open(sys.argv[2]+'/response.json').read())\n"));
+        auto arch=QSysInfo::currentCpuArchitecture();if(arch=="arm64")arch="aarch64";
+        CratesController c;
+        const QJsonObject response{{"crates",QJsonArray::fromVariantList(c.crates())},
+            {"catalogue",QJsonDocument::fromJson(cratesCatalogueFixture()).object()},
+            {"packages",QJsonArray{QJsonObject{{"id","preview-0"},{"version","2"},{"architecture",arch},{"compatibility","supported"}}}}};
+        QVERIFY(write("response.json",QJsonDocument(response).toJson()));
+        c.installer()->replacementGuard=[]{return QString("Running session");};
+        c.installer()->configure("/not-executed",{},temp.path());
+        c.configureCatalogue(root.filePath("helper.py"),temp.path());
+        QVERIFY(!c.automaticUpdates());QVERIFY(c.installer()->tasks().isEmpty());
+        QSignalSpy downloads(&c,&CratesController::downloadsRequested);
+        c.setAutomaticUpdates(true);
+        QTRY_COMPARE(c.installer()->tasks().size(),1);QVERIFY(!c.opened());QCOMPARE(downloads.count(),0);
+        QCOMPARE(c.installer()->tasks()[0].toMap()["state"].toString(),QString("queued"));
+        QVERIFY(QSettings().value("crates/automaticUpdates").toBool());
+        {CratesController restored;restored.configureCatalogue({},temp.path());QVERIFY(restored.automaticUpdates());}
+        c.setAutomaticUpdates(false);
+        QCOMPARE(c.installer()->tasks()[0].toMap()["state"].toString(),QString("cancelled"));
+        {CratesController restored;restored.configureCatalogue({},temp.path());QVERIFY(!restored.automaticUpdates());}
+#endif
+    }
+    void updatePrimaryAndAutomaticQueueRespectInstalledState() {
+        QTemporaryDir temp;QVERIFY(temp.isValid());QDir root(temp.path());QVERIFY(root.mkpath("active"));
+        const auto write=[&](QString id,QString version){QSaveFile f(root.filePath("active/"+id+".json"));
+            if(!f.open(QIODevice::WriteOnly))return false;
+            f.write(QJsonDocument(QJsonObject{{"id",id},{"version",version},{"kind","game"}}).toJson());return f.commit();};
+        QVERIFY(write("preview-0","1.0"));QVERIFY(write("preview-1","9.0"));
+        QVERIFY(write("preview-2","1.0"));QVERIFY(write("preview-3","1.0"));
+        auto arch=QSysInfo::currentCpuArchitecture();if(arch=="arm64")arch="aarch64";
+        const auto record=[&](QString id,QString compatibility){return QVariantMap{{"id",id},{"version","2.0"},
+            {"architecture",arch},{"compatibility",compatibility},{"sha256",QString(64,'b')}};};
+        CratesController c;QVERIFY(c.loadCatalogue(cratesCatalogueFixture()));
+        auto* jobs=c.installer();jobs->replacementGuard=[]{return QString("Game is running");};
+        jobs->configure("/not-executed",{},temp.path());
+        auto withdrawn=record("preview-3","supported");withdrawn["withdrawn"]=true;
+        jobs->useCatalogue({record("preview-0","supported"),record("preview-1","supported"),
+            record("preview-2","untested"),withdrawn,record("not-installed","supported")},{});
+        c.open(1,true);c.openProject(0);QCOMPARE(c.primaryLabel(),QString("Update"));
+        for(const auto& action:c.actions())QVERIFY(action.toMap()["id"]!="versions");
+        QSignalSpy launch(&c,&CratesController::launchRequested);c.primary();
+        QCOMPARE(launch.count(),0);QCOMPARE(jobs->tasks().size(),1);
+        QCOMPARE(c.primaryLabel(),QString("View progress"));
+        jobs->command("preview-0","cancel");jobs->queueAutomaticUpdates();
+        QCOMPARE(jobs->tasks().size(),1);QCOMPARE(jobs->tasks()[0].toMap()["state"].toString(),QString("cancelled"));
+        // A new release may be scheduled; cancelled, untested, withdrawn,
+        // uninstalled and newer local packages are never silently replaced.
+        auto next=record("preview-0","supported");next["version"]="3.0";
+        jobs->useCatalogue({next,record("preview-1","supported"),record("preview-2","untested"),withdrawn},{});
+        jobs->setOnline(false);jobs->queueAutomaticUpdates();
+        QCOMPARE(jobs->tasks()[0].toMap()["state"].toString(),QString("cancelled"));
+        jobs->setOnline(true);jobs->queueAutomaticUpdates();jobs->queueAutomaticUpdates();
+        QCOMPARE(jobs->tasks().size(),1);QCOMPARE(jobs->tasks()[0].toMap()["version"].toString(),QString("3.0"));
+        QVERIFY(jobs->tasks()[0].toMap()["automatic"].toBool());
+        QCOMPARE(jobs->tasks()[0].toMap()["state"].toString(),QString("queued"));
+        jobs->command("preview-0","pause");jobs->queueAutomaticUpdates();
+        QCOMPARE(jobs->tasks()[0].toMap()["state"].toString(),QString("paused"));
+        jobs->stopAutomaticUpdates();QCOMPARE(jobs->tasks()[0].toMap()["state"].toString(),QString("cancelled"));
+        jobs->queueAutomaticUpdates();QCOMPARE(jobs->tasks()[0].toMap()["state"].toString(),QString("queued"));
+        jobs->command("preview-0","cancel");
+        // Activation returns the primary action to Play, with no version picker.
+        QVERIFY(write("preview-0","3.0"));QTRY_COMPARE(c.primaryLabel(),QString("Play"));
+        c.primary();QCOMPARE(launch.count(),1);
+        c.closeDetail();c.openProject(1);QCOMPARE(c.primaryLabel(),QString("Play"));
+        QVERIFY(!jobs->state("preview-1")["updateAvailable"].toBool());
+        const auto count=jobs->tasks().size();
+        c.activateAction(0);QCOMPARE(jobs->tasks().size(),count); // No hidden destructive action.
+        c.dispatch(Action::ContextMenu);QVERIFY(c.removePrompt());QCOMPARE(c.actionIndex(),1);
+        c.dispatch(Action::Confirm);QVERIFY(!c.actionsOpen());QCOMPARE(jobs->tasks().size(),count);
+        c.showActions();c.dispatch(Action::Back);QVERIFY(!c.removePrompt());QVERIFY(c.detailOpen());
+        c.showActions();c.dispatch(Action::Up);c.dispatch(Action::Confirm);
+        QCOMPARE(jobs->state("preview-1")["job"].toMap()["operation"].toString(),QString("remove"));
+        QVERIFY(!c.canRemove());c.showActions();QVERIFY(!c.actionsOpen());
+    }
+    void restartSettlesCommittedOperationsAndPreservesQueue() {
+        QTemporaryDir temp;QDir root(temp.path());QVERIFY(root.mkpath("active"));
+        const auto write=[&](QString path,QByteArray bytes){QFile f(root.filePath(path));return f.open(QIODevice::WriteOnly)&&f.write(bytes)==bytes.size();};
+        const QString sha(64,'a');QVariantList tasks;
+        for(const auto& id:{"installed","old","removed","retained","queued","paused"}){
+            tasks<<QVariantMap{{"id",id},{"version","2"},{"sha256",sha},{"operation",QString(id)=="removed"||QString(id)=="retained"?"remove":"install"},
+                {"state",QString(id)=="queued"?"queued":QString(id)=="paused"?"paused":"running"},{"terminal",false}};
+        }
+        for(const auto& id:{"installed","old","retained"})
+            QVERIFY(write(QString("active/")+id+".json",QJsonDocument(QJsonObject{{"id",id},{"version",QString(id)=="installed"?"2":"1"},{"sha256",sha}}).toJson()));
+        QVERIFY(write("jobs.json",QJsonDocument(QJsonArray::fromVariantList(tasks)).toJson()));
+        CratesInstaller jobs;jobs.setOnline(false);jobs.configure({}, {},temp.path());
+        const auto state=[&](QString id){return jobs.state(id)["job"].toMap()["state"].toString();};
+        QCOMPARE(state("installed"),"done");QCOMPARE(state("removed"),"done");
+        QCOMPARE(state("old"),"failed");QCOMPARE(state("retained"),"failed");
+        QCOMPARE(state("queued"),"queued");QCOMPARE(state("paused"),"paused");
+    }
+    void startupRecoveryRunsOfflineAndWaitsForLease() {
+#ifndef Q_OS_LINUX
+        QSKIP("Production worker requires Linux flock");
+#else
+        const auto helper=QFINDTESTDATA("../packaging/crates/installer.py");QVERIFY(!helper.isEmpty());
+        QTemporaryDir temp;QDir root(temp.path());QVERIFY(root.mkpath("active"));QVERIFY(root.mkpath("transactions"));QVERIFY(root.mkpath("locks"));
+        const auto write=[&](QString path,QJsonDocument doc){QFile f(root.filePath(path));return f.open(QIODevice::WriteOnly)&&f.write(doc.toJson())>0;};
+        const QString sha(64,'a'),object="fixture-"+sha;
+        QVERIFY(root.mkpath("objects/"+object));
+        QVERIFY(write("active/fixture.json",QJsonDocument(QJsonObject{{"id","fixture"},{"version","2"},{"kind","game"},{"sha256",sha},{"object",object}})));
+        QVERIFY(write("transactions/fixture.json",QJsonDocument(QJsonObject{{"operation","install"},{"newObject",object}})));
+        QVERIFY(write("jobs.json",QJsonDocument(QJsonArray{QJsonObject{{"id","fixture"},{"operation","install"},{"version","2"},{"sha256",sha},{"state","running"},{"terminal",false}}})));
+        QProcess lease;lease.start("/usr/bin/python3",{"-c","import fcntl,sys,time\nf=open(sys.argv[1],'a');fcntl.flock(f,fcntl.LOCK_SH);print('locked',flush=True);time.sleep(20)",root.filePath("locks/fixture")});
+        QVERIFY(lease.waitForReadyRead());QCOMPARE(lease.readLine().trimmed(),QByteArray("locked"));
+        CratesInstaller jobs;jobs.setOnline(false);jobs.configure(helper,"missing-offline-registry",temp.path());
+        QTest::qWait(350);QCOMPARE(jobs.state("fixture")["job"].toMap()["state"].toString(),"recovering");
+        QVERIFY(QFileInfo::exists(root.filePath("transactions/fixture.json")));
+        lease.terminate();QVERIFY(lease.waitForFinished());
+        QTRY_COMPARE(jobs.state("fixture")["job"].toMap()["state"].toString(),"done");
+        QVERIFY(!QFileInfo::exists(root.filePath("transactions/fixture.json")));
+        QCOMPARE(jobs.state("fixture")["installedVersion"].toString(),"2");
+#endif
+    }
+    void failedRemovalRecoveryCanBeRetriedWithoutInstalledRecordOrNetwork() {
+#ifndef Q_OS_LINUX
+        QSKIP("Production worker requires Linux");
+#else
+        const auto helper=QFINDTESTDATA("../packaging/crates/installer.py");QVERIFY(!helper.isEmpty());
+        QTemporaryDir temp;QDir root(temp.path());QVERIFY(root.mkpath("transactions"));
+        const auto write=[&](QString path,QByteArray bytes){QFile f(root.filePath(path));return f.open(QIODevice::WriteOnly)&&f.write(bytes)==bytes.size();};
+        QVERIFY(write("transactions/fixture.json","{\"operation\":\"invalid\"}"));
+        QVERIFY(write("jobs.json","[{\"id\":\"fixture\",\"operation\":\"remove\",\"state\":\"running\",\"terminal\":false}]"));
+        CratesInstaller jobs;jobs.setOnline(false);jobs.configure(helper,{},temp.path());
+        QTRY_COMPARE(jobs.state("fixture")["job"].toMap()["state"].toString(),"failed");
+        QVERIFY(jobs.installed().isEmpty());
+        QVERIFY(write("transactions/fixture.json","{\"operation\":\"remove\"}"));
+        jobs.command("fixture","retry");
+        QTRY_COMPARE(jobs.state("fixture")["job"].toMap()["state"].toString(),"done");
+        QVERIFY(!QFileInfo::exists(root.filePath("transactions/fixture.json")));
+#endif
+    }
+    void automaticUpdateFailureSurvivesRestart() {
+        QTemporaryDir temp;QVERIFY(temp.isValid());QDir root(temp.path());QVERIFY(root.mkpath("active"));
+        QFile receipt(root.filePath("active/game.json"));QVERIFY(receipt.open(QIODevice::WriteOnly));
+        receipt.write("{\"id\":\"game\",\"version\":\"1\"}");receipt.close();
+        auto arch=QSysInfo::currentCpuArchitecture();if(arch=="arm64")arch="aarch64";
+        const QVariantMap release{{"id","game"},{"version","2"},{"architecture",arch},{"compatibility","supported"},{"sha256",QString(64,'c')}};
+        {CratesInstaller jobs;jobs.configure("/not-executed",{},temp.path());jobs.useCatalogue({release},{});
+            jobs.queueAutomaticUpdates();QTRY_VERIFY(jobs.tasks().value(0).toMap()["terminal"].toBool());
+            QCOMPARE(jobs.tasks()[0].toMap()["state"].toString(),QString("failed"));}
+        CratesInstaller restored;restored.configure("/not-executed",{},temp.path());restored.useCatalogue({release},{});
+        restored.queueAutomaticUpdates();QCOMPARE(restored.tasks().size(),1);
+        QCOMPARE(restored.tasks()[0].toMap()["state"].toString(),QString("failed"));
+    }
     void queuePriorityPauseAndPersistentOrder() {
         QTemporaryDir temp;QVERIFY(temp.isValid());
         {CratesInstaller jobs;jobs.configure("/not-executed",{},temp.path());jobs.replacementGuard=[]{return QString("Held for queue test");};
@@ -69,6 +228,12 @@ private slots:
         CratesInstaller installer;installer.configure({}, {},temp.path());
         QCOMPARE(installer.activities().size(),1);
         QCOMPARE(installer.activities()[0].toMap()["local"].toString(),QString("crates:fixture"));
+        auto group=activity;group["seats"]=16;
+        QVERIFY(write("objects/"+object+"/traineros-activity.json",group));
+        QCOMPARE(installer.activities()[0].toMap()["seats"].toInt(),16);
+        for(QJsonValue seats:{QJsonValue(1),QJsonValue(17),QJsonValue(2.5),QJsonValue("16")}){
+            group["seats"]=seats;QVERIFY(write("objects/"+object+"/traineros-activity.json",group));QVERIFY(installer.activities().isEmpty());
+        }
         auto invalid=activity;invalid["protocol"]="bad protocol";
         QVERIFY(write("objects/"+object+"/traineros-activity.json",invalid));QVERIFY(installer.activities().isEmpty());
         QVERIFY(write("objects/"+object+"/traineros-activity.json",activity));
@@ -230,14 +395,13 @@ private slots:
         QCOMPARE(c.project(),project);c.back();c.open(1,true);QCOMPARE(c.projectIndex(),5);
         c.openProject(5);c.leave();QVERIFY(c.opened());QVERIFY(!c.detailOpen());QCOMPARE(c.projectIndex(),5);
     }
-    void detailImagesVersionsAndScroll() {
+    void detailImagesAndScrollWithoutVersionPicker() {
         CratesController c;QVERIFY(c.loadCatalogue(cratesCatalogueFixture()));c.open(1,true);c.openProject(0);
         QSignalSpy catalogue(&c,&CratesController::catalogueChanged);
         c.dispatch(Action::Right);QCOMPARE(c.screenshotIndex(),1);c.selectScreenshot(99);QCOMPARE(c.screenshotIndex(),1);
         QSignalSpy scroll(&c,&CratesController::detailScrollRequested);c.dispatch(Action::Down);QCOMPARE(scroll.count(),1);
-        c.dispatch(Action::LocalAction);QVERIFY(c.versionsOpen());c.dispatch(Action::Down);QCOMPARE(c.releaseIndex(),1);
-        c.dispatch(Action::Back);QVERIFY(c.detailOpen());QVERIFY(!c.versionsOpen());
-        c.dispatch(Action::Back);c.openProject(0);QCOMPARE(c.releaseIndex(),0);QCOMPARE(c.screenshotIndex(),0);
+        c.dispatch(Action::LocalAction);QVERIFY(c.detailOpen());QVERIFY(c.actions().isEmpty());
+        c.dispatch(Action::Back);QVERIFY(!c.detailOpen());c.openProject(0);QCOMPARE(c.screenshotIndex(),0);
         QCOMPARE(catalogue.count(),0); // Detail navigation must not rebuild the six image delegates.
     }
     void invalidCatalogueKeepsCurrentData() {

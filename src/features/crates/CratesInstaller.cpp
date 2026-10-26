@@ -7,6 +7,7 @@
 #include <QSaveFile>
 #include <QSysInfo>
 #include <QRegularExpression>
+#include <QVersionNumber>
 #ifdef Q_OS_UNIX
 #include <signal.h>
 #endif
@@ -16,6 +17,21 @@ bool canRun(const QVariantMap& record) {
     const auto cpu=QSysInfo::currentCpuArchitecture();
     const auto arch=cpu=="arm64"?QString("aarch64"):cpu;
     return record["architecture"]==arch;
+}
+bool newerRelease(const QString& installed,const QVariantList& releases) {
+    if(installed.isEmpty()||releases.isEmpty())return false;
+    const auto latest=releases.first().toMap()["version"].toString();
+    if(latest==installed)return false;
+    qsizetype oldEnd=0,newEnd=0;
+    const auto oldVersion=QVersionNumber::fromString(installed,&oldEnd);
+    const auto newVersion=QVersionNumber::fromString(latest,&newEnd);
+    if(!oldVersion.isNull()&&!newVersion.isNull()&&oldEnd==installed.size()&&newEnd==latest.size())
+        return QVersionNumber::compare(newVersion,oldVersion)>0;
+    // Non-numeric versions use the reviewed catalogue order only when the
+    // installed release is known. An unpublished build is never downgraded.
+    for(qsizetype i=1;i<releases.size();++i)
+        if(releases[i].toMap()["version"]==installed)return true;
+    return false;
 }
 }
 CratesInstaller::CratesInstaller(QObject* p):QObject(p) {
@@ -34,18 +50,30 @@ CratesInstaller::CratesInstaller(QObject* p):QObject(p) {
     connect(&worker_,&QProcess::readyReadStandardError,this,[this]{worker_.readAllStandardError();});
     connect(&worker_,&QProcess::errorOccurred,this,[this](QProcess::ProcessError e){
         if(e!=QProcess::FailedToStart)return;
+        if(active_=="@recovery"){
+            recoveryPending_=false;active_.clear();settleInterruptedJobs(false);emit changed();return;
+        }
         event("{\"error\":\"Package worker could not start\"}");
         for(auto& v:jobs_){auto r=v.toMap();if(r["id"]==active_){r["terminal"]=true;v=r;}}
         active_.clear();emit changed();retry_.start();
     });
     connect(&worker_,&QProcess::finished,this,[this](int code,QProcess::ExitStatus status){
+        if(active_=="@recovery"){
+            active_.clear();readInventory();
+            if(code==75&&status==QProcess::NormalExit){retry_.start();return;}
+            recoveryPending_=false;settleInterruptedJobs(code==0&&status==QProcess::NormalExit);
+            emit changed();QTimer::singleShot(0,this,&CratesInstaller::pump);return;
+        }
         for(auto& v:jobs_){auto r=v.toMap();if(r["id"]!=active_)continue;
             if(code==75&&!r["cancelling"].toBool()) {r["state"]=r["yield"].toBool()?"queued":"paused";r["detail"]=r["state"]=="queued"?"Queued":"Paused";r.remove("pauseRequested");r.remove("yield");v=r;continue;}
-            if(r["state"]!="failed") {r["state"]=code==0&&status==QProcess::NormalExit?"done":r["cancelling"].toBool()?"cancelled":"failed";
-                r["detail"]=r["state"]=="done"?(r["operation"]=="remove"?"Removed · user data kept":"Installed"):r["state"]=="cancelled"?"Cancelled":"Installation interrupted; previous version kept";}
-            r["terminal"]=true;r.remove("progress");v=r;
+            const bool done=code==0&&status==QProcess::NormalExit;
+            r["state"]=done?"done":"recovering";
+            r["detail"]=done?(r["operation"]=="remove"?"Removed · user data kept":"Installed"):"Checking interrupted operation";
+            r["terminal"]=done;r.remove("progress");v=r;
         }
-        active_.clear();readInventory();emit changed();QTimer::singleShot(0,this,&CratesInstaller::pump);
+        active_.clear();readInventory();recoveryPending_=hasTransactions();
+        if(!recoveryPending_)settleInterruptedJobs();
+        persistJobs();emit changed();QTimer::singleShot(0,this,&CratesInstaller::pump);
     });
 }
 CratesInstaller::~CratesInstaller(){if(worker_.state()!=QProcess::NotRunning){worker_.terminate();if(!worker_.waitForFinished(3000)){worker_.kill();worker_.waitForFinished();}}persistJobs();}
@@ -60,9 +88,28 @@ void CratesInstaller::configure(const QString& helper,const QString& registry,co
     QFile f(registry);if(f.size()<1024*1024&&f.open(QIODevice::ReadOnly))packages_=QJsonDocument::fromJson(f.readAll()).object()["packages"].toArray().toVariantList();
     QFile jobs(root_+"/jobs.json");if(jobs.size()<1024*1024&&jobs.open(QIODevice::ReadOnly)){
         jobs_=QJsonDocument::fromJson(jobs.readAll()).array().toVariantList();
-        for(auto& v:jobs_){auto r=v.toMap();if(!r["terminal"].toBool()&&r["state"]!="paused"){r["terminal"]=true;r["state"]="failed";r["detail"]="Interrupted · Retry to continue";v=r;}}
+        for(auto& v:jobs_){auto r=v.toMap();if(!r["terminal"].toBool()&&r["state"]!="paused"&&r["state"]!="queued"){
+            r["state"]="recovering";r["detail"]="Checking interrupted operation";v=r;}}
     }
-    watchInventory();readInventory();emit changed();
+    watchInventory();readInventory();recoveryPending_=hasTransactions();
+    if(!recoveryPending_)settleInterruptedJobs();
+    emit changed();QTimer::singleShot(0,this,&CratesInstaller::pump);
+}
+bool CratesInstaller::hasTransactions() const {
+    return !root_.isEmpty()&&!QDir(root_+"/transactions").entryList({"*.json"},QDir::Files).isEmpty();
+}
+void CratesInstaller::settleInterruptedJobs(bool recovered){
+    for(auto& value:jobs_){auto job=value.toMap();if(job["state"]!="recovering")continue;
+        const auto receipt=inventory_.value(job["id"].toString());
+        const bool committed=recovered&&(job["operation"]=="remove"?receipt.isEmpty():
+            !job["sha256"].toString().isEmpty()&&receipt["sha256"]==job["sha256"]&&receipt["version"]==job["version"]);
+        job["state"]=committed?"done":job["cancelling"].toBool()?"cancelled":"failed";
+        job["detail"]=committed?(job["operation"]=="remove"?"Removed · user data kept":"Installed"):
+            !recovered?"Recovery could not finish · Retry to continue":job["cancelling"].toBool()?"Cancelled":
+            job.contains("failureDetail")?job["failureDetail"].toString():"Interrupted · Retry to continue";
+        job["terminal"]=true;job.remove("progress");job.remove("pauseRequested");job.remove("yield");value=job;
+    }
+    persistJobs();
 }
 void CratesInstaller::watchInventory(){
     if(root_.isEmpty())return;
@@ -80,7 +127,7 @@ void CratesInstaller::readInventory(){
     inventory_=next;emit inventoryChanged();emit changed();
 }
 void CratesInstaller::useCatalogue(const QVariantList& packages,const QString& registry){packages_=packages;registry_=registry;emit changed();}
-void CratesInstaller::setOnline(bool online){if(online_==online)return;online_=online;emit changed();}
+void CratesInstaller::setOnline(bool online){if(online_==online)return;online_=online;emit changed();if(online_)pump();}
 QVariantList CratesInstaller::installed() const {QVariantList out;for(const auto& r:inventory_)out<<r;return out;}
 QVariantList CratesInstaller::activities() const {
     QVariantList out;QSet<QString> seen,ambiguous;
@@ -92,9 +139,10 @@ QVariantList CratesInstaller::activities() const {
         QFile f(base.filePath("traineros-activity.json"));
         if(QFileInfo(base.path()).isSymLink()||QFileInfo(f).isSymLink()||f.size()>4096||!f.open(QIODevice::ReadOnly))continue;
         const auto m=QJsonDocument::fromJson(f.readAll()).object();const auto app=m["app"].toString();
-        if(m["schema"]!=1||m["seats"]!=2||!appId.match(app).hasMatch()||!protocol.match(m["protocol"].toString()).hasMatch())continue;
+        const int seats=m["seats"].toInt(-1);
+        if(m["schema"]!=1||!m["seats"].isDouble()||m["seats"].toDouble()!=seats||seats<2||seats>16||!appId.match(app).hasMatch()||!protocol.match(m["protocol"].toString()).hasMatch())continue;
         if(seen.contains(app)){ambiguous.insert(app);continue;}seen.insert(app);
-        out<<QVariantMap{{"app",app},{"protocol",m["protocol"].toString()},{"title",r["title"]},{"local","crates:"+project}};
+        out<<QVariantMap{{"app",app},{"protocol",m["protocol"].toString()},{"seats",seats},{"title",r["title"]},{"local","crates:"+project}};
     }
     for(qsizetype i=out.size();i-->0;)if(ambiguous.contains(out[i].toMap()["app"].toString()))out.removeAt(i);
     return out;
@@ -109,21 +157,21 @@ QVariantMap CratesInstaller::state(const QString& id) const {
     const auto installed=inventory_.value(id);const auto latest=releases.value(0).toMap();
     QVariantMap out{{"installedVersion",installed["version"]},{"availableVersion",latest["version"]},{"packageReleases",releases},
         {"canInstall",online_&&!releases.isEmpty()&&!helper_.isEmpty()&&latest["canRun"].toBool()},
-        {"offline",!online_},{"updateAvailable",online_&&!installed.isEmpty()&&!latest.isEmpty()&&latest["canRun"].toBool()&&installed["version"]!=latest["version"]}};
+        {"offline",!online_},{"updateAvailable",online_&&!helper_.isEmpty()&&newerRelease(installed["version"].toString(),releases)}};
     for(const auto& v:jobs_){auto r=v.toMap();if(r["id"]==id){out["job"]=r;out["busy"]=!r["terminal"].toBool();}}
     return out;
 }
 QVariantList CratesInstaller::tasks() const {
     auto out=jobs_;for(auto& v:out){auto r=v.toMap();QVariantList a;
         const bool pending=r["state"]=="queued"||r["state"]=="paused";
-        if(!r["terminal"].toBool()){
+        if(!r["terminal"].toBool()&&r["state"]!="recovering"){
             if(pending){a<<QVariantMap{{"id","first"},{"label","Download first"}};
                 a<<QVariantMap{{"id",r["state"]=="paused"?"resume":"pause"},{"label",r["state"]=="paused"?"Resume":"Pause"}};
                 a<<QVariantMap{{"id","earlier"},{"label","Move up"}}<<QVariantMap{{"id","later"},{"label","Move down"}};
             } else if(r["stage"]=="Downloading"&&!r["pauseRequested"].toBool())a<<QVariantMap{{"id","pause"},{"label","Pause"}};
             a<<QVariantMap{{"id","cancel"},{"label","Cancel"}};
         }
-        else if(r["state"]!="done")a<<QVariantMap{{"id","retry"},{"label","Retry"}};
+        else if(r["terminal"].toBool()&&r["state"]!="done")a<<QVariantMap{{"id","retry"},{"label","Retry"}};
         r["actions"]=a;r["reorderable"]=pending;r["source"]="Crates";r["kind"]="package";r["destination"]=root_;v=r;}return out;
 }
 void CratesInstaller::request(const QString& id,const QString& version,const QString& operation){
@@ -140,17 +188,45 @@ void CratesInstaller::request(const QString& id,const QString& version,const QSt
 void CratesInstaller::pump(){
     if(!active_.isEmpty())return;
     retry_.stop();
+    if(recoveryPending_){
+        active_="@recovery";buffer_.clear();
+        worker_.start("/usr/bin/python3",{helper_,registry_,root_,"recover","-","-"});return;
+    }
     for(auto& v:jobs_){auto r=v.toMap();if(r["state"]!="queued")continue;
+        if(r["operation"]!="remove"&&!online_)continue;
         const auto guard=replacementGuard?replacementGuard():QString();
         if(!guard.isEmpty()){r["detail"]=guard;v=r;retry_.start();emit changed();return;}
         active_=r["id"].toString();r["state"]="running";r["stage"]="Preparing";r["detail"]="Preparing installation";v=r;buffer_.clear();
+        persistJobs(); // Persist intent before the worker can commit a receipt.
         worker_.start("/usr/bin/python3",{helper_,registry_,root_,r["operation"].toString(),active_,r["version"].toString()});emit changed();return;
     }
+}
+void CratesInstaller::queueAutomaticUpdates(){
+    for(const auto& receipt:installed()){
+        const auto id=receipt.toMap()["id"].toString();const auto current=state(id);
+        const auto release=current["packageReleases"].toList().value(0).toMap();
+        if(!current["updateAvailable"].toBool()||current["busy"].toBool()||release["compatibility"]!="supported")continue;
+        const auto previous=current["job"].toMap();
+        // A user's pause/cancel, or an installation failure, must not become a
+        // retry loop on every catalogue refresh (also after shell restart).
+        if(previous["version"]==release["version"]&&previous["sha256"]==release["sha256"]&&!previous["automaticDisabled"].toBool())continue;
+        request(id,release["version"].toString());
+        for(auto& value:jobs_){auto job=value.toMap();if(job["id"]==id){job["automatic"]=true;value=job;}}
+    }
+    emit changed();
+}
+void CratesInstaller::stopAutomaticUpdates(){
+    for(auto& value:jobs_){auto job=value.toMap();
+        if(job["automatic"].toBool()&&(job["state"]=="queued"||job["state"]=="paused")){
+            job["state"]="cancelled";job["detail"]="Automatic updates disabled";job["terminal"]=true;job["automaticDisabled"]=true;value=job;
+        }
+    }
+    emit changed();
 }
 void CratesInstaller::event(const QByteArray& bytes){
     auto e=QJsonDocument::fromJson(bytes).object();
     for(auto& v:jobs_){auto r=v.toMap();if(r["id"]!=active_)continue;
-        if(e.contains("error")){r["state"]=r["cancelling"].toBool()?"cancelled":"failed";r["detail"]=r["cancelling"].toBool()?QString("Cancelled"):e["error"].toString();}
+        if(e.contains("error")){r["failureDetail"]=e["error"].toString();r["state"]=r["cancelling"].toBool()?"cancelled":"failed";r["detail"]=r["cancelling"].toBool()?QString("Cancelled"):e["error"].toString();}
         else {r["stage"]=e["stage"].toString();r["detail"]=r["pauseRequested"].toBool()?QString("Pausing…"):e["stage"].toString();}
         if(e.contains("received"))r["received"]=e["received"].toVariant();
         if(e.contains("total"))r["total"]=e["total"].toVariant();
@@ -185,9 +261,20 @@ void CratesInstaller::command(const QString& id,const QString& command){
             v=r;
         }emit changed();persistJobs();pump();return;
     }
-    if(command=="retry"){for(const auto& v:jobs_){const auto r=v.toMap();if(r["id"]==id){request(id,r["version"].toString(),r["operation"].toString());return;}}}
+    if(command=="retry"){
+        // A committed removal has no installed record left to enqueue. Finish
+        // its journal directly; this also makes recovery retry work offline.
+        static const QRegularExpression safeId("^[a-z0-9][a-z0-9._-]{0,79}$");
+        for(auto& v:jobs_){auto r=v.toMap();if(r["id"]!=id)continue;
+            if(r["terminal"].toBool()&&safeId.match(id).hasMatch()&&QFileInfo::exists(root_+"/transactions/"+id+".json")){
+                r["state"]="recovering";r["detail"]="Checking interrupted operation";r["terminal"]=false;r.remove("cancelling");v=r;
+                recoveryPending_=true;persistJobs();emit changed();pump();return;
+            }
+            request(id,r["version"].toString(),r["operation"].toString());return;
+        }
+    }
     if(command!="cancel"&&command!="cancel-all")return;
-    for(auto& v:jobs_){auto r=v.toMap();if((command!="cancel-all"&&r["id"]!=id)||r["terminal"].toBool())continue;
+    for(auto& v:jobs_){auto r=v.toMap();if((command!="cancel-all"&&r["id"]!=id)||r["terminal"].toBool()||r["state"]=="recovering")continue;
         if(r["id"]==active_){r["cancelling"]=true;r["detail"]="Cancelling…";worker_.terminate();}
         else {r["state"]="cancelled";r["detail"]="Cancelled";r["terminal"]=true;}
         v=r;}emit changed();

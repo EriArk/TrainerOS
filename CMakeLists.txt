@@ -17,6 +17,8 @@ find_package(Qt6 6.9 QUIET COMPONENTS WebEngineQuick)
 find_package(Qt6 QUIET COMPONENTS Quick3D)
 
 add_library(trainer_core STATIC
+    src/integrations/adventure/CartridgeContent.cpp
+    src/features/accounts/BackendAccount.cpp
     src/features/trainer/AvatarAssets.cpp
     src/platform/sdk/PlatformHost.cpp
     src/platform/sdk/SdkNetwork.cpp
@@ -65,6 +67,8 @@ add_library(trainer_core STATIC
     src/features/social/LobbyConnection.cpp
     src/features/social/RecentTogether.cpp
     src/features/social/TemporaryContacts.cpp
+    src/platform/network/LocalLobbyTransport.cpp
+    src/features/social/SocialLocalLobby.cpp
     src/platform/network/NearbyService.cpp
     src/platform/device/ClockService.cpp
     src/features/settings/ClockController.cpp
@@ -165,6 +169,7 @@ add_library(trainer_core STATIC
     src/integrations/adventure/standalone/StandaloneAdapter.cpp
     src/integrations/adventure/standalone/PpssppNetplay.cpp
     src/integrations/adventure/standalone/DolphinNetplay.cpp
+    src/integrations/adventure/standalone/DolphinLan.cpp
     src/integrations/adventure/standalone/RmgNetplay.cpp
     src/integrations/adventure/standalone/FlycastNetplay.cpp
     src/platform/device/DeviceService.h
@@ -336,7 +341,7 @@ qt_add_resources(trainer_core rom_platforms PREFIX "/library" BASE data FILES da
 qt_add_resources(trainer_core pokedex_reference PREFIX "/pokedex" BASE data FILES data/pokedex.json)
 qt_add_resources(trainer_core emerald_reference PREFIX "/progress" BASE data FILES data/emerald-reference.json)
 qt_add_resources(trainer_core emerald_shops PREFIX "/progress" BASE data FILES data/emerald-shops.json)
-target_link_libraries(trainer_core PUBLIC Qt6Keychain::Qt6Keychain Qt6::WebSockets Qt6::Core Qt6::Gui Qt6::Sql Qt6::Network Qt6::Xml Qt6::Multimedia Qt6::Concurrent SDL2::SDL2 OpenSSL::Crypto)
+target_link_libraries(trainer_core PUBLIC Qt6Keychain::Qt6Keychain Qt6::WebSockets Qt6::Core Qt6::Gui Qt6::Sql Qt6::Network Qt6::Xml Qt6::Multimedia Qt6::Concurrent SDL2::SDL2 OpenSSL::Crypto LibArchive::LibArchive)
 if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
     find_package(Qt6 REQUIRED COMPONENTS Widgets)
     find_package(PkgConfig REQUIRED)
@@ -390,7 +395,7 @@ qt_add_resources(traineros crates_art PREFIX "/crates" BASE assets/crates
     FILES assets/crates/illustrations-wide.png assets/crates/gamepad.svg
     ${crates_example_images} ${crates_example_notices} assets/crates/examples/sources.json)
 qt_add_resources(traineros crates_projects PREFIX "/crates" BASE assets/crates
-    FILES assets/crates/projects/session-timer.png assets/crates/projects/pocket-artillery.png
+    FILES assets/crates/projects/session-timer.png assets/crates/projects/pocket-artillery.png assets/crates/projects/pocket-golf.png
           assets/crates/projects/pong.png assets/crates/projects/snake-arena.png
           assets/crates/projects/light-cycles.png
           assets/crates/projects/falling-blocks.png
@@ -594,12 +599,24 @@ qt_add_qml_module(traineros
 if(BUILD_TESTING)
     find_package(Python3 REQUIRED COMPONENTS Interpreter)
     qt_add_executable(trainer_platform_tests tests/PlatformHostTests.cpp)
+    qt_add_executable(trainer_account_tests tests/BackendAccountTests.cpp
+        src/features/accounts/BackendAccount.cpp src/platform/storage/EncryptedCredentials.cpp)
+    target_include_directories(trainer_account_tests PRIVATE src)
+    target_link_libraries(trainer_account_tests PRIVATE Qt6::Test Qt6::Gui Qt6::Network Qt6Keychain::Qt6Keychain)
+    add_test(NAME backend_account COMMAND trainer_account_tests)
+    qt_add_executable(trainer_backend_login_probe tools/BackendLoginProbe.cpp
+        src/features/accounts/BackendAccount.cpp src/platform/storage/EncryptedCredentials.cpp)
+    target_include_directories(trainer_backend_login_probe PRIVATE src)
+    target_link_libraries(trainer_backend_login_probe PRIVATE Qt6::Core Qt6::Gui Qt6::Network Qt6Keychain::Qt6Keychain)
     qt_add_executable(trainer_avatar_tests tests/AvatarTests.cpp)
     target_link_libraries(trainer_avatar_tests PRIVATE trainer_core Qt6::Test)
     add_test(NAME avatar COMMAND trainer_avatar_tests)
     target_include_directories(trainer_platform_tests PRIVATE src)
     target_link_libraries(trainer_platform_tests PRIVATE trainer_core Qt6::Test)
     target_compile_definitions(trainer_platform_tests PRIVATE SDK_SOURCE="${CMAKE_SOURCE_DIR}" SDK_PYTHON="${Python3_EXECUTABLE}")
+    qt_add_executable(trainer_backend_play_probe tools/BackendPlayProbe.cpp)
+    target_include_directories(trainer_backend_play_probe PRIVATE src)
+    target_link_libraries(trainer_backend_play_probe PRIVATE trainer_core)
     add_test(NAME platform_sdk COMMAND trainer_platform_tests)
     qt_add_executable(trainer_sdk_network_tests tests/SdkNetworkTests.cpp)
     target_link_libraries(trainer_sdk_network_tests PRIVATE trainer_core Qt6::Test)
@@ -705,11 +722,18 @@ if(BUILD_TESTING)
     add_dependencies(trainer_standalone_tests trainer_process_probe)
     add_test(NAME standalone COMMAND trainer_standalone_tests)
     qt_add_executable(trainer_rmg_netplay_tests tests/RmgNetplayTests.cpp)
+    qt_add_executable(trainer_cartridge_content_tests tests/CartridgeContentTests.cpp)
+    target_link_libraries(trainer_cartridge_content_tests PRIVATE trainer_core Qt6::Test)
+    add_test(NAME cartridge_content COMMAND trainer_cartridge_content_tests)
     target_link_libraries(trainer_rmg_netplay_tests PRIVATE trainer_core Qt6::Test)
     add_test(NAME rmg_netplay COMMAND trainer_rmg_netplay_tests)
     qt_add_executable(trainer_flycast_netplay_tests tests/FlycastNetplayTests.cpp)
     target_link_libraries(trainer_flycast_netplay_tests PRIVATE trainer_core Qt6::Test)
     add_test(NAME flycast_netplay COMMAND trainer_flycast_netplay_tests)
+    if(UNIX AND NOT APPLE)
+        qt_add_executable(trainer_flycast_online_probe tools/ProbeFlycastOnline.cpp)
+        target_link_libraries(trainer_flycast_online_probe PRIVATE trainer_core)
+    endif()
     target_link_libraries(trainer_device_tests PRIVATE trainer_core Qt6::Test)
     add_test(NAME device COMMAND trainer_device_tests)
     target_link_libraries(trainer_power_tests PRIVATE trainer_core Qt6::Test)
@@ -805,6 +829,9 @@ if(BUILD_TESTING)
     qt_add_executable(trainer_netplay_relay_tests tests/NetplayRelayTests.cpp)
     target_link_libraries(trainer_netplay_relay_tests PRIVATE trainer_core Qt6::Test)
     add_test(NAME netplay_relay COMMAND trainer_netplay_relay_tests)
+    qt_add_executable(trainer_local_lobby_tests tests/LocalLobbyTests.cpp)
+    target_link_libraries(trainer_local_lobby_tests PRIVATE trainer_core Qt6::Test)
+    add_test(NAME local_lobby COMMAND trainer_local_lobby_tests)
     qt_add_executable(trainer_lobby_tests tests/LobbyTests.cpp)
     qt_add_executable(trainer_contacts_tests tests/TemporaryContactsTests.cpp)
     if(UNIX AND NOT APPLE)

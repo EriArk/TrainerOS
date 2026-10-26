@@ -1,5 +1,41 @@
 # Структура TrainerOS: владельцы, контракты и связи
 
+**25 октября — S01 → S14 → S10, серверный play preview.** Существующий
+BackendAccount владеет credentials и узкими grants; PlatformHost принимает
+[Play API](../sdk/PLAY.md) с привязкой к SDK-соединению. S10 владеет immutable
+registry, составом матча, append-only решениями и общими таблицами; он использует
+существующие receipts/jobs/outbox. Game/Lobby/transport/Avatar не меняют владельца.
+F05/F11: каждый Player вступает сам → Start фиксирует состав → карточки → worker →
+peer-confirmed board; изменение/отмена результата атомарно меняет revision таблицы.
+S01/F08: отзыв session запрещает дальнейшие записи; смена local Trainer закрывает
+старые SDK peers, поздний grant отзывается best effort. Полная identity/build
+аттестация и push revocation не заявлены. [Сервер](../services/backend/play.md),
+[приёмка и ограничения](evidence/backend-play-20261025/README.md).
+
+**Accounts, позднее 25 октября:** S01 получил серверную реализацию identity и
+сессий в [`services/backend/trainer_backend/accounts`](../services/backend/trainer_backend/accounts).
+Вход опирается на S05/Fluxer OAuth и выдаёт собственную сессию оболочке; внешний
+subject уникально связан с внутренним Player UUID. Revocation пишет общий outbox.
+Сборка установлена, отдельное приложение владельца и HTTPS origin созданы.
+S15 эксплуатирует отдельный API tunnel; секрет/callback настроены, Fluxer активирован.
+Живые consent/cancel/relogin и серверные сессии проверены, включая стабильный UUID.
+Native handoff без ручного кода теперь реализован: S04 `BackendAccount` открывает
+external browser, принимает одноразовый loopback handoff и хранит свою сессию в
+существующем защищённом хранилище отдельно по local Trainer. S05 Social subject
+ограничивает выбор аккаунта, но Social credentials не копируются. Main владеет
+owner/lock lifecycle и возвратом окна; Settings — действиями входа/отмены/выхода.
+S14 PlatformBinding выдаёт только `context.account`/`account.get`; смена Player ID
+отзывает старые connections и contributions. Серверные revocation events ещё не
+доставляются push-каналом: host обнаруживает отзыв при refresh. Игры/аватар не менялись.
+[Контракт и приёмка](../services/backend/accounts.md); портативная поставка не выполнялась.
+
+**Backend, 25 октября:** общий [серверный каркас](../services/backend/README.md)
+теперь установлен отдельно от directory/catalogue. Владелец эксплуатации — S15;
+S01/S10/S11 используют общие транзакции/квитанции/задачи/события при последующей
+реализации модулей. Действующий API пока предоставляет только health/capabilities;
+account/results/economy контракты остаются целевыми. SDK, Avatar и жизненный цикл
+Lobby не переданы этому каркасу. [Проверки и ограничения](evidence/backend-foundation-20261025/README.md).
+
 **21 октября 2026. Карта согласованной конечной структуры со сквозными цепочками.**
 TrainerOS — консольная экосистема с общими правилами, сервисами и точками подключения.
 Часть функций принадлежит самой консоли; игры, программы и адаптеры используют их.
@@ -101,7 +137,7 @@ flowchart LR
 | <a id="s11"></a>**S11 Экономика и права** | Серверный баланс/журнал, покупки, инвентарь, правила начисления и преимущества подписки | Основание награды/покупка/проверенная подписка → подтверждённая операция и права | Клиент не назначает баланс. Магазин открыт всем, множитель до ×3, приобретения сохраняются; без pay-to-win/прямой продажи монет. Тарифы не определены. |
 | <a id="s12"></a>**S12 Crates и публикации** | Курируемый каталог, проекты/релизы, размещение, сведения об авторах, reviews/Top Rated | Одобренная публикация, каталог, допустимый отзыв → предложение установки и сведения о проекте | Установленные файлы принадлежат учёту S13. Донат автору не равен подписке TrainerOS. Reviews используют существующий Fluxer механизм. |
 | <a id="s13"></a>**S13 Доставка и обслуживание** | Общие представление/команды заданий; исполнители владеют своей очередью/транзакцией. Версии/зависимости/целостность, активные пакеты, update/remove/recovery | Выбранный источник/версия/операция → результат задания и изменение inventory | Downloads не исполняет установку. Crates — один источник/исполнитель. Image/host, TrainerOS Software, игры и пользовательские данные имеют разных владельцев обновления. |
-| <a id="s14"></a>**S14 Расширения и контракты** | Совместимость, регистрация, доступ к существующим сервисам и разрешённым UI-точкам, отключение | Manifest/descriptor/контекст → действующие возможности и вклады пакета | Адаптер, runtime-интеграция и SDK-приложение — разные роли. Local SDK preview даёт context/Start widget и 2-peer Lobby/records; остальные facades/#92/SPI открыты. Built-in API не объявляется внешним ABI. |
+| <a id="s14"></a>**S14 Расширения и контракты** | Совместимость, регистрация, доступ к существующим сервисам и разрешённым UI-точкам, отключение | Manifest/descriptor/контекст → действующие возможности и вклады пакета | Адаптер, runtime-интеграция и SDK-приложение — разные роли. Local SDK preview даёт context/Start widget; подготовлено расширение records с 2 до 16 peers, [контракт](../sdk/NETWORK.md). Остальные facades/#92/SPI открыты. Built-in API не объявляется внешним ABI. |
 | <a id="s15"></a>**S15 Среда устройства** | Общие файловые/медиа/аппаратные службы: места хранения, звук, питание, сеть устройства, диагностика | Фактические host capabilities/запросы → доступные операции и состояние | Использует Armada/Linux. Не выдумывает поддержку устройства и не делает Desktop Mode обязательным для обычных действий. |
 
 Пользовательские материалы отделены от заменяемого кода. Системы S01/S10/S11 могут
@@ -117,7 +153,7 @@ flowchart LR
 | Связь | Откуда → куда | Смысл контракта | Завершение / защита от неверного контекста |
 | --- | --- | --- | --- |
 | **E01** | S01 → остальные S | owner, привязанный account, актуальность контекста | Смена Trainer отменяет устаревшие callbacks; чужие данные/токены/права не переносятся. Политика смены при живом сеансе требует явного допуска. |
-| **E02** | S12 или локальный источник → S13 | Намеренная установка: project/package, version, architecture, source, compatibility | Серверный каталог описывает варианты сборки; S13 выбирает архитектуру текущего host. Открытие каталога не запускает Download/Update. Отмена не создаёт установленный пакет. |
+| **E02** | S12 или локальный источник → S13 | Установка/обновление: project/package, version, architecture, source, compatibility | S13 выбирает актуальную сборку архитектуры host, без выбора версий в UI. Update заменяет Play/Open. После включения Automatic Crates updates совместимые установленные пакеты поступают в общую очередь автоматически; по умолчанию обновление ручное. Сеанс удерживает замену, отмена/пауза не отменяются очередной проверкой. [Контракт](CRATES76_INSTALLER.md). |
 | **E03** | S13 → S02/S14 | Успешная активация: installation, version, roles, owned paths | Карточки/вклады регистрируются по факту; ошибка обновления сохраняет пригодную версию и личные данные. |
 | **E04** | S02/S06 → S03 | owner, игра/экземпляр, runtime/mode, return context; при multiplayer — session/seat | Проверка готовности перед запуском; выбранная игра и запущенная игра имеют независимую идентичность. |
 | **E05** | S03 ↔ S04/S15 | session/process, foreground/input ownership, Home/return/exit | Потеря процесса освобождает ввод. Home/Minimize не объявляют pause/save. |
@@ -138,7 +174,7 @@ flowchart LR
 
 | **E20** | Автор/издатель → S12 → S13 | Принятый project ID, immutable release assets по (id, version, architecture), подпись и revision; withdrawn | Первый проект курируется; следующая версия/архитектура через существующий publisher. Отзыв каталога не удаляет установленный пакет; F09. |
 | **E21** | S12 ↔ S05; S15 → S12 | Provider-owned review ID, project/content identity, stars/text и preview device/arch/version | Edit/delete/report через Fluxer; Top Rated производен от того же источника, без отдельного account/голоса; F10. |
-| **E22** | Программа ↔ S14 ↔ S06/S07/S15 | Versioned discovery/capabilities, service/contribution IDs, owner/session/generation | Local v1 bridge/context/widget реализован; Lobby/reliable records подключены для 2 app peers; полные Network/Files/Media facades ещё target. Host снимает bindings, app владеет данными/симуляцией. F11; не универсальный ABI. |
+| **E22** | Программа ↔ S14 ↔ S06/S07/S15 | Versioned discovery/capabilities, service/contribution IDs, owner/session/generation | Local v1 bridge/context/widget; подготовлены `network.group` и 2–16 app peers с неизменным составом и отдельными каналами host-star. [Стык Lobby](SDK_GROUP_LOBBY_HANDOFF.md). Host снимает grants, app владеет данными/симуляцией. Интернет/ARM и полные Network/Files/Media facades открыты. F11; не универсальный ABI. |
 | **E23** | S15/перезапуск/provider loss → затронутые владельцы | Причина прерывания, сохранённая operation identity и фактический исход каждого сервиса | Каждый владелец восстанавливает своё состояние; общий экран успеха не доказывает процесс/save/channel/call/job. F12. Для [NetPlay rejoin](LOBBY_LIVE_JOIN.md) S06 резервирует прежний Pn в пределах ticket; S03 проверяет пару платформы/ядра через общий профиль RetroArch и проверенную локальную сборку, закрывает собственный временный процесс через штатный exit/finalizer и запускает возврат только после явного Rejoin game. Восстановление signaling/открытие лобби не запускает игру; смена аккаунта/игры отменяет неподтверждённый вход. |
 
 ## 4. Подключаемое содержимое: вход, работа, выход
@@ -234,7 +270,7 @@ Built-in Experience реализован; внешние SPI/SDK-вклады т
 | S03 | [Launch](../src/core/navigation/AdventureLaunchController.h), [Exit](../src/core/navigation/AdventureExitController.h), [runtime integrations](../src/integrations/adventure), [AppsController](../src/features/apps/AppsController.h) | Игры и обычные приложения имеют разные текущие исполнители. Общая ответственность за деятельность не означает, что все приложения уже проходят AdventureLaunchController. PC installer/runtime и часть multiplayer открыты. |
 | S04 | [ShellController](../src/core/navigation/ShellController.h), [input](../src/platform/input), [контракт](CONTROLS78_HOME_START.md) | Start → Wi-Fi/Bluetooth popup → общая клавиатура/подтверждение → тот же NetworkController/S15 → возврат к виджету. При повторном входе отменяемый запрос завершается до нового; поздние списки/коды не меняют новый контекст. Volume → список выходов → DeviceController/DeviceService S15 → проверенный системный audio default; настройки звонка независимы. ControlsDashboard владеет личной сеткой, допустимыми размерами, переносом/обменом и полным откатом; QML передаёт те же действия от touch/controller. Закрытие снимает ввод/опрос popup; тот же маршрут из игрового Home. Все физические контроллеры/TV, Home во всех runtime и полный внешний contribution API не приняты. |
 | S05 | [SocialController](../src/features/social/SocialController.h), [FluxerSession](../src/integrations/social/FluxerSession.h), [SocialMedia](../src/features/social/SocialMedia.h) | Реальная речь/гарнитура и отдельные provider/lifecycle сценарии открыты. |
-| S06 | [LobbyCoordinator](../src/features/social/LobbyCoordinator.h), [LobbyRuntime](../src/features/social/LobbyRuntime.h), [directory bot](../services/lobby-directory/README.md) | Offline Lobby, полный rejoin/роль зрителя/все runtime не готовы. Физическое размещение в Social не меняет владельца комнаты. |
+| S06 | [LobbyCoordinator](../src/features/social/LobbyCoordinator.h), [LobbyRuntime](../src/features/social/LobbyRuntime.h), [directory bot](../services/lobby-directory/README.md) | [Local Lobby](OFFLINE_LOBBY.md) использует тот же S06; отдельный TLS transport принадлежит S07, checkpoints разделены по локальному профилю и Fluxer. Поставка Local, полный rejoin/роль зрителя/все runtime не завершены. Физическое размещение в Social не меняет владельца комнаты. |
 | S07 | [network](../src/platform/network), [OnlineLink](../src/integrations/social/OnlineLink.h), [remote-play transport](../tools/remote-play-stream/transport), [матрица](EMULATOR_MULTIPLAYER_MATRIX.md) | Есть ограниченный app records bridge через существующий helper; полный Network Fabric, разные сети/режимы и PC LAN WIP имеют отдельные границы. |
 | S08 | [RuntimeSaveStorage](../src/platform/storage/RuntimeSaveStorage.h), [SaveBackupStorage](../src/platform/storage/SaveBackupStorage.h), [SaveLineage](../src/platform/storage/SaveLineage.h), [реестр адаптеров](adapters/README.md) | Все форматы/миграции, MP-02 и portable Trainer backup не приняты. |
 | S09 | [SqlitePlayHistory](../src/core/storage/SqlitePlayHistory.cpp), [achievement integrations](../src/integrations/achievements), [RA](RA73_GAME_SELECTION.md) | Полный live unlock/history/media цикл не закрыт; общей экономической верификации здесь нет. |
@@ -325,6 +361,7 @@ Games S02 и Lobby S06 (F01/F04), без второго лаунчера или 
 | Inventory → карточка игры | `Main.cpp` связывает inventory с `CratesLibrary::update()`; reconcile использует `crates:<project>`, restore/deactivate и сохраняет identity/history. [Composition](../src/app/Main.cpp), [согласование](../src/features/crates/CratesLibrary.h). | Reconcile откладывается на время живой игры. Полный recovery при ошибке записи карточки остаётся проверяемой границей. |
 | Play/Open → правильный исполнитель | `CratesController::launchRequested`: game → `launchPreparation().launch()`; app → `AppsController::openDesktopId()`. | Общая консольная ответственность не требует превращать обычное приложение в Adventure. Выход — F02. |
 | Локальная готовая PC-папка → та же библиотека | `PcGamesController::registerGame()` проверяет executable/runtime, создаёт `pc:<id>` и вызывает `saveAdventureAsync`; успешный callback выдаёт `saved`. [Код](../src/features/pc/PcGamesController.cpp). | Мастер EXE/MSI и архивы пока не заменяются этим путём. Внешние роли пакетов/SPI — отдельная незавершённая ветка F03. |
+| Эмуляторный пакет → собственное native content → запуск | S02 `LibraryToolsController` публикует намеренную отменяемую установку; composition передаёт её S03 Azahar. Native reader/installer пишет приватный stage, wrapper атомарно заменяет только title content/tickets и сохраняет receipt; Play/Start разрешает installed entry той же карточки. [Контракт](emulators/azahar.md#native-content-installation--26-october-2026). | Просмотр S06 не устанавливает. Игры/save-операции блокируют замену. S08 personal data не откатываются вместе с content. Update/DLC учитываются при compatibility, но не являются отдельными multiplayer games. |
 
 ```mermaid
 sequenceDiagram
@@ -459,6 +496,40 @@ Lobby/netplay F04. Разрыв связи или показ успешной а
 Восстановление messenger presence не должно само разрывать подтверждённый игровой
 канал. `finished(ticket)` завершает соответствующий раунд, а не произвольную комнату.
 
+Групповые PS2 LAN / Dolphin BBA / arcade cabinet используют одного владельца
+S03 `RuntimeMultiplayer::startNativeLanConnections`. S07 держит отдельный
+`LobbyConnection` на каждого гостя; S03 передаёт полный приватный состав
+endpoint и ждёт готовности всех своих рёбер. PS2 native host сам пересылает
+Ethernet, Dolphin получает ограниченный Unix Ethernet hub. Отзыв сети не
+закрывает игру; S08 сохраняет обычный Home/exit/save contract.
+[Групповой контракт](emulators/native-lan-groups.md).
+
+GameCube LAN/BBA также использует S03/S06/S07: `DolphinLan` отдельно от
+`DolphinNetplay` готовит временный user-dir, собственный P1 и upstream TAP server.
+Одна игра может иметь два локально проверенных профиля/ключа выбора. Допуск,
+Start и lifecycle общие; S07 передаёт Ethernet-кадры через приватный сокет и
+существующий ICE/DTLS с явным режимом BBA. Личная карта не подключается;
+прогресс временный. [Реализация и границы](emulators/dolphin.md).
+
+Arcade cabinet link использует те же S03/S06/S07/S08: `FlycastNetplay` проверяет
+native capability и готовит отдельный `runtime.flycast.cabinet.v1`, S07 передаёт
+неизменённые native UDP packets через режим `cabinet`. `tools/flycast-lan` запускает
+эмулятор в изолированной loopback-сети; приватные sockets по гостям и фиксированные
+порты обеспечивают 2–4 участников. Обрыв отзывает канал, сохраняя игру; временный
+progress удаляется только после её завершения. GGPO остаётся отдельным профилем.
+[Контракт и обслуживание](emulators/flycast-cabinet.md).
+
+PS2 native LAN остаётся у S03 (`Ps2LanNetplay` и `tools/ps2-lan/launcher.py`),
+соединение — у S07. Подготовка атомарно публикует приватные настройки; перед
+запуском сверяет запрос, материал соединения, runtime, путь личной конфигурации
+и копии INI. Частичные/устаревшие данные не запускают эмулятор. Временные файлы
+до конца процесса принадлежат существующему session owner; личные карты не
+копируются. [Контракт и локальная проверка](emulators/armsx2-lan.md).
+Доступность PS2 LAN определяется serial диска из общего каталога 56 названий;
+по решению владельца 25.10 она не требует предварительной проверки каждой игры.
+Фактические образ/CRC/runtime между участниками всё равно сравниваются. Название
+в библиотеке не даёт сетевого допуска и не подтверждает совместимость.
+
 **Остаток:** код общего связующего механизма не доказывает поддержку режима каждым
 runtime. В локальном PC WIP `PcLanRuntime` пока использует EXE digest и два места;
 пакетная проверка сети не закрывает игровой матч/совместимость изданий/rejoin.
@@ -466,7 +537,22 @@ Live join вызывается только при `supportsLive`; режим з
 Guest content добавляет отдельный E19 lease/cleanup, а не постоянную карточку игры.
 
 <a id="f05"></a>
+**26 октября, native Dreamcast Online:** S06 предлагает отдельный `runtime.flycast.online.v1`
+по capability S03 (native IP.BIN code + service catalog). Ready → явный Start запускает
+две независимые консоли; комнату выбирают в игре. Штатный DCNet переносит трафик,
+S07 не создаёт второй relay. E08 использует общий RuntimeSaveStorage для постоянного
+owner/content archive VMU/flash: exclusive session, backup, exact return и recovery.
+Потеря Lobby оставляет игру/разговор; авто-Rejoin нет. [Контракт и доказательства](emulators/flycast-dcnet.md).
+
+<a id="f05"></a>
 ### F05. Игровое событие → результат/зачёт → награда
+
+**Реализация 25 октября:** S14 Play SDK соединяет S01 host session с S10
+server-owned match/result/board. Pocket Golf связывает свои состав/Start/карточки
+и игровые таблицы, сохраняя S07 group transport и owner-owned avatar отдельно.
+Callback revocation/operation journal не дают результату перейти к новому Player.
+Согласие всех карточек — peer-confirmed, не автоматическое основание награды S11.
+[Проверенная цепочка и оставшиеся границы](evidence/backend-golf-20261025/README.md).
 
 **Участники:** S01, S03, S08, S09, S10, S11; E10–E12.
 
@@ -481,6 +567,21 @@ S11 рассчитывает и фиксирует соответствующе�
 верификации/кошелька в этом проходе не обнаружено и не добавлено. Формулы наград,
 споры, аннулирование, повторяемые достижения и офлайн-события остаются открытыми.
 Условия наград не ограничивают обычный single-player и личные сохранения.
+
+25 октября: [проект общего Backend](TRAINEROS_BACKEND_PLAN_RU.md#foundation-20261025)
+конкретизирует этот целевой путь: SDK/Accounts → Results/validator → Boards и
+разрешённые Rewards, с receipt, dedup, исправлениями и отдельным уровнем доверия.
+По последующему уточнению владельца сначала подготовлена [вся серверная
+архитектура v1](TRAINEROS_BACKEND_PLAN_RU.md#architecture-v1), гольф остаётся
+примером будущей приёмки. Контракты всех S01/S10/S11-модулей, данные/API/SDK,
+провайдеры, доступы и эксплуатация описаны до реализации сценариев. Владельцы
+сохраняются; работающих новых API и установки этот проект не добавляет.
+
+Уточнение контрактов: [architecture-draft.2](../services/backend/contracts/README.md)
+связывает владельцев с формальными API/messages/events/logical entities. При
+реализации использовать эти границы вместе с существующим SDK: `network.records`
+остаётся транспортом, avatar recipe сохраняет текущий формат, online-capabilities
+пока не объявлены. Проверка схем не доказывает реальные права/транзакции.
 
 <a id="f06"></a>
 ### F06. Поддержка → право → покупка → использование косметики
@@ -719,3 +820,17 @@ sample необязателен для простой realtime игры. Про�
 
 Карта фиксирует связь, а не обещание полной готовности. Портативки у владельца;
 создание этой карты не включает подключения, изменения устройств или runtime-кода.
+
+
+### Public profiles — 26 October 2026
+
+Accounts/S01 owns verified display names and the shared avatar recipe. Boards/S10 project page-member profiles; SDK resolves installed models. Profile revisions are independent of score revisions. Source and server checks: [contract](../services/backend/profiles.md). Full account erasure and provider deletion detection remain open; R089/R107 remain partial. The owner now authorizes handheld installation/checks in this chat; delivery evidence follows separately.
+
+### F04: native группы Flycast — 26 октября
+
+S06 Ready/Start → S03 exact identity + собственный P2/P3/P4 → S07 отдельные
+LobbyConnection на гостя → namespace cabinet endpoint. Host пересылает неизменённые
+native пакеты между местами, S03/native ждут полный выбранный состав. Разрыв S07
+не закрывает game/save lifecycle S03/S08. DCNet использует независимые game-service
+клиенты и прежний private VMU archive; четыре места Lobby — группа запуска,
+не ёмкость каждой комнаты. [Контракт](emulators/flycast-groups.md).

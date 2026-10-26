@@ -12,6 +12,7 @@ namespace trainer {
 class CratesController final : public QObject {
     Q_OBJECT
     Q_PROPERTY(QVariantList crates READ crates NOTIFY catalogueChanged)
+    Q_PROPERTY(bool automaticUpdates READ automaticUpdates WRITE setAutomaticUpdates NOTIFY automaticUpdatesChanged)
     Q_PROPERTY(QString syncStatus READ syncStatus NOTIFY changed)
     Q_PROPERTY(int focusIndex READ focusIndex NOTIFY changed)
     Q_PROPERTY(QVariantMap current READ current NOTIFY changed)
@@ -25,12 +26,12 @@ class CratesController final : public QObject {
     Q_PROPERTY(int pageCount READ pageCount NOTIFY catalogueChanged)
     Q_PROPERTY(bool detailOpen READ detailOpen NOTIFY changed)
     Q_PROPERTY(QVariantMap project READ project NOTIFY projectChanged)
-    Q_PROPERTY(bool versionsOpen READ versionsOpen NOTIFY changed)
-    Q_PROPERTY(int releaseIndex READ releaseIndex NOTIFY changed)
     Q_PROPERTY(int screenshotIndex READ screenshotIndex NOTIFY changed)
     Q_PROPERTY(QString primaryLabel READ primaryLabel NOTIFY projectChanged)
     Q_PROPERTY(bool primaryEnabled READ primaryEnabled NOTIFY projectChanged)
     Q_PROPERTY(bool actionsOpen READ actionsOpen NOTIFY changed)
+    Q_PROPERTY(bool canRemove READ canRemove NOTIFY projectChanged)
+    Q_PROPERTY(bool removePrompt READ removePrompt NOTIFY changed)
     Q_PROPERTY(int actionIndex READ actionIndex NOTIFY changed)
     Q_PROPERTY(QVariantList actions READ actions NOTIFY projectChanged)
     Q_PROPERTY(int updateCount READ updateCount NOTIFY projectChanged)
@@ -41,6 +42,8 @@ public:
     ~CratesController() override;
     void configureCatalogue(const QString& helper,const QString& cache);
     void enter();
+    bool automaticUpdates() const {return automaticUpdates_;}
+    void setAutomaticUpdates(bool enabled);
     QString syncStatus() const {return syncStatus_;}
     QVariantList crates() const { return crates_; }
     int focusIndex() const { return focus_; }
@@ -59,10 +62,11 @@ public:
     QString primaryLabel() const;
     bool primaryEnabled() const;
     bool actionsOpen() const{return actionsOpen_;}
+    bool canRemove() const {const auto p=project();return !p["installedVersion"].toString().isEmpty()&&!p["busy"].toBool();}
+    bool removePrompt() const{return confirmRemove_;}
     int actionIndex() const{return actionIndex_;}
     QVariantList actions() const;
     Q_INVOKABLE void primary();
-    Q_INVOKABLE void installSelectedVersion();
     int updateCount() const;
     Q_INVOKABLE void updateAll();
     Q_INVOKABLE void confirmUpdates(bool accept);
@@ -70,8 +74,6 @@ public:
     int updateChoice() const {return updateChoice_;}
     Q_INVOKABLE void showActions();
     Q_INVOKABLE void activateAction(int index);
-    bool versionsOpen() const {return versionsOpen_;}
-    int releaseIndex() const {return releaseIndex_;}
     int screenshotIndex() const {return screenshotIndex_;}
     // Called only at a reviewed catalogue boundary, never from QML metadata.
     bool loadCatalogue(const QByteArray&);
@@ -84,11 +86,11 @@ public:
     Q_INVOKABLE void openProject(int index);
     Q_INVOKABLE void closeDetail();
     Q_INVOKABLE void turnPage(int delta);
-    Q_INVOKABLE void showVersions();
-    Q_INVOKABLE void selectRelease(int index);
     Q_INVOKABLE void selectScreenshot(int index);
 signals:
     void changed();
+    void automaticUpdatesChanged();
+    void preferenceError(QString message);
     void catalogueChanged();
     void projectChanged();
     void detailScrollRequested(int delta);
@@ -96,6 +98,9 @@ signals:
     void downloadsRequested();
 private:
     void refreshCatalogue(bool network);
+    void checkAutomaticUpdates();
+    QTimer automaticCheck_;
+    bool automaticUpdates_=false;
     bool applyCatalogue(const QJsonObject&);
     QProcess catalogueWorker_;
     QTimer catalogueDeadline_;
@@ -116,7 +121,7 @@ private:
     QTimer opening_;
     CratesCatalogue catalogue_;
     QHash<QString,QString> selectedProjects_;
-    bool detailOpen_=false,versionsOpen_=false;
-    int releaseIndex_=0,screenshotIndex_=0;
+    bool detailOpen_=false;
+    int screenshotIndex_=0;
 };
 }

@@ -13,12 +13,15 @@
 
 namespace trainer::retroarch {
 QJsonObject handheldLinkProfile(const AdventureRegistration& r) {
+    const std::atomic_bool cancel=false;
+    return handheldLinkProfile(r,cartridge::read(r.contentPath,r.adventure.platformId,cancel));
+}
+QJsonObject handheldLinkProfile(const AdventureRegistration& r,const cartridge::Image& image) {
     if(!QStringList{"gb","gbc","gba"}.contains(r.adventure.platformId))return {};
-    QFile f(r.contentPath);if(!f.open(QIODevice::ReadOnly))return {};
-    const auto h=f.read(512);if(h.size()<0x150)return {};
+    const auto h=image.bytes.first(qMin<qsizetype>(512,image.bytes.size()));if(h.size()<0x150)return {};
     QString family,mode;
     int players=2;
-    if(r.adventure.platformId=="gba"&&QFileInfo(r.contentPath).suffix().toLower()=="gba") {
+    if(r.adventure.platformId=="gba"&&image.extension=="gba") {
         const auto code=h.mid(0xac,4);
         // English Gen III all share the emulated cable protocol. In-game
         // edition/progression restrictions still apply; RFU is a different mode.
@@ -30,7 +33,7 @@ QJsonObject handheldLinkProfile(const AdventureRegistration& r) {
             quint8 checksum=0;
             for(int n=0xa0;n<=0xbc;++n)checksum=quint8(checksum-quint8(h[n]));
             checksum=quint8(checksum-0x19);
-            if(quint8(h[0xb2])==0x96&&checksum==quint8(h[0xbd])&&f.size()>=32768&&f.size()<=32*1024*1024) {
+            if(quint8(h[0xb2])==0x96&&checksum==quint8(h[0xbd])&&image.bytes.size()>=32768&&image.bytes.size()<=32*1024*1024) {
                 // gpSP 5819380's RFU entries with working upstream evidence.
                 // Cartridge codes select the connection mechanism; the complete
                 // content digest still gates peers. Do not infer cross-edition
@@ -47,7 +50,7 @@ QJsonObject handheldLinkProfile(const AdventureRegistration& r) {
             }
         }
     } else if((r.adventure.platformId=="gb"||r.adventure.platformId=="gbc")&&
-              QStringList{"gb","gbc"}.contains(QFileInfo(r.contentPath).suffix().toLower())) {
+              QStringList{"gb","gbc"}.contains(image.extension)) {
         auto title=h.mid(0x134,15);title=title.left(title.indexOf('\0')<0?title.size():title.indexOf('\0')).trimmed();
         if(QList<QByteArray>{"POKEMON RED","POKEMON BLUE","POKEMON YELLOW"}.contains(title))family="gb-gen1-en";
         if(QList<QByteArray>{"POKEMON_GLDAAUE","POKEMON_SLVAAXE","PM_CRYSTAL","POKEMON GOLD","POKEMON SILVER"}.contains(title))family="gb-gen2-en";
@@ -65,7 +68,7 @@ QJsonObject handheldLinkProfile(const AdventureRegistration& r) {
             const auto ram=quint8(h[0x149]);
             const bool battery=(type==0x03||type==0x09||type==0x13||type==0x1b||type==0x1e)&&
                 ram>=2&&ram<=5&&((type==0x03||type==0x13)?ram<=3:type==0x09?ram==2:type==0x1e?ram!=4:true);
-            if((volatileCartridges.contains(type)||battery)&&size<=8&&f.size()==(qint64(32768)<<size)&&
+            if((volatileCartridges.contains(type)||battery)&&size<=8&&image.bytes.size()==(qint64(32768)<<size)&&
                checksum==quint8(h[0x14d])) {
                 auto result=QJsonObject {{"id","runtime.retroarch."+r.adventure.platformId+".DoubleCherryGB.v1"},
                     {"label",r.adventure.title.left(96)},{"settings","dcgb-linked-pair-volatile-v1"},
@@ -192,10 +195,9 @@ QString prepareLinkedSave(ProcessCommand& cmd,const AdventureRegistration& r,con
     const auto suffix=gba?QString(".gba"):QString(".gb");
     const auto saveSuffix=[gba](int player){return gba?(player==1?QString(".sav"):QString(".sav")+QString::number(player)):QString(".srm");};
     const auto name=QFileInfo(r.contentPath).completeBaseName()+".srm";
-    QFile rom(r.contentPath);
-    if(!rom.open(QIODevice::ReadOnly)||rom.size()>(gba?32:8)*1024*1024)return "Couldn't read the linked game.";
-    const auto content=rom.readAll();
-    if(QString::fromLatin1(QCryptographicHash::hash(content,QCryptographicHash::Sha256).toHex())!=request.expected["content"].toString())
+    const auto image=cartridge::read(r.contentPath,r.adventure.platformId,cancel);
+    const auto content=image.bytes;
+    if(content.isEmpty()||image.digest()!=request.expected["content"].toString())
         return "Your game changed. Invite your friend again.";
     if(!QDir().mkpath(QDir(directory).filePath(".netplay")))return "Couldn't prepare the linked game.";
     // The upstream subsystem gives each cartridge its own standard SRAM API.

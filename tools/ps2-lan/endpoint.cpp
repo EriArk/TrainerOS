@@ -1,57 +1,68 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 #include "../remote-play-stream/transport/ps2_sockets.hpp"
+#include "../remote-play-stream/transport/bba_channel.hpp"
+#include "../../src/integrations/adventure/standalone/NativeLanConnection.h"
 #include <QCoreApplication>
-#include <QLocalSocket>
 #include <QNetworkInterface>
 #include <QProcess>
-#include <QFile>
-#include <QFileInfo>
-#include <QMap>
-#include <csignal>
+#include <memory>
+#include <vector>
 
-// Runs inside bwrap --unshare-net with only loopback. The game keeps its own
-// files/GPU/input, but can reach only this session's accepted datagram channel.
+// Private Unix edges only. PS2's existing native host forwards ECLX Ethernet;
+// Dolphin's TAP backend needs a small Ethernet hub, without a host TAP or NIC.
 int main(int argc,char** argv) {
-    QCoreApplication app(argc,argv);const auto args=app.arguments();
-    if(args.size()<4)return 2;
-    for(const auto& interface:QNetworkInterface::allInterfaces())
+    QCoreApplication app(argc,argv);const auto args=app.arguments();if(args.size()<4)return 2;
+    const auto config=trainer::NativeLanConnection::read(args[1]);if(!config.valid())return 2;
+    const bool ps2=config.mode=="ps2",host=config.seat==1;
+    if(ps2)for(const auto& interface:QNetworkInterface::allInterfaces())
         if(!(interface.flags()&QNetworkInterface::IsLoopBack))return 2;
-    QFile config(args[1]);if(!config.open(QIODevice::ReadOnly)||config.size()>4096)return 2;
-    QMap<QByteArray,QByteArray> values;
-    for(const auto& line:config.readAll().split('\n')) {
-        if(line.isEmpty())continue;const auto at=line.indexOf('=');
-        if(at<1||values.contains(line.left(at)))return 2;
-        values[line.left(at)]=line.mid(at+1);
+    struct Edge {int seat;QLocalSocket channel;QByteArray buffered;std::unique_ptr<Ps2Sockets> native;};
+    std::vector<std::unique_ptr<Edge>> edges;
+    bool network=true;
+    auto revoke=[&]{if(!network)return;network=false;for(auto& e:edges){e->channel.abort();e->buffered.clear();e->native.reset();}};
+    auto send=[&](Edge& edge,const QByteArray& data) {
+        if(!network||edge.channel.state()!=QLocalSocket::ConnectedState||edge.channel.bytesToWrite()+data.size()+2>65536)return false;
+        QByteArray packet(2,0);
+        if(ps2)qToBigEndian<quint16>(data.size(),packet.data());else qToLittleEndian<quint16>(data.size(),packet.data());
+        packet+=data;return edge.channel.write(packet)==packet.size();
+    };
+    BbaChannel local([&](const QByteArray& data){
+        if(!network)return false;
+        if(data.mid(6,6)!=QByteArray::fromHex(config.mac().toLatin1().replace(":",""))){revoke();return false;}
+        for(auto& e:edges)send(*e,data);return true;
+    },revoke);
+    for(auto it=config.sockets.cbegin();it!=config.sockets.cend();++it) {
+        auto owned=std::make_unique<Edge>();auto* e=owned.get();e->seat=it.key();edges.push_back(std::move(owned));
+        e->channel.setReadBufferSize(65536);e->channel.connectToServer(it.value());if(!e->channel.waitForConnected(3000))return 3;
+        if(ps2){e->native=std::make_unique<Ps2Sockets>(host,[&,e](const QByteArray& data){return send(*e,data);});if(!e->native->start(host?0:19073))return 3;}
+        QObject::connect(&e->channel,&QLocalSocket::readyRead,&app,[&,e]{
+            if(!network)return;e->buffered+=e->channel.readAll();if(e->buffered.size()>65536){revoke();return;}
+            while(network&&e->buffered.size()>=2) {
+                const auto size=ps2?qFromBigEndian<quint16>(e->buffered.constData()):qFromLittleEndian<quint16>(e->buffered.constData());
+                if(size<(ps2?44:14)||size>(ps2?1044:1518)){revoke();return;}
+                if(e->buffered.size()<size+2)return;
+                const auto data=e->buffered.mid(2,size);e->buffered.remove(0,size+2);
+                if(ps2){
+                    const auto source=data.size()>=12?qFromBigEndian<quint32>(data.constData()+8):0;
+                    if(!Ps2Sockets::envelope(data)||source<1||source>quint32(config.players)||source==quint32(config.seat)
+                       ||(host&&source!=quint32(e->seat))){revoke();return;}
+                    e->native->receive(data);
+                }
+                else {
+                    const auto source=data.mid(6,6);bool accepted=false;
+                    for(int seat=1;seat<=config.players;++seat)
+                        if(seat!=config.seat&&(!host||seat==e->seat)&&source==QByteArray::fromHex(config.mac(seat).toLatin1().replace(":","")))accepted=true;
+                    if(!accepted){revoke();return;}
+                    local.receive(data);
+                    if(host)for(auto& other:edges)if(other.get()!=e)send(*other,data);
+                }
+            }
+        });
+        QObject::connect(&e->channel,&QLocalSocket::disconnected,&app,revoke);
     }
-    if(values.size()!=7||values["mode"]!="ps2"||values["address"]!="127.0.0.1"
-       ||(values["host"]!="true"&&values["host"]!="false"))return 2;
-    const bool host=values["host"]=="true";
-    if(values["port"]!=(host?"19072":"19073")||values["peer"]!=(host?"1":"2"))return 2;
-    const auto path=QString::fromUtf8(values["socket"]);
-    if(path!=QFileInfo(args[1]).absolutePath()+"/ps2.sock")return 2;
-    QLocalSocket channel;channel.connectToServer(path);
-    if(!channel.waitForConnected(3000))return 3;
-    bool network=true;QByteArray buffered;
-    Ps2Sockets sockets(host,[&](const QByteArray& data){
-        if(!network||channel.bytesToWrite()+data.size()+2>65536)return false;
-        QByteArray packet(2,0);qToBigEndian<quint16>(data.size(),packet.data());packet+=data;
-        return channel.write(packet)==packet.size();
-    });
-    if(!sockets.start(host?0:19073))return 3;
-    QObject::connect(&channel,&QLocalSocket::readyRead,&app,[&]{
-        buffered+=channel.readAll();
-        if(buffered.size()>65536){channel.abort();return;}
-        while(buffered.size()>=2) {
-            const auto size=qFromBigEndian<quint16>(buffered.constData());
-            if(size<44||size>1044){channel.abort();return;}
-            if(buffered.size()<size+2)return;
-            const auto data=buffered.mid(2,size);buffered.remove(0,size+2);sockets.receive(data);
-        }
-    });
-    // Connection loss revokes network access; it never terminates a live game
-    // or launches/rejoins it. Home/Exit still belongs to the owning process tree.
-    QObject::connect(&channel,&QLocalSocket::disconnected,&app,[&]{network=false;buffered.clear();});
-    QProcess game;game.setProcessChannelMode(QProcess::ForwardedChannels);
+    if(!ps2&&!local.start(QFileInfo(args[1]).absolutePath()+"/bba.sock"))return 3;
+    // Revocation never closes or relaunches the game. Home owns safe process exit.
+    QProcess game;game.setProcessChannelMode(QProcess::ForwardedChannels);game.setInputChannelMode(QProcess::ForwardedInputChannel);
     QObject::connect(&game,&QProcess::finished,&app,[&](int code,QProcess::ExitStatus status){app.exit(status==QProcess::NormalExit?code:1);});
     game.start(args[2],args.mid(3));if(!game.waitForStarted(5000))return 4;
     return app.exec();

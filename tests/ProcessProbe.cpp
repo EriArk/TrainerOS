@@ -19,6 +19,11 @@ int main(int argc, char** argv) {
 #endif
     QCoreApplication app(argc, argv);
     const auto args = app.arguments();
+    if (args.size() == 3 && args[1] == "--psp-content") {
+        QFile input(args[2]), output;
+        if (!input.open(QIODevice::ReadOnly) || !output.open(stdout,QIODevice::WriteOnly)) return 3;
+        output.write(input.readAll());return 0;
+    }
     if (args.size() >= 3 && args[1] == "arguments") {
         QFile file(args[2]); if (!file.open(QIODevice::WriteOnly)) return 3;
         file.write(QJsonDocument(QJsonArray::fromStringList(args.mid(3))).toJson());

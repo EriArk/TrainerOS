@@ -1,13 +1,1113 @@
 {
-  "version": 1,
+  "version": 2,
+  "source": "https://github.com/ARMSX2/ARMSX2/blob/90126bdfea/bin/resources/GameIndex.yaml",
+  "sourceSha256": "61c77b789ccde856096f024e4a3eef6891e15ca59c127e0dd13e762a7d338a7e",
+  "catalogue": "docs/data/ps2/ps2_lan_full.csv",
+  "catalogueSha256": "0074fca3fbc6532012e453083aa9c2b25048735f6934a02ab6205cacad4bb03a",
   "games": [
     {
-      "serial": "SLUS-21240",
-      "crc": "02F4B541",
-      "title": "Star Wars Battlefront II (USA)",
+      "catalogueRow": 1,
+      "title": "25 to Life",
       "mode": "lan",
-      "players": 2,
-      "source": "https://www.teamxlink.co.uk/wiki/PCSX2_XLink_Kai_Setup"
+      "availability": "owner-test",
+      "releases": [
+        {
+          "serial": "SLES-53199",
+          "region": "PAL-E"
+        },
+        {
+          "serial": "SLUS-21016",
+          "region": "NTSC-U"
+        }
+      ]
+    },
+    {
+      "catalogueRow": 2,
+      "title": "Armored Core: Last Raven",
+      "mode": "lan",
+      "availability": "owner-test",
+      "releases": [
+        {
+          "serial": "SCAJ-20143",
+          "region": "NTSC-Unk"
+        },
+        {
+          "serial": "SLES-53820",
+          "region": "PAL-E"
+        },
+        {
+          "serial": "SLUS-21338",
+          "region": "NTSC-U"
+        }
+      ]
+    },
+    {
+      "catalogueRow": 3,
+      "title": "Armored Core: Nexus",
+      "mode": "lan",
+      "availability": "owner-test",
+      "releases": [
+        {
+          "serial": "SCAJ-20076",
+          "region": "NTSC-Unk"
+        },
+        {
+          "serial": "SCAJ-20077",
+          "region": "NTSC-Unk"
+        },
+        {
+          "serial": "SLES-82036",
+          "region": "PAL-M5"
+        },
+        {
+          "serial": "SLES-82037",
+          "region": "PAL-M5"
+        },
+        {
+          "serial": "SLUS-20986",
+          "region": "NTSC-U"
+        },
+        {
+          "serial": "SLUS-21079",
+          "region": "NTSC-U"
+        }
+      ]
+    },
+    {
+      "catalogueRow": 4,
+      "title": "Armored Core: Nine Breaker",
+      "mode": "lan",
+      "availability": "owner-test",
+      "releases": [
+        {
+          "serial": "SCAJ-20105",
+          "region": "NTSC-Unk"
+        },
+        {
+          "serial": "SLES-53819",
+          "region": "PAL-E"
+        },
+        {
+          "serial": "SLUS-21200",
+          "region": "NTSC-U"
+        }
+      ]
+    },
+    {
+      "catalogueRow": 5,
+      "title": "ATV Offroad Fury 2",
+      "mode": "lan",
+      "availability": "owner-test",
+      "releases": [
+        {
+          "serial": "SCUS-97211",
+          "region": "NTSC-U"
+        },
+        {
+          "serial": "SCUS-97369",
+          "region": "NTSC-U"
+        },
+        {
+          "serial": "SCUS-97510",
+          "region": "NTSC-U"
+        },
+        {
+          "serial": "SLES-51814",
+          "region": "PAL-E"
+        }
+      ]
+    },
+    {
+      "catalogueRow": 6,
+      "title": "ATV Offroad Fury 3",
+      "mode": "lan",
+      "availability": "owner-test",
+      "releases": [
+        {
+          "serial": "SCUS-97405",
+          "region": "NTSC-U"
+        },
+        {
+          "serial": "SCUS-97514",
+          "region": "NTSC-U"
+        },
+        {
+          "serial": "SLES-53754",
+          "region": "PAL-M6"
+        },
+        {
+          "serial": "SLUS-97405",
+          "region": "NTSC-U"
+        }
+      ]
+    },
+    {
+      "catalogueRow": 7,
+      "title": "ATV Offroad Fury 4",
+      "mode": "lan",
+      "availability": "owner-test",
+      "releases": [
+        {
+          "serial": "SCES-54688",
+          "region": "PAL-M12"
+        },
+        {
+          "serial": "SCUS-97479",
+          "region": "NTSC-U"
+        },
+        {
+          "serial": "SCUS-97553",
+          "region": "NTSC-U"
+        }
+      ]
+    },
+    {
+      "catalogueRow": 8,
+      "title": "Call of Duty 2: Big Red One",
+      "mode": "lan",
+      "availability": "owner-test",
+      "releases": [
+        {
+          "serial": "SLES-53415",
+          "region": "PAL-E"
+        },
+        {
+          "serial": "SLES-53416",
+          "region": "PAL-M3"
+        },
+        {
+          "serial": "SLES-53417",
+          "region": "PAL-G"
+        },
+        {
+          "serial": "SLPM-66328",
+          "region": "NTSC-J"
+        },
+        {
+          "serial": "SLUS-21228",
+          "region": "NTSC-U"
+        }
+      ]
+    },
+    {
+      "catalogueRow": 9,
+      "title": "Colin McRae Rally 2005",
+      "mode": "lan",
+      "availability": "owner-test",
+      "releases": [
+        {
+          "serial": "SLES-52636",
+          "region": "PAL-M5"
+        }
+      ]
+    },
+    {
+      "catalogueRow": 10,
+      "title": "Conflict: Global Terror / Global Storm",
+      "mode": "lan",
+      "availability": "owner-test",
+      "releases": [
+        {
+          "serial": "SLES-52573",
+          "region": "PAL-M5"
+        },
+        {
+          "serial": "SLUS-21172",
+          "region": "NTSC-U"
+        }
+      ]
+    },
+    {
+      "catalogueRow": 11,
+      "title": "Crash Tag Team Racing",
+      "mode": "lan",
+      "availability": "owner-test",
+      "releases": [
+        {
+          "serial": "SLES-53439",
+          "region": "PAL-M6"
+        },
+        {
+          "serial": "SLUS-21191",
+          "region": "NTSC-U"
+        }
+      ]
+    },
+    {
+      "catalogueRow": 12,
+      "title": "Dance Dance Revolution X",
+      "mode": "lan",
+      "availability": "owner-test",
+      "releases": [
+        {
+          "serial": "SLUS-21767",
+          "region": "NTSC-U"
+        }
+      ]
+    },
+    {
+      "catalogueRow": 13,
+      "title": "Fight Club",
+      "mode": "lan",
+      "availability": "owner-test",
+      "releases": [
+        {
+          "serial": "SLES-52718",
+          "region": "PAL-M5"
+        },
+        {
+          "serial": "SLUS-20857",
+          "region": "NTSC-U"
+        }
+      ]
+    },
+    {
+      "catalogueRow": 14,
+      "title": "Ford vs. Chevy",
+      "mode": "lan",
+      "availability": "owner-test",
+      "releases": [
+        {
+          "serial": "SLES-53698",
+          "region": "PAL-M5"
+        },
+        {
+          "serial": "SLUS-21276",
+          "region": "NTSC-U"
+        }
+      ]
+    },
+    {
+      "catalogueRow": 15,
+      "title": "Godzilla: Save the Earth",
+      "mode": "lan",
+      "availability": "owner-test",
+      "releases": [
+        {
+          "serial": "SLES-52766",
+          "region": "PAL-M5"
+        },
+        {
+          "serial": "SLUS-20809",
+          "region": "NTSC-U"
+        }
+      ]
+    },
+    {
+      "catalogueRow": 16,
+      "title": "Gran Turismo 4",
+      "mode": "lan",
+      "availability": "owner-test",
+      "releases": [
+        {
+          "serial": "SCAJ-30006",
+          "region": "NTSC-J"
+        },
+        {
+          "serial": "SCAJ-30007",
+          "region": "NTSC-C"
+        },
+        {
+          "serial": "SCAJ-30008",
+          "region": "NTSC-C"
+        },
+        {
+          "serial": "SCES-51719",
+          "region": "PAL-M5"
+        },
+        {
+          "serial": "SCKA-30001",
+          "region": "NTSC-K"
+        },
+        {
+          "serial": "SCKA-30004",
+          "region": "NTSC-K"
+        },
+        {
+          "serial": "SCPS-17001",
+          "region": "NTSC-J"
+        },
+        {
+          "serial": "SCPS-19252",
+          "region": "NTSC-J"
+        },
+        {
+          "serial": "SCUS-90682",
+          "region": "NTSC-U"
+        },
+        {
+          "serial": "SCUS-97328",
+          "region": "NTSC-U"
+        },
+        {
+          "serial": "SCUS-97563",
+          "region": "NTSC-U"
+        }
+      ]
+    },
+    {
+      "catalogueRow": 17,
+      "title": "Greg Hastings' Tournament Paintball MAX'D",
+      "mode": "lan",
+      "availability": "owner-test",
+      "releases": [
+        {
+          "serial": "SLUS-21539",
+          "region": "NTSC-U"
+        }
+      ]
+    },
+    {
+      "catalogueRow": 18,
+      "title": "Heroes of the Pacific",
+      "mode": "lan",
+      "availability": "owner-test",
+      "releases": [
+        {
+          "serial": "SLES-53441",
+          "region": "PAL-M5"
+        },
+        {
+          "serial": "SLUS-20943",
+          "region": "NTSC-U"
+        }
+      ]
+    },
+    {
+      "catalogueRow": 19,
+      "title": "Hot Wheels: Stunt Track Challenge",
+      "mode": "lan",
+      "availability": "owner-test",
+      "releases": [
+        {
+          "serial": "SLES-52481",
+          "region": "PAL-E"
+        },
+        {
+          "serial": "SLUS-20954",
+          "region": "NTSC-U"
+        }
+      ]
+    },
+    {
+      "catalogueRow": 20,
+      "title": "IndyCar Series 2005",
+      "mode": "lan",
+      "availability": "owner-test",
+      "releases": [
+        {
+          "serial": "SLES-52298",
+          "region": "PAL-M5"
+        }
+      ]
+    },
+    {
+      "catalogueRow": 21,
+      "title": "Jak X: Combat Racing",
+      "mode": "lan",
+      "availability": "owner-test",
+      "releases": [
+        {
+          "serial": "SCES-53286",
+          "region": "PAL-M7"
+        },
+        {
+          "serial": "SCUS-97429",
+          "region": "NTSC-U"
+        },
+        {
+          "serial": "SCUS-97574",
+          "region": "NTSC-U"
+        }
+      ]
+    },
+    {
+      "catalogueRow": 22,
+      "title": "Juiced",
+      "mode": "lan",
+      "availability": "owner-test",
+      "releases": [
+        {
+          "serial": "SLES-53044",
+          "region": "PAL-M4"
+        },
+        {
+          "serial": "SLES-53151",
+          "region": "PAL-I"
+        },
+        {
+          "serial": "SLUS-20872",
+          "region": "NTSC-U"
+        },
+        {
+          "serial": "SLUS-29147",
+          "region": "NTSC-U"
+        }
+      ]
+    },
+    {
+      "catalogueRow": 23,
+      "title": "Midnight Club II",
+      "mode": "lan",
+      "availability": "owner-test",
+      "releases": [
+        {
+          "serial": "SLES-51054",
+          "region": "PAL-M5"
+        },
+        {
+          "serial": "SLUS-20209",
+          "region": "NTSC-U"
+        }
+      ]
+    },
+    {
+      "catalogueRow": 24,
+      "title": "Midnight Club 3: DUB Edition",
+      "mode": "lan",
+      "availability": "owner-test",
+      "releases": [
+        {
+          "serial": "SLES-52942",
+          "region": "PAL-M5"
+        },
+        {
+          "serial": "SLUS-21029",
+          "region": "NTSC-U"
+        }
+      ]
+    },
+    {
+      "catalogueRow": 25,
+      "title": "Midnight Club 3: DUB Edition Remix",
+      "mode": "lan",
+      "availability": "owner-test",
+      "releases": [
+        {
+          "serial": "SLES-53717",
+          "region": "PAL-M5"
+        },
+        {
+          "serial": "SLUS-21355",
+          "region": "NTSC-U"
+        }
+      ]
+    },
+    {
+      "catalogueRow": 26,
+      "title": "MotoGP 4",
+      "mode": "lan",
+      "availability": "owner-test",
+      "releases": [
+        {
+          "serial": "SCAJ-20151",
+          "region": "NTSC-Unk"
+        },
+        {
+          "serial": "SCES-52892",
+          "region": "PAL-M5"
+        },
+        {
+          "serial": "SLPS-25561",
+          "region": "NTSC-J"
+        },
+        {
+          "serial": "SLUS-21159",
+          "region": "NTSC-U"
+        }
+      ]
+    },
+    {
+      "catalogueRow": 27,
+      "title": "MTX Mototrax",
+      "mode": "lan",
+      "availability": "owner-test",
+      "releases": [
+        {
+          "serial": "SLES-52289",
+          "region": "PAL-E"
+        },
+        {
+          "serial": "SLES-52290",
+          "region": "PAL-F"
+        },
+        {
+          "serial": "SLUS-20399",
+          "region": "NTSC-U"
+        }
+      ]
+    },
+    {
+      "catalogueRow": 28,
+      "title": "My Street",
+      "mode": "lan",
+      "availability": "owner-test",
+      "releases": [
+        {
+          "serial": "SCES-51677",
+          "region": "PAL-M5"
+        },
+        {
+          "serial": "SCUS-97212",
+          "region": "NTSC-U"
+        }
+      ]
+    },
+    {
+      "catalogueRow": 29,
+      "title": "NASCAR Thunder 2004",
+      "mode": "lan",
+      "availability": "owner-test",
+      "releases": [
+        {
+          "serial": "SLUS-20754",
+          "region": "NTSC-U"
+        },
+        {
+          "serial": "SLUS-20824",
+          "region": "NTSC-U"
+        }
+      ]
+    },
+    {
+      "catalogueRow": 30,
+      "title": "OutRun 2006: Coast 2 Coast",
+      "mode": "lan",
+      "availability": "owner-test",
+      "releases": [
+        {
+          "serial": "SLES-53998",
+          "region": "PAL-M5"
+        },
+        {
+          "serial": "SLUS-21274",
+          "region": "NTSC-U"
+        }
+      ]
+    },
+    {
+      "catalogueRow": 31,
+      "title": "Project: Snowblind",
+      "mode": "lan",
+      "availability": "owner-test",
+      "releases": [
+        {
+          "serial": "SLES-52859",
+          "region": "PAL-E"
+        },
+        {
+          "serial": "SLES-53124",
+          "region": "PAL-M4"
+        },
+        {
+          "serial": "SLUS-21037",
+          "region": "NTSC-U"
+        }
+      ]
+    },
+    {
+      "catalogueRow": 32,
+      "title": "Robotech: Invasion",
+      "mode": "lan",
+      "availability": "owner-test",
+      "releases": [
+        {
+          "serial": "SLES-52944",
+          "region": "PAL-M5"
+        },
+        {
+          "serial": "SLUS-20823",
+          "region": "NTSC-U"
+        }
+      ]
+    },
+    {
+      "catalogueRow": 33,
+      "title": "Rogue Trooper",
+      "mode": "lan",
+      "availability": "owner-test",
+      "releases": [
+        {
+          "serial": "SLES-52921",
+          "region": "PAL-M5"
+        },
+        {
+          "serial": "SLUS-21320",
+          "region": "NTSC-U"
+        }
+      ]
+    },
+    {
+      "catalogueRow": 34,
+      "title": "SOCOM II: U.S. Navy SEALs",
+      "mode": "lan",
+      "availability": "owner-test",
+      "releases": [
+        {
+          "serial": "SCES-51904",
+          "region": "PAL-M5"
+        },
+        {
+          "serial": "SCES-52306",
+          "region": "PAL-M5"
+        },
+        {
+          "serial": "SCKA-20020",
+          "region": "NTSC-K"
+        },
+        {
+          "serial": "SCKA-20053",
+          "region": "NTSC-K"
+        },
+        {
+          "serial": "SCUS-97275",
+          "region": "NTSC-U"
+        },
+        {
+          "serial": "SCUS-97511",
+          "region": "NTSC-U"
+        }
+      ]
+    },
+    {
+      "catalogueRow": 35,
+      "title": "SOCOM 3: U.S. Navy SEALs",
+      "mode": "lan",
+      "availability": "owner-test",
+      "releases": [
+        {
+          "serial": "SCES-53300",
+          "region": "PAL-M5"
+        },
+        {
+          "serial": "SCKA-20064",
+          "region": "NTSC-K"
+        },
+        {
+          "serial": "SCKA-20116",
+          "region": "NTSC-K"
+        },
+        {
+          "serial": "SCUS-97474",
+          "region": "NTSC-U"
+        },
+        {
+          "serial": "SLES-53300",
+          "region": "PAL-Unk"
+        }
+      ]
+    },
+    {
+      "catalogueRow": 36,
+      "title": "SOCOM: Combined Assault",
+      "mode": "lan",
+      "availability": "owner-test",
+      "releases": [
+        {
+          "serial": "SCES-54477",
+          "region": "PAL-M5"
+        },
+        {
+          "serial": "SCUS-97545",
+          "region": "NTSC-U"
+        }
+      ]
+    },
+    {
+      "catalogueRow": 37,
+      "title": "Spy vs. Spy",
+      "mode": "lan",
+      "availability": "owner-test",
+      "releases": [
+        {
+          "serial": "SLES-53078",
+          "region": "PAL-M4"
+        }
+      ]
+    },
+    {
+      "catalogueRow": 38,
+      "title": "Star Wars: Battlefront",
+      "mode": "lan",
+      "availability": "owner-test",
+      "releases": [
+        {
+          "serial": "SLES-52545",
+          "region": "PAL-M3"
+        },
+        {
+          "serial": "SLES-52546",
+          "region": "PAL-F"
+        },
+        {
+          "serial": "SLES-52547",
+          "region": "PAL-G"
+        },
+        {
+          "serial": "SLUS-20898",
+          "region": "NTSC-U"
+        }
+      ]
+    },
+    {
+      "catalogueRow": 39,
+      "title": "Star Wars: Battlefront II",
+      "mode": "lan",
+      "availability": "owner-test",
+      "releases": [
+        {
+          "serial": "SLES-53501",
+          "region": "PAL-M3"
+        },
+        {
+          "serial": "SLES-53502",
+          "region": "PAL-F"
+        },
+        {
+          "serial": "SLES-53503",
+          "region": "PAL-G"
+        },
+        {
+          "serial": "SLUS-21240",
+          "region": "NTSC-U"
+        }
+      ]
+    },
+    {
+      "catalogueRow": 40,
+      "title": "Street Racing Syndicate",
+      "mode": "lan",
+      "availability": "owner-test",
+      "releases": [
+        {
+          "serial": "SLES-53045",
+          "region": "PAL-M5"
+        },
+        {
+          "serial": "SLUS-20582",
+          "region": "NTSC-U"
+        }
+      ]
+    },
+    {
+      "catalogueRow": 41,
+      "title": "The Fast and the Furious",
+      "mode": "lan",
+      "availability": "owner-test",
+      "releases": [
+        {
+          "serial": "SLES-54483",
+          "region": "PAL-E"
+        },
+        {
+          "serial": "SLUS-21449",
+          "region": "NTSC-U"
+        }
+      ]
+    },
+    {
+      "catalogueRow": 42,
+      "title": "TimeSplitters 2",
+      "mode": "lan",
+      "availability": "owner-test",
+      "releases": [
+        {
+          "serial": "SLUS-20314",
+          "region": "NTSC-U"
+        }
+      ]
+    },
+    {
+      "catalogueRow": 43,
+      "title": "TimeSplitters: Future Perfect",
+      "mode": "lan",
+      "availability": "owner-test",
+      "releases": [
+        {
+          "serial": "SLES-52993",
+          "region": "PAL-M5"
+        },
+        {
+          "serial": "SLUS-21148",
+          "region": "NTSC-U"
+        }
+      ]
+    },
+    {
+      "catalogueRow": 44,
+      "title": "TOCA Race Driver 2",
+      "mode": "lan",
+      "availability": "owner-test",
+      "releases": [
+        {
+          "serial": "SLES-52637",
+          "region": "PAL-M5"
+        },
+        {
+          "serial": "SLES-52638",
+          "region": "PAL-M5"
+        },
+        {
+          "serial": "SLES-52639",
+          "region": "PAL-M5"
+        },
+        {
+          "serial": "SLPM-66498",
+          "region": "NTSC-J"
+        },
+        {
+          "serial": "SLUS-21039",
+          "region": "NTSC-U"
+        }
+      ]
+    },
+    {
+      "catalogueRow": 45,
+      "title": "TOCA Race Driver 3",
+      "mode": "lan",
+      "availability": "owner-test",
+      "releases": [
+        {
+          "serial": "SLES-53087",
+          "region": "PAL-M5"
+        },
+        {
+          "serial": "SLES-53088",
+          "region": "PAL-M5"
+        },
+        {
+          "serial": "SLES-53089",
+          "region": "PAL-E"
+        },
+        {
+          "serial": "SLPM-55046",
+          "region": "NTSC-J"
+        },
+        {
+          "serial": "SLPM-66881",
+          "region": "NTSC-J"
+        },
+        {
+          "serial": "SLUS-21182",
+          "region": "NTSC-U"
+        }
+      ]
+    },
+    {
+      "catalogueRow": 46,
+      "title": "Tom Clancy's Rainbow Six: Lockdown",
+      "mode": "lan",
+      "availability": "owner-test",
+      "releases": [
+        {
+          "serial": "SLES-53104",
+          "region": "PAL-M5"
+        },
+        {
+          "serial": "SLUS-21144",
+          "region": "NTSC-U"
+        }
+      ]
+    },
+    {
+      "catalogueRow": 47,
+      "title": "Tom Clancy's Splinter Cell: Chaos Theory",
+      "mode": "lan",
+      "availability": "owner-test",
+      "releases": [
+        {
+          "serial": "SLES-53007",
+          "region": "PAL-M5"
+        },
+        {
+          "serial": "SLES-53287",
+          "region": "PAL-M3"
+        },
+        {
+          "serial": "SLUS-21137",
+          "region": "NTSC-U"
+        }
+      ]
+    },
+    {
+      "catalogueRow": 48,
+      "title": "Tom Clancy's Splinter Cell: Double Agent",
+      "mode": "lan",
+      "availability": "owner-test",
+      "releases": [
+        {
+          "serial": "SLES-53826",
+          "region": "PAL-M5"
+        },
+        {
+          "serial": "SLES-53827",
+          "region": "PAL-M3"
+        },
+        {
+          "serial": "SLUS-21356",
+          "region": "NTSC-U"
+        }
+      ]
+    },
+    {
+      "catalogueRow": 49,
+      "title": "Tom Clancy's Splinter Cell: Pandora Tomorrow",
+      "mode": "lan",
+      "availability": "owner-test",
+      "releases": [
+        {
+          "serial": "SLES-52149",
+          "region": "PAL-M5"
+        },
+        {
+          "serial": "SLUS-20958",
+          "region": "NTSC-U"
+        }
+      ]
+    },
+    {
+      "catalogueRow": 50,
+      "title": "Tony Hawk's Pro Skater 3",
+      "mode": "lan",
+      "availability": "owner-test",
+      "releases": [
+        {
+          "serial": "SLES-50435",
+          "region": "PAL-E"
+        },
+        {
+          "serial": "SLES-50436",
+          "region": "PAL-F"
+        },
+        {
+          "serial": "SLES-50437",
+          "region": "PAL-G"
+        },
+        {
+          "serial": "SLPM-65190",
+          "region": "NTSC-J"
+        },
+        {
+          "serial": "SLUS-20013",
+          "region": "NTSC-U"
+        }
+      ]
+    },
+    {
+      "catalogueRow": 51,
+      "title": "Tony Hawk's Pro Skater 4",
+      "mode": "lan",
+      "availability": "owner-test",
+      "releases": [
+        {
+          "serial": "SLES-51130",
+          "region": "PAL-E"
+        },
+        {
+          "serial": "SLES-51131",
+          "region": "PAL-F"
+        },
+        {
+          "serial": "SLES-51132",
+          "region": "PAL-G"
+        },
+        {
+          "serial": "SLUS-20504",
+          "region": "NTSC-U"
+        }
+      ]
+    },
+    {
+      "catalogueRow": 52,
+      "title": "Tony Hawk's Underground",
+      "mode": "lan",
+      "availability": "owner-test",
+      "releases": [
+        {
+          "serial": "SLES-51848",
+          "region": "PAL-E"
+        },
+        {
+          "serial": "SLES-51851",
+          "region": "PAL-F"
+        },
+        {
+          "serial": "SLES-51852",
+          "region": "PAL-G"
+        },
+        {
+          "serial": "SLES-51853",
+          "region": "PAL-F"
+        },
+        {
+          "serial": "SLES-51854",
+          "region": "PAL-S"
+        },
+        {
+          "serial": "SLUS-20731",
+          "region": "NTSC-U"
+        }
+      ]
+    },
+    {
+      "catalogueRow": 53,
+      "title": "Tribes: Aerial Assault",
+      "mode": "lan",
+      "availability": "owner-test",
+      "releases": [
+        {
+          "serial": "SLUS-20149",
+          "region": "NTSC-U"
+        }
+      ]
+    },
+    {
+      "catalogueRow": 54,
+      "title": "Twisted Metal: Black Online",
+      "mode": "lan",
+      "availability": "owner-test",
+      "releases": [
+        {
+          "serial": "SCES-51480",
+          "region": "PAL-M5"
+        },
+        {
+          "serial": "SCUS-97195",
+          "region": "NTSC-U"
+        },
+        {
+          "serial": "SCUS-97196",
+          "region": "NTSC-U"
+        }
+      ]
+    },
+    {
+      "catalogueRow": 55,
+      "title": "Urban Chaos: Riot Response",
+      "mode": "lan",
+      "availability": "owner-test",
+      "releases": [
+        {
+          "serial": "SLES-53991",
+          "region": "PAL-M5"
+        },
+        {
+          "serial": "SLUS-21390",
+          "region": "NTSC-U"
+        }
+      ]
+    },
+    {
+      "catalogueRow": 56,
+      "title": "Sega Ages 2500 Series Vol. 31: Cyber Troopers Virtual-On",
+      "mode": "lan",
+      "availability": "owner-test",
+      "releases": [
+        {
+          "serial": "SLPM-62767",
+          "region": "NTSC-J"
+        }
+      ]
     }
   ]
 }

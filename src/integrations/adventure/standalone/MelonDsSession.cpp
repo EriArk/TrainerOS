@@ -1,4 +1,5 @@
 #include "MelonDsSession.h"
+#include "integrations/adventure/CartridgeContent.h"
 #include <QCryptographicHash>
 #include <QDir>
 #include <QFile>
@@ -32,7 +33,11 @@ QString prepareOwnedSession(ProcessCommand& command,const AdventureRegistration&
     if(!QFile::setPermissions(directory,QFile::ReadOwner|QFile::WriteOwner|QFile::ExeOwner))return "Couldn't protect the session folder.";
     const auto seed=captureRuntimeSave(backupRoot,record,resolve);
     if(!seed.error.isEmpty())return seed.error;
-    if(seed.target.contentRevision!=content)return "Your DS game changed. Invite again.";
+    // Backup ownership retains the container revision, while the native receipt
+    // matches decoded cartridge bytes. Return still verifies the original seed.
+    const auto cartridgeRevision=cartridge::archived(record.contentPath)
+        ?cartridge::read(record.contentPath,"nds",std::atomic_bool{false}).digest():seed.target.contentRevision;
+    if(cartridgeRevision!=content)return "Your DS game changed. Invite again.";
     QJsonArray seats{QJsonObject{{"peer",true}},QJsonObject{{"peer",true}}};
     seats[owner]=seed.existed?QJsonObject{{"bytes",seed.bytes.size()},{"sha256",digest(seed.bytes)}}:QJsonObject{{"fresh",true}};
     if(seed.existed&&!writeNew(QDir(directory).filePath(QString("seat-%1.sav").arg(owner)),seed.bytes))

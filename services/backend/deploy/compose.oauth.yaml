@@ -1,0 +1,9 @@
+# Enable only with the registered TrainerOS client, exact HTTPS callback, and protected secret file.
+services:
+  api:
+    environment:
+      TRAINEROS_BACKEND_OAUTH_CONFIG_FILE: /run/secrets/fluxer-oauth
+    secrets: [runtime-dsn,fluxer-oauth]
+secrets:
+  fluxer-oauth:
+    file: ./secrets/fluxer-oauth.json

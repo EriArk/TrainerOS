@@ -1,0 +1,34 @@
+{
+  "source": "8751ae058db21c3dc99ec8855f1f1b2bfad3be4f",
+  "shell": "102adeb3bc0f939f2585191b41c2c26e10ecd4903043c43673b5f8e915e2e603",
+  "running": true,
+  "packages": {
+    "ps2-lan": {
+      "manifest": "e8b8ee5f30f999ad7af210916be91fefc683851456b075c694da5abe72f04b6d",
+      "settings": "eclx1-group-own-cards-v2",
+      "files": {
+        "launcher.py": "217bd761617b19a37c8a4cf93750a64ca2ebb48b8a0bf262320da2ff439d2002",
+        "disc.py": "b9ce7147cbf9579a6166bf0e1af10fe843ed0b1e12f0625740b3c0d95239bf85",
+        "session_config.py": "3f7fb53ea22465c6684154ccbad958109635d8203725a13c354af5085ba5e374",
+        "profiles.json": "7156b3da175be14b7f53583b0b9a0d6ba302a287fd1a4413a90e0e817bdff233",
+        "ps2_endpoint": "6a6a945b740b13c64c98b69dca465b01641cfb39e23d5202f083f0f6fa3da90a",
+        "libchdr.so": "12931d6ccc4119fed8de5d0950c8b173f4cd476777eb344805ccd89c358abd90",
+        "stream_transport": "a55b41f5c710c754e9683e88fe19d094b233201c77d01a65d01994ab665c6ae7"
+      }
+    },
+    "dolphin-lan": {
+      "manifest": "32093736d7863f3f7e5d89e2cc32a311122445abd937012b7352d09dfb681445",
+      "settings": "dolphin-bba-group-isolated-v2",
+      "files": {
+        "stream_transport": "1a78644ef361fdf259dd479141fac1af943ea81bf9f8031386fdcaad11d4d077",
+        "bba_endpoint": "6a6a945b740b13c64c98b69dca465b01641cfb39e23d5202f083f0f6fa3da90a"
+      }
+    }
+  },
+  "unchangedPackages": 17,
+  "protectedFileCount": 2166,
+  "changedPersonalFiles": [],
+  "historyUnchanged": true,
+  "qmlErrors": [],
+  "volume": "Volume: 0.00"
+}

@@ -1,0 +1,35 @@
+{
+  "origin": "https://traineros-api.abysstail.art",
+  "accounts_configured": true,
+  "checks": [
+    {
+      "path": "/health/live",
+      "status": 200
+    },
+    {
+      "path": "/health/ready",
+      "status": 404
+    },
+    {
+      "path": "/openapi.json",
+      "status": 404
+    },
+    {
+      "path": "/v1/capabilities",
+      "status": 200
+    },
+    {
+      "path": "/v1/me",
+      "status": 401
+    },
+    {
+      "path": "/v1/me/purchases",
+      "status": 404
+    },
+    {
+      "path": "/unpublished",
+      "status": 404
+    }
+  ],
+  "live_oauth_proven": false
+}

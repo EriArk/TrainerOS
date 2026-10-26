@@ -1,0 +1,48 @@
+{
+  "flip": {
+    "source": "776bbb25477aaba4be0163a3c6b5de5791f94449",
+    "shell": "c16454045073749590a451f20e49224a1a22fdbf85eb19510d0a66213efff698",
+    "previousShell": "8056f7615b15178a7ebfe3615f2dffdfc8e481afb749c1148dfd20ae26d5ac10",
+    "live": true,
+    "cabinet": {
+      "manifest": "b072c27555b4fb0e259818a26de62084c3fb84923676c85a6888bb3374ef5913",
+      "source": "d0e47e572b1e7b355e88bda8308c89d0c5156cbf",
+      "files": {
+        "bin/flycast": "3025d62fa01d36d48ba3c578550b725159a76658a9ddbe68f3caecba2fd8847a",
+        "cabinet_endpoint": "d081138005f7c326998636c70107d46dcd8beaef8a3dd726a197d00062630f2d",
+        "stream_transport": "c7a89e4cfec0df5ba4b7c2dc1b707026324365bc1fbf2ebadb8dbe746c32e56e"
+      }
+    },
+    "unchangedOtherPackages": 17,
+    "historyUnchanged": true,
+    "personalFilesUnchanged": true,
+    "protectedFiles": 75,
+    "qmlErrors": [],
+    "volumeUnchanged": true,
+    "cratesPreservedFiles": 1463,
+    "cratesBaseline": "preceding Crates delivery, rechecked after this installation"
+  },
+  "odin": {
+    "source": "776bbb25477aaba4be0163a3c6b5de5791f94449",
+    "shell": "c16454045073749590a451f20e49224a1a22fdbf85eb19510d0a66213efff698",
+    "previousShell": "8056f7615b15178a7ebfe3615f2dffdfc8e481afb749c1148dfd20ae26d5ac10",
+    "live": true,
+    "cabinet": {
+      "manifest": "b072c27555b4fb0e259818a26de62084c3fb84923676c85a6888bb3374ef5913",
+      "source": "d0e47e572b1e7b355e88bda8308c89d0c5156cbf",
+      "files": {
+        "bin/flycast": "3025d62fa01d36d48ba3c578550b725159a76658a9ddbe68f3caecba2fd8847a",
+        "cabinet_endpoint": "d081138005f7c326998636c70107d46dcd8beaef8a3dd726a197d00062630f2d",
+        "stream_transport": "c7a89e4cfec0df5ba4b7c2dc1b707026324365bc1fbf2ebadb8dbe746c32e56e"
+      }
+    },
+    "unchangedOtherPackages": 17,
+    "historyUnchanged": true,
+    "personalFilesUnchanged": true,
+    "protectedFiles": 1284,
+    "qmlErrors": [],
+    "volumeUnchanged": true,
+    "cratesPreservedFiles": 882,
+    "cratesBaseline": "preceding Crates delivery, rechecked after this installation"
+  }
+}

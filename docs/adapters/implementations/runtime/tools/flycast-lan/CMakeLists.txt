@@ -1,0 +1,6 @@
+cmake_minimum_required(VERSION 3.24)
+project(traineros_flycast_lan_endpoint LANGUAGES CXX)
+set(CMAKE_CXX_STANDARD 17)
+find_package(Qt6 REQUIRED COMPONENTS Core Network)
+add_executable(cabinet_endpoint endpoint.cpp)
+target_link_libraries(cabinet_endpoint PRIVATE Qt6::Core Qt6::Network)

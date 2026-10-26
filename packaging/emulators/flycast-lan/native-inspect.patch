@@ -1,0 +1,50 @@
+--- a/core/nullDC.cpp
++++ b/core/nullDC.cpp
+@@ -14,6 +14,10 @@
+ #include "lua/lua.h"
+ #include "stdclass.h"
+ #include "serialize.h"
++#include "network/net_handshake.h"
++#include "network/naomi_network.h"
++#include <cstdlib>
++#include <iostream>
+ 
+ #include "dojo/DojoSession.hpp"
+ #include "dojo/deps/filesystem.hpp"
+@@ -46,6 +50,25 @@
+ 	{
+ 		LogManager::Init();
+ 		config::Settings::instance().load(false);
++	}
++	// Private content inspection only: load through the actual cartridge decoder,
++	// before any window, input, network handshake or emulated CPU starts.
++	if (const char* inspect = std::getenv("TRAINEROS_FLYCAST_INSPECT"))
++	{
++		if (std::string(inspect) != "1" || settings.content.path.empty())
++			std::_Exit(2);
++		try {
++			const std::string path = settings.content.path;
++			emu.loadGame(path.c_str());
++			if (!settings.platform.isArcade() || config::GGPOEnable || !config::NetworkEnable)
++				std::_Exit(3);
++			const char* kind = NaomiNetworkSupported() ? "naomi"
++				: NetworkHandshake::instance != nullptr ? "serial" : "none";
++			std::cout << "[TrainerOSArcade] {\"protocol\":1,\"link\":\"" << kind << "\"}" << std::endl;
++			std::_Exit(0);
++		} catch (...) {
++			std::_Exit(3);
++		}
+ 	}
+ 	gui_init();
+ 	os_CreateWindow();
+--- a/core/linux-dist/main.cpp
++++ b/core/linux-dist/main.cpp
+@@ -400,7 +400,7 @@
+ 
+ #if defined(USE_SDL)
+ 	// init video now: on rpi3 it installs a sigsegv handler(?)
+-	if (SDL_Init(SDL_INIT_VIDEO) != 0)
++	if (nowide::getenv("TRAINEROS_FLYCAST_INSPECT") == nullptr && SDL_Init(SDL_INIT_VIDEO) != 0)
+ 	{
+ 		die("SDL: Initialization failed!");
+ 	}

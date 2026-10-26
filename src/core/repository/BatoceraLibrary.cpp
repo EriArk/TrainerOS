@@ -74,8 +74,8 @@ const QHash<QString,QStringList>& formats() {
       QHash<QString,QStringList> result{
         {"gb",{"gb","zip","7z"}}, {"gbc",{"gb","gbc","zip","7z"}}, {"gba",{"gba","zip","7z"}},
         {"nds",{"nds","srl","zip","7z"}}, {"n3ds",{"3ds","cci","cxi","cia","3dsx"}},
-        {"n64",{"n64","z64","v64","zip","7z"}}, {"gc",{"iso","gcm","rvz","gcz","ciso"}},
-        {"wii",{"iso","rvz","gcz","wbfs","wad","ciso"}}, {"wiiu",{"wua","wud","wux","rpx"}},
+        {"n64",{"n64","z64","v64","zip","7z"}}, {"gc",{"iso","gcm","rvz","wia","gcz","ciso"}},
+        {"wii",{"iso","gcm","rvz","wia","gcz","wbfs","wad","ciso"}}, {"wiiu",{"wua","wud","wux","rpx"}},
         {"switch",{"nsp","xci","nro"}}, {"pokemini",{"min","zip","7z"}},
         {"nes",{"nes","zip","7z"}}, {"snes",{"sfc","smc","zip","7z"}},
         {"mastersystem",{"sms","zip","7z"}}, {"megadrive",{"md","bin","gen","zip","7z"}},
@@ -233,7 +233,8 @@ FolderScan scanBatoceraLibrary(const QString& roms,const QList<AdventureRegistra
                 const bool archive=QStringList{"zip","7z"}.contains(file.suffix().toLower());
                 if(arcade && archive && QStringList{"neogeo","neocdz","awbios","naomi","naomigd","naomi2",
                     "hod2bios","f355bios","f355dlx","airlbios","qsound","qsound_hle","pgm","skns","midssio"}.contains(file.completeBaseName().toLower()))continue;
-                if(file.fileName().contains(QRegularExpression("[\\[(](?:DLC|Update|Update Data)[\\])]",QRegularExpression::CaseInsensitiveOption)))continue;
+                const bool installable3ds=platform=="n3ds"&&QStringList{"cia","zcia"}.contains(file.suffix().toLower());
+                if(!installable3ds&&file.fileName().contains(QRegularExpression("[\\[(](?:DLC|Update|Update Data)[\\])]",QRegularExpression::CaseInsensitiveOption)))continue;
             }
             if(file.suffix().compare("ccd",Qt::CaseInsensitive)==0 && !known.contains(path)
                 && QFileInfo::exists(file.absolutePath()+"/"+file.completeBaseName()+".cue"))continue;
@@ -250,6 +251,26 @@ FolderScan scanBatoceraLibrary(const QString& roms,const QList<AdventureRegistra
             }
             paths.append(path);
             const auto suffix=file.suffix().toLower();
+            if(platform=="wii"&&file.fileName()=="hif_000000.nfs"&&file.dir().dirName()=="content") {
+                parts.insert(key(file.dir().absoluteFilePath("../code/htk.bin")));
+                for(int n=1;n<256;++n) {
+                    const auto part=file.dir().filePath(QString("hif_%1.nfs").arg(n,6,10,QChar('0')));
+                    if(!QFileInfo::exists(part))break;
+                    parts.insert(key(part));
+                }
+            }
+            if((platform=="gc"||platform=="wii")&&path.endsWith(".part0.iso")) {
+                for(int n=1;n<256;++n) {
+                    const auto part=path.chopped(10)+QString(".part%1.iso").arg(n);
+                    if(!QFileInfo::exists(part))break;
+                    parts.insert(key(part));
+                }
+            }
+            if(platform=="psx"&&(suffix=="toc"||suffix=="mds")) {
+                const auto stem=file.dir().filePath(file.completeBaseName());
+                for(const auto& ext:suffix=="mds"?QStringList{".mdf",".MDF"}:QStringList{".bin",".BIN",".img",".IMG"})
+                    parts.insert(key(stem+ext));
+            }
             if((suffix=="cue" || suffix=="gdi") && file.size()<1024*1024) {
                 QFile manifest(path);
                 if(manifest.open(QIODevice::ReadOnly)) {
@@ -268,7 +289,7 @@ FolderScan scanBatoceraLibrary(const QString& roms,const QList<AdventureRegistra
                 parts.insert(key(file.absolutePath()+"/"+file.completeBaseName()+".img"));
                 parts.insert(key(file.absolutePath()+"/"+file.completeBaseName()+".sub"));
             }
-            if(file.suffix().compare("m3u",Qt::CaseInsensitive)==0 && file.size()<1024*1024) {
+            if(QStringList{"m3u","m3u8"}.contains(file.suffix().toLower()) && file.size()<1024*1024) {
                 QFile playlist(path);if(playlist.open(QIODevice::ReadOnly))for(const auto& line:QString::fromUtf8(playlist.readAll()).split('\n')) {
                     if(!line.trimmed().isEmpty() && !line.trimmed().startsWith('#'))parts.insert(key(resolve(file.absolutePath(),line)));
                 }
@@ -277,7 +298,7 @@ FolderScan scanBatoceraLibrary(const QString& roms,const QList<AdventureRegistra
         // A trashed playlist still owns its disc entries; don't rediscover them
         // as new games while its original path is intentionally absent.
         for(const auto& record:known) if(record.removed && record.adventure.platformId==platform
-                && QFileInfo(record.contentPath).suffix().compare("m3u",Qt::CaseInsensitive)==0) {
+                && QStringList{"m3u","m3u8"}.contains(QFileInfo(record.contentPath).suffix().toLower())) {
             QFile playlist(record.trashPath);
             if(playlist.size()<1024*1024 && playlist.open(QIODevice::ReadOnly))
                 for(const auto& line:QString::fromUtf8(playlist.readAll()).split('\n'))

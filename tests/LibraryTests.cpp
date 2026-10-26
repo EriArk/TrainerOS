@@ -14,6 +14,7 @@
 #include "core/repository/CollectionRepository.h"
 #include "core/repository/BatoceraLibrary.h"
 #include "core/storage/LibraryFileMove.h"
+#include "features/crates/CratesLibrary.h"
 
 using namespace trainer;
 namespace {
@@ -39,6 +40,70 @@ public:
 class LibraryTests final : public QObject {
     Q_OBJECT
 private slots:
+    void contentInstallationIsExplicitGuardedAndCancellable() {
+        QTemporaryDir dir;const auto path=dir.filePath("game.cia");fixtureFile(path);
+        LocalStateStore store(dir.filePath("state"),nullptr,"user-library-v1");store.open();QTRY_VERIFY(store.ready());
+        auto record=candidate(path);record.adventure.platformId="n3ds";bool done=false;
+        store.saveAdventureAsync(record,this,[&](auto result){QVERIFY(result.success);done=true;});QTRY_VERIFY(done);
+        MockTrainerRepository profiles;MockAdventureAdapter adapter;DevelopmentPlatformService platform;
+        MockPokedexRepository dex;MockHallOfFameRepository archive;MockAchievementProvider achievements;
+        ShellController shell(store,profiles,adapter,platform,builtinExperiences(dex,dex),archive,achievements);
+        shell.configureServices(nullptr,&store);
+        auto& tools=*shell.libraryTools();tools.contentPackage=[](const auto&){return true;};
+        std::atomic_bool called=false;
+        tools.installPackage=[&](const auto&,const std::atomic_bool& cancel){
+            called=true;for(int n=0;n<1000&&!cancel;++n)QThread::msleep(1);
+            return cancel?QString("Installation cancelled."):QString("Cancellation was not received");
+        };
+        tools.installGuard=[]{return QString("Game is running");};
+        tools.beginGame(record.adventure.id);tools.activate(3);QVERIFY(!called);
+        tools.activate(tools.rows().size()-2);QVERIFY(!tools.busy());QCOMPARE(tools.error(),"Game is running");QVERIFY(!called);
+        tools.installGuard=[]{return QString();};QSignalSpy saved(&tools,&LibraryToolsController::saved);
+        tools.activate(tools.rows().size()-2);QVERIFY(tools.busy());QVERIFY(tools.canCancel());
+        QTRY_VERIFY(called);shell.activate(0);QTRY_VERIFY(!tools.busy());
+        QCOMPARE(tools.error(),"Installation cancelled.");QCOMPARE(saved.size(),0);
+        QCOMPARE(store.registration(record.adventure.id)->contentPath,path);
+        tools.activate(tools.rows().size()-2);QVERIFY(tools.busy());
+        shell.dispatch(Action::Back);QTRY_VERIFY(!tools.busy());QCOMPARE(saved.size(),0);
+        tools.installPackage=[](const auto&,const std::atomic_bool&){return QString();};
+        tools.activate(tools.rows().size()-2);QTRY_VERIFY(!tools.busy());QCOMPARE(saved.size(),1);
+        QVERIFY(tools.detail().contains("Package installed"));QVERIFY(QFileInfo::exists(path));
+    }
+    void compoundFormatsCannotBePartiallyMovedOrDeleted() {
+        QTemporaryDir dir;const auto root=dir.filePath("roms");QVERIFY(QDir().mkpath(root+"/destination"));
+        LocalStateStore store(dir.filePath("state"),nullptr,"user-library-v1");store.open();QTRY_VERIFY(store.ready());
+        for(const auto& name:QStringList{"set.m3u8","game.nfs","game.mds","game.toc","game.part0.iso","game.wbfs","member.iso"}) {
+            const auto path=root+"/"+name;fixtureFile(path);
+            if(name=="game.wbfs")fixtureFile(root+"/game.wbf1");
+            if(name=="member.iso"){QFile list(root+"/set.m3u8");QVERIFY(list.open(QIODevice::WriteOnly));list.write("member.iso\n");}
+            auto record=candidate(path);record.adventure.platformId="wii";bool done=false;QString error;
+            store.saveAdventureAsync(record,this,[&](auto result){QVERIFY(result.success);done=true;});QTRY_VERIFY(done);
+            LibraryEdit move{LibraryEditKind::MoveFile,record.adventure.id,1};move.storageRoot=root;move.text=root+"/destination";
+            done=false;store.editLibraryAsync(move,this,[&](QString e){error=e;done=true;});QTRY_VERIFY(done);
+            QVERIFY2(!error.isEmpty(),qPrintable(name));QVERIFY(QFileInfo::exists(path));
+            done=false;store.editLibraryAsync({LibraryEditKind::RemoveGame,record.adventure.id,1},this,[&](QString e){error=e;done=true;});QTRY_VERIFY(done);
+            QVERIFY2(!error.isEmpty(),qPrintable(name));QVERIFY(QFileInfo::exists(path));
+            QVERIFY(!store.registration(record.adventure.id)->removed);
+        }
+    }
+    void cratesReceiptReconciliationRestoresTheSameAdventure() {
+        QTemporaryDir dir;LocalStateStore store(dir.filePath("state"),nullptr,"user-library-v1");
+        store.open();QTRY_VERIFY(store.ready());CratesLibrary crates(store,dir.filePath("crates"));
+        QVERIFY(QDir().mkpath(dir.filePath("crates/active")));fixtureFile(dir.filePath("crates/active/fixture.json"));
+        QSignalSpy errors(&crates,&CratesLibrary::error);
+        const auto package=[](QString version){return QVariantMap{{"id","fixture"},{"title","Fixture"},{"kind","game"},{"version",version}};};
+        crates.update({package("1")});QTRY_VERIFY(store.registration("crates:fixture").has_value());
+        auto original=*store.registration("crates:fixture");
+        crates.update({});QTRY_VERIFY(store.registration("crates:fixture")->removed);
+        crates.update({package("2")});
+        QTRY_VERIFY(!store.registration("crates:fixture")->removed);
+        QTRY_COMPARE(store.registration("crates:fixture")->integrationConfig["version"].toString(),"2");
+        QCOMPARE(store.registration("crates:fixture")->adventure.id,original.adventure.id);
+        QCOMPARE(store.registration("crates:fixture")->contentPath,original.contentPath);
+        int count=0;for(const auto& r:store.registrations())if(r.adventure.adapterId=="crates-native")++count;
+        QCOMPARE(count,1);
+        QCOMPARE(errors.count(),0);
+    }
     void managedPackageRemovalKeepsIdentityAndNeverMovesFiles() {
         QTemporaryDir dir;const auto path=dir.filePath("package.json");fixtureFile(path);
         LocalStateStore store(dir.filePath("state"),nullptr,"user-library-v1");store.open();QTRY_VERIFY(store.ready());
@@ -69,6 +134,39 @@ private slots:
         store.saveAdventureAsync(record,this,[&](auto result){QVERIFY(result.success);done=true;});QTRY_VERIFY(done);
         QVERIFY(folders.libraryRevision()!=before);before=folders.libraryRevision();
         QVERIFY(folders.setRoot(dir.filePath("other")));QVERIFY(folders.libraryRevision()!=before);
+    }
+    void multiplayerDiscFormatsAreDiscoveredWithoutTitleLists() {
+        QTemporaryDir dir;
+        const QStringList files{"gc/Unlisted.wia","gc/Unlisted.rvz","gc/Unlisted.gcz","gc/Unlisted.ciso",
+            "gc/Unlisted.tgc","wii/Unlisted.wia","wii/Unlisted.ciso","wii/Unlisted.gcm","wii/Unlisted.wad",
+            "nds/Unlisted.srl","nds/Unlisted.zip","nds/Unlisted.7z","n3ds/Unlisted.3ds","n3ds/Unlisted.app",
+            "n3ds/Unlisted.elf","n3ds/Unlisted.axf","n3ds/Unlisted.zcci","n3ds/Unlisted.zcxi","n3ds/Unlisted.z3dsx",
+            "psp/Unlisted.chd","ps2/Unlisted.cso","ps2/Unlisted.zso","ps2/Unlisted.gz","ps2/Unlisted.nrg",
+            "psx/Raw.bin","psx/Clone.ccd","psx/Alcohol.mds","psx/Raw.img","psx/Dao.toc",
+            "n3ds/Unlisted.cia","n3ds/Unlisted.zcia","n3ds/Unlisted (Update).cia","n3ds/Unlisted (DLC).zcia",
+            "gc/Unlisted.elf","gc/Unlisted.dol","gc/Unlisted.bin","wii/Unlisted.dol"};
+        for(const auto& name:files){QVERIFY(QDir().mkpath(QFileInfo(dir.filePath(name)).absolutePath()));fixtureFile(dir.filePath(name));}
+        const auto scan=scanBatoceraLibrary(dir.path(),{});
+        QCOMPARE(scan.entries.size(),files.size());
+        for(const auto& name:files) {
+            bool found=false;for(const auto& entry:scan.entries)if(entry.record.contentPath==dir.filePath(name)){
+                QCOMPARE(entry.record.adventure.platformId,name.section('/',0,0));found=true;
+            }
+            QVERIFY2(found,qPrintable(name));
+        }
+    }
+    void splitDolphinImagesRemainOneLibraryGame() {
+        QTemporaryDir dir;QVERIFY(QDir().mkpath(dir.filePath("wii")));
+        fixtureFile(dir.filePath("wii/Game.part0.iso"));fixtureFile(dir.filePath("wii/Game.part1.iso"));fixtureFile(dir.filePath("wii/Game.part2.iso"));
+        const auto scan=scanBatoceraLibrary(dir.path(),{});QCOMPARE(scan.entries.size(),1);
+        QCOMPARE(scan.entries.first().record.contentPath,dir.filePath("wii/Game.part0.iso"));
+    }
+    void nfsDependenciesRemainOneLibraryGame() {
+        QTemporaryDir dir;QVERIFY(QDir().mkpath(dir.filePath("wii/Example/content")));QVERIFY(QDir().mkpath(dir.filePath("wii/Example/code")));
+        const auto first=dir.filePath("wii/Example/content/hif_000000.nfs");fixtureFile(first);
+        fixtureFile(dir.filePath("wii/Example/content/hif_000001.nfs"));fixtureFile(dir.filePath("wii/Example/code/htk.bin"));
+        const auto scan=scanBatoceraLibrary(dir.path(),{});QCOMPARE(scan.entries.size(),1);
+        QCOMPARE(scan.entries.first().record.contentPath,first);
     }
     void vitaInstalledLinksAreGamesButNativeUserFilesAreNot() {
         QTemporaryDir dir;QVERIFY(QDir().mkpath(dir.filePath("psvita")));

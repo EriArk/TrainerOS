@@ -15,6 +15,7 @@
 #include "LobbyRuntime.h"
 #include "RecentTogether.h"
 #include "LobbyPickerModel.h"
+#include "platform/network/LocalLobbyTransport.h"
 #include <QJsonArray>
 
 namespace trainer {
@@ -93,6 +94,7 @@ class SocialController final : public QObject {
     Q_PROPERTY(QVariantMap homeLobby READ homeLobby NOTIFY changed)
     Q_PROPERTY(QVariantMap lobbyState READ lobbyState NOTIFY changed)
     Q_PROPERTY(QVariantMap lobbyDirectory READ lobbyDirectory NOTIFY changed)
+    Q_PROPERTY(QString lobbyScope READ lobbyScope WRITE setLobbyScope NOTIFY changed)
     Q_PROPERTY(QVariantList lobbyRows READ lobbyRows NOTIFY changed)
     Q_PROPERTY(QVariantList lobbyActions READ lobbyActions NOTIFY changed)
     Q_PROPERTY(QVariantList lobbyPlayers READ lobbyPlayers NOTIFY changed)
@@ -167,7 +169,13 @@ public:
     void requestLobbyReady();
     void leaveViewedLobby(bool close=false);
     QVariantMap lobbyState() const {auto state=viewedLobby().state().toVariantMap();if(!state.isEmpty())state["leaving"]=lobbyLeaving_.contains(state["id"].toString());return state;}
-    QVariantMap lobbyDirectory() const {return snapshot_["lobbyDirectory"].toMap();}
+    QVariantMap lobbyDirectory() const;
+    QString lobbyScope() const {return lobbyScope_;}
+    Q_INVOKABLE void setLobbyScope(QString scope);
+    void configureLocalLobby(QString directory,QString name);
+    bool sendLocalParty(QString peer,QJsonObject packet);
+    QString localPeerAddress(QString peer) const {return localLobby_.addressOf(peer);}
+    QString localSocketAddress(QString peer) const {return localLobby_.localAddressFor(peer);}
     QVariantList lobbyRows() const;
     QVariantList lobbyActions() const;
     QVariantList lobbyPlayers() const;
@@ -367,6 +375,8 @@ signals:
     void filesDownloadRequested();
     void conversationVisibilityChanged();
     void messageQueued(QString channel);
+    void localPartyPacket(QString peer,QString name,QJsonObject packet);
+    void localPartyDisconnected(QString peer);
     void partyPacket(QString peer,QString name,QJsonObject packet);
     void partyFailed(QString peer);
     void partyReset();
@@ -449,6 +459,12 @@ private:
     bool validateLobbyChoices();
     int myLobbiesIndex_=0;
     LobbyCoordinator lobby_{this};
+    LocalLobbyTransport localLobby_{this};
+    QString localLobbyDirectory_,lobbyScope_="online";
+    bool syncingLocalLobby_=false;
+    void syncLocalLobby();
+    bool localPartyAllowed(QString peer,const QJsonObject& packet) const;
+    QVariantList availableLobbyGames() const;
     LobbyReminders lobbyReminders_;
     QTimer lobbyReminderTimer_;
     QJsonObject pendingLobbyReminder_;

@@ -1,0 +1,40 @@
+********* Start testing of CratesTests *********
+Config: Using QtTest library 6.11.2, Qt 6.11.2 (arm64-little_endian-lp64 shared (dynamic) release build; by GCC 16.2.1 20260819 (Red Hat 16.2.1-2)), fedora 44
+PASS   : CratesTests::initTestCase()
+QWARN  : CratesTests::enabledUpdatesCheckInBackgroundWithoutOpeningCrates() QFSFileEngine::open: No file name specified
+QINFO  : CratesTests::enabledUpdatesCheckInBackgroundWithoutOpeningCrates() Crates catalogue "" revision 0
+PASS   : CratesTests::enabledUpdatesCheckInBackgroundWithoutOpeningCrates()
+QWARN  : CratesTests::updatePrimaryAndAutomaticQueueRespectInstalledState() QFSFileEngine::open: No file name specified
+PASS   : CratesTests::updatePrimaryAndAutomaticQueueRespectInstalledState()
+QWARN  : CratesTests::automaticUpdateFailureSurvivesRestart() QFSFileEngine::open: No file name specified
+QWARN  : CratesTests::automaticUpdateFailureSurvivesRestart() QFSFileEngine::open: No file name specified
+PASS   : CratesTests::automaticUpdateFailureSurvivesRestart()
+QWARN  : CratesTests::queuePriorityPauseAndPersistentOrder() QFSFileEngine::open: No file name specified
+QWARN  : CratesTests::queuePriorityPauseAndPersistentOrder() QFSFileEngine::open: No file name specified
+PASS   : CratesTests::queuePriorityPauseAndPersistentOrder()
+QWARN  : CratesTests::externalAtomicUpgradeRefreshesLobbyInventory() QFSFileEngine::open: No file name specified
+PASS   : CratesTests::externalAtomicUpgradeRefreshesLobbyInventory()
+QWARN  : CratesTests::installedActivityDoesNotRequireRunningGame() QFSFileEngine::open: No file name specified
+QWARN  : CratesTests::installedActivityDoesNotRequireRunningGame() QFSFileEngine::open: No file name specified
+PASS   : CratesTests::installedActivityDoesNotRequireRunningGame()
+PASS   : CratesTests::packageArchitectureSelection()
+QINFO  : CratesTests::catalogueOnlySyncsOnExplicitEntry() Crates catalogue "snapshot" revision 1
+QINFO  : CratesTests::catalogueOnlySyncsOnExplicitEntry() Crates catalogue "snapshot" revision 1
+PASS   : CratesTests::catalogueOnlySyncsOnExplicitEntry()
+PASS   : CratesTests::activeWorkerCancellationIsNotFailure()
+QWARN  : CratesTests::promotedPackageYieldsActiveWorkerAndResumesItLater() QFSFileEngine::open: No file name specified
+PASS   : CratesTests::promotedPackageYieldsActiveWorkerAndResumesItLater()
+PASS   : CratesTests::packageActionsAndDeduplicatedQueue()
+PASS   : CratesTests::authoredIdentity()
+PASS   : CratesTests::directionalRowsAndEdges()
+PASS   : CratesTests::backAndSkipRestoreFocus()
+PASS   : CratesTests::interruptedOpenDoesNotNavigateLater()
+PASS   : CratesTests::reducedMotionAndRouteRetention()
+PASS   : CratesTests::cataloguePagingAndPopupReturn()
+PASS   : CratesTests::sharedIdentityAndPerCrateFocus()
+PASS   : CratesTests::detailImagesAndScrollWithoutVersionPicker()
+PASS   : CratesTests::invalidCatalogueKeepsCurrentData()
+PASS   : CratesTests::metadataHasNoExecutableOrRemoteCapabilities()
+PASS   : CratesTests::cleanupTestCase()
+Totals: 23 passed, 0 failed, 0 skipped, 0 blacklisted, 2478ms
+********* Finished testing of CratesTests *********

@@ -1,0 +1,32 @@
+{
+  "containers": [
+    {
+      "service": "api",
+      "image_id": "sha256:a6ed4ec12a20ec01ef43b3757e0a1f49dd5986665eed538cdd72613aaa048a66",
+      "state": "running",
+      "health": "healthy",
+      "read_only": true
+    },
+    {
+      "service": "worker",
+      "image_id": "sha256:a6ed4ec12a20ec01ef43b3757e0a1f49dd5986665eed538cdd72613aaa048a66",
+      "state": "running",
+      "health": null,
+      "read_only": true
+    },
+    {
+      "service": "db",
+      "image_id": "sha256:b8faeff7712663c2773a190181e1246e37e364b887611c04658c28b44e2408fe",
+      "state": "running",
+      "health": "healthy",
+      "read_only": false
+    }
+  ],
+  "migration_count": 4,
+  "ready": {
+    "status": "ready",
+    "scope": "accounts-and-foundation"
+  },
+  "lobby_bot": "active",
+  "handheld_tested": false
+}

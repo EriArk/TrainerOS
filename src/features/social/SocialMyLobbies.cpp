@@ -48,7 +48,7 @@ void SocialController::requestLobbyReady() {
             menu_={"Prepare here","Back"};menuCommands_={"lobby:ready-switch:"+id,"cancel"};menuFocus_=0;emit changed();return;
         }
     }
-    for(const auto& v:room.state()["members"].toArray())if(v.toObject()["id"]==snapshot_["userId"].toString()) {
+    for(const auto& v:room.state()["members"].toArray())if(v.toObject()["id"]==viewedLobby().self()) {
         const auto m=v.toObject();if(m["ready"].toBool()){room.ready(false);return;}
         if(m["prepared"].toBool()){room.ready(true);return;}
     }
@@ -56,15 +56,16 @@ void SocialController::requestLobbyReady() {
 }
 void SocialController::leaveViewedLobby(bool close) {
     auto& room=viewedLobby();const auto s=room.state();const auto id=s["id"].toString(),channel=s["conversation"].toString();
-    if(id.isEmpty()||lobbyLeaving_.contains(id)||snapshot_["mutationBusy"].toBool()||lobbyChatPending_.contains(id))return;
+    if(id.isEmpty()||(!room.local()&&(lobbyLeaving_.contains(id)||snapshot_["mutationBusy"].toBool()||lobbyChatPending_.contains(id))))return;
     if(&room==lobby_.activeRoom()&&(s["phase"]=="launching"||s["phase"]=="playing")) {
         toastTitle_="Lobby";toastText_="Finish the current game before leaving its lobby.";toastTimer_.start();emit presentationChanged();return;
     }
     QString successor;
     for(const auto& v:s["members"].toArray()) {
         const auto m=v.toObject();
-        if(m["id"]!=snapshot_["userId"].toString()&&!m["spectator"].toBool()) {successor=m["id"].toString();break;}
+        if(m["id"]!=viewedLobby().self()&&!m["spectator"].toBool()) {successor=m["id"].toString();break;}
     }
+    if(room.local()){room.leave();emit changed();return;}
     if(channel.isEmpty()) {if(room.hosting()&&successor.isEmpty())room.leave();else room.forgetMembership();emit changed();return;}
     if(room.hosting()&&(close||successor.isEmpty())) {
         lobbyCloseOnLeave_.insert(id);lobbyLeaving_.insert(id);leavingLobby_=id;
@@ -78,6 +79,7 @@ void SocialController::syncMyLobbies() {
     if(snapshot_["state"]!="connected")return;
     const auto chats=snapshot_["chats"].toList();
     for(auto* r:lobby_.rooms()) {
+        if(r->local())continue;
         const auto s=r->state();const auto id=s["id"].toString(),channel=s["conversation"].toString();
         lobbyReminders_.observe(s);recentTogether_.observe(s,QDateTime::currentSecsSinceEpoch());
         if(id.isEmpty()||s["phase"]=="joining"||lobbyLeaving_.contains(id))continue;
@@ -85,11 +87,11 @@ void SocialController::syncMyLobbies() {
         for(const auto& v:chats) {
             const auto chat=v.toMap();if(chat["id"]!=channel||chat["kind"]!="groups")continue;
             auto members=QJsonArray::fromVariantList(chat["members"].toList());
-            members.append(QJsonObject{{"id",snapshot_["userId"].toString()},{"name",snapshot_["name"].toString()}});
+            members.append(QJsonObject{{"id",r->self()},{"name",snapshot_["name"].toString()}});
             QStringList ids;for(const auto& m:members)ids.append(m.toObject()["id"].toString());ids.sort();provider=chat["owner"].toString()+":"+ids.join(',');
             r->reconcileProvider(channel,chat["owner"].toString(),members);break;
         }
-        QStringList peers;for(const auto& v:r->state()["members"].toArray())if(v.toObject()["id"]!=snapshot_["userId"].toString())peers.append(v.toObject()["id"].toString());
+        QStringList peers;for(const auto& v:r->state()["members"].toArray())if(v.toObject()["id"]!=r->self())peers.append(v.toObject()["id"].toString());
         peers.sort();const auto key=channel+"/"+peers.join(',')+"/"+provider;
         if((!r->hosting()&&channel.isEmpty())||lobbyChatPending_.contains(id)||lobbyChatKeys_.value(id)==key)continue;
         lobbyChatKeys_[id]=key;lobbyChatPending_.insert(id);

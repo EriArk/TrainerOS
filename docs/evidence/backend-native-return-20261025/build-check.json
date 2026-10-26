@@ -1,0 +1,18 @@
+{
+  "build": "passed",
+  "architecture": "x86_64",
+  "qt": "6.8.2",
+  "compiler": "GCC 14.2",
+  "qml_cachegen": true,
+  "binaries": {
+    "traineros": {
+      "sha256": "16f2198ba11f36b593e20228dab3e423b5bc018e02a09bc33cef67a09c711833",
+      "size": 150109736
+    },
+    "trainer_platform_tests": {
+      "sha256": "e30c62c634a23f7ec32c55a1cbd874147f4dec9de1311c6b2893d77015af91ac",
+      "size": 13282728
+    }
+  },
+  "builder_image": "sha256:05833c2e812bc89f50eb4ed7fa183d5d5597c756593da5f8c8fec35f76f38709"
+}

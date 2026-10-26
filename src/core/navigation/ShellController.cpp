@@ -134,6 +134,7 @@ ShellController::ShellController(LibraryRepository& repo, TrainerRepository& pro
     });
     connect(&social_,&SocialController::presentationChanged,this,&ShellController::changed,Qt::QueuedConnection);
     settings_.setScraper(&scraper_);
+    settings_.setCrates(&crates_);
     connect(&libraryTools_,&LibraryToolsController::browserActionRequested,this,&ShellController::libraryAction);
     connect(&settings_,&SettingsController::collectionsRequested,this,[this]{goToPage(1);});
     connect(collectionManager(),&GameCollections::changed,this,&ShellController::changed);
@@ -228,6 +229,10 @@ ShellController::ShellController(LibraryRepository& repo, TrainerRepository& pro
     connect(&settings_, &SettingsController::trainerRequested, this, [this](int index) {
         trainerSettingsAction(index);
     });
+    connect(&backendAccount_,&BackendAccount::changed,this,[this]{
+        settings_.setBackendAccount(backendAccount_.actionLabel(),backendAccount_.detail());emit changed();
+    });
+    connect(&social_,&SocialController::changed,this,[this]{backendAccount_.setSocialSubject(social_.account()["userId"].toString());});
     connect(&files_, &FilesController::changed, this, &ShellController::changed);
     connect(&browser_, &BrowserController::pageInputRequested,this,[this](int hints){textTarget_=TextTarget::Browser;keyboard_.beginLive(hints);});
     connect(&browser_, &BrowserController::pageInputEnded,this,[this]{if(keyboard_.live())keyboard_.cancel();});
@@ -1327,6 +1332,7 @@ void ShellController::activate(int index, const QString& area) {
     if(scraper_.isOpen()) {if(keyboard_.isOpen())keyboard_.activate(index);else scraper_.activate(index);return;}
     if(homeMenuOpen_)return;
     if(collectionManager()->isOpen() && !menuOpen_ && notice_.isEmpty()) {if(keyboard_.isOpen())keyboard_.activate(index);else collectionManager()->activate(index);return;}
+    if(libraryTools_.busy()&&libraryTools_.canCancel()){libraryTools_.activate(index);return;}
     if(launchPreparation_.busy() || libraryTools_.busy() || moduleWriting())return;
     if(area=="world-edit" && canEditWorld()){libraryTools_.beginWorld(worlds_.region().value("id").toString(),true);return;}
     if (area == "continue") { dispatch(Action::ToggleContinue); return; }
@@ -1373,8 +1379,9 @@ void ShellController::activate(int index, const QString& area) {
 }
 void ShellController::trainerSettingsAction(int index) {
     if (hall_.account()->isOpen()) { hall_.account()->activate(index); return; }
-    if (index < 0 || index > 4) return;
+    if (index < 0 || index > 5) return;
     trainerSettingsFocus_ = index;
+    if(index==5||(index==4&&service_=="trainer-settings")){backendAccount_.activate();emit changed();return;}
     if (index == 0) { trainer_.beginEdit(); }
     else if (index == 1) {
         if (hall_.account()->available()) hall_.account()->begin();
@@ -1713,6 +1720,7 @@ void ShellController::dispatch(Action action) {
     }
     for(auto& module:modules_)if(module->intercept(action))return;
     if(scraper_.isOpen()){if(keyboard_.isOpen())keyboard_.dispatch(action);else scraper_.dispatch(action);return;}
+    if(libraryTools_.busy()&&libraryTools_.canCancel()){libraryTools_.dispatch(action);return;}
     if(launchPreparation_.busy() || libraryTools_.busy())return;
     if(navigationLocked(action==Action::PreviousPage || action==Action::NextPage) && (action==Action::Home || action==Action::PreviousPage || action==Action::NextPage || action==Action::SystemMenu || action==Action::PreviousFace || action==Action::NextFace))return;
     if(menuOpen_ && !powerMenu_ && notice_.isEmpty()) {
@@ -1869,7 +1877,7 @@ void ShellController::dispatch(Action action) {
             else if (action == Action::Back) service_ = "settings";
             else if (action == Action::Confirm) { trainerSettingsAction(trainerSettingsFocus_); return; }
             else if (action == Action::Up) trainerSettingsFocus_ = std::max(0, trainerSettingsFocus_ - 1);
-            else if (action == Action::Down) trainerSettingsFocus_ = std::min(3, trainerSettingsFocus_ + 1);
+            else if (action == Action::Down) trainerSettingsFocus_ = std::min(4, trainerSettingsFocus_ + 1);
             emit changed(); return;
         }
         if (service_ == "settings") { if(hall_.account()->isOpen()) hall_.account()->dispatch(action); else if(trainer_.editing()) trainer_.dispatch(action,true); else if(settings_.category()==10 && settings_.controlsFocused()) network_.dispatch(action); else settings_.dispatch(action); return; }

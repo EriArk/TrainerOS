@@ -18,10 +18,10 @@ BINARY = str(Path(sys.argv.pop(1)).resolve())
 
 
 class Pair:
-    def __init__(self, different_identity=False, bad_fingerprint=False, ice=None, modes=None):
+    def __init__(self, different_identity=False, bad_fingerprint=False, ice=None, modes=None, binary=None):
         self.events = queue.Queue()
         self.ready, self.paths, self.output = {}, [], []
-        self.processes = [subprocess.Popen([BINARY], stdin=subprocess.PIPE,
+        self.processes = [subprocess.Popen([binary or BINARY], stdin=subprocess.PIPE,
                           stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
                           for _ in range(2)]
         self.identity = ['ab'*32, ('cd' if different_identity else 'ab')*32]
@@ -97,6 +97,92 @@ class TransportTests(unittest.TestCase):
             self.pair.close()
             for path in self.pair.paths:
                 self.assertFalse(path.exists(), 'private material survived transport exit')
+
+    def test_cabinet_native_packets_private_bounded_and_bidirectional(self):
+        self.pair=Pair(modes=['cabinet','cabinet'])
+        self.assertTrue(self.pair.connect())
+        configs=[dict(line.split('=',1) for line in self.pair.ready[i].read_text().splitlines()) for i in (0,1)]
+        clients=[]
+        def exact(sock,n):
+            data=b''
+            while len(data)<n:
+                part=sock.recv(n-len(data));self.assertTrue(part);data+=part
+            return data
+        try:
+            for i in (0,1):
+                self.assertEqual(set(configs[i]),{'mode','host','socket'})
+                self.assertEqual(configs[i]['host'],'true' if i==0 else 'false')
+                self.assertEqual(self.pair.ready[i].stat().st_mode & 0o777,0o600)
+                self.assertEqual(Path(configs[i]['socket']).stat().st_mode & 0o777,0o600)
+                sock=socket.socket(socket.AF_UNIX,socket.SOCK_STREAM);sock.settimeout(3)
+                sock.connect(configs[i]['socket']);clients.append(sock)
+            time.sleep(.05)
+            for sender in (0,1):
+                for size in (1,10,256,4096,0x4004,0x4006):
+                    packet=struct.pack('!H',size)+os.urandom(size)
+                    clients[sender].sendall(packet[:1]);clients[sender].sendall(packet[1:])
+                    self.assertEqual(exact(clients[1-sender],len(packet)),packet)
+                # A valid coalesced stream crosses the old 64 KiB queue boundary
+                # and ends reads in the middle of the next native packet.
+                burst=b''.join(struct.pack('!H',0x4004)+bytes([n])*0x4004 for n in range(32))
+                clients[sender].sendall(burst)
+                self.assertEqual(exact(clients[1-sender],len(burst)),burst)
+            with socket.socket(socket.AF_UNIX,socket.SOCK_STREAM) as duplicate:
+                duplicate.settimeout(2);duplicate.connect(configs[0]['socket'])
+                self.assertEqual(duplicate.recv(1),b'')
+            clients[0].sendall(struct.pack('!H',0x4007))
+            self.assertNotEqual(self.pair.processes[0].wait(timeout=5),0)
+        finally:
+            for sock in clients:sock.close()
+
+    def test_cabinet_cannot_join_other_modes(self):
+        for other in ('bba','ps2','psp','game',None):
+            with self.subTest(other=other):
+                pair=Pair(modes=['cabinet',other])
+                try:
+                    self.assertFalse(pair.connect());self.assertFalse(pair.ready)
+                finally:pair.close()
+
+    def test_bba_native_frames_are_private_bounded_and_bidirectional(self):
+        self.pair = Pair(modes=['bba', 'bba'])
+        self.assertTrue(self.pair.connect())
+        configs = [dict(line.split('=', 1) for line in self.pair.ready[i].read_text().splitlines()) for i in range(2)]
+        clients = [socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) for _ in range(2)]
+        try:
+            for i, client in enumerate(clients):
+                self.assertEqual(configs[i]['mode'], 'bba')
+                self.assertEqual(configs[i]['host'], 'true' if i == 0 else 'false')
+                self.assertRegex(configs[i]['mac'], r'^00:09:bf:[0-9a-f]{2}:[0-9a-f]{2}:0[12]$')
+                self.assertEqual(self.pair.ready[i].stat().st_mode & 0o777, 0o600)
+                self.assertEqual(Path(configs[i]['socket']).stat().st_mode & 0o777, 0o600)
+                client.connect(configs[i]['socket']);client.settimeout(2)
+            self.assertNotEqual(configs[0]['mac'], configs[1]['mac'])
+            def exact(client, n):
+                data = b''
+                while len(data) < n:
+                    part = client.recv(n-len(data))
+                    self.assertTrue(part)
+                    data += part
+                return data
+            for sender in (0, 1):
+                for size in (14, 60, 1518):
+                    frame = b'\xff'*6 + bytes.fromhex(configs[sender]['mac'].replace(':', '')) + b'\x08\x06' + os.urandom(size-14)
+                    wire = struct.pack('<H', len(frame)) + frame
+                    clients[sender].sendall(wire[:1]);clients[sender].sendall(wire[1:9]);clients[sender].sendall(wire[9:])
+                    self.assertEqual(exact(clients[1-sender], len(wire)), wire)
+            # A second local client cannot replace the admitted Dolphin socket.
+            with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as duplicate:
+                duplicate.settimeout(2);duplicate.connect(configs[0]['socket'])
+                self.assertEqual(duplicate.recv(1), b'')
+            clients[0].sendall(struct.pack('<H', 1519))
+            self.assertNotEqual(self.pair.processes[0].wait(timeout=5), 0)
+        finally:
+            for client in clients: client.close()
+
+    def test_bba_cannot_join_ps2_transport(self):
+        self.pair = Pair(modes=['bba', 'ps2'])
+        self.assertFalse(self.pair.connect())
+        self.assertFalse(self.pair.ready)
 
     def test_ps2_native_envelopes_and_private_material(self):
         self.pair = Pair(modes=['ps2', 'ps2'])

@@ -1,14 +1,36 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: GPL-3.0-or-later
 from pathlib import Path
+import json
 import tempfile
 import unittest
 from session_config import connection, overlay, prepare, launch_settings
+from launcher import stable
 
 MATERIAL = b'mode=ps2\naddress=127.0.0.1\nhost=true\nport=19072\npeer=1\nroom=abcdef123456\nsocket=/tmp/traineros-test/ps2.sock\n'
 
 
 class ConfigurationTests(unittest.TestCase):
+    def test_group_seats_share_room_but_use_distinct_native_peers(self):
+        for count in (2,3,4):
+            for seat in range(1,count+1):
+                sockets={str(n):f'/tmp/edge{n}/ps2.sock' for n in (range(2,count+1) if seat==1 else [1])}
+                value={'protocol':2,'mode':'ps2','room':'abcdef123456','seat':seat,'players':count,'sockets':sockets}
+                data=json.dumps(value).encode();result=overlay(b'[Pad1]\nCross=own\n',data)
+                self.assertIn(f'LocalLinkPeerId = {seat}'.encode(),result)
+                self.assertIn(b'LocalLinkRoomCode = abcdef123456',result)
+                self.assertIn(b'Cross=own',result)
+                for bad in [dict(value,seat=0),dict(value,players=5),dict(value,sockets={}),dict(value,seat=True),dict(value,room='foreign')]:
+                    with self.assertRaises(ValueError):connection(json.dumps(bad).encode())
+        value['sockets']={'1':'/tmp/../wrong/ps2.sock'}
+        with self.assertRaises(ValueError):connection(json.dumps(value).encode())
+
+    def test_preparation_rejects_runtime_replacement_after_admission(self):
+        admitted={'id':'runtime.armsx2.lan.v1','content':'disc','runtime':'reviewed-a','settings':'locked'}
+        self.assertNotEqual(stable(admitted),stable(dict(admitted,runtime='reviewed-b')))
+        self.assertNotEqual(stable(admitted),stable({k:v for k,v in admitted.items() if k!='runtime'}))
+        self.assertEqual(stable(admitted),stable(dict(admitted,label='Local title',connections=['online'])))
+
     def test_private_launch_skips_library_scanning_preserving_other_settings(self):
         original=b'[GameList]\nPaths = /mnt/share\nRecursivePaths=/mnt/nfs\nExcludedPaths=/skip\n[Pad1]\nPaths=keep\n[MemoryCards]\nSlot1_Filename=Own.ps2\n'
         result=launch_settings(original)

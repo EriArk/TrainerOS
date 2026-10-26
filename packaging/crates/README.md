@@ -44,11 +44,28 @@ with the shell; they retain their previous verified cache on validation failure.
 
 The host launches `installer.py` in a separate process. Packages are extracted
 without links/special files into bounded staging. A durable receipt selects a
-content-addressed version; the previous version survives interrupted replacement.
-Data stays under `data/<project>` and survives remove/reinstall. Updates and
-downgrades are explicit, never scheduled by browsing. Retry currently restarts
-the download; HTTP range resume is not advertised. Tasks persist in the common
-Downloads provider. A launcher-held `flock` protects live/minimized applications.
+content-addressed version. Per-project journals in `transactions/` record work
+before changing code or registration. The active receipt is the durable commit
+point: recovery keeps the old version before commit and completes desktop/cleanup
+work after commit. Files, extracted directories, object publication, receipts and
+desktop replacements are flushed in order. Recovery runs in the existing worker
+at shell startup, without a catalogue or network, and is idempotent. A launcher-held
+`flock` protects live/minimized applications during installation, removal and recovery.
+Only transaction-owned staging/objects are cleaned; recovery never touches data.
+
+Data stays under `data/<project>` (games: `owners/<owner-id>`) and survives
+remove/reinstall. Games restore the same `crates:<id>` library registration.
+The shell checks actual receipts before reporting interrupted jobs as failed;
+committed jobs finish successfully, queued and paused jobs retain their state.
+Recovery errors remain retryable, including removal whose receipt is already gone.
+Tests kill real workers before/after commit; this is not a physical power-loss test.
+
+Play/Open becomes Update when a newer compatible release exists; there is no
+player-facing version picker. Optional automatic updates are persisted, default
+Off, and share Downloads with explicit updates. The queue respects running games,
+pauses, cancellations and failures; unpublished newer versions are not downgraded.
+Downloads retain paused partial files and validate HTTP Range responses before
+appending, followed by full size/hash verification before activation.
 
 `launch.py` is host code; metadata cannot replace its arguments with shell text.
 It resolves `TRAINEROS_SDK_ENDPOINT` against the host's original XDG data directory
@@ -84,8 +101,9 @@ Clients need the updated source allowlist and SDK discovery launcher; older help
 keep their last valid cache when they cannot accept the new catalogue.
 
 `catalogue.py` runs in a short-lived worker. On explicit Crates entry it performs
-one HTTPS request with revision/digest. There is no startup timer, GitHub polling,
-background update or implicit install. Snapshot/delta responses authenticate the
+one HTTPS request with revision/digest. With automatic updates enabled, the shell
+also checks after startup and periodically (30 seconds / 15 minutes); it does not
+poll GitHub. Snapshot/delta responses authenticate the
 same final canonical JSON. Ed25519 verification uses platform OpenSSL. The cache
 is replaced atomically after signature/schema/hash checks; a failed/offline sync
 keeps the prior view and installed software remains usable. Unknown/stale cursors

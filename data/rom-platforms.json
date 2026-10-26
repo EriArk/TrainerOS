@@ -14,7 +14,9 @@
       "folder": "xbox",
       "name": "Xbox",
       "core": "xemu",
-      "extensions": ["iso"],
+      "extensions": [
+        "iso"
+      ],
       "aliases": [],
       "shape": "console"
     },
@@ -708,7 +710,14 @@
         "gcm",
         "rvz",
         "gcz",
-        "ciso"
+        "ciso",
+        "wia",
+        "tgc",
+        "bin",
+        "m3u",
+        "m3u8",
+        "elf",
+        "dol"
       ],
       "aliases": [
         "gc"
@@ -956,7 +965,14 @@
         "3dsx",
         "cci",
         "cxi",
-        "app"
+        "app",
+        "elf",
+        "axf",
+        "zcci",
+        "zcxi",
+        "z3dsx",
+        "cia",
+        "zcia"
       ],
       "aliases": [
         "n3ds"
@@ -974,7 +990,9 @@
         "z64",
         "bin",
         "u1",
-        "ndd"
+        "ndd",
+        "zip",
+        "7z"
       ],
       "aliases": [],
       "shape": "console"
@@ -1014,7 +1032,9 @@
       "core": "",
       "extensions": [
         "nds",
-        "srl"
+        "srl",
+        "zip",
+        "7z"
       ],
       "aliases": [],
       "shape": "console"
@@ -1272,7 +1292,8 @@
         "gz",
         "img",
         "irx",
-        "m3u"
+        "m3u",
+        "m3u8"
       ],
       "aliases": [],
       "shape": "console"
@@ -1310,7 +1331,9 @@
       "folder": "psvita",
       "name": "PlayStation Vita",
       "core": "",
-      "extensions": ["psvita"],
+      "extensions": [
+        "psvita"
+      ],
       "aliases": [],
       "shape": "handheld"
     },
@@ -1326,11 +1349,14 @@
         "pbp",
         "toc",
         "cbn",
+        "cbin",
         "m3u",
         "ccd",
         "chd",
         "iso",
-        "exe"
+        "exe",
+        "bin",
+        "mds"
       ],
       "aliases": [],
       "shape": "console"
@@ -1653,7 +1679,15 @@
         "gcz",
         "wbfs",
         "wad",
-        "ciso"
+        "ciso",
+        "wia",
+        "gcm",
+        "bin",
+        "nfs",
+        "m3u",
+        "m3u8",
+        "elf",
+        "dol"
       ],
       "aliases": [],
       "shape": "console"

@@ -31,13 +31,14 @@ SocialController::SocialController(QObject* parent):QObject(parent),session_(new
     lobbyPublishTimer_.setSingleShot(true);lobbyPublishTimer_.setInterval(1000);
     lobbyHeartbeat_.setInterval(60000);lobbyHeartbeat_.start();
     connect(&lobbyPublishTimer_,&QTimer::timeout,this,&SocialController::publishLobby);
-    connect(&lobbyHeartbeat_,&QTimer::timeout,this,[this]{publishLobby();if(face_=="lobby")emit commandRequested("lobby-directory-refresh",{});});
+    connect(&lobbyHeartbeat_,&QTimer::timeout,this,[this]{publishLobby();if(face_=="lobby"&&lobbyScope_!="local")emit commandRequested("lobby-directory-refresh",{});});
     connect(&lobby_,&LobbyCoordinator::roomsChanged,this,[this]{
+        syncLocalLobby();
         if(myLobbiesOpen_){const auto rows=myLobbies();myLobbiesIndex_=rows.size();for(int i=0;i<rows.size();++i)if(rows[i].toMap()["id"]==myLobbyFocus_)myLobbiesIndex_=i;}
         QTimer::singleShot(0,this,&SocialController::syncMyLobbies);
         syncLobbyReminder();
         lobbyPublishTimer_.start();
-        QJsonArray contexts;for(auto* r:lobby_.rooms()){auto state=r->state();if(state["id"].toString().isEmpty())continue;if(r->recoveryUncertain())state["recovering"]=true;contexts.append(state);}
+        QJsonArray contexts;for(auto* r:lobby_.rooms()){if(r->local())continue;auto state=r->state();if(state["id"].toString().isEmpty())continue;if(r->recoveryUncertain())state["recovering"]=true;contexts.append(state);}
         if(contexts!=lobbyContactRooms_){lobbyContactRooms_=contexts;emit commandRequested("lobby-contact-context",{{"account",snapshot_["userId"]},{"lobby",QJsonObject{{"rooms",contexts}}.toVariantMap()}});}
         syncLobbyChat();
         recentTogether_.observe(viewedLobby().state(),QDateTime::currentSecsSinceEpoch());
@@ -49,9 +50,18 @@ SocialController::SocialController(QObject* parent):QObject(parent),session_(new
         }
         presentedLobbyInvite_=id;emit changed();
     });
-    connect(&lobby_,&LobbyCoordinator::outgoing,this,[this](QString peer,QJsonObject packet){emit commandRequested("lobby-send",{{"peer",peer},{"packet",packet.toVariantMap()}});});
+    connect(&lobby_,&LobbyCoordinator::outgoing,this,[this](QString peer,QJsonObject packet){
+        if(LocalLobbyTransport::validIdentity(peer)){if(!localLobby_.send(peer,packet))QTimer::singleShot(0,this,[this,peer]{lobby_.deliveryFailed(peer);});}
+        else emit commandRequested("lobby-send",{{"peer",peer},{"packet",packet.toVariantMap()}});
+    });
+    connect(&localLobby_,&LocalLobbyTransport::changed,this,&SocialController::changed);
+    connect(&localLobby_,&LocalLobbyTransport::received,this,[this](QString peer,QString name,QJsonObject packet){
+        if(packet["ns"]=="org.traineros.lobby")lobby_.receive(peer,name,packet);
+        else if(localPartyAllowed(peer,packet))emit localPartyPacket(peer,name,packet);
+    });
+    connect(&localLobby_,&LocalLobbyTransport::disconnected,this,[this](QString peer){lobby_.deliveryFailed(peer);emit localPartyDisconnected(peer);});
     connect(&lobby_,&LobbyCoordinator::notice,this,[this](QString message){toastTitle_="Lobby";toastText_=message;toastTimer_.start();emit presentationChanged();});
-    connect(session_,&FluxerSession::lobbyPacket,this,[this](quint64 generation,QString peer,QString name,QJsonObject packet){if(generation==generation_)lobby_.receive(peer,name,packet);});
+    connect(session_,&FluxerSession::lobbyPacket,this,[this](quint64 generation,QString peer,QString name,QJsonObject packet){if(generation==generation_&&!LocalLobbyTransport::validIdentity(peer))lobby_.receive(peer,name,packet);});
     connect(session_,&FluxerSession::lobbyFailed,this,[this](quint64 generation,QString peer){if(generation==generation_)lobby_.deliveryFailed(peer);});
     connect(session_,&FluxerSession::lobbyChatFinished,this,[this](quint64 generation,QString room,QString channel,QString error){
         auto* target=lobby_.room(room);if(generation!=generation_||!target)return;
@@ -104,7 +114,7 @@ SocialController::SocialController(QObject* parent):QObject(parent),session_(new
         if(g!=generation_)return;
         for(auto* r:lobby_.rooms())if(r->state()["conversation"]==channel&&!lobbyLeaving_.contains(r->state()["id"].toString()))r->forgetMembership();
     });
-    connect(session_,&FluxerSession::partyReset,this,[this](quint64 g){if(g==generation_){gameActivities_.clear();companyParties_.clear();partyFocus_=false;emit partyReset();}});
+    connect(session_,&FluxerSession::partyReset,this,[this](quint64 g){if(g==generation_){gameActivities_.clear();companyParties_.clear();partyFocus_=false;if(!lobby_.activeRoom()->local())emit partyReset();}});
     connect(session_,&FluxerSession::runtimeProbeFailed,this,[this](quint64 generation,QString peer,QString message){
         if(generation==generation_)emit runtimeProbeFailed(peer,message);
     });
@@ -157,6 +167,7 @@ SocialController::SocialController(QObject* parent):QObject(parent),session_(new
     thread_.start();
 }
 SocialController::~SocialController() {
+    syncingLocalLobby_=true;localLobby_.disconnect(this);localLobby_.close();
     saveDrafts();
     // Cancelling a pending launch publishes room state. Do it while the UI
     // members and provider still exist, not from a later member destructor.
@@ -168,6 +179,7 @@ void SocialController::setOwner(QString owner) {
     if(owner==owner_)return;
     streamAction("stop-watch");
     resettingSocial_=true;
+    syncingLocalLobby_=true;localLobby_.close();lobby_.configureLocal({}, {},false);localLobbyDirectory_.clear();
     lobby_.setStorage({});lobby_.configure({}, {},false);lobbySearch_.clear();lobbyTopic_.clear();lobbySelection_.clear();lobbyActionFocus_=0;
     resettingSocial_=false;conversationControl_=-1;enterConversationPerson_.clear();enterConversationChannel_.clear();
     lobbyDraftReturn_=false;cancelLobbyDraft();
@@ -189,7 +201,7 @@ void SocialController::setOwner(QString owner) {
     owner_=std::move(owner);++generation_;snapshot_.clear();drafts_.clear();menu_.clear();toastChannel_.clear();directConversationLease_.clear();
     selection_.stop();contacts_=false;searchStarted_=false;searchFocus_=-1;
     textPurpose_.clear();textChannel_.clear();textId_.clear();query_.clear();focus_=messageFocus_=0;reading_=false;
-    emit ownerRequested(owner_,generation_);emit changed();
+    syncingLocalLobby_=false;emit ownerRequested(owner_,generation_);emit changed();
 }
 void SocialController::setFace(QString face) {
     if(face=="groups")face="communities";
@@ -201,7 +213,8 @@ void SocialController::setFace(QString face) {
     if(face_=="communities")communityId_=route["community"].toString();
     if(face_!="lobby"&&face_!="recent")emit commandRequested("face",{{"face",face_},{"channel",route["channel"]},{"guild",communityId_}});
     if(face_=="friends"&&!searchStarted_&&snapshot_["state"]=="connected")runSearch();
-    if(face_=="lobby"){emit commandRequested("lobby-directory-refresh",{});openLobbyChat();}
+    syncLocalLobby();
+    if(face_=="lobby"){if(lobbyScope_!="local")emit commandRequested("lobby-directory-refresh",{});openLobbyChat();}
     emit changed();
 }
 void SocialController::setLink(NativeActivityProvider* link) {
@@ -677,9 +690,6 @@ QVariantList SocialController::hints() const {
         }
         return result;
     }
-    if(snapshot_["state"]=="restoring")return result;
-    if(snapshot_.value("state")=="authorizing"){h("B","Cancel sign-in");return result;}
-    if(snapshot_.value("state")=="signed-out"||snapshot_.isEmpty()){if(!owner_.isEmpty())h("A","Sign in");return result;}
     if(face_=="lobby") {
         if(lobbyChatFocused_&&lobbySpectatorChat_)h("↑↓","Read");else h("A",lobbyChatFocused_?"Message":lobbyDetailFocused_||lobbyRailFocused_?"Choose":"Open");
         h("B",lobbyChatFocused_?"Room":lobbyDetailFocused_?"Catalogue":!lobbyRailFocused_?"Categories":"Back");
@@ -687,6 +697,9 @@ QVariantList SocialController::hints() const {
         if(!lobbyChatFocused_||!lobbySpectatorChat_)h("Select",lobbyDetailFocused_&&lobbyRows().value(lobbyFocus()).toMap()["kind"]=="own"?"Options":"Filters");
         if(lobbyChatVisible()) {h("R3",lobbyChatExpanded_?"Room":"Expand chat");if(lobbyChatFocused_)h("L3",lobbySpectatorChat_?"Players":"Spectators");}return result;
     }
+    if(snapshot_["state"]=="restoring")return result;
+    if(snapshot_.value("state")=="authorizing"){h("B","Cancel sign-in");return result;}
+    if(snapshot_.value("state")=="signed-out"||snapshot_.isEmpty()){if(!owner_.isEmpty())h("A","Sign in");return result;}
     if(face_=="friends") {
         h("A",!discoverPreview_.isEmpty()?"Join":discoverArea_=="search"?"Search":"Open");h("B",discoverAll_?"Discover":"Back");
         if(discoverArea_=="search")h("←→","People / Communities");
@@ -830,7 +843,7 @@ void SocialController::applyText(QString text) {
     if(textPurpose_=="people-filter"){peopleFilter_=text.trimmed();focus_=0;textPurpose_.clear();emit changed();return;}
     if(textPurpose_.startsWith("lobby-draft-")||textPurpose_=="lobby-picker-search") {
         if(textPurpose_=="lobby-picker-search") {lobbyPickerSearch_=text.trimmed();refreshLobbyPicker();}
-        else if(lobbyCreateOpen_&&lobbyDraftAccount_==snapshot_["userId"].toString()) {
+        else if(lobbyCreateOpen_&&lobbyDraftAccount_==(lobbyDraft_["type"]=="local"?localLobby_.identity():snapshot_["userId"].toString())) {
             if(textPurpose_=="lobby-draft-name")lobbyDraft_["title"]=text.trimmed().left(80);
             else {const auto date=QDateTime::fromString(text.trimmed(),"yyyy-MM-dd HH:mm");
                 if(date.isValid()&&date>QDateTime::currentDateTime()&&date<QDateTime::currentDateTime().addDays(366)) {lobbyDraft_["startsAt"]=date.toSecsSinceEpoch();lobbyCreationError_.clear();}
@@ -1482,9 +1495,9 @@ void SocialController::dispatch(Action action) {
         emit changed();return;
     }
     if(face_=="recent") {dispatchRecent(action);return;}
+    if(face_=="lobby") {dispatchLobby(action);return;}
     if(snapshot_.value("state")=="authorizing") {if(action==Action::Back)emit commandRequested("cancel-login",{});return;}
     if(snapshot_.value("state")=="signed-out"||snapshot_.isEmpty()) {if(action==Action::Confirm)login();return;}
-    if(face_=="lobby") {dispatchLobby(action);return;}
     if(face_=="friends") {dispatchDiscover(action);return;}
     if(partyFocus_) {
         if(action==Action::Left) {if(partyIndex_>0)--partyIndex_;else partyFocus_=false;}

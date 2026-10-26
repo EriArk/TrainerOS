@@ -74,6 +74,7 @@
 #include <QFontDatabase>
 #include <QStandardPaths>
 #include <memory>
+#include "integrations/adventure/standalone/AzaharNetplay.h"
 #ifdef TRAINEROS_UI_TESTS
 #include "WorldsSmokeScenario.h"
 #include "PokedexSmokeScenario.h"
@@ -412,6 +413,8 @@ int main(int argc, char* argv[]) {
         if(personalLibrary && !smoke && store) {
             QObject::connect(store.get(), &LocalStateStore::opened, &shell, [&](bool ready) {
                 shell.social()->setOwner(ready ? store->ownerId() : QString());
+                if(ready)shell.social()->configureLocalLobby(stateDirectory,shell.trainer()->profile()["name"].toString());
+                shell.backendAccount()->configure(ready ? store->ownerId() : QString());
                 shell.keyboard()->configure(stateDirectory,ready ? store->ownerId() : QString());
                 shell.collectionManager()->configure(stateDirectory,ready?store->ownerId():QString());
                 shell.apps()->configure(stateDirectory,ready?store->ownerId():QString());
@@ -426,6 +429,7 @@ int main(int argc, char* argv[]) {
             QObject::connect(store.get(), &LocalStateStore::accessNeeded, &shell, [&] {
                 shell.social()->setOwner({});
                 shell.settings()->setMediaOwner({});
+                shell.backendAccount()->configure({});
                 shell.keyboard()->configure(stateDirectory,{});
                 shell.collectionManager()->configure(stateDirectory,{});
                 shell.apps()->configure(stateDirectory,{});
@@ -739,6 +743,12 @@ int main(int argc, char* argv[]) {
         }
         QObject::connect(&multiplayer,&RuntimeMultiplayer::invitationSurfaceRequested,&shell,[&]{shell.openGameHubFace("lobby");});
         shell.libraryTools()->multiplayerAvailable=[&](const QString& id){return multiplayer.multiplayerGames().contains(id);};
+        shell.libraryTools()->contentPackage=azahar::package;
+        shell.libraryTools()->installPackage=azahar::installContent;
+        shell.libraryTools()->installGuard=[&]{
+            if(adventureLaunch.active()||session.blocked()||shell.moduleServiceBusy())return QString("Finish the current game or operation before installing content.");
+            return shell.libraryTools()->editGuard?shell.libraryTools()->editGuard():QString();
+        };
         QObject::connect(&shell,&ShellController::togetherRequested,&multiplayer,[&](const QString& game){shell.openGameHubFace("lobby");multiplayer.beginTogether(game);});
         QObject::connect(shell.social(),&SocialController::runtimeAction,&multiplayer,[&](const QString& action){multiplayer.contextAction(action);});
         QObject::connect(&multiplayer,&RuntimeMultiplayer::notice,&shell,[&](QString text){
@@ -752,7 +762,7 @@ int main(int argc, char* argv[]) {
         auto multiplayerState=[&]{return QVariantMap{
             {"trainer",shell.trainer()->profile()["name"]},
             {"owner",shell.trainer()->profile()["id"]},
-            {"allowed",personalLibrary&&!smoke&&!session.blocked()&&!(saveBackups&&saveBackups->busy())&&!pokemonModule(shell).party()->activities()->link()->active()},
+            {"allowed",personalLibrary&&!smoke&&!session.blocked()&&!shell.libraryTools()->busy()&&!(saveBackups&&saveBackups->busy())&&!pokemonModule(shell).party()->activities()->link()->active()},
             {"account",shell.social()->account()["state"]},
             {"accountGeneration",qulonglong(shell.social()->accountGeneration())},
             {"runtime",adventureProcess.runtimeControls()}};};
@@ -762,6 +772,8 @@ int main(int argc, char* argv[]) {
             multiplayer.refresh(retroarchInstallation,lastMultiplayerState["trainer"].toString(),lastMultiplayerState["allowed"].toBool());
         };
         auto refreshMultiplayerState=[&]{
+            if(!smoke&&!parser.isSet("ephemeral"))
+                shell.social()->configureLocalLobby(stateDirectory,shell.trainer()->profile()["name"].toString());
             const auto revision=activeLibrary.libraryRevision();
             if(!revision || revision!=lastMultiplayerRevision || multiplayerState()!=lastMultiplayerState)refreshMultiplayer();
         };
@@ -1224,6 +1236,10 @@ int main(int argc, char* argv[]) {
         else {
             auto* window = qobject_cast<QQuickWindow*>(engine.rootObjects().first());
             if (!window) {qCritical()<<"Shell root is not a window:"<<engine.rootObjects().first()->metaObject()->className();return 2;}
+            QObject::connect(shell.backendAccount(),&BackendAccount::returnRequested,window,[&,window]{
+                if(adventureLaunch.active())return;
+                if(parser.isSet("windowed"))window->show();else window->showFullScreen();window->requestActivate();
+            });
             shell.apps()->launchGuard=[&]{
                 if(adventureLaunch.active())return QString("Return to your game and close it before opening an application.");
                 if(session.blocked()||shell.runtimeChangeBlocked())return QString("Finish the current operation before opening an application.");
@@ -1238,6 +1254,7 @@ int main(int argc, char* argv[]) {
                 return adventureLaunch.active()||session.blocked()||shell.runtimeChangeBlocked()?QString("Close the game and finish the current operation before saving launch settings."):QString();
             };
             QObject::connect(shell.apps(),&AppsController::foregroundRequested,window,[window]{window->hide();});
+            shell.backendAccount()->loginGuard=shell.apps()->launchGuard;
             QObject::connect(shell.apps(),&AppsController::shellRequested,window,[&,window]{
                 if(adventureLaunch.active())return;
                 shell.goToSection("apps");if(parser.isSet("windowed"))window->show();else window->showFullScreen();window->requestActivate();
@@ -1308,7 +1325,7 @@ int main(int argc, char* argv[]) {
                         return {false, "Reconnect with your friend to finish the exchange before playing."};
                     if (pokemonModule(shell).party()->activities()->link()->active())
                         return {false, "Leave Together before starting a game."};
-                    if (session.blocked() || adventureLaunch.active())
+                    if (session.blocked() || adventureLaunch.active() || shell.libraryTools()->busy())
                         return {false, "An Adventure is already opening. Try again after returning."};
                     if (saveBackups && saveBackups->busy())
                         return {false, "Wait for the save operation to finish before playing."};

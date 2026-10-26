@@ -1,0 +1,3667 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "TrainerOS Backend contract definitions — unimplemented draft",
+  "$defs": {
+    "Id": {
+      "type": "string",
+      "minLength": 36,
+      "maxLength": 36,
+      "format": "uuid",
+      "pattern": "^[0-9a-f-]{36}$"
+    },
+    "Revision": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 19,
+      "pattern": "^[1-9][0-9]{0,18}$"
+    },
+    "Digest": {
+      "type": "string",
+      "minLength": 64,
+      "maxLength": 64,
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "Code": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 64,
+      "pattern": "^[a-z][a-z0-9_.-]{0,63}$"
+    },
+    "Time": {
+      "type": "string",
+      "minLength": 20,
+      "maxLength": 32,
+      "format": "date-time",
+      "pattern": "Z$"
+    },
+    "Token": {
+      "type": "string",
+      "minLength": 32,
+      "maxLength": 2048,
+      "writeOnly": true
+    },
+    "Reason": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 500
+    },
+    "Empty": {
+      "type": "object",
+      "properties": {},
+      "additionalProperties": false,
+      "required": []
+    },
+    "Error": {
+      "type": "object",
+      "properties": {
+        "code": {
+          "type": "string",
+          "enum": [
+            "unauthenticated",
+            "forbidden",
+            "not_found",
+            "conflict",
+            "invalid_request",
+            "unsupported_ruleset",
+            "invalid_evidence",
+            "rate_limited",
+            "provider_unavailable",
+            "provider_not_configured",
+            "service_unavailable",
+            "stale_context",
+            "policy_unresolved",
+            "login_restart_required",
+            "authorization_pending",
+            "login_cancelled",
+            "session_limit",
+            "confirmation_rejected",
+            "body_too_large",
+            "request_timeout"
+          ]
+        },
+        "message": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 500
+        },
+        "request_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "retryable": {
+          "type": "boolean"
+        },
+        "retry_after_seconds": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 86400
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "code",
+        "message",
+        "request_id",
+        "retryable"
+      ]
+    },
+    "OperationReceipt": {
+      "type": "object",
+      "properties": {
+        "operation_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "state": {
+          "type": "string",
+          "enum": [
+            "pending",
+            "completed",
+            "rejected"
+          ]
+        },
+        "revision": {
+          "$ref": "#/$defs/Revision"
+        },
+        "resource_id": {
+          "$ref": "#/$defs/Id"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "operation_id",
+        "state",
+        "revision"
+      ]
+    },
+    "ExpectedRevision": {
+      "type": "object",
+      "properties": {
+        "expected_revision": {
+          "$ref": "#/$defs/Revision"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "expected_revision"
+      ]
+    },
+    "ReasonedRevision": {
+      "type": "object",
+      "properties": {
+        "expected_revision": {
+          "$ref": "#/$defs/Revision"
+        },
+        "reason": {
+          "$ref": "#/$defs/Reason"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "expected_revision",
+        "reason"
+      ]
+    },
+    "LoginBegin": {
+      "type": "object",
+      "properties": {
+        "provider": {
+          "type": "string",
+          "enum": [
+            "fluxer"
+          ]
+        },
+        "device_label": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "claim_challenge": {
+          "type": "string",
+          "minLength": 43,
+          "maxLength": 43,
+          "pattern": "^[A-Za-z0-9_-]{43}$"
+        },
+        "claim_challenge_method": {
+          "const": "S256"
+        },
+        "return_uri": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^http://127\\.0\\.0\\.1:[1-9][0-9]{3,4}/traineros/auth/[A-Za-z0-9_-]{43}$"
+        },
+        "expected_subject": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 32,
+          "pattern": "^[0-9]{1,32}$"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "provider",
+        "device_label",
+        "claim_challenge",
+        "claim_challenge_method"
+      ]
+    },
+    "LoginAttempt": {
+      "type": "object",
+      "properties": {
+        "attempt_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "authorization_url": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2048,
+          "format": "uri",
+          "pattern": "^https://"
+        },
+        "expires_at": {
+          "$ref": "#/$defs/Time"
+        },
+        "verification_code": {
+          "type": "string",
+          "minLength": 8,
+          "maxLength": 8,
+          "pattern": "^[0-9]{8}$"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "attempt_id",
+        "authorization_url",
+        "expires_at",
+        "verification_code"
+      ],
+      "description": "Native return_uri skips manual code and requires a browser-only handoff_token at claim. Without return_uri, verification_code is an interim explicit device confirmation; never auto-submit it."
+    },
+    "LoginClaim": {
+      "type": "object",
+      "properties": {
+        "attempt_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "claim_verifier": {
+          "type": "string",
+          "minLength": 43,
+          "maxLength": 128,
+          "pattern": "^[A-Za-z0-9._~-]{43,128}$"
+        },
+        "handoff_token": {
+          "type": "string",
+          "minLength": 43,
+          "maxLength": 43,
+          "pattern": "^[A-Za-z0-9_-]{43}$"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "attempt_id",
+        "claim_verifier"
+      ]
+    },
+    "SessionTokens": {
+      "type": "object",
+      "properties": {
+        "player_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "session_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "access_token": {
+          "type": "string",
+          "minLength": 32,
+          "maxLength": 2048
+        },
+        "refresh_token": {
+          "type": "string",
+          "minLength": 32,
+          "maxLength": 2048
+        },
+        "expires_at": {
+          "$ref": "#/$defs/Time"
+        },
+        "fluxer_subject": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 32,
+          "pattern": "^[0-9]{1,32}$"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "player_id",
+        "session_id",
+        "access_token",
+        "refresh_token",
+        "expires_at",
+        "fluxer_subject"
+      ],
+      "description": "Secret host-only response; never log or expose to games."
+    },
+    "Refresh": {
+      "type": "object",
+      "properties": {
+        "refresh_token": {
+          "$ref": "#/$defs/Token"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "refresh_token"
+      ]
+    },
+    "ReauthGrant": {
+      "type": "object",
+      "properties": {
+        "reauth_grant": {
+          "type": "string",
+          "minLength": 32,
+          "maxLength": 2048
+        },
+        "expires_at": {
+          "$ref": "#/$defs/Time"
+        },
+        "purpose": {
+          "$ref": "#/$defs/Code"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "reauth_grant",
+        "expires_at",
+        "purpose"
+      ],
+      "description": "One-shot grant bound to actor, current session and sensitive operation."
+    },
+    "ReauthBegin": {
+      "type": "object",
+      "properties": {
+        "purpose": {
+          "type": "string",
+          "enum": [
+            "identity_link",
+            "identity_unlink",
+            "recovery_rotate",
+            "account_export",
+            "account_delete",
+            "support_link"
+          ]
+        },
+        "claim_challenge": {
+          "type": "string",
+          "minLength": 43,
+          "maxLength": 43,
+          "pattern": "^[A-Za-z0-9_-]{43}$"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "purpose",
+        "claim_challenge"
+      ]
+    },
+    "OperatorReauthBegin": {
+      "type": "object",
+      "properties": {
+        "purpose": {
+          "type": "string",
+          "enum": [
+            "definition_publish",
+            "result_correct",
+            "dispute_resolve",
+            "job_retry"
+          ]
+        },
+        "claim_challenge": {
+          "type": "string",
+          "minLength": 43,
+          "maxLength": 43,
+          "pattern": "^[A-Za-z0-9_-]{43}$"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "purpose",
+        "claim_challenge"
+      ]
+    },
+    "Me": {
+      "type": "object",
+      "properties": {
+        "player_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "active",
+            "suspended",
+            "deletion_pending"
+          ]
+        },
+        "revision": {
+          "$ref": "#/$defs/Revision"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "player_id",
+        "status",
+        "revision"
+      ]
+    },
+    "Session": {
+      "type": "object",
+      "properties": {
+        "session_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "device_label": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "created_at": {
+          "$ref": "#/$defs/Time"
+        },
+        "expires_at": {
+          "$ref": "#/$defs/Time"
+        },
+        "current": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "session_id",
+        "device_label",
+        "created_at",
+        "expires_at",
+        "current"
+      ]
+    },
+    "Sessions": {
+      "type": "object",
+      "properties": {
+        "items": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Session"
+          },
+          "minItems": 0,
+          "maxItems": 100,
+          "uniqueItems": false
+        },
+        "revision": {
+          "$ref": "#/$defs/Revision"
+        },
+        "next_cursor": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "items",
+        "revision"
+      ]
+    },
+    "IdentityLink": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/Id"
+        },
+        "provider": {
+          "$ref": "#/$defs/Code"
+        },
+        "display_label": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "verified_at": {
+          "$ref": "#/$defs/Time"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "provider",
+        "display_label",
+        "verified_at"
+      ]
+    },
+    "IdentityLinks": {
+      "type": "object",
+      "properties": {
+        "items": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/IdentityLink"
+          },
+          "minItems": 0,
+          "maxItems": 100,
+          "uniqueItems": false
+        },
+        "revision": {
+          "$ref": "#/$defs/Revision"
+        },
+        "next_cursor": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "items",
+        "revision"
+      ]
+    },
+    "RecoveryCodes": {
+      "type": "object",
+      "properties": {
+        "codes": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 32,
+            "maxLength": 128
+          },
+          "minItems": 1,
+          "maxItems": 10,
+          "uniqueItems": true
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "codes"
+      ],
+      "description": "One-time secret delivery to shell. Hashes only at rest; never game-visible."
+    },
+    "RecoveryBegin": {
+      "type": "object",
+      "properties": {
+        "recovery_code": {
+          "type": "string",
+          "minLength": 32,
+          "maxLength": 128,
+          "writeOnly": true
+        },
+        "new_provider": {
+          "type": "string",
+          "enum": [
+            "fluxer"
+          ]
+        },
+        "claim_challenge": {
+          "type": "string",
+          "minLength": 43,
+          "maxLength": 43,
+          "pattern": "^[A-Za-z0-9_-]{43}$"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "recovery_code",
+        "new_provider",
+        "claim_challenge"
+      ],
+      "description": "Binds a fresh provider flow. Code alone does not return a session."
+    },
+    "PublicProfile": {
+      "type": "object",
+      "properties": {
+        "player_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "display_name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "avatar_revision": {
+          "$ref": "#/$defs/Revision"
+        },
+        "revision": {
+          "$ref": "#/$defs/Revision"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "player_id",
+        "display_name",
+        "avatar_revision",
+        "revision"
+      ]
+    },
+    "ProfileWrite": {
+      "type": "object",
+      "properties": {
+        "display_name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "expected_revision": {
+          "$ref": "#/$defs/Revision"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "display_name",
+        "expected_revision"
+      ]
+    },
+    "AvatarSelection": {
+      "type": "object",
+      "properties": {
+        "slot": {
+          "$ref": "#/$defs/Code"
+        },
+        "item_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "item_revision": {
+          "$ref": "#/$defs/Revision"
+        },
+        "variant": {
+          "$ref": "#/$defs/Code"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "slot",
+        "item_id",
+        "item_revision"
+      ]
+    },
+    "AvatarAppearanceV1": {
+      "type": "object",
+      "properties": {
+        "schema": {
+          "const": 1
+        },
+        "pack": {
+          "$ref": "#/$defs/Code"
+        },
+        "hair": {
+          "$ref": "#/$defs/Code"
+        },
+        "eyes": {
+          "$ref": "#/$defs/Code"
+        },
+        "hairColor": {
+          "type": "string",
+          "minLength": 7,
+          "maxLength": 7,
+          "pattern": "^#[0-9a-fA-F]{6}$"
+        },
+        "eyeColor": {
+          "type": "string",
+          "minLength": 7,
+          "maxLength": 7,
+          "pattern": "^#[0-9a-fA-F]{6}$"
+        },
+        "skinColor": {
+          "type": "string",
+          "minLength": 7,
+          "maxLength": 7,
+          "pattern": "^#[0-9a-fA-F]{6}$"
+        },
+        "shirtColor": {
+          "type": "string",
+          "minLength": 7,
+          "maxLength": 7,
+          "pattern": "^#[0-9a-fA-F]{6}$"
+        },
+        "shortsColor": {
+          "type": "string",
+          "minLength": 7,
+          "maxLength": 7,
+          "pattern": "^#[0-9a-fA-F]{6}$"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "schema",
+        "pack",
+        "hair",
+        "eyes",
+        "hairColor",
+        "eyeColor",
+        "skinColor",
+        "shirtColor",
+        "shortsColor"
+      ]
+    },
+    "AvatarPeerRecipeV1": {
+      "type": "object",
+      "properties": {
+        "schema": {
+          "const": 1
+        },
+        "packRevision": {
+          "$ref": "#/$defs/Digest"
+        },
+        "appearance": {
+          "$ref": "#/$defs/AvatarAppearanceV1"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "schema",
+        "packRevision",
+        "appearance"
+      ]
+    },
+    "AvatarRecipe": {
+      "type": "object",
+      "properties": {
+        "recipe": {
+          "$ref": "#/$defs/AvatarPeerRecipeV1"
+        },
+        "selections": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/AvatarSelection"
+          },
+          "minItems": 0,
+          "maxItems": 32,
+          "uniqueItems": false
+        },
+        "revision": {
+          "$ref": "#/$defs/Revision"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "recipe",
+        "selections",
+        "revision"
+      ],
+      "description": "Preserves existing SDK v1 recipe verbatim. Selections map future inventory; no local paths."
+    },
+    "AvatarWrite": {
+      "type": "object",
+      "properties": {
+        "recipe": {
+          "$ref": "#/$defs/AvatarRecipe"
+        },
+        "expected_revision": {
+          "$ref": "#/$defs/Revision"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "recipe",
+        "expected_revision"
+      ],
+      "description": "Cloud storage of existing SDK recipe; wire adapter must preserve local avatar contract."
+    },
+    "Game": {
+      "type": "object",
+      "properties": {
+        "game_id": {
+          "$ref": "#/$defs/Code"
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "revision": {
+          "$ref": "#/$defs/Revision"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "game_id",
+        "title",
+        "revision"
+      ]
+    },
+    "Games": {
+      "type": "object",
+      "properties": {
+        "items": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Game"
+          },
+          "minItems": 0,
+          "maxItems": 100,
+          "uniqueItems": false
+        },
+        "revision": {
+          "$ref": "#/$defs/Revision"
+        },
+        "next_cursor": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "items",
+        "revision"
+      ]
+    },
+    "Ruleset": {
+      "type": "object",
+      "properties": {
+        "ruleset_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "game_id": {
+          "$ref": "#/$defs/Code"
+        },
+        "content_digest": {
+          "$ref": "#/$defs/Digest"
+        },
+        "rules_digest": {
+          "$ref": "#/$defs/Digest"
+        },
+        "validator_digest": {
+          "$ref": "#/$defs/Digest"
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "draft",
+            "active",
+            "retired",
+            "revoked"
+          ]
+        },
+        "policy_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "revision": {
+          "$ref": "#/$defs/Revision"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "ruleset_id",
+        "game_id",
+        "content_digest",
+        "rules_digest",
+        "validator_digest",
+        "status",
+        "policy_id",
+        "revision"
+      ]
+    },
+    "Rulesets": {
+      "type": "object",
+      "properties": {
+        "items": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Ruleset"
+          },
+          "minItems": 0,
+          "maxItems": 100,
+          "uniqueItems": false
+        },
+        "revision": {
+          "$ref": "#/$defs/Revision"
+        },
+        "next_cursor": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "items",
+        "revision"
+      ]
+    },
+    "Metric": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "$ref": "#/$defs/Code"
+        },
+        "unit": {
+          "$ref": "#/$defs/Code"
+        },
+        "direction": {
+          "type": "string",
+          "enum": [
+            "ascending",
+            "descending"
+          ]
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "unit",
+        "direction"
+      ]
+    },
+    "Board": {
+      "type": "object",
+      "properties": {
+        "board_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "game_id": {
+          "$ref": "#/$defs/Code"
+        },
+        "ruleset_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "mode": {
+          "$ref": "#/$defs/Code"
+        },
+        "category": {
+          "$ref": "#/$defs/Code"
+        },
+        "metrics": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Metric"
+          },
+          "minItems": 1,
+          "maxItems": 8,
+          "uniqueItems": false
+        },
+        "proof": {
+          "type": "string",
+          "enum": [
+            "participant_consensus",
+            "server_replay",
+            "verified_provider"
+          ]
+        },
+        "subject_kind": {
+          "type": "string",
+          "enum": [
+            "player",
+            "roster"
+          ]
+        },
+        "policy_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "revision": {
+          "$ref": "#/$defs/Revision"
+        },
+        "competition_id": {
+          "$ref": "#/$defs/Id"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "board_id",
+        "game_id",
+        "ruleset_id",
+        "mode",
+        "category",
+        "metrics",
+        "proof",
+        "subject_kind",
+        "policy_id",
+        "revision"
+      ]
+    },
+    "Boards": {
+      "type": "object",
+      "properties": {
+        "items": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Board"
+          },
+          "minItems": 0,
+          "maxItems": 100,
+          "uniqueItems": false
+        },
+        "revision": {
+          "$ref": "#/$defs/Revision"
+        },
+        "next_cursor": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "items",
+        "revision"
+      ]
+    },
+    "Subject": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "type": "string",
+          "enum": [
+            "player",
+            "roster"
+          ]
+        },
+        "players": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Id"
+          },
+          "minItems": 1,
+          "maxItems": 16,
+          "uniqueItems": true
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "players"
+      ],
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "player"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "players": {
+                "maxItems": 1
+              }
+            }
+          },
+          "else": {
+            "properties": {
+              "players": {
+                "minItems": 2
+              }
+            }
+          }
+        }
+      ]
+    },
+    "BoardEntry": {
+      "type": "object",
+      "properties": {
+        "rank": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "subject": {
+          "$ref": "#/$defs/Subject"
+        },
+        "metrics": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "minItems": 1,
+          "maxItems": 8,
+          "uniqueItems": false
+        },
+        "result_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "decision_revision": {
+          "$ref": "#/$defs/Revision"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "rank",
+        "subject",
+        "metrics",
+        "result_id",
+        "decision_revision"
+      ]
+    },
+    "BoardEntries": {
+      "type": "object",
+      "properties": {
+        "items": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/BoardEntry"
+          },
+          "minItems": 0,
+          "maxItems": 100,
+          "uniqueItems": false
+        },
+        "revision": {
+          "$ref": "#/$defs/Revision"
+        },
+        "next_cursor": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "items",
+        "revision"
+      ]
+    },
+    "Statistics": {
+      "type": "object",
+      "properties": {
+        "player_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "game_id": {
+          "$ref": "#/$defs/Code"
+        },
+        "matches": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "wins": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "losses": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "draws": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "unique_defeated_players": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "revision": {
+          "$ref": "#/$defs/Revision"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "player_id",
+        "game_id",
+        "matches",
+        "wins",
+        "losses",
+        "draws",
+        "unique_defeated_players",
+        "revision"
+      ]
+    },
+    "MatchCreate": {
+      "type": "object",
+      "properties": {
+        "game_id": {
+          "$ref": "#/$defs/Code"
+        },
+        "ruleset_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "mode": {
+          "$ref": "#/$defs/Code"
+        },
+        "origin": {
+          "type": "string",
+          "enum": [
+            "online",
+            "offline_import"
+          ]
+        },
+        "competition_id": {
+          "$ref": "#/$defs/Id"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "game_id",
+        "ruleset_id",
+        "mode",
+        "origin"
+      ]
+    },
+    "Admission": {
+      "type": "object",
+      "properties": {
+        "expected_revision": {
+          "$ref": "#/$defs/Revision"
+        },
+        "team_slot": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 15
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "expected_revision"
+      ]
+    },
+    "Participant": {
+      "type": "object",
+      "properties": {
+        "player_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "team_slot": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 15
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "admitted",
+            "withdrawn"
+          ]
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "player_id",
+        "status"
+      ]
+    },
+    "Match": {
+      "type": "object",
+      "properties": {
+        "match_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "game_id": {
+          "$ref": "#/$defs/Code"
+        },
+        "ruleset_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "state": {
+          "type": "string",
+          "enum": [
+            "preparing",
+            "active",
+            "submitted",
+            "settled",
+            "aborted",
+            "disputed"
+          ]
+        },
+        "participants": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Participant"
+          },
+          "minItems": 0,
+          "maxItems": 16,
+          "uniqueItems": false
+        },
+        "revision": {
+          "$ref": "#/$defs/Revision"
+        },
+        "submission_deadline": {
+          "$ref": "#/$defs/Time"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "match_id",
+        "game_id",
+        "ruleset_id",
+        "state",
+        "participants",
+        "revision"
+      ]
+    },
+    "EvidenceBegin": {
+      "type": "object",
+      "properties": {
+        "byte_length": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1048576
+        },
+        "sha256": {
+          "$ref": "#/$defs/Digest"
+        },
+        "format": {
+          "$ref": "#/$defs/Code"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "byte_length",
+        "sha256",
+        "format"
+      ]
+    },
+    "EvidenceUpload": {
+      "type": "object",
+      "properties": {
+        "upload_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "chunk_bytes": {
+          "const": 16384
+        },
+        "expires_at": {
+          "$ref": "#/$defs/Time"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "upload_id",
+        "chunk_bytes",
+        "expires_at"
+      ]
+    },
+    "EvidenceChunk": {
+      "type": "object",
+      "properties": {
+        "data_base64": {
+          "type": "string",
+          "minLength": 4,
+          "maxLength": 21848,
+          "pattern": "^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "data_base64"
+      ],
+      "description": "Decode <=16384 bytes; fixed offsets and total length checked semantically."
+    },
+    "EvidenceRef": {
+      "type": "object",
+      "properties": {
+        "evidence_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "sha256": {
+          "$ref": "#/$defs/Digest"
+        },
+        "byte_length": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1048576
+        },
+        "format": {
+          "$ref": "#/$defs/Code"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "evidence_id",
+        "sha256",
+        "byte_length",
+        "format"
+      ]
+    },
+    "Submission": {
+      "type": "object",
+      "properties": {
+        "evidence": {
+          "$ref": "#/$defs/EvidenceRef"
+        },
+        "expected_match_revision": {
+          "$ref": "#/$defs/Revision"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "evidence",
+        "expected_match_revision"
+      ],
+      "description": "No caller-selected player, score, verified flag or reward; derived by validator."
+    },
+    "ResultOutcome": {
+      "type": "object",
+      "properties": {
+        "subject": {
+          "$ref": "#/$defs/Subject"
+        },
+        "placement": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 16
+        },
+        "metrics": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "minItems": 1,
+          "maxItems": 8,
+          "uniqueItems": false
+        },
+        "completion": {
+          "type": "string",
+          "enum": [
+            "completed",
+            "stroke_cap",
+            "dnf",
+            "aborted"
+          ]
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "subject",
+        "placement",
+        "metrics",
+        "completion"
+      ]
+    },
+    "ResultReceipt": {
+      "type": "object",
+      "properties": {
+        "receipt_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "match_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "state": {
+          "type": "string",
+          "enum": [
+            "pending",
+            "verified",
+            "rejected",
+            "disputed",
+            "voided"
+          ]
+        },
+        "proof": {
+          "type": "string",
+          "enum": [
+            "unverified",
+            "participant_consensus",
+            "server_replay",
+            "verified_provider"
+          ]
+        },
+        "decision_revision": {
+          "$ref": "#/$defs/Revision"
+        },
+        "reason_code": {
+          "$ref": "#/$defs/Code"
+        },
+        "outcomes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ResultOutcome"
+          },
+          "minItems": 0,
+          "maxItems": 16,
+          "uniqueItems": false
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "receipt_id",
+        "match_id",
+        "state",
+        "proof",
+        "decision_revision",
+        "outcomes"
+      ]
+    },
+    "Results": {
+      "type": "object",
+      "properties": {
+        "items": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ResultReceipt"
+          },
+          "minItems": 0,
+          "maxItems": 100,
+          "uniqueItems": false
+        },
+        "revision": {
+          "$ref": "#/$defs/Revision"
+        },
+        "next_cursor": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "items",
+        "revision"
+      ]
+    },
+    "Competition": {
+      "type": "object",
+      "properties": {
+        "competition_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "kind": {
+          "type": "string",
+          "enum": [
+            "daily",
+            "tournament",
+            "community"
+          ]
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "state": {
+          "type": "string",
+          "enum": [
+            "draft",
+            "published",
+            "registration",
+            "running",
+            "provisional",
+            "finalized",
+            "cancelled"
+          ]
+        },
+        "policy_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "ruleset_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "opens_at": {
+          "$ref": "#/$defs/Time"
+        },
+        "closes_at": {
+          "$ref": "#/$defs/Time"
+        },
+        "finalizes_at": {
+          "$ref": "#/$defs/Time"
+        },
+        "revision": {
+          "$ref": "#/$defs/Revision"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "competition_id",
+        "kind",
+        "title",
+        "state",
+        "policy_id",
+        "ruleset_id",
+        "opens_at",
+        "closes_at",
+        "finalizes_at",
+        "revision"
+      ]
+    },
+    "Competitions": {
+      "type": "object",
+      "properties": {
+        "items": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Competition"
+          },
+          "minItems": 0,
+          "maxItems": 100,
+          "uniqueItems": false
+        },
+        "revision": {
+          "$ref": "#/$defs/Revision"
+        },
+        "next_cursor": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "items",
+        "revision"
+      ]
+    },
+    "CompetitionEntry": {
+      "type": "object",
+      "properties": {
+        "subject": {
+          "$ref": "#/$defs/Subject"
+        },
+        "expected_revision": {
+          "$ref": "#/$defs/Revision"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "subject",
+        "expected_revision"
+      ],
+      "description": "All roster members must independently consent; delegation validated server-side."
+    },
+    "Entry": {
+      "type": "object",
+      "properties": {
+        "entry_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "subject": {
+          "$ref": "#/$defs/Subject"
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "pending_consents",
+            "admitted",
+            "withdrawn",
+            "rejected"
+          ]
+        },
+        "revision": {
+          "$ref": "#/$defs/Revision"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "entry_id",
+        "subject",
+        "status",
+        "revision"
+      ]
+    },
+    "DisputeWrite": {
+      "type": "object",
+      "properties": {
+        "result_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "decision_revision": {
+          "$ref": "#/$defs/Revision"
+        },
+        "reason": {
+          "$ref": "#/$defs/Reason"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "result_id",
+        "decision_revision",
+        "reason"
+      ]
+    },
+    "Dispute": {
+      "type": "object",
+      "properties": {
+        "dispute_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "result_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "state": {
+          "type": "string",
+          "enum": [
+            "open",
+            "reviewing",
+            "resolved",
+            "dismissed"
+          ]
+        },
+        "revision": {
+          "$ref": "#/$defs/Revision"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "dispute_id",
+        "result_id",
+        "state",
+        "revision"
+      ]
+    },
+    "CommunityRoster": {
+      "type": "object",
+      "properties": {
+        "community_ref": {
+          "$ref": "#/$defs/Id"
+        },
+        "subject": {
+          "$ref": "#/$defs/Subject"
+        },
+        "membership_evidence_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "verified_at": {
+          "$ref": "#/$defs/Time"
+        },
+        "valid_until": {
+          "$ref": "#/$defs/Time"
+        },
+        "revision": {
+          "$ref": "#/$defs/Revision"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "community_ref",
+        "subject",
+        "membership_evidence_id",
+        "verified_at",
+        "valid_until",
+        "revision"
+      ]
+    },
+    "CommunityRosters": {
+      "type": "object",
+      "properties": {
+        "items": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/CommunityRoster"
+          },
+          "minItems": 0,
+          "maxItems": 100,
+          "uniqueItems": false
+        },
+        "revision": {
+          "$ref": "#/$defs/Revision"
+        },
+        "next_cursor": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "items",
+        "revision"
+      ]
+    },
+    "Reward": {
+      "type": "object",
+      "properties": {
+        "reward_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "rule_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "source_event_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "state": {
+          "type": "string",
+          "enum": [
+            "pending",
+            "issued",
+            "reversed"
+          ]
+        },
+        "revision": {
+          "$ref": "#/$defs/Revision"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "reward_id",
+        "rule_id",
+        "source_event_id",
+        "state",
+        "revision"
+      ]
+    },
+    "Rewards": {
+      "type": "object",
+      "properties": {
+        "items": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Reward"
+          },
+          "minItems": 0,
+          "maxItems": 100,
+          "uniqueItems": false
+        },
+        "revision": {
+          "$ref": "#/$defs/Revision"
+        },
+        "next_cursor": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "items",
+        "revision"
+      ]
+    },
+    "Trophy": {
+      "type": "object",
+      "properties": {
+        "trophy_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "award_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "state": {
+          "type": "string",
+          "enum": [
+            "active",
+            "expired",
+            "revoked"
+          ]
+        },
+        "expires_at": {
+          "$ref": "#/$defs/Time"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "trophy_id",
+        "award_id",
+        "title",
+        "state"
+      ]
+    },
+    "Trophies": {
+      "type": "object",
+      "properties": {
+        "items": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Trophy"
+          },
+          "minItems": 0,
+          "maxItems": 100,
+          "uniqueItems": false
+        },
+        "revision": {
+          "$ref": "#/$defs/Revision"
+        },
+        "next_cursor": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "items",
+        "revision"
+      ]
+    },
+    "Wallet": {
+      "type": "object",
+      "properties": {
+        "currency": {
+          "const": "trainer_coins"
+        },
+        "available": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "revision": {
+          "$ref": "#/$defs/Revision"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "currency",
+        "available",
+        "revision"
+      ]
+    },
+    "LedgerEntry": {
+      "type": "object",
+      "properties": {
+        "transaction_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "delta": {
+          "type": "integer",
+          "minimum": -9007199254740991,
+          "maximum": 9007199254740991
+        },
+        "source_operation_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "posted_at": {
+          "$ref": "#/$defs/Time"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "transaction_id",
+        "delta",
+        "source_operation_id",
+        "posted_at"
+      ]
+    },
+    "Ledger": {
+      "type": "object",
+      "properties": {
+        "items": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/LedgerEntry"
+          },
+          "minItems": 0,
+          "maxItems": 100,
+          "uniqueItems": false
+        },
+        "revision": {
+          "$ref": "#/$defs/Revision"
+        },
+        "next_cursor": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "items",
+        "revision"
+      ]
+    },
+    "ShopItem": {
+      "type": "object",
+      "properties": {
+        "item_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "price": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "offer_revision": {
+          "$ref": "#/$defs/Revision"
+        },
+        "item_revision": {
+          "$ref": "#/$defs/Revision"
+        },
+        "compatibility": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Code"
+          },
+          "minItems": 1,
+          "maxItems": 32,
+          "uniqueItems": false
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "item_id",
+        "title",
+        "price",
+        "offer_revision",
+        "item_revision",
+        "compatibility"
+      ]
+    },
+    "ShopItems": {
+      "type": "object",
+      "properties": {
+        "items": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ShopItem"
+          },
+          "minItems": 0,
+          "maxItems": 100,
+          "uniqueItems": false
+        },
+        "revision": {
+          "$ref": "#/$defs/Revision"
+        },
+        "next_cursor": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "items",
+        "revision"
+      ]
+    },
+    "PurchaseWrite": {
+      "type": "object",
+      "properties": {
+        "item_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "offer_revision": {
+          "$ref": "#/$defs/Revision"
+        },
+        "expected_price": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "item_id",
+        "offer_revision",
+        "expected_price"
+      ],
+      "description": "Shell-owned explicit confirmation required."
+    },
+    "Purchase": {
+      "type": "object",
+      "properties": {
+        "purchase_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "item_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "state": {
+          "type": "string",
+          "enum": [
+            "committed",
+            "already_owned",
+            "rejected"
+          ]
+        },
+        "charged": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "wallet_revision": {
+          "$ref": "#/$defs/Revision"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "purchase_id",
+        "item_id",
+        "state",
+        "charged",
+        "wallet_revision"
+      ]
+    },
+    "OwnedItem": {
+      "type": "object",
+      "properties": {
+        "item_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "grant_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "item_revision": {
+          "$ref": "#/$defs/Revision"
+        },
+        "acquired_at": {
+          "$ref": "#/$defs/Time"
+        },
+        "asset_status": {
+          "type": "string",
+          "enum": [
+            "available",
+            "retired",
+            "quarantined"
+          ]
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "item_id",
+        "grant_id",
+        "item_revision",
+        "acquired_at",
+        "asset_status"
+      ]
+    },
+    "Inventory": {
+      "type": "object",
+      "properties": {
+        "items": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/OwnedItem"
+          },
+          "minItems": 0,
+          "maxItems": 100,
+          "uniqueItems": false
+        },
+        "revision": {
+          "$ref": "#/$defs/Revision"
+        },
+        "next_cursor": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "items",
+        "revision"
+      ]
+    },
+    "Entitlement": {
+      "type": "object",
+      "properties": {
+        "entitlement_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "kind": {
+          "$ref": "#/$defs/Code"
+        },
+        "valid_from": {
+          "$ref": "#/$defs/Time"
+        },
+        "valid_until": {
+          "$ref": "#/$defs/Time"
+        },
+        "verified_until": {
+          "$ref": "#/$defs/Time"
+        },
+        "state": {
+          "type": "string",
+          "enum": [
+            "active",
+            "expired",
+            "revoked",
+            "unconfirmed"
+          ]
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "entitlement_id",
+        "kind",
+        "valid_from",
+        "valid_until",
+        "verified_until",
+        "state"
+      ]
+    },
+    "Entitlements": {
+      "type": "object",
+      "properties": {
+        "items": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Entitlement"
+          },
+          "minItems": 0,
+          "maxItems": 100,
+          "uniqueItems": false
+        },
+        "revision": {
+          "$ref": "#/$defs/Revision"
+        },
+        "next_cursor": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "items",
+        "revision"
+      ]
+    },
+    "SupportLinkBegin": {
+      "type": "object",
+      "properties": {
+        "provider": {
+          "type": "string",
+          "enum": [
+            "patreon",
+            "kofi"
+          ]
+        },
+        "expected_revision": {
+          "$ref": "#/$defs/Revision"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "provider",
+        "expected_revision"
+      ]
+    },
+    "ProviderEvent": {
+      "type": "object",
+      "properties": {
+        "provider": {
+          "type": "string",
+          "enum": [
+            "fluxer",
+            "retroachievements",
+            "patreon",
+            "kofi"
+          ]
+        },
+        "instance": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256,
+          "format": "uri",
+          "pattern": "^https://"
+        },
+        "provider_event_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "identity_link_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "kind": {
+          "type": "string",
+          "enum": [
+            "achievement_verified",
+            "membership_verified",
+            "support_period_verified",
+            "support_period_revoked"
+          ]
+        },
+        "provider_evidence_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "effective_from": {
+          "$ref": "#/$defs/Time"
+        },
+        "effective_until": {
+          "$ref": "#/$defs/Time"
+        },
+        "provider_product_ref": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "community_ref": {
+          "$ref": "#/$defs/Id"
+        },
+        "achievement_ref": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "provider",
+        "instance",
+        "provider_event_id",
+        "identity_link_id",
+        "kind",
+        "provider_evidence_id",
+        "effective_from"
+      ],
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "support_period_verified"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "provider_product_ref",
+              "effective_until"
+            ],
+            "properties": {
+              "provider": {
+                "type": "string",
+                "enum": [
+                  "patreon",
+                  "kofi"
+                ]
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "support_period_revoked"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "provider_product_ref"
+            ],
+            "properties": {
+              "provider": {
+                "type": "string",
+                "enum": [
+                  "patreon",
+                  "kofi"
+                ]
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "membership_verified"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "community_ref",
+              "effective_until"
+            ],
+            "properties": {
+              "provider": {
+                "const": "fluxer"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "achievement_verified"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "achievement_ref"
+            ],
+            "properties": {
+              "provider": {
+                "const": "retroachievements"
+              }
+            }
+          }
+        }
+      ],
+      "description": "Internal normalized adapter output, never an unverified public webhook body."
+    },
+    "PolicyGate": {
+      "type": "object",
+      "properties": {
+        "key": {
+          "$ref": "#/$defs/Code"
+        },
+        "value_revision": {
+          "$ref": "#/$defs/Revision"
+        },
+        "decision_ref": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "key",
+        "value_revision",
+        "decision_ref"
+      ],
+      "description": "References reviewed server-owned policy; not executable config."
+    },
+    "DefinitionPublish": {
+      "type": "object",
+      "properties": {
+        "definition_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "expected_revision": {
+          "$ref": "#/$defs/Revision"
+        },
+        "policy_gates": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/PolicyGate"
+          },
+          "minItems": 1,
+          "maxItems": 32,
+          "uniqueItems": false
+        },
+        "reason": {
+          "$ref": "#/$defs/Reason"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "definition_id",
+        "expected_revision",
+        "policy_gates",
+        "reason"
+      ]
+    },
+    "Correction": {
+      "type": "object",
+      "properties": {
+        "expected_revision": {
+          "$ref": "#/$defs/Revision"
+        },
+        "reason": {
+          "$ref": "#/$defs/Reason"
+        },
+        "replacement_evidence_id": {
+          "$ref": "#/$defs/Id"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "expected_revision",
+        "reason"
+      ]
+    },
+    "Job": {
+      "type": "object",
+      "properties": {
+        "job_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "kind": {
+          "$ref": "#/$defs/Code"
+        },
+        "state": {
+          "type": "string",
+          "enum": [
+            "queued",
+            "leased",
+            "completed",
+            "dead_letter"
+          ]
+        },
+        "attempt": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "revision": {
+          "$ref": "#/$defs/Revision"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "job_id",
+        "kind",
+        "state",
+        "attempt",
+        "revision"
+      ]
+    },
+    "Jobs": {
+      "type": "object",
+      "properties": {
+        "items": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Job"
+          },
+          "minItems": 0,
+          "maxItems": 100,
+          "uniqueItems": false
+        },
+        "revision": {
+          "$ref": "#/$defs/Revision"
+        },
+        "next_cursor": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "items",
+        "revision"
+      ]
+    },
+    "AuditEvent": {
+      "type": "object",
+      "properties": {
+        "audit_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "actor_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "action": {
+          "$ref": "#/$defs/Code"
+        },
+        "resource_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "reason": {
+          "$ref": "#/$defs/Reason"
+        },
+        "created_at": {
+          "$ref": "#/$defs/Time"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "audit_id",
+        "actor_id",
+        "action",
+        "resource_id",
+        "reason",
+        "created_at"
+      ]
+    },
+    "Audit": {
+      "type": "object",
+      "properties": {
+        "items": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/AuditEvent"
+          },
+          "minItems": 0,
+          "maxItems": 100,
+          "uniqueItems": false
+        },
+        "revision": {
+          "$ref": "#/$defs/Revision"
+        },
+        "next_cursor": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "items",
+        "revision"
+      ]
+    },
+    "AccountSessionRevokedEvent": {
+      "type": "object",
+      "properties": {
+        "event_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "type": {
+          "const": "account.session_revoked"
+        },
+        "schema_version": {
+          "const": 1
+        },
+        "aggregate_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "aggregate_revision": {
+          "$ref": "#/$defs/Revision"
+        },
+        "operation_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "occurred_at": {
+          "$ref": "#/$defs/Time"
+        },
+        "payload": {
+          "$ref": "#/$defs/ExpectedRevision"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "event_id",
+        "type",
+        "schema_version",
+        "aggregate_id",
+        "aggregate_revision",
+        "operation_id",
+        "occurred_at",
+        "payload"
+      ]
+    },
+    "AccountDeletionRequestedEvent": {
+      "type": "object",
+      "properties": {
+        "event_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "type": {
+          "const": "account.deletion_requested"
+        },
+        "schema_version": {
+          "const": 1
+        },
+        "aggregate_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "aggregate_revision": {
+          "$ref": "#/$defs/Revision"
+        },
+        "operation_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "occurred_at": {
+          "$ref": "#/$defs/Time"
+        },
+        "payload": {
+          "$ref": "#/$defs/ExpectedRevision"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "event_id",
+        "type",
+        "schema_version",
+        "aggregate_id",
+        "aggregate_revision",
+        "operation_id",
+        "occurred_at",
+        "payload"
+      ]
+    },
+    "ResultVerifiedEvent": {
+      "type": "object",
+      "properties": {
+        "event_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "type": {
+          "const": "result.verified"
+        },
+        "schema_version": {
+          "const": 1
+        },
+        "aggregate_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "aggregate_revision": {
+          "$ref": "#/$defs/Revision"
+        },
+        "operation_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "occurred_at": {
+          "$ref": "#/$defs/Time"
+        },
+        "payload": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/ResultReceipt"
+            },
+            {
+              "properties": {
+                "state": {
+                  "const": "verified"
+                },
+                "proof": {
+                  "type": "string",
+                  "enum": [
+                    "participant_consensus",
+                    "server_replay",
+                    "verified_provider"
+                  ]
+                },
+                "outcomes": {
+                  "minItems": 1
+                }
+              }
+            }
+          ]
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "event_id",
+        "type",
+        "schema_version",
+        "aggregate_id",
+        "aggregate_revision",
+        "operation_id",
+        "occurred_at",
+        "payload"
+      ]
+    },
+    "ResultVoidedEvent": {
+      "type": "object",
+      "properties": {
+        "event_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "type": {
+          "const": "result.voided"
+        },
+        "schema_version": {
+          "const": 1
+        },
+        "aggregate_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "aggregate_revision": {
+          "$ref": "#/$defs/Revision"
+        },
+        "operation_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "occurred_at": {
+          "$ref": "#/$defs/Time"
+        },
+        "payload": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/ResultReceipt"
+            },
+            {
+              "properties": {
+                "state": {
+                  "const": "voided"
+                }
+              }
+            }
+          ]
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "event_id",
+        "type",
+        "schema_version",
+        "aggregate_id",
+        "aggregate_revision",
+        "operation_id",
+        "occurred_at",
+        "payload"
+      ]
+    },
+    "CompetitionFinalizedEvent": {
+      "type": "object",
+      "properties": {
+        "event_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "type": {
+          "const": "competition.finalized"
+        },
+        "schema_version": {
+          "const": 1
+        },
+        "aggregate_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "aggregate_revision": {
+          "$ref": "#/$defs/Revision"
+        },
+        "operation_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "occurred_at": {
+          "$ref": "#/$defs/Time"
+        },
+        "payload": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/Competition"
+            },
+            {
+              "properties": {
+                "state": {
+                  "const": "finalized"
+                }
+              }
+            }
+          ]
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "event_id",
+        "type",
+        "schema_version",
+        "aggregate_id",
+        "aggregate_revision",
+        "operation_id",
+        "occurred_at",
+        "payload"
+      ]
+    },
+    "CompetitionCorrectedEvent": {
+      "type": "object",
+      "properties": {
+        "event_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "type": {
+          "const": "competition.corrected"
+        },
+        "schema_version": {
+          "const": 1
+        },
+        "aggregate_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "aggregate_revision": {
+          "$ref": "#/$defs/Revision"
+        },
+        "operation_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "occurred_at": {
+          "$ref": "#/$defs/Time"
+        },
+        "payload": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/Competition"
+            },
+            {
+              "properties": {
+                "state": {
+                  "const": "finalized"
+                }
+              }
+            }
+          ]
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "event_id",
+        "type",
+        "schema_version",
+        "aggregate_id",
+        "aggregate_revision",
+        "operation_id",
+        "occurred_at",
+        "payload"
+      ]
+    },
+    "RewardApprovedEvent": {
+      "type": "object",
+      "properties": {
+        "event_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "type": {
+          "const": "reward.approved"
+        },
+        "schema_version": {
+          "const": 1
+        },
+        "aggregate_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "aggregate_revision": {
+          "$ref": "#/$defs/Revision"
+        },
+        "operation_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "occurred_at": {
+          "$ref": "#/$defs/Time"
+        },
+        "payload": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/Reward"
+            },
+            {
+              "properties": {
+                "state": {
+                  "const": "issued"
+                }
+              }
+            }
+          ]
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "event_id",
+        "type",
+        "schema_version",
+        "aggregate_id",
+        "aggregate_revision",
+        "operation_id",
+        "occurred_at",
+        "payload"
+      ]
+    },
+    "RewardReversedEvent": {
+      "type": "object",
+      "properties": {
+        "event_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "type": {
+          "const": "reward.reversed"
+        },
+        "schema_version": {
+          "const": 1
+        },
+        "aggregate_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "aggregate_revision": {
+          "$ref": "#/$defs/Revision"
+        },
+        "operation_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "occurred_at": {
+          "$ref": "#/$defs/Time"
+        },
+        "payload": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/Reward"
+            },
+            {
+              "properties": {
+                "state": {
+                  "const": "reversed"
+                }
+              }
+            }
+          ]
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "event_id",
+        "type",
+        "schema_version",
+        "aggregate_id",
+        "aggregate_revision",
+        "operation_id",
+        "occurred_at",
+        "payload"
+      ]
+    },
+    "PurchaseCommittedEvent": {
+      "type": "object",
+      "properties": {
+        "event_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "type": {
+          "const": "purchase.committed"
+        },
+        "schema_version": {
+          "const": 1
+        },
+        "aggregate_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "aggregate_revision": {
+          "$ref": "#/$defs/Revision"
+        },
+        "operation_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "occurred_at": {
+          "$ref": "#/$defs/Time"
+        },
+        "payload": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/Purchase"
+            },
+            {
+              "properties": {
+                "state": {
+                  "const": "committed"
+                }
+              }
+            }
+          ]
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "event_id",
+        "type",
+        "schema_version",
+        "aggregate_id",
+        "aggregate_revision",
+        "operation_id",
+        "occurred_at",
+        "payload"
+      ]
+    },
+    "SupportPeriodChangedEvent": {
+      "type": "object",
+      "properties": {
+        "event_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "type": {
+          "const": "support.period_changed"
+        },
+        "schema_version": {
+          "const": 1
+        },
+        "aggregate_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "aggregate_revision": {
+          "$ref": "#/$defs/Revision"
+        },
+        "operation_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "occurred_at": {
+          "$ref": "#/$defs/Time"
+        },
+        "payload": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/ProviderEvent"
+            },
+            {
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "enum": [
+                    "support_period_verified",
+                    "support_period_revoked"
+                  ]
+                }
+              }
+            }
+          ]
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "event_id",
+        "type",
+        "schema_version",
+        "aggregate_id",
+        "aggregate_revision",
+        "operation_id",
+        "occurred_at",
+        "payload"
+      ]
+    },
+    "AvatarRecipeChangedEvent": {
+      "type": "object",
+      "properties": {
+        "event_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "type": {
+          "const": "avatar.recipe_changed"
+        },
+        "schema_version": {
+          "const": 1
+        },
+        "aggregate_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "aggregate_revision": {
+          "$ref": "#/$defs/Revision"
+        },
+        "operation_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "occurred_at": {
+          "$ref": "#/$defs/Time"
+        },
+        "payload": {
+          "$ref": "#/$defs/AvatarRecipe"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "event_id",
+        "type",
+        "schema_version",
+        "aggregate_id",
+        "aggregate_revision",
+        "operation_id",
+        "occurred_at",
+        "payload"
+      ]
+    },
+    "InventoryOwnershipChangedEvent": {
+      "type": "object",
+      "properties": {
+        "event_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "type": {
+          "const": "inventory.ownership_changed"
+        },
+        "schema_version": {
+          "const": 1
+        },
+        "aggregate_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "aggregate_revision": {
+          "$ref": "#/$defs/Revision"
+        },
+        "operation_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "occurred_at": {
+          "$ref": "#/$defs/Time"
+        },
+        "payload": {
+          "$ref": "#/$defs/OwnedItem"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "event_id",
+        "type",
+        "schema_version",
+        "aggregate_id",
+        "aggregate_revision",
+        "operation_id",
+        "occurred_at",
+        "payload"
+      ]
+    },
+    "DomainEvent": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/AccountSessionRevokedEvent"
+        },
+        {
+          "$ref": "#/$defs/AccountDeletionRequestedEvent"
+        },
+        {
+          "$ref": "#/$defs/ResultVerifiedEvent"
+        },
+        {
+          "$ref": "#/$defs/ResultVoidedEvent"
+        },
+        {
+          "$ref": "#/$defs/CompetitionFinalizedEvent"
+        },
+        {
+          "$ref": "#/$defs/CompetitionCorrectedEvent"
+        },
+        {
+          "$ref": "#/$defs/RewardApprovedEvent"
+        },
+        {
+          "$ref": "#/$defs/RewardReversedEvent"
+        },
+        {
+          "$ref": "#/$defs/PurchaseCommittedEvent"
+        },
+        {
+          "$ref": "#/$defs/SupportPeriodChangedEvent"
+        },
+        {
+          "$ref": "#/$defs/AvatarRecipeChangedEvent"
+        },
+        {
+          "$ref": "#/$defs/InventoryOwnershipChangedEvent"
+        }
+      ]
+    },
+    "SdkPageQuery": {
+      "type": "object",
+      "properties": {
+        "limit": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 20
+        },
+        "cursor": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512
+        },
+        "game_id": {
+          "$ref": "#/$defs/Code"
+        }
+      },
+      "additionalProperties": false,
+      "required": []
+    },
+    "SdkBoardQuery": {
+      "type": "object",
+      "properties": {
+        "limit": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 20
+        },
+        "cursor": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512
+        },
+        "around_self": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": false,
+      "required": [],
+      "description": "cursor and around_self cannot be combined; server/host semantic check"
+    },
+    "SdkAccountOnlineGet": {
+      "type": "object",
+      "properties": {
+        "context_revision": {
+          "$ref": "#/$defs/Revision"
+        },
+        "body": {
+          "$ref": "#/$defs/Empty"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "context_revision",
+        "body"
+      ]
+    },
+    "SdkResultsMatchCreate": {
+      "type": "object",
+      "properties": {
+        "context_revision": {
+          "$ref": "#/$defs/Revision"
+        },
+        "operation_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "body": {
+          "$ref": "#/$defs/MatchCreate"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "context_revision",
+        "operation_id",
+        "body"
+      ]
+    },
+    "SdkResultsMatchAdmit": {
+      "type": "object",
+      "properties": {
+        "context_revision": {
+          "$ref": "#/$defs/Revision"
+        },
+        "match_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "operation_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "body": {
+          "$ref": "#/$defs/Admission"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "context_revision",
+        "match_id",
+        "operation_id",
+        "body"
+      ]
+    },
+    "SdkResultsMatchStart": {
+      "type": "object",
+      "properties": {
+        "context_revision": {
+          "$ref": "#/$defs/Revision"
+        },
+        "match_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "operation_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "body": {
+          "$ref": "#/$defs/ExpectedRevision"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "context_revision",
+        "match_id",
+        "operation_id",
+        "body"
+      ]
+    },
+    "SdkResultsMatchAbort": {
+      "type": "object",
+      "properties": {
+        "context_revision": {
+          "$ref": "#/$defs/Revision"
+        },
+        "match_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "operation_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "body": {
+          "$ref": "#/$defs/ReasonedRevision"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "context_revision",
+        "match_id",
+        "operation_id",
+        "body"
+      ]
+    },
+    "SdkResultsEvidenceBegin": {
+      "type": "object",
+      "properties": {
+        "context_revision": {
+          "$ref": "#/$defs/Revision"
+        },
+        "match_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "operation_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "body": {
+          "$ref": "#/$defs/EvidenceBegin"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "context_revision",
+        "match_id",
+        "operation_id",
+        "body"
+      ]
+    },
+    "SdkResultsEvidenceChunk": {
+      "type": "object",
+      "properties": {
+        "context_revision": {
+          "$ref": "#/$defs/Revision"
+        },
+        "match_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "upload_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "chunk_index": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 63
+        },
+        "operation_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "body": {
+          "$ref": "#/$defs/EvidenceChunk"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "context_revision",
+        "match_id",
+        "upload_id",
+        "chunk_index",
+        "operation_id",
+        "body"
+      ]
+    },
+    "SdkResultsEvidenceFinalize": {
+      "type": "object",
+      "properties": {
+        "context_revision": {
+          "$ref": "#/$defs/Revision"
+        },
+        "match_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "upload_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "operation_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "body": {
+          "$ref": "#/$defs/Empty"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "context_revision",
+        "match_id",
+        "upload_id",
+        "operation_id",
+        "body"
+      ]
+    },
+    "SdkResultsSubmit": {
+      "type": "object",
+      "properties": {
+        "context_revision": {
+          "$ref": "#/$defs/Revision"
+        },
+        "match_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "operation_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "body": {
+          "$ref": "#/$defs/Submission"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "context_revision",
+        "match_id",
+        "operation_id",
+        "body"
+      ]
+    },
+    "SdkResultsGet": {
+      "type": "object",
+      "properties": {
+        "context_revision": {
+          "$ref": "#/$defs/Revision"
+        },
+        "match_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "receipt_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "body": {
+          "$ref": "#/$defs/Empty"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "context_revision",
+        "match_id",
+        "receipt_id",
+        "body"
+      ]
+    },
+    "SdkBoards": {
+      "type": "object",
+      "properties": {
+        "items": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Board"
+          },
+          "minItems": 0,
+          "maxItems": 20,
+          "uniqueItems": false
+        },
+        "revision": {
+          "$ref": "#/$defs/Revision"
+        },
+        "next_cursor": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "items",
+        "revision"
+      ]
+    },
+    "SdkLeaderboardsList": {
+      "type": "object",
+      "properties": {
+        "context_revision": {
+          "$ref": "#/$defs/Revision"
+        },
+        "body": {
+          "$ref": "#/$defs/SdkPageQuery"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "context_revision",
+        "body"
+      ]
+    },
+    "SdkBoardEntries": {
+      "type": "object",
+      "properties": {
+        "items": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/BoardEntry"
+          },
+          "minItems": 0,
+          "maxItems": 20,
+          "uniqueItems": false
+        },
+        "revision": {
+          "$ref": "#/$defs/Revision"
+        },
+        "next_cursor": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "items",
+        "revision"
+      ]
+    },
+    "SdkLeaderboardsEntries": {
+      "type": "object",
+      "properties": {
+        "context_revision": {
+          "$ref": "#/$defs/Revision"
+        },
+        "board_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "body": {
+          "$ref": "#/$defs/SdkBoardQuery"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "context_revision",
+        "board_id",
+        "body"
+      ]
+    },
+    "SdkCompetitions": {
+      "type": "object",
+      "properties": {
+        "items": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Competition"
+          },
+          "minItems": 0,
+          "maxItems": 20,
+          "uniqueItems": false
+        },
+        "revision": {
+          "$ref": "#/$defs/Revision"
+        },
+        "next_cursor": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "items",
+        "revision"
+      ]
+    },
+    "SdkCompetitionsList": {
+      "type": "object",
+      "properties": {
+        "context_revision": {
+          "$ref": "#/$defs/Revision"
+        },
+        "body": {
+          "$ref": "#/$defs/SdkPageQuery"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "context_revision",
+        "body"
+      ]
+    },
+    "SdkInventory": {
+      "type": "object",
+      "properties": {
+        "items": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/OwnedItem"
+          },
+          "minItems": 0,
+          "maxItems": 20,
+          "uniqueItems": false
+        },
+        "revision": {
+          "$ref": "#/$defs/Revision"
+        },
+        "next_cursor": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "items",
+        "revision"
+      ]
+    },
+    "SdkInventoryGet": {
+      "type": "object",
+      "properties": {
+        "context_revision": {
+          "$ref": "#/$defs/Revision"
+        },
+        "body": {
+          "$ref": "#/$defs/SdkPageQuery"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "context_revision",
+        "body"
+      ]
+    }
+  }
+}

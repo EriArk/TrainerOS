@@ -1,0 +1,13 @@
+{
+  "players": 5,
+  "sdk_socket": true,
+  "http_api": true,
+  "individual": "confirmed",
+  "receipt_replay": "same",
+  "board_rows": 5,
+  "credentials_exported": false,
+  "identity_provider": "isolated_fixture",
+  "teams_2_vs_3": "confirmed",
+  "late_conflict": "withdrawn",
+  "pagination": "stale_revision_rejected"
+}

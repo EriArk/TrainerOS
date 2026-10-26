@@ -5,7 +5,11 @@ namespace trainer::azahar {
 inline constexpr auto sourceRevision="219d743a1e698101fe1ab8bef43e6563126c3c27";
 QString bundleRoot();
 QJsonObject bundle(const std::atomic_bool&);
-QJsonObject netplayIdentity(const AdventureRegistration&,const std::atomic_bool&);
+QJsonObject netplayIdentity(const AdventureRegistration&,const std::atomic_bool&,
+                           const std::function<void(const QString&)>& observe={});
+bool package(const AdventureRegistration&);
+QString installContent(const AdventureRegistration&,const std::atomic_bool&);
+QString prepareContent(ProcessCommand&,const AdventureRegistration&,const std::atomic_bool&);
 struct Request {
     QJsonObject expected,endpoint;
     bool host=false,online=false;

@@ -36,7 +36,7 @@ FocusScope {
     }
     LobbyPane {
         anchors { top: heading.bottom; bottom: parent.bottom; left: parent.left; right: parent.right }
-        visible: root.connected && root.faceIndex === 3
+        visible: root.faceIndex === 3
         social: root.social; takesFocus: root.takesFocus && visible
         onMenuAnchored: item => root.anchorMenu(item)
     }
@@ -60,7 +60,7 @@ FocusScope {
     }
     Item {
         anchors { top: heading.bottom; bottom: parent.bottom; left: parent.left; right: parent.right }
-        visible: !root.connected && root.faceIndex !== 4
+        visible: !root.connected && root.faceIndex !== 3 && root.faceIndex !== 4
         Rectangle { anchors.fill: parent; color: Theme.surfaceColor("#edf2e4") }
         Rectangle { width: parent.width * 0.36; height: parent.height; color: Theme.surfaceColor("#d3e5dd"); border.color: Theme.surfaceColor("#b0c6b9") }
         Item {

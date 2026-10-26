@@ -11,11 +11,12 @@ QString gameKey(const QVariantMap& g) {return g.value("adventure",g["key"]).toSt
 bool sameCandidate(const QVariantMap& a,const QVariantMap& b) {return a["id"]==b["id"]&&a["mode"]==b["mode"];}
 }
 void SocialController::createAnotherLobby() {
-    if(snapshot_["state"]!="connected")return;
+    if(owner_.isEmpty()&&snapshot_["state"]!="connected")return;
+    const bool local=lobbyScope_=="local"||snapshot_["state"]!="connected";
     closeMenu();lobbyDraftReturn_=myLobbiesOpen_;myLobbiesOpen_=false;
-    lobbyDraft_={{"title",snapshot_["name"].toString().left(65)+"'s lobby"},{"topic","other"},{"access","private"},{"startsAt",0}};
-    lobbyDraftAccount_=snapshot_["userId"].toString();lobbyDraftPeer_.clear();lobbyDraftConversation_.clear();
-    lobbyChoices_.clear();lobbyCreationError_.clear();lobbyDraftFocus_=0;lobbyCreateOpen_=true;emit changed();
+    lobbyDraft_={{"type",local?"local":"online"},{"title",(local?localLobby_.name():snapshot_["name"].toString()).left(65)+"'s lobby"},{"topic","other"},{"access","private"},{"startsAt",0}};
+    lobbyDraftAccount_=local?localLobby_.identity():snapshot_["userId"].toString();lobbyDraftPeer_.clear();lobbyDraftConversation_.clear();
+    lobbyChoices_.clear();lobbyCreationError_.clear();lobbyDraftFocus_=0;lobbyCreateOpen_=true;syncLocalLobby();emit changed();
 }
 QVariantMap SocialController::lobbyDraft() const {
     auto result=lobbyDraft_;result["focus"]=lobbyDraftFocus_;result["error"]=lobbyCreationError_;
@@ -28,22 +29,29 @@ QVariantMap SocialController::lobbyDraft() const {
 void SocialController::cancelLobbyDraft() {
     lobbyVoteOpen_=false;lobbyCreateOpen_=false;lobbyPickerOpen_=false;lobbyDraft_.clear();lobbyChoices_.clear();lobbyCreationError_.clear();
     lobbyDraftAccount_.clear();lobbyDraftPeer_.clear();lobbyDraftConversation_.clear();
-    myLobbiesOpen_=lobbyDraftReturn_;lobbyDraftReturn_=false;emit changed();
+    myLobbiesOpen_=lobbyDraftReturn_;lobbyDraftReturn_=false;syncLocalLobby();emit changed();
 }
 void SocialController::lobbyDraftAction(QString action) {
     if(!lobbyCreateOpen_)return;
     lobbyCreationError_.clear();
     if(action=="cancel"){cancelLobbyDraft();return;}
     if(action=="create"){submitLobbyDraft();return;}
-    if(action=="game"){lobbyDraftFocus_=1;openLobbyPicker();return;}
-    if(action=="name") {lobbyDraftFocus_=0;textPurpose_="lobby-draft-name";emit textRequested("Lobby name",lobbyDraft_["title"].toString(),80);}
+    if(action=="type") {
+        const bool local=lobbyDraft_["type"]!="local";
+        lobbyDraft_["type"]=local?"local":"online";lobbyDraft_["startsAt"]=0;lobbyChoices_.clear();
+        lobbyDraftAccount_=local?localLobby_.identity():snapshot_["userId"].toString();
+        lobbyDraftPeer_.clear();lobbyDraftConversation_.clear();lobbyDraftFocus_=0;syncLocalLobby();emit changed();return;
+    }
+    if(lobbyDraft_["type"]=="local"&&(action.startsWith("access")||action=="time"))return;
+    if(action=="game"){lobbyDraftFocus_=2;openLobbyPicker();return;}
+    if(action=="name") {lobbyDraftFocus_=1;textPurpose_="lobby-draft-name";emit textRequested("Lobby name",lobbyDraft_["title"].toString(),80);}
     else if(action=="time") {
-        lobbyDraftFocus_=4;textPurpose_="lobby-draft-time";
+        lobbyDraftFocus_=5;textPurpose_="lobby-draft-time";
         const auto start=lobbyDraft_["startsAt"].toLongLong();
         emit textRequested("Gathering time: YYYY-MM-DD HH:mm",QDateTime::fromSecsSinceEpoch(start?start:QDateTime::currentSecsSinceEpoch()+3600).toString("yyyy-MM-dd HH:mm"),16);
-    } else if(action=="now"){lobbyDraftFocus_=4;lobbyDraft_["startsAt"]=0;}
+    } else if(action=="now"){lobbyDraftFocus_=5;lobbyDraft_["startsAt"]=0;}
     else if(action=="category"||action=="access") {
-        lobbyDraftFocus_=action=="category"?2:3;menuMode_="lobby";menuTitle_=action=="category"?"Category":"Who can join?";
+        lobbyDraftFocus_=action=="category"?3:4;menuMode_="lobby";menuTitle_=action=="category"?"Category":"Who can join?";
         menuDetail_.clear();menu_.clear();menuCommands_.clear();menuFocus_=0;
         const auto values=action=="category"?lobbyDirectory::publicationTopics():QStringList{"private","public","approval"};
         for(const auto& value:values){menu_.append(action=="category"?lobbyDirectory::topicName(value):value=="private"?"Invite only":value=="public"?"Open":"By request");menuCommands_.append("lobby:create-field:"+action+":"+value);}
@@ -54,7 +62,11 @@ void SocialController::lobbyDraftAction(QString action) {
 void SocialController::submitLobbyDraft() {
     if(!lobbyCreateOpen_)return;
     const auto fail=[&](QString error){lobbyCreationError_=error;emit changed();};
-    if(snapshot_["state"]!="connected"||lobbyDraftAccount_!=snapshot_["userId"].toString()){fail("Reconnect to your account before creating the lobby.");return;}
+    const bool local=lobbyDraft_["type"]=="local";
+    if(local) {
+        syncLocalLobby();
+        if(!localLobby_.running()||lobbyDraftAccount_!=localLobby_.identity()){fail(localLobby_.error().isEmpty()?QString("Local connection is unavailable."):localLobby_.error());return;}
+    } else if(snapshot_["state"]!="connected"||lobbyDraftAccount_!=snapshot_["userId"].toString()){fail("Reconnect to your account before creating the lobby.");return;}
     const auto title=lobbyDraft_["title"].toString().trimmed();const auto starts=lobbyDraft_["startsAt"].toLongLong();const auto now=QDateTime::currentSecsSinceEpoch();
     if(title.isEmpty()||title.size()>80){fail("Give your lobby a name.");return;}
     for(const auto c:title)if(c.category()==QChar::Other_Control){fail("Use a single-line lobby name.");return;}
@@ -62,15 +74,16 @@ void SocialController::submitLobbyDraft() {
     if(!validateLobbyChoices()){emit changed();return;}
     // No room, group, invitation or public listing exists before this point.
     // Keep publication private until every supplied field is applied.
-    auto* room=lobby_.createRoom();if(!room){fail("Could not create the lobby. Please try again.");return;}
+    auto* room=lobby_.createRoom("private",local);if(!room){fail("Could not create the lobby. Please try again.");return;}
     if(!room->setDetails(title,starts)){room->leave();fail("Could not apply the lobby details.");return;}
     room->setPublicationTopic(lobbyDraft_["topic"].toString());
     bool gameApplied=true;
     if(lobbyChoices_.size()==1)gameApplied=room->selectGame(gameFrom(lobbyChoices_[0].toMap()));
     else if(lobbyChoices_.size()>1){QJsonArray choices;for(const auto& c:lobbyChoices_){auto g=c.toMap();g.remove("cover");g.remove("key");g.remove("adventure");g.remove("collections");choices.append(QJsonObject::fromVariantMap(g));}gameApplied=room->proposeVote(choices);}
     if(!gameApplied){room->leave();fail("The selection changed. Choose available games and modes again.");return;}
-    room->setAccess(lobbyDraft_["access"].toString());
+    if(!local)room->setAccess(lobbyDraft_["access"].toString());
     viewedLobbyId_=room->state()["id"].toString();
+    lobbyScope_=local?"local":"online";lobby_.activateRoom(viewedLobbyId_);
     if(starts)lobbyReminders_.accept(room->state(),now);
     const auto peer=lobbyDraftPeer_,conversation=lobbyDraftConversation_;
     lobbyDraftReturn_=false;cancelLobbyDraft();openLobby();syncMyLobbies();
@@ -80,29 +93,29 @@ void SocialController::submitLobbyDraft() {
 }
 QVariantMap SocialController::lobbyPicker() const {
     auto ballot=viewedLobby().state()["vote"].toObject().toVariantMap();QVariantList choices;
-    for(const auto& v:ballot["choices"].toList()){auto choice=v.toMap();for(const auto& local:lobbyGames_)if(local.toMap()["id"]==choice["id"]&&local.toMap()["mode"]==choice["mode"]){choice["cover"]=local.toMap()["cover"];break;}choices.append(choice);}
+    for(const auto& v:ballot["choices"].toList()){auto choice=v.toMap();for(const auto& local:availableLobbyGames())if(local.toMap()["id"]==choice["id"]&&local.toMap()["mode"]==choice["mode"]){choice["cover"]=local.toMap()["cover"];break;}choices.append(choice);}
     ballot["choices"]=choices;
     QVariantList modes;QString modeTitle;
-    for(const auto& v:lobbyGames_)if(gameKey(v.toMap())==lobbyPickerModeGame_&&!lobbyPickerModeGame_.isEmpty()){
+    for(const auto& v:availableLobbyGames())if(gameKey(v.toMap())==lobbyPickerModeGame_&&!lobbyPickerModeGame_.isEmpty()){
         auto g=v.toMap();modeTitle=g["title"].toString();bool selected=false;
         for(const auto& c:lobbyChoices_)if(sameCandidate(c.toMap(),g))selected=true;
         g["selected"]=selected;modes.append(g);
     }
     return {{"modes",modes},{"modeTitle",modeTitle},{"modeOpen",!lobbyPickerModeGame_.isEmpty()},{"modeFocus",lobbyPickerModeFocus_},
         {"pins",lobbyPickerPins()},{"pinsFocused",lobbyPickerPinsFocused_},{"pinFocus",lobbyPickerPinFocus_},{"gameKey",lobbyPickerGame_},
-        {"voteOpen",lobbyVoteOpen_&&!viewedLobby().state()["vote"].toObject().isEmpty()},{"vote",ballot},{"host",viewedLobby().hosting()},{"voteFocus",lobbyVoteFocus_},{"self",snapshot_["userId"]},{"open",lobbyPickerOpen_},{"focus",lobbyPickerFocus_},{"rail",lobbyPickerRail_},{"railFocused",lobbyPickerRailFocused_},
+        {"voteOpen",lobbyVoteOpen_&&!viewedLobby().state()["vote"].toObject().isEmpty()},{"vote",ballot},{"host",viewedLobby().hosting()},{"voteFocus",lobbyVoteFocus_},{"self",viewedLobby().self()},{"open",lobbyPickerOpen_},{"focus",lobbyPickerFocus_},{"rail",lobbyPickerRail_},{"railFocused",lobbyPickerRailFocused_},
         {"choices",lobbyChoices_},{"error",lobbyCreationError_},{"search",lobbyPickerSearch_}};
 }
 QVariantList SocialController::lobbyPickerCategories() const {
     QVariantList result{QVariantMap{{"id",""},{"title","All games"}}};QStringList platforms;
-    for(const auto& v:lobbyGames_){const auto p=v.toMap()["platform"].toString();if(!platforms.contains(p))platforms.append(p);}
+    for(const auto& v:availableLobbyGames()){const auto p=v.toMap()["platform"].toString();if(!platforms.contains(p))platforms.append(p);}
     if(lobbyCollections)for(const auto& v:lobbyCollections()){const auto c=v.toMap();if(c["id"]!="multiverse")result.append(QVariantMap{{"id","collection:"+c["id"].toString()},{"title",c["name"]}});}
     platforms.sort();for(const auto& p:platforms)result.append(QVariantMap{{"id",p},{"title",p.toUpper()}});
     return result;
 }
 QVariantList SocialController::lobbyPickerRows() const {
     QVariantList result;QHash<QString,int> indexes;
-    for(const auto& v:lobbyGames_){auto g=v.toMap();const auto key=gameKey(g);
+    for(const auto& v:availableLobbyGames()){auto g=v.toMap();const auto key=gameKey(g);
         if(key.isEmpty())continue;
         if(lobbyPickerCategory_.startsWith("collection:")) {
             if(!lobbyCollectionContains||!lobbyCollectionContains(lobbyPickerCategory_.mid(11),g.value("adventure",g["key"]).toString()))continue;
@@ -122,7 +135,7 @@ QVariantList SocialController::lobbyPickerPins() const {
     if(!lobbyCreateOpen_) {
         current=viewedLobby().state()["game"].toObject().toVariantMap();
         if(!current["id"].toString().isEmpty()){
-            for(const auto& v:lobbyGames_)if(sameCandidate(current,v.toMap())){current=v.toMap();break;}
+            for(const auto& v:availableLobbyGames())if(sameCandidate(current,v.toMap())){current=v.toMap();break;}
             current["current"]=true;pins.append(current);
         }
     }
@@ -150,7 +163,7 @@ void SocialController::refreshLobbyPicker() {
     lobbyPickerModel_.update(rows);
     lobbyPickerPinFocus_=qBound(0,lobbyPickerPinFocus_,qMax(0,int(lobbyPickerPins().size())-1));
     if(!lobbyPickerModeGame_.isEmpty()) {
-        int count=0;for(const auto& v:lobbyGames_)if(gameKey(v.toMap())==lobbyPickerModeGame_)++count;
+        int count=0;for(const auto& v:availableLobbyGames())if(gameKey(v.toMap())==lobbyPickerModeGame_)++count;
         if(!count){lobbyPickerModeGame_.clear();lobbyCreationError_="This game is no longer available.";}
         lobbyPickerModeFocus_=qBound(0,lobbyPickerModeFocus_,qMax(0,count-1));
     }
@@ -160,7 +173,7 @@ bool SocialController::validateLobbyChoices() {
     QVariantList fresh;
     for(const auto& c:lobbyChoices_){
         const auto choice=c.toMap();bool found=false;
-        for(const auto& v:lobbyGames_){const auto g=v.toMap();
+        for(const auto& v:availableLobbyGames()){const auto g=v.toMap();
             if(sameCandidate(choice,g)&&g.value("enabled",true).toBool()
                 &&choice["runtime"]==g["runtime"]&&choice["seats"]==g["seats"]){fresh.append(g);found=true;break;}
         }
@@ -174,7 +187,7 @@ void SocialController::openLobbyPicker() {
         const auto state=viewedLobby().state();lobbyChoices_.clear();lobbyPickerRoom_=state["id"].toString();lobbyPickerGeneration_=quint64(state["generation"].toInteger());
         auto choices=state["vote"].toObject()["choices"].toArray();
         if(choices.isEmpty()&&!state["game"].toObject().isEmpty())choices.append(state["game"]);
-        for(const auto& c:choices){auto choice=c.toObject().toVariantMap();for(const auto& v:lobbyGames_)if(sameCandidate(choice,v.toMap())){choice=v.toMap();break;}lobbyChoices_.append(choice);}
+        for(const auto& c:choices){auto choice=c.toObject().toVariantMap();for(const auto& v:availableLobbyGames())if(sameCandidate(choice,v.toMap())){choice=v.toMap();break;}lobbyChoices_.append(choice);}
     }
     lobbyPickerOriginalChoices_=lobbyChoices_;lobbyPickerModeGame_.clear();lobbyPickerPinsFocused_=false;
     lobbyPickerSearch_.clear();lobbyPickerCategory_.clear();lobbyPickerGame_.clear();lobbyPickerRail_=lobbyPickerFocus_=0;lobbyPickerRailFocused_=true;lobbyCreationError_.clear();lobbyPickerOpen_=true;refreshLobbyPicker();emit changed();
@@ -192,12 +205,12 @@ void SocialController::lobbyPickerAction(QString action) {
         if(index>=0){lobbyPickerGame_=key;lobbyPickerFocus_=index;lobbyPickerRailFocused_=lobbyPickerPinsFocused_=false;}
     } else if(action.startsWith("game:")) {
         const auto key=action.mid(5);
-        for(const auto& v:lobbyGames_)if(gameKey(v.toMap())==key){lobbyPickerModeGame_=key;lobbyPickerModeFocus_=0;
+        for(const auto& v:availableLobbyGames())if(gameKey(v.toMap())==key){lobbyPickerModeGame_=key;lobbyPickerModeFocus_=0;
             const auto index=lobbyPickerModel_.indexOf(key);if(index>=0){lobbyPickerGame_=key;lobbyPickerFocus_=index;}break;}
     } else if(action.startsWith("category:")){lobbyPickerCategory_=action.mid(9);lobbyPickerRailFocused_=lobbyPickerPinsFocused_=false;const auto rows=lobbyPickerCategories();for(int i=0;i<rows.size();++i)if(rows[i].toMap()["id"]==lobbyPickerCategory_)lobbyPickerRail_=i;refreshLobbyPicker();}
     else if(action.startsWith("mode:")) {
         if(lobbyPickerModeGame_.isEmpty())return;
-        for(const auto& v:lobbyGames_)if(v.toMap()["key"]==action.mid(5)){
+        for(const auto& v:availableLobbyGames())if(v.toMap()["key"]==action.mid(5)){
             if(gameKey(v.toMap())!=lobbyPickerModeGame_||!v.toMap().value("enabled",true).toBool())return;
             int selected=-1;for(int i=0;i<lobbyChoices_.size();++i)if(lobbyChoices_[i].toMap()["id"]==v.toMap()["id"]&&lobbyChoices_[i].toMap()["mode"]==v.toMap()["mode"])selected=i;
             if(selected>=0)lobbyChoices_.removeAt(selected);
@@ -265,9 +278,12 @@ void SocialController::dispatchLobbyCreation(Action action) {
         else if(action==Action::Confirm){if(lobbyPickerRailFocused_)lobbyPickerAction("category:"+categories.value(lobbyPickerRail_).toMap()["id"].toString());else if(!rows.isEmpty())lobbyPickerAction("game:"+rows.value(lobbyPickerFocus_).toMap()["gameKey"].toString());}
     } else {
         if(action==Action::Back){cancelLobbyDraft();return;}
-        if(action==Action::Up||action==Action::Down)lobbyDraftFocus_=qBound(0,lobbyDraftFocus_+(action==Action::Down?1:-1),5);
-        else if(action==Action::Confirm)lobbyDraftAction(QStringList{"name","game","category","access","time","create"}[lobbyDraftFocus_]);
-        else if(action==Action::Left&&lobbyDraftFocus_==4)lobbyDraftAction("now");
+        if(action==Action::Up||action==Action::Down) {
+            lobbyDraftFocus_=qBound(0,lobbyDraftFocus_+(action==Action::Down?1:-1),6);
+            if(lobbyDraft_["type"]=="local"&&(lobbyDraftFocus_==4||lobbyDraftFocus_==5))lobbyDraftFocus_=action==Action::Down?6:3;
+        }
+        else if(action==Action::Confirm)lobbyDraftAction(QStringList{"type","name","game","category","access","time","create"}[lobbyDraftFocus_]);
+        else if(action==Action::Left&&lobbyDraftFocus_==5)lobbyDraftAction("now");
     }
     emit changed();
 }

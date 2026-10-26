@@ -12,6 +12,7 @@
 #include "integrations/adventure/retroarch/LinkedSavePreparation.h"
 #include "integrations/adventure/standalone/PpssppNetplay.h"
 #include "integrations/adventure/standalone/DolphinNetplay.h"
+#include "integrations/adventure/standalone/DolphinLan.h"
 #include "integrations/adventure/standalone/RmgNetplay.h"
 #include "integrations/adventure/standalone/FlycastNetplay.h"
 #include "integrations/adventure/standalone/MelonDsNetplay.h"
@@ -116,13 +117,17 @@ private:
     void resolvePspRelay();
     void prepareRmg();
     bool rmg() const { return descriptor_["id"]=="runtime.rmg.n64.v1"; }
-    bool flycast() const { return descriptor_["id"]=="runtime.flycast-dojo.dc.v1"; }
+    bool flycast() const { return descriptor_["id"]=="runtime.flycast-dojo.dc.v1"||descriptor_["id"]=="runtime.flycast-dojo.arcade.v1"; }
     bool azahar() const { return descriptor_["id"]=="runtime.azahar.3ds.v1"; }
     bool vita() const { return descriptor_["id"]=="runtime.vita3k.lan.v1"; }
+    bool gcLan() const { return descriptor_["id"]=="runtime.dolphin.bba.v1"; }
+    bool dcOnline() const { return descriptor_["id"]=="runtime.flycast.online.v1"; }
+    bool cabinetLan() const { return descriptor_["id"]=="runtime.flycast.cabinet.v1"; }
+    bool nativeLan() const { return ps2Lan()||gcLan()||cabinetLan(); }
     bool ps2Lan() const { return descriptor_["id"]=="runtime.armsx2.lan.v1"; }
     bool ds() const { return descriptor_["id"]=="runtime.melonds.nds.v1"; }
     bool psp() const { return descriptor_["id"].toString().startsWith("runtime.ppsspp."); }
-    bool dolphin() const { return descriptor_["id"].toString().startsWith("runtime.dolphin."); }
+    bool dolphin() const { return !gcLan()&&descriptor_["id"].toString().startsWith("runtime.dolphin."); }
     void frame(const QJsonObject&);
     void send(QJsonObject);
     void launch();
@@ -149,10 +154,14 @@ private:
     ProcessService& process_;AdventureLaunchController& lifecycle_;AdventureExitPresentation& overlay_;
     LobbyGamePreparation preparation_;
     LobbyConnection nativeConnection_;
+    QList<LobbyConnection*> nativeGroupConnections_;
+    QMap<int,QString> nativeGroupSockets_;
+    std::unique_ptr<QTemporaryDir> nativeGroupDirectory_;
+    void startNativeLanConnections(QString ticket,const QJsonObject& context);
     QProcess pspRelay_{this};
     bool pspDirect_=false;
-    bool ps2Connection_=false;
-    QString ps2ConnectionConfig_;
+    bool nativeLanConnection_=false;
+    QString nativeLanConfig_;
     QJsonObject nativeLaunchContext_;
     void bindLobbyPlayers(const QJsonObject&);
     void stopNativeConnection();
@@ -161,15 +170,39 @@ private:
     HotseatHandoff handoff_{this};
     QString controllerMode_="separate";
     bool partySession_=false,companyOverride_=false;
-    using ScannedGame = QPair<QString,QJsonObject>;
+    struct ScannedGame {
+        QString first;QJsonObject second;
+        QMap<QString,quint64> dependencies;
+        bool stale=false;
+        quint64 requestRevision=0;
+    };
     QFutureWatcher<ScannedGame> scan_{this};
+    QMap<QString,ScannedGame> scanResults_;
     std::shared_ptr<std::atomic_bool> scanCancel_;
     QTimer scanPublish_{this};
+    void pollScanDependencies();
+    void invalidateScan();
+    QMap<QString,quint64> scanDependencies_;
+    quint64 dependencyGeneration_=1;
+    QTimer dependencyPoll_{this};
+    QFutureWatcher<quint64> dependencyScan_{this};
     QNetworkAccessManager network_{this};QTimer timer_{this};
     QString trainer_,identity_,game_,status_,transportPeer_,lastRequest_,scanPriority_;
     QString lobbyProblem_;
     QJsonObject descriptor_;
-    QMap<QString,QJsonObject> profiles_,games_;
+    QMap<QString,QJsonObject> profiles_,games_,lanProfiles_,lanGames_;
+    QMultiMap<QString,QJsonObject> availableGames() const {
+        QMultiMap<QString,QJsonObject> result;
+        // QMultiMap visits the last inserted value first: retain NetPlay as
+        // the first choice when the same game also supports native LAN.
+        for(auto it=lanGames_.cbegin();it!=lanGames_.cend();++it)result.insert(it.key(),it.value());
+        for(auto it=games_.cbegin();it!=games_.cend();++it)result.insert(it.key(),it.value());
+        return result;
+    }
+    QJsonObject localProfile(const QString& game,const QJsonObject& offered) const {
+        const auto primary=games_.value(game),lan=lanGames_.value(game);
+        return supportsMultiplayerSession(primary,offered)?primary:supportsMultiplayerSession(lan,offered)?lan:QJsonObject{};
+    }
     QVariantMap gameModes_;
     QStringList onlineGames_,nearbyGames_,multiplayerGames_;
     retroarch::NetplayRequest request_;

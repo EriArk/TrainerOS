@@ -14,6 +14,9 @@ git -C "$source_dir" apply "$recipe_dir/traineros-room.patch"
 git -C "$source_dir" apply --check "$recipe_dir/libusb-init-failure.patch"
 git -C "$source_dir" apply "$recipe_dir/libusb-init-failure.patch"
 cp "$recipe_dir/TrainerRoom.inc" "$source_dir/src/citra_qt/TrainerRoom.inc"
+cp "$recipe_dir/TrainerContent.inc" "$source_dir/src/citra_qt/TrainerContent.inc"
+git -C "$source_dir" apply --check "$recipe_dir/traineros-content.patch"
+git -C "$source_dir" apply "$recipe_dir/traineros-content.patch"
 cmake -S "$source_dir" -B "$work_dir/build" -G Ninja -DCMAKE_BUILD_TYPE=Release \
     -DUSE_SYSTEM_QT=ON -DUSE_SYSTEM_SDL2=ON -DENABLE_LTO=OFF -DENABLE_TESTS=OFF \
     -DENABLE_QT_TRANSLATION=OFF -DENABLE_WEB_SERVICE=OFF -DENABLE_SCRIPTING=OFF \

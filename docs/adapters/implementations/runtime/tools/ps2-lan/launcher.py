@@ -5,6 +5,7 @@ import hashlib
 import json
 import os
 import shutil
+import tempfile
 from pathlib import Path
 import sys
 from disc import identity as disc_identity
@@ -23,7 +24,7 @@ def digest(path):
 
 def manifest():
     data=json.loads((ROOT/'manifest.json').read_text())
-    if data.get('protocol')!=1 or data.get('settings')!='eclx1-namespace-own-cards-v1':
+    if data.get('protocol')!=1 or data.get('settings')!='eclx1-group-own-cards-v2':
         raise ValueError('Unreviewed PS2 package')
     runtime=Path(data['runtime']);config=Path(data['configRoot'])
     if not runtime.is_absolute() or not config.is_absolute() or not (config/'inis/PCSX2.ini').is_file():
@@ -33,21 +34,46 @@ def manifest():
     return data
 
 
+def discs(path):
+    if path.suffix.lower() not in ('.m3u','.m3u8'):return [path]
+    if not path.is_file() or not 0<path.stat().st_size<=65536:raise ValueError('Invalid disc list')
+    result=[];seen=set()
+    for line in path.read_text(encoding='utf-8-sig').splitlines():
+        line=line.strip()
+        if not line or line.startswith('#'):continue
+        if any(c in line for c in ('\0','\t')) or '://' in line:raise ValueError('Invalid disc path')
+        child=Path(line.replace('\\','/'))
+        if not child.is_absolute():child=path.parent/child
+        child=child.resolve(strict=True)
+        if not child.is_file() or child.suffix.lower() not in ('.iso','.chd','.cso','.zso','.bin','.gz','.img','.mdf','.nrg') \
+           or child in seen or len(result)>=16:raise ValueError('Invalid disc list entry')
+        seen.add(child);result.append(child)
+    if not result:raise ValueError('Empty disc list')
+    return result
+
+
 def identify(path):
     if not path.is_absolute():raise ValueError('Absolute content path required')
-    disc=disc_identity(path,ROOT/'libchdr.so')
-    profiles=json.loads((ROOT/'profiles.json').read_text())['games']
-    matches=[p for p in profiles if p['serial']==disc['serial'] and p['crc']==disc['crc'] and p['mode']=='lan']
+    paths=discs(path)
+    contents=[disc_identity(p,ROOT/'libchdr.so') for p in paths]
+    disc=contents[0]
+    profiles=json.loads((ROOT/'profiles.json').read_text(encoding='utf-8'))
+    if profiles.get('version')!=2:raise ValueError('Unsupported PS2 LAN catalogue')
+    matches=[p for p in profiles['games'] if p['mode']=='lan'
+             and any(r['serial']==disc['serial'] for r in p['releases'])]
     if len(matches)!=1:return {}
     setup=manifest()
-    content=disc['content'] or digest(path)
+    # A CHD header's declared raw SHA is not verification of its current payload.
+    hashes=[digest(p) for p in paths]
+    content=hashes[0] if path.suffix.lower() not in ('.m3u','.m3u8') else hashlib.sha256(
+        json.dumps({'ps2-list-v1':hashes},separators=(',',':')).encode()).hexdigest()
     return {'id':'runtime.armsx2.lan.v1','content':content,'serial':disc['serial'],
             'crc':disc['crc'],'runtime':setup['runtimeSha256'],'settings':setup['settings'],
-            'players':2,'lateJoin':False,'temporaryProgress':False,'connections':['online']}
+            'players':4,'lateJoin':False,'temporaryProgress':False,'connections':['online']}
 
 
 def stable(value):
-    return {k:v for k,v in value.items() if k not in ('label','runtime','connections','controllerModes')}
+    return {k:v for k,v in value.items() if k not in ('label','connections','controllerModes')}
 
 
 def request(path):
@@ -59,47 +85,89 @@ def request(path):
     return data
 
 
+def connection_material(data):
+    config=Path(data['connection'])
+    if not config.is_absolute() or config.is_symlink() or not config.is_file() or config.stat().st_size>4096:
+        raise ValueError('Invalid private PS2 connection')
+    if os.name!='nt' and (config.stat().st_mode&0o077 or config.stat().st_uid!=os.getuid()):
+        raise ValueError('Invalid private PS2 connection owner')
+    material=config.read_bytes();values=connection(material)
+    if (values['host']=='true')!=data['host'] or 'sockets' not in values:
+        raise ValueError('PS2 connection changed')
+    return material
+
+
+def settings_files(directory):
+    """Bounded flat native INI directory; never follow a settings symlink."""
+    entries=list(directory.iterdir())
+    if len(entries)>128:raise ValueError('Oversized PS2 settings directory')
+    result=[]
+    for entry in entries:
+        if entry.is_symlink():raise ValueError('Unsupported PS2 settings file')
+        if entry.is_dir():continue
+        if not entry.is_file() or entry.stat().st_size>1024*1024:
+            raise ValueError('Unsupported PS2 settings file')
+        result.append(entry)
+    return result
+
+
+def preparation_stamp(data,material,root,setup):
+    return {'request':data,'connection':hashlib.sha256(material).hexdigest(),
+            'installation':{key:setup[key] for key in ('runtime','runtimeSha256','configRoot','settings')},
+            'game':digest(root/'game.ini'),
+            'inis':{p.name:digest(p) for p in settings_files(root/'inis')}}
+
+
 def prepare_request(path):
     data=request(path);current=identify(Path(data['content']))
     if not current or stable(current)!=stable(data['expected']):raise ValueError('PS2 game changed')
-    config=Path(data['connection'])
-    if not config.is_absolute() or config.is_symlink() or config.stat().st_size>4096 or config.stat().st_mode&0o077:
-        raise ValueError('Invalid private PS2 connection')
-    material=config.read_bytes();values=connection(material)
-    if (values['host']=='true')!=data['host'] or values['socket']!=str(config.parent/'ps2.sock'):
-        raise ValueError('PS2 connection changed')
+    material=connection_material(data)
     setup=manifest();game_dir=Path(setup['configRoot'])/'gamesettings'
     source=game_dir/(current['serial']+'_'+current['crc']+'.ini')
     if not source.exists():source=game_dir/(current['crc']+'.ini')
-    prepare(source if source.exists() else None,path.parent/'game.ini',material)
     # Mount a private settings directory at the ordinary path. The same absolute
     # BIOS/card/input locations remain valid; native startup/settings writes stay
     # private. In particular -batch must not enumerate unavailable NFS libraries.
-    inis=path.parent/'inis';inis.mkdir(mode=0o700)
-    original=Path(setup['configRoot'])/'inis'
-    entries=list(original.iterdir())
-    if len(entries)>128:raise ValueError('Oversized PS2 settings directory')
-    for entry in entries:
-        if entry.is_dir():continue
-        if entry.is_symlink() or not entry.is_file() or entry.stat().st_size>1024*1024:
-            raise ValueError('Unsupported PS2 settings file')
-        target=inis/entry.name;shutil.copyfile(entry,target);target.chmod(0o600)
-    base=inis/'PCSX2.ini';base.write_bytes(launch_settings(base.read_bytes()))
+    ready=path.parent/'prepared'
+    if ready.exists() or ready.is_symlink():raise ValueError('PS2 session already prepared')
+    # Publish the whole directory only after every copy and validation succeeds.
+    # Failure/cancellation cannot make a lone game.ini look ready to launch.
+    with tempfile.TemporaryDirectory(prefix='.prepare-',dir=path.parent) as temporary:
+        stage=Path(temporary)
+        prepare(source if source.exists() else None,stage/'game.ini',material)
+        inis=stage/'inis';inis.mkdir(mode=0o700)
+        for entry in settings_files(Path(setup['configRoot'])/'inis'):
+            target=inis/entry.name;shutil.copyfile(entry,target);target.chmod(0o600)
+        base=inis/'PCSX2.ini';base.write_bytes(launch_settings(base.read_bytes()))
+        # Transport teardown/replacement during disk IO must not publish readiness.
+        if connection_material(data)!=material:raise ValueError('PS2 connection changed during preparation')
+        receipt=stage/'ready.json'
+        receipt.write_text(json.dumps(preparation_stamp(data,material,stage,setup)),encoding='utf-8')
+        receipt.chmod(0o600)
+        stage.rename(ready)
     return {'ready':True}
 
 
 def run(path):
     data=request(path);setup=manifest()
-    if not (path.parent/'game.ini').is_file():raise ValueError('PS2 preparation missing')
+    ready=path.parent/'prepared';receipt=ready/'ready.json'
+    if ready.is_symlink() or (ready/'inis').is_symlink() or (ready/'game.ini').is_symlink() \
+       or receipt.is_symlink() or not receipt.is_file() or receipt.stat().st_size>65536:
+        raise ValueError('PS2 preparation missing')
+    if data['expected'].get('runtime')!=setup['runtimeSha256'] \
+       or data['expected'].get('settings')!=setup['settings']:
+        raise ValueError('PS2 runtime changed after preparation')
+    if json.loads(receipt.read_text(encoding='utf-8'))!=preparation_stamp(data,connection_material(data),ready,setup):
+        raise ValueError('PS2 preparation changed')
     # No network interface or route is shared with the game. Files, input, GPU
     # and the owner's original data root remain the same ordinary installation.
     args=['/usr/bin/bwrap','--die-with-parent','--unshare-net','--bind','/','/',
           '--dev-bind','/dev','/dev',
-          '--bind',str(path.parent/'inis'),str(Path(setup['configRoot'])/'inis'),
+          '--bind',str(ready/'inis'),str(Path(setup['configRoot'])/'inis'),
           '--proc','/proc','--',str(ROOT/'ps2_endpoint'),data['connection'],setup['runtime'],
           '-batch','-fullscreen',
-          '-gamecfg',str(path.parent/'game.ini'),'-logfile',str(path.parent/'native.log'),
-          '--',data['content']]
+          '-gamecfg',str(ready/'game.ini'),'-logfile',str(path.parent/'native.log'),
+          '--',str(discs(Path(data['content']))[0])]
     # ARMSX2 appends its application folder to the base configuration directory.
     # Passing the already-expanded root to -datapath creates a fresh nested setup.
     if Path(setup['configRoot']).name!='ARMSX2':raise ValueError('Unsupported PS2 data root')

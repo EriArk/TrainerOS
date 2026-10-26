@@ -1,0 +1,17 @@
+test_archive_paths_and_links (__main__.InstallerTests.test_archive_paths_and_links) ... ok
+test_bad_architecture_does_not_activate (__main__.InstallerTests.test_bad_architecture_does_not_activate) ... ok
+test_busy_lease_protects_update_and_removal (__main__.InstallerTests.test_busy_lease_protects_update_and_removal) ... ok
+test_cancel_before_activation (__main__.InstallerTests.test_cancel_before_activation) ... ok
+test_checksum_failure_preserves_previous (__main__.InstallerTests.test_checksum_failure_preserves_previous) ... ok
+test_game_launcher_requires_owner_and_isolates_progress (__main__.InstallerTests.test_game_launcher_requires_owner_and_isolates_progress) ... ok
+test_killed_remove_and_reinstall_keeps_each_owners_data (__main__.InstallerTests.test_killed_remove_and_reinstall_keeps_each_owners_data) ... ok
+test_killed_update_recovers_both_sides_of_commit_offline (__main__.InstallerTests.test_killed_update_recovers_both_sides_of_commit_offline) ... ok
+test_pause_keeps_partial_and_resume_checks_range (__main__.InstallerTests.test_pause_keeps_partial_and_resume_checks_range) ... ok
+test_range_ignored_restarts_and_bad_range_does_not_append (__main__.InstallerTests.test_range_ignored_restarts_and_bad_range_does_not_append) ... ok
+test_uninstall_preserves_user_files (__main__.InstallerTests.test_uninstall_preserves_user_files) ... ok
+test_update_and_downgrade_keep_data (__main__.InstallerTests.test_update_and_downgrade_keep_data) ... ok
+
+----------------------------------------------------------------------
+Ran 12 tests in 3.393s
+
+OK

@@ -1,5 +1,87 @@
 # Azahar: native 3DS wireless rooms
 
+## Native content installation — 26 October 2026
+
+The pinned `219d743a1e698101fe1ab8bef43e6563126c3c27` source now has a bounded
+headless `--traineros-content` / `--traineros-install` entry point in
+`TrainerContent.inc`, applied by `traineros-content.patch` after the room patch.
+It reuses Z3DS IO, CIAContainer, NCCH/loader and AM installation. It accepts only
+decrypted executable base/demo titles, updates and DLC on SDMC; system titles and
+encrypted content are rejected. No game, GPU window or room is started. The meta
+CLI forwards these commands before ordinary getopt processing. Missing personal
+storage roots use private metadata directories with validated path translation,
+without creating personal folders during inspection.
+
+`content.py` supplies isolated settings, reads the owner's NAND/SDMC selection,
+hashes base plus installed update/DLC trees, and observes missing dependencies.
+Explicit Play/Start prepares a base package and substitutes its native APP entry.
+Library Properties also exposes cancellable installation for base/update/DLC.
+Lobby inspection never installs. The existing package card remains the stable
+library identity; a title receipt records source hash, installed hash and entry.
+Existing APP registrations still work; this does not discover an unrelated NAND
+inventory or make a missing source package unnecessary.
+
+Native installation writes a private stage on the destination filesystem.
+Promotion replaces only that title's content and tickets, never its save data,
+other titles or personal INI. A file lock excludes concurrent installations;
+active 3DS processes and shell game/save operations block installation. A journal
+records renames, retains old content and rolls back interruption before retry.
+Recovery refuses to overwrite content changed externally after interruption.
+The child dies with the cancelled helper; RAM, file/tree sizes and time are bounded.
+
+Rebuild with the existing `build.sh` recipe and ALSA development headers.
+Stage using `install-runtime.py`; the manifest adds `content.protocol` and the
+helper hash. Old bundles retain their former image-only admission. Run
+`check-content.py` on Linux for real filesystem transactions and
+`check-native-content.py --runtime /absolute/path/azahar` for generated key-free
+CIA/ZCIA containers through the actual native reader/installer. Fixtures contain
+no game code and do not prove gameplay. Rebase all three patches together;
+rollback changes runtime/helper selection, never restores old NAND/SDMC over saves.
+
+The earlier statement below that installed update/DLC content is not matched is
+superseded for the new content-marked bundle. Artic Base and encrypted CIA remain
+outside this route. [Current cross-platform delivery](../MULTIPLAYER_CONTENT_FORMATS.md).
+
+## CIA/ZCIA installation boundary — 25 October 2026
+
+Reviewed the pinned `219d743a1e698101fe1ab8bef43e6563126c3c27` implementation;
+this section is preparation, not an enabled CIA launch route. The existing
+[Qt `--install` command](https://github.com/azahar-emu/azahar/blob/219d743a1e698101fe1ab8bef43e6563126c3c27/src/citra_qt/citra_qt.cpp)
+calls native `Service::AM::InstallCIA` and exits with a result code. Linux reports
+the result on stdout; Windows uses a message box. No second installer or CIA
+decoder is needed. The native [AM implementation](https://github.com/azahar-emu/azahar/blob/219d743a1e698101fe1ab8bef43e6563126c3c27/src/core/hle/service/am/am.cpp)
+wraps ZCIA with `Z3DSReadIOFile`, rejects encrypted contents and resolves the
+installed executable through TMD content indices. A CIA is not a path accepted
+by `Loader::GetLoader`; an update/DLC package must not become a game card.
+
+Remaining integration: explicit import/preparation with cancellation and progress;
+isolated native install before committing content into this player's configured
+storage; title/content inventory and a stable library binding to the executable;
+fingerprints of the base title and loaded updates/DLC; preserve existing saves,
+custom NAND/SDMC paths and failure recovery. Metadata probing must reuse native
+TMD/NCCH readers, including compressed containers. Existing room preparation
+still launches only executable images and does not run installation during a
+background Lobby scan. This is a concrete missing installation/identity chain,
+not a per-game compatibility whitelist or another networking protocol.
+
+**25 октября — доставка:** расширенные форматы и совместимая со свежим core/main
+оболочка установлены на Flip/Odin. [Хеши, native проверки, сохранность данных
+и откат](../MULTIPLAYER_CONTENT_FORMATS.md#доставка-на-flip-и-odin--25-октября-2026).
+Это заменяет прежние отметки «не установлено» для данного набора, не прежнюю
+историю игровой совместимости и не открытые ограничения native механизма.
+
+## Native image aliases and Z3DS containers — 25 October 2026
+
+Закреплённый Azahar `219d743a1e698101fe1ab8bef43e6563126c3c27`:
+сверены [native loader](https://github.com/azahar-emu/azahar/blob/219d743a1e698101fe1ab8bef43e6563126c3c27/src/core/loader/loader.cpp)
+и `file_derived`/`zstd_compression`. Добавлены APP, ARM32 ELF/AXF и
+ZCCI/ZCXI/Z3DSX в регистрацию/допуск; Z3DS v1 проходит bounded header/seek-table
+проверки, штатный Azahar декодирует исходный файл. Whole-container hash сохранён.
+ARM64 admission проверяет valid/invalid metadata; это не полное native
+распаковывание или retail gameplay. CIA/ZCIA installation и updates/DLC отдельно.
+[Форматы, проверки, обновление и откат](../MULTIPLAYER_CONTENT_FORMATS.md).
+Native package не менялся; новая оболочка не установлена.
+
 **23 October 2026 ? NetPlay cache repair:** The private user profile now links only `shaders` to a persistent cache keyed by the runtime digest. Own NAND/SDMC and private configuration policies are unchanged.
 [Implementation, installed build and acceptance limits](../NETPLAY_PLATFORM_REPAIR_2026_10_23.md).
 

@@ -30,7 +30,7 @@ QJsonObject GameParty::decode(const QString& s) {
 bool GameParty::supports(const QJsonObject& game,const QString& peer) const {
     const auto connection=peer.section(':',0,0);
     for(const auto& local:games_)if(supportsMultiplayerSession(local.toObject(),game)
-        &&(peer.isEmpty()||(multiplayerConnectionAllowed(local.toObject(),connection)&&multiplayerConnectionAllowed(game,connection))))return true;
+        &&(peer.isEmpty()||(connection=="local"?(localLobbyRuntime(local.toObject())&&localLobbyRuntime(game)):(multiplayerConnectionAllowed(local.toObject(),connection)&&multiplayerConnectionAllowed(game,connection)))))return true;
     return false;
 }
 void GameParty::configure(QString name,QJsonArray games,QJsonObject current,bool available) {
@@ -44,7 +44,7 @@ void GameParty::packet(const QString& peer,QString kind,QJsonObject p) {
     p["trainer"]=name_;p["ns"]="org.traineros.party";p["v"]=1;p["boot"]=boot_;p["kind"]=kind;p["expires"]=now()+90;
     if(!p.contains("target"))p["target"]=peers_.value(peer).boot;
     if(!p.contains("party"))p["party"]=party_;
-    if(encode(p).size()>2000){emit notice("Couldn't send the game invitation.");return;}
+    if(encode(p).size()>(peer.startsWith("local:")?16384:2000)){emit notice("Couldn't send the game invitation.");return;}
     emit outgoing(peer,p);
 }
 QJsonObject GameParty::state() const {
@@ -182,9 +182,10 @@ void GameParty::start() {
     }
     running_=true;publish();emit startRequested(true,{});
 }
-bool GameParty::bindLobby(QString ticket,QJsonObject game,QJsonArray roster,QString self,QString owner,QString admission) {
+bool GameParty::bindLobby(QString ticket,QJsonObject game,QJsonArray roster,QString self,QString owner,QString admission,bool local) {
+    const QString prefix=local?"local:":"online:";
     if(!admission.isEmpty()&&(!uuid(admission)||self==owner||game.value("lateJoin")==false))return false;
-    if(active()||!available_||!uuid(ticket)||!supports(game,"online:"+owner)||roster.isEmpty()||roster.size()>capacity(game))return false;
+    if(active()||!available_||!uuid(ticket)||!supports(game,prefix+owner)||roster.isEmpty()||roster.size()>capacity(game))return false;
     QSet<QString> ids;QSet<int> seats;QJsonObject hostMember;
     for(const auto& value:roster) {
         const auto m=value.toObject();const auto id=m["id"].toString();const int seat=m["seat"].toInt();
@@ -195,12 +196,12 @@ bool GameParty::bindLobby(QString ticket,QJsonObject game,QJsonArray roster,QStr
     }
     if(!ids.contains(self)||hostMember["seat"]!=1)return false;
     clear();lobbyBound_=true;party_=ticket;boot_=admission.isEmpty()?ticket:admission;game_=game;access_="closed";
-    host_=self==owner?QString():"online:"+owner;hostBoot_=ticket;
+    host_=self==owner?QString():prefix+owner;hostBoot_=ticket;
     // Keep the runtime's canonical host-first roster, independent of account ID order.
     const auto append=[&](const QJsonObject& m) {
-        const auto id=m["id"].toString(),peer=id==owner?QString():"online:"+id;
+        const auto id=m["id"].toString(),peer=id==owner?QString():prefix+id;
         roster_.append(QJsonObject{{"peer",peer},{"name",m["name"]},{"slot",m["seat"]},{"ready",true}});
-        if(id!=self)peers_["online:"+id]={m["name"].toString(),ticket,{}, {},now()+90,0,false};
+        if(id!=self)peers_[prefix+id]={m["name"].toString(),ticket,{}, {},now()+90,0,false};
         if(self==owner&&id!=self)members_[peer]={m["name"].toString(),ticket,ticket,m["seat"].toInt(),true,0};
     };
     append(hostMember);for(const auto& v:roster)if(v.toObject()["id"]!=owner)append(v.toObject());
@@ -208,7 +209,7 @@ bool GameParty::bindLobby(QString ticket,QJsonObject game,QJsonArray roster,QStr
 }
 bool GameParty::admitLobby(QString ticket,QString peer,QString name,QString admission,int seat) {
     if(!lobbyBound_||!host()||!running_||party_!=ticket||endpoint_.isEmpty()||game_.value("lateJoin")==false
-       ||!uuid(admission)||!peer.startsWith("online:")||members_.contains(peer)||seat<2||seat>capacity(game_))return false;
+       ||!uuid(admission)||(!peer.startsWith("online:")&&!peer.startsWith("local:"))||members_.contains(peer)||seat<2||seat>capacity(game_))return false;
     for(const auto& m:members_)if(m.slot==seat)return false;
     peers_[peer]={name.left(48),admission,{}, {},now()+90,0,false};
     members_[peer]={name.left(48),admission,admission,seat,true,0};publish();return true;
@@ -291,7 +292,7 @@ void GameParty::cancelInvite(const QString& peer) {
 }
 void GameParty::receive(QString peer,QString name,const QJsonObject& p) {
     if(!p["trainer"].toString().trimmed().isEmpty())name=p["trainer"].toString().left(48);
-    if(!available_||p["ns"]!="org.traineros.party"||p["v"]!=1||encode(p).size()>2000)return;
+    if(!available_||p["ns"]!="org.traineros.party"||p["v"]!=1||encode(p).size()>(peer.startsWith("local:")?16384:2000))return;
     const auto expiry=p["expires"].toInteger();const auto boot=p["boot"].toString(),kind=p["kind"].toString(),id=p["request"].toString();
     if(expiry<now()||expiry>now()+120||!uuid(boot))return;
     const auto company=companyOf(peer);

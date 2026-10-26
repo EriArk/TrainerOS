@@ -1,5 +1,10 @@
 # Native activity + reliable records, protocol v1 preview
 
+**25 October 2026, prepared source:** group records extend this contract to
+2–16 players through a host-star topology. This change is not an installed
+handheld build. Lobby UI is owned by a parallel task; see the
+[integration boundary](../docs/SDK_GROUP_LOBBY_HANDOFF.md).
+
 Multiplayer starts in the **existing GameHub Lobby**, for every SDK game:
 choose an installed game, prepare, Ready, then the organizer presses Start.
 Only Start launches each local game through TrainerOS's existing protected
@@ -15,17 +20,23 @@ A Crates game includes `traineros-activity.json` at its package root:
 {"schema":1,"app":"org.example.game","protocol":"game.1","seats":2}
 ```
 
+`seats` is an integer maximum from 2 to 16. A match may start with fewer than
+the declared maximum, but needs at least two connected, seated participants.
+All participants install the same protocol and maximum. A spectator has no game
+channel. The room owner must participate and is the simulation host; games own
+their simulation and fairness rules. Seated IDs and seats are immutable per match.
+
 This file is covered by the package archive hash. TrainerOS discovers it from
 the active installed receipt; neither a running process nor an Internet catalogue
 refresh is needed to show the game in Lobby. Title and local launch identity come
 from that receipt. The declaration cannot supply a command, executable path or
 remote URL. Duplicate app IDs, invalid declarations and removed packages are not
-advertised. Both devices must install matching protocol versions.
+advertised. All participants must install matching protocol versions.
 
 After startup the game calls `activity.register` with the declared app/protocol,
-then waits for `network.ready`. That event is sent only after both local clients
-have attached, the secure channel is connected and Lobby acknowledges both
-launches. A normal solo launch may attach to the SDK for avatars; registration
+then waits for `network.ready`. That event is sent only after the required local
+applications have attached, all required secure channels are connected and Lobby
+acknowledges the launches. A normal solo launch may attach to the SDK for avatars; registration
 alone must leave the local menu intact. Keep game menus free of compulsory
 "open the game, then go to Lobby" steps. `activity.open` is only an optional
 return shortcut, not multiplayer admission or the normal launch entry.
@@ -43,9 +54,11 @@ need a package update; running `activity.register` no longer advertises them.
 
 The hello capabilities include `lobby.activity: 1` and `network.records: 1` only
 when the local secure record helper is present. Apps should keep their standalone
-behavior when either capability is absent. The initial route is **two players,
-reliable ordered messages**. It does not advertise unreliable/realtime updates,
-universal NAT connectivity, five-player support or seamless reconnect.
+behavior when either capability is absent. `network.group: 1` additionally
+advertises **2–16 players with reliable ordered messages**. Group games must
+check this capability. It does not advertise unreliable updates, universal NAT
+connectivity or seamless reconnect. A 16-seat capacity is not a guarantee of
+16-player performance on every device or network.
 
 ## Wire methods
 
@@ -53,7 +66,7 @@ Use the [base JSON-lines protocol](PROTOCOL.md). All calls require a local Train
 
 | Method | Parameters | Result |
 | --- | --- | --- |
-| `activity.register` | `title` (1–64), `protocol` (1–64 ASCII letters/digits/underscore/dot/hyphen) | `id`, `mode`, `seats: 2`; attaches this connection to its declared activity; does not populate the picker |
+| `activity.register` | `title` (1–64), `protocol` (1–64 ASCII letters/digits/underscore/dot/hyphen) | `id`, `mode`, installed maximum `seats`; attaches this connection to its declared activity; does not populate the picker |
 | `activity.get` | `{}` | `registered`, `session` (empty until ready) |
 | `activity.open` | `{}` | Opens the existing GameHub Lobby; membership is unchanged |
 | `activity.unregister` | `{}` | Detaches the running client and closes its channel; installed game stays in Lobby |
@@ -80,6 +93,38 @@ Grants differ between hosts and sessions. An app can use only its own current
 grant. The helper authenticates the shared room/generation/game/ticket/participants
 and fresh connection binding. Raw mailbox codes, certificate pins, session tokens
 and private helper configuration are never exposed to the app or public listing.
+
+### Group sessions (capability `network.group: 1`)
+
+The ready session additionally contains `hostMember`, `maxPlayers: 16`,
+`members: [{id, seat, connected: true}, ...]` sorted by seat, and
+`channels: [{peer, channel}, ...]`. Seat numbers are unique within the installed
+maximum and can have gaps. Do not infer the local seat from the host flag; find
+`self` in `members`. Host and client grants are different, opaque local strings.
+The host receives N−1 channels, each client one channel to the host. The legacy
+`channel`/`peer` fields remain when there is exactly one local link.
+
+Send to an individual channel. A broadcast is deliberate app-side fanout; there
+is no hidden partial-broadcast success. Send sequences, receive sequences,
+acknowledgements and the 64-record credit window are **per channel**. Consume
+the exact received channel/sequence pair after handling it. A stalled peer does
+not borrow another peer's credit. Host applications must pump IPC regularly and
+bound their own queues. `network.data` and `network.ack` include the authenticated
+peer. No client can send on another participant's grant or talk directly to
+other clients. Applications validate command ownership and host authority.
+
+`network.close` on any admitted channel closes the entire immutable match;
+`network.closed` can carry an empty `channel` for a group host and always revokes
+all its current grants. Membership/seat/host/game changes or any failed link
+also end the match. Persistent Lobby membership is independent. This revision
+does not add live joining, host migration or automatic replay/reconnection.
+
+The host reuses one existing secure helper per client (at most 15); each client
+uses one helper. Every edge binds the room, generation, ticket, full membership,
+host/client identities and fresh connection token. No new operator-owned media
+relay is required. More peers increase host memory, upload and startup costs;
+device and internet acceptance remain explicit. Use bounded snapshots/deltas
+instead of resending a large static map in every update.
 
 `network.ready` follows the helper's secure handshake **and** the Lobby's launch
 acknowledgements. `network.ack` means that the peer application returned credit;

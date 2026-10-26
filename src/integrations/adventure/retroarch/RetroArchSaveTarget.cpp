@@ -1,5 +1,6 @@
 #include "RetroArchSave.h"
 #include "RetroArchSavePaths.h"
+#include "integrations/adventure/CartridgeContent.h"
 #include <QDirIterator>
 #include <QFile>
 #include <QJsonArray>
@@ -10,7 +11,14 @@ using namespace retroarch;
 SaveTarget resolveRetroArchSave(const AdventureRegistration& r, const RetroArchInstallation& installation) {
     SaveTarget target; target.adventureId=r.adventure.id; target.title=r.adventure.title;
     if (!installation.saveBackups || r.adventure.collectionOnly || r.adventure.adapterId!="retroarch"
-        || r.integrationConfig["core"].toString()!="mgba" || QFileInfo(r.contentPath).suffix().toLower()!="gba") return target;
+        || r.integrationConfig["core"].toString()!="mgba" ||
+        (QFileInfo(r.contentPath).suffix().toLower()!="gba"&&!cartridge::archived(r.contentPath))) return target;
+    if(cartridge::archived(r.contentPath)) {
+        const std::atomic_bool cancel=false;
+        if(cartridge::read(r.contentPath,"gba",cancel).bytes.isEmpty()) {
+            target.error="This archive must contain exactly one readable GBA cartridge.";return target;
+        }
+    }
 #ifdef Q_OS_LINUX
     QDirIterator processes("/proc",QDir::Dirs|QDir::NoDotAndDotDot|QDir::NoSymLinks);
     while(processes.hasNext()) {

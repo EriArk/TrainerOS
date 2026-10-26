@@ -4,7 +4,7 @@ Item {
     id: root
     required property var shell
     readonly property var tools: shell.libraryTools
-    readonly property bool takesFocus: visible && !shell.keyboard.open && !shell.menuOpen && !shell.notice.length && !tools.busy
+    readonly property bool takesFocus: visible && !shell.keyboard.open && !shell.menuOpen && !shell.notice.length && (!tools.busy || tools.canCancel)
     readonly property bool reviews: tools.route === "reviews"
     Rectangle { anchors.fill: parent; color: Theme.surfaceColor("#660d2525") }
     TapHandler { onTapped: {} }
@@ -50,7 +50,7 @@ Item {
                 }
             }
             }
-            Text { id: error; width: parent.width; visible: text.length>0; text: root.tools.busy?"Saving…":root.tools.error; textFormat: Text.PlainText; font.pixelSize: 16; color: Theme.textColor("#803724"); wrapMode: Text.WordWrap }
+            Text { id: error; width: parent.width; visible: text.length>0; text: root.tools.busy&&!root.tools.canCancel?"Saving…":root.tools.error; textFormat: Text.PlainText; font.pixelSize: 16; color: Theme.textColor("#803724"); wrapMode: Text.WordWrap }
         }
     }
     Connections { target: root.tools; function onScrollReview(direction) { reviewText.contentY=Math.max(0,Math.min(Math.max(0,reviewText.contentHeight-reviewText.height),reviewText.contentY+direction*140)) } }

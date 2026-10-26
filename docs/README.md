@@ -34,7 +34,7 @@ R-ID готовности → S-владельцы → F-сценарии. Ст�
   [save lineage](SAVE_LINEAGE.md), [backup](SAVE_BACKUPS.md), [выход](ADVENTURE_EXIT.md).
 - Адаптеры: [реестр знаний](adapters/README.md), [границы framework](UX_FRAMEWORK.md).
 - Общение: [Social](SOCIAL.md), [возможности Fluxer](FLUXER_CAPABILITIES_RU.md),
-  [Lobby](LOBBY.md), [Remote Play](REMOTE_PLAY_TRANSPORT.md).
+  [Lobby](LOBBY.md), [Local без аккаунта](OFFLINE_LOBBY.md), [Remote Play](REMOTE_PLAY_TRANSPORT.md).
 - Apps: [Files](FILES68_IMPLEMENTATION.md), [Browser](BROWSER71_IMPLEMENTATION.md),
   [Crates installer](CRATES76_INSTALLER.md), [каталог](CRATES77_CATALOGUE.md).
 - Устройство: [платформа](ARMADA_PLATFORM.md), [диагностика](DEVICE_DIAGNOSTICS.md),

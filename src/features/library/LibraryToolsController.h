@@ -6,6 +6,8 @@
 #include <QObject>
 #include <QVariantList>
 #include <functional>
+#include <atomic>
+#include <memory>
 
 namespace trainer {
 // Small, contextual library operations. Installation and save routing remain
@@ -14,6 +16,7 @@ class LibraryToolsController final : public QObject {
     Q_OBJECT
     Q_PROPERTY(bool open READ isOpen NOTIFY changed)
     Q_PROPERTY(bool busy READ busy NOTIFY changed)
+    Q_PROPERTY(bool canCancel READ canCancel NOTIFY changed)
     Q_PROPERTY(QString route READ route NOTIFY changed)
     Q_PROPERTY(QString title READ title NOTIFY changed)
     Q_PROPERTY(QString detail READ detail NOTIFY changed)
@@ -26,6 +29,7 @@ public:
     explicit LibraryToolsController(LibraryRepository& repository, QObject* parent=nullptr):QObject(parent),repository_(repository){}
     bool isOpen() const {return !route_.isEmpty();}
     bool busy() const {return busy_;}
+    bool canCancel() const {return bool(installCancel_);}
     QString route() const {return route_;}
     QString title() const;
     QString detail() const;
@@ -43,6 +47,9 @@ public:
     void setCatalog(FileCatalog* catalog) {catalog_=catalog;}
     std::function<QString()> editGuard;
     std::function<bool(const QString&)> multiplayerAvailable;
+    std::function<bool(const AdventureRegistration&)> contentPackage;
+    std::function<QString(const AdventureRegistration&,const std::atomic_bool&)> installPackage;
+    std::function<QString()> installGuard;
     std::function<void(const AdventureRegistration&,QObject*,std::function<void(QStringList)>)> capabilityQuery;
     std::function<void(const AdventureRegistration&,QObject*,std::function<void(AdventureCompletion)>)> completionQuery;
     void receiveReviews(const QString& identity,const QVariantMap& state);
@@ -69,6 +76,9 @@ private:
     bool reviewSpoiler_=false;
     void submit(LibraryEdit);
     void browse(const QString&,int page=0);
+    void installContent();
+    std::shared_ptr<std::atomic_bool> installCancel_;
+    QString installNotice_;
     LibraryRepository& repository_;
     QString route_,error_;
     AdventureRegistration game_;

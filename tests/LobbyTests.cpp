@@ -520,9 +520,11 @@ private slots:
         QTest::newRow("psp-host-invalid-address-batch")<<true<<false<<QString("psp");
         QTest::newRow("ps2-guest-removed")<<false<<false<<QString("ps2");
         QTest::newRow("ps2-invalid-address-batch")<<true<<false<<QString("ps2");
+        QTest::newRow("cabinet-guest-removed")<<false<<false<<QString("cabinet");
+        QTest::newRow("cabinet-invalid-address-batch")<<true<<false<<QString("cabinet");
     }
     void realLobbyConnectionOwnsHelperAndRevokesOnGuestRemoval() {
-        QFETCH(bool,badCandidates);QFETCH(bool,rejoin);QFETCH(QString,mode);const bool psp=mode=="psp",ps2=mode=="ps2";
+        QFETCH(bool,badCandidates);QFETCH(bool,rejoin);QFETCH(QString,mode);const bool psp=mode=="psp",ps2=mode=="ps2",cabinet=mode=="cabinet";
         const auto helper=qEnvironmentVariable("TRAINEROS_STREAM_TRANSPORT");if(helper.isEmpty())QSKIP("Real Linux transport supplied by the ARM integration check");
         LobbyCoordinator host,guest;host.configure("1","Host",true);guest.configure("2","Guest",true);
         connect(&host,&LobbyCoordinator::outgoing,&guest,[&](QString peer,QJsonObject p){if(peer=="2")guest.receive("1","Host",p);});
@@ -534,16 +536,16 @@ private slots:
         LobbyConnection hc(host),gc(guest);QSignalSpy hr(&hc,&LobbyConnection::connected),gr(&gc,&LobbyConnection::connected),ended(&hc,&LobbyConnection::ended),media(&gc,&LobbyConnection::mediaReady);
         connect(&host,&LobbyCoordinator::launchRequested,&hc,[&](QString ticket,QJsonObject){QVERIFY(hc.start("1",ticket,helper,{},mode));});
         connect(&guest,&LobbyCoordinator::launchRequested,&gc,[&](QString ticket,QJsonObject){QVERIFY(gc.start("2",ticket,helper,{},mode));});
-        QVERIFY(host.create("public"));auto selected=game();selected.mode=psp?"runtime.ppsspp.adhoc.v1":ps2?"runtime.armsx2.lan.v1":"remoteplay.v1";
-        if(psp||ps2)selected.runtime={{"id",selected.mode}};
+        QVERIFY(host.create("public"));auto selected=game();selected.mode=psp?"runtime.ppsspp.adhoc.v1":ps2?"runtime.armsx2.lan.v1":cabinet?"runtime.flycast.cabinet.v1":"remoteplay.v1";
+        if(psp||ps2||cabinet)selected.runtime={{"id",selected.mode}};
         QVERIFY(host.selectGame(selected));if(psp)QVERIFY(host.activeRoom()->setRelay("psp-host"));
         QVERIFY(guest.join("1",host.state()["id"].toString()));const auto gen=host.state()["generation"].toInteger();
         QVERIFY(host.prepared(gen,true));QVERIFY(guest.prepared(gen,true));QVERIFY(host.ready(true));QVERIFY(guest.ready(true));QVERIFY(host.start());
         QTRY_COMPARE_WITH_TIMEOUT(hr.size(),1,15000);QTRY_COMPARE_WITH_TIMEOUT(gr.size(),1,15000);QCOMPARE(hc.id(),gc.id());
         const auto hostFile=hr[0][0].toString(),guestFile=gr[0][0].toString();QFile file(hostFile);QVERIFY(file.open(QIODevice::ReadOnly));
         const auto config=file.readAll();QVERIFY(config.contains("mode="+mode.toUtf8()+"\n"));
-        if(psp||ps2)QVERIFY(config.contains("address=127.0.0.1\n"));else QVERIFY(config.contains("seconds=0\n"));file.close();
-        if(ps2)QVERIFY(config.contains("socket="));
+        if(psp||ps2)QVERIFY(config.contains("address=127.0.0.1\n"));else if(!cabinet)QVERIFY(config.contains("seconds=0\n"));file.close();
+        if(ps2||cabinet)QVERIFY(config.contains("socket="));
         const auto ticket=host.state()["ticket"].toString();QVERIFY(host.acknowledgeLaunch(ticket,true));QVERIFY(guest.acknowledgeLaunch(ticket,true));
         QVERIFY(hc.announceMedia());QCOMPARE(media.size(),1);
         if(rejoin) {
@@ -574,6 +576,35 @@ private slots:
         } else QVERIFY(host.remove("2"));
         QCOMPARE(ended.size(),1);QVERIFY(!hc.active());QTRY_VERIFY(!gc.active());
         QVERIFY(!QFile::exists(hostFile));QVERIFY(!QFile::exists(guestFile));QCOMPARE(host.state()["phase"].toString(),"playing");
+    }
+    void nativeLanGroupKeepsPeerConnectionsSeparate() {
+        const auto helper=qEnvironmentVariable("TRAINEROS_STREAM_TRANSPORT");if(helper.isEmpty())QSKIP("Real Linux transport supplied by integration check");
+        for(const auto& mode:{QString("cabinet"),QString("ps2"),QString("bba")})for(int count:{3,4}) {
+            LobbyCoordinator a,b,c,d;QList<LobbyCoordinator*> nodes{&a,&b,&c,&d};
+            QList<LobbyConnection*> edges;int connected=0,ended=0;
+            for(int i=0;i<count;++i) {
+                auto* node=nodes[i];node->configure(QString::number(i+1),QString::number(i+1),true);
+                connect(node,&LobbyCoordinator::outgoing,node,[&,i](QString peer,QJsonObject p){int target=peer.toInt()-1;if(target>=0&&target<count)nodes[target]->receive(QString::number(i+1),QString::number(i+1),p);});
+                connect(node,&LobbyCoordinator::launchRequested,node,[&,i](QString ticket,QJsonObject){
+                    for(int guest=2;guest<=count;++guest) {
+                        if(i!=0&&guest!=i+1)continue;
+                        auto* connection=new LobbyConnection(*nodes[i],nodes[i]);edges.append(connection);
+                        connect(connection,&LobbyConnection::connected,connection,[&](QString){++connected;});
+                        connect(connection,&LobbyConnection::ended,connection,[&](QString){++ended;});
+                        QVERIFY(connection->start(QString::number(i+1),ticket,helper,{},mode,QString::number(guest)));
+                    }
+                });
+            }
+            QVERIFY(a.create("public"));auto selected=game();selected.mode=mode=="ps2"?"runtime.armsx2.lan.v1":mode=="bba"?"runtime.dolphin.bba.v1":"runtime.flycast.cabinet.v1";selected.seats=4;selected.runtime={{"id",selected.mode},{"players",4}};
+            QVERIFY(a.selectGame(selected));for(int i=1;i<count;++i)QVERIFY(nodes[i]->join("1",a.state()["id"].toString()));
+            const auto gen=a.state()["generation"].toInteger();for(int i=0;i<count;++i){QVERIFY(nodes[i]->prepared(gen,true));QVERIFY(nodes[i]->ready(true));}
+            QVERIFY(a.start());QTRY_COMPARE_WITH_TIMEOUT(connected,2*(count-1),20000);
+            QSet<QString> hostIds;for(auto* edge:edges)if(edge->peer()!="1")hostIds.insert(edge->id());QCOMPARE(hostIds.size(),count-1);
+            const auto ticket=a.state()["ticket"].toString();for(int i=0;i<count;++i)QVERIFY(nodes[i]->acknowledgeLaunch(ticket,true));
+            QVERIFY(a.remove(QString::number(count)));QTRY_COMPARE(ended,2);
+            // Removing one peer cannot bind another guest to the old channel.
+            for(auto* edge:edges)edge->stop();
+        }
     }
     void remoteInputRequiresPlayingRemoteModeAndAssignedGuest() {
         LobbyCoordinator host;host.configure("1","Host",true);QVERIFY(host.create("public"));

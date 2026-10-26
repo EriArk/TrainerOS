@@ -1,0 +1,25 @@
+{
+  "id": "runtime.dolphin.bba.v1",
+  "platform": "gc",
+  "romSha256": "",
+  "state": "partial",
+  "record": "../emulators/dolphin.md",
+  "persistentSaveWrites": false,
+  "evidence": [
+    "pinned-upstream-tapserver-contract",
+    "linux-ice-dtls-native-frame-boundary-and-package",
+    "pinned-tapserver-eof-negative-control-and-patched-check",
+    "complete-arm64-dolphin-and-helper-packages-qemu-startup-dependencies-and-16-transport-checks"
+  ],
+  "remaining": [
+    "arm64-shell-build",
+    "native-two-emulator-match",
+    "handheld-delivery",
+    "game-latency-and-internet-acceptance"
+  ],
+  "implementationSource": "src/integrations/adventure/standalone/DolphinLan.cpp",
+  "implementation": "implementations/runtime",
+  "profile": "implementations/runtime/profiles/runtime.dolphin.bba.v1.json",
+  "recipe": "packaging/emulators/dolphin/package-lan.py",
+  "evidenceBase": "../../../"
+}

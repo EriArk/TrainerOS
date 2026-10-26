@@ -1,5 +1,6 @@
 #include "DolphinNetplay.h"
 #include "NetplayCache.h"
+#include "integrations/adventure/DiscPlaylist.h"
 #include "core/model/GamePlayers.h"
 #include "integrations/adventure/retroarch/RetroArchConfiguration.h"
 #include <QDir>
@@ -13,29 +14,92 @@
 #include <QSet>
 #include <QProcess>
 #include <QElapsedTimer>
+#include <QCryptographicHash>
 
 namespace trainer::dolphin {
 QString bridgeRoot() {return QStandardPaths::writableLocation(QStandardPaths::GenericDataLocation)+"/TrainerOS/emulators/dolphin-netplay";}
 QString bridgeFile() {return bridgeRoot()+"/bin/dolphin-emu";}
-QJsonObject netplayIdentity(const AdventureRegistration& r,const StandaloneInstallation& i,const std::atomic_bool& cancel,int players) {
+QString contentIdentity(const QString& path,qint64 limit,const std::atomic_bool& cancel,const std::function<void(const QString&)>& observe) {
+    if(observe)observe(path);
+    if(QFileInfo(path).suffix().compare("nfs",Qt::CaseInsensitive)==0) {
+        const QFileInfo info(path);
+        if(info.fileName()!="hif_000000.nfs"||info.dir().dirName()!="content")return {};
+        if(observe)observe(info.absolutePath());
+        const auto key=QDir::cleanPath(info.dir().absoluteFilePath("../code/htk.bin"));
+        if(observe)observe(key);
+        if(QFileInfo(key).size()!=16)return {};
+        QJsonArray parts;const auto keyHash=retroarch::fileDigest(key,16,cancel);
+        if(keyHash.isEmpty())return {};
+        parts.append(keyHash);qint64 total=0;
+        for(int n=0;n<256;++n) {
+            const auto part=info.dir().filePath(QString("hif_%1.nfs").arg(n,6,10,QChar('0')));
+            if(observe)observe(part);
+            if(!QFileInfo::exists(part))break;
+            const auto hash=retroarch::fileDigest(part,limit-total,cancel);
+            if(hash.isEmpty()||n==255)return {};
+            total+=QFileInfo(part).size();parts.append(hash);
+        }
+        if(parts.size()<2||info.dir().entryList({"hif_*.nfs"},QDir::Files).size()!=parts.size()-1)return {};
+        return QString::fromLatin1(QCryptographicHash::hash(QJsonDocument(QJsonObject{{"dolphin-nfs-v1",parts}}).toJson(QJsonDocument::Compact),QCryptographicHash::Sha256).toHex());
+    }
+    const auto first=retroarch::fileDigest(path,limit,cancel);if(first.isEmpty())return {};
+    const bool split=path.endsWith(".part0.iso"),wbfs=QFileInfo(path).suffix().compare("wbfs",Qt::CaseInsensitive)==0;
+    if(!split&&!wbfs)return first;
+    QJsonArray parts{first};qint64 total=QFileInfo(path).size();
+    const int maximum=wbfs?10:256;
+    for(int n=1;n<maximum;++n) {
+        const auto part=wbfs?path.chopped(1)+QString::number(n):path.chopped(10)+QString(".part%1.iso").arg(n);
+        if(observe)observe(part);
+        if(!QFileInfo::exists(part))break;
+        const auto hash=retroarch::fileDigest(part,limit-total,cancel);if(hash.isEmpty())return {};
+        total+=QFileInfo(part).size();parts.append(hash);
+        if(split&&n==maximum-1)return {}; // Bound a malicious/unbounded part chain.
+    }
+    if(parts.size()==1)return first; // Preserve installed single-file identities.
+    return QString::fromLatin1(QCryptographicHash::hash(QJsonDocument(QJsonObject{{"dolphin-parts-v1",parts}}).toJson(QJsonDocument::Compact),QCryptographicHash::Sha256).toHex());
+}
+QJsonObject netplayIdentity(const AdventureRegistration& r,const StandaloneInstallation& i,const std::atomic_bool& cancel,int players,
+                           const std::function<void(const QString&)>& observe) {
     const bool wii=r.adventure.platformId=="wii";
     if((!wii&&r.adventure.platformId!="gc")||r.adventure.adapterId!="dolphin"||!i.platforms.contains(r.adventure.platformId))return {};
     if(players<2||players>4)return {};
+    if(observe)observe(bridgeRoot()+"/manifest.json");
+    if(disc::playlist(r.contentPath)) {
+        const auto paths=disc::entries(r.contentPath,wii?QStringList{"iso","gcm","bin","rvz","wia","gcz","ciso","wbfs","nfs"}:
+                                                      QStringList{"iso","gcm","bin","rvz","wia","gcz","ciso","tgc"},observe);
+        if(paths.isEmpty())return {};
+        QJsonObject identity;QJsonArray hashes;
+        for(const auto& path:paths) {
+            auto child=r;child.contentPath=path;
+            const auto value=netplayIdentity(child,i,cancel,players,observe);
+            if(value.isEmpty())return {};
+            if(identity.isEmpty())identity=value;
+            hashes.append(value["content"]);
+        }
+        identity["content"]=QString::fromLatin1(QCryptographicHash::hash(QJsonDocument(QJsonObject{{"dolphin-list-v1",hashes}}).toJson(QJsonDocument::Compact),QCryptographicHash::Sha256).toHex());
+        return identity;
+    }
     const auto extension=QFileInfo(r.contentPath).suffix().toLower();
-    if(wii ? (extension!="iso"&&extension!="rvz"&&extension!="wbfs"&&extension!="wia"&&extension!="gcz") : (extension!="iso"&&extension!="gcm"))return {};
+    const bool raw=extension=="iso"||extension=="gcm"||extension=="bin";
+    const bool executable=extension=="elf"||extension=="dol";
+    if(!raw&&!executable&&!QStringList{"rvz","wia","gcz","ciso","tgc"}.contains(extension)&&!(wii&&QStringList{"wbfs","wad","nfs"}.contains(extension)))return {};
     const qint64 maxSize=wii?9LL*1024*1024*1024:1500LL*1024*1024;
     QFile file(r.contentPath);
     if(!file.open(QIODevice::ReadOnly)||file.size()<0x20||file.size()>maxSize)return {};
     const auto header=file.read(0x20);
-    if(!wii&&header.mid(0x1c,4)!=QByteArray::fromHex("c2339f3d"))return {}; // Raw GameCube disc, not Wii or an archive.
+    if(!wii&&raw&&header.mid(0x1c,4)!=QByteArray::fromHex("c2339f3d"))return {};
     QFile manifest(bridgeRoot()+"/manifest.json");
     if(!manifest.open(QIODevice::ReadOnly)||manifest.size()>8192)return {};
     const auto m=QJsonDocument::fromJson(manifest.readAll()).object();
     if(m["protocol"]!=1||m["source"]!="c77bbaa0f372c3f72281602a8b087206706542cb")return {};
     const auto runtime=retroarch::fileDigest(bridgeFile(),256*1024*1024,cancel);
     if(runtime.isEmpty()||runtime!=m["sha256"].toString())return {};
-    if(wii) {
-        if(m["wiimote"]!="dolphin-wiimote-v1")return {};
+    if(wii&&m["wiimote"]!="dolphin-wiimote-v1")return {};
+    if(extension=="wad"&&m["wad"]!="dolphin-wad-channel-v1")return {};
+    if(executable&&(m["executable"]!="dolphin-native-executable-v1"||file.size()>128*1024*1024))return {};
+    if(wii||!raw) {
+        // Use Dolphin's own volume reader for compressed discs. Extensions do
+        // not establish the console type; preserve legacy raw-GC installations.
         const auto tool=bridgeRoot()+"/bin/dolphin-tool";
         const auto toolHash=retroarch::fileDigest(tool,128*1024*1024,cancel);
         if(toolHash.isEmpty()||toolHash!=m["toolSha256"].toString())return {};
@@ -50,9 +114,9 @@ QJsonObject netplayIdentity(const AdventureRegistration& r,const StandaloneInsta
         }
         const auto output=probe.readAllStandardOutput();
         if(cancel||probe.exitStatus()!=QProcess::NormalExit||probe.exitCode()!=0||output.size()>8192||
-           QJsonDocument::fromJson(output).object()["platform"]!="wii")return {};
+           QJsonDocument::fromJson(output).object()["platform"]!=r.adventure.platformId)return {};
     }
-    const auto content=retroarch::fileDigest(r.contentPath,maxSize,cancel);
+    const auto content=contentIdentity(r.contentPath,maxSize,cancel,observe);
     if(content.isEmpty())return {};
     QJsonObject identity;
     if(wii)identity={{"id","runtime.dolphin.wii.v1"},{"label",r.adventure.title.left(96)},
@@ -105,7 +169,22 @@ QString configureNetplay(ProcessCommand& cmd,const StandaloneInstallation& i,con
         "\nHostPort = 2626\nListenPort = 2626\nUseUPNP = False\nUseIndex = False\nSyncSaves = False\nWriteSaveData = False\n"
         "SyncCodes = False\nRecordInputs = False\nStrictSettingsSync = True\nNetworkMode = fixeddelay\nBufferSize = 5\n"
         "Address = "+request.address.toUtf8()+"\nHostCode = "+request.address.toUtf8()+"\nConnectPort = "+QByteArray::number(request.port)+"\n";
-    QJsonObject session{{"protocol",1},{"game",content},{"host",request.host},{"token",request.token},{"slot",request.slot},{"slots",request.seats}};
+    QString boot=content;
+    if(disc::playlist(content)) {
+        const auto entries=disc::entries(content,wii?QStringList{"iso","gcm","bin","rvz","wia","gcz","ciso","wbfs","nfs"}:
+                                                   QStringList{"iso","gcm","bin","rvz","wia","gcz","ciso","tgc"});
+        if(entries.isEmpty())return "This disc list changed. Choose the game again.";
+        boot=entries.first();
+    }
+    const auto bootExtension=QFileInfo(boot).suffix().toLower();
+    if(bootExtension=="elf"||bootExtension=="dol") {
+        // Native homebrew SyncIdentifier includes a name-derived game ID.
+        // Give equal byte content the same private basename on both peers.
+        const auto local=root+"/game."+bootExtension;
+        if(!QFile::copy(boot,local))return "Couldn't prepare this executable.";
+        boot=local;
+    }
+    QJsonObject session{{"protocol",1},{"game",boot},{"host",request.host},{"token",request.token},{"slot",request.slot},{"slots",request.seats}};
     if(hotseat)session["hotseat"]=true;
     if(wii)session["controllers"]="wiimote";
     if(!write(root+"/Config/Dolphin.ini",config)||!write(root+"/Config/GFX.ini","[Settings]\nInternalResolution = 1\nAspectRatio = 0\nShaderCompilationMode = 0\n")||

@@ -8,7 +8,8 @@
 
 // ECLX v1 envelopes, unchanged, over the existing authenticated datagram channel.
 // ARMSX2 owns Ethernet, DHCP, SipHash, nonce/replay checks and reassembly.
-// No destination is accepted from the remote peer. Two emulator instances only.
+// No destination is accepted from the remote peer. One accepted host/guest edge;
+// multiple host instances use distinct ephemeral ports for the native LAN hub.
 class Ps2Sockets final : public QObject {
 public:
     static constexpr quint16 HostPort = 19072;

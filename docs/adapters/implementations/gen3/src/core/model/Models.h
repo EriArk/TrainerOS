@@ -46,7 +46,7 @@ struct AdventureRegistration {
 };
 struct LibraryWriteResult { bool success; QString error; int revision = 0; };
 struct ShellPreferences {
-    QString theme = "turquoise";
+    QString theme = "light";
     bool reducedMotion = false;
     bool worldEditing = false;
     bool videoPreviews = true;
@@ -122,6 +122,7 @@ struct TrainerProfile {
     QString emblemId = "compass";
     QString favoritePokemonId;
     QDateTime createdAt;
+    QJsonObject avatar;
 };
 enum class ArchiveSource { Manual, Imported };
 struct HallOfFameMember {

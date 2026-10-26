@@ -15,6 +15,8 @@
 #include <cstdio>
 #include "Core/HW/GCPad.h"
 #include "Core/HW/Wiimote.h"
+#include "Core/Boot/DolReader.h"
+#include "Core/Boot/ElfReader.h"
 #include "DiscIO/Enums.h"
 #include "InputCommon/InputConfig.h"
 #include "InputCommon/ControllerEmu/ControllerEmu.h"
@@ -68,8 +70,28 @@ void MainWindow::InitTrainerNetplay()
     return fail(QStringLiteral("configuration"));
   const auto game = std::make_shared<UICommon::GameFile>(settings[QStringLiteral("game")].toString().toStdString());
   const bool wii = settings[QStringLiteral("controllers")] == QStringLiteral("wiimote");
+  bool executable_matches = false;
+  if (game->GetPlatform() == DiscIO::Platform::ELFOrDOL)
+  {
+    const auto filename = settings[QStringLiteral("game")].toString();
+    if (QFileInfo(filename).size() > 128 * 1024 * 1024)
+      return fail(QStringLiteral("game"));
+    std::unique_ptr<BootExecutableReader> executable;
+    if (filename.endsWith(QStringLiteral(".dol"), Qt::CaseInsensitive))
+      executable = std::make_unique<DolReader>(filename.toStdString());
+    else if (filename.endsWith(QStringLiteral(".elf"), Qt::CaseInsensitive))
+    {
+      auto elf = std::make_unique<ElfReader>(filename.toStdString());
+      if (!elf->IsValid() || static_cast<int>(elf->GetMachine()) != 20 ||
+          static_cast<int>(elf->GetType()) != 2 || elf->GetNumSegments() == 0)
+        return fail(QStringLiteral("game"));
+      executable = std::move(elf);
+    }
+    executable_matches = executable && executable->IsValid() && executable->GetEntryPoint() != 0 && executable->IsWii() == wii;
+  }
   if (!game->IsValid() ||
-      game->GetPlatform() != (wii ? DiscIO::Platform::WiiDisc : DiscIO::Platform::GameCubeDisc) ||
+      (!executable_matches && (wii ? (game->GetPlatform() != DiscIO::Platform::WiiDisc && game->GetPlatform() != DiscIO::Platform::WiiWAD)
+           : game->GetPlatform() != DiscIO::Platform::GameCubeDisc)) ||
       (wii && hotseat))
     return fail(QStringLiteral("game"));
   // A Steam-session device name may no longer exist in the native shell.

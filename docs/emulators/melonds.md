@@ -1,5 +1,24 @@
 # melonDS deterministic wireless preparation
 
+**25 октября — доставка:** расширенные форматы и совместимая со свежим core/main
+оболочка установлены на Flip/Odin. [Хеши, native проверки, сохранность данных
+и откат](../MULTIPLAYER_CONTENT_FORMATS.md#доставка-на-flip-и-odin--25-октября-2026).
+Это заменяет прежние отметки «не установлено» для данного набора, не прежнюю
+историю игровой совместимости и не открытые ограничения native механизма.
+
+## ZIP/7z cartridges and save ownership — 25 October 2026
+
+Для закреплённого melonDS 1.1 сверены frontend CLI `--archive-file`,
+`ArchiveUtil` и save basename в `EmuInstance`. Общий `CartridgeContent`
+потоком читает один NDS/SRL. `MelonDsNetplay` помещает ROM в приватный
+сеанс; `MelonDsSave` ищет SAV по имени ROM внутри архива. Backup сохраняет
+ревизию исходного контейнера, native session receipt — хеш распакованного ROM.
+Обычный standalone явно передаёт выбранный archive member native frontend.
+Изменение архива запрещает возврат сейва по устаревшему seed. Пройдены
+cartridge/save/standalone и ARM64 DS admission проверки; frontend не пересобирался.
+[Общий результат, зависимости, обновление и откат](../MULTIPLAYER_CONTENT_FORMATS.md).
+Устройства не обновлены; DSi/WFC не добавлены.
+
 ## Ordinary standalone repair — 18 October 2026
 
 Odin's ordinary Flatpak melonDS failed before loading a game because its BIOS
