@@ -75,6 +75,7 @@
 #include <QStandardPaths>
 #include <memory>
 #include "integrations/adventure/standalone/AzaharNetplay.h"
+#include <QTemporaryDir>
 #ifdef TRAINEROS_UI_TESTS
 #include "WorldsSmokeScenario.h"
 #include "PokedexSmokeScenario.h"
@@ -92,6 +93,8 @@
 #include "PlatformSmokeScenario.h"
 #include "SettingsSmokeScenario.h"
 #include "AvatarSmokeScenario.h"
+#include "FirstRunSmokeScenario.h"
+#include "SoftwareUpdateSmokeScenario.h"
 #include "CratesSmokeScenario.h"
 #include "ExperienceSmokeScenario.h"
 #include "LobbySmokeScenario.h"
@@ -214,6 +217,8 @@ int main(int argc, char* argv[]) {
     parser.addOption({"settings-smoke-test", "Verify Settings and game input editor with isolated data."});
     parser.addOption({"avatar-smoke-test", "Verify local avatar editor and preview with isolated data."});
     parser.addOption({"platform-smoke-test", "Render and exercise the host-owned SDK widget with isolated data."});
+    parser.addOption({"first-run-smoke-test", "Exercise first setup with disposable profiles and local service fixtures."});
+    parser.addOption({"updates-smoke-test", "Exercise Settings Updates with disposable local process fixtures."});
     parser.addOption({"player-overlay-smoke-test", "Verify player bubbles and mini chat with isolated provider and input fixtures."});
     parser.addOption({"lobby-smoke-test", "Verify lobby and keyboard QML with isolated provider fixtures."});
     parser.addOption({"experience-smoke-test", "Verify independent experience modules in the real QML host."});
@@ -237,13 +242,15 @@ int main(int argc, char* argv[]) {
     bool hallSmoke = false;
     bool diagnosticsSmoke = false, settingsSmoke = false;
     bool exitSmoke = false;
-    bool downloadsSmoke = false, appsSmoke = false, cratesSmoke = false, platformSmoke = false, avatarSmoke = false;
+    bool downloadsSmoke = false, appsSmoke = false, cratesSmoke = false, platformSmoke = false, avatarSmoke = false, firstRunSmoke = false, updatesSmoke = false;
     bool experienceSmoke = false;
     bool lobbySmoke = false, playerOverlaySmoke = false;
     QString persistencePhase;
 #ifdef TRAINEROS_UI_TESTS
     platformSmoke = parser.isSet("platform-smoke-test");
     avatarSmoke = parser.isSet("avatar-smoke-test");
+    firstRunSmoke = parser.isSet("first-run-smoke-test");
+    updatesSmoke = parser.isSet("updates-smoke-test");
     playerOverlaySmoke = parser.isSet("player-overlay-smoke-test");
     lobbySmoke = parser.isSet("lobby-smoke-test");
     experienceSmoke = parser.isSet("experience-smoke-test");
@@ -261,7 +268,14 @@ int main(int argc, char* argv[]) {
     if (parser.isSet("persistence-smoke-test") && (!QStringList{"seed", "verify", "error", "library-seed", "library-verify", "library-final", "library-launch", "library-home", "library-home-reopen", "library-center", "collection"}.contains(persistencePhase)
             || parser.value("data-dir").isEmpty() || parser.isSet("ephemeral"))) return 2;
 #endif
-    const bool smoke = settingsSmoke || avatarSmoke || platformSmoke || cratesSmoke || appsSmoke || playerOverlaySmoke || lobbySmoke || experienceSmoke || parser.isSet("smoke-test") || downloadsSmoke || artSmoke || exitSmoke || worldsSmoke || pokedexSmoke || hallSmoke || diagnosticsSmoke || !persistencePhase.isEmpty();
+    const bool smoke = settingsSmoke || avatarSmoke || updatesSmoke || firstRunSmoke || platformSmoke || cratesSmoke || appsSmoke || playerOverlaySmoke || lobbySmoke || experienceSmoke || parser.isSet("smoke-test") || downloadsSmoke || artSmoke || exitSmoke || worldsSmoke || pokedexSmoke || hallSmoke || diagnosticsSmoke || !persistencePhase.isEmpty();
+    std::unique_ptr<QTemporaryDir> setupTestData;
+    if(firstRunSmoke || updatesSmoke) {
+        setupTestData=std::make_unique<QTemporaryDir>();
+        if(!setupTestData->isValid())return 2;
+        QSettings::setDefaultFormat(QSettings::IniFormat);
+        QSettings::setPath(QSettings::IniFormat,QSettings::UserScope,setupTestData->path());
+    }
     auto smokeBattery = std::make_shared<std::atomic_int>(65);
     PowerStatus powerStatus([smoke, smokeBattery] {
         if (!smoke) return systemBatteryStatus();
@@ -313,16 +327,17 @@ int main(int argc, char* argv[]) {
         if (pokedexSmoke) dex.failNextLoad();
         MockHallOfFameRepository shellArchive;
         MockAchievementProvider shellAchievements;
-        if (hallSmoke || diagnosticsSmoke) shellAchievements.enableAccountPreview();
+        if (hallSmoke || diagnosticsSmoke || firstRunSmoke) shellAchievements.enableAccountPreview();
+        if(firstRunSmoke)shellAchievements.setAccount({});
         std::unique_ptr<LocalStateStore> store;
         QString stateDirectory;
-        if ((!smoke && !parser.isSet("ephemeral")) || !persistencePhase.isEmpty()) {
-            const auto directory = parser.isSet("data-dir") ? QDir(parser.value("data-dir")).absolutePath()
+        if (firstRunSmoke || (!smoke && !parser.isSet("ephemeral")) || !persistencePhase.isEmpty()) {
+            const auto directory = firstRunSmoke ? setupTestData->path() : parser.isSet("data-dir") ? QDir(parser.value("data-dir")).absolutePath()
                 : QStandardPaths::writableLocation(QStandardPaths::AppLocalDataLocation);
             stateDirectory = directory;
             store = std::make_unique<LocalStateStore>(directory, nullptr, smoke && !persistencePhase.startsWith("library-") ? "prototype-library-v1" : "user-library-v1");
         }
-        if(store && !smoke)store->enforceAccess(trainerGrant,chooseTrainer);
+        if(store && (!smoke || firstRunSmoke))store->enforceAccess(trainerGrant,chooseTrainer);
         chooseTrainer=false;
         trainerGrant.clear();
         const bool personalLibrary = store && (!smoke || persistencePhase.startsWith("library-") || persistencePhase == "collection");
@@ -471,6 +486,9 @@ int main(int argc, char* argv[]) {
             if (success) realAchievements->bind(store->accountDirectory());
         });
         SessionState session(shell, store.get());
+#ifdef TRAINEROS_UI_TESTS
+        if(firstRunSmoke)prepareFirstRunSmoke(session,shell,stateDirectory);
+#endif
         if(personalLibrary && !smoke) {
             session.firstRun()->configure(stateDirectory,libraryRoot);
             const auto applyLibraryRoot=[&](const QString& root)->QString {
@@ -1114,6 +1132,19 @@ int main(int argc, char* argv[]) {
                 && !shell.libraryManager()->saving() && !shell.libraryTools()->busy()
                 && !shell.settings()->storage()->busy() && !(saveBackups && saveBackups->busy());
         };
+        auto* softwareUpdates=shell.settings()->updates();
+        if(!smoke && personalLibrary && qEnvironmentVariable("TRAINEROS_SOFTWARE_MANAGED")=="1") {
+            softwareUpdates->maintenanceGuard=[&]() -> QString {
+                if(adventureLaunch.active() || session.blocked() || shell.launchPreparation().busy()
+                    || shell.moduleServiceBusy() || folders.busy() || folders.writing() || !store || store->pending() || store->opening()
+                    || session.writesPending() || shell.scraper()->busy() || shell.libraryManager()->saving() || shell.libraryTools()->busy()
+                    || shell.settings()->storage()->busy() || deviceService.busy() || shell.network()->busy()
+                    || (saveBackups && saveBackups->busy()))
+                    return "Finish the game and current save, file or download operation before restarting TrainerOS.";
+                return {};
+            };
+            softwareUpdates->attachInstallation(qEnvironmentVariable("TRAINEROS_SOFTWARE_ROOT"),stateDirectory,QCoreApplication::applicationFilePath());
+        }
         ControllerInput input(nullptr, preferred);
         shell.settings()->setController(&input);
         remotePlay.ownerDevice=[&]{return input.kernelDeviceName();};
@@ -1168,14 +1199,18 @@ int main(int argc, char* argv[]) {
         });
         QString pendingMode;
         bool transitionStarted = false;
+        bool softwareRestart=false;
+        if(!smoke)QObject::connect(softwareUpdates,&SoftwareUpdateController::restartRequested,&session,[&]{softwareRestart=true;session.requestExit();});
         QObject::connect(&shell, &ShellController::modeRequested, &session, [&](const QString& mode) {
             if (adventureLaunch.active()) return;
             pendingMode = mode; session.requestExit();
         });
         QObject::connect(&session, &SessionState::changed, &session, [&] {
             if (!session.blocked() && !transitionStarted) pendingMode.clear();
+            if(!session.blocked() && softwareRestart){softwareRestart=false;softwareUpdates->cancelRestart();}
         });
         QObject::connect(&session, &SessionState::exitReady, &app, [&] {
+            if(softwareRestart){app.exit(75);return;}
             if (pendingMode.isEmpty()) { app.exit(); return; }
             if (transitionStarted) return;
             transitionStarted = true;
@@ -1274,7 +1309,7 @@ int main(int argc, char* argv[]) {
 #ifdef Q_OS_LINUX
             bool readyDescriptorValid = false;
             const int readyDescriptor = qEnvironmentVariableIntValue("TRAINEROS_READY_FD", &readyDescriptorValid);
-            if (!sessionReadyNotified && platform.dedicatedSession() && readyDescriptorValid && readyDescriptor >= 3) {
+            if (!sessionReadyNotified && (platform.dedicatedSession() || qEnvironmentVariable("TRAINEROS_SOFTWARE_MANAGED")=="1") && readyDescriptorValid && readyDescriptor >= 3) {
                 auto notified = std::make_shared<bool>(false);
                 QObject::connect(window, &QQuickWindow::frameSwapped, window, [readyDescriptor, notified, &sessionReadyNotified] {
                     if (*notified) return;
@@ -1325,7 +1360,7 @@ int main(int argc, char* argv[]) {
                         return {false, "Reconnect with your friend to finish the exchange before playing."};
                     if (pokemonModule(shell).party()->activities()->link()->active())
                         return {false, "Leave Together before starting a game."};
-                    if (session.blocked() || adventureLaunch.active() || shell.libraryTools()->busy())
+                    if (session.blocked() || adventureLaunch.active() || shell.libraryTools()->busy() || softwareUpdates->transitionPending())
                         return {false, "An Adventure is already opening. Try again after returning."};
                     if (saveBackups && saveBackups->busy())
                         return {false, "Wait for the save operation to finish before playing."};
@@ -1458,7 +1493,11 @@ int main(int argc, char* argv[]) {
                 const QString screenshotDir = parser.value("screenshot-dir");
                 if (!screenshotDir.isEmpty() && !QDir().mkpath(screenshotDir)) return 2;
 #ifdef TRAINEROS_UI_TESTS
-                if(avatarSmoke) {
+                if(firstRunSmoke) {
+                    startFirstRunSmoke(window,shell,session,*store,input,joystick,screenshotDir,smokeCompleted,qmlWarnings,diagnostics);
+                } else if(updatesSmoke) {
+                    startSoftwareUpdateSmoke(window,shell,input,joystick,setupTestData->path(),screenshotDir,smokeCompleted,qmlWarnings,diagnostics);
+                } else if(avatarSmoke) {
                     startAvatarSmoke(window,shell,screenshotDir,smokeCompleted,qmlWarnings,diagnostics);
                 } else if(platformSmoke) {
                     startPlatformSmoke(window,shell,adventureLaunch,screenshotDir,smokeCompleted,qmlWarnings,diagnostics);

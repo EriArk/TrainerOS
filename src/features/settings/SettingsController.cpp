@@ -38,6 +38,11 @@ void SettingsController::selectSection(int index) {
     else selectCategory(sectionPages[index][0],false);
 }
 void SettingsController::selectPage(const QString& id,bool enter) {const int index=pageIds.indexOf(id);if(index>=0)selectCategory(index,enter);}
+SettingsController::SettingsController(QObject* parent):QObject(parent),updates_(this) {
+    connect(&updates_,&SoftwareUpdateController::changed,this,&SettingsController::changed);
+    connect(&updates_,&SoftwareUpdateController::backRequested,this,[this]{updatesOpen_=false;row_=4;pane_=true;emit changed();});
+}
+void SettingsController::openUpdates() {category_=5;pane_=true;updatesOpen_=true;updates_.closeNotes();emit changed();}
 QString SettingsController::displayProfile() const {
     const auto value = QSettings().value("display/profile", "handheld").toString();
     return QStringList{"auto", "handheld", "tv"}.contains(value) ? value : "handheld";
@@ -126,7 +131,7 @@ QVariantList SettingsController::controls() const {
     case 2: return {row("Video previews","toggle",videoPreviews()?"On · local files only":"Off"),row("Preview sound","action",previewSound()?"On":"Muted"),row("Preview delay","action",QString::number(previewDelay()/1000.0,'f',1)+" seconds"),row("Adventure pictures","status","Clean exit pictures on Home and in Choose Adventure"),row("Field Guide illustrations","status","Illustrations and animated companions")};
     case 3: return {row("Charger vibration","unavailable","Patterns have not been verified on this handheld"),row("Device lighting","unavailable","Lighting support has not been verified")};
     case 4: return {row("Your profile","action","Name and emblem"),row("RetroAchievements","action","Manage your account"), trainersAvailable_ ? row("Trainers","action","Choose a player or create a Trainer") : row("Separate Trainers & PIN","unavailable","Not available yet"),row("Trainer PIN",trainersAvailable_?"action":"unavailable","Set, change or remove your PIN"),row("Family code",trainersAvailable_?"action":"unavailable","A parent can reset forgotten PINs"),row(backendAction_,"action",backendDetail_)};
-    case 5: return {row("Refresh status","action",""),row("Restart","action",""),row("Power off","action",""),row("System health & game setup","action","Runtime, BIOS and a private support report")};
+    case 5: return {row("Refresh status","action",""),row("Restart","action",""),row("Power off","action",""),row("System health & game setup","action","Runtime, BIOS and a private support report"),row("Updates","action","TrainerOS, operating system and Crates")};
     case 7: {
         const auto p=input_?input_->profile():ControllerProfile{}.json();
         const char* kind=input_&&input_->connected()?"stepper":"unavailable";
@@ -151,7 +156,10 @@ QVariantList SettingsController::controls() const {
     }
     case 9: return {row("Read-only saves",savePolicy_?"toggle":"unavailable",readOnlySaves()?"On - reading and backups only":"Off - allow confirmed save changes")};
     case 10: return {}; // NetworkController owns the inline connections pane.
-    case 12: return {row("Visible to nearby Trainers",nearby_?"toggle":"unavailable",nearby_ && nearby_->visibleNearby()?"On":"Off")};
+    case 12: {
+        auto value=row("Visible to nearby Trainers",nearby_?"toggle":"unavailable",nearby_ && nearby_->visibleNearby()?"On":"Off");
+        value["checked"]=nearby_ && nearby_->visibleNearby();return {value};
+    }
     case 15: {
         auto automatic=row("Automatic Crates updates",crates_?"toggle":"unavailable",crates_&&crates_->automaticUpdates()?"On · updates wait until you finish playing":"Off · update manually in Crates");
         automatic["checked"]=crates_&&crates_->automaticUpdates();
@@ -163,6 +171,7 @@ QVariantList SettingsController::controls() const {
 }
 void SettingsController::selectCategory(int index, bool enter) {
     if(storage_.busy() || clock_.busy())return;
+    updatesOpen_=false;updates_.closeNotes();
     clock_.leave();
     if(index!=13)communication_.leave();
     storage_.close();
@@ -173,6 +182,7 @@ void SettingsController::selectCategory(int index, bool enter) {
     emit changed();
 }
 void SettingsController::activateRow(int index) {
+    if(updatesOpen_){updates_.activate(index);return;}
     if(category_==16){gameInput_.activate(index);return;}
     if(category_==14&&scraper_){scraper_->activateSetting(index);return;}
     if(category_==13){communication_.activate(index);return;}
@@ -190,6 +200,7 @@ void SettingsController::activateRow(int index) {
     else if(category_==2 && (row_==1||row_==2)){QSettings s;if(row_==1)s.setValue(mediaPrefix_+"sound",!previewSound());else s.setValue(mediaPrefix_+"delay",previewDelay()>=3000?1500:std::min(3000,previewDelay()+500));s.sync();if(s.status()!=QSettings::NoError)error_="Could not save preview preferences.";}
     else if(category_==4) emit trainerRequested(row_);
     else if(category_==5 && row_==3) emit healthRequested();
+    else if(category_==5 && row_==4)openUpdates();
     else if(category_==5) emit deviceRequested(row_);
     else if(category_==7 && row_==0 && input_) input_->beginCapture("center");
     else if(category_==7 && row_>=1 && row_<=5) adjustDisplay(row_,1);
@@ -217,6 +228,7 @@ void SettingsController::cycleTheme(int direction) {
     if(repository_) repository_->savePreferences(candidate,this,completed); else completed({});
 }
 void SettingsController::dispatch(Action action) {
+    if(updatesOpen_){updates_.dispatch(action);return;}
     if(category_==16 && pane_ && (gameInput_.editing() || (action!=Action::PreviousFace && action!=Action::NextFace))){gameInput_.dispatch(action);return;}
     if(action==Action::PreviousFace || action==Action::NextFace) {
         const auto pages=sectionPages[sectionIndex()];

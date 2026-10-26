@@ -254,6 +254,8 @@ add_library(trainer_core STATIC
     src/features/settings/GamePerformance.h
     src/features/settings/GameInputProfiles.cpp
     src/features/settings/GameInputProfiles.h
+    src/features/settings/SoftwareUpdateController.cpp
+    src/features/settings/SoftwareUpdateController.h
     src/features/settings/SettingsController.h
     src/core/storage/SqliteLibrary.cpp
     src/core/storage/SqliteLibrary.h
@@ -526,6 +528,7 @@ qt_add_qml_module(traineros
         src/qml/TrainerSettingsPanel.qml
         src/qml/TrainerSetupPanel.qml
         src/qml/FirstRunPanel.qml
+        src/qml/FirstRunServicePanel.qml
         src/qml/SetupIllustration.qml
         src/qml/StorageChoices.qml
         src/qml/SettingControl.qml
@@ -538,6 +541,7 @@ qt_add_qml_module(traineros
         src/qml/RingDiagram.qml
         src/qml/GameInputPane.qml
         src/qml/RadialInputWindow.qml
+        src/qml/UpdatesPane.qml
         src/qml/CommunicationPane.qml
         src/qml/ClockPane.qml
         src/qml/DevicePanel.qml
@@ -598,6 +602,17 @@ qt_add_qml_module(traineros
 
 if(BUILD_TESTING)
     find_package(Python3 REQUIRED COMPONENTS Interpreter)
+    add_test(NAME software_release COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/SoftwareReleaseTests.py)
+    add_test(NAME software_channel COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/SoftwareChannelTests.py)
+    add_test(NAME software_installation COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/SoftwareInstallationTests.py)
+    qt_add_executable(trainer_software_update_tests tests/SoftwareUpdateTests.cpp
+        src/features/settings/SoftwareUpdateController.cpp src/features/settings/SoftwareUpdateController.h
+        src/features/downloads/DownloadsController.cpp src/features/downloads/DownloadsController.h)
+    target_include_directories(trainer_software_update_tests PRIVATE src)
+    target_link_libraries(trainer_software_update_tests PRIVATE Qt6::Core Qt6::Test)
+    set_target_properties(trainer_software_update_tests PROPERTIES WIN32_EXECUTABLE FALSE)
+    target_compile_definitions(trainer_software_update_tests PRIVATE UPDATE_PYTHON="${Python3_EXECUTABLE}")
+    add_test(NAME software_update COMMAND trainer_software_update_tests -o -,txt)
     qt_add_executable(trainer_platform_tests tests/PlatformHostTests.cpp)
     qt_add_executable(trainer_account_tests tests/BackendAccountTests.cpp
         src/features/accounts/BackendAccount.cpp src/platform/storage/EncryptedCredentials.cpp)
@@ -809,6 +824,12 @@ if(BUILD_TESTING)
     target_sources(traineros PRIVATE tests/ui/SettingsSmokeScenario.h)
     add_test(NAME settings_qml_smoke COMMAND traineros --ephemeral --settings-smoke-test --screenshot-dir "${CMAKE_CURRENT_BINARY_DIR}/screenshots/settings")
     set_tests_properties(settings_qml_smoke PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software;QT_FORCE_STDERR_LOGGING=1" TIMEOUT 30)
+    target_sources(traineros PRIVATE tests/ui/FirstRunSmokeScenario.h)
+    target_sources(traineros PRIVATE tests/ui/SoftwareUpdateSmokeScenario.h)
+    add_test(NAME software_update_qml_smoke COMMAND traineros --updates-smoke-test --screenshot-dir "${CMAKE_CURRENT_BINARY_DIR}/screenshots/software-updates")
+    set_tests_properties(software_update_qml_smoke PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software;QT_FORCE_STDERR_LOGGING=1" TIMEOUT 65)
+    add_test(NAME first_run_qml_smoke COMMAND traineros --first-run-smoke-test --screenshot-dir "${CMAKE_CURRENT_BINARY_DIR}/screenshots/first-run")
+    set_tests_properties(first_run_qml_smoke PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software;QT_FORCE_STDERR_LOGGING=1" TIMEOUT 60)
     add_test(NAME platform_qml_smoke COMMAND traineros --ephemeral --platform-smoke-test --screenshot-dir "${CMAKE_CURRENT_BINARY_DIR}/screenshots/platform")
     set_tests_properties(platform_qml_smoke PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software;QT_FORCE_STDERR_LOGGING=1" TIMEOUT 30)
     target_sources(traineros PRIVATE tests/ui/CratesSmokeScenario.cpp tests/ui/CratesSmokeScenario.h)

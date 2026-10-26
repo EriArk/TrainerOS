@@ -67,7 +67,7 @@ QString CommunicationSettings::status() const{
     return account()["profileStatus"].toString();
 }
 void CommunicationSettings::send(const QString& op,const QVariantMap& args){if(social_)social_->reviewCommand(op,args);}
-void CommunicationSettings::begin(){profileOnly_=profileEditing_=false;active_=true;error_.clear();scan();refresh_.start();emit changed();}
+void CommunicationSettings::begin(){profileOnly_=profileEditing_=false;active_=true;focus_=0;error_.clear();scan();refresh_.start();emit changed();}
 void CommunicationSettings::beginProfile(){
     leave();profileOnly_=true;profileEditing_=false;active_=true;focus_=0;error_.clear();
     send("profile-refresh");emit changed();

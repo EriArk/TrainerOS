@@ -4,84 +4,97 @@ Item {
     id: root
     required property var shell
     required property var flow
-    readonly property string currentStage: flow.stage
-    onCurrentStageChanged: entrance.restart()
-    NumberAnimation { id: entrance; target: sheet; property: "opacity"; from: 0; to: 1; duration: Theme.motion(160); easing.type: Easing.OutCubic }
-    readonly property var labels: ["Welcome", "Controls", "Connection", "Time", "Games", "Trainer", "Ready"]
+    required property var session
+    readonly property bool selecting: !flow.connections && !flow.service.length && flow.stage !== "trainer"
+    readonly property bool takesFocus: visible && !shell.keyboard.open
     Row {
-        x: 237; y: 28; spacing: 0
+        x: 225; y: 26; width: parent.width-x-24
         Repeater {
-            model: root.labels
+            model: root.flow.stepLabels
             Item {
-                required property int index; required property string modelData
-                width: 94; height: 39
-                Rectangle { x: 7; y: 9; width: 90; height: 2; color: index<root.flow.step ? Theme.surfaceColor("#b7a56d") : Theme.surfaceColor("#dce2d6"); visible: index<6 }
-                Rectangle { width: 19; height: 19; radius: 10; color: index<=root.flow.step ? Theme.surfaceColor("#f1ce74") : Theme.surfaceColor("#e0e7db"); border.color: index===root.flow.step ? Theme.surfaceColor("#997e42") : Theme.surfaceColor("#b9c9ba")
-                    Text { anchors.centerIn: parent; text: index<root.flow.step ? "✓" : index+1; font.pixelSize: 10; color: Theme.ink; font.bold: true }
+                required property int index
+                required property string modelData
+                width: parent.width/root.flow.stepLabels.length; height: 45
+                Rectangle { x: 10; y: 8; width: parent.width; height: 2; color: index<root.flow.step ? Theme.surfaceColor("#b7a56d") : Theme.surfaceColor("#dce2d6"); visible: index<root.flow.stepLabels.length-1 }
+                Rectangle {
+                    width: 19; height: 19; radius: 10; color: index<=root.flow.step ? Theme.surfaceColor("#f1ce74") : Theme.surfaceColor("#e0e7db"); border.color: Theme.surfaceColor("#997e42")
+                    Text { anchors.centerIn: parent; text: index<root.flow.step ? "✓" : index+1; font.pixelSize: 10; color: Theme.ink }
                 }
-                Text { x: -7; y: 23; text: modelData; color: index===root.flow.step ? Theme.ink : Theme.muted; font.pixelSize: 11; font.bold: index===root.flow.step }
+                Text { x: -4; y: 24; width: parent.width; text: modelData; color: index===root.flow.step ? Theme.ink : Theme.muted; font.pixelSize: 11; font.bold: index===root.flow.step; elide: Text.ElideRight }
             }
         }
     }
     Item {
-        id: sheet
-        x: 24; y: 91; width: parent.width-48; height: parent.height-y-53
-        visible: root.flow.stage!=="trainer" && !root.flow.connections
-        Rectangle { anchors.fill: parent; color: Theme.surfaceColor("#fffdf4") }
-        Rectangle { width: 327; height: parent.height; color: Theme.surfaceColor("#e4eddc")
-            Rectangle { x: parent.width-1; width: 1; height: parent.height; color: Theme.surfaceColor("#afc7b6") }
-        }
-        Text { x: 24; y: 18; text: "YOUR ADVENTURE KIT"; font.family: Theme.brandFamily; font.pixelSize: 13; font.letterSpacing: 1.4; color: Theme.textColor("#5a7d70") }
-        SetupIllustration { x: 4; y: 53; width: 320; height: 272; stage: root.flow.stage; checkedControls: root.flow.checkedControls }
-        Text {
-            x: 22; y: 325; width: 286; height: 48
-            text: root.flow.stage==="storage" ? (root.flow.rows[root.flow.focusIndex]?.path || "Connect a memory card to add more room.")
-                : root.flow.stage==="controls" ? "A little practice before you set off."
-                : root.flow.stage==="network" ? "Your worlds travel with you."
-                : root.flow.stage==="ready" ? "All packed. Where to first?" : "Big worlds. A little handheld."
-            textFormat: Text.PlainText; color: Theme.textColor("#547267"); font.pixelSize: root.flow.stage==="storage" ? 12 : 15
-            wrapMode: root.flow.stage==="storage" ? Text.NoWrap : Text.WordWrap; horizontalAlignment: Text.AlignHCenter; maximumLineCount: 3; elide: Text.ElideMiddle
-        }
+        x: 24; y: 84; width: parent.width-48; height: parent.height-y-83
+        visible: root.selecting
+        Rectangle { anchors.fill: parent; color: Theme.surfaceColor("#fffdf4"); radius: 12 }
+        Rectangle { width: parent.width*0.30; height: parent.height; color: Theme.surfaceColor("#e4eddc"); radius: 12 }
+        Text { x: 18; y: 20; text: "YOUR ADVENTURE KIT"; font.family: Theme.brandFamily; font.pixelSize: 13; color: Theme.surfaceColor("#5a7d70") }
+        SetupIllustration { x: 0; y: 62; width: parent.width*0.30; height: Math.min(245,parent.height-100); stage: root.flow.stage; checkedControls: root.flow.checkedControls }
         Item {
-            id: content
-            x: 356; y: 20; width: parent.width-x-24; height: parent.height-y-15
-            Text { id: heading; width: parent.width; text: root.flow.title; color: Theme.ink; font.family: Theme.displayFamily; font.pixelSize: 31; wrapMode: Text.WordWrap; lineHeight: .95 }
-            Text { y: heading.height+13; width: parent.width; text: root.flow.description; color: Theme.muted; font.pixelSize: 16; wrapMode: Text.WordWrap }
-            StorageChoices { x: -5; y: 105; width: parent.width+10; height: parent.height-y-(root.flow.error.length || root.flow.busy ? 40 : 8); flow: root.flow; visible: root.flow.stage==="storage" }
-            ClockPane { x: 0; y: 93; width: parent.width; height: parent.height-y; clock: root.flow.clock; externalError: root.flow.error; compact: true; visible: root.flow.stage==="clock" }
+            x: parent.width*0.33; y: 18; width: parent.width-x-24; height: parent.height-30
+            Text { id: heading; width: parent.width; text: root.flow.title; color: Theme.ink; font.family: Theme.displayFamily; font.pixelSize: 28; wrapMode: Text.WordWrap }
+            Text { id: subtitle; y: heading.height+9; width: parent.width; text: root.flow.description; color: Theme.muted; font.pixelSize: 14; wrapMode: Text.WordWrap }
             Item {
-                x: 0; y: 135; width: parent.width; height: 185; visible: root.flow.stage==="controls"
-                Row { y: 15; spacing: 12
-                    Repeater { model: ["↑", "↓", "←", "→", "A", "B"]
-                        Rectangle {
-                            required property int index; required property string modelData
-                            readonly property bool done: (root.flow.checkedControls & (1<<index))!==0
-                            width: 62; height: 68; radius: 13; color: done ? Theme.surfaceColor("#f2d275") : Theme.surfaceColor("#e4ecdf"); border.color: done ? Theme.surfaceColor("#b99039") : Theme.surfaceColor("#abbfaf"); border.width: 2
-                            Text { anchors.centerIn: parent; text: modelData; color: Theme.ink; font.pixelSize: 28; font.bold: true }
-                            Text { anchors.horizontalCenter: parent.horizontalCenter; y: 82; text: done ? "✓" : "·"; color: done ? Theme.textColor("#618566") : Theme.textColor("#adbca7"); font.pixelSize: 22 }
+                y: subtitle.y+subtitle.height+16; width: parent.width; height: parent.height-y-32
+                StorageChoices { anchors.fill: parent; flow: root.flow; visible: root.flow.stage==="storage"; takesFocus: root.takesFocus }
+                ClockPane { anchors.fill: parent; clock: root.flow.clock; externalError: root.flow.error; compact: true; visible: root.flow.stage==="clock"; takesFocus: root.takesFocus }
+                Item {
+                    anchors.fill: parent; visible: root.flow.stage==="controls"
+                    Row {
+                        width: parent.width; spacing: 8
+                        Repeater {
+                            model: ["↑", "↓", "←", "→", "Confirm", "Back"]
+                            Rectangle {
+                                required property int index
+                                required property string modelData
+                                readonly property bool done: (root.flow.checkedControls & (1<<index))!==0
+                                width: (parent.width-40)/6; height: 65; radius: 12
+                                color: done ? Theme.surfaceColor("#f2d275") : Theme.surfaceColor("#e4ecdf"); border.color: Theme.surfaceColor("#abbfaf")
+                                Text { anchors.centerIn: parent; text: modelData; color: Theme.ink; font.pixelSize: index<4?25:14 }
+                                Text { anchors.horizontalCenter: parent.horizontalCenter; y: 72; text: done ? "✓" : "·"; color: Theme.muted; font.pixelSize: 22 }
+                            }
                         }
+                    }
+                    CapButton { objectName: "setup-use-touch"; y: 111; width: parent.width; height: 55; label: "Continue with touch"; detail: "Controller checks remain available in Settings"; onActivated: root.flow.useTouch() }
+                }
+                ListView {
+                    id: choices; anchors.fill: parent; clip: true; spacing: 9
+                    visible: !["storage","controls","clock"].includes(root.flow.stage)
+                    model: root.flow.rows; currentIndex: root.flow.focusIndex; keyNavigationEnabled: false
+                    function reveal() { if(count)positionViewAtIndex(currentIndex,ListView.Contain) }
+                    onCurrentIndexChanged: Qt.callLater(reveal)
+                    onCountChanged: Qt.callLater(reveal)
+                    onHeightChanged: Qt.callLater(reveal)
+                    Rectangle {
+                        anchors.right: parent.right; width: 3; height: parent.height; radius: 2; z: 2
+                        visible: choices.contentHeight>choices.height; color: Theme.surfaceColor("#b5c7b8")
+                        Rectangle { width: parent.width; height: Math.max(16,choices.visibleArea.heightRatio*parent.height); y: choices.visibleArea.yPosition*parent.height; radius: 2; color: Theme.muted }
+                    }
+                    delegate: CapButton {
+                        required property int index
+                        required property var modelData
+                        objectName: "setup-choice-"+index; width: choices.width-4; height: 59
+                        label: modelData.label; detail: modelData.detail; textSize: 18
+                        tint: index===choices.count-1?Theme.yellow:Theme.blue
+                        selected: root.takesFocus && index===choices.currentIndex && !root.flow.busy
+                        enabled: !root.flow.busy && modelData.enabled !== false; onActivated: root.flow.activate(index)
                     }
                 }
             }
-            Rectangle {
-                x: -29; y: parent.height-155; width: parent.width+53; height: 171
-                visible: !["storage","controls","clock"].includes(root.flow.stage)
-                color: Theme.surfaceColor("#eef0df")
-                Rectangle { width: parent.width; height: 1; color: Theme.surfaceColor("#c5d2be") }
-                Column { x: 29; y: 19; width: parent.width-53; spacing: 13
-                    Repeater { model: root.flow.rows
-                        CapButton {
-                            required property int index; required property var modelData
-                            width: parent.width; height: 54; label: modelData.label; detail: modelData.detail
-                            textSize: 20; tint: index===0 ? Theme.yellow : "#bdd9ca"
-                            selected: root.visible && index===root.flow.focusIndex && !root.flow.busy
-                            enabled: !root.flow.busy; onActivated: root.flow.activate(index)
-                        }
-                    }
-                }
-            }
-            Text { anchors.bottom: parent.bottom; width: parent.width; height: 24; visible: root.flow.stage!=="clock"; text: root.flow.busy ? "Preparing your library…" : root.flow.error; textFormat: Text.PlainText; color: Theme.textColor("#853b24"); font.pixelSize: 13; wrapMode: Text.WordWrap }
+            Text { anchors.bottom: parent.bottom; width: parent.width; height: 28; text: root.flow.busy ? "Preparing your library…" : root.flow.error; textFormat: Text.PlainText; color: Theme.surfaceColor("#853b24"); font.pixelSize: 13; wrapMode: Text.WordWrap }
         }
     }
-    ConnectionsPane { x: 40; y: 95; width: parent.width-80; height: parent.height-y-61; shell: root.shell; onboarding: true; visible: root.flow.connections }
+    FirstRunServicePanel {
+        x: 35; y: 83; width: parent.width-70; height: parent.height-y-85
+        visible: root.flow.service.length>0
+        shell: root.shell; flow: root.flow; session: root.session
+    }
+    ConnectionsPane { x: 40; y: 83; width: parent.width-80; height: parent.height-y-85; shell: root.shell; onboarding: true; visible: root.flow.connections }
+    CapButton {
+        objectName: "setup-back"; x: 26; anchors.bottom: parent.bottom; anchors.bottomMargin: 34; width: 170; height: 38
+        visible: root.flow.connections || root.flow.service.length>0 || ["network","clock","storage","trainer","preferences","ready"].includes(root.flow.stage)
+        enabled: !root.flow.busy && !root.shell.keyboard.open && !root.shell.settings.saving
+        label: "Back"; textSize: 16; onActivated: root.session.backInSetup()
+    }
 }

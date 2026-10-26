@@ -26,7 +26,7 @@ void ShellController::showAchievements(const QString& title,const QStringList& n
     const auto generation=++achievementToastGeneration_;emit changed();
     QTimer::singleShot(7000,this,[this,generation]{if(generation==achievementToastGeneration_){achievementToast_.clear();emit changed();}});
 }
-QVariantList ShellController::notifications() const {auto rows=social_.notifications();rows.append(achievementNotifications_);return rows;}
+QVariantList ShellController::notifications() const {auto rows=social_.notifications();rows.append(achievementNotifications_);const auto update=settings_.updates()->notification();if(!update.isEmpty())rows.append(update);return rows;}
 QVariantMap ShellController::passiveNotice() const {
     if(social_.account()["doNotDisturb"].toBool())return {};
     if(!social_.toastTitle().isEmpty())return {{"title",social_.toastTitle()},{"detail",social_.toastText()},{"kind","social"}};
@@ -147,6 +147,14 @@ ShellController::ShellController(LibraryRepository& repo, TrainerRepository& pro
     connect(&libraryTools_,&LibraryToolsController::collectionsRequested,this,[this](const QString& id){libraryTools_.close();collectionManager()->beginMembership(id);});
     libraryTools_.editGuard=[this]{return !liveGame_.isEmpty()?QString("Exit the running game before changing library files."):scraper_.busy()?QString("Finish or cancel downloads before changing library files or names."):QString();};
     connect(&downloads_,&DownloadsController::changed,this,&ShellController::changed);
+    connect(settings_.updates(),&SoftwareUpdateController::changed,this,[this]{downloads_.publish("traineros-software",settings_.updates()->tasks());});
+    connect(settings_.updates(),&SoftwareUpdateController::downloadsRequested,&downloads_,&DownloadsController::begin);
+    connect(settings_.updates(),&SoftwareUpdateController::cratesRequested,this,[this]{service_.clear();goToPage(AppsPage);selectFace(1);});
+    connect(&downloads_,&DownloadsController::commandRequested,this,[this](const QString& provider,const QString&,const QString& command){
+        if(provider!="traineros-software")return;
+        if(command=="open"){downloads_.close();service_="settings";settings_.openUpdates();emit changed();}
+        else settings_.updates()->command(command);
+    });
     connect(&social_,&SocialController::filesDownloadRequested,&downloads_,&DownloadsController::begin);
     connect(social_.files(),&ChatFiles::changed,this,[this]{downloads_.publish("chat-files",social_.files()->downloads());});
     connect(social_.files(),&ChatFiles::folderRequested,this,[](const QString& folder){QDesktopServices::openUrl(QUrl::fromLocalFile(folder));});
@@ -296,7 +304,7 @@ ShellController::ShellController(LibraryRepository& repo, TrainerRepository& pro
     connect(&diagnostics_,&DiagnosticsController::setupRequested,this,[this](const QString& id){service_.clear();libraryTools_.beginGame(id);libraryTools_.activate(3);emit changed();});
     connect(&diagnostics_,&DiagnosticsController::recheckRequested,&settings_,&SettingsController::libraryRefreshRequested);
     connect(&device_, &DeviceController::changed, this, &ShellController::changed);
-    connect(this, &ShellController::changed, this, [this] { device_.setMonitoring(onboardingConnections_ || menuOpen_ || gameControlsOpen_ || service_ == "device" || service_ == "settings"); });
+    connect(this, &ShellController::changed, this, [this] { device_.setMonitoring(onboardingConnections_ || onboardingSettings_ || menuOpen_ || gameControlsOpen_ || service_ == "device" || service_ == "settings"); });
     connect(&device_, &DeviceController::closeRequested, this, [this] { service_ = "settings"; emit changed(); });
     connect(&device_, &DeviceController::messageRequested, this, &ShellController::showNotice);
     connect(&powerControl_, &PowerControl::changed, this, &ShellController::changed);
@@ -333,7 +341,7 @@ ShellController::ShellController(LibraryRepository& repo, TrainerRepository& pro
     connect(&settings_, &SettingsController::changed, this, &ShellController::changed);
     connect(&settings_, &SettingsController::quickAdjustment, &device_, &DeviceController::adjustQuick);
     connect(&settings_, &SettingsController::messageRequested, this, [this](const QString& message) {
-        if (service_ != "settings" || menuOpen_) { notice_ = message; emit changed(); }
+        if ((!onboardingSettings_ && service_ != "settings") || menuOpen_) { notice_ = message; emit changed(); }
     });
     connect(settings_.communication(),&CommunicationSettings::trainerSwitchRequested,this,[this]{
         if(!liveGame_.isEmpty() || scraper_.busy()){showNotice("Finish the current game and downloads before switching Trainer.");return;}
@@ -461,7 +469,7 @@ bool ShellController::chooseAdventureAvailable() {
         && !localModalOpen() && !moduleActivityBusy() && !navigationLocked();
 }
 bool ShellController::navigationLocked(bool primaryRecovery) const {
-    return diagnostics_.checking() || modulesBlocked(primaryRecovery) || launchPreparation_.busy() || settings_.clock()->busy() || settings_.storage()->busy() || libraryTools_.busy();
+    return settings_.updates()->transitionPending() || diagnostics_.checking() || modulesBlocked(primaryRecovery) || launchPreparation_.busy() || settings_.clock()->busy() || settings_.storage()->busy() || libraryTools_.busy();
 }
 bool ShellController::modulesBlocked(bool recovery) const {for(const auto& module:modules_)if(module->navigationBlocked(recovery))return true;return false;}
 bool ShellController::moduleWriting() const {for(const auto& module:modules_)if(module->writing())return true;return false;}
@@ -1607,6 +1615,7 @@ void ShellController::activateNotification(int index) {
     if(!notificationsOpen()||navigationLocked())return;
     if(index<0 || index>=notifications().size())return;
     const auto row=notifications().value(index).toMap();
+    if(row["provider"]=="traineros-software"){settings_.updates()->dismissNotification();closeHomeMenu();service_="settings";settings_.openUpdates();emit changed();return;}
     if(row["provider"]=="achievements"){dismissNotificationById(row["id"].toString());showNotice(row["name"].toString()+"\n"+row["detail"].toString());closeHomeMenu();return;}
     if(row["answerable"].toBool()) {
         notificationsOpen_=false;homeCallOpen_=false;homeMenuSelection_="answer-call:"+row["id"].toString();emit changed();
@@ -1624,6 +1633,7 @@ void ShellController::openNotificationById(const QString& id) {
     }
 }
 void ShellController::dismissNotifications() {
+    settings_.updates()->dismissNotification();
     achievementNotifications_.clear();achievementToast_.clear();++achievementToastGeneration_;
     social_.dismissNotifications();emit changed();
 }
@@ -1636,6 +1646,7 @@ void ShellController::dismissNotificationById(const QString& id) {
             if(achievementNotifications_.value(0).toMap()["id"]==id){achievementToast_.clear();++achievementToastGeneration_;}
             achievementNotifications_.removeIf([&](const QVariant& v){return v.toMap()["id"]==id;});
         }
+        else if(row["provider"]=="traineros-software")settings_.updates()->dismissNotification();
         else social_.dismissNotificationAt(i);
         const auto remaining=notifications();notificationFocus_=qMin(i,int(remaining.size())-1);
         notificationSelection_=remaining.value(notificationFocus_).toMap()["id"].toString();

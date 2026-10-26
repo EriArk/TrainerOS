@@ -3,6 +3,7 @@
 #include "ClockController.h"
 #include "GameInputProfiles.h"
 #include "CommunicationSettings.h"
+#include "SoftwareUpdateController.h"
 #include "core/input/Action.h"
 #include "core/input/ControllerInput.h"
 #include "core/repository/PreferencesRepository.h"
@@ -19,6 +20,8 @@ class SettingsController final : public QObject {
     Q_PROPERTY(trainer::LibraryStorageController* storage READ storage CONSTANT)
     Q_PROPERTY(trainer::ClockController* clock READ clock CONSTANT)
     Q_PROPERTY(trainer::CommunicationSettings* communication READ communication CONSTANT)
+    Q_PROPERTY(trainer::SoftwareUpdateController* updates READ updates CONSTANT)
+    Q_PROPERTY(bool updatesOpen READ updatesOpen NOTIFY changed)
     Q_PROPERTY(QString theme READ theme NOTIFY changed)
     Q_PROPERTY(QString displayProfile READ displayProfile NOTIFY changed)
     Q_PROPERTY(int interfaceScale READ interfaceScale NOTIFY changed)
@@ -57,7 +60,11 @@ public:
     const ClockController* clock() const { return &clock_; }
     LibraryStorageController* storage() { return &storage_; }
     const LibraryStorageController* storage() const { return &storage_; }
-    using QObject::QObject;
+    explicit SettingsController(QObject* parent = nullptr);
+    SoftwareUpdateController* updates() { return &updates_; }
+    const SoftwareUpdateController* updates() const { return &updates_; }
+    bool updatesOpen() const { return updatesOpen_; }
+    Q_INVOKABLE void openUpdates();
     void setRepository(PreferencesRepository* repository) { repository_ = repository; reload(); }
     void reload();
     void configureSavePolicy(SaveBackupService* service) { savePolicy_=service;connect(service,&SaveBackupService::policyChanged,this,&SettingsController::changed); }
@@ -65,7 +72,7 @@ public:
     void setTrainersAvailable(bool value) { trainersAvailable_ = value; emit changed(); }
     void setBackendAccount(QString action,QString detail) { backendAction_=std::move(action);backendDetail_=std::move(detail);emit changed(); }
     void setLegacyTrashAvailable(bool value) { if(legacyTrash_==value)return;legacyTrash_=value;if(category_==8)row_=0;emit changed(); }
-    void begin() { storage_.close(); category_ = 0; row_ = 0; pane_ = false; emit changed(); }
+    void begin() { storage_.close(); updatesOpen_=false; updates_.closeNotes(); category_ = 0; row_ = 0; pane_ = false; emit changed(); }
     int category() const { return category_; }
     int rowFocus() const { return category_==16?gameInput_.focusIndex():row_; }
     bool controlsFocused() const { return pane_; }
@@ -123,6 +130,8 @@ private:
     QPointer<NativeActivityProvider> nearby_;
     ClockController clock_;
     CommunicationSettings communication_;
+    SoftwareUpdateController updates_;
+    bool updatesOpen_ = false;
     LibraryStorageController storage_;
     SaveBackupService* savePolicy_ = nullptr;
     PreferencesRepository* repository_ = nullptr;

@@ -20,6 +20,33 @@ SessionState::SessionState(ShellController& shell, LocalStateStore* store, QObje
     });
     connect(shell_.network(), &NetworkController::backRequested, &firstRun_, &FirstRunController::closeConnections);
     connect(&firstRun_, &FirstRunController::finished, this, [this] { shell_.goToPage(0); emit changed(); });
+    connect(&firstRun_, &FirstRunController::serviceRequested, this, [this](const QString& service) {
+        if(service=="achievements")shell_.hall()->account()->begin();
+        else if(service=="scraper"){shell_.scraper()->setSetupMode(true);shell_.settings()->selectCategory(14);}
+        else {
+            const int category=service=="display"?0:service=="sound"?1:service=="media"?2:service=="nearby"?12:13;
+            shell_.settings()->selectCategory(category);
+        }
+        shell_.setOnboardingSettings(true);
+    });
+    connect(&firstRun_, &FirstRunController::serviceClosed, this, [this](const QString& service) {
+        if(service=="achievements")shell_.hall()->account()->close();
+        if(service=="scraper")shell_.scraper()->setSetupMode(false);
+        if(service=="social" || service=="communication") {
+            shell_.settings()->communication()->leave();
+            if(shell_.social()->account()["state"]=="authorizing")emit shell_.social()->commandRequested("cancel-login",{});
+        }
+        shell_.setOnboardingSettings(false);
+    });
+    connect(shell_.hall()->account(), &AchievementAccountController::changed, this, [this] {
+        if(firstRun_.service()=="achievements" && !shell_.hall()->account()->isOpen())firstRun_.closeService();
+    });
+    connect(shell_.settings()->communication(), &CommunicationSettings::backRequested, this, [this] {
+        if(firstRun_.service()=="social" || firstRun_.service()=="communication")firstRun_.closeService();
+    });
+    connect(shell_.scraper(), &ScrapeController::settingsBackRequested, this, [this] {
+        if(firstRun_.service()=="scraper")firstRun_.closeService();
+    });
     connect(&firstRun_, &FirstRunController::protectTrainerRequested, this, [this] {
         if(!canChangeTrainer())return;
         const bool needsFamily=!store_->familyProtected();
@@ -227,6 +254,19 @@ void SessionState::dispatch(Action action) {
     if(firstRunPage() && firstRun_.stage()!="trainer") {
         if(shell_.keyboard()->isOpen())shell_.keyboard()->dispatch(action);
         else if(firstRun_.connections())shell_.network()->dispatch(action);
+        else if(!firstRun_.service().isEmpty()) {
+            // Only the embedded service gets input; global shell routes stay gated.
+            if(action!=Action::Up && action!=Action::Down && action!=Action::Left && action!=Action::Right
+                && action!=Action::Confirm && action!=Action::Back)return;
+            if(firstRun_.service()=="achievements") {
+                if(!shell_.hall()->account()->available() && action==Action::Back)firstRun_.closeService();
+                else shell_.hall()->account()->dispatch(action);
+            } else {
+                if(shell_.settings()->saving())return;
+                shell_.settings()->dispatch(action);
+                if(!shell_.settings()->controlsFocused())firstRun_.closeService();
+            }
+        }
         else firstRun_.dispatch(action);
         return;
     }
@@ -254,5 +294,13 @@ void SessionState::dispatch(Action action) {
     } else if (action == Action::Up || action == Action::Left) focus_ = std::max(0, focus_ - 1);
     else if (action == Action::Down || action == Action::Right) focus_ = std::min(std::max(0, int(choices().size()) - 1), focus_ + 1);
     emit changed();
+}
+void SessionState::backInSetup() {
+    if(firstRunPage() && !access_.active())dispatch(Action::Back);
+}
+void SessionState::activateSetupService(int index) {
+    if(!firstRunPage() || access_.active() || shell_.keyboard()->isOpen())return;
+    if(firstRun_.service()=="achievements")shell_.hall()->account()->activate(index);
+    else if(!firstRun_.service().isEmpty())shell_.settings()->activateRow(index);
 }
 }

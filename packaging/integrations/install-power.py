@@ -10,7 +10,7 @@ import subprocess
 import tempfile
 
 
-def install(user):
+def install(user, writer=None, configure_sleep=True):
     if os.geteuid() != 0 or not re.fullmatch(r"[a-z_][a-z0-9_-]*", user) or pwd.getpwnam(user).pw_uid < 1000:
         raise RuntimeError("Root and a regular account are required")
     backup=Path("/var/lib/traineros/power-backup")
@@ -39,8 +39,11 @@ def install(user):
     with tempfile.NamedTemporaryFile() as trial:
         trial.write(policy);trial.flush()
         subprocess.run(["/usr/sbin/visudo","-cf",trial.name],check=True)
-    write(helper,Path(__file__).with_name("power-service.py").read_bytes().replace(b"\r\n",b"\n"),0o755)
-    write("/etc/sudoers.d/traineros-power",policy,0o440)
+    owned_write = writer or write
+    owned_write(helper,Path(__file__).with_name("power-service.py").read_bytes().replace(b"\r\n",b"\n"),0o755)
+    owned_write("/etc/sudoers.d/traineros-power",policy,0o440)
+    if not configure_sleep:
+        return
     # Replace the historical all-sleep-disabled setting, retaining the original.
     write("/etc/systemd/logind.conf.d/zz-traineros-no-sleep.conf",
           b"[Login]\nHandlePowerKey=suspend\nHandlePowerKeyLongPress=ignore\nHandleSuspendKey=suspend\nHandleLidSwitch=suspend\nHandleLidSwitchExternalPower=suspend\nHandleLidSwitchDocked=suspend\nIdleAction=ignore\n",0o644)

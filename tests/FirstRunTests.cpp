@@ -81,7 +81,8 @@ private slots:
         FirstRunController resumed;resumed.configure(dir.path(),"unused");resumed.begin(false);
         QVERIFY(resumed.active());QCOMPARE(resumed.stage(),"trainer");QCOMPARE(resumed.trainerDraft()["name"].toString(),"River");
         QCOMPARE(FirstRunController::libraryRoot(dir.path(),"fallback"),root);
-        resumed.trainerOpened();QCOMPARE(resumed.stage(),"ready");resumed.activate(0);QVERIFY(!resumed.active());
+        resumed.trainerOpened();
+        QCOMPARE(resumed.stage(),"preferences");resumed.activate(5);resumed.activate(0);QVERIFY(!resumed.active());
         QVERIFY(!read(dir.path()+"/first-run.json").contains("trainerDraft"));
         FirstRunController finished;finished.configure(dir.path(),root);finished.begin(true);QVERIFY(!finished.active());
     }
@@ -112,7 +113,7 @@ private slots:
             QTRY_COMPARE(flow.stage(),"trainer");
         }
         FirstRunController flow;flow.configure(dir.path(),root);QSignalSpy requested(&flow,&FirstRunController::trainerRequested);
-        flow.begin(true);QCOMPARE(flow.stage(),"ready");QCOMPARE(requested.size(),0);
+        flow.begin(true);QCOMPARE(flow.stage(),"preferences");QCOMPARE(requested.size(),0);
     }
     void sessionGatesNavigationAndCompletesRealProfileCreation() {
         QTemporaryDir dir;LocalStateStore store(dir.path());store.enforceAccess();
@@ -128,7 +129,16 @@ private slots:
         QCOMPARE(shell.trainerSetup()->stage(),"identity");shell.trainerSetup()->applyName("River");
         shell.trainerSetup()->activate(3);QCOMPARE(shell.trainerSetup()->stage(),"review");
         QCOMPARE(shell.trainerSetup()->rows().size(),3); // PIN setup follows creation when the family code is absent.
-        shell.trainerSetup()->activate(0);QTRY_VERIFY(store.ready());QTRY_COMPARE(flow->stage(),"ready");
+        shell.trainerSetup()->activate(0);QTRY_VERIFY(store.ready());QTRY_COMPARE(flow->stage(),"preferences");
+        // The whole local setup completes with all external accounts signed out.
+        QVERIFY(shell.social()->account()["userId"].toString().isEmpty());
+        QVERIFY(!shell.scraper()->accountVerified());
+        flow->activate(0);QCOMPARE(shell.settings()->category(),0);
+        emit shell.settings()->messageRequested("Settings error shown inline");QVERIFY(shell.notice().isEmpty());
+        const bool reduced=shell.settings()->reducedMotion();session.activateSetupService(1);
+        QTRY_VERIFY(!shell.settings()->saving());QCOMPARE(shell.settings()->reducedMotion(),!reduced);
+        session.backInSetup();QVERIFY(flow->service().isEmpty());
+        flow->activate(5);QCOMPARE(flow->stage(),"ready");
         QCOMPARE(store.trainers().size(),1);QVERIFY(session.blocked());QVERIFY(!session.entryGate());
         QTRY_COMPARE(store.pending(),0);
         flow->activate(1);QVERIFY(session.access()->active());QCOMPARE(session.access()->minimumDigits(),6);
@@ -143,6 +153,86 @@ private slots:
         QVERIFY(!read(dir.path()+"/first-run.json").contains("987654"));
         session.dispatch(Action::Up);session.dispatch(Action::Confirm);QVERIFY(!session.blocked());QCOMPARE(shell.page(),0);
         QCOMPARE(store.load()->name,"River");
+    }
+    void touchContinuationDoesNotPretendPhysicalButtonsPassed() {
+        QTemporaryDir dir;FirstRunController flow;flow.configure(dir.path(),dir.path()+"/roms");
+        flow.begin(false);flow.useTouch();QCOMPARE(flow.stage(),"welcome");
+        flow.activate(0);flow.useTouch();QCOMPARE(flow.stage(),"network");QCOMPARE(flow.checkedControls(),0);
+        QCOMPARE(QJsonDocument::fromJson(read(dir.path()+"/first-run.json")).object()["inputChoice"].toString(),"touch");
+    }
+    void legacyReadyAndCompleteWorkOffline() {
+        QTemporaryDir dir;
+        for(const auto stage:{"complete","ready"}) {
+            QFile file(dir.path()+"/first-run.json");QVERIFY(file.open(QIODevice::WriteOnly));
+            file.write(QJsonDocument(QJsonObject{{"version",1},{"stage",stage},{"libraryRoot",dir.path()+"/roms"}}).toJson());file.close();
+            FirstRunController flow;flow.configure(dir.path(),"fallback");flow.begin(true);
+            QCOMPARE(flow.stage(),stage);QCOMPARE(flow.active(),QString(stage)!="complete");
+            QCOMPARE(FirstRunController::libraryRoot(dir.path(),"fallback"),dir.path()+"/roms");
+            if(QString(stage)=="ready") {
+                flow.activate(0);QCOMPARE(flow.stage(),"complete");QVERIFY(!flow.active());
+            }
+        }
+    }
+    void serviceResumeRequiresProfileAndKeepsPanelTransient() {
+        QTemporaryDir dir;
+        QFile file(dir.path()+"/first-run.json");QVERIFY(file.open(QIODevice::WriteOnly));
+        file.write(R"({"version":2,"stage":"preferences"})");file.close();
+        FirstRunController flow;flow.configure(dir.path(),dir.path()+"/roms");flow.begin(true);
+        flow.activate(3);QCOMPARE(flow.service(),"communication");flow.activate(5);QCOMPARE(flow.stage(),"preferences");
+        flow.closeService();
+        FirstRunController resumed;resumed.configure(dir.path(),dir.path()+"/roms");resumed.begin(true);
+        QCOMPARE(resumed.stage(),"preferences");QVERIFY(resumed.service().isEmpty());
+        FirstRunController missing;missing.configure(dir.path(),dir.path()+"/roms");missing.begin(false);
+        QCOMPARE(missing.stage(),"trainer");
+    }
+    void restartedPersonalSetupWaitsForPinUnlock() {
+        QTemporaryDir dir;
+        {
+            LocalStateStore store(dir.path());
+            store.open();QTRY_VERIFY(store.ready());
+            const auto pin=[](const char* digits){auto value=emptyPin();for(;*digits;++digits)value->digit(*digits-'0');return value;};
+            bool family=false;store.changePin(emptyPin(),pin("987654"),true,this,[&](const QString& e){family=e.isEmpty();});
+            QTRY_VERIFY(family);QTRY_COMPARE(store.pending(),0);
+            bool created=false;
+            store.createProtectedTrainer({"protected","River","compass",{},QDateTime::currentDateTimeUtc()},pin("1234"),this,[&](const ProfileWriteResult& result){QVERIFY2(result.success,qPrintable(result.error));created=true;});
+            QTRY_VERIFY(created);QTRY_COMPARE(store.pending(),0);
+        }
+        QFile file(dir.path()+"/first-run.json");QVERIFY(file.open(QIODevice::WriteOnly));
+        file.write(R"({"version":2,"stage":"accounts"})");file.close();
+        LocalStateStore reopened(dir.path());reopened.enforceAccess();
+        MockAdventureAdapter adapter;DevelopmentPlatformService platform;MockPokedexRepository dex;MockAchievementProvider ra;
+        ShellController shell(reopened,reopened,adapter,platform,builtinExperiences(dex,reopened),reopened,ra);SessionState session(shell,&reopened);
+        session.firstRun()->configure(dir.path(),dir.path()+"/roms");session.start();QTRY_VERIFY(session.entryGate());
+        QVERIFY(session.firstRun()->active());QVERIFY(!session.firstRunPage());
+        session.activateSetupService(0);QVERIFY(!shell.hall()->account()->isOpen());
+        QTRY_COMPARE(reopened.pending(),0);session.requestTrainerSwitch("protected");QVERIFY(session.access()->active());
+        for(int digit=0;digit<4;++digit)session.access()->activate(digit);
+        session.access()->activate(12);
+        QTRY_VERIFY(reopened.ready());QTRY_VERIFY(session.firstRunPage());
+        QVERIFY(!session.entryGate());QCOMPARE(session.firstRun()->stage(),"preferences");
+    }
+    void legacyAccountsResumeOfflineWithoutLosingProfileOrStorage() {
+        QTemporaryDir dir;const auto root=dir.path()+"/roms";
+        QFile marker(dir.path()+"/first-run.json");QVERIFY(marker.open(QIODevice::WriteOnly));
+        marker.write(QJsonDocument(QJsonObject{{"version",2},{"stage","accounts"},{"libraryRoot",root},
+            {"trainerDraft",QJsonObject{{"name","River"}}}}).toJson());marker.close();
+        FirstRunController flow;flow.configure(dir.path(),root);isolatedStorage(flow,root);
+        QSignalSpy requested(&flow,&FirstRunController::trainerRequested);
+        flow.begin(true);QCOMPARE(flow.stage(),"preferences");QCOMPARE(requested.size(),0);
+        QCOMPARE(flow.trainerDraft()["name"].toString(),"River");
+        QCOMPARE(FirstRunController::libraryRoot(dir.path(),"fallback"),root);
+        QVERIFY(!flow.stepLabels().contains("Accounts"));QCOMPARE(flow.step(),6);
+        flow.dispatch(Action::Back);QCOMPARE(flow.stage(),"storage");flow.activate(0);
+        QTRY_COMPARE(flow.stage(),"preferences");QCOMPARE(requested.size(),0);
+        flow.activate(5);QCOMPARE(flow.stage(),"ready");
+        FirstRunController resumed;resumed.configure(dir.path(),root);resumed.begin(true);
+        resumed.activate(0);QVERIFY(!resumed.active());QCOMPARE(resumed.stage(),"complete");
+    }
+    void legacyAccountsWithoutProfileReturnsToTrainer() {
+        QTemporaryDir dir;QFile marker(dir.path()+"/first-run.json");QVERIFY(marker.open(QIODevice::WriteOnly));
+        marker.write(R"({"version":2,"stage":"accounts","trainerDraft":{"name":"River"}})");marker.close();
+        FirstRunController flow;flow.configure(dir.path(),dir.path()+"/roms");flow.begin(false);
+        QCOMPARE(flow.stage(),"trainer");QCOMPARE(flow.trainerDraft()["name"].toString(),"River");
     }
 };
 QTEST_GUILESS_MAIN(FirstRunTests)

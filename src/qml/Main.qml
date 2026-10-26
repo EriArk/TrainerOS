@@ -433,6 +433,7 @@ Window {
                     const flow = shell.settings.communication
                     return [h("←→","Adjust"),h("A","Select"),h("B",flow.choosingAvatar ? "Cancel" : "Categories")]
                 }
+                if (shell.service === "settings" && shell.settings.updatesOpen) return [h("↑↓",shell.settings.updates.notesOpen ? "Read" : "Choose"),h("A","Select"),h("B",shell.settings.updates.notesOpen ? "Updates" : "System")]
                 if (shell.service === "settings" && shell.settings.categoryId==="game-input" && shell.settings.controlsFocused) return [h("↑↓","Choose"),h("L2/R2","Tabs"),h("A","Select"),h("B",shell.settings.gameInput.choosing?"Cancel":"Back")]
                 if (shell.service === "settings") return [h(shell.settings.controlsFocused?"←→":"↑↓",shell.settings.controlsFocused?"Adjust":"Section"),h("A",shell.settings.controlsFocused ? "Select" : "Open"),h("B",shell.settings.controlsFocused ? "Categories" : "Back")]
                 if (shell.service === "device") return [h("←→","Adjust"),h("Y","Refresh"),h("A","Select"),h("B","Back")]
@@ -590,7 +591,7 @@ Window {
             ChassisFrame { anchors.fill: parent }
             ChassisTopRim { }
             Text { x: 12; y: 0; width: Theme.brandWidth-24; height: Theme.brandHeight; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter; text: "TRAINER OS"; color: Theme.textColor("#edf5e9"); font.family: Theme.brandFamily; font.pixelSize: 25; font.bold: true }
-            FirstRunPanel { anchors.fill: parent; shell: shellController; flow: sessionState.firstRun; visible: sessionState.firstRunPage }
+            FirstRunPanel { anchors.fill: parent; shell: shellController; flow: sessionState.firstRun; session: sessionState; visible: sessionState.firstRunPage }
             Loader { x: 0; y: 43; width: parent.width; height: parent.height-63; active: parent.visible && (!sessionState.firstRunPage || sessionState.firstRun.stage === "trainer"); visible: active; sourceComponent: TrainerSetupPanel { entry: true; shell: shellController } }
             Text {
                 x: 48; y: parent.height-62; width: parent.width-96; height: 24

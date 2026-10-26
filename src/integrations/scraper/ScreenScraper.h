@@ -48,6 +48,7 @@ struct Game {
 };
 struct Result {
     Status status = Status::InvalidResponse;
+    QString accountUsername;
     QList<Game> games;
     Quota quota;
     int retryAfter = 0;

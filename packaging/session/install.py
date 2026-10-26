@@ -20,10 +20,14 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--user", required=True)
     parser.add_argument("--default", action="store_true", help="Boot into the validated TrainerOS session")
+    parser.add_argument("--managed", action="store_true", help="Record ownership for the recoverable Software installer")
+    parser.add_argument("--uninstall", action="store_true", help="Remove only unchanged managed session files")
     helpers = parser.add_mutually_exclusive_group()
     helpers.add_argument("--emulator-support-only", action="store_true", help="Update Adventure helpers without changing the session")
     helpers.add_argument("--clock-only", action="store_true", help="Install date/time permissions without changing the session")
     args = parser.parse_args()
+    if (args.managed or args.uninstall) and (args.default or args.emulator_support_only or args.clock_only):
+        parser.error("Managed installation preserves boot and host power preferences")
     if args.default and (args.emulator_support_only or args.clock_only):
         parser.error("Helper-only installation cannot change the boot default")
     if os.geteuid() != 0 or not re.fullmatch(r"[a-z_][a-z0-9_-]*", args.user):
@@ -31,6 +35,28 @@ def main():
     account = pwd.getpwnam(args.user)
     if account.pw_uid == 0:
         parser.error("The graphical shell must not run as root")
+    owned = None
+    if args.managed or args.uninstall:
+        ledger_path = Path('/var/lib/traineros/managed-session.json')
+        ledger_path.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
+        if ledger_path.is_symlink() or any(p.is_symlink() for p in ledger_path.parents) or ledger_path.parent.stat().st_uid != 0 or ledger_path.parent.stat().st_mode & 0o022 or (ledger_path.exists() and (ledger_path.stat().st_uid != 0 or ledger_path.stat().st_mode & 0o022)):
+            parser.error('Unsafe session ownership record')
+        ownership_spec = importlib.util.spec_from_file_location("session_ownership", Path(__file__).with_name("ownership.py"))
+        ownership_module = importlib.util.module_from_spec(ownership_spec)
+        ownership_spec.loader.exec_module(ownership_module)
+        owned = ownership_module.Ownership(ledger_path, args.user)
+    if args.uninstall:
+        if not ledger_path.exists():
+            print('No managed session files were installed; other session files are preserved.')
+            return
+        defaults = [Path('/etc/systemd/system/armada-session-default.service.d/traineros.conf'),
+                    Path('/etc/sddm.conf.d/zz-steamos-autologin.conf')]
+        if any(p.exists() and b'traineros' in p.read_bytes().lower() for p in defaults):
+            parser.error('Choose Desktop or Steam as the boot default before removing the TrainerOS session')
+        owned.uninstall()
+        subprocess.run(['/usr/bin/systemctl', 'daemon-reload'], check=True)
+        print('Managed session files removed. Host defaults and personal data preserved.')
+        return
     for binary in ["/usr/bin/gamescope", "/usr/libexec/armada/device-env",
                    "/usr/libexec/armada/session-control", "/usr/sbin/visudo"]:
         if not os.access(binary, os.X_OK):
@@ -60,11 +86,14 @@ def main():
     backup = Path("/var/lib/traineros/session-backup")
     backup.mkdir(parents=True, exist_ok=True, mode=0o700)
 
-    def install(path, data, mode):
+    planned = []
+    def write_file(path, data, mode):
         path = Path(path)
         path.parent.mkdir(parents=True, exist_ok=True, mode=0o755)
         if path.parent.stat().st_uid != 0 or path.parent.stat().st_mode & 0o022:
             raise RuntimeError("Install directory must be owned and writable only by root")
+        if args.managed:
+            owned.preparing(str(path), data)
         prior = backup / str(path).lstrip("/").replace("/", "__")
         if not prior.exists() and not Path(str(prior) + ".absent").exists():
             if path.exists():
@@ -85,6 +114,10 @@ def main():
             if os.path.exists(temporary):
                 os.unlink(temporary)
 
+    def install(path, data, mode):
+        if args.managed: planned.append((path, data, mode))
+        else: write_file(path, data, mode)
+
     if not args.emulator_support_only:
         # Narrow existing system-service operations to the active local device owner.
         # No root shell, arbitrary command or global wheel grant is introduced.
@@ -103,7 +136,7 @@ def main():
     specification = importlib.util.spec_from_file_location("emulator_support", source.parent / "integrations/emulator_support.py")
     support = importlib.util.module_from_spec(specification)
     specification.loader.exec_module(support)
-    support.install_support(account, install)
+    support.install_support(account, install, activate=not args.managed)
     if args.emulator_support_only:
         print("Adventure helpers installed. Session, emulators and saves preserved.")
         return
@@ -122,9 +155,15 @@ def main():
     power_spec = importlib.util.spec_from_file_location("traineros_install_power", source.parent / "integrations/install-power.py")
     power_install = importlib.util.module_from_spec(power_spec)
     power_spec.loader.exec_module(power_install)
-    power_install.install(args.user)
+    power_install.install(args.user, writer=install if args.managed else None, configure_sleep=not args.managed)
     install("/etc/sddm.conf.d/90-traineros.conf",
             ("[Wayland]\nSessionDir=" + ",".join(directories) + "\n").encode(), 0o644)
+    if args.managed:
+        # Validate every destination before writing the first file. Recovery may
+        # resume an interrupted journal, but must never adopt an old manual install.
+        for path, _, _ in planned: owned.check(path)
+        for path, data, mode in planned: write_file(path, data, mode)
+        subprocess.run(['/usr/bin/systemctl', 'daemon-reload'], check=True)
     # Keep the original default for an explicit rollback, without modifying it.
     original = backup / "original-autologin.conf"
     override = Path("/etc/sddm.conf.d/zz-steamos-autologin.conf")

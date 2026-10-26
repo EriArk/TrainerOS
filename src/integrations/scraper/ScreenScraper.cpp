@@ -233,7 +233,11 @@ Result Client::request(const QString& op,const QMap<QString,QString>& fields,int
     const auto response=doc.object()["response"].toObject();if(response.isEmpty())return r;
     if(response["ssuser"].isObject()){quota_=quota(response["ssuser"].toObject());accountKnown_=true;}
     r.quota=quota_;
-    if(op=="ssuserInfos.php") {r.status=response["ssuser"].isObject()?Status::Ready:Status::InvalidResponse;return r;}
+    if(op=="ssuserInfos.php") {
+        r.status=response["ssuser"].isObject()?Status::Ready:Status::InvalidResponse;
+        r.accountUsername=response["ssuser"].toObject()["id"].toString().trimmed();
+        return r;
+    }
     QJsonArray games;
     if(response["jeu"].isObject())games.append(response["jeu"]);
     else if(response["jeux"].isArray())games=response["jeux"].toArray();

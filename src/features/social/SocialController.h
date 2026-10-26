@@ -489,6 +489,7 @@ private:
     friend class HomeSocialFixture;
     friend class RuntimeMultiplayerTests;
     friend class LobbySmokeScenario;
+    friend class FirstRunAccountFixture;
     friend class PlayerOverlaySmokeScenario;
     QVariantMap dismissedNotifications_;
     QVariantList activityNotifications_;

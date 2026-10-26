@@ -78,6 +78,7 @@ void ScrapeController::configure(const QString& directory) {
     if(busy())return;
     directory_=directory;credentialsPath_=QDir(directory).filePath("secrets/screenscraper.json");
     credentials_=readCredentials(credentialsPath_);
+    verifiedCredentials_={};
     const auto settings=readJson(QDir(directory).filePath("screenscraper-settings.json"));
     preferences_=Preferences::fromJson(settings);display_=settings["display"].toObject();
     emit changed();
@@ -85,9 +86,9 @@ void ScrapeController::configure(const QString& directory) {
 void ScrapeController::setTransport(Transport t,Delay d){if(!busy()){transport_=std::move(t);delay_=std::move(d);}}
 QVariantList ScrapeController::settingsRows() const {
     const bool enabled=!busy();
-    return {row("Login",credentials_.username.isEmpty()?"Optional ScreenScraper account":credentials_.username,enabled),
+    return {row("Login",credentials_.username.isEmpty()?"ScreenScraper account":credentials_.username,enabled),
         row("Password",credentials_.password.isEmpty()?"Not set":"Saved privately on this device",enabled),
-        row("Save & check connection","ScreenScraper.fr account",enabled),
+        row(accountVerified()?"Check connection":"Sign in","Download covers and game information",enabled),
         row("Sign out","Remove the saved user login and password",enabled&&!credentials_.username.isEmpty()),
         row("Language",preferences_.language+" (English fallback)",enabled),row("Preferred region",preferences_.region,enabled),
         row("Game information",preferences_.metadata?"On · description, genre, players, date, studio":"Off",enabled),
@@ -95,7 +96,7 @@ QVariantList ScrapeController::settingsRows() const {
         row("Game logos",preferences_.logos?"On":"Off",enabled),row("Screenshots",preferences_.screenshots?"On":"Off",enabled),
         row("Background artwork",preferences_.fanart?"On":"Off",enabled),
         row("Existing information",preferences_.refresh?"Replace selected fields · keep game names":"Fill empty fields only",enabled),
-        row("Scrape library","Choose and review the job before starting",enabled),
+        row("Scrape library",setupMode_?"Available from Settings after setup":"Choose and review the job before starting",enabled&&!setupMode_),
         row("Display · main image",display_["picture"].toString()=="cover"?"Cover first":"Screenshot first",enabled),
         row("Display · logos",display_["logos"].toBool(true)?"Game logos":"Text titles",enabled),
         row("Display · background",display_["background"].toBool(false)?"Downloaded artwork":"TrainerOS theme",enabled),
@@ -106,11 +107,12 @@ QVariantList ScrapeController::settingsRows() const {
 }
 void ScrapeController::activateSetting(int index) {
     if(busy()||index<0||index>=settingsRows().size())return;
+    if(setupMode_ && index==12)return;
     settingsFocus_=index;
     const auto cycle=[](const QStringList& list,const QString& value){return list[(list.indexOf(value)+1)%list.size()];};
     if(index<2){textTarget_=index==0?"login":"password";emit textRequested(index==0?"ScreenScraper login":"ScreenScraper password",index==0?credentials_.username:QString(),index==1);return;}
     if(index==2){checkAccount(false);return;}
-    if(index==3){credentials_.username.clear();credentials_.password.clear();if(!writeCredentials(credentialsPath_,credentials_))status_="Could not save the account change.";else status_="Signed out.";}
+    if(index==3){verifiedCredentials_={};credentials_.username.clear();credentials_.password.clear();if(!writeCredentials(credentialsPath_,credentials_))status_="Could not save the account change.";else status_="Signed out.";}
     if(index==4)preferences_.language=cycle({"en","ru","fr","de","es","it","pt","ja"},preferences_.language);
     if(index==5)preferences_.region=cycle({"us","eu","jp","wor"},preferences_.region);
     if(index==6)preferences_.metadata=!preferences_.metadata;
@@ -130,11 +132,23 @@ void ScrapeController::activateSetting(int index) {
     if(index>=4){savePreferences();if(index>=13)emit displayChanged();}
     emit changed();
 }
+void ScrapeController::setSetupMode(bool enabled) {
+    setupMode_=enabled;settingsFocus_=0;textTarget_.clear();
+    // Discard unsubmitted password drafts. The explicit Save action owns credentials.
+    credentials_=readCredentials(credentialsPath_);
+    emit changed();
+}
+bool ScrapeController::accountVerified() const {
+    return !verifiedCredentials_.username.isEmpty() && !verifiedCredentials_.password.isEmpty()
+        && credentials_.developerId==verifiedCredentials_.developerId
+        && credentials_.developerPassword==verifiedCredentials_.developerPassword
+        && credentials_.username==verifiedCredentials_.username && credentials_.password==verifiedCredentials_.password;
+}
 void ScrapeController::savePreferences(){auto settings=preferences_.json();settings["display"]=display_;if(directory_.isEmpty()||!saveJson(QDir(directory_).filePath("screenscraper-settings.json"),settings))status_="Could not save ScreenScraper preferences.";}
 void ScrapeController::applyText(const QString& text) {
     const auto target=std::exchange(textTarget_,{});
-    if(target=="login"){credentials_.username=text.trimmed().left(256);status_="Use Save & check connection to apply this account.";}
-    else if(target=="password"){credentials_.password=text.left(256);status_="Use Save & check connection to apply this account.";}
+    if(target=="login"){credentials_.username=text.trimmed().left(256);status_="Use Sign in to save and check this account.";}
+    else if(target=="password"){credentials_.password=text.left(256);status_="Use Sign in to save and check this account.";}
     else if(target=="search"&&active_&&choices_.contains(searchId_)&&!text.trimmed().isEmpty()) {
         searches_[searchId_]=text.trimmed().left(256);taskStates_[searchId_]="queued";
         choosing_=false;choiceId_.clear();searchId_.clear();focus_=0;
@@ -164,6 +178,7 @@ void ScrapeController::run(std::function<Outcome()> task,std::function<void(Outc
     auto future=QtConcurrent::run(std::move(task));future_=future;watcher->setFuture(future);emit changed();
 }
 void ScrapeController::checkAccount(bool startJob) {
+    verifiedCredentials_={};
     if(!credentials_.valid()){
         status_=statusMessage(Status::MissingCredentials);
         if(startJob){for(const auto& item:queue_){failures_<<item;taskStates_[item.id]="failed";taskErrors_[item.id]=status_;}finish();}
@@ -171,11 +186,14 @@ void ScrapeController::checkAccount(bool startJob) {
     }
     if(!startJob&&!writeCredentials(credentialsPath_,credentials_)){status_="Could not store this account privately.";emit changed();return;}
     cancel_=std::make_shared<std::atomic_bool>(false);client_=std::make_shared<Client>(credentials_,transport_,delay_);client_->setPreferences(startJob?jobPreferences_:preferences_);
-    const auto client=client_;const auto cancel=cancel_;phase_="Checking connection";
-    run([client,cancel]{auto r=client->account(cancel);Outcome o;o.status=r.status;o.quota=r.quota;return o;},[this,startJob](Outcome o){
+    const auto client=client_;const auto cancel=cancel_;const auto submitted=credentials_;phase_="Checking connection";
+    run([client,cancel]{auto r=client->account(cancel);Outcome o;o.status=r.status;o.quota=r.quota;o.accountUsername=r.accountUsername;return o;},[this,startJob,submitted](Outcome o){
         if(startJob&&handleCancellation())return;
         status_=statusMessage(o.status);
         if(o.status==Status::Ready)status_+=QString(" %1 / %2 daily requests used.").arg(o.quota.today).arg(o.quota.daily);
+        if(o.status==Status::Ready && !submitted.username.isEmpty() && !submitted.password.isEmpty()
+            && o.accountUsername.compare(submitted.username,Qt::CaseInsensitive)==0)verifiedCredentials_=submitted;
+        else if(o.status==Status::Ready && setupMode_)status_="The service did not confirm this user. Check your login and password.";
         if(startJob){if(o.status==Status::Ready){phase_="Preparing queue";next();}else {for(int i=index_;i<queue_.size();++i){failures_<<queue_[i];taskStates_[queue_[i].id]="failed";taskErrors_[queue_[i].id]=status_;}finish();}}
     });
 }
