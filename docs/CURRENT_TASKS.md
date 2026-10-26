@@ -7,6 +7,8 @@
 [Реализация, проверка и состояние доставки](emulators/flycast-dcnet.md).
 GGPO/cabinet и параллельные изменения Crates сохранены. R039 остаётся частичным:
 покрытие дополнительных сервисов/редакций и 3–4 arcade кабинета не завершены.
+Реализация `62e97022` установлена на Flip/Odin; production `83cceb33…` сохраняет
+Crates `8354cc75`. [Доставка, native Home/exit и VMU reopen](evidence/dcnet-20261026/README.md).
 
 **26 октября — native cabinet link:** реализован отдельный двухместный arcade LAN
 через существующий Lobby/ICE/DTLS, с native проверкой поддержки, собственным экраном

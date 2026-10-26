@@ -82,5 +82,11 @@ Redump DAT и [публичной документации DCNet](https://github
 - В container cabinet namespace case пропущен из-за запрета вложенного namespace;
   прежняя host-проверка кабинетного пути сохранена. Это не новый cabinet gameplay proof.
 
-Установка и native Home/exit/reopen фиксируются после завершения доставки.
+## Доставлено на Flip и Odin
+
+Реализация `62e97022` установлена на обеих портативках; production shell `83cceb33…`,
+новый native `993dbf4d…`. Обычный Flatpak, GGPO/cabinet, остальные 18 пакетов и
+проверенные личные файлы/история сохранены. На обеих машинах прошли Vulkan startup,
+общий Home/подтверждённый штатный выход и повторное чтение VMU/flash из protected archive.
+[Точные hashes, проверки и границы](../evidence/dcnet-20261026/README.md).
 Реальный совместный матч через внешний game server этим документом пока не подтверждён.

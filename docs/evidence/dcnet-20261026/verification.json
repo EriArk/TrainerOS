@@ -1,0 +1,40 @@
+{
+  "flip": {
+    "source": "62e9702209963f1f003e220100b3a593bfad776f",
+    "shellSha256": "83cceb3374a711bd85d3ed8ae51355edc2b3d240b757710c1a8cb445607dbb8b",
+    "previousShellSha256": "8321ec3e47f46f5efeabec38dce8f5da7b68ee39b271bb70b8345d0d425bf44d",
+    "nativeSha256": "993dbf4dff9be92ba390e3772c6659c94debc68536398c5ee985f7f6985d8b67",
+    "production": true,
+    "nativeProduct": "51049",
+    "renderer": "vulkan",
+    "portA": true,
+    "homeExit": true,
+    "nativeExitCode": 0,
+    "reopenedPreviousFlashAndVmus": true,
+    "saveReturnError": false,
+    "unchangedHistory": true,
+    "unchangedPersonalFiles": 1539,
+    "unchangedOtherPackages": 18,
+    "qmlErrors": 0,
+    "gameServerMatch": false
+  },
+  "odin": {
+    "source": "62e9702209963f1f003e220100b3a593bfad776f",
+    "shellSha256": "83cceb3374a711bd85d3ed8ae51355edc2b3d240b757710c1a8cb445607dbb8b",
+    "previousShellSha256": "8321ec3e47f46f5efeabec38dce8f5da7b68ee39b271bb70b8345d0d425bf44d",
+    "nativeSha256": "993dbf4dff9be92ba390e3772c6659c94debc68536398c5ee985f7f6985d8b67",
+    "production": true,
+    "nativeProduct": "51049",
+    "renderer": "vulkan",
+    "portA": true,
+    "homeExit": true,
+    "nativeExitCode": 0,
+    "reopenedPreviousFlashAndVmus": true,
+    "saveReturnError": false,
+    "unchangedHistory": true,
+    "unchangedPersonalFiles": 2166,
+    "unchangedOtherPackages": 18,
+    "qmlErrors": 0,
+    "gameServerMatch": false
+  }
+}
