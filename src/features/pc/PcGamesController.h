@@ -4,6 +4,7 @@
 #include "platform/files/FilesService.h"
 #include "platform/process/ProcessService.h"
 #include <QFutureWatcher>
+#include <QJsonArray>
 #include "PcSteamBridge.h"
 
 namespace trainer {
@@ -43,6 +44,8 @@ public:
     PcSteamBridge steam;
     QVariantList tasks() const;
     void taskCommand(const QString&);
+    QVariantList runtimeTasks() const;
+    void runtimeTaskCommand(const QString&);
     Q_INVOKABLE void begin();
     Q_INVOKABLE void edit(const QString& id);
     Q_INVOKABLE void close();
@@ -59,6 +62,7 @@ signals:
     void installerFinished();
     void resumeInstaller();
     void controlsRequested(QString id);
+    void performanceRequested(QString id);
 private:
     void selected(const QString&);
     void inspectFolder(const QString&,bool copied);
@@ -69,6 +73,9 @@ private:
     void saveSettings();
     void startMaintenance(const QString& operation,const QString& value={});
     void chooseRuntime();
+    void setupRuntimeDownloads();
+    void runtimeDownload(const QString& operation,const QJsonObject& item={});
+    void readRuntimeDownload();
     void steamAction(bool remove=false);
     void loadSteamUsers();
     void resetFlow();
@@ -86,6 +93,13 @@ private:
     QString mode_, format_, picking_, workingDirectory_, journal_, ownerKey_;
     QString artwork_, editId_, textField_, operation_, operationValue_, operationState_, steamUser_, steamStatus_, runtimeReturn_;
     QJsonObject runtimeConfig_;
+    QProcess runtimeDownload_;
+    QByteArray runtimeBuffer_;
+    QJsonArray runtimeCatalogue_;
+    QJsonObject runtimeItem_;
+    QString runtimeOperation_, runtimeState_, runtimeDetail_;
+    qint64 runtimeReceived_=0,runtimeTotal_=0;
+    bool runtimeCancelled_=false;
     AdventureRegistration edited_;
     QVariantList runtimeRows_, steamUsers_;
     bool addSteam_=false, removeSteam_=false;

@@ -1,5 +1,9 @@
 # Local PC runtime binding
 
+Current source, 26 October: [runtime Downloads and game Performance](../../docs/GAME_PERFORMANCE.md)
+supersede the earlier installed-only / reject-all-SteamRT boundary below.
+Device acceptance and initial offline SteamRT preparation remain open.
+
 `launch.py` belongs at `/var/opt/traineros/pc/launch.py`, readable by the ordinary
 session user. It is launched through the existing `ProcessService` and
 `AdventureLaunchController`, never through a shell command string or Steam.
@@ -218,3 +222,18 @@ The native fixture's card and isolated source/install/data folders were removed
 from both devices after testing. Database/history verification passed separately
 on each. Genre definitions are applied only after content transfer and matching.
 Private screenshots, device receipts and copy manifests are kept outside Git.
+
+## Runtime downloads and performance — 26 October 2026
+
+The earlier installed-only / reject-all-SteamRT boundary above is superseded by
+[Game Performance and Runtime Downloads](../../docs/GAME_PERFORMANCE.md).
+The same PC editor now obtains official architecture-matched GE-Proton versions
+and pinned UMU through a shared Downloads task. Completed immutable bundles can
+be selected explicitly; no update silently changes an existing pin/prefix.
+Known UMU 1.4.4 SteamRT IDs are admitted. Initial SteamRT bootstrap still belongs
+to UMU at first launch and needs network; complete offline preparation is open.
+Install `launch.py`, `steam.py`, `runtimes.py` together under
+`/var/opt/traineros/pc/` through the existing session support helper.
+Power profiles and supported Proton renderer/sync overrides are owned by the
+shared GamePerformance panel, with per-owner/per-game persistence and the actual
+Adventure prepare/finalize boundary. Host/devices have not been exercised here.

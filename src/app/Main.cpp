@@ -417,6 +417,7 @@ int main(int argc, char* argv[]) {
                 shell.apps()->configure(stateDirectory,ready?store->ownerId():QString());
                 shell.files()->configure(stateDirectory,ready?store->ownerId():QString());
                 shell.pcGames()->configure(stateDirectory,ready?store->ownerId():QString());
+                shell.gamePerformance()->configure(stateDirectory,ready?store->ownerId():QString());
                 shell.settings()->gameInput()->configure(&activeLibrary,stateDirectory,ready?store->ownerId():QString());
                 shell.settings()->setMediaOwner(ready?store->ownerId():QString());
                 shell.browser()->configure(stateDirectory,ready?store->ownerId():QString());
@@ -430,6 +431,7 @@ int main(int argc, char* argv[]) {
                 shell.apps()->configure(stateDirectory,{});
                 shell.files()->configure(stateDirectory,{});
                 shell.pcGames()->configure(stateDirectory,{});
+                shell.gamePerformance()->configure(stateDirectory,{});
                 shell.browser()->configure(stateDirectory,{});
                 shell.album()->configure(stateDirectory,{});
             });
@@ -558,6 +560,7 @@ int main(int argc, char* argv[]) {
         QObject::connect(&adventureProcess,&ProcessService::started,&shell,[&]{++experienceSession;});
         const auto liveExperienceSession=[&]{return adventureProcess.active()?QString::number(adventureProcess.processId())+":"+QString::number(experienceSession):QString();};
         AdventureLaunchController adventureLaunch(adventureProcess);
+        adventureLaunch.configureGame=[&](ProcessCommand command,const QString& game){return shell.gamePerformance()->prepare(std::move(command),game);};
         std::unique_ptr<PlatformBinding> platformSdk;
         // Publish discovery only when the GUI event loop can answer clients,
         // after synchronous QML/startup work has finished.
@@ -795,7 +798,7 @@ int main(int argc, char* argv[]) {
             QVariantList actions{QVariantMap{{"id","minimize"},{"label","Minimize"},
                 {"readOnly",!(adventureOverlay && adventureOverlay->canMinimize())}}};
             if(adventureProcess.runtimeControls()["kind"]=="retroarch")actions.append(QVariantMap{{"id","display"},{"label","Game settings"},{"column","game"}});
-            if(const auto r=activeLibrary.registration(adventureLaunch.adventureId());r&&r->adventure.adapterId=="pc-local")actions.append(QVariantMap{{"id","pc-settings"},{"label","Game settings"},{"column","game"},{"readOnly",!(adventureOverlay&&adventureOverlay->canMinimize())}});
+            if(const auto r=activeLibrary.registration(adventureLaunch.adventureId());r)actions.append(QVariantMap{{"id","pc-settings"},{"label","Performance & compatibility"},{"column","game"},{"readOnly",!(adventureOverlay&&adventureOverlay->canMinimize())}});
             const auto achievements=gameAchievementRows();
             if(!achievements.isEmpty()) {
                 int earned=0;for(const auto& row:achievements)if(row.toMap()["earned"].toBool())++earned;
@@ -1394,7 +1397,7 @@ int main(int argc, char* argv[]) {
                         adventureLaunch.updateReturnContext(shell.navigationState());window->hide();
                     });
                     QObject::connect(adventureOverlay.get(),&AdventureOverlayService::contentAction,&shell,[&](Action action){if(shell.social()->dispatchIncomingCall(action))return;if(shell.gameControlsOpen())shell.dispatchGameControls(action);else playerOverlay.dispatch(action);});
-                    QObject::connect(adventureOverlay.get(),&AdventureOverlayService::shellRequested,&shell,[&]{if(!pendingSystemAction.isEmpty()){const auto id=std::exchange(pendingSystemAction,QString());if(id=="current-lobby")shell.openGameHubFace("lobby");else if(id=="pc-settings")shell.pcGames()->edit(adventureLaunch.adventureId());else shell.systemAction(id);}});
+                    QObject::connect(adventureOverlay.get(),&AdventureOverlayService::shellRequested,&shell,[&]{if(!pendingSystemAction.isEmpty()){const auto id=std::exchange(pendingSystemAction,QString());if(id=="current-lobby")shell.openGameHubFace("lobby");else if(id=="pc-settings")shell.gamePerformance()->begin(adventureLaunch.adventureId());else shell.systemAction(id);}});
                     QObject::connect(adventureOverlay.get(),&AdventureOverlayService::shellAction,&session,[&](Action action){
                         if(adventureLaunch.minimized())session.dispatch(action);
                     });

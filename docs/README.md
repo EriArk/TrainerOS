@@ -39,7 +39,7 @@ R-ID готовности → S-владельцы → F-сценарии. Ст�
   [Crates installer](CRATES76_INSTALLER.md), [каталог](CRATES77_CATALOGUE.md).
 - Устройство: [платформа](ARMADA_PLATFORM.md), [диагностика](DEVICE_DIAGNOSTICS.md),
   [производительность](PERFORMANCE72.md), [масштаб](DISPLAY_SCALING.md),
-  [Settings и профили ввода](INPUT_PROFILES.md).
+  [Settings и профили ввода](INPUT_PROFILES.md), [per-game Performance / runtime-кеш](GAME_PERFORMANCE.md).
 - Выпуск: [первая бета](EARLY_BETA_INSTALLER_RU.md), [открытые gates](PUBLIC_READINESS.md),
   [лицензия](../LICENSING.md), [third-party notices](../THIRD_PARTY_NOTICES.md).
 

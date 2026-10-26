@@ -38,7 +38,7 @@ bool AdventureLaunchController::launch(const ProcessCommand& command, const QJso
     if (active() || process_.active()) return false;
     adventureId_ = adventureId; started_ = false; minimized_ = false;
     savePolicy_ = savePolicy;
-    command_ = command; context_ = context; error_.clear(); state_ = "preparing";
+    command_ = configureGame ? configureGame(command,adventureId) : command; context_ = context; error_.clear(); state_ = "preparing";
     const auto token = ++request_; emit changed(); emit checkpointRequested(token, context_); return true;
 }
 void AdventureLaunchController::checkpointCompleted(quint64 request, const QString& error) {

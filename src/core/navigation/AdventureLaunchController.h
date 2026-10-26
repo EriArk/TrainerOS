@@ -31,6 +31,7 @@ public:
     bool launch(const ProcessCommand&, const QJsonObject& returnContext, const QString& adventureId = {},
                 AdventureSavePolicy savePolicy = AdventureSavePolicy::Unknown);
     AdventureExitController& exitController() { return exit_; }
+    std::function<ProcessCommand(ProcessCommand,const QString&)> configureGame;
     void checkpointCompleted(quint64 request, const QString& error);
     Q_INVOKABLE void cancel();
 signals:

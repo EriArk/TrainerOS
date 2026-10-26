@@ -7,7 +7,7 @@ import subprocess
 import tempfile
 
 HELPERS = ('overlay_support.py', 'game_input.py', 'adventure-overlay.py', 'invitation-overlay.py', 'controller-bridge.py', 'grant-input-read.py',
-           'apps-service.py', 'apps_input.py', 'keyboard_input.py')
+           'apps-service.py', 'apps_input.py', 'keyboard_input.py', 'game-performance.py')
 LEGACY_BRIDGE = 'e6dc58795a67b789aabe546b5d20952c10a971c071a496b2c56b81f9c587c210'
 
 
@@ -61,12 +61,16 @@ def install_support(account, install):
     prerequisites()
     source = Path(__file__).resolve().parent
     contents = {name: (source / name).read_bytes().replace(b'\r\n', b'\n') for name in HELPERS}
-    for name, data in contents.items():
+    pc_contents = {name: (source.parent / 'pc' / name).read_bytes().replace(b'\r\n', b'\n')
+                   for name in ('launch.py', 'steam.py', 'runtimes.py')}
+    for name, data in {**contents, **pc_contents}.items():
         compile(data, name, 'exec')
     bridge = Path('/var/opt/traineros/integrations/controller-bridge.py')
     previous = bridge.read_bytes() if bridge.is_file() else None
     for name, data in contents.items():
         install('/var/opt/traineros/integrations/' + name, data, 0o755)
+    for name, data in pc_contents.items():
+        install('/var/opt/traineros/pc/' + name, data, 0o755)
     install('/etc/systemd/system/inputplumber.service.d/90-traineros-pad-read.conf',
             ('[Service]\nExecStartPost=/usr/bin/python3 /var/opt/traineros/integrations/grant-input-read.py '
              + account.pw_name + '\n').encode(), 0o644)

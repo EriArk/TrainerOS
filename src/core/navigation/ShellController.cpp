@@ -72,21 +72,25 @@ ShellController::ShellController(LibraryRepository& repo, TrainerRepository& pro
     : QObject(parent), repository_(repo), adapter_(adapter), platform_(platform),
       keyboard_(this), trainer_(profiles, this), worlds_(repo, adapter, this), multiverse_(repo, adapter, this),
       hall_(archive, achievements, this),
-      libraryManager_(repo, nullptr, this), libraryTools_(repo,this), scraper_(repo,this), pcGames_(repo,*files_.service(),this), settings_(this), device_(this), diagnostics_(this), dashboard_(repo,achievements,social_,this), story_(repo,achievements) {
+      libraryManager_(repo, nullptr, this), libraryTools_(repo,this), scraper_(repo,this), pcGames_(repo,*files_.service(),this), gamePerformance_(repo,this), settings_(this), device_(this), diagnostics_(this), dashboard_(repo,achievements,social_,this), story_(repo,achievements) {
 
     connect(&pcGames_,&PcGamesController::changed,this,&ShellController::changed);
     connect(&pcGames_,&PcGamesController::installerStarted,&apps_,&AppsController::watchInstaller);
     connect(&pcGames_,&PcGamesController::installerFinished,&apps_,&AppsController::finishInstaller);
     connect(&pcGames_,&PcGamesController::resumeInstaller,&apps_,&AppsController::resumeInstaller);
-    connect(&pcGames_,&PcGamesController::changed,this,[this]{downloads_.publish("pc",pcGames_.tasks());});
+    connect(&pcGames_,&PcGamesController::changed,this,[this]{downloads_.publish("pc",pcGames_.tasks());downloads_.publish("pc-runtime",pcGames_.runtimeTasks());});
     connect(&downloads_,&DownloadsController::commandRequested,this,[this](QString provider,QString,QString command){
         if(provider=="pc"){if(command=="open")downloads_.close();pcGames_.taskCommand(command);}
+        if(provider=="pc-runtime"){if(command=="open")downloads_.close();pcGames_.runtimeTaskCommand(command);}
     });
     settings_.gameInput()->configure(&repo,{},{});
     connect(settings_.gameInput(),&GameInputProfiles::changed,&settings_,&SettingsController::changed);
     connect(settings_.gameInput(),&GameInputProfiles::backRequested,this,[this]{settings_.selectPage("game-input",false);});
     connect(&pcGames_,&PcGamesController::saved,this,[this](QString){refreshLibrary();});
-    connect(&libraryTools_,&LibraryToolsController::pcSettingsRequested,&pcGames_,&PcGamesController::edit);
+    connect(&libraryTools_,&LibraryToolsController::gameSettingsRequested,&gamePerformance_,&GamePerformance::begin);
+    connect(&gamePerformance_,&GamePerformance::changed,this,&ShellController::changed);
+    connect(&gamePerformance_,&GamePerformance::compatibilityRequested,&pcGames_,&PcGamesController::edit);
+    connect(&pcGames_,&PcGamesController::performanceRequested,&gamePerformance_,&GamePerformance::begin);
     connect(&pcGames_,&PcGamesController::controlsRequested,this,[this](const QString& id){service_="settings";settings_.begin();settings_.selectPage("game-input",true);settings_.gameInput()->beginGame(id);emit changed();});
     connect(settings_.gameInput(),&GameInputProfiles::textRequested,this,[this](QString title,QString text,int limit){textTarget_=TextTarget::GameInput;keyboard_.begin(title,text,limit);});
     connect(&pcGames_,&PcGamesController::textRequested,this,[this](QString title,QString text,int limit){textTarget_=TextTarget::PcGame;keyboard_.begin(title,text,limit);});
@@ -441,7 +445,7 @@ bool ShellController::canEditWorld() const {
         && !drawerOpen_ && !libraryTools_.isOpen() && !worlds_.region().value("id").toString().isEmpty();
 }
 bool ShellController::localModalOpen() {
-    if(pcGames_.isOpen())return true;
+    if(pcGames_.isOpen()||gamePerformance_.isOpen())return true;
     return files_.modal() || social_.files()->picker()->isOpen() || (social_.myLobbiesOpen() || social_.lobbyCreateOpen() || social_.lobbyPickerOpen() || social_.lobbyVoteOpen()) || collectionManager()->isOpen() || downloads_.isOpen() || scraper_.isOpen() || (socialActive() && !social_.menu().isEmpty()) || libraryTools_.isOpen() || trainer_.editing()
         || (adapterActive() && activeModule_ && activeModule_->modalOpen())
         || (page_==GameHubPage && hubFace_=="ra" && (hall_.editor()->isOpen() || hall_.account()->isOpen() || hall_.galleryMenuOpen() || hall_.historyOpen() || hall_.route()=="achievement-detail"));
@@ -1536,7 +1540,7 @@ QVariantList ShellController::homeMenuActions() const {
     }
     QVariantList rows;
     if(!social_.homeLobby()["id"].toString().isEmpty())rows.append(QVariantMap{{"id","lobby"},{"label","My lobby"}});
-    if(liveGame_.isEmpty())if(const auto r=repository_.registration(currentAdventureId());r&&r->adventure.adapterId=="pc-local")rows.append(QVariantMap{{"id","pc-settings"},{"label","Game settings"},{"detail",r->adventure.title}});
+    if(liveGame_.isEmpty())if(const auto r=repository_.registration(currentAdventureId());r)rows.append(QVariantMap{{"id","pc-settings"},{"label","Game settings"},{"detail",r->adventure.title}});
     if(!liveGame_.isEmpty()) {
         rows.prepend(QVariantMap{{"id","live-options"},{"label","Game Options"},{"detail",liveGame_.value("title")}});
         rows.prepend(QVariantMap{{"id","live-return"},{"label","Return to game"},{"detail","Still running · "+liveGame_.value("title").toString()}});
@@ -1563,7 +1567,7 @@ void ShellController::activateHomeMenu(int index) {
     const auto selected=homeMenuActions()[index].toMap();
     if(!selected.value("enabled",true).toBool())return;
     const auto id=selected["id"].toString();
-    if(id=="pc-settings"){closeHomeMenu();pcGames_.edit(currentAdventureId());return;}
+    if(id=="pc-settings"){closeHomeMenu();gamePerformance_.begin(currentAdventureId());return;}
     if(id=="together"){emit togetherRequested(liveGame_.value("id").toString());return;}
     if(id=="lobby"){if(liveGame_.isEmpty())social_.openLobby();else social_.openLobbyForGame(liveGame_.value("id").toString());return;}
     if(id=="live-return"||id=="live-options"){returnToLiveGame(id=="live-options");return;}
@@ -1657,6 +1661,8 @@ void ShellController::dispatch(Action action) {
     }
     if(social_.files()->picker()->isOpen()){social_.files()->dispatch(action);return;}
     if(service_=="library" && libraryManager_.files()->isOpen() && !keyboard_.isOpen()){libraryManager_.dispatch(action);return;}
+    if(gamePerformance_.isOpen() && !keyboard_.isOpen() && !menuOpen_ && !homeMenuOpen_ && notice_.isEmpty()
+       && action!=Action::Home && action!=Action::SystemMenu){gamePerformance_.dispatch(action);return;}
     if(pcGames_.isOpen() && !keyboard_.isOpen() && !downloads_.isOpen() && !serviceOpen() && !menuOpen_ && !homeMenuOpen_ && notice_.isEmpty()) {pcGames_.dispatch(action);return;}
     if((social_.myLobbiesOpen() || social_.lobbyCreateOpen() || social_.lobbyPicker()["open"].toBool() || social_.lobbyPicker()["voteOpen"].toBool())&&!keyboard_.isOpen()){social_.dispatch(action);return;}
     if(page_==GameHubPage && hubFace_=="lobby" && (action==Action::ToggleFavorite || action==Action::ChangeView)) {

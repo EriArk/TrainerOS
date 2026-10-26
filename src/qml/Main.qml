@@ -437,6 +437,7 @@ Window {
                 if (shell.service === "settings") return [h(shell.settings.controlsFocused?"←→":"↑↓",shell.settings.controlsFocused?"Adjust":"Section"),h("A",shell.settings.controlsFocused ? "Select" : "Open"),h("B",shell.settings.controlsFocused ? "Categories" : "Back")]
                 if (shell.service === "device") return [h("←→","Adjust"),h("Y","Refresh"),h("A","Select"),h("B","Back")]
                 if (shell.serviceOpen) return [h("A","Select"),h("B","Back")]
+                if (shell.gamePerformance.open) return [h("A","Adjust"),h("B","Close")]
                 if (shell.pcGames.open) return [h("A","Choose"),h("B",shell.pcGames.picker.open ? "Back" : shell.pcGames.busy ? "Hide" : "Close")]
                 if(shell.collectionManager.open) return [h("A","Choose"),h("B","Back")]
                 if (shell.page === 1 && shell.collectionsRoot) return shell.gamesRootZone === "collections" ? [h("A","Open"),h("Select","Collection actions"),h("B","Home")] : [h("A","Open platform"),h("B","Home")]
@@ -508,6 +509,7 @@ Window {
         Loader { anchors.fill: screen; z: shell.menuOpen ? 4.2 : 3.2; active: shell.downloads.open; visible: active; sourceComponent: DownloadsPanel { flow: shell.downloads } }
         MyLobbiesPopup { anchors.fill: screen; social: shell.social; z: 3.5 }
         ChatFilePicker { anchors.fill: screen; picker: shell.social.files.picker; z: 4 }
+        Loader { anchors.fill: screen; z: 3.5; active: shell.gamePerformance.open && !shell.keyboard.open && !shell.menuOpen && !shell.homeMenuOpen; visible: active; sourceComponent: GamePerformancePopup { profile: shell.gamePerformance } }
         Loader { anchors.fill: screen; z: 3.4; active: shell.pcGames.open && !shell.keyboard.open && !shell.menuOpen && !shell.homeMenuOpen && !shell.serviceOpen; visible: active; sourceComponent: PcGamePopup { flow: shell.pcGames } }
         LobbyCreatePopup { anchors.fill: screen; social: shell.social; z: 3.6 }
         Loader { anchors.fill: screen; z: 3.7; active: shell.social.lobbyPickerOpen; sourceComponent: LobbyGamePicker { social: shell.social } }

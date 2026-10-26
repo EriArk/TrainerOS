@@ -64,6 +64,7 @@ QString defaultProton() {
 QString PcGamesController::fileKind(const QString& path,bool installer) {return installer?installerKind(QFileInfo(path)):kind(QFileInfo(path));}
 PcGamesController::PcGamesController(LibraryRepository& library,FilesService& files,QObject* parent)
     :QObject(parent),library_(library),files_(files) {
+    setupRuntimeDownloads();
     auto* recovery=new QTimer(this);recovery->setInterval(1000);
     connect(recovery,&QTimer::timeout,this,[this]{
         if(recoveredPid_>1 && !liveInstaller()) {recoveredPid_=0;busy_=false;emit installerFinished();inspectFolder(installRoot_,true);}
@@ -102,6 +103,8 @@ PcGamesController::PcGamesController(LibraryRepository& library,FilesService& fi
     });
 }
 PcGamesController::~PcGamesController() {
+    disconnect(&runtimeDownload_,nullptr,this,nullptr);
+    if(runtimeDownload_.state()!=QProcess::NotRunning){runtimeDownload_.terminate();if(!runtimeDownload_.waitForFinished(3000)){runtimeDownload_.kill();runtimeDownload_.waitForFinished(1000);}}
     disconnect(&installer_,nullptr,this,nullptr);
     if(installer_.active()) {
         QEventLoop wait;
@@ -117,6 +120,7 @@ void PcGamesController::configure(QString directory,QString owner) {
     ++generation_;picker_.cancel();open_=false;directory_=std::move(directory);owner_=std::move(owner);
     ownerKey_=QString::fromLatin1(QCryptographicHash::hash(owner_.toUtf8(),QCryptographicHash::Sha256).toHex());
     steam.configure(directory_,owner_.isEmpty()?QString():ownerKey_);
+    runtimeState_.clear();runtimeCatalogue_={};runtimeItem_={};
     journal_=owner_.isEmpty()?QString():directory_+"/pc/"+ownerKey_+"/import.json";
     resetFlow();
     QFile file(journal_);
@@ -183,11 +187,12 @@ QVariantList PcGamesController::rows() const {
         return result;
     }
     if(busy_)return {row("Hide","Progress remains in Downloads"),row("Cancel","Keep the source and any incomplete copy")};
-    if(stage_=="runtimes") {auto result=runtimeRows_;result<<row("Back");return result;}
+    if(stage_=="runtimes") {auto result=runtimeRows_;result<<row("Download a runtime","Official versions · shared cache")<<row("Back");return result;}
+    if(stage_=="runtime-catalogue") {QVariantList result;for(const auto& v:runtimeCatalogue_){const auto c=v.toObject();result<<row(c["title"].toString(),QString("%1 MiB · GE-Proton + UMU · first launch needs internet").arg(c["size"].toDouble()/1048576,0,'f',0));}result<<row("Refresh versions")<<row("Back");return result;}
     if(stage_=="steam-users") {auto result=steamUsers_;result<<row("Back");return result;}
     if(stage_=="settings")return {row("Launch",edited_.integrationConfig["runner"]=="native"?"Native Linux":edited_.integrationConfig["runner"]=="wine"?"Wine":QFileInfo(edited_.integrationConfig["proton"].toString()).fileName()),
         row(edited_.integrationConfig["runner"]=="native"?"Updates & patches":"Components",edited_.integrationConfig["runner"]=="native"?"Run an installer for this game":"Dependencies, patches and Windows settings"),
-        row("Artwork & Steam",title_),row("Controls",steam.active()?"Steam Input owns this running session":"Controller, keyboard and radial menus"),row("Save changes","Keep this game's stable identity")};
+        row("Artwork & Steam",title_),row("Controls",steam.active()?"Steam Input owns this running session":"Controller, keyboard and radial menus"),row("Save changes","Keep this game's stable identity"),row("Performance","Per-game power, clocks and graphics")};
     if(stage_=="launch-settings") {
         QVariantList result{row("Executable",chosen_["path"].toString()),row("Working folder",workingDirectory_),row("Arguments",edited_.integrationConfig["argumentText"].toString()),row("Runtime",edited_.integrationConfig["runner"]=="wine"?edited_.integrationConfig["wine"].toString():QFileInfo(edited_.integrationConfig["proton"].toString()).fileName()),row("Restore previous runtime","Return to its retained environment and earlier saves"),row("Back")};
         if(edited_.integrationConfig["runner"]=="native") {result[3]=QVariantMap{{"title","Native Linux"},{"subtitle","Runs directly on this device"},{"enabled",false}};result.removeAt(4);}return result;
@@ -200,7 +205,7 @@ QVariantList PcGamesController::rows() const {
     if(stage_=="maintenance-confirm")return {row("Run",operation_=="component"?"Install "+operationValue_+" into this game's environment":"Use this game's current saved environment"),row("Back")};
     if(stage_=="source")return {row("Install a game","Windows EXE / MSI or a Linux installer"),row("Add a ready-to-play game","A folder, archive or executable")};
     if(stage_=="ready-source")return {row("Game folder","Copy the game and all its files"),row("Archive","ZIP, 7Z or RAR"),row("Executable","Copy its containing folder, including adjacent files")};
-    if(stage_=="installer-source")return {row("Choose installer","EXE / MSI, native ELF / AppImage, or shell installer")};
+    if(stage_=="installer-source")return {row("Choose installer","EXE / MSI, native ELF / AppImage, or shell installer"),row("Windows runtime","Select or download Wine / Proton before installing")};
     if(stage_=="storage") {
         QStorageInfo disk(QDir::homePath());
         return {row("Internal storage",QString("%1 GiB available").arg(double(disk.bytesAvailable())/(1024*1024*1024),0,'f',1)),row("Choose storage","SD card or another mounted location")};
@@ -217,6 +222,7 @@ void PcGamesController::activate(int index) {
     focus_=index;
     if(!rows()[index].toMap().value("enabled",true).toBool())return;
     if(installing()) {if(index==0){if(recoveredPid_)emit installerStarted(recoveredPid_,title_);else emit resumeInstaller();}else if(index==1)close();else installer_.stop();return;}
+    if(busy_ && runtimeDownload_.state()!=QProcess::NotRunning){if(index==0)close();else runtimeTaskCommand("cancel");return;}
     if(busy_) {
         if(index==0)close();else if(!job_.isEmpty())files_.cancel(job_);
         else {++generation_;busy_=false;stage_="failed";message_="Import cancelled. Source files are unchanged.";persist();emit changed();}
@@ -224,7 +230,7 @@ void PcGamesController::activate(int index) {
     }
     if(stage_=="settings") {
         if(index==0)stage_="launch-settings";else if(index==1)stage_="components";else if(index==2)stage_="appearance";
-        else if(index==3){close();emit controlsRequested(editId_);return;}else {saveSettings();return;}focus_=0;emit changed();return;
+        else if(index==3){close();emit controlsRequested(editId_);return;}else if(index==5){close();emit performanceRequested(editId_);return;}else {saveSettings();return;}focus_=0;emit changed();return;
     }
     if(stage_=="launch-settings") {
         if(index==4&&edited_.integrationConfig["runner"]=="native"){stage_="settings";focus_=0;emit changed();return;}
@@ -234,13 +240,19 @@ void PcGamesController::activate(int index) {
         else if(index==4){const auto previous=edited_.integrationConfig["previousRuntime"].toObject();const auto issue=pc::runtimeIssue(previous,QSysInfo::currentCpuArchitecture());if(previous.isEmpty()||!issue.isEmpty())message_=previous.isEmpty()?"No previous runtime selection.":issue;else {for(const auto& key:{"runner","proton","wine","umu","prefix","prefixSource","prefixSourceExisted","contentPrefix"})if(previous.contains(key))edited_.integrationConfig[key]=previous[key];else edited_.integrationConfig.remove(key);message_="Previous runtime and retained environment selected. Save to apply.";}}
         else {stage_="settings";focus_=0;}emit changed();return;
     }
+    if(stage_=="runtime-catalogue"){if(index<runtimeCatalogue_.size())runtimeDownload("install",runtimeCatalogue_[index].toObject());else if(index==runtimeCatalogue_.size())runtimeDownload("catalogue");else {stage_="runtimes";focus_=0;emit changed();}return;}
     if(stage_=="runtimes") {
+        if(index==runtimeRows_.size()){stage_="runtime-catalogue";focus_=0;runtimeDownload("catalogue");return;}
         if(index<runtimeRows_.size()) {
             const auto c=QJsonObject::fromVariantMap(runtimeRows_[index].toMap()["config"].toMap());
             if(editing()){for(const auto& key:{"runner","proton","wine","umu"})edited_.integrationConfig[key]=c[key];}
             else {runtimeConfig_=c;proton_=c["proton"].toString();persist();}
         }
-        stage_=runtimeReturn_;focus_=0;emit changed();return;
+        stage_=runtimeReturn_;
+        if(index<runtimeRows_.size()&&runtimeReturn_=="installer-source"&&(format_=="proton"||format_=="msi")&&QFileInfo(source_).isFile()) {
+            bytes_=QFileInfo(source_).size();stage_="storage";message_="Choose storage for the selected installer.";
+        }
+        focus_=0;emit changed();return;
     }
     if(stage_=="components") {
         const bool native=edited_.integrationConfig["runner"]=="native";
@@ -260,7 +272,7 @@ void PcGamesController::activate(int index) {
         stage_=editing()?"appearance":"confirm";focus_=0;emit changed();return;
     }
     if(stage_=="source") {mode_=index==0?"installer":"ready";stage_=index==0?"installer-source":"ready-source";focus_=0;if(index==0){picking_="installer";picker_.begin();}}
-    else if(stage_=="installer-source") {picking_="installer";picker_.begin();}
+    else if(stage_=="installer-source") {if(index==1)chooseRuntime();else {picking_="installer";picker_.begin();}}
     else if(stage_=="ready-source") {picking_=index==0?"folder":index==1?"archive":"executable";picker_.begin({},index==0);}
     else if(stage_=="storage") {
         picking_="storage";
@@ -306,7 +318,7 @@ void PcGamesController::applyText(const QString& text) {
 }
 void PcGamesController::dispatch(Action action) {
     if(picker_.isOpen()){picker_.dispatch(action);return;}
-    if(action==Action::Back){if(stage_=="runtimes"){stage_=runtimeReturn_;focus_=0;emit changed();}else if(stage_=="steam-users"){stage_=editing()?"appearance":"confirm";focus_=0;emit changed();}else if(editing()&&stage_!="settings"&&!busy_){stage_="settings";focus_=0;emit changed();}else close();return;}
+    if(action==Action::Back){if(busy_){close();return;}if(stage_=="runtime-catalogue"){stage_="runtimes";focus_=0;emit changed();}else if(stage_=="runtimes"){stage_=runtimeReturn_;focus_=0;emit changed();}else if(stage_=="steam-users"){stage_=editing()?"appearance":"confirm";focus_=0;emit changed();}else if(editing()&&stage_!="settings"&&!busy_){stage_="settings";focus_=0;emit changed();}else close();return;}
     if(action==Action::Confirm){activate(focus_);return;}
     if(action==Action::Down)focus_=std::min(focus_+1,std::max(0,int(rows().size())-1));
     if(action==Action::Up)focus_=std::max(0,focus_-1);

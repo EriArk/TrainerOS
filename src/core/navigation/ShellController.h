@@ -22,6 +22,7 @@
 #include "features/apps/AppsController.h"
 #include "features/crates/CratesController.h"
 #include "features/pc/PcGamesController.h"
+#include "features/settings/GamePerformance.h"
 #include "features/files/FilesController.h"
 #include "features/browser/BrowserController.h"
 #include "platform/power/PowerControl.h"
@@ -50,6 +51,7 @@ class ShellController final : public QObject {
     Q_PROPERTY(trainer::AppsController* apps READ apps CONSTANT)
     Q_PROPERTY(trainer::CratesController* crates READ crates CONSTANT)
     Q_PROPERTY(trainer::PcGamesController* pcGames READ pcGames CONSTANT)
+    Q_PROPERTY(trainer::GamePerformance* gamePerformance READ gamePerformance CONSTANT)
     Q_PROPERTY(bool pcAddFocused MEMBER pcAddFocused_ NOTIFY changed)
     Q_PROPERTY(int page READ page NOTIFY changed)
     Q_PROPERTY(QString primaryId READ primaryId NOTIFY changed)
@@ -191,6 +193,7 @@ public:
     PowerControl* powerControl(){return &powerControl_;}
     AppsController* apps(){return &apps_;}
     CratesController* crates(){return &crates_;}
+    GamePerformance* gamePerformance(){return &gamePerformance_;}
     PcGamesController* pcGames(){return &pcGames_;}
     DownloadsController* downloads() {return &downloads_;}
     bool canHoldConfirm() const;
@@ -372,6 +375,7 @@ private:
     bool restoringNavigation_=false;
     FilesController files_;
     PcGamesController pcGames_;
+    GamePerformance gamePerformance_;
     bool pcAddFocused_=false;
     BrowserController browser_;
     PowerControl powerControl_;

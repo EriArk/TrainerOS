@@ -8,6 +8,8 @@
 #include <QImage>
 #include <QSysInfo>
 #include "features/pc/PcGamesController.h"
+#include "features/settings/GamePerformance.h"
+#include <QJsonArray>
 #include "core/input/TextEntryController.h"
 #include "platform/input/InvitationOverlayService.h"
 using namespace trainer;
@@ -24,6 +26,32 @@ public:
 class PcImportUiTests : public QObject {
     Q_OBJECT
 private slots:
+    void perGamePerformanceAtTwoSizes() {
+        QTemporaryDir temp;const QDir source(QString(TRAINER_SOURCE_DIR)+"/src/qml");
+        for(const auto& name:source.entryList({"*.qml"},QDir::Files))QVERIFY(QFile::copy(source.filePath(name),temp.filePath(name)));
+        QFile dir(temp.filePath("qmldir"));QVERIFY(dir.open(QIODevice::WriteOnly));dir.write("singleton Theme 1.0 Theme.qml\n");dir.close();
+        QFile scene(temp.filePath("Probe.qml"));QVERIFY(scene.open(QIODevice::WriteOnly));scene.write("import QtQuick\nItem { width: 960; height: 540; property bool dark: false; onDarkChanged: Theme.themeId=dark ? 'dark' : 'light'; GamePerformancePopup { anchors.fill: parent; profile: probeProfile } }");scene.close();
+        UiLibrary library;library.record.adventure.id="pc:power";library.record.adventure.title="An ordinary PC game";library.record.adventure.adapterId="pc-local";library.record.integrationConfig={{"runner","proton"}};
+        GamePerformance profile(library);profile.configure(temp.path(),"owner");profile.begin("pc:power");
+        profile.setCapabilities({{"profiles",QJsonArray{"Eco","Balanced","Performance"}},{"current","Balanced"},{"governors",QJsonArray{"conservative","schedutil","performance"}},{"gpuModes",QJsonArray{"auto","manual"}},{"gpuMin",200},{"gpuMax",1000}});
+        QQuickView view;QStringList warnings;connect(view.engine(),&QQmlEngine::warnings,this,[&](const QList<QQmlError>& errors){for(const auto& e:errors)warnings<<e.toString();});
+        view.rootContext()->setContextProperty("probeProfile",&profile);view.setResizeMode(QQuickView::SizeRootObjectToView);view.setSource(QUrl::fromLocalFile(scene.fileName()));
+        QVERIFY2(view.status()==QQuickView::Ready,qPrintable(warnings.join('\n')));view.resize(960,540);view.show();QTest::qWait(180);
+        QDir().mkpath("screenshots/game-performance");QVERIFY(view.grabWindow().save("screenshots/game-performance/light-960.png"));
+        profile.dispatch(Action::Right);QCOMPARE(profile.draft()["power"].toString(),QString("Eco"));
+        profile.dispatch(Action::Down);profile.dispatch(Action::Right);QCOMPARE(profile.draft()["gpu"].toInt(),200);
+        QTest::qWait(50);
+        std::function<QQuickItem*(QQuickItem*)> findSlider=[&](QQuickItem* item)->QQuickItem*{if(item->objectName()=="gpu-clock-slider"&&item->isVisible())return item;for(auto* child:item->childItems())if(auto* found=findSlider(child))return found;return nullptr;};
+        auto* slider=findSlider(view.rootObject());QVERIFY(slider);
+        const auto point=slider->mapToScene(QPointF(slider->width()*.8,slider->height()/2));
+        QTest::mouseClick(&view,Qt::LeftButton,Qt::NoModifier,point.toPoint());QVERIFY(profile.draft()["gpu"].toInt()>=800);
+        QTest::qWait(50);slider=findSlider(view.rootObject());QVERIFY(slider);QVERIFY(slider->parentItem()->property("clockRatio").toDouble()>.7);
+        profile.save();profile.close();profile.begin("pc:power");QCOMPARE(profile.draft()["power"].toString(),QString("Eco"));
+        view.rootObject()->setProperty("dark",true);view.resize(800,450);QTest::qWait(100);QVERIFY(view.grabWindow().save("screenshots/game-performance/dark-800.png"));
+        profile.dispatch(Action::NextPage);QCOMPARE(profile.page(),1);QTest::qWait(100);QVERIFY(view.grabWindow().save("screenshots/game-performance/compatibility-800.png"));
+        profile.dispatch(Action::Back);QVERIFY(!profile.isOpen());
+        QVERIFY2(warnings.isEmpty(),qPrintable(warnings.join('\n')));
+    }
     void gameSettingsArtworkAndLaunchAtHandheldSize() {
         QTemporaryDir temp;const QDir source(QString(TRAINER_SOURCE_DIR)+"/src/qml");
         for(const auto& name:source.entryList({"*.qml"},QDir::Files))QVERIFY(QFile::copy(source.filePath(name),temp.filePath(name)));

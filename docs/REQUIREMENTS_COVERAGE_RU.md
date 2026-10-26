@@ -306,7 +306,7 @@ S-владельцу [структуры](STRUCTURE_MAP_RU.md) и F-цепочк
 | Совпадающие библиотеки/жанры/обложки и удаление тестовой программы | [R004](FEATURE_READINESS.md#r004), [R005](FEATURE_READINESS.md#r005) | S02/S13; F01/F07 |
 | Sacred performance и PC-only input | [R020](FEATURE_READINESS.md#r020), [R019](FEATURE_READINESS.md#r019) | S03/S04; F02 |
 | Пробуждение к встрече и внешний community bot | [R027](FEATURE_READINESS.md#r027), [R122](FEATURE_READINESS.md#r122) | S06; F04/F12 |
-| Core proposals Crates: performance, gyro, challenge cards | [R140](FEATURE_READINESS.md#r140), [R141](FEATURE_READINESS.md#r141), [R142](FEATURE_READINESS.md#r142) | S15/S04/S05; F02/F04/F11/F12 |
+| Core proposals Crates: performance ([реализация 26.10](GAME_PERFORMANCE.md)), gyro, challenge cards | [R140](FEATURE_READINESS.md#r140), [R141](FEATURE_READINESS.md#r141), [R142](FEATURE_READINESS.md#r142) | S15/S04/S05; F02/F04/F11/F12 |
 | Все сохранённые runtime families, игры и отдельные сети | [Раздел готовности](FEATURE_READINESS.md) R028–R056, R084 | S03/S06/S07/S08; F04/F12 |
 
 Ghost/Challenge metadata в backend-документе остаётся **опциональной идеей**, а

@@ -49,7 +49,7 @@ public:
     QVariantMap selectedReview() const;
     bool reviewReportAvailable() const {const auto row=selectedReview();return !row.isEmpty()&&row["author"]!=reviews_["user"]&&reviews_["fresh"].toBool();}
 signals:
-    void pcSettingsRequested(QString game);
+    void gameSettingsRequested(QString game);
     void browserActionRequested(QString action);
     void togetherRequested(QString game);
     void lobbyRequested(QString game);

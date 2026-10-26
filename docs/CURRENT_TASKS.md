@@ -1,5 +1,15 @@
 # Задачи и условия готовности
 
+**Core/main, 26 октября — per-game Performance / runtime Downloads:**
+подготовлены исходники R140 и продолжение R018: компактный общий редактор, provider-backed
+power/GPU/governor, применение и восстановление на границах Adventure, Proton
+renderer/sync и общий кеш официальных GE-Proton/UMU. [Контракт и проверки](GAME_PERFORMANCE.md).
+Портативки по-прежнему заняты другим чатом. Следующее независимое улучшение —
+горячее применение доступных performance-настроек; Linux D-Bus/pipe/flock,
+первый SteamRT bootstrap и реальные игры ещё требуют приёмки.
+Профильные PC/UI/process проверки прошли; расширенный Library-набор имеет
+3 сбоя (Start → Settings, World editing, прежняя тема), перечисленные в контракте.
+
 **Core/main, 26 октября — продолжение PC-настроек:** импорт получил локальную
 обложку и необязательный Steam-ярлык. Game settings связывает executable/рабочую
 папку/аргументы, выбор установленного Wine/Proton, отдельную копию prefix при

@@ -10,6 +10,8 @@
 #include <archive_entry.h>
 #include "platform/files/ArchiveExtractor.h"
 #include "features/pc/PcGamesController.h"
+#include "features/settings/GamePerformance.h"
+#include "features/library/LibraryToolsController.h"
 #include "features/worlds/MultiversePresentation.h"
 #include "integrations/adventure/PcAdventureAdapter.h"
 using namespace trainer;
@@ -51,6 +53,46 @@ public:
 class PcGamesTests : public QObject {
     Q_OBJECT
 private slots:
+    void universalGameSettingsPreservesBrowserContextActions() {
+        PcLibrary library;AdventureRegistration r;r.adventure.id="emulator:game";r.adventure.title="Game";library.records<<r;
+        LibraryToolsController tools(library);QSignalSpy settings(&tools,&LibraryToolsController::gameSettingsRequested),browser(&tools,&LibraryToolsController::browserActionRequested);
+        tools.beginBrowsing(r.adventure.id,"grid");tools.activate(6);QCOMPARE(settings.size(),1);QCOMPARE(settings[0][0].toString(),r.adventure.id);
+        tools.beginBrowsing(r.adventure.id,"grid");tools.activate(7);QCOMPARE(browser.size(),1);QCOMPARE(browser[0][0].toString(),QString("search"));
+    }
+    void gameProfilesAreOwnerScopedAndWrapTheActualCommand() {
+        QTemporaryDir d;PcLibrary library;AdventureRegistration r;r.adventure.id="pc:profile";r.adventure.adapterId="pc-local";r.integrationConfig={{"runner","proton"}};library.records<<r;
+        GamePerformance profile(library);profile.configure(d.path(),"one");profile.begin(r.adventure.id);
+        profile.selectPage(1);profile.adjust(0,1);profile.adjust(0,1);profile.adjust(1,1);profile.save();
+        QCOMPARE(profile.snapshot(r.adventure.id)["renderer"].toString(),QString("opengl"));
+        ProcessCommand c;c.program="/original/game";c.arguments={"two words","$(literal)"};
+        bool prepared=false,finalized=false;
+        c.prepare=[&](ProcessCommand& p,const std::atomic_bool&){prepared=true;p.program="/prepared/game";p.finalize=[&](const ProcessOutcome&){finalized=true;return QString("original finalizer");};return QString();};
+        auto wrapped=profile.prepare(c,r.adventure.id);std::atomic_bool cancel=false;
+        QVERIFY(wrapped.prepare(wrapped,cancel).isEmpty());QVERIFY(prepared);
+        QCOMPARE(wrapped.program,QString("/usr/bin/env"));QVERIFY(wrapped.arguments.contains("PROTON_USE_WINED3D=1"));QVERIFY(wrapped.arguments.contains("PROTON_NO_ESYNC=1"));
+        QCOMPARE(wrapped.arguments.last(),QString("$(literal)"));QVERIFY(wrapped.arguments.contains("/prepared/game"));
+        QCOMPARE(wrapped.finalize({}),QString("original finalizer"));QVERIFY(finalized);
+        profile.configure(d.path(),"two");QVERIFY(profile.snapshot(r.adventure.id).isEmpty());
+        profile.configure(d.path(),"one");QVERIFY(!profile.snapshot(r.adventure.id).isEmpty());QVERIFY(profile.snapshot("different-game").isEmpty());
+        library.records[0].integrationConfig["runner"]="native";auto native=profile.prepare(c,r.adventure.id);QVERIFY(native.prepare(native,cancel).isEmpty());QCOMPARE(native.program,QString("/prepared/game"));
+    }
+    void gameProfileUnavailableControlsKeepSavedChoicesAndResetWorks() {
+        QTemporaryDir d;PcLibrary library;AdventureRegistration r;r.adventure.id="emu:game";library.records<<r;
+        GamePerformance p(library);p.configure(d.path(),"owner");p.begin(r.adventure.id);
+        p.setCapabilities({{"profiles",QJsonArray{"Eco","Balanced"}}});p.adjust(0,1);p.save();
+        p.setCapabilities({});p.adjust(0,1);QCOMPARE(p.draft()["power"].toString(),QString("Eco"));
+        p.reset();p.save();QVERIFY(p.snapshot(r.adventure.id)["power"].toString().isEmpty());
+        QVERIFY(!GamePerformance::valid({{"version",1},{"gpu",-1}}));QVERIFY(!GamePerformance::valid({{"version",1},{"renderer","arbitrary"}}));
+    }
+    void umuRuntimeManifestIsArchitectureBound() {
+        QTemporaryDir d;const auto root=d.filePath("GE-aarch64");QDir().mkpath(root+"/files/bin");
+        auto write=[](const QString& path,const QByteArray& bytes){QFile f(path);if(!f.open(QIODevice::WriteOnly))return false;return f.write(bytes)==bytes.size();};
+        QVERIFY(write(root+"/proton","launcher"));QVERIFY(write(root+"/files/bin/wine",nativeHeader()));QVERIFY(write(d.filePath("umu-run"),"zipapp"));
+        QJsonObject c{{"runner","proton"},{"proton",root},{"umu",d.filePath("umu-run")}};
+        const auto arch=QSysInfo::currentCpuArchitecture();const auto appid=arch=="arm64"?"4185400":"4183110";
+        QVERIFY(write(root+"/toolmanifest.vdf",QByteArray("\"require_tool_appid\" \"")+appid+"\""));QVERIFY(pc::runtimeIssue(c,arch).isEmpty());
+        QVERIFY(write(root+"/toolmanifest.vdf","\"require_tool_appid\" \"99999\""));QVERIFY(pc::runtimeIssue(c,arch).startsWith("Unsupported"));
+    }
     void settingsPersistIdentityArtworkArgumentsAndRespectConflicts() {
         QTemporaryDir d;PcLibrary library;FilesService files;LocalFileCatalog catalog;
         const auto root=d.filePath("game");QVERIFY(QDir().mkpath(root));QFile exe(root+"/play.exe");QVERIFY(exe.open(QIODevice::WriteOnly));exe.write(nativeHeader());exe.close();QVERIFY(exe.setPermissions(QFile::ReadOwner|QFile::WriteOwner|QFile::ExeOwner));

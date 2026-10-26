@@ -18,6 +18,23 @@ class ProcessTests final : public QObject {
         );
     }
 private slots:
+    void gameConfigurationUsesLiveIdentityAndFinalizesFailedStart() {
+        QTemporaryDir directory;ProcessService process;AdventureLaunchController launch(process);
+        QString configured;bool prepared=false,finalized=false;
+        launch.configureGame=[&](ProcessCommand command,const QString& game){
+            configured=game;
+            command.prepare=[&](ProcessCommand& c,const std::atomic_bool&){
+                prepared=true;c.program=directory.filePath("missing-game-executable");
+                c.finalize=[&](const ProcessOutcome& result){finalized=true;return result.started?QString("Unexpected start"):QString();};
+                return QString();
+            };
+            return command;
+        };
+        connect(&launch,&AdventureLaunchController::checkpointRequested,&launch,[&](quint64 token,const QJsonObject&){launch.checkpointCompleted(token,{});});
+        QSignalSpy returned(&launch,&AdventureLaunchController::restoreRequested);
+        QVERIFY(launch.launch({probe(),{},{}},{{"page","games"}},"actual-game"));
+        QTRY_COMPARE(returned.size(),1);QCOMPARE(configured,QString("actual-game"));QVERIFY(prepared);QVERIFY(finalized);QVERIFY(!launch.active());
+    }
     void minimizedSessionKeepsProcessAndLatestShellReturnContext() {
         QTemporaryDir dir;const auto control=dir.filePath("control");
         ProcessService process;AdventureLaunchController launch(process);

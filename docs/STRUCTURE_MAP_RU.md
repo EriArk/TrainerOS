@@ -143,6 +143,15 @@ flowchart LR
 
 ## 4. Подключаемое содержимое: вход, работа, выход
 
+Per-game Performance, 26 октября: S04 `GamePerformance` хранит профиль Trainer/game;
+S03 `AdventureLaunchController.configureGame` подключает его к фактической команде
+через существующие prepare/finalize. S15 helper берёт временный host power lease
+через Armada/PPD и возвращает его по завершению, ошибке или EOF shell; журнал
+восстанавливает прерванные изменения. S13 PC runtime worker публикует проверенные
+версии в общий неизменяемый кеш и задачи в существующий S04 Downloads; настройки
+игры явно выбирают версию, S02 identity/prefix остаются прежними.
+[Контракт и пределы доказательств](GAME_PERFORMANCE.md), R140/R018, F01/F02/F12.
+
 PC-подготовка 26 октября: `PcGamesController` владеет намерением импорта,
 изолированным destination/prefix и подтверждением S02; `FilesService` исполняет
 копирование/распаковку через libfm/libarchive. `ProcessService` + PC subreaper

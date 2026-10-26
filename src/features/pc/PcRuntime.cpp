@@ -2,6 +2,7 @@
 #include <QDir>
 #include <QFile>
 #include <QSet>
+#include <QRegularExpression>
 #include "platform/process/ProcessService.h"
 
 namespace trainer::pc {
@@ -30,7 +31,10 @@ QString runtimeIssue(const QJsonObject& c,const QString& arch) {
     if(!nativeElf(root+"/files/bin/wine",arch))return "Unsupported · no host-native Wine in this Proton build";
     QFile manifest(root+"/toolmanifest.vdf");
     if(!manifest.open(QIODevice::ReadOnly))return "Broken · Proton manifest is missing";
-    if(manifest.read(65536).contains("require_tool_appid"))return "Unsupported · this build requires a separate Steam runtime";
+    const auto text=QString::fromUtf8(manifest.read(65536));
+    const auto required=QRegularExpression("\"require_tool_appid\"\\s+\"([0-9]+)\"").match(text);
+    const QStringList supported=arch=="arm64"?QStringList{"4185400"}:QStringList{"1391110","1628350","4183110"};
+    if(text.contains("require_tool_appid")&&(!required.hasMatch()||!supported.contains(required.captured(1))))return "Unsupported · Steam runtime is not supported by UMU 1.4.4";
     if(arch=="arm64"&&!QFileInfo(root).fileName().contains("aarch64"))return "Unsupported · ARM translation stack is not identified";
     if(!QFileInfo(c["umu"].toString()).isFile())return "Not installed · UMU launcher is missing";
     return {};

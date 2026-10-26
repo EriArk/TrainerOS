@@ -93,6 +93,7 @@ add_library(trainer_core STATIC
     src/features/pc/PcGamesController.h
     src/features/pc/PcRuntime.cpp
     src/features/pc/PcGameSettings.cpp
+    src/features/pc/PcRuntimeDownloads.cpp
     src/features/pc/PcRuntime.h
     src/features/pc/PcSteamBridge.cpp
     src/features/pc/PcSteamBridge.h
@@ -244,6 +245,8 @@ add_library(trainer_core STATIC
     src/features/library/LibraryManagementController.cpp
     src/features/library/LibraryManagementController.h
     src/features/settings/SettingsController.cpp
+    src/features/settings/GamePerformance.cpp
+    src/features/settings/GamePerformance.h
     src/features/settings/GameInputProfiles.cpp
     src/features/settings/GameInputProfiles.h
     src/features/settings/SettingsController.h
@@ -542,6 +545,7 @@ qt_add_qml_module(traineros
         src/qml/ConversationPane.qml
         src/qml/ChatFilePicker.qml
         src/qml/PcGamePopup.qml
+        src/qml/GamePerformancePopup.qml
         src/qml/SocialPage.qml
         src/qml/DiscoverPane.qml
         src/qml/DiscoverCommunityCard.qml
@@ -678,6 +682,11 @@ if(BUILD_TESTING)
     add_test(NAME pc_import_ui COMMAND trainer_pc_ui_tests)
     set_tests_properties(pc_import_ui PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software" TIMEOUT 30)
     add_test(NAME pc_games COMMAND trainer_pc_tests)
+    if(Python3_Interpreter_FOUND)
+        add_test(NAME game_performance COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/GamePerformanceTests.py)
+        add_test(NAME pc_runtime_downloads COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/PcRuntimeDownloadTests.py)
+        set_tests_properties(game_performance pc_runtime_downloads PROPERTIES TIMEOUT 30)
+    endif()
     if(UNIX AND Python3_Interpreter_FOUND)
         add_test(NAME pc_session COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/PcSessionTests.py)
         set_tests_properties(pc_session PROPERTIES TIMEOUT 15)
