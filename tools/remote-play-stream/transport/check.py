@@ -18,10 +18,10 @@ BINARY = str(Path(sys.argv.pop(1)).resolve())
 
 
 class Pair:
-    def __init__(self, different_identity=False, bad_fingerprint=False, ice=None, modes=None):
+    def __init__(self, different_identity=False, bad_fingerprint=False, ice=None, modes=None, binary=None):
         self.events = queue.Queue()
         self.ready, self.paths, self.output = {}, [], []
-        self.processes = [subprocess.Popen([BINARY], stdin=subprocess.PIPE,
+        self.processes = [subprocess.Popen([binary or BINARY], stdin=subprocess.PIPE,
                           stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
                           for _ in range(2)]
         self.identity = ['ab'*32, ('cd' if different_identity else 'ab')*32]

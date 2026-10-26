@@ -230,7 +230,7 @@
     "tools/ps2-lan/build_profiles.py": "d701ec61e7d2911f9e0d3d29d56707f5341ed4062e28fb28eead1d53bfc5b29d",
     "tools/ps2-lan/check_config.py": "b184d678f8825ed660e3504057fe4790477d41d825a74a7c3084e4f53261689a",
     "tools/ps2-lan/check_disc.py": "8801a2675220a8d75f6429f0c3c7860a2deee36e5ea0d9518ba4aacf735a7396",
-    "tools/ps2-lan/check_groups.py": "deed79ee982d6ab2bedb4428bc7ec704e314ee202b7701d382e8e4831e83f3a4",
+    "tools/ps2-lan/check_groups.py": "375bd196c59707697e09dfcfb0339be9a2304073ef556f0e4e25799397e8d3ca",
     "tools/ps2-lan/check_launcher.py": "15cdc86c6b7f88c479e92d91f73675694a061782b1cdf358243abb79260e8290",
     "tools/ps2-lan/check_namespace.py": "3b442f689edc2b1348694a6c9f5ec046192a473083d61a2a2960ddb036113e06",
     "tools/ps2-lan/check_profiles.py": "a6ab7e90aad3935094c6175a17c1293441174025d1248fee2e11ce1a47468081",
@@ -240,7 +240,9 @@
     "tools/ps2-lan/package.py": "79a379e96088f7526a0b091c67518499c3e899c74e77eed27912bab1b1600ca1",
     "tools/ps2-lan/profiles.json": "5796b330b661eec7a8ee3fdcdb3470b31c8352c0a33e23fb26d72a2e0b6eced7",
     "tools/ps2-lan/session_config.py": "3f7fb53ea22465c6684154ccbad958109635d8203725a13c354af5085ba5e374",
+    "tools/remote-play-stream/transport/bba_channel.hpp": "c140953867ab42a44e3a94caeb437391a913ee6092003247cf9d9ad56ab97e22",
     "tools/remote-play-stream/transport/cabinet_channel.hpp": "f8f98d7dd004318f85829ab64218280aa536c5a5bbd45d9294f4aaa0f3546b03",
+    "tools/remote-play-stream/transport/check.py": "b3913afd3bdea5996c70bccc570d94f670cd4eb64206b9f1abe4634e2d65aba6",
     "tools/remote-play-stream/transport/ps2_sockets.hpp": "1107b44eb27e932122f52ba5a80ef6c5b7d1f9d827f03f730d28dac712e38892"
   }
 }

@@ -71,4 +71,8 @@ library cases. Python: 8 config + 14 launcher, namespace boundary и все 6
 прежнюю turquoise theme вместо текущей light. Тесты не удалены и assertions не
 ослаблены. Полный лог сохранён; эта поставка не исправляет эти три несоответствия.
 
-Production-сборка и установка текущего изменения ещё выполняются.
+**Доставлено на Flip и Odin:** `8751ae05`, production shell `102adeb3…`.
+Проверены запущенные hashes, обе версии helpers, история, личные данные и
+17 остальных пакетов. [Точные результаты](../evidence/native-lan-groups-20261026/README.md).
+Проверки групп дополнительно прошли с точными установленными transport binaries;
+для раздельных пакетов `check_groups.py` принимает третий аргумент BBA_TRANSPORT.

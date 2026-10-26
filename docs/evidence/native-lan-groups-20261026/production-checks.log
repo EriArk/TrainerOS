@@ -1,0 +1,34 @@
+[0/2] Re-checking globbed directories...
+[1/5] Automatic MOC for target trainer_standalone_tests
+[2/4] Building CXX object CMakeFiles/trainer_standalone_tests.dir/tests/StandaloneTests.cpp.o
+[3/4] Linking CXX executable trainer_standalone_tests
+********* Start testing of StandaloneTests *********
+Config: Using QtTest library 6.11.2, Qt 6.11.2 (arm64-little_endian-lp64 shared (dynamic) release build; by GCC 16.2.1 20260819 (Red Hat 16.2.1-2)), fedora 44
+PASS   : StandaloneTests::initTestCase()
+PASS   : StandaloneTests::nativeLanGroupMaterialBindsEverySeatAndDistinctEdge()
+PASS   : StandaloneTests::gameCubeLanUsesNativeBbaAndIsolatedSaves()
+PASS   : StandaloneTests::cleanupTestCase()
+Totals: 4 passed, 0 failed, 0 skipped, 0 blacklisted, 14ms
+********* Finished testing of StandaloneTests *********
+********* Start testing of LibraryTests *********
+Config: Using QtTest library 6.11.2, Qt 6.11.2 (arm64-little_endian-lp64 shared (dynamic) release build; by GCC 16.2.1 20260819 (Red Hat 16.2.1-2)), fedora 44
+PASS   : LibraryTests::initTestCase()
+PASS   : LibraryTests::contentInstallationIsExplicitGuardedAndCancellable()
+PASS   : LibraryTests::compoundFormatsCannotBePartiallyMovedOrDeleted()
+PASS   : LibraryTests::cratesReceiptReconciliationRestoresTheSameAdventure()
+PASS   : LibraryTests::managedPackageRemovalKeepsIdentityAndNeverMovesFiles()
+PASS   : LibraryTests::multiplayerDiscFormatsAreDiscoveredWithoutTitleLists()
+PASS   : LibraryTests::splitDolphinImagesRemainOneLibraryGame()
+PASS   : LibraryTests::nfsDependenciesRemainOneLibraryGame()
+PASS   : LibraryTests::cleanupTestCase()
+Totals: 9 passed, 0 failed, 0 skipped, 0 blacklisted, 2549ms
+********* Finished testing of LibraryTests *********
+Test project /work/build
+    Start 30: crates_showcase
+1/1 Test #30: crates_showcase ..................   Passed    4.49 sec
+
+100% tests passed, 0 tests failed out of 1
+
+Total Test time (real) =   4.50 sec
+
+Production BUILD_TESTING=OFF: [363/364] Linking CXX executable traineros

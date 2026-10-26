@@ -4,6 +4,7 @@
 import base64,json,os,runpy,select,subprocess,sys,tempfile,time,unittest
 from pathlib import Path
 transport,endpoint=map(lambda p:str(Path(p).resolve()),sys.argv[1:3])
+bba_transport=str(Path(sys.argv[3]).resolve()) if len(sys.argv)>3 else transport
 sys.argv=[sys.argv[0],transport]
 Pair=runpy.run_path(str(Path(__file__).parents[1]/'remote-play-stream/transport/check.py'))['Pair']
 CHILD=r"""
@@ -65,7 +66,7 @@ class Groups(unittest.TestCase):
      pairs=[];children=[]
      try:
       for guest in range(2,count+1):
-       pair=Pair(modes=[mode,mode]);pairs.append(pair);self.assertTrue(pair.connect())
+       pair=Pair(modes=[mode,mode],binary=bba_transport if mode=='bba' else transport);pairs.append(pair);self.assertTrue(pair.connect())
       for seat in range(1,count+1):
        sockets=({str(n+2):str(pair.ready[0].parent/(mode+'.sock')) for n,pair in enumerate(pairs)} if seat==1 else {'1':str(pairs[seat-2].ready[1].parent/(mode+'.sock'))})
        directory=Path(temporary)/str(seat);directory.mkdir(mode=0o700);config=directory/'connection.json'

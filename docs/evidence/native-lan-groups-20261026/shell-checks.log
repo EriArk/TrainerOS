@@ -1,0 +1,57 @@
+Test project /work/build
+    Start 34: standalone
+1/5 Test #34: standalone .......................   Passed   20.11 sec
+    Start 62: lobby
+2/5 Test #62: lobby ............................   Passed    6.14 sec
+    Start 63: game_party
+3/5 Test #63: game_party .......................   Passed    0.20 sec
+    Start 64: runtime_multiplayer
+4/5 Test #64: runtime_multiplayer ..............   Passed  119.49 sec
+    Start 81: library
+5/5 Test #81: library ..........................***Failed    9.72 sec
+********* Start testing of LibraryTests *********
+Config: Using QtTest library 6.11.2, Qt 6.11.2 (arm64-little_endian-lp64 shared (dynamic) release build; by GCC 16.2.1 20260819 (Red Hat 16.2.1-2)), fedora 44
+PASS   : LibraryTests::initTestCase()
+PASS   : LibraryTests::contentInstallationIsExplicitGuardedAndCancellable()
+PASS   : LibraryTests::compoundFormatsCannotBePartiallyMovedOrDeleted()
+PASS   : LibraryTests::cratesReceiptReconciliationRestoresTheSameAdventure()
+PASS   : LibraryTests::managedPackageRemovalKeepsIdentityAndNeverMovesFiles()
+PASS   : LibraryTests::folderRevisionTracksStoreMetadataAndPresentation()
+PASS   : LibraryTests::multiplayerDiscFormatsAreDiscoveredWithoutTitleLists()
+PASS   : LibraryTests::splitDolphinImagesRemainOneLibraryGame()
+PASS   : LibraryTests::nfsDependenciesRemainOneLibraryGame()
+PASS   : LibraryTests::vitaInstalledLinksAreGamesButNativeUserFilesAreNot()
+PASS   : LibraryTests::fileMovePreservesIdentityMetadataAndAdjacentSaves()
+PASS   : LibraryTests::misplacedPlayStationRomMovesOutOfGba()
+PASS   : LibraryTests::interruptedFileMoveRecoversBothSidesOfCommit()
+FAIL!  : LibraryTests::contextualMenuUsesWheelSelectionAndTrapsInput() Compared values are not the same
+   Actual   (shell.service()): ""
+   Expected ("settings")     : settings
+   Loc: [/work/source/tests/LibraryTests.cpp(304)]
+FAIL!  : LibraryTests::contextualEditsDeleteRomAndPreserveIdentity() 'error.isEmpty()' returned FALSE. (Enable World editing in Settings first.)
+   Loc: [/work/source/tests/LibraryTests.cpp(325)]
+PASS   : LibraryTests::maintenanceConfiguresOnlyUnconfiguredExistingRecords()
+PASS   : LibraryTests::maintenanceImportIsIdempotentAndRejectsIdentityCollisions()
+PASS   : LibraryTests::multiverseRegistrationPersistsWithoutInventingWorlds()
+PASS   : LibraryTests::libraryIdentityRelationshipsAndReopening()
+PASS   : LibraryTests::staleEditMissingFileAndWorldRollback()
+PASS   : LibraryTests::migrationFromVersionOnePreservesPersonalData()
+PASS   : LibraryTests::filePickerScrollHistoryCancellationAndUnavailableDirectory()
+PASS   : LibraryTests::filePickerExplicitSelectionAndMissingFile()
+PASS   : LibraryTests::filePickerIgnoresStaleDirectoryAndPlacesResults()
+FAIL!  : LibraryTests::settingsAreCommittedAndRetryable() Compared values are not the same
+   Actual   (settings.theme()): "light"
+   Expected ("turquoise")     : turquoise
+   Loc: [/work/source/tests/LibraryTests.cpp(565)]
+PASS   : LibraryTests::cleanupTestCase()
+Totals: 23 passed, 3 failed, 0 skipped, 0 blacklisted, 9528ms
+********* Finished testing of LibraryTests *********
+
+
+80% tests passed, 1 tests failed out of 5
+
+Total Test time (real) = 155.69 sec
+
+The following tests FAILED:
+	 81 - library (Failed)
+Errors while running CTest

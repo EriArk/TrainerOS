@@ -109,7 +109,7 @@ for directory in ("ps2-lan", "flycast-lan"):
     for path in sorted((root / "tools" / directory).iterdir()):
         if path.is_file():
             files[path.relative_to(root).as_posix()] = path.read_text(encoding="utf-8").encode("utf-8")
-for name in ("ps2_sockets.hpp", "cabinet_channel.hpp"):
+for name in ("ps2_sockets.hpp", "cabinet_channel.hpp", "bba_channel.hpp", "check.py"):
     path = root / "tools/remote-play-stream/transport" / name
     files[path.relative_to(root).as_posix()] = path.read_text(encoding="utf-8").encode("utf-8")
 for path in sorted((root / "tools/ppsspp-content").iterdir()):
