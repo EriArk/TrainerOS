@@ -65,17 +65,19 @@ void startCratesSmoke(QQuickWindow* window,ShellController& shell,ControllerInpu
             c->installer()->useCatalogue({QVariantMap{{"id","preview-0"},{"title","Update preview"},{"version","2"},{"architecture",arch},{"compatibility","supported"}}},{});
             c->open(1,true);c->openProject(0);break;
         }
-        case 21:check(c->primaryLabel()=="Update","Installed update did not replace Play");shot("update-primary");press(SDL_CONTROLLER_BUTTON_B);break;
-        case 22:check(c->primaryLabel()=="View progress","Controller did not queue update");shot("update-queued");
+        case 21:check(c->primaryLabel()=="Update","Installed update did not replace Play");shot("update-primary");press(SDL_CONTROLLER_BUTTON_BACK);break;
+        case 22:check(c->removePrompt()&&c->actionIndex()==1,"Select did not open safe removal confirmation");shot("remove-confirmation");press(SDL_CONTROLLER_BUTTON_B);break;
+        case 23:check(!c->actionsOpen()&&c->installer()->tasks().isEmpty(),"Default confirmation did not cancel");press(SDL_CONTROLLER_BUTTON_B);break;
+        case 24:check(c->primaryLabel()=="View progress","Controller did not queue update");shot("update-queued");
             c->installer()->command({},"cancel-all");shell.dispatch(Action::Back);c->closeDetail();shell.systemAction("settings");shell.settings()->selectPage("software");break;
-        case 23:shot("automatic-updates-off");shell.settings()->dispatch(Action::Down);shell.settings()->dispatch(Action::Down);shell.settings()->dispatch(Action::Right);break;
-        case 24: {
+        case 25:shot("automatic-updates-off");shell.settings()->dispatch(Action::Down);shell.settings()->dispatch(Action::Down);shell.settings()->dispatch(Action::Right);break;
+        case 26: {
             check(c->automaticUpdates(),"Settings did not enable automatic updates");
             auto* toggle=visibleItem(window->contentItem(),"settings-control-2");
             check(toggle&&toggle->property("checked").toBool(),"Automatic updates switch did not show On");
             shot("automatic-updates-on");shell.settings()->dispatch(Action::Left);break;
         }
-        case 25: {
+        case 27: {
             check(!c->automaticUpdates(),"Settings did not disable automatic updates");
             auto* toggle=visibleItem(window->contentItem(),"settings-control-2");
             check(toggle&&!toggle->property("checked").toBool(),"Automatic updates switch did not show Off");break;
