@@ -291,6 +291,22 @@ S-владельцу [структуры](STRUCTURE_MAP_RU.md) и F-цепочк
 | [#258](https://github.com/EriArk/TrainerOS/issues/258) · открыт | Linux-порт AbyssME и штатная интеграция runtime | [R144](FEATURE_READINESS.md#r144) | [S03](STRUCTURE_MAP_RU.md#s03), [S02](STRUCTURE_MAP_RU.md#s02), [S06](STRUCTURE_MAP_RU.md#s06), [S07](STRUCTURE_MAP_RU.md#s07) | [F01](STRUCTURE_MAP_RU.md#f01), [F04](STRUCTURE_MAP_RU.md#f04) | Сначала Android multiplayer; переносимость каждого движка отдельно, без второго лаунчера и обещания crossplay. |
 | [#259](https://github.com/EriArk/TrainerOS/issues/259) · открыт | PS2 DEV9 LAN через общий P2P и сессионный агент | [R035](FEATURE_READINESS.md#r035) | [S03](STRUCTURE_MAP_RU.md#s03), [S06](STRUCTURE_MAP_RU.md#s06), [S07](STRUCTURE_MAP_RU.md#s07), [S08](STRUCTURE_MAP_RU.md#s08) | [F04](STRUCTURE_MAP_RU.md#f04), [F12](STRUCTURE_MAP_RU.md#f12) | Сначала точный интерфейс ARMSX2; повторное использование #106, LAN отдельно от серверного Online. |
 
+## Дополнение GitHub — 26 октября: Economy v2 и Bazaar
+
+Целевая сверка трёх новых issues и связанных исходников; не повторная выгрузка
+всего GitHub. Реализация не заявлена. [Путь и зависимости](BAZAAR.md).
+
+| Issue | Требование | Готовность | Владельцы / цепочки |
+| --- | --- | --- | --- |
+| [#262](https://github.com/EriArk/TrainerOS/issues/262) · открыт | Coins + отдельный Mastery; RA/completion, запрет mint в Crates, постоянный контент, ретродоплаты поддержки и profile preview | [R108](FEATURE_READINESS.md#r108), [R109](FEATURE_READINESS.md#r109), [R110](FEATURE_READINESS.md#r110), [R146](FEATURE_READINESS.md#r146) | S11/S01/S10/S04/S14; F05/F06/F08 |
+| [#263](https://github.com/EriArk/TrainerOS/issues/263) · открыт | Системные покупки, торговля игроков, custody/barter, атомарность и восстановление | [R109](FEATURE_READINESS.md#r109), [R148](FEATURE_READINESS.md#r148) | S11/S01/S06/S14/S08; F03/F06/F11/F12 |
+| [#264](https://github.com/EriArk/TrainerOS/issues/264) · открыт | Постоянный GameHub Bazaar, общий directory/admission, install → exact-room launch → return | [R147](FEATURE_READINESS.md#r147) | S04/S06/S12/S13/S14/S03/S01; F01/F02/F04/F11/F12 |
+
+Связанный [Crates #1](https://github.com/EriArk/crates/issues/1) владеет 3D-игрой,
+не новым кошельком/Lobby. Обозначение SDK как S12 в #264 расходится с текущей
+картой: используем S14, сохраняя S12 за каталогом. #206/#208 уточняются новым
+face Bazaar; их остальные требования сохраняются.
+
 ## Требования из решений владельца без отдельного issue
 
 Карта не ограничивается GitHub. Эти требования остаются самостоятельными строками:
@@ -311,7 +327,9 @@ S-владельцу [структуры](STRUCTURE_MAP_RU.md) и F-цепочк
 
 Ghost/Challenge metadata в backend-документе остаётся **опциональной идеей**, а
 не обязательной новой фичей. Формулы наград/статуса, тарифы, правила турниров,
-передача валюты и withdrawal денег не считаются утверждёнными из одного упоминания.
+withdrawal денег не считаются утверждёнными из одного упоминания. Передача
+существующих Coins в авторизованной торговле теперь определена #263; ставки,
+комиссии и произвольная эмиссия этим не разрешены.
 
 ## Как сохранять полноту
 

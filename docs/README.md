@@ -52,4 +52,5 @@ R-ID готовности → S-владельцы → F-сценарии. Ст�
 ## Согласованные будущие контракты
 
 - [Аккаунт и экономика](TRAINEROS_ACCOUNT_ECONOMY_RU.md), [backend](TRAINEROS_BACKEND_PLAN_RU.md), [Crates storage](CRATES_SERVER_STORAGE_RU.md).
+- [Bazaar](BAZAAR.md) — #262–264: GameHub, точный вход/возврат, Economy v2 и торговля; целевой контракт и зависимости, не установленная функция.
 - SDK #235–244, PC #246–251 и Picker #252–254 — в актуальных issues. Цель не означает установленную функцию.
