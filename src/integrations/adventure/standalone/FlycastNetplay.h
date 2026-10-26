@@ -21,6 +21,11 @@ QJsonObject cabinetIdentity(const AdventureRegistration&,const std::atomic_bool&
                            const std::function<void(const QString&)>& observe={});
 ProcessCommand cabinetCommand(const AdventureRegistration&,const QJsonObject& expected,
                               QString connection,bool host,const QStringList& inputPrefix={});
+QString onlineRoot();
+QJsonObject onlineIdentity(const AdventureRegistration&,const std::atomic_bool&,
+                          const std::function<void(const QString&)>& observe={});
+ProcessCommand onlineCommand(const AdventureRegistration&,const QJsonObject& expected,
+                             QString owner,QString backupRoot,const QStringList& inputPrefix={});
 // Only explicit adapter markers may change session state; ordinary output is ignored.
 QJsonObject event(const QByteArray& line);
 }

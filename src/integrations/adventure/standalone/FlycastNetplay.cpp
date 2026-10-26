@@ -1,6 +1,8 @@
 #include "FlycastNetplay.h"
 #include "integrations/adventure/retroarch/RetroArchDisc.h"
 #include "core/model/GamePlayers.h"
+#include "platform/storage/RuntimeSaveStorage.h"
+#include <QLockFile>
 #include <QProcess>
 #include <QElapsedTimer>
 #include <QCryptographicHash>
@@ -323,6 +325,134 @@ ProcessCommand command(const AdventureRegistration& r,const Request& request,con
         if(!arcade&&discContent(r.contentPath,cancel,&content)!=request.expected["content"].toString())return "The Dreamcast disc set changed. Invite again.";
         out.arguments+=inputPrefix;out.arguments<<bundleRoot()+"/bin/flycast"<<content;
         out.settled=[dir](const ProcessOutcome&){};return {};
+    };return cmd;
+}
+QString onlineRoot(){return QStandardPaths::writableLocation(QStandardPaths::GenericDataLocation)+"/TrainerOS/emulators/flycast-online";}
+namespace {
+constexpr int CardBytes=128*1024;
+const QStringList onlineFiles{"dc_nvmem.bin","vmu_save_A1.bin","vmu_save_A2.bin",
+    "vmu_save_B1.bin","vmu_save_B2.bin","vmu_save_C1.bin","vmu_save_C2.bin","vmu_save_D1.bin","vmu_save_D2.bin"};
+QJsonObject onlineBundle(const std::atomic_bool& cancel,const std::function<void(const QString&)>& observe={}) {
+    const auto root=onlineRoot();if(observe)observe(root+"/manifest.json");
+    QFile file(root+"/manifest.json");if(!file.open(QIODevice::ReadOnly)||file.size()>65536)return {};
+    auto value=QJsonDocument::fromJson(file.readAll()).object();
+    if(value["protocol"]!=1||value["source"]!="5aa091fde632fb332c8d8c34e280d62dc951954c"
+       ||value["settings"]!="dcnet-owned-vmu-v1"||(value["renderer"]!="vulkan"&&value["renderer"]!="opengl"))return {};
+    const auto files=value["files"].toObject();if(files.size()!=4)return {};
+    QCryptographicHash hash(QCryptographicHash::Sha256);
+    for(const auto& name:{"bin/flycast","catalog.json","firmware/dc_boot.bin","firmware/dc_flash.bin"}) {
+        const auto path=root+'/'+name;if(observe)observe(path);
+        if(!hex(files[name].toString(),64)||!QFileInfo(path).canonicalFilePath().startsWith(QFileInfo(root).canonicalFilePath()+'/')
+           ||digest(path,cancel,256*1024*1024)!=files[name].toString())return {};
+        hash.addData(files[name].toString().toLatin1());
+    }
+    if(!QFileInfo(root+"/bin/flycast").isExecutable()||QFileInfo(root+"/firmware/dc_boot.bin").size()!=2*1024*1024
+       ||QFileInfo(root+"/firmware/dc_flash.bin").size()!=CardBytes)return {};
+    hash.addData(value["renderer"].toString().toLatin1());value["digest"]=QString::fromLatin1(hash.result().toHex());return value;
+}
+QStringList onlineEnvironment(const QString& root) {
+    return {"XDG_CONFIG_HOME="+root+"/config","XDG_DATA_HOME="+root+"/data",
+        "TRAINEROS_DC_SESSION=1","TRAINEROS_FLYCAST_SESSION=dcnet-owned"};
+}
+bool onlineConfig(const QString& root,const QJsonObject& bundle,bool bba) {
+    const auto config=root+"/config/flycast",data=root+"/data/flycast";
+    if(!QDir().mkpath(config)||!QDir().mkpath(data))return false;
+    for(const auto& name:{"dc_boot.bin","dc_flash.bin"})if(!QFile::copy(onlineRoot()+"/firmware/"+name,data+'/'+name))return false;
+    const auto bytes=QString("[config]\nDreamcast.AutoLoadState = no\nDreamcast.AutoSaveState = no\n"
+        "Dreamcast.Region = 3\nDreamcast.Language = 1\nDreamcast.Cable = 3\n"
+        "PerGameVmu = no\nUsePhysicalVmuMemory = no\npvr.rend = %1\nFetchBoxart = no\n"
+        "[window]\nfullscreen = yes\n[network]\nDCNet = yes\nEnable = no\nGGPO = no\nBattleCable = no\n"
+        "EnableUPnP = no\nTrainerOnline = yes\nISPUsername = flycast1\nEmulateBBA = %2\n")
+        .arg(bundle["renderer"]=="vulkan"?4:0).arg(bba?"yes":"no").toUtf8();
+    return write(config+"/emu.cfg",bytes)&&QFile::setPermissions(config+"/emu.cfg",QFile::ReadOwner|QFile::WriteOwner);
+}
+// Fixed-size opaque envelope: missing cards have a zero flag and zero padding.
+// Shared save storage can enforce exact-size return without interpreting VMUs.
+QByteArray packOnline(const QString& directory) {
+    QByteArray result("TODC1",5);
+    for(const auto& name:onlineFiles) {
+        QFile file(directory+'/'+name);const QFileInfo info(file);
+        if(info.isSymLink())return {};
+        if(!info.exists()){result.append(char(0));result.append(QByteArray(CardBytes,'\0'));continue;}
+        if(!info.isFile()||info.size()!=CardBytes||!file.open(QIODevice::ReadOnly))return {};
+        const auto data=file.readAll();if(data.size()!=CardBytes)return {};
+        result.append(char(1));result.append(data);
+    }return result;
+}
+bool unpackOnline(const QByteArray& bytes,const QString& directory) {
+    if(bytes.size()!=5+onlineFiles.size()*(1+CardBytes)||!bytes.startsWith("TODC1"))return false;
+    for(int i=0;i<onlineFiles.size();++i) {
+        const int offset=5+i*(1+CardBytes);const auto data=bytes.mid(offset+1,CardBytes);
+        if(bytes[offset]==0){if(data!=QByteArray(CardBytes,'\0'))return false;continue;}
+        if(bytes[offset]!=1||!write(directory+'/'+onlineFiles[i],data))return false;
+        if(!QFile::setPermissions(directory+'/'+onlineFiles[i],QFile::ReadOwner|QFile::WriteOwner))return false;
+    }return true;
+}
+}
+QJsonObject onlineIdentity(const AdventureRegistration& r,const std::atomic_bool& cancel,const std::function<void(const QString&)>& observe) {
+    if(r.adventure.platformId!="dreamcast"||r.adventure.adapterId!="retroarch"||r.adventure.collectionOnly)return {};
+    const auto installed=onlineBundle(cancel,observe);if(installed.isEmpty())return {};
+    QString first;const auto content=discContent(r.contentPath,cancel,&first,false,observe);if(content.isEmpty())return {};
+    QTemporaryDir stage(QDir::tempPath()+"/trainer-dc-probe-XXXXXX");
+    if(!stage.isValid()||!onlineConfig(stage.path(),installed,false))return {};
+    QProcess probe;probe.setProgram("/usr/bin/env");
+    auto args=onlineEnvironment(stage.path());args<<"TRAINEROS_DC_INSPECT=1"<<onlineRoot()+"/bin/flycast"<<first;
+    probe.setArguments(args);probe.setWorkingDirectory(stage.path());probe.setStandardErrorFile(QProcess::nullDevice());probe.start();
+    if(!probe.waitForStarted(3000))return {};
+    QElapsedTimer timer;timer.start();QByteArray output;
+    while(probe.state()!=QProcess::NotRunning) {
+        probe.waitForFinished(50);output+=probe.readAllStandardOutput();
+        if(cancel||timer.elapsed()>30000||output.size()>65536){probe.kill();probe.waitForFinished(2000);return {};}
+    }
+    output+=probe.readAllStandardOutput();if(probe.exitCode()!=0||probe.exitStatus()!=QProcess::NormalExit)return {};
+    QString serial;
+    for(const auto& line:output.split('\n'))if(line.startsWith("[TrainerOSDisc] ")) {
+        const auto raw=line.mid(16).trimmed();if(!serial.isEmpty()||!hex(QString::fromLatin1(raw),20))return {};
+        serial=QString::fromLatin1(QByteArray::fromHex(raw)).trimmed().toUpper();
+    }
+    serial.remove('-');serial.remove(' ');if(QRegularExpression("^MK[0-9]+$").match(serial).hasMatch())serial.remove(0,2);
+    if(!QRegularExpression("^[A-Z0-9]{4,16}$").match(serial).hasMatch())return {};
+    QFile file(onlineRoot()+"/catalog.json");if(!file.open(QIODevice::ReadOnly)||file.size()>128*1024)return {};
+    const auto catalog=QJsonDocument::fromJson(file.readAll()).object();if(catalog["protocol"]!=1)return {};
+    const auto entry=catalog["entries"].toObject()[serial].toObject();if(entry["title"].toString().isEmpty()||!entry["bba"].isBool())return {};
+    return {{"id","runtime.flycast.online.v1"},{"label",r.adventure.title.left(96)},
+        {"content",content},{"runtime",installed["digest"]},{"settings","dcnet-owned-vmu-v1"},
+        {"product",serial},{"bba",entry["bba"]},{"players",2},{"lateJoin",false},
+        {"privateProgress",true},{"temporaryProgress",false},{"connections",QJsonArray{"online"}}};
+}
+ProcessCommand onlineCommand(const AdventureRegistration& r,const QJsonObject& expected,QString owner,QString backupRoot,const QStringList& inputPrefix) {
+    ProcessCommand cmd;cmd.runtimeControls={{"kind","flycast"},{"game",r.adventure.id},{"netplay",expected.toVariantMap()},{"temporaryProgress",false}};
+    cmd.prepare=[r,expected,owner,backupRoot,inputPrefix](ProcessCommand& out,const std::atomic_bool& cancel)->QString {
+        if(owner.isEmpty()||owner.size()>128||!QDir::isAbsolutePath(backupRoot)||QFileInfo(backupRoot).isSymLink())return "Your save owner is unavailable.";
+        if(!sameMultiplayerGame(onlineIdentity(r,cancel),expected))return "Your Dreamcast game or Online setup changed. Choose the game again.";
+        const auto ownerKey=QString::fromLatin1(QCryptographicHash::hash(owner.toUtf8(),QCryptographicHash::Sha256).toHex());
+        QString path=backupRoot;
+        for(const auto& part:QStringList{"native-online",ownerKey,expected["content"].toString()}) {
+            path+='/'+part;if(QFileInfo(path).isSymLink()||!QDir().mkpath(path)||!QFile::setPermissions(path,QFile::ReadOwner|QFile::WriteOwner|QFile::ExeOwner))return "Couldn't protect your Online progress.";
+        }
+        auto lock=std::make_shared<QLockFile>(path+"/session.lock");lock->setStaleLockTime(0);
+        if(!lock->tryLock(0))return "This Online save is already in use.";
+        const SaveTargetResolver resolve=[path,owner,r](const AdventureRegistration&)->SaveTarget {
+            SaveTarget t;t.adventureId=r.adventure.id;t.title=r.adventure.title;t.savePath=path+"/progress.bin";
+            t.contentRevision=discContent(r.contentPath,std::atomic_bool{false});t.contextRevision="dcnet-owned-vmu-v1/"+owner+'/'+QString::number(r.revision);
+            t.backupOwner=owner;t.lineageOwner=owner;t.supported=!t.contentRevision.isEmpty();return t;
+        };
+        const auto seed=captureRuntimeSave(backupRoot,r,resolve);if(!seed.error.isEmpty())return seed.error;
+        auto stage=std::make_shared<QTemporaryDir>(path+"/session-XXXXXX");
+        if(!stage->isValid()||!onlineConfig(stage->path(),onlineBundle(cancel),expected["bba"].toBool()))return "Couldn't prepare the Online session.";
+        const auto data=stage->path()+"/data/flycast";
+        if(seed.existed&&!unpackOnline(seed.bytes,data))return "Your Online save could not be read. The original was kept.";
+        out.finalize=[stage,lock,r,backupRoot,resolve,seed,data](const ProcessOutcome& outcome)->QString {
+            if(!outcome.started)return {};
+            stage->setAutoRemove(false);
+            if(outcome.crashed||outcome.stopped||outcome.exitCode!=0)return "The Online session ended unexpectedly. Its progress copy was kept for recovery.";
+            const auto bytes=packOnline(data);if(bytes.isEmpty())return "The Online save could not be verified. Its session copy was kept.";
+            const auto error=returnRuntimeSave(backupRoot,r,seed,bytes,resolve);
+            if(error.isEmpty())stage->setAutoRemove(true);return error;
+        };
+        QString content;if(discContent(r.contentPath,cancel,&content)!=expected["content"].toString())return "Your Dreamcast disc changed.";
+        out.program="/usr/bin/env";out.arguments=onlineEnvironment(stage->path());out.arguments+=inputPrefix;
+        out.arguments<<onlineRoot()+"/bin/flycast"<<content;out.workingDirectory=stage->path();return {};
     };return cmd;
 }
 QJsonObject event(const QByteArray& bytes) {

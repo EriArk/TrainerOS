@@ -1,14 +1,14 @@
 # Flycast: Dreamcast and arcade multiplayer
 
-**26 октября — native Dreamcast Online:** [DCNet исследован отдельно](flycast-dcnet.md).
-Flycast 2.7 уже установлен на обеих машинах; запуск через Lobby, постоянные VMU
-и вход в игровой матч ещё не интегрированы. Подготовка сети не выбирает комнату
-друга автоматически; ручной вариант предложен владельцу.
+**26 октября — native Dreamcast Online:** [реализован отдельный Online (in-game)](flycast-dcnet.md)
+с запуском из Lobby, ручным выбором комнаты в игре и собственными постоянными VMU.
+Новый native пакет не заменяет Dojo/GGPO, cabinet или обычный Flatpak.
+Точная поставка и оставшиеся границы записаны в профильном документе.
 
 **26 октября — следующий шаг:** добавлен отдельный native cabinet route для двух
 автоматов через существующий Lobby/ICE/DTLS. [Контракт, сравнение реализаций и
 границы](flycast-cabinet.md). Это уточняет прежнюю отметку о полностью отсутствующем
-cabinet link; native Dreamcast game-server Online остаётся незавершённым.
+cabinet link; native Dreamcast Online добавлен отдельным следующим шагом выше.
 
 ## Naomi / Naomi 2 / Atomiswave — 26 October 2026
 

@@ -33,6 +33,7 @@ inline QVariantMap multiplayerPresentation(const QJsonObject& profile) {
     if(profile.isEmpty() || (!multiplayerConnectionAllowed(profile,"nearby") && !multiplayerConnectionAllowed(profile,"online")))return {};
     const auto id=profile["id"].toString();QString kind,label;
     if(id=="runtime.armsx2.lan.v1"||id=="runtime.dolphin.bba.v1"||id=="runtime.flycast.cabinet.v1"){kind="netplay";label="LAN (in-game)";}
+    else if(id=="runtime.flycast.online.v1"){kind="wireless";label="Online (in-game)";}
     else if(id.startsWith("runtime.handheld.") && profile["transport"]=="netpacket"){kind="link";label="Link";}
     else if(id.startsWith("runtime.retroarch.") || id.startsWith("runtime.dolphin.") || id=="runtime.rmg.n64.v1" || (id=="runtime.flycast-dojo.dc.v1"||id=="runtime.flycast-dojo.arcade.v1")){kind="netplay";label="Netplay";}
     else if(id.startsWith("runtime.ppsspp.") || id=="runtime.azahar.3ds.v1" || id=="runtime.melonds.nds.v1" || id=="runtime.vita3k.lan.v1"){kind="wireless";label="Wireless";}
@@ -139,7 +140,7 @@ inline bool permitsMultiplayer(const QVariantMap& metadata,const QJsonObject& ru
     if(requiresLinkedSavePreparation(runtimeProfile)||
        (id.startsWith("runtime.retroarch.")&&runtimeProfile["settings"]=="dcgb-linked-pair-volatile-v1")||
        id.startsWith("runtime.ppsspp.")||id=="runtime.melonds.nds.v1"||id=="runtime.azahar.3ds.v1"||
-       id=="runtime.vita3k.lan.v1"||id=="runtime.armsx2.lan.v1"||id=="runtime.dolphin.bba.v1"||id=="runtime.flycast.cabinet.v1")return true;
+       id=="runtime.vita3k.lan.v1"||id=="runtime.armsx2.lan.v1"||id=="runtime.dolphin.bba.v1"||id=="runtime.flycast.cabinet.v1"||id=="runtime.flycast.online.v1")return true;
     return !runtimeProfile.isEmpty()&&!gamePlayers(metadata).solo();
 }
 }

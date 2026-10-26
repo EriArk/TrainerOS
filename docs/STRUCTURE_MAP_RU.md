@@ -493,6 +493,14 @@ Live join вызывается только при `supportsLive`; режим з
 Guest content добавляет отдельный E19 lease/cleanup, а не постоянную карточку игры.
 
 <a id="f05"></a>
+**26 октября, native Dreamcast Online:** S06 предлагает отдельный `runtime.flycast.online.v1`
+по capability S03 (native IP.BIN code + service catalog). Ready → явный Start запускает
+две независимые консоли; комнату выбирают в игре. Штатный DCNet переносит трафик,
+S07 не создаёт второй relay. E08 использует общий RuntimeSaveStorage для постоянного
+owner/content archive VMU/flash: exclusive session, backup, exact return и recovery.
+Потеря Lobby оставляет игру/разговор; авто-Rejoin нет. [Контракт и доказательства](emulators/flycast-dcnet.md).
+
+<a id="f05"></a>
 ### F05. Игровое событие → результат/зачёт → награда
 
 **Реализация 25 октября:** S14 Play SDK соединяет S01 host session с S10

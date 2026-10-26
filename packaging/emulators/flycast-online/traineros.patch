@@ -1,0 +1,85 @@
+--- a/core/nullDC.cpp
++++ b/core/nullDC.cpp
+@@ -19,6 +19,10 @@
+ #include "oslib/i18n.h"
+ #include "input/maplelink.h"
+ #include <time.h>
++#include <cstdlib>
++#include <iostream>
++#include <iomanip>
++#include "reios/reios.h"
+ #ifdef TARGET_UWP
+ #include <winrt/Windows.System.h>
+ #include <winrt/Windows.Foundation.h>
+@@ -100,6 +104,20 @@
+ 			LogManager::Init();
+ 			config::Settings::instance().load(false);
+ 		}
++        // Decode content before window/input/CPU/network startup. No save import.
++        if (const char* inspect = std::getenv("TRAINEROS_DC_INSPECT")) {
++            if (std::string(inspect) != "1" || settings.content.path.empty()) std::_Exit(2);
++            try {
++                const std::string path = settings.content.path;
++                emu.loadGame(path.c_str());
++                if (!settings.platform.isConsole()) std::_Exit(3);
++                std::cout << "[TrainerOSDisc] ";
++                for (unsigned char c : ip_meta.product_number)
++                    std::cout << std::hex << std::setw(2) << std::setfill('0') << unsigned(c);
++                std::cout << std::endl;
++                std::_Exit(0);
++            } catch (...) { std::_Exit(3); }
++        }
+ 		i18n::reloadLanguage();
+ 		gui_init();
+ 		os_CreateWindow();
+--- a/core/linux-dist/main.cpp
++++ b/core/linux-dist/main.cpp
+@@ -125,6 +125,8 @@
+ // .
+ static std::vector<std::string> find_system_config_dirs()
+ {
++	if (nowide::getenv("TRAINEROS_DC_SESSION") != nullptr)
++		return {find_user_config_dir()};
+ 	std::vector<std::string> dirs;
+ 
+ 	std::string xdg_home;
+@@ -169,6 +171,8 @@
+ // ./data
+ static std::vector<std::string> find_system_data_dirs()
+ {
++	if (nowide::getenv("TRAINEROS_DC_SESSION") != nullptr)
++		return {find_user_data_dir()};
+ 	std::vector<std::string> dirs;
+ 
+ 	std::string xdg_home;
+@@ -254,7 +258,7 @@
+ 
+ #if defined(USE_SDL)
+ 	// init video now: on rpi3 it installs a sigsegv handler(?)
+-	if (SDL_Init(SDL_INIT_VIDEO) != 0)
++	if (nowide::getenv("TRAINEROS_DC_INSPECT") == nullptr && SDL_Init(SDL_INIT_VIDEO) != 0)
+ 	{
+ 		die("SDL: Initialization failed!");
+ 	}
+--- a/core/sdl/sdl.cpp
++++ b/core/sdl/sdl.cpp
+@@ -85,15 +85,15 @@
+ 	}
+ 	try {
+ #ifdef __SWITCH__
+-		std::shared_ptr<SDLGamepad> gamepad = std::make_shared<SwitchGamepad>(index < MAPLE_PORTS ? index : -1, index, pJoystick);
++		std::shared_ptr<SDLGamepad> gamepad = std::make_shared<SwitchGamepad>(config::loadBool("network", "TrainerOnline", false) ? 0 : (index < MAPLE_PORTS ? index : -1), index, pJoystick);
+ #elif defined(USE_DREAMLINK_DEVICES)
+ 		std::shared_ptr<SDLGamepad> gamepad;
+ 		if (DreamLinkGamepad::isDreamcastController(index))
+-			gamepad = createDreamLinkGamepad(index < MAPLE_PORTS ? index : -1, index, pJoystick);
++			gamepad = createDreamLinkGamepad(config::loadBool("network", "TrainerOnline", false) ? 0 : (index < MAPLE_PORTS ? index : -1), index, pJoystick);
+ 		else
+-			gamepad = std::make_shared<SDLGamepad>(index < MAPLE_PORTS ? index : -1, index, pJoystick);
++			gamepad = std::make_shared<SDLGamepad>(config::loadBool("network", "TrainerOnline", false) ? 0 : (index < MAPLE_PORTS ? index : -1), index, pJoystick);
+ #else
+-		std::shared_ptr<SDLGamepad> gamepad = std::make_shared<SDLGamepad>(index < MAPLE_PORTS ? index : -1, index, pJoystick);
++		std::shared_ptr<SDLGamepad> gamepad = std::make_shared<SDLGamepad>(config::loadBool("network", "TrainerOnline", false) ? 0 : (index < MAPLE_PORTS ? index : -1), index, pJoystick);
+ #endif
+ 		SDLGamepad::AddSDLGamepad(gamepad);
+ 	} catch (const FlycastException& e) {

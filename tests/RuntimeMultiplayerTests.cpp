@@ -477,6 +477,7 @@ private slots:
         QTest::addColumn<QString>("shared");QTest::addColumn<QString>("linked");
         QTest::newRow("gamecube")<<QString("runtime.dolphin.gc.v1")<<QString("runtime.dolphin.bba.v1");
         QTest::newRow("arcade")<<QString("runtime.flycast-dojo.arcade.v1")<<QString("runtime.flycast.cabinet.v1");
+        QTest::newRow("dreamcast-online")<<QString("runtime.flycast-dojo.dc.v1")<<QString("runtime.flycast.online.v1");
     }
     void gameCubeLanAndNetplayKeepSeparateLocalProfiles() {
         QFETCH(QString,shared);QFETCH(QString,linked);Fixture f;
@@ -498,7 +499,19 @@ private slots:
         QVERIFY(prepared);QCOMPARE(f.runtime.lobbyDescriptor_,lan);
         f.runtime.lanGames_.clear();QVERIFY(f.runtime.localProfile("gc",lan).isEmpty());
         QCOMPARE(f.runtime.localProfile("gc",netplay),netplay);
-        f.runtime.descriptor_=lan;QVERIFY(f.runtime.nativeLan());QVERIFY(!f.runtime.dolphin());QVERIFY(!f.runtime.supportsLive(lan));
+        f.runtime.descriptor_=lan;QCOMPARE(f.runtime.nativeLan(),linked!="runtime.flycast.online.v1");QVERIFY(!f.runtime.dolphin());QVERIFY(!f.runtime.supportsLive(lan));
+    }
+    void dreamcastOnlineLaunchIsNotAMatchAndLobbyLossKeepsTheGame() {
+        Fixture f;QVERIFY(f.start());QTRY_COMPARE(f.lifecycle.state(),"running");
+        const auto pid=f.process.processId();f.runtime.active_=true;f.runtime.host_=true;f.runtime.online_=true;
+        f.runtime.descriptor_={{"id","runtime.flycast.online.v1"},{"lateJoin",false},{"connections",QJsonArray{"online"}}};
+        f.runtime.deadline_=1;
+        emit f.lifecycle.adventureStarted(f.lifecycle.adventureId());
+        QCOMPARE(f.runtime.deadline_,0);QCOMPARE(f.runtime.status_,"Choose Online and the same room in the game");
+        QVERIFY(!f.runtime.supportsRejoin(f.runtime.descriptor_));QVERIFY(!f.runtime.nativeLanConnection_);
+        f.runtime.fail("Lobby connection ended");QCOMPARE(f.process.processId(),pid);
+        f.runtime.frame({{"kind","dc-online-ready"},{"identity",f.runtime.descriptor_},{"slot",2}});
+        QCOMPARE(f.process.processId(),pid);QVERIFY(!f.runtime.active_);finishOrdinary(f);
     }
     void lobbyReadyRunsBothOwnedChildrenAndReturnsToTheSameRoom_data() {
         QTest::addColumn<QString>("ending");QTest::addColumn<bool>("local");

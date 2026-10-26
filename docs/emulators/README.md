@@ -37,6 +37,7 @@ a second execution plan or a claim that all installed runtimes are validated.
 | Azahar | [3DS native wireless](azahar.md) | Installed pinned ARM64 client, Nearby/public-relay Minicraft3DS and ordinary Online/Home/own save/Exit; wider retail/update identity and external acceptance remain open |
 | PPSSPP | [PPSSPP](ppsspp.md) | Isolated networking, preserved identity, bounded LAN/relay gameplay and remaining recovery/network gates |
 | Flycast / Dojo | [Dreamcast delivery](flycast.md) | Ordinary 2.7 retained; separate Dojo bundle installed on Flip/Odin, native Nearby/public-relay fights and ordinary Online/Home/peer Exit; fresh temporary VMUs and retained broader/network/physical gates |
+| Flycast native Online | [DCNet](flycast-dcnet.md) | Separate v2.7 package; Lobby Start, in-game room choice, persistent owned VMUs; source/tests and installed evidence tracked separately |
 
 Existing work on other emulators remains documented in
 [discovery](../EMULATOR_DISCOVERY.md), [platform routes](../ROM_PLATFORMS.md) and
