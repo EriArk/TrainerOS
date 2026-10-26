@@ -456,7 +456,6 @@ Window {
                 if (shell.primaryId === "apps" && shell.appsFace === "crates") {
                     if (shell.crates.detailOpen) {
                         if (shell.crates.actionsOpen) return [h("A","Choose"),h("B","Back")]
-                        if (shell.crates.versionsOpen) return [h("A",shell.crates.project.canInstall ? "Install version" : "Back"),h("B","Back")]
                         return (shell.crates.primaryEnabled ? [h("A",shell.crates.primaryLabel)] : []).concat([h("B","Close")],shell.crates.actions.length ? [h("Select","Actions")] : [])
                     }
                     return shell.crates.opened ? (shell.crates.projectCount ? [h("A","Details"),h("B","Crates")] : [h("B","Crates")]) : [h("A",shell.crates.opening ? "Skip" : "Open"),h("B","Apps")]

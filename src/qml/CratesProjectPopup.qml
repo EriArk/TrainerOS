@@ -6,7 +6,7 @@ Item {
     required property var flow
     readonly property var project: flow.project
     readonly property var releases: project.releases || []
-    readonly property var release: releases[flow.releaseIndex] || ({})
+    readonly property var release: releases[0] || ({})
     readonly property var screenshots: project.screenshots || []
     readonly property string selectedImage: screenshots[flow.screenshotIndex] || project.hero || ""
     readonly property color accent: flow.current.color || Theme.rim
@@ -72,7 +72,7 @@ Item {
                     Text { width: parent.width; text: root.project.description || root.project.summary || ""; textFormat: Text.PlainText; wrapMode: Text.WordWrap; font.pixelSize: 14; color: Theme.ink }
                     Text { visible: text.length>0; width: parent.width; text: root.release.compatibilityNote || ""; textFormat: Text.PlainText; wrapMode: Text.WordWrap; color: Theme.muted; font.pixelSize: 12 }
                 }
-                Connections { target: root.flow; function onDetailScrollRequested(delta) { const target=root.flow.versionsOpen ? versions : description; target.contentY=Math.max(0,Math.min(target.contentHeight-target.height,target.contentY+delta)) } }
+                Connections { target: root.flow; function onDetailScrollRequested(delta) { const target=description; target.contentY=Math.max(0,Math.min(target.contentHeight-target.height,target.contentY+delta)) } }
             }
             Column {
                 id: metadata; anchors.bottom: parent.bottom; anchors.bottomMargin: 50; width: parent.width; spacing: 5
@@ -86,33 +86,6 @@ Item {
                 onActivated: root.flow.primary() }
             CapButton { anchors.right: parent.right; anchors.bottom: parent.bottom; width: 36; height: 36; label: "…"; textSize: 20; centered: true; claimsFocus: false; tint: Theme.blue
                 visible: root.flow.actions.length>0; onActivated: root.flow.showActions() }
-            Rectangle {
-                anchors.fill: parent; visible: root.flow.versionsOpen; color: Theme.paper
-                Text { text: "Versions"; font.family: Theme.displayFamily; font.pixelSize: 24; color: Theme.ink }
-                Text { anchors.right: parent.right; y: 0; text: "‹ Back"; font.pixelSize: 14; color: Theme.muted
-                    MouseArea { anchors.fill: parent; anchors.margins: -4; onClicked: root.flow.showVersions() } }
-                ListView {
-                    id: versions; y: 35; width: parent.width; height: parent.height-35-(root.project.canInstall ? 43 : 0); clip: true
-                    model: root.releases; spacing: 3; currentIndex: root.flow.releaseIndex; boundsBehavior: Flickable.StopAtBounds
-                    ScrollBar.vertical: ScrollBar { policy: ScrollBar.AsNeeded }
-                    onCurrentIndexChanged: positionViewAtIndex(currentIndex,ListView.Contain)
-                    delegate: Rectangle {
-                        required property var modelData; required property int index
-                        width: versions.width-5; height: row.implicitHeight+20; radius: 7
-                        color: index===root.flow.releaseIndex ? Qt.alpha(Theme.rim,.18) : "transparent"
-                        border.color: index===root.flow.releaseIndex ? Theme.rim : "transparent"
-                        Column { id: row; x: 9; y: 10; width: parent.width-18; spacing: 5
-                            Text { width: parent.width; text: "v"+modelData.version+(modelData.channel ? " · "+modelData.channel : ""); textFormat: Text.PlainText; wrapMode: Text.WordWrap; color: Theme.ink; font.pixelSize: 14; font.bold: true }
-                            Text { width: parent.width; text: modelData.releasedOn || ""; textFormat: Text.PlainText; color: Theme.muted; font.pixelSize: 11 }
-                            Text { width: parent.width; visible: index===root.flow.releaseIndex; text: modelData.notes || "No release notes"; textFormat: Text.PlainText; wrapMode: Text.WordWrap; color: Theme.muted; font.pixelSize: 12 }
-                        }
-                        MouseArea { anchors.fill: parent; onClicked: root.flow.selectRelease(index) }
-                    }
-                }
-                CapButton { anchors.bottom: parent.bottom; width: parent.width; height: 33; visible: !!root.project.canInstall
-                    label: "Install selected version"; textSize: 13; centered: true; claimsFocus: false; tint: Theme.green
-                    enabled: !root.project.busy; onActivated: root.flow.installSelectedVersion() }
-            }
             Rectangle {
                 anchors.right: parent.right; anchors.bottom: parent.bottom; anchors.bottomMargin: 45
                 width: Math.min(parent.width,280); height: 53+root.flow.actions.length*45

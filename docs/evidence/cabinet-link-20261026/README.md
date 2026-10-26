@@ -10,9 +10,13 @@
   session/input/startup and existing local-data/compiler patches.
 - Existing ICE/DTLS helper, libdatachannel
   `6b1e2e620f1e37f0eafeee702eaea0043cb305fd`, explicit `cabinet` admission mode.
-- ARM64 production TrainerOS SHA-256
+- Initial ARM64 production candidate SHA-256
   `a224723bc191e7f22d5ecce596901fd841b6448a37048cefeb37abc038986ee5`.
   `BUILD_TESTING=OFF`; 991 normalized source inputs matched before collection.
+  This candidate was **not installed**: the pre-install guard detected the
+  concurrent Crates delivery `8056f761…` on both handhelds. Its source commit
+  `b92e48a8` was merged, retaining Update/automatic-update UI and lifecycle.
+  The final combined artifact is recorded with the delivery receipts below.
 - Native package and endpoint built on ARM64. No game/BIOS data is published.
 
 ## Checks performed
@@ -39,6 +43,10 @@
   without a GUI/input/CPU session and returned `link:none`, exit 0. Thus a game
   supported by GGPO is not incorrectly advertised as cabinet-compatible.
 - Adapter/runtime export and knowledge checks passed.
+- After the concurrent Crates merge, all **23 Crates tests** and the
+  `runtime_multiplayer` suite passed again. The previous two unrelated CoreTests
+  failures remain recorded in the [Crates evidence](../crates-updates-20261026/README.md);
+  this increment does not claim a passing whole-project test suite.
 
 These checks do not establish a played cabinet match, native compatibility of all
 listed upstream titles, a full account-to-game journey, or different-network play.

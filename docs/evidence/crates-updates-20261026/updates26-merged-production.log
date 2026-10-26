@@ -1,0 +1,4 @@
+[0/2] Re-checking globbed directories...
+[1/4] Building CXX object CMakeFiles/trainer_core.dir/src/integrations/adventure/standalone/FlycastNetplay.cpp.o
+[2/4] Linking CXX static library libtrainer_core.a
+[3/4] Linking CXX executable traineros

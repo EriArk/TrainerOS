@@ -385,7 +385,7 @@ qt_add_resources(traineros crates_art PREFIX "/crates" BASE assets/crates
     FILES assets/crates/illustrations-wide.png assets/crates/gamepad.svg
     ${crates_example_images} ${crates_example_notices} assets/crates/examples/sources.json)
 qt_add_resources(traineros crates_projects PREFIX "/crates" BASE assets/crates
-    FILES assets/crates/projects/session-timer.png assets/crates/projects/pocket-artillery.png
+    FILES assets/crates/projects/session-timer.png assets/crates/projects/pocket-artillery.png assets/crates/projects/pocket-golf.png
           assets/crates/projects/pong.png assets/crates/projects/snake-arena.png
           assets/crates/projects/light-cycles.png
           assets/crates/projects/falling-blocks.png

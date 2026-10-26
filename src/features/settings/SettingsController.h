@@ -13,6 +13,7 @@
 namespace trainer {
 class ScrapeController;
 class NativeActivityProvider;
+class CratesController;
 class SettingsController final : public QObject {
     Q_OBJECT
     Q_PROPERTY(trainer::LibraryStorageController* storage READ storage CONSTANT)
@@ -49,6 +50,7 @@ public:
         connect(value,&ControllerInput::buttonCaptured,&gameInput_,[this](QString button){if(category_==16&&gameInput_.editing())gameInput_.selectBinding(button);});
         connect(value,&ControllerInput::keyCaptured,&gameInput_,[this](QString chord){if(category_==16)gameInput_.assignTarget(chord);}); }
     void setScraper(ScrapeController* value) { scraper_=value; }
+    void setCrates(CratesController* value);
     CommunicationSettings* communication() { return &communication_; }
     void configureNearby(NativeActivityProvider*);
     ClockController* clock() { return &clock_; }
@@ -117,6 +119,7 @@ private:
     GameInputProfiles gameInput_;
     ControllerInput* input_=nullptr;
     ScrapeController* scraper_=nullptr;
+    CratesController* crates_=nullptr;
     QPointer<NativeActivityProvider> nearby_;
     ClockController clock_;
     CommunicationSettings communication_;
