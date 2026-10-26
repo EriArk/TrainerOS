@@ -88,6 +88,14 @@ private slots:
         c.primary();QCOMPARE(launch.count(),1);
         c.closeDetail();c.openProject(1);QCOMPARE(c.primaryLabel(),QString("Play"));
         QVERIFY(!jobs->state("preview-1")["updateAvailable"].toBool());
+        const auto count=jobs->tasks().size();
+        c.activateAction(0);QCOMPARE(jobs->tasks().size(),count); // No hidden destructive action.
+        c.dispatch(Action::ContextMenu);QVERIFY(c.removePrompt());QCOMPARE(c.actionIndex(),1);
+        c.dispatch(Action::Confirm);QVERIFY(!c.actionsOpen());QCOMPARE(jobs->tasks().size(),count);
+        c.showActions();c.dispatch(Action::Back);QVERIFY(!c.removePrompt());QVERIFY(c.detailOpen());
+        c.showActions();c.dispatch(Action::Up);c.dispatch(Action::Confirm);
+        QCOMPARE(jobs->state("preview-1")["job"].toMap()["operation"].toString(),QString("remove"));
+        QVERIFY(!c.canRemove());c.showActions();QVERIFY(!c.actionsOpen());
     }
     void automaticUpdateFailureSurvivesRestart() {
         QTemporaryDir temp;QVERIFY(temp.isValid());QDir root(temp.path());QVERIFY(root.mkpath("active"));

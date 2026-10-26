@@ -165,19 +165,24 @@ void CratesController::requestPackage(const QString& version){
 }
 QVariantList CratesController::actions() const {
     if(!pendingVersion_.isEmpty())return {QVariantMap{{"id","confirm-install"},{"label","Install anyway · untested"}},QVariantMap{{"id","back"},{"label","Cancel"}}};
-    if(confirmRemove_)return {QVariantMap{{"id","confirm-remove"},{"label","Remove · keep my data"}},QVariantMap{{"id","back"},{"label","Cancel"}}};
-    const auto p=project();QVariantList a;
-    if(p["updateAvailable"].toBool())a<<QVariantMap{{"id","update"},{"label","Update"}};
-    if(!p["installedVersion"].toString().isEmpty())a<<QVariantMap{{"id","remove"},{"label","Remove…"}};
-    return a;
+    if(confirmRemove_)return {QVariantMap{{"id","confirm-remove"},{"label","Remove"}},QVariantMap{{"id","back"},{"label","Cancel"}}};
+    return {};
 }
-void CratesController::showActions(){if(!detailOpen_||actions().isEmpty())return;actionsOpen_=!actionsOpen_;confirmRemove_=false;pendingVersion_.clear();actionIndex_=0;emit projectChanged();emit changed();}
+void CratesController::showActions(){
+    if(!detailOpen_)return;
+    if(actionsOpen_){back();return;}
+    if(!canRemove())return;
+    actionsOpen_=confirmRemove_=true;pendingVersion_.clear();actionIndex_=1;
+    emit projectChanged();emit changed();
+}
 void CratesController::activateAction(int i){
+    if(!actionsOpen_||i<0||i>=actions().size())return;
     const auto action=actions().value(i).toMap()["id"].toString();const auto id=project()["id"].toString();
-    if(action=="remove"){confirmRemove_=true;actionIndex_=0;emit projectChanged();emit changed();return;}
-    if(action=="update"){actionsOpen_=false;requestPackage();return;}
     if(action=="confirm-install")installer_.request(id,pendingVersion_);
-    if(action=="confirm-remove")installer_.request(id,{},"remove");
+    if(action=="confirm-remove"){
+        if(!canRemove()){back();return;}
+        installer_.request(id,{},"remove");
+    }
     actionsOpen_=confirmRemove_=false;
     pendingVersion_.clear();
     if(action=="confirm-install"||action=="confirm-remove")emit downloadsRequested();

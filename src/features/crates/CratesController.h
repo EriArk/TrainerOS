@@ -30,6 +30,8 @@ class CratesController final : public QObject {
     Q_PROPERTY(QString primaryLabel READ primaryLabel NOTIFY projectChanged)
     Q_PROPERTY(bool primaryEnabled READ primaryEnabled NOTIFY projectChanged)
     Q_PROPERTY(bool actionsOpen READ actionsOpen NOTIFY changed)
+    Q_PROPERTY(bool canRemove READ canRemove NOTIFY projectChanged)
+    Q_PROPERTY(bool removePrompt READ removePrompt NOTIFY changed)
     Q_PROPERTY(int actionIndex READ actionIndex NOTIFY changed)
     Q_PROPERTY(QVariantList actions READ actions NOTIFY projectChanged)
     Q_PROPERTY(int updateCount READ updateCount NOTIFY projectChanged)
@@ -60,6 +62,8 @@ public:
     QString primaryLabel() const;
     bool primaryEnabled() const;
     bool actionsOpen() const{return actionsOpen_;}
+    bool canRemove() const {const auto p=project();return !p["installedVersion"].toString().isEmpty()&&!p["busy"].toBool();}
+    bool removePrompt() const{return confirmRemove_;}
     int actionIndex() const{return actionIndex_;}
     QVariantList actions() const;
     Q_INVOKABLE void primary();

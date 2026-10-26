@@ -81,20 +81,25 @@ Item {
                 Text { width: parent.width; text: (root.release.architecture ? root.release.architecture+" · " : "")+root.compatibilityText(); textFormat: Text.PlainText; elide: Text.ElideRight; color: root.release.compatibility === "incompatible" ? Theme.textColor("#984b51") : Theme.muted; font.pixelSize: 13 }
                 Text { visible: text.length>0; text: root.sizeText(root.release.sizeBytes); color: Theme.muted; font.pixelSize: 12 }
             }
-            CapButton { objectName: "crates-primary"; anchors.left: parent.left; anchors.bottom: parent.bottom; width: parent.width-(root.flow.actions.length ? 44 : 0); height: 36
-                label: root.flow.primaryLabel; enabled: root.flow.primaryEnabled; textSize: 15; centered: true; claimsFocus: false; tint: Theme.green
+            CapButton { objectName: "crates-primary"; anchors.left: parent.left; anchors.bottom: parent.bottom; width: parent.width-(root.project.installedVersion ? 44 : 0); height: 36
+                label: root.flow.primaryLabel; enabled: root.flow.primaryEnabled && !root.flow.actionsOpen; textSize: 15; centered: true; claimsFocus: false; tint: Theme.green
                 onActivated: root.flow.primary() }
-            CapButton { anchors.right: parent.right; anchors.bottom: parent.bottom; width: 36; height: 36; label: "…"; textSize: 20; centered: true; claimsFocus: false; tint: Theme.blue
-                visible: root.flow.actions.length>0; onActivated: root.flow.showActions() }
+            CapButton { objectName: "crates-remove"; anchors.right: parent.right; anchors.bottom: parent.bottom; width: 36; height: 36
+                Accessible.name: "Remove"; claimsFocus: false; tint: "#da686d"
+                visible: !!root.project.installedVersion; enabled: root.flow.canRemove; onActivated: root.flow.showActions()
+                FilesIcon { anchors.centerIn: parent; width: 23; height: 23; kind: "user-trash" }
+            }
             Rectangle {
                 anchors.right: parent.right; anchors.bottom: parent.bottom; anchors.bottomMargin: 45
-                width: Math.min(parent.width,280); height: 53+root.flow.actions.length*45
+                objectName: "crates-confirmation"
+                width: Math.min(parent.width,280); height: 81+root.flow.actions.length*45
                 visible: root.flow.actionsOpen; color: Theme.paper; radius: 10; border.width: 1; border.color: Theme.rim
                 MouseArea { anchors.fill: parent }
-                Text { x: 8; y: 6; text: "Manage"; font.family: Theme.displayFamily; font.pixelSize: 22; color: Theme.ink }
+                Text { x: 8; y: 6; text: root.flow.removePrompt ? "Remove this project?" : "Install anyway?"; font.family: Theme.displayFamily; font.pixelSize: 20; color: Theme.ink }
+                Text { x: 8; y: 36; width: parent.width-16; text: root.flow.removePrompt ? "Your saves and data will be kept." : "This release is not tested on your device."; wrapMode: Text.WordWrap; font.pixelSize: 12; color: Theme.muted }
                 Text { anchors.right: parent.right; anchors.rightMargin: 10; y: 8; text: "×"; font.pixelSize: 22; color: Theme.muted
                     MouseArea { anchors.fill: parent; anchors.margins: -4; onClicked: root.flow.showActions() } }
-                Column { x: 8; y: 45; width: parent.width-16; spacing: 9
+                Column { x: 8; y: 73; width: parent.width-16; spacing: 9
                     Repeater { model: root.flow.actions
                         CapButton { required property var modelData; required property int index
                             width: parent.width; height: 36; label: modelData.label; textSize: 13; claimsFocus: false
