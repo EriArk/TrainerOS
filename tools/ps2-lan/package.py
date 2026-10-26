@@ -27,6 +27,6 @@ for kind,root in (('chdr',args.build/'_deps/chdr-src'),('datachannel',args.trans
     for path in notices:
         target=args.output/'notices'/kind/path.relative_to(root);target.parent.mkdir(parents=True,exist_ok=True);shutil.copyfile(path,target)
 shutil.copyfile(source.parents[1]/'LICENSE',args.output/'notices/TrainerOS.LICENSE')
-(args.output/'manifest.json').write_text(json.dumps({'protocol':1,'settings':'eclx1-namespace-own-cards-v1',
+(args.output/'manifest.json').write_text(json.dumps({'protocol':1,'settings':'eclx1-group-own-cards-v2',
     'chdrSource':'47d794151b2b64f6aba60304e6480f4f5a2bc24b','files':hashes},indent=2)+'\n')
 print('PS2_PACKAGE_READY')

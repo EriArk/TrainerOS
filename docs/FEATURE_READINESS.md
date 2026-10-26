@@ -1,5 +1,10 @@
 # Карта готовности функций TrainerOS
 
+**26.10 — R035/R041:** добавлен групповой PS2 LAN / Dolphin BBA на 2–4
+независимые консоли через общий Lobby. [Контракт и состояние поставки](emulators/native-lan-groups.md).
+Старые парные описания относятся к предыдущей реализации; обычный Dolphin
+NetPlay и его совместимость этим не ограничиваются.
+
 **26 октября — S02/S03/S06/S08, оставшиеся форматы одним проходом:**
 реализованы native install/receipt/cancel/recovery CIA/ZCIA и compatibility
 с update/DLC, Dolphin ELF/DOL/NFS, PS2/Dolphin M3U/M3U8 и целостность составных

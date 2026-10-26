@@ -24,7 +24,7 @@ def digest(path):
 
 def manifest():
     data=json.loads((ROOT/'manifest.json').read_text())
-    if data.get('protocol')!=1 or data.get('settings')!='eclx1-namespace-own-cards-v1':
+    if data.get('protocol')!=1 or data.get('settings')!='eclx1-group-own-cards-v2':
         raise ValueError('Unreviewed PS2 package')
     runtime=Path(data['runtime']);config=Path(data['configRoot'])
     if not runtime.is_absolute() or not config.is_absolute() or not (config/'inis/PCSX2.ini').is_file():
@@ -69,7 +69,7 @@ def identify(path):
         json.dumps({'ps2-list-v1':hashes},separators=(',',':')).encode()).hexdigest()
     return {'id':'runtime.armsx2.lan.v1','content':content,'serial':disc['serial'],
             'crc':disc['crc'],'runtime':setup['runtimeSha256'],'settings':setup['settings'],
-            'players':2,'lateJoin':False,'temporaryProgress':False,'connections':['online']}
+            'players':4,'lateJoin':False,'temporaryProgress':False,'connections':['online']}
 
 
 def stable(value):
@@ -92,7 +92,7 @@ def connection_material(data):
     if os.name!='nt' and (config.stat().st_mode&0o077 or config.stat().st_uid!=os.getuid()):
         raise ValueError('Invalid private PS2 connection owner')
     material=config.read_bytes();values=connection(material)
-    if (values['host']=='true')!=data['host'] or values['socket']!=(config.parent/'ps2.sock').as_posix():
+    if (values['host']=='true')!=data['host'] or 'sockets' not in values:
         raise ValueError('PS2 connection changed')
     return material
 

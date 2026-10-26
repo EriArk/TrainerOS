@@ -19,7 +19,7 @@ bool verified(const std::atomic_bool& cancel) {
     QFile file(root+"/manifest.json");
     if(canonical.isEmpty()||!file.open(QIODevice::ReadOnly)||file.size()>65536)return false;
     const auto manifest=QJsonDocument::fromJson(file.readAll()).object();
-    if(manifest["protocol"]!=1||manifest["settings"]!="eclx1-namespace-own-cards-v1")return false;
+    if(manifest["protocol"]!=1||manifest["settings"]!="eclx1-group-own-cards-v2")return false;
     const auto files=manifest["files"].toObject();
     for(const auto& name:{"launcher.py","disc.py","session_config.py","profiles.json","ps2_endpoint","libchdr.so","stream_transport"}) {
         const auto path=root+'/'+name,hash=files[name].toString();
@@ -51,7 +51,7 @@ QJsonObject netplayIdentity(const AdventureRegistration& record,const std::atomi
        ||disc::entries(record.contentPath,{"chd","iso","cso","zso","bin","gz","img","mdf","nrg"},observe).isEmpty())return {};
     auto result=helper("identity",record.contentPath,cancel);
     if(result["id"]!="runtime.armsx2.lan.v1"||!hex(result["content"].toString())||!hex(result["runtime"].toString())
-       ||result["settings"]!="eclx1-namespace-own-cards-v1"||result["players"]!=2
+       ||result["settings"]!="eclx1-group-own-cards-v2"||result["players"]!=4
        ||result["lateJoin"]!=false||result["temporaryProgress"]!=false)return {};
     result["label"]=record.adventure.title.left(96);return result;
 }

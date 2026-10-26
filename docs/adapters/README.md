@@ -1,5 +1,10 @@
 # Game-adapter knowledge base
 
+**26 October:** PS2 LAN and GameCube BBA now share the 2?4-console group launch
+owner. [Contract and delivery evidence](../emulators/native-lan-groups.md)
+supersede their pair-only capacity below. Native game limits and save boundaries
+remain independent; the runtime export includes the group config and endpoint.
+
 Start here before researching a game or changing its save adapter (#91).
 This is an engineering evidence index, not a runtime plugin ABI or a promise
 that another edition of the same game has the same format.

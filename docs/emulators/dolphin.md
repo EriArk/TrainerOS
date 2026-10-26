@@ -1,5 +1,10 @@
 # Dolphin integration checkpoint
 
+**26.10 — R035/R041:** добавлен групповой PS2 LAN / Dolphin BBA на 2–4
+независимые консоли через общий Lobby. [Контракт и состояние поставки](native-lan-groups.md).
+Старые парные описания относятся к предыдущей реализации; обычный Dolphin
+NetPlay и его совместимость этим не ограничиваются.
+
 ## Native executables and disc sets — 26 October 2026
 
 On pinned `c77bbaa0f372c3f72281602a8b087206706542cb`, the new

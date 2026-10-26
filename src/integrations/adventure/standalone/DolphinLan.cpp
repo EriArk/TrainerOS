@@ -1,4 +1,5 @@
 #include "DolphinLan.h"
+#include "NativeLanConnection.h"
 #include "DolphinNetplay.h"
 #include "NetplayCache.h"
 #include "integrations/adventure/DiscPlaylist.h"
@@ -18,7 +19,7 @@
 
 namespace trainer::dolphinlan {
 namespace {
-constexpr auto Settings="dolphin-bba-tapserver-isolated-v1";
+constexpr auto Settings="dolphin-bba-group-isolated-v2";
 constexpr auto Revision="c77bbaa0f372c3f72281602a8b087206706542cb";
 bool hex(const QString& s){return QRegularExpression("^[a-f0-9]{64}$").match(s).hasMatch();}
 QJsonObject manifest(const QString& path) {
@@ -57,6 +58,8 @@ QJsonObject netplayIdentity(const AdventureRegistration& r,const StandaloneInsta
     if(m["protocol"]!=1||m["source"]!=Revision||m["bba"]!="tapserver-eof-v1"||lan["protocol"]!=1||lan["settings"]!=Settings
        ||!QFileInfo(helper).isExecutable()||!hex(lan["sha256"].toString())
        ||retroarch::fileDigest(helper,64LL*1024*1024,cancel)!=lan["sha256"].toString()
+       ||!QFileInfo(bundleRoot()+"/bba_endpoint").isExecutable()||!hex(lan["endpointSha256"].toString())
+       ||retroarch::fileDigest(bundleRoot()+"/bba_endpoint",64LL*1024*1024,cancel)!=lan["endpointSha256"].toString()
        ||!hex(m["toolSha256"].toString())||retroarch::fileDigest(tool,128LL*1024*1024,cancel)!=m["toolSha256"].toString())return {};
     const auto runtime=retroarch::fileDigest(dolphin::bridgeFile(),256LL*1024*1024,cancel);
     if(!hex(runtime)||runtime!=m["sha256"].toString())return {};
@@ -70,7 +73,7 @@ QJsonObject netplayIdentity(const AdventureRegistration& r,const StandaloneInsta
     const auto content=dolphin::contentIdentity(r.contentPath,1500LL*1024*1024,cancel);
     if(!hex(content))return {};
     return {{"id","runtime.dolphin.bba.v1"},{"label",r.adventure.title.left(96)},{"content",content},{"runtime",runtime},
-        {"settings",Settings},{"disc",header["game_id"]},{"players",2},{"lateJoin",false},{"temporaryProgress",true}};
+        {"settings",Settings},{"disc",header["game_id"]},{"players",4},{"lateJoin",false},{"temporaryProgress",true}};
 }
 QString configure(ProcessCommand& cmd,const StandaloneInstallation& i,QString content,QString connection,bool host,const QJsonObject& expected) {
     if(disc::playlist(content)) {
@@ -78,22 +81,10 @@ QString configure(ProcessCommand& cmd,const StandaloneInstallation& i,QString co
         if(paths.isEmpty())return "This disc list changed. Choose the game again.";
         content=paths.first();
     }
-    QFile file(connection);QFileInfo info(connection);
-    if(!info.isAbsolute()||info.isSymLink()||!file.open(QIODevice::ReadOnly)||file.size()>4096)return "Couldn't protect the GameCube LAN connection.";
-#ifndef Q_OS_WIN
-    if(info.permissions()&(QFile::ReadGroup|QFile::WriteGroup|QFile::ReadOther|QFile::WriteOther))return "Couldn't protect the GameCube LAN connection.";
-#endif
-    QMap<QByteArray,QByteArray> values;
-    for(const auto& line:file.readAll().split('\n')) {
-        if(line.isEmpty())continue;
-        const int at=line.indexOf('=');
-        if(at<1||line.contains('\r')||values.contains(line.left(at)))return "Invalid GameCube LAN connection.";
-        values.insert(line.left(at),line.mid(at+1));
-    }
-    const auto socket=QString::fromUtf8(values["socket"]),mac=QString::fromUtf8(values["mac"]);
-    if(values.size()!=4||values["mode"]!="bba"||values["host"]!=(host?"true":"false")
-       ||socket!=info.absolutePath()+"/bba.sock"||socket.toUtf8().size()>100
-       ||!QRegularExpression(host?"^00:09:bf:[0-9a-f]{2}:[0-9a-f]{2}:01$":"^00:09:bf:[0-9a-f]{2}:[0-9a-f]{2}:02$").match(mac).hasMatch())return "Invalid GameCube LAN connection.";
+    const auto group=NativeLanConnection::read(connection);
+    if(!group.valid()||group.mode!="bba"||(group.seat==1)!=host)return "Invalid GameCube LAN connection.";
+    const auto socket=QFileInfo(connection).absolutePath()+"/bba.sock",mac=group.mac();
+    if(socket.toUtf8().size()>100)return "Couldn't protect the GameCube LAN connection.";
     auto dir=std::make_shared<QTemporaryDir>(QDir::tempPath()+"/traineros-bba-XXXXXX");
     if(!dir->isValid()||!QDir().mkpath(dir->path()+"/Config"))return "Couldn't prepare GameCube LAN.";
     const auto root=dir->path();
@@ -110,7 +101,7 @@ QString configure(ProcessCommand& cmd,const StandaloneInstallation& i,QString co
     cmd.program="/usr/bin/env";cmd.arguments={"-u","TRAINEROS_DOLPHIN_SESSION"};
     const int separator=i.prefixArguments.indexOf("--");
     if(separator>=0){cmd.arguments<<i.program;cmd.arguments+=i.prefixArguments.mid(0,separator+1);}
-    cmd.arguments<<dolphin::bridgeFile()<<"-b"<<"-C"<<"Dolphin.Interface.ConfirmStop=False"<<"-u"<<root<<"-e"<<content;
+    cmd.arguments<<bundleRoot()+"/bba_endpoint"<<connection<<dolphin::bridgeFile()<<"-b"<<"-C"<<"Dolphin.Interface.ConfirmStop=False"<<"-u"<<root<<"-e"<<content;
     cmd.runtimeControls={{"kind","dolphin"},{"netplay",expected.toVariantMap()},{"netplayHost",host},{"temporaryProgress",true}};
     const auto settled=cmd.settled;cmd.settled=[settled,dir](const ProcessOutcome& out){if(settled)settled(out);dir->remove();};
     return {};

@@ -577,9 +577,9 @@ private slots:
         QCOMPARE(ended.size(),1);QVERIFY(!hc.active());QTRY_VERIFY(!gc.active());
         QVERIFY(!QFile::exists(hostFile));QVERIFY(!QFile::exists(guestFile));QCOMPARE(host.state()["phase"].toString(),"playing");
     }
-    void cabinetGroupKeepsPeerConnectionsSeparate() {
+    void nativeLanGroupKeepsPeerConnectionsSeparate() {
         const auto helper=qEnvironmentVariable("TRAINEROS_STREAM_TRANSPORT");if(helper.isEmpty())QSKIP("Real Linux transport supplied by integration check");
-        for(int count:{3,4}) {
+        for(const auto& mode:{QString("cabinet"),QString("ps2"),QString("bba")})for(int count:{3,4}) {
             LobbyCoordinator a,b,c,d;QList<LobbyCoordinator*> nodes{&a,&b,&c,&d};
             QList<LobbyConnection*> edges;int connected=0,ended=0;
             for(int i=0;i<count;++i) {
@@ -591,11 +591,11 @@ private slots:
                         auto* connection=new LobbyConnection(*nodes[i],nodes[i]);edges.append(connection);
                         connect(connection,&LobbyConnection::connected,connection,[&](QString){++connected;});
                         connect(connection,&LobbyConnection::ended,connection,[&](QString){++ended;});
-                        QVERIFY(connection->start(QString::number(i+1),ticket,helper,{},"cabinet",QString::number(guest)));
+                        QVERIFY(connection->start(QString::number(i+1),ticket,helper,{},mode,QString::number(guest)));
                     }
                 });
             }
-            QVERIFY(a.create("public"));auto selected=game();selected.mode="runtime.flycast.cabinet.v1";selected.seats=4;selected.runtime={{"id",selected.mode},{"players",4}};
+            QVERIFY(a.create("public"));auto selected=game();selected.mode=mode=="ps2"?"runtime.armsx2.lan.v1":mode=="bba"?"runtime.dolphin.bba.v1":"runtime.flycast.cabinet.v1";selected.seats=4;selected.runtime={{"id",selected.mode},{"players",4}};
             QVERIFY(a.selectGame(selected));for(int i=1;i<count;++i)QVERIFY(nodes[i]->join("1",a.state()["id"].toString()));
             const auto gen=a.state()["generation"].toInteger();for(int i=0;i<count;++i){QVERIFY(nodes[i]->prepared(gen,true));QVERIFY(nodes[i]->ready(true));}
             QVERIFY(a.start());QTRY_COMPARE_WITH_TIMEOUT(connected,2*(count-1),20000);

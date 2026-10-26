@@ -460,6 +460,14 @@ Lobby/netplay F04. Разрыв связи или показ успешной а
 Восстановление messenger presence не должно само разрывать подтверждённый игровой
 канал. `finished(ticket)` завершает соответствующий раунд, а не произвольную комнату.
 
+Групповые PS2 LAN / Dolphin BBA / arcade cabinet используют одного владельца
+S03 `RuntimeMultiplayer::startNativeLanConnections`. S07 держит отдельный
+`LobbyConnection` на каждого гостя; S03 передаёт полный приватный состав
+endpoint и ждёт готовности всех своих рёбер. PS2 native host сам пересылает
+Ethernet, Dolphin получает ограниченный Unix Ethernet hub. Отзыв сети не
+закрывает игру; S08 сохраняет обычный Home/exit/save contract.
+[Групповой контракт](emulators/native-lan-groups.md).
+
 GameCube LAN/BBA также использует S03/S06/S07: `DolphinLan` отдельно от
 `DolphinNetplay` готовит временный user-dir, собственный P1 и upstream TAP server.
 Одна игра может иметь два локально проверенных профиля/ключа выбора. Допуск,
@@ -470,8 +478,8 @@ Start и lifecycle общие; S07 передаёт Ethernet-кадры чере
 Arcade cabinet link использует те же S03/S06/S07/S08: `FlycastNetplay` проверяет
 native capability и готовит отдельный `runtime.flycast.cabinet.v1`, S07 передаёт
 неизменённые native UDP packets через режим `cabinet`. `tools/flycast-lan` запускает
-эмулятор в изолированной loopback-сети; единственный приватный socket и фиксированные
-порты ограничивают двух участников. Обрыв отзывает канал, сохраняя игру; временный
+эмулятор в изолированной loopback-сети; приватные sockets по гостям и фиксированные
+порты обеспечивают 2–4 участников. Обрыв отзывает канал, сохраняя игру; временный
 progress удаляется только после её завершения. GGPO остаётся отдельным профилем.
 [Контракт и обслуживание](emulators/flycast-cabinet.md).
 

@@ -1,5 +1,13 @@
 # PS2 LAN session preparation and isolated launch
 
+**26 October:** the current shell prepares local group JSON v2 for 2?4 consoles,
+with a shared LAN room and unique peer IDs. `ps2_endpoint` has one private UDP
+edge per guest; native ARMSX2 owns forwarding. The same source builds
+`bba_endpoint` for Dolphin's bounded Ethernet hub. See
+[the group contract](../../docs/emulators/native-lan-groups.md).
+The pair-only descriptions below are historical. `check_groups.py TRANSPORT
+ENDPOINT` exercises real 2/3/4-client paths; no commercial game is used.
+
 **25 October, source-only format expansion:** `disc.py` now reads ISO/CHD,
 raw BIN/IMG/MDF/NRG layouts, CSOv1/ZSOv1 and gzip discs using the reviewed
 ARMSX2 CDVD layout rules. SYSTEM.CNF/ELF still establishes serial/CRC; full

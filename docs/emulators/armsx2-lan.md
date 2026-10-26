@@ -1,5 +1,10 @@
 # ARMSX2: native LAN preparation
 
+**26.10 — R035/R041:** добавлен групповой PS2 LAN / Dolphin BBA на 2–4
+независимые консоли через общий Lobby. [Контракт и состояние поставки](native-lan-groups.md).
+Старые парные описания относятся к предыдущей реализации; обычный Dolphin
+NetPlay и его совместимость этим не ограничиваются.
+
 ## Disc lists and payload identity — 26 October 2026
 
 The existing reader/launcher now accepts bounded, ordered local M3U/M3U8 lists.

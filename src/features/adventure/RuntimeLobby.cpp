@@ -4,6 +4,7 @@
 #include "core/navigation/AdventureLaunchController.h"
 #include "features/adventure/AdventureExitPresentation.h"
 #include "integrations/adventure/standalone/CabinetConnection.h"
+#include "integrations/adventure/standalone/NativeLanConnection.h"
 #include <QFile>
 #include <QDir>
 #include <QCryptographicHash>
@@ -92,7 +93,7 @@ void RuntimeMultiplayer::prepare(QString operation,QJsonObject context,Completio
     if(context["relay"]=="psp-host"&&(players!=2||ppsspp::hostRelayRoot().isEmpty())) {
         done(false,"The handheld relay needs two players and the PSP connection package on both devices. Choose the standard relay otherwise.");return;
     }
-    if(requiresLinkedSavePreparation(profile)||profile["id"]=="runtime.flycast.cabinet.v1") {
+    if(requiresLinkedSavePreparation(profile)||profile["id"]=="runtime.flycast.cabinet.v1"||profile["id"]=="runtime.armsx2.lan.v1"||profile["id"]=="runtime.dolphin.bba.v1") {
         if(players<2) {done(false,"This linked-machine mode needs another player.");return;}
         for(int i=1;i<=players;++i)if(!seats.contains(i)) {done(false,"Linked machines need consecutive seats starting at P1.");return;}
     }
@@ -134,11 +135,8 @@ void RuntimeMultiplayer::launch(QString operation,QString ticket,QJsonObject con
         if(!relayStarted_)return; // Synchronous context rejection already completed the launch.
     }
     if(selected["id"]=="runtime.armsx2.lan.v1"||selected["id"]=="runtime.dolphin.bba.v1"||selected["id"]=="runtime.flycast.cabinet.v1") {
-        const bool bba=selected["id"]=="runtime.dolphin.bba.v1",cabinet=selected["id"]=="runtime.flycast.cabinet.v1";
         nativeLanConnection_=true;nativeLaunchContext_=context;
-        if(cabinet){startCabinetConnections(ticket,context);return;}
-        if(!nativeConnection_.start(lobbyContext_["self"].toString(),ticket,(bba?dolphinlan::bundleRoot():cabinet?flycast::cabinetRoot():ps2lan::bundleRoot())+"/stream_transport",online_?QJsonArray{"stun:stun.l.google.com:19302"}:QJsonArray{},bba?"bba":cabinet?"cabinet":"ps2"))
-            fail("Couldn't prepare the LAN connection. Reopen this game in the lobby.");
+        startNativeLanConnections(ticket,context);
         return;
     }
     if(context["relay"]=="psp-host") {
@@ -161,7 +159,7 @@ void RuntimeMultiplayer::bindLobbyPlayers(const QJsonObject& context) {
         auto completion=std::exchange(lobbyCompletion_,{});lobbyTicket_.clear();if(completion)completion(false,"The player seats changed. Prepare again.");
     }
 }
-void RuntimeMultiplayer::startCabinetConnections(QString ticket,const QJsonObject& context) {
+void RuntimeMultiplayer::startNativeLanConnections(QString ticket,const QJsonObject& context) {
     const auto self=lobbyContext_["self"].toString(),owner=context["owner"].toString();
     QMap<int,QString> players;
     int seat=0;
@@ -170,39 +168,45 @@ void RuntimeMultiplayer::startCabinetConnections(QString ticket,const QJsonObjec
         players[m["seat"].toInt()]=m["id"].toString();if(m["id"]==self)seat=m["seat"].toInt();
     }
     const int count=players.size();
-    for(int i=1;i<=count;++i)if(!players.contains(i)){fail("Linked cabinets need consecutive seats.");return;}
-    if(count<2||count>4||seat<1||players[1]!=owner){fail("The cabinet seats changed.");return;}
-    cabinetDirectory_=std::make_unique<QTemporaryDir>(QDir::tempPath()+"/traineros-cabinets-XXXXXX");
-    if(!cabinetDirectory_->isValid()){fail("Couldn't prepare the cabinet connections.");return;}
+    for(int i=1;i<=count;++i)if(!players.contains(i)){fail("Linked consoles need consecutive seats.");return;}
+    if(count<2||count>4||seat<1||players[1]!=owner){fail("The LAN seats changed.");return;}
+    nativeGroupDirectory_=std::make_unique<QTemporaryDir>(QDir::tempPath()+"/traineros-lan-XXXXXX");
+    if(!nativeGroupDirectory_->isValid()){fail("Couldn't prepare the LAN connections.");return;}
+    auto selected=context["game"].toObject()["runtime"].toObject();if(selected.isEmpty())selected=lobbyDescriptor_;
+    const auto id=selected["id"].toString();
+    const QString mode=id=="runtime.armsx2.lan.v1"?"ps2":id=="runtime.dolphin.bba.v1"?"bba":"cabinet";
+    const auto root=mode=="ps2"?ps2lan::bundleRoot():mode=="bba"?dolphinlan::bundleRoot():flycast::cabinetRoot();
+    const auto room=QString::fromLatin1(QCryptographicHash::hash(("native-lan-v2/"+ticket).toUtf8(),QCryptographicHash::Sha256).toHex().left(12));
     const auto guests=self==owner?players:QMap<int,QString>{{seat,self}};
     for(auto it=guests.cbegin();it!=guests.cend();++it) {
         if(it.key()==1)continue;
-        auto* connection=new LobbyConnection(*social_.lobbyCoordinator(),this);cabinetConnections_.append(connection);
+        auto* connection=new LobbyConnection(*social_.lobbyCoordinator(),this);nativeGroupConnections_.append(connection);
         const int peerSeat=self==owner?it.key():1;
-        connect(connection,&LobbyConnection::ended,this,[this](QString){if(nativeLanConnection_)fail("A cabinet disconnected. Your game is kept. Return to the lobby when ready.");});
-        connect(connection,&LobbyConnection::connected,this,[this,seat,count,peerSeat](QString path){
-            if(!nativeLanConnection_||nativeLaunchContext_.isEmpty()||!cabinetDirectory_)return;
+        connect(connection,&LobbyConnection::ended,this,[this](QString){if(nativeLanConnection_)fail("A player disconnected. Your game is kept. Return to the lobby when ready.");});
+        connect(connection,&LobbyConnection::connected,this,[this,seat,count,peerSeat,mode,room](QString path){
+            if(!nativeLanConnection_||nativeLaunchContext_.isEmpty()||!nativeGroupDirectory_)return;
             // The path was verified by our own LobbyConnection child.
-            cabinetSockets_[peerSeat]=QFileInfo(path).absolutePath()+"/cabinet.sock";
-            flycast::CabinetConnection config{seat,count,cabinetSockets_};if(!config.valid())return;
-            nativeLanConfig_=cabinetDirectory_->filePath("connection.json");QFile file(nativeLanConfig_);
-            const auto data=config.encode();
+            nativeGroupSockets_[peerSeat]=QFileInfo(path).absolutePath()+"/"+mode+".sock";
+            QByteArray data;
+            if(mode=="cabinet") {flycast::CabinetConnection config{seat,count,nativeGroupSockets_};if(!config.valid())return;data=config.encode();}
+            else {NativeLanConnection config{mode,room,seat,count,nativeGroupSockets_};if(!config.valid())return;data=config.encode();}
+            nativeLanConfig_=nativeGroupDirectory_->filePath("connection.json");QFile file(nativeLanConfig_);
             if(!file.open(QIODevice::WriteOnly)||!file.setPermissions(QFile::ReadOwner|QFile::WriteOwner)||file.write(data)!=data.size()){
-                fail("Couldn't protect the cabinet connections.");return;
+                fail("Couldn't protect the LAN connections.");return;
             }
             file.close();const auto launch=std::exchange(nativeLaunchContext_,{});bindLobbyPlayers(launch);
         });
-        if(!connection->start(self,ticket,flycast::cabinetRoot()+"/stream_transport",online_?QJsonArray{"stun:stun.l.google.com:19302"}:QJsonArray{},"cabinet",it.value())){
-            fail("Couldn't prepare the cabinet connection.");return;
+        if(!connection->start(self,ticket,root+"/stream_transport",online_?QJsonArray{"stun:stun.l.google.com:19302"}:QJsonArray{},mode,it.value())){
+            fail("Couldn't prepare the LAN connection.");return;
         }
     }
 }
 void RuntimeMultiplayer::stopNativeConnection() {
     nativeLanConnection_=false;nativeLanConfig_.clear();
     pspDirect_=false;nativeLaunchContext_={};nativeConnection_.stop();
-    const auto connections=std::exchange(cabinetConnections_,{});
+    const auto connections=std::exchange(nativeGroupConnections_,{});
     for(auto* connection:connections){disconnect(connection,nullptr,this,nullptr);connection->stop();connection->deleteLater();}
-    cabinetSockets_.clear();cabinetDirectory_.reset();
+    nativeGroupSockets_.clear();nativeGroupDirectory_.reset();
     if(pspRelay_.state()!=QProcess::NotRunning) {
         pspRelay_.terminate();if(!pspRelay_.waitForFinished(1500)){pspRelay_.kill();pspRelay_.waitForFinished(1000);}
     }

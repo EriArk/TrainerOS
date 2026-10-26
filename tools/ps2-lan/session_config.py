@@ -6,16 +6,47 @@ The caller must select the exact game's existing INI (or None if absent), own
 the private session directory and retain it until the emulator exits. This is
 not game admission, an emulator launcher or a replacement for Lobby lifecycle.
 """
+import json
 import os
 from pathlib import Path, PurePosixPath
 import re
 import stat
 
 
+def group_connection(data: bytes) -> dict:
+    def unique(pairs):
+        result={}
+        for k,v in pairs:
+            if k in result:raise ValueError('Duplicate LAN field')
+            result[k]=v
+        return result
+    value=json.loads(data,object_pairs_hook=unique)
+    if set(value)!={'protocol','mode','room','seat','players','sockets'} or value['protocol']!=2 or value['mode']!='ps2':
+        raise ValueError('Invalid LAN group')
+    seat,count=value['seat'],value['players']
+    if type(seat) is not int or type(count) is not int or not 2<=count<=4 or not 1<=seat<=count:
+        raise ValueError('Invalid LAN seats')
+    if not isinstance(value['room'],str) or not re.fullmatch(r'[a-f0-9]{12}',value['room']):raise ValueError('Invalid LAN room')
+    sockets=value['sockets']
+    expected={str(n) for n in range(2,count+1)} if seat==1 else {'1'}
+    if not isinstance(sockets,dict) or set(sockets)!=expected or len(set(sockets.values()))!=len(sockets):raise ValueError('Invalid LAN edges')
+    for path in sockets.values():
+        if not isinstance(path,str):raise ValueError('Invalid LAN socket')
+        p=PurePosixPath(path)
+        if not p.is_absolute() or p.as_posix()!=path or '..' in p.parts or p.name!='ps2.sock' or len(path.encode())>100 or '\0' in path:
+            raise ValueError('Invalid LAN socket')
+    return value
+
+
 def connection(data: bytes) -> dict[str, str]:
     """Read only the private configuration emitted by stream_transport ps2."""
     if len(data) > 4096:
         raise ValueError('Invalid PS2 connection size')
+    if data.lstrip().startswith(b'{'):
+        group=group_connection(data)
+        return {'mode':'ps2','address':'127.0.0.1','host':'true' if group['seat']==1 else 'false',
+                'port':'19072' if group['seat']==1 else '19073','peer':str(group['seat']),'room':group['room'],
+                'sockets':group['sockets']}
     values = {}
     for line in data.decode('ascii').splitlines():
         key, separator, value = line.partition('=')

@@ -3,6 +3,7 @@
 #include "integrations/adventure/standalone/PpssppNetplay.h"
 #include "integrations/adventure/standalone/DolphinNetplay.h"
 #include "integrations/adventure/standalone/DolphinLan.h"
+#include "integrations/adventure/standalone/NativeLanConnection.h"
 #include "integrations/adventure/standalone/AzaharNetplay.h"
 #include "integrations/adventure/standalone/VitaNetplay.h"
 #include "integrations/adventure/standalone/MelonDsNetplay.h"
@@ -70,10 +71,26 @@ private slots:
         write(key,QByteArray(16,'x'));QVERIFY(dolphin::contentIdentity(path,1024,cancel)!=both);
         write(key,"short");QVERIFY(dolphin::contentIdentity(path,1024,cancel).isEmpty());
     }
+    void nativeLanGroupMaterialBindsEverySeatAndDistinctEdge() {
+        QTemporaryDir dir;
+        for(const auto& mode:{QString("ps2"),QString("bba")})for(int count:{2,3,4})for(int seat=1;seat<=count;++seat) {
+            NativeLanConnection group{mode,"abcdef123456",seat,count,{}};
+            for(int peer=1;peer<=count;++peer)if(peer!=seat&&(seat==1||peer==1))group.sockets[peer]=dir.filePath(QString::number(peer)+"/"+mode+".sock");
+            QVERIFY(group.valid());const auto path=dir.filePath("connection.json");write(path,group.encode());
+            QVERIFY(QFile::setPermissions(path,QFile::ReadOwner|QFile::WriteOwner));
+            QCOMPARE(NativeLanConnection::read(path).encode(),group.encode());
+            auto bad=group;bad.sockets[seat]=dir.filePath("self/"+mode+".sock");QVERIFY(!bad.valid());
+            bad=group;bad.seat=5;QVERIFY(!bad.valid());bad=group;bad.room="different";QVERIFY(!bad.valid());
+            bad=group;bad.sockets.begin().value()=dir.filePath("a/../"+mode+".sock");QVERIFY(!bad.valid());
+            QSet<QString> macs;for(int n=1;n<=count;++n)macs.insert(group.mac(n));QCOMPARE(macs.size(),count);
+            if(seat==1&&count>2){bad=group;bad.sockets[3]=bad.sockets[2];QVERIFY(!bad.valid());}
+        }
+    }
     void gameCubeLanUsesNativeBbaAndIsolatedSaves() {
         QTemporaryDir dir;QVERIFY(dir.isValid());
         const auto connection=dir.filePath("session.conf");
-        write(connection,("mode=bba\nhost=true\nmac=00:09:bf:ab:cd:01\nsocket="+dir.filePath("bba.sock")+"\n").toUtf8());
+        NativeLanConnection group{"bba","abcdef123456",1,4,{{2,dir.filePath("a/bba.sock")},{3,dir.filePath("b/bba.sock")},{4,dir.filePath("c/bba.sock")}}};
+        write(connection,group.encode());
         QVERIFY(QFile::setPermissions(connection,QFile::ReadOwner|QFile::WriteOwner));
         write(dir.filePath("Dolphin.ini"),"ordinary settings");
         write(dir.filePath("GCPadNew.ini"),"[GCPad1]\nDevice = SDL/0/Pad\n");
@@ -83,6 +100,8 @@ private slots:
         const auto result=dolphinlan::configure(command,installation,"/roms/game.rvz",connection,true,profile);
         QVERIFY2(result.isEmpty(),qPrintable(result));
         QVERIFY(command.arguments.contains("-e"));QVERIFY(command.arguments.contains("/roms/game.rvz"));
+        QVERIFY(command.arguments.contains(dolphinlan::bundleRoot()+"/bba_endpoint"));
+        QVERIFY(command.arguments.contains(connection));
         QCOMPARE(command.arguments.mid(0,2),QStringList({"-u","TRAINEROS_DOLPHIN_SESSION"}));
         const auto root=command.arguments.at(command.arguments.lastIndexOf("-u")+1);
         QSettings config(root+"/Config/Dolphin.ini",QSettings::IniFormat);

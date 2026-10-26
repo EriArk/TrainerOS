@@ -49,7 +49,7 @@ private slots:
         }
     }
     void nativeGroupLaunchDispatchesEveryAssignedSeat() {
-        for(const auto& mode:{QString("runtime.flycast.online.v1"),QString("runtime.flycast.cabinet.v1")})for(int count:{3,4}) {
+        for(const auto& mode:{QString("runtime.flycast.online.v1"),QString("runtime.flycast.cabinet.v1"),QString("runtime.armsx2.lan.v1"),QString("runtime.dolphin.bba.v1")})for(int count:{3,4}) {
             GameParty host,b,c,d;QList<GameParty*> nodes{&host,&b,&c,&d};
             QJsonObject profile=game();profile["id"]=mode;profile["lateJoin"]=false;
             QJsonArray roster;for(int i=0;i<count;++i)roster.append(QJsonObject{{"id",QString::number(i+1)},{"seat",i+1},{"connected",true},{"prepared",true},{"ready",true}});
@@ -63,7 +63,7 @@ private slots:
             QVERIFY(host.bindLobby(ticket,profile,roster,"1","1"));
             for(int i=1;i<count;++i)QVERIFY(nodes[i]->bindLobby(ticket,profile,roster,QString::number(i+1),"1"));
             QCOMPARE(launches[0],1);
-            host.ready({{"kind",mode.contains("online")?"dc-online-ready":"cabinet-ready"},{"identity",profile}});
+            host.ready({{"kind",mode.contains("online")?"dc-online-ready":mode.contains("armsx2")?"ps2-ready":mode.contains("dolphin")?"bba-ready":"cabinet-ready"},{"identity",profile}});
             for(int i=1;i<count;++i)QCOMPARE(launches[i],1);
             host.tick();for(int i=1;i<count;++i){nodes[i]->tick();QCOMPARE(launches[i],1);}
             nodes[count-1]->leave();QVERIFY(host.running());
