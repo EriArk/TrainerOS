@@ -1,0 +1,16 @@
+{
+    "date":  "2026-10-27",
+    "blenderImportVerified":  true,
+    "visibleBodyMeshes":  1,
+    "bones":  54,
+    "correctiveShapes":  46,
+    "visualReview":  "Standalone body render inspected; approved smaller head and shorts repair retained.",
+    "runtimeUpdated":  false,
+    "sha256":  {
+                   "README.md":  "ec8129a8e76e44000d780097b3c4eff70826bb7b271d61478708fba111ff1b4a",
+                   "trainer-body.blend":  "e5c96608d478af983e6bd7fd2d236fa49de0b7087e993797e9a68cd379bdd54d",
+                   "trainer-body.glb":  "ed818b016430665e7eaef50fdfd8188b894cf9607d6a4f1bc3ae9a7b4c55a333",
+                   "trainer-body.png":  "c1c4a0853a5c7fe7f354d64efe81025da6b04f5803b5d94ab4c5f874f77a8cd4",
+                   "validation.json":  "d74d131e57592f6d5b6ef6c1d220545101c3b3b5e01510548209ecdd853616c1"
+               }
+}

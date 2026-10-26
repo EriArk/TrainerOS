@@ -1,0 +1,19 @@
+{
+  "date": "2026-10-27",
+  "source": "../2026-10-26/anime-hair/avatar-all-hair-options.glb",
+  "sourceSha256": "2561aeb351feef8e8e0122cf4235351c36a0c184111720e8ef7c5de1a011f6f9",
+  "bodyMeshCount": 1,
+  "noClothingHairOrShoes": true,
+  "fullUncoveredTopologyExact": true,
+  "approvedBodyAttributesUvsWeightsMorphsExact": true,
+  "headScale": 0.92,
+  "headTransformRechecked": true,
+  "shortsRepairVertices": 92,
+  "shortsRepairRetainedExact": true,
+  "joints": 54,
+  "correctiveShapes": 46,
+  "animationClips": 8,
+  "animationDataAndBindPoseExact": true,
+  "bodyTexturesExact": true,
+  "runtimeIntegration": false
+}

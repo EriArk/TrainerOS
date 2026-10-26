@@ -1,5 +1,11 @@
 # Shared Trainer avatar pack
 
+The corrected **standalone base body**, without wearable clothing, shoes or hair,
+is [`approved/base-body/trainer-body.glb`](approved/base-body/trainer-body.glb).
+Its [Blender source and verification](approved/base-body/README.md) preserve the
+approved smaller head and shorts repair. This is the original corrected body;
+the separate eye-ready face revision is documented alongside the eye components.
+
 The owner-approved 26 October authoring revision is preserved separately in
 [`approved/2026-10-26`](approved/2026-10-26/README.md): an original thin-strap
 sports tank, editable Blender source, and a head/hair scale of 0.92. It is not
