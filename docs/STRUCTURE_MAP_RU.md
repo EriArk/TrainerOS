@@ -513,6 +513,13 @@ Ethernet, Dolphin получает ограниченный Unix Ethernet hub. �
 закрывает игру; S08 сохраняет обычный Home/exit/save contract.
 [Групповой контракт](emulators/native-lan-groups.md).
 
+Xbox System Link принадлежит тем же S03/S06/S07/S08: `XboxLan` готовит собственный
+native HDD и временные TOML/EEPROM с адресом назначенного места; существующий
+Ethernet carrier доставляет кадры в loopback UDP штатного nvnet. S06 принимает
+явный Start, S07 не управляет сейвами; отзыв связи сохраняет процесс игры.
+Оригинальные EEPROM/настройки не заменяются; HDD остаётся у native xemu.
+[Контракт и границы](emulators/xemu.md).
+
 GameCube LAN/BBA также использует S03/S06/S07: `DolphinLan` отдельно от
 `DolphinNetplay` готовит временный user-dir, собственный P1 и upstream TAP server.
 Одна игра может иметь два локально проверенных профиля/ключа выбора. Допуск,

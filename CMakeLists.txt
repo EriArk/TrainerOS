@@ -170,6 +170,7 @@ add_library(trainer_core STATIC
     src/integrations/adventure/standalone/PpssppNetplay.cpp
     src/integrations/adventure/standalone/DolphinNetplay.cpp
     src/integrations/adventure/standalone/DolphinLan.cpp
+    src/integrations/adventure/standalone/XboxLan.cpp
     src/integrations/adventure/standalone/RmgNetplay.cpp
     src/integrations/adventure/standalone/FlycastNetplay.cpp
     src/platform/device/DeviceService.h

@@ -5,6 +5,7 @@
 #include <QCoreApplication>
 #include <QNetworkInterface>
 #include <QProcess>
+#include <QUdpSocket>
 #include <memory>
 #include <vector>
 
@@ -13,7 +14,7 @@
 int main(int argc,char** argv) {
     QCoreApplication app(argc,argv);const auto args=app.arguments();if(args.size()<4)return 2;
     const auto config=trainer::NativeLanConnection::read(args[1]);if(!config.valid())return 2;
-    const bool ps2=config.mode=="ps2",host=config.seat==1;
+    const bool ps2=config.mode=="ps2",xbox=config.mode=="xbox",host=config.seat==1;
     if(ps2)for(const auto& interface:QNetworkInterface::allInterfaces())
         if(!(interface.flags()&QNetworkInterface::IsLoopBack))return 2;
     struct Edge {int seat;QLocalSocket channel;QByteArray buffered;std::unique_ptr<Ps2Sockets> native;};
@@ -26,11 +27,25 @@ int main(int argc,char** argv) {
         if(ps2)qToBigEndian<quint16>(data.size(),packet.data());else qToLittleEndian<quint16>(data.size(),packet.data());
         packet+=data;return edge.channel.write(packet)==packet.size();
     };
-    BbaChannel local([&](const QByteArray& data){
+    auto localFrame=[&](const QByteArray& data){
         if(!network)return false;
         if(data.mid(6,6)!=QByteArray::fromHex(config.mac().toLatin1().replace(":",""))){revoke();return false;}
         for(auto& e:edges)send(*e,data);return true;
-    },revoke);
+    };
+    BbaChannel local(localFrame,revoke);
+    QUdpSocket udp;quint16 nativePort=0;
+    if(xbox) {
+        if(!udp.bind(QHostAddress::LocalHost,0))return 3;
+        QObject::connect(&udp,&QUdpSocket::readyRead,&app,[&]{
+            while(udp.hasPendingDatagrams()) {
+                QByteArray data(1519,0);QHostAddress address;quint16 port=0;
+                const auto size=udp.readDatagram(data.data(),data.size(),&address,&port);data.resize(qMax<qint64>(size,0));
+                if(address!=QHostAddress::LocalHost||!BbaChannel::frame(data)||(nativePort&&nativePort!=port))continue;
+                if(data.mid(6,6)!=QByteArray::fromHex(config.mac().toLatin1().replace(":","")))continue;
+                nativePort=port;localFrame(data);
+            }
+        });
+    }
     for(auto it=config.sockets.cbegin();it!=config.sockets.cend();++it) {
         auto owned=std::make_unique<Edge>();auto* e=owned.get();e->seat=it.key();edges.push_back(std::move(owned));
         e->channel.setReadBufferSize(65536);e->channel.connectToServer(it.value());if(!e->channel.waitForConnected(3000))return 3;
@@ -53,17 +68,20 @@ int main(int argc,char** argv) {
                     for(int seat=1;seat<=config.players;++seat)
                         if(seat!=config.seat&&(!host||seat==e->seat)&&source==QByteArray::fromHex(config.mac(seat).toLatin1().replace(":","")))accepted=true;
                     if(!accepted){revoke();return;}
-                    local.receive(data);
+                    if(xbox){if(nativePort)udp.writeDatagram(data,QHostAddress::LocalHost,nativePort);}
+                    else local.receive(data);
                     if(host)for(auto& other:edges)if(other.get()!=e)send(*other,data);
                 }
             }
         });
         QObject::connect(&e->channel,&QLocalSocket::disconnected,&app,revoke);
     }
-    if(!ps2&&!local.start(QFileInfo(args[1]).absolutePath()+"/bba.sock"))return 3;
+    if(!ps2&&!xbox&&!local.start(QFileInfo(args[1]).absolutePath()+"/bba.sock"))return 3;
     // Revocation never closes or relaunches the game. Home owns safe process exit.
     QProcess game;game.setProcessChannelMode(QProcess::ForwardedChannels);game.setInputChannelMode(QProcess::ForwardedInputChannel);
     QObject::connect(&game,&QProcess::finished,&app,[&](int code,QProcess::ExitStatus status){app.exit(status==QProcess::NormalExit?code:1);});
-    game.start(args[2],args.mid(3));if(!game.waitForStarted(5000))return 4;
+    auto arguments=args.mid(3);
+    if(xbox)for(auto& argument:arguments)argument.replace("TRAINEROS_XBOX_PORT",QString::number(udp.localPort()));
+    game.start(args[2],arguments);if(!game.waitForStarted(5000))return 4;
     return app.exec();
 }

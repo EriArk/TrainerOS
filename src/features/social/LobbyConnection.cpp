@@ -54,7 +54,7 @@ bool LobbyConnection::start(QString self,QString ticket,QString helper,QJsonArra
     const int capacity=game["seats"].toInt();
     const bool live=s["phase"]=="playing";
     const bool psp=mode=="psp"&&game["mode"].toString().startsWith("runtime.ppsspp.")&&s["relay"]=="psp-host"&&!live;
-    const bool bba=mode=="bba"&&game["mode"]=="runtime.dolphin.bba.v1"&&s["relay"].toString("auto")=="auto"&&!live;
+    const bool bba=mode=="bba"&&(game["mode"]=="runtime.dolphin.bba.v1"||game["mode"]=="runtime.xemu.lan.v1")&&s["relay"].toString("auto")=="auto"&&!live;
     const bool ps2=mode=="ps2"&&game["mode"]=="runtime.armsx2.lan.v1"&&s["relay"].toString("auto")=="auto"&&!live;
     const bool cabinet=mode=="cabinet"&&game["mode"]=="runtime.flycast.cabinet.v1"&&s["relay"].toString("auto")=="auto"&&!live;
     if((s["phase"]!="launching"&&!live)||s["ticket"]!=ticket||ticket.isEmpty()

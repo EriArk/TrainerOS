@@ -3,6 +3,7 @@
 #include "integrations/adventure/standalone/PpssppNetplay.h"
 #include "integrations/adventure/standalone/DolphinNetplay.h"
 #include "integrations/adventure/standalone/DolphinLan.h"
+#include "integrations/adventure/standalone/XboxLan.h"
 #include "integrations/adventure/standalone/NativeLanConnection.h"
 #include "integrations/adventure/standalone/AzaharNetplay.h"
 #include "integrations/adventure/standalone/VitaNetplay.h"
@@ -73,9 +74,9 @@ private slots:
     }
     void nativeLanGroupMaterialBindsEverySeatAndDistinctEdge() {
         QTemporaryDir dir;
-        for(const auto& mode:{QString("ps2"),QString("bba")})for(int count:{2,3,4})for(int seat=1;seat<=count;++seat) {
+        for(const auto& mode:{QString("ps2"),QString("bba"),QString("xbox")})for(int count:{2,3,4})for(int seat=1;seat<=count;++seat) {
             NativeLanConnection group{mode,"abcdef123456",seat,count,{}};
-            for(int peer=1;peer<=count;++peer)if(peer!=seat&&(seat==1||peer==1))group.sockets[peer]=dir.filePath(QString::number(peer)+"/"+mode+".sock");
+            for(int peer=1;peer<=count;++peer)if(peer!=seat&&(seat==1||peer==1))group.sockets[peer]=dir.filePath(QString::number(peer)+"/"+(mode=="xbox"?QString("bba"):mode)+".sock");
             QVERIFY(group.valid());const auto path=dir.filePath("connection.json");write(path,group.encode());
             QVERIFY(QFile::setPermissions(path,QFile::ReadOwner|QFile::WriteOwner));
             QCOMPARE(NativeLanConnection::read(path).encode(),group.encode());
@@ -85,6 +86,48 @@ private slots:
             QSet<QString> macs;for(int n=1;n<=count;++n)macs.insert(group.mac(n));QCOMPARE(macs.size(),count);
             if(seat==1&&count>2){bad=group;bad.sockets[3]=bad.sockets[2];QVERIFY(!bad.valid());}
         }
+    }
+    void xboxReviewedPackagePreparesEveryOwnerWithoutChangingPersonalFiles() {
+#ifdef Q_OS_WIN
+        QSKIP("Native Linux package preparation");
+#else
+        const auto source=qEnvironmentVariable("TRAINEROS_XBOX_TEST_BUNDLE");
+        if(source.isEmpty())QSKIP("Supply the reviewed native package fixture");
+        QTemporaryDir dir;const auto old=qgetenv("XDG_DATA_HOME");const bool oldMode=QStandardPaths::isTestModeEnabled();
+        QStandardPaths::setTestModeEnabled(false);qputenv("XDG_DATA_HOME",dir.filePath("data").toUtf8());
+        const auto restore=qScopeGuard([&]{if(old.isNull())qunsetenv("XDG_DATA_HOME");else qputenv("XDG_DATA_HOME",old);QStandardPaths::setTestModeEnabled(oldMode);});
+        const auto root=xboxlan::bundleRoot();QVERIFY(QDir().mkpath(root));
+        QFile manifest(source+"/manifest.json");QVERIFY(manifest.open(QIODevice::ReadOnly));
+        auto m=QJsonDocument::fromJson(manifest.readAll()).object();
+        const auto files=m["files"].toObject();
+        for(auto it=files.begin();it!=files.end();++it)QVERIFY(QFile::copy(source+'/'+it.key(),root+'/'+it.key()));
+        QByteArray eeprom(256,'x');quint64 sum=0;
+        for(int offset=0x34;offset<0x60;offset+=4)sum+=qFromLittleEndian<quint32>(eeprom.constData()+offset);
+        qToLittleEndian<quint32>(~quint32((sum&0xffffffff)+(sum>>32)),eeprom.data()+0x30);
+        write(dir.filePath("eeprom.bin"),eeprom);write(dir.filePath("hdd.qcow2"),"owned HDD fixture");
+        write(dir.filePath("boot.bin"),"own firmware fixture");
+        const auto quoted=[](const QString& path){return QJsonDocument(QJsonArray{path}).toJson(QJsonDocument::Compact).mid(1).chopped(1);};
+        const auto config=dir.filePath("xemu.toml");
+        write(config,"[display]\nrenderer=\"VULKAN\"\n[sys.files]\nbootrom_path="+quoted(dir.filePath("boot.bin"))+
+            "\nflashrom_path="+quoted(dir.filePath("boot.bin"))+"\nhdd_path="+quoted(dir.filePath("hdd.qcow2"))+"\neeprom_path="+quoted(dir.filePath("eeprom.bin"))+"\n");
+        m["config"]=config;write(root+"/manifest.json",QJsonDocument(m).toJson());
+        AdventureRegistration r;r.adventure.id="xbox-fixture";r.adventure.title="Xbox fixture";r.adventure.adapterId="xemu";r.adventure.platformId="xbox";
+        r.contentPath=dir.filePath("game.iso");write(r.contentPath,QByteArray(512,'i'));std::atomic_bool cancel{false};
+        const auto profile=xboxlan::netplayIdentity(r,cancel);QVERIFY(!profile.isEmpty());QCOMPARE(profile["players"].toInt(),4);
+        QCOMPARE(multiplayerPresentation(profile)["label"].toString(),"System Link");QVERIFY(localLobbyRuntime(profile));
+        for(int seat=1;seat<=4;++seat) {
+            NativeLanConnection group{"xbox","abcdef123456",seat,4,{}};
+            for(int peer=1;peer<=4;++peer)if(peer!=seat&&(seat==1||peer==1))group.sockets[peer]=dir.filePath(QString::number(peer)+"/bba.sock");
+            const auto connection=dir.filePath("connection.json");write(connection,group.encode());QFile::setPermissions(connection,QFile::ReadOwner|QFile::WriteOwner);
+            auto cmd=xboxlan::command(r,profile,connection,seat==1);QCOMPARE(cmd.prepare(cmd,cancel),QString());
+            QVERIFY(cmd.arguments.contains("-nic"));QVERIFY(cmd.arguments.join(' ').contains("socket,model=nvnet,mac="+group.mac()));
+            QVERIFY(!cmd.arguments.contains("-snapshot"));QCOMPARE(cmd.runtimeControls["temporaryProgress"].toBool(),false);
+            auto bad=xboxlan::command(r,profile,connection,seat!=1);QVERIFY(!bad.prepare(bad,cancel).isEmpty());
+        }
+        QFile original(dir.filePath("eeprom.bin"));QVERIFY(original.open(QIODevice::ReadOnly));QCOMPARE(original.readAll(),eeprom);
+        QFile hdd(dir.filePath("hdd.qcow2"));QVERIFY(hdd.open(QIODevice::ReadOnly));QCOMPARE(hdd.readAll(),QByteArray("owned HDD fixture"));
+        write(r.contentPath,"changed");auto stale=xboxlan::command(r,profile,dir.filePath("connection.json"),false);QVERIFY(!stale.prepare(stale,cancel).isEmpty());
+#endif
     }
     void gameCubeLanUsesNativeBbaAndIsolatedSaves() {
         QTemporaryDir dir;QVERIFY(dir.isValid());

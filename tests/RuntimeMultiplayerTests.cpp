@@ -221,6 +221,7 @@ private slots:
     void ps2TransportLossKeepsOwnedGameAndCannotRelaunch_data() {
         QTest::addColumn<QString>("mode");
         QTest::newRow("ps2")<<QString("runtime.armsx2.lan.v1");
+        QTest::newRow("xbox-system-link")<<QString("runtime.xemu.lan.v1");
         QTest::newRow("gamecube-bba")<<QString("runtime.dolphin.bba.v1");
         QTest::newRow("arcade-cabinets")<<QString("runtime.flycast.cabinet.v1");
     }
@@ -502,12 +503,12 @@ private slots:
         f.runtime.descriptor_=lan;QCOMPARE(f.runtime.nativeLan(),linked!="runtime.flycast.online.v1");QVERIFY(!f.runtime.dolphin());QVERIFY(!f.runtime.supportsLive(lan));
     }
     void nativeReadyIsBoundToEachAssignedSeat() {
-        for(const auto& mode:{QString("runtime.flycast.online.v1"),QString("runtime.flycast.cabinet.v1"),QString("runtime.armsx2.lan.v1"),QString("runtime.dolphin.bba.v1")})
+        for(const auto& mode:{QString("runtime.flycast.online.v1"),QString("runtime.flycast.cabinet.v1"),QString("runtime.armsx2.lan.v1"),QString("runtime.dolphin.bba.v1"),QString("runtime.xemu.lan.v1")})
         for(int slot=2;slot<=4;++slot)for(int received:{1,2,3,4,5}) {
             Fixture f;f.runtime.active_=true;f.runtime.host_=false;f.runtime.request_.slot=slot;
             f.runtime.descriptor_={{"id",mode},{"players",4}};
             int inspected=0;f.library.inspect=[&]{++inspected;};
-            f.runtime.frame({{"kind",mode.contains("online")?"dc-online-ready":mode.contains("armsx2")?"ps2-ready":mode.contains("dolphin")?"bba-ready":"cabinet-ready"},{"identity",f.runtime.descriptor_},{"slot",received}});
+            f.runtime.frame({{"kind",mode.contains("online")?"dc-online-ready":mode.contains("armsx2")?"ps2-ready":mode.contains("dolphin")?"bba-ready":mode.contains("xemu")?"xbox-ready":"cabinet-ready"},{"identity",f.runtime.descriptor_},{"slot",received}});
             // The valid seat reaches local content verification. Another seat
             // must fail before looking up or launching any game.
             QCOMPARE(inspected>0,received==slot);

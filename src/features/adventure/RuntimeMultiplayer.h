@@ -19,6 +19,7 @@
 #include "integrations/adventure/standalone/AzaharNetplay.h"
 #include "integrations/adventure/standalone/VitaNetplay.h"
 #include "integrations/adventure/standalone/Ps2LanNetplay.h"
+#include "integrations/adventure/standalone/XboxLan.h"
 #include "platform/network/LocalLinkPeer.h"
 #include <QFutureWatcher>
 #include <memory>
@@ -123,7 +124,8 @@ private:
     bool gcLan() const { return descriptor_["id"]=="runtime.dolphin.bba.v1"; }
     bool dcOnline() const { return descriptor_["id"]=="runtime.flycast.online.v1"; }
     bool cabinetLan() const { return descriptor_["id"]=="runtime.flycast.cabinet.v1"; }
-    bool nativeLan() const { return ps2Lan()||gcLan()||cabinetLan(); }
+    bool nativeLan() const { return ps2Lan()||gcLan()||cabinetLan()||xboxLan(); }
+    bool xboxLan() const { return descriptor_["id"]=="runtime.xemu.lan.v1"; }
     bool ps2Lan() const { return descriptor_["id"]=="runtime.armsx2.lan.v1"; }
     bool ds() const { return descriptor_["id"]=="runtime.melonds.nds.v1"; }
     bool psp() const { return descriptor_["id"].toString().startsWith("runtime.ppsspp."); }

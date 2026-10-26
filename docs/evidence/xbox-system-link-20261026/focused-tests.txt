@@ -1,0 +1,19 @@
+********* Start testing of StandaloneTests *********
+Config: Using QtTest library 6.11.2, Qt 6.11.2 (arm64-little_endian-lp64 shared (dynamic) release build; by GCC 16.2.1 20260819 (Red Hat 16.2.1-2)), fedora 44
+PASS   : StandaloneTests::initTestCase()
+PASS   : StandaloneTests::xboxReviewedPackagePreparesEveryOwnerWithoutChangingPersonalFiles()
+PASS   : StandaloneTests::nativeLanGroupMaterialBindsEverySeatAndDistinctEdge()
+PASS   : StandaloneTests::cleanupTestCase()
+Totals: 4 passed, 0 failed, 0 skipped, 0 blacklisted, 588ms
+********* Finished testing of StandaloneTests *********
+********* Start testing of trainer::RuntimeMultiplayerTests *********
+Config: Using QtTest library 6.11.2, Qt 6.11.2 (arm64-little_endian-lp64 shared (dynamic) release build; by GCC 16.2.1 20260819 (Red Hat 16.2.1-2)), fedora 44
+PASS   : trainer::RuntimeMultiplayerTests::initTestCase()
+PASS   : trainer::RuntimeMultiplayerTests::nativeReadyIsBoundToEachAssignedSeat()
+PASS   : trainer::RuntimeMultiplayerTests::ps2TransportLossKeepsOwnedGameAndCannotRelaunch(ps2)
+PASS   : trainer::RuntimeMultiplayerTests::ps2TransportLossKeepsOwnedGameAndCannotRelaunch(xbox-system-link)
+PASS   : trainer::RuntimeMultiplayerTests::ps2TransportLossKeepsOwnedGameAndCannotRelaunch(gamecube-bba)
+PASS   : trainer::RuntimeMultiplayerTests::ps2TransportLossKeepsOwnedGameAndCannotRelaunch(arcade-cabinets)
+PASS   : trainer::RuntimeMultiplayerTests::cleanupTestCase()
+Totals: 7 passed, 0 failed, 0 skipped, 0 blacklisted, 458ms
+********* Finished testing of trainer::RuntimeMultiplayerTests *********
