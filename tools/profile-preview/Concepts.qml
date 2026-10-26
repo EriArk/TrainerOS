@@ -8,7 +8,11 @@ Window {
     title: "TrainerOS · Profile concepts · sample data"
     color: Theme.chassisDark
     property real uiScale: Math.max(1,width/960)
-    property bool scene: false
+    readonly property bool scene: false
+    // Isolated illustrative account states; these are never production balances.
+    property int accountState: 0
+    readonly property bool accountKnown: accountState===0 || accountState===2
+    readonly property bool accountFresh: accountState===0
     property int backdrop: 0
     readonly property color accent: Theme.dark ? "#b9cfa5" : "#527b59"
     readonly property var games: [
@@ -24,8 +28,7 @@ Window {
         id: canvas; width: window.width/window.uiScale; height: window.height/window.uiScale
         scale: window.uiScale; transformOrigin: Item.TopLeft; focus: true
         Keys.onPressed: event => {
-            if(event.key===Qt.Key_1)window.scene=false
-            else if(event.key===Qt.Key_2)window.scene=true
+            if(event.key===Qt.Key_D)window.accountState=(window.accountState+1)%4
             else if(event.key===Qt.Key_T)Theme.themeId=Theme.dark?"light":"dark"
             else if(event.key===Qt.Key_Left)avatar.yaw-=10
             else if(event.key===Qt.Key_Right)avatar.yaw+=10
@@ -36,7 +39,7 @@ Window {
         Text { x: 29; y: 24; text: "‹  Игровой профиль"; font.pixelSize: 17; color: Theme.ink }
         Row {
             anchors.right: parent.right; anchors.rightMargin: 32; y: 24; spacing: 27
-            Repeater { model: ["Профиль", "Игровой путь", "RetroAchievements", "Гардероб"]
+            Repeater { model: ["Профиль", "Гардероб"]
                 delegate: Item { required property string modelData; required property int index; width: tabText.width; height: 32
                     Text { id: tabText; text: modelData; font.pixelSize: 14; color: index===0?Theme.ink:Theme.muted }
                     Rectangle { visible: index===0; y: 26; width: parent.width; height: 2; radius: 1; color: window.accent }
@@ -100,66 +103,82 @@ Window {
                     }
                 }
             }
-            Item {
-                id: content; x: landscape.width+26; width: parent.width-x; height: parent.height
-                Text { text: "ERI"; y: -5; font.family: Theme.displayFamily; font.pixelSize: page.short?38:46; color: Theme.ink }
-                Text { x: parent.width-22; y: 7; text: "✎"; font.pixelSize: 21; color: Theme.muted }
-                Text { y: page.short?43:52; text: "Исследователь миров"; font.pixelSize: 15; color: window.accent }
-                Text { y: page.short?68:80; width: parent.width; text: "Ещё одна игра. Ещё одна история."; font.pixelSize: 12; color: Theme.muted; wrapMode: Text.WordWrap }
-                Row {
-                    id: counters; y: page.short?99:117; width: parent.width; spacing: 21
-                    Repeater { model: [{value:"24",name:"игры"},{value:"137 ч",name:"в игре"},{value:"86",name:"достижений"}]
-                        delegate: Item { required property var modelData; width: (counters.width-42)/3; height: 49
-                            Text { text: modelData.value; font.family: Theme.displayFamily; font.pixelSize: 24; color: Theme.ink }
-                            Text { y: 30; width: parent.width; text: modelData.name; font.pixelSize: 10; color: Theme.muted; elide: Text.ElideRight }
-                        }
-                    }
-                }
-                Rectangle { y: counters.y+54; width: parent.width; height: 1; color: Theme.divider }
-                Text { id: shelfTitle; y: counters.y+66; text: "Моя витрина"; font.pixelSize: 13; color: Theme.ink }
-                Text { anchors.right: parent.right; y: shelfTitle.y; text: "Настроить  ›"; font.pixelSize: 11; color: Theme.muted }
-                Row {
-                    id: trophies; y: shelfTitle.y+24; width: parent.width; spacing: 12
-                    Repeater { model: window.awards
-                        delegate: Item { required property var modelData; width: (trophies.width-24)/3; height: page.short?39:54
-                            Rectangle { width: 29; height: 29; radius: 9; rotation: 7; color: Theme.dark?Qt.darker(modelData.color,1.8):Qt.lighter(modelData.color,1.25) }
-                            MenuGlyph { x: 6; y: 6; width: 17; height: 17; glyph: modelData.glyph; ink: Theme.dark?Qt.lighter(modelData.color,1.5):Qt.darker(modelData.color,1.5) }
-                            Text { x: 37; y: 0; width: parent.width-x; height: 35; text: modelData.name; font.pixelSize: 11; wrapMode: Text.WordWrap; color: Theme.ink; maximumLineCount: 2; elide: Text.ElideRight }
-                        }
-                    }
+            Column {
+                id: content; x: landscape.width+24; width: parent.width-x; height: parent.height
+                spacing: page.short?6:9
+                Item {
+                    width: parent.width; height: page.short?48:62
+                    Text { text: "ERI"; y: -6; font.family: Theme.displayFamily; font.pixelSize: page.short?31:39; color: Theme.ink }
+                    Text { anchors.right: parent.right; y: 2; text: "✎"; font.pixelSize: 20; color: Theme.muted }
+                    Text { y: page.short?29:40; text: "Исследователь миров"; font.pixelSize: page.short?12:14; color: window.accent }
                 }
                 Item {
-                    id: favorites; x: 0; y: trophies.y+trophies.childrenRect.height+9; width: parent.width; height: parent.height-y
-                    Text { text: "Любимые игры"; font.pixelSize: 13; color: Theme.ink }
-                    Row { id: gameRow; y: 23; width: parent.width; spacing: 11
-                        Repeater { model: window.games
-                            delegate: Item { required property var modelData; width: (gameRow.width-22)/3; height: art.height+23
-                                Rectangle { id: art; width: parent.width; height: Math.min(66,Math.max(39,favorites.height-45)); radius: 7; color: Theme.surface; clip: true
-                                    Image { anchors.fill: parent; source: PreviewConfig.assets+"/crates/projects/"+modelData.file; fillMode: Image.PreserveAspectFit; sourceSize: Qt.size(280,150) }
-                                }
-                                Text { y: art.height+5; width: parent.width; text: modelData.name; font.pixelSize: 10; color: Theme.muted; elide: Text.ElideRight }
+                    id: account; width: parent.width; height: page.short?84:100
+                    readonly property real levelWidth: width*.42
+                    Rectangle { x: 0; y: 5; width: 36; height: 36; radius: 12; color: Theme.dark?"#293f3d":"#e1ecd9"
+                        Text { anchors.centerIn: parent; text: window.accountKnown?"12":"—"; font.pixelSize: 22; font.family: Theme.displayFamily; color: window.accent }
+                    }
+                    Text { x: 46; y: 2; text: "Уровень аккаунта"; font.pixelSize: 12; color: Theme.ink }
+                    Text { x: 46; y: 22; text: "Trainer Mastery"; font.pixelSize: 10; color: Theme.muted }
+                    Rectangle { y: 50; width: account.levelWidth-22; height: 4; radius: 2; color: Theme.divider
+                        Rectangle { width: parent.width*.62; height: parent.height; radius: 2; color: window.accent; visible: window.accountKnown }
+                    }
+                    Text { y: 62; width: account.levelWidth-16; text: window.accountKnown?"Прогресс к уровню 13":window.accountState===3?"Войдите в аккаунт":"Данные недоступны"; font.pixelSize: 10; color: Theme.muted; elide: Text.ElideRight }
+                    Rectangle { x: account.levelWidth; y: 0; width: 1; height: account.height-8; color: Theme.divider }
+                    Item {
+                        x: account.levelWidth+18; width: parent.width-x; height: parent.height
+                        Rectangle { width: 24; height: 24; radius: 12; y: 5; color: Theme.dark?"#b89245":"#e9bf63"; border.width: 1; border.color: Theme.dark?"#ead193":"#b9923c"
+                            Rectangle { anchors.centerIn: parent; width: 14; height: 14; radius: 7; color: "transparent"; border.color: Theme.dark?"#ead193":"#b9923c" }
+                        }
+                        Text { x: 33; y: -1; text: window.accountKnown?"1 250":"—"; font.family: Theme.displayFamily; font.pixelSize: 27; color: Theme.ink }
+                        Text { anchors.right: parent.right; y: 10; text: "Coins"; font.pixelSize: 12; color: Theme.muted }
+                        Text { y: 35; text: window.accountFresh?"При поддержке ×3  →  4 250":window.accountState===2?"Последний известный баланс":window.accountState===3?"Войдите через Fluxer":"Баланс пока недоступен"; font.pixelSize: 11; color: window.accountFresh?window.accent:Theme.muted }
+                        Text { y: 54; width: parent.width; text: window.accountFresh?"+3 000 за прошлые награды":window.accountState===2?"Доплата: нужен свежий расчёт":"Доплата: нет подтверждённого расчёта"; font.pixelSize: 10; color: Theme.muted; wrapMode: Text.WordWrap }
+                        Text { y: 74; visible: !page.short; text: window.accountFresh?"Пример уровня поддержки · Подробнее ›":window.accountState===2?"Офлайн · данные из кеша":"История и локальный профиль доступны"; font.pixelSize: 9; color: Theme.muted }
+                    }
+                }
+                Rectangle { width: parent.width; height: 1; color: Theme.divider }
+                Item {
+                    id: recentAwards; width: parent.width; height: page.short?76:90
+                    Text { text: "RetroAchievements"; font.pixelSize: 14; color: Theme.ink }
+                    Text { anchors.right: parent.right; y: 2; text: "Все достижения  ›"; font.pixelSize: 11; color: window.accent }
+                    Row { y: 27; width: parent.width; spacing: 12
+                        Repeater { model: [ {name:"Первое открытие",when:"Сегодня · 18:42",glyph:"sun",tint:"#dca86b"}, {name:"Без единой ошибки",when:"Вчера · 21:08",glyph:"game-controller",tint:"#80aea0"} ]
+                            delegate: Item { required property var modelData; width: (recentAwards.width-12)/2; height: 43
+                                Rectangle { width: 36; height: 36; radius: 10; rotation: 5; color: Theme.dark?Qt.darker(modelData.tint,1.8):Qt.lighter(modelData.tint,1.25) }
+                                MenuGlyph { x: 8; y: 8; width: 20; height: 20; glyph: modelData.glyph; ink: Theme.dark?Qt.lighter(modelData.tint,1.5):Qt.darker(modelData.tint,1.5) }
+                                Text { x: 45; width: parent.width-x; text: modelData.name; font.pixelSize: 11; color: Theme.ink; elide: Text.ElideRight }
+                                Text { x: 45; y: 20; text: modelData.when; font.pixelSize: 10; color: Theme.muted }
                             }
                         }
                     }
                 }
+                Item {
+                    id: journey; width: parent.width; height: content.height-y
+                    Text { text: "Игровой путь"; font.pixelSize: 14; color: Theme.ink }
+                    Text { anchors.right: parent.right; y: 2; text: "Вся история  ›"; font.pixelSize: 11; color: window.accent }
+                    Image { id: memory; y: 27; width: page.short?72:90; height: page.short?40:50; source: PreviewConfig.assets+"/crates/projects/pocket-golf.png"; fillMode: Image.PreserveAspectCrop; sourceSize: Qt.size(240,140) }
+                    Text { x: memory.width+12; y: 27; text: "Вечер на поле"; font.pixelSize: 12; color: Theme.ink }
+                    Text { x: memory.width+12; y: 46; text: "Pocket Golf · сегодня · 42 мин"; font.pixelSize: 10; color: Theme.muted }
+                    Text { y: memory.y+memory.height+8; text: "24 игры  ·  137 ч в игре  ·  Снимки  ›"; font.pixelSize: 10; color: Theme.muted }
+                }
             }
         }
-        Text { x: 29; y: parent.height-27; text: "← →  Поворот        1 / 2  Вариант        T  Тема"; font.pixelSize: 10; color: Theme.muted }
-        Text { anchors.right: parent.right; anchors.rightMargin: 29; y: parent.height-27; text: window.scene?"B · Сцена с персонажем":"A · Карточка Trainer"; font.pixelSize: 10; color: Theme.muted }
+        Text { x: 29; y: parent.height-27; text: "← →  Поворот      T  Тема      D  Данные"; font.pixelSize: 10; color: Theme.muted }
+        Text { anchors.right: parent.right; anchors.rightMargin: 29; y: parent.height-27; text: "A · Макет · демонстрационные данные"; font.pixelSize: 10; color: Theme.muted }
     }
     property int stage: 0
     property int ticks: 0
     readonly property var shots: [
-        {name:"card-light",scene:false,dark:false,w:1280,h:720},
-        {name:"scene-light",scene:true,dark:false,w:1280,h:720},
-        {name:"card-dark",scene:false,dark:true,w:1280,h:720},
-        {name:"scene-dark",scene:true,dark:true,w:1280,h:720},
-        {name:"card-compact",scene:false,dark:false,w:800,h:450},
-        {name:"scene-compact",scene:true,dark:false,w:800,h:450},
-        {name:"card-16x10",scene:false,dark:false,w:1280,h:800},
-        {name:"scene-16x10",scene:true,dark:false,w:1280,h:800}]
+        {name:"profile-a-light",state:0,dark:false,w:1280,h:720},
+        {name:"profile-a-dark",state:0,dark:true,w:1280,h:720},
+        {name:"profile-a-compact",state:0,dark:false,w:800,h:450},
+        {name:"profile-a-16x10",state:0,dark:false,w:1280,h:800},
+        {name:"profile-a-unavailable",state:1,dark:false,w:1280,h:720},
+        {name:"profile-a-offline",state:2,dark:true,w:1280,h:720},
+        {name:"profile-a-signed-out",state:3,dark:false,w:800,h:450}]
     function configure() {
-        const s=shots[stage];scene=s.scene;Theme.themeId=s.dark?"dark":"light";width=s.w;height=s.h
+        const s=shots[stage];accountState=s.state;Theme.themeId=s.dark?"dark":"light";width=s.w;height=s.h
     }
     Component.onCompleted: { configure(); showNormal() }
     Timer {

@@ -83,7 +83,7 @@ TrainerOS is a **controller-first native Linux shell / operating environment** w
 
 **Exactly five shell primaries:** `Home | Games | GameHub | Online | Apps` (L1/R1).
 
-- **Owner correction, 26 October (TARGET, not yet migrated):** profile through the header avatar owns Profile / Player Journey (My Story, Timeline, Gallery) / RetroAchievements / Wardrobe. Profile comes before Bazaar implementation; see [the profile/Online contract](docs/PLAYER_PROFILE.md).
+- **Owner correction, 26 October (TARGET, not yet migrated):** profile through the header avatar uses selected composition A, with Profile / Wardrobe tabs. Recent achievements and Player Journey are information blocks with links to full RA/history/screens, NOT extra tabs. Show account Mastery/Level and Coins, including the valid server-backed potential balance/support top-up required by #262. Profile comes before Bazaar implementation; see [the profile/Online contract](docs/PLAYER_PROFILE.md).
 - **Games:** collections + platforms. **GameHub:** game spaces and the selected game's Adapter.
 - **Online replaces Social:** Lobby / Bazaar / Crates / Chats. Chats retain people, groups, communities, discovery and voice through the existing provider. Preserve independent lifecycles and route/focus return; do not build replacement services.
 - **Apps:** Apps / Browser / Files. Installed applications remain here; the Crates catalogue moves to Online. Ordinary Linux apps remain ordinary apps; Crates is a curated opt-in source, not a second package manager.
