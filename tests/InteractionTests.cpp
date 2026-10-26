@@ -213,14 +213,28 @@ private slots:
         shell.dispatch(Action::SystemMenu);QVERIFY(shell.menuOpen());QVERIFY(!shell.homeMenuOpen());
         shell.dispatch(Action::Back);QVERIFY(!shell.menuOpen());QVERIFY(shell.homeMenuOpen());
         QCOMPARE(shell.page(),2);QCOMPARE(shell.overviewFace(),"timeline");
-        int profile=-1,live=-1;for(int i=0;i<options.size();++i){if(options[i].toMap()["id"]=="profile")profile=i;if(options[i].toMap()["id"]=="live-return")live=i;}
-        QVERIFY(profile>=0 && live>=0);shell.activateHomeMenu(live);QCOMPARE(returns.size(),1);QCOMPARE(shell.currentAdventureId(),pokemon);
-        shell.activateHomeMenu(profile);QCOMPARE(shell.service(),"profile");shell.dispatch(Action::Confirm);
+        int live=-1;for(int i=0;i<options.size();++i)if(options[i].toMap()["id"]=="live-return")live=i;
+        QVERIFY(live>=0);shell.activateHomeMenu(live);QCOMPARE(returns.size(),1);QCOMPARE(shell.currentAdventureId(),pokemon);
+        shell.openProfile();QCOMPARE(shell.service(),"profile");shell.dispatch(Action::Confirm);
         QCOMPARE(shell.trainer()->editRows().size(),4);QVERIFY(shell.trainer()->editing());
         for(const auto& row:shell.trainer()->editRows())QVERIFY(row.toMap()["title"]!="Favorite");
-        shell.dispatch(Action::Back);shell.dispatch(Action::Back);QVERIFY(shell.homeMenuOpen());shell.dispatch(Action::Back);
+        shell.dispatch(Action::Back);shell.dispatch(Action::Back);QVERIFY(!shell.serviceOpen());QVERIFY(!shell.homeMenuOpen());
         state=shell.navigationState();state["homeAdventure"]=pokemon;state["page"]="companions";shell.restoreNavigation(state);
         QCOMPARE(shell.homeView(),"pokemon-home");QCOMPARE(pokemonModule(shell).face(),"boxes");QCOMPARE(shell.liveGame()["id"].toString(),pokemon);
+    }
+    void profileDismissalReturnsToOriginAcrossPrimaryTabs() {
+        MockLibraryRepository library;MockTrainerRepository profiles;MockAdventureAdapter adapter;
+        DevelopmentPlatformService platform;MockPokedexRepository dex;MockHallOfFameRepository archive;MockAchievementProvider achievements;
+        ShellController shell(library,profiles,adapter,platform,builtinExperiences(dex,dex),archive,achievements);
+        for(int page=0;page<shell.primaryNames().size();++page) {
+            shell.goToPage(page);const auto origin=shell.navigationState();
+            shell.openProfile();QCOMPARE(shell.service(),"profile");
+            shell.dispatch(Action::Confirm);QVERIFY(shell.trainer()->editing());
+            shell.trainer()->setDraftName("Discarded navigation draft");
+            shell.dispatch(Action::Back);QVERIFY(!shell.trainer()->editing());QCOMPARE(shell.service(),"profile");
+            shell.dispatch(Action::Back);QVERIFY(!shell.serviceOpen());QVERIFY(!shell.homeMenuOpen());
+            QCOMPARE(shell.navigationState(),origin);
+        }
     }
     void backgroundScrapingLeavesTouchControllerAndSettingsUsable() {
         class Library final : public LibraryRepository {
@@ -248,15 +262,15 @@ private slots:
         flow->setTransport([&](const QUrl&,qint64,const scraper::Cancellation& cancel){
             started=true;while(!cancel->load())QThread::msleep(5);return scraper::Reply{503,{},0};
         });
-        flow->begin();flow->activate(1);QTRY_VERIFY(started.load());QVERIFY(shell.downloads()->isOpen());
-        shell.dispatch(Action::Back);QVERIFY(!shell.downloads()->isOpen());
+        flow->begin();flow->activate(1);QTRY_VERIFY(started.load());QVERIFY(flow->isOpen());QVERIFY(!shell.downloads()->isOpen());
+        shell.dispatch(Action::Back);QVERIFY(!flow->isOpen());
         shell.goToPage(0);shell.dispatch(Action::NextPage);QCOMPARE(shell.page(),1);
         shell.goToPage(4);QCOMPARE(shell.page(),4);shell.dispatch(Action::PreviousPage);QCOMPARE(shell.page(),3);
-        shell.dispatch(Action::SystemMenu);shell.activate(0);QCOMPARE(shell.service(),"settings");
+        shell.dispatch(Action::SystemMenu);shell.controls()->activate("settings");QCOMPARE(shell.service(),"settings");
         shell.activate(0);QVERIFY(shell.settings()->controlsFocused());
         const auto original=shell.settings()->reducedMotion();shell.activate(1);QCOMPARE(shell.settings()->reducedMotion(),!original);
         shell.dispatch(Action::Confirm);QCOMPARE(shell.settings()->reducedMotion(),original);
-        shell.dispatch(Action::SystemMenu);shell.activate(12);QVERIFY(shell.downloads()->isOpen());
+        shell.dispatch(Action::SystemMenu);shell.controls()->activate("downloads");QVERIFY(shell.downloads()->isOpen());
         shell.dispatch(Action::Back);QVERIFY(flow->busy());
         QVERIFY(!shell.libraryTools()->editGuard().isEmpty());QVERIFY(shell.runtimeChangeBlocked());
         shell.libraryTools()->beginGame("fixture");shell.libraryTools()->activate(2);shell.libraryTools()->activate(1);
@@ -269,12 +283,13 @@ private slots:
         MockLibraryRepository library;MockTrainerRepository profiles;MockAdventureAdapter adapter;
         DevelopmentPlatformService platform;MockPokedexRepository dex;MockHallOfFameRepository archive;MockAchievementProvider achievements;
         ShellController shell(library,profiles,adapter,platform,builtinExperiences(dex,dex),archive,achievements);
-        shell.goToPage(1);shell.dispatch(Action::SystemMenu);shell.dispatch(Action::Secondary);
-        QCOMPARE(shell.focusIndex(),7);shell.dispatch(Action::Down);shell.dispatch(Action::Down);
-        QCOMPARE(shell.focusIndex(),12);shell.dispatch(Action::Confirm);
-        QVERIFY(shell.downloads()->isOpen());QVERIFY(!shell.menuOpen());
-        shell.dispatch(Action::Back);QVERIFY(!shell.downloads()->isOpen());QCOMPARE(shell.page(),1);
-        shell.dispatch(Action::SystemMenu);shell.activate(12);QVERIFY(shell.downloads()->isOpen());
+        shell.goToPage(1);shell.dispatch(Action::SystemMenu);
+        shell.controls()->select("downloads");const auto dashboardPage=shell.controls()->page();
+        shell.dispatch(Action::Confirm);QVERIFY(shell.downloads()->isOpen());
+        shell.dispatch(Action::Back);QVERIFY(!shell.downloads()->isOpen());QCOMPARE(shell.page(),1);QVERIFY(shell.menuOpen());
+        QCOMPARE(shell.controls()->selected(),"downloads");QCOMPARE(shell.controls()->page(),dashboardPage);
+        shell.dispatch(Action::Back);QVERIFY(!shell.menuOpen());
+        shell.dispatch(Action::SystemMenu);shell.controls()->activate("downloads");QVERIFY(shell.downloads()->isOpen());
     }
     void messageKeyboardSendsOnceAndKeepsEmojiWhole() {
         TextEntryController keyboard;keyboard.setLayout("pc");QSignalSpy accepted(&keyboard,&TextEntryController::accepted);
@@ -503,19 +518,23 @@ private slots:
         auto legacy=state;legacy["version"]=2;legacy["page"]="companions";legacy.remove("experienceNavigation");legacy.remove("pokemonFace");legacy.remove("party");legacy["pokedexFace"]="center";
         shell.restoreNavigation(legacy);QCOMPARE(pokemonModule(shell).face(),"party");
     }
-    void quickGameInformationPickerReturnsToStartWithoutChangingPage() {
+    void scrapingOverviewReturnsToItsStartWidgetWithoutChangingPage() {
         MockLibraryRepository library;MockTrainerRepository profiles;MockAdventureAdapter adapter;
         DevelopmentPlatformService platform;MockPokedexRepository dex;MockHallOfFameRepository archive;MockAchievementProvider achievements;
         ShellController shell(library,profiles,adapter,platform,builtinExperiences(dex,dex),archive,achievements);
-        shell.goToPage(4);shell.dispatch(Action::SystemMenu);shell.activate(13);
-        QVERIFY(!shell.menuOpen());QVERIFY(shell.scraper()->isOpen());QVERIFY(shell.scraper()->selectingSystems());
-        shell.dispatch(Action::Back);QVERIFY(shell.menuOpen());QCOMPARE(shell.focusIndex(),13);QCOMPARE(shell.page(),4);
-        shell.dispatch(Action::Left);QCOMPARE(shell.focusIndex(),12);
-        shell.dispatch(Action::Right);QCOMPARE(shell.focusIndex(),13);
-        shell.dispatch(Action::Down);QCOMPARE(shell.focusIndex(),0);
-        shell.dispatch(Action::Up);QCOMPARE(shell.focusIndex(),12);
-        shell.dispatch(Action::Right);shell.dispatch(Action::Confirm);QVERIFY(shell.scraper()->isOpen());
-        shell.dispatch(Action::SystemMenu);QVERIFY(shell.menuOpen());QVERIFY(!shell.scraper()->isOpen());QCOMPARE(shell.focusIndex(),13);
+        shell.goToPage(4);shell.dispatch(Action::SystemMenu);
+        for(int i=0;i<shell.controls()->pages();++i) {
+            shell.controls()->select("scraper");
+            if(shell.controls()->selected()=="scraper")break;
+            shell.dispatch(Action::NextPage);
+        }
+        QCOMPARE(shell.controls()->selected(),"scraper");const auto dashboardPage=shell.controls()->page();
+        shell.dispatch(Action::Confirm);QVERIFY(shell.scraper()->isOpen());QVERIFY(!shell.scraper()->selectingSystems());
+        shell.dispatch(Action::Back);QVERIFY(!shell.scraper()->isOpen());QVERIFY(shell.menuOpen());QCOMPARE(shell.page(),4);
+        QCOMPARE(shell.controls()->selected(),"scraper");QCOMPARE(shell.controls()->page(),dashboardPage);
+        shell.dispatch(Action::Confirm);QVERIFY(shell.scraper()->isOpen());
+        shell.dispatch(Action::SystemMenu);QVERIFY(shell.menuOpen());QVERIFY(!shell.scraper()->isOpen());
+        QCOMPARE(shell.controls()->selected(),"scraper");QCOMPARE(shell.controls()->page(),dashboardPage);
     }
     void legacyHistoryRoutesMigrateWithoutBecomingSocial() {
         MockLibraryRepository library;MockTrainerRepository profiles;MockAdventureAdapter adapter;
@@ -843,7 +862,7 @@ private slots:
         room.setParty({},"missing",{});const auto count=reactions.count();
         room.dispatch(Action::LocalAction);QCOMPARE(reactions.count(),count);
     }
-    void worldsPrimaryReentryReturnsToBrowserRoot() {
+    void gamesPrimaryReentryPreservesBrowserRouteAndSelection() {
         MockLibraryRepository library;MockTrainerRepository profiles;MockAdventureAdapter adapter;DevelopmentPlatformService platform;
         MockPokedexRepository dex;MockHallOfFameRepository archive;MockAchievementProvider achievements;
         ShellController shell(library,profiles,adapter,platform,builtinExperiences(dex,dex),archive,achievements);
@@ -853,7 +872,8 @@ private slots:
         shell.dispatch(Action::SystemMenu);shell.dispatch(Action::Back);QCOMPARE(shell.multiverse()->detail()["id"],id);
         shell.goToPage(1);QCOMPARE(shell.multiverse()->detail()["id"],id);
         const auto checkpoint=shell.navigationState();
-        shell.dispatch(Action::NextPage);shell.dispatch(Action::PreviousPage);QVERIFY(shell.collectionsRoot());
+        shell.dispatch(Action::NextPage);shell.dispatch(Action::PreviousPage);QVERIFY(!shell.collectionsRoot());
+        QCOMPARE(shell.multiverse()->route(),"games");QCOMPARE(shell.multiverse()->detail()["id"],id);
         shell.restoreNavigation(checkpoint);QVERIFY(!shell.collectionsRoot());QCOMPARE(shell.multiverse()->detail()["id"],id);
         shell.libraryAction("search");QVERIFY(shell.keyboard()->isOpen());
         const auto collection=shell.multiverse()->collection();shell.dispatch(Action::NextFace);QCOMPARE(shell.multiverse()->collection(),collection);
@@ -907,7 +927,8 @@ private slots:
         for(int i=0;i<2;++i){auto r=pokemon;r.adventure.id="multi"+QString::number(i);r.adventure.title="General "+QString::number(i);r.adventure.domain="multiverse";r.adventure.worldId.clear();r.adventure.platformId=i?"snes":"gba";r.contentPath=i?dir.filePath("missing.sfc"):path;r.contentAvailable=!i;library.records.append(r);}
         MockTrainerRepository profiles;DevelopmentPlatformService platform;MockPokedexRepository dex;MockHallOfFameRepository archive;MockAchievementProvider achievements;
         ShellController shell(library,profiles,adapter,platform,builtinExperiences(dex,dex),archive,achievements);
-        QCOMPARE(shell.multiverse()->systems().size(),1);shell.goToPage(1);
+        QCOMPARE(shell.multiverse()->systems().size(),2); // Installed GBA content plus the PC import entry.
+        shell.goToPage(1);
         for(int i=0;i<shell.collections().size();++i)if(shell.collections()[i].toMap()["id"]=="multiverse"){shell.activate(i);break;}
         shell.dispatch(Action::Confirm);
         const auto info=shell.multiverse()->detail();
@@ -921,14 +942,17 @@ private slots:
             shell.multiverse()->dispatch(Action::Down);shell.multiverse()->games();shell.multiverse()->choices();
         }
         QCOMPARE(library.mediaReads,reads);QCOMPARE(modelReset.size(),0);
-        shell.multiverse()->applySearch("absent");QVERIFY(shell.multiverse()->games().isEmpty());QCOMPARE(shell.multiverse()->systems().size(),1);
+        shell.multiverse()->applySearch("absent");QVERIFY(shell.multiverse()->games().isEmpty());QCOMPARE(shell.multiverse()->systems().size(),2);
         shell.dispatch(Action::Confirm);shell.dispatch(Action::Confirm);
         QCOMPARE(shell.page(),1);QCOMPARE(adapter.launched,"multi0");QCOMPARE(shell.currentAdventureId(),"multi0");
         shell.goToPage(0);shell.dispatch(Action::ToggleContinue);shell.activate(0);
         const auto state=shell.navigationState();shell.dispatch(Action::Confirm);QCOMPARE(adapter.launched,"multi0");
         ShellController restored(library,profiles,adapter,platform,builtinExperiences(dex,dex),archive,achievements);restored.restoreNavigation(state);
         QVERIFY(restored.multiverseHome());QCOMPARE(restored.homeGame()["id"],"multi0");QCOMPARE(restored.currentAdventureId(),"multi0");
-        QVERIFY(QFile::remove(path));library.records[0].contentAvailable=false;library.records[1].contentAvailable=false;restored.refreshLibrary();QVERIFY(restored.multiverse()->systems().isEmpty());
+        QVERIFY(QFile::remove(path));library.records[0].contentAvailable=false;library.records[1].contentAvailable=false;restored.refreshLibrary();
+        QCOMPARE(restored.multiverse()->systems().size(),1);
+        QCOMPARE(restored.multiverse()->systems().first().toMap()["id"].toString(),"pc");
+        QCOMPARE(restored.multiverse()->systems().first().toMap()["count"].toInt(),0);
         QCOMPARE(restored.homeGame()["id"],"multi0");QVERIFY(!restored.homeGame()["linked"].toBool());
         restored.restoreNavigation(QJsonObject{{"version",1}});QVERIFY(restored.multiverseHome());QCOMPARE(restored.currentAdventureId(),"multi0");
     }
@@ -965,18 +989,21 @@ private slots:
         QVERIFY(!shell.multiverse()->sample());
         shell.dispatch(Action::NextFace);QVERIFY(shell.multiverseHome());QVERIFY(shell.faceNames().isEmpty());
         shell.dispatch(Action::ToggleContinue);QVERIFY(shell.resumePoints().isEmpty());
-        shell.dispatch(Action::Confirm);QVERIFY(!shell.drawerOpen());
+        shell.dispatch(Action::Confirm);QVERIFY(shell.drawerOpen());QCOMPARE(shell.page(),0);
+        shell.dispatch(Action::Back);QVERIFY(!shell.drawerOpen());
+        shell.dispatch(Action::Back); // Home returns focus from its social block to Play.
         shell.dispatch(Action::Confirm);QCOMPARE(shell.page(),1);QVERIFY(shell.collectionsRoot());
         shell.dispatch(Action::Confirm);QVERIFY(shell.multiverse()->games().isEmpty());
         shell.dispatch(Action::Home);
-        shell.dispatch(Action::SystemMenu); shell.activate(0); shell.activate(4);
+        shell.dispatch(Action::SystemMenu);shell.controls()->activate("settings");shell.settings()->selectPage("trainer",true);
         shell.activate(2); QCOMPARE(shell.service(),"settings"); QVERIFY(!shell.notice().isEmpty());
         shell.dispatch(Action::Back); shell.activate(1); QVERIFY(shell.hall()->account()->isOpen());
         shell.dispatch(Action::Back); QVERIFY(!shell.hall()->account()->isOpen());
         QCOMPARE(shell.service(),"settings"); QCOMPARE(shell.focusIndex(),1);
-        shell.dispatch(Action::Back); QCOMPARE(shell.service(),"settings"); QCOMPARE(shell.settings()->category(),4); QCOMPARE(shell.focusIndex(),4);
+        shell.dispatch(Action::Back);QCOMPARE(shell.service(),"settings");QCOMPARE(shell.settings()->categoryId(),"trainer");
+        QVERIFY(!shell.settings()->controlsFocused());QCOMPARE(shell.focusIndex(),shell.settings()->sectionIndex());
         // Editing stays inside Settings, with vertical Save / Cancel navigation.
-        shell.activate(4); shell.activate(0);
+        shell.settings()->selectPage("trainer",true);shell.activate(0);
         QVERIFY(shell.trainer()->editing()); QCOMPARE(shell.service(), "settings");
         const auto before = shell.trainer()->profile();
         shell.trainer()->setDraftName("Discard this draft");
@@ -986,7 +1013,7 @@ private slots:
         QCOMPARE(shell.settings()->rowFocus(),0);
         shell.dispatch(Action::Back);
         achievements.setAccount({});
-        shell.activate(4); shell.activate(1); shell.activate(0); QVERIFY(shell.keyboard()->isOpen());
+        shell.settings()->selectPage("trainer",true);shell.activate(1);shell.activate(0);QVERIFY(shell.keyboard()->isOpen());
         shell.dispatch(Action::NextPage); QVERIFY(!shell.keyboard()->isOpen());
         QVERIFY(!shell.hall()->account()->isOpen()); QVERIFY(!shell.serviceOpen());
     }
@@ -996,7 +1023,7 @@ private slots:
         MockPokedexRepository dex; MockHallOfFameRepository archive; MockAchievementProvider achievements;
         ShellController shell(library,profiles,adapter,platform,builtinExperiences(dex,dex),archive,achievements);
         const auto original = shell.trainer()->profile();
-        shell.dispatch(Action::SystemMenu); shell.activate(0); shell.activate(4);
+        shell.dispatch(Action::SystemMenu);shell.controls()->activate("settings");shell.settings()->selectPage("trainer",true);
         QCOMPARE(shell.service(), "settings"); shell.activate(2);
         QCOMPARE(shell.service(), "trainer-setup");
         auto* flow = shell.trainerSetup();
@@ -1240,12 +1267,12 @@ private slots:
         shell.dispatch(Action::Confirm);
         QCOMPARE(requested.size(), 1);
         QCOMPARE(requested.first().first().toString(), "steam");
-        shell.activate(6);
+        shell.controls()->activate("power");
         QVERIFY(shell.powerMenu()); QVERIFY(!shell.modeConfirmation());
-        QCOMPARE(shell.focusIndex(), 2); // Fresh Power menu defaults to Cancel.
-        shell.dispatch(Action::Confirm);
+        QCOMPARE(shell.menuItems().value(shell.focusIndex()),"Sleep");
+        shell.activate(shell.menuItems().indexOf("Cancel"));
         QVERIFY(!shell.powerMenu()); QCOMPARE(requested.size(), 1);
-        shell.activate(4); // Maintenance remains explicit, never a Power default.
+        shell.dispatch(Action::SystemMenu);shell.controls()->activate("switch");shell.controls()->activate("desktop");
         QVERIFY(shell.modeConfirmation()); shell.dispatch(Action::Confirm);
         QCOMPARE(requested.last().first().toString(), "desktop");
         QVERIFY(exited.isEmpty());
@@ -1432,8 +1459,8 @@ private slots:
         auto* keyboard = shell.keyboard();
         keyboard->activate(keyIndex(*keyboard, "E"));
         shell.dispatch(Action::SystemMenu);
-        for (int i = 0; i < 4; ++i) shell.dispatch(Action::Down);
-        shell.dispatch(Action::Confirm); // Unavailable Desktop mode overlays the keyboard; Center is now usable.
+        shell.controls()->activate("switch");shell.controls()->activate("desktop");
+        QVERIFY(!shell.notice().isEmpty()); // Unavailable Desktop mode overlays the keyboard.
         shell.dispatch(Action::Back); // Notice -> menu.
         QVERIFY(shell.menuOpen());
         shell.dispatch(Action::Back); // Menu -> keyboard.

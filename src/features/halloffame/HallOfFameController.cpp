@@ -509,11 +509,13 @@ QJsonObject HallOfFameController::navigationState() const {
 }
 void HallOfFameController::restoreNavigation(const QJsonObject& state) {
     gameBrowser_=state["gameBrowser"].toBool();
-    galleryMode_ = galleryMode_ || state["gallery"].toBool();
-    if (state["gallery"].toBool()) {
-        galleryContext_ = {state["galleryProvider"].toString(), state["galleryAccount"].toString()};
-        preferCurrent_ = false; // The saved set is still validated against the current game's identity below.
-    }
+    // A restored route replaces the previous gallery context, including leaving
+    // the gallery. Otherwise visiting RA changes later adapter/history restores.
+    galleryMode_ = state["gallery"].toBool();
+    galleryContext_ = galleryMode_
+        ? AchievementContext{state["galleryProvider"].toString(), state["galleryAccount"].toString()}
+        : AchievementContext{};
+    preferCurrent_ = false; // Reconcile still validates saved IDs and account identity.
     galleryFilter_ = std::clamp(state["galleryFilter"].toInt(), 0, 3);
     gallerySort_ = std::clamp(state["gallerySort"].toInt(), 0, 2);
     galleryMenuOpen_ = false;

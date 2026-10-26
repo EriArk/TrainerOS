@@ -56,12 +56,9 @@ private slots:
         shell.dispatch(Action::Right);
         QCOMPARE(shell.focusIndex(), 1);
         shell.dispatch(Action::SystemMenu);
-        shell.dispatch(Action::ToggleContinue);
-        QVERIFY(shell.drawerOpen());
-        QVERIFY(shell.menuItems()[3].isEmpty()); // No global manual-registration entry.
-        for (int i = 0; i < 2; ++i) shell.dispatch(Action::Down);
-        QCOMPARE(shell.focusIndex(),4); // Skip retired actions; Desktop remains an informational notice here.
-        shell.dispatch(Action::Confirm);
+        QVERIFY(shell.menuOpen());QVERIFY(shell.drawerOpen());
+        shell.controls()->activate("switch");
+        shell.controls()->activate("desktop");
         QVERIFY(!shell.notice().isEmpty());
         shell.dispatch(Action::Back);
         QVERIFY(shell.menuOpen());
@@ -79,12 +76,14 @@ private slots:
         QCOMPARE(shell.focusIndex(), 1);
         shell.dispatch(Action::NextPage);
         shell.dispatch(Action::PreviousPage);
-        QVERIFY(shell.collectionsRoot());shell.dispatch(Action::Confirm);
+        QVERIFY(!shell.collectionsRoot());
         QCOMPARE(shell.focusIndex(), 1);
         shell.dispatch(Action::SystemMenu);
+        const auto controlsPage=shell.controls()->page();
         shell.dispatch(Action::NextPage);
-        QVERIFY(!shell.menuOpen());
-        QCOMPARE(shell.page(), 2);
+        QVERIFY(shell.menuOpen());QCOMPARE(shell.page(),1);
+        QCOMPARE(shell.controls()->page(),qMin(controlsPage+1,shell.controls()->pages()-1));
+        shell.dispatch(Action::Back);QVERIFY(!shell.menuOpen());
         shell.goToPage(3);
         shell.dispatch(Action::NextPage);
         QCOMPARE(shell.page(), 4);
@@ -97,20 +96,19 @@ private slots:
         shell.dispatch(Action::NextPage); QCOMPARE(shell.navigationState(), origin);
         shell.dispatch(Action::Home); QVERIFY(!shell.homeMenuOpen());
         QCOMPARE(shell.navigationState(), origin);
-        shell.dispatch(Action::Home);shell.activateHomeMenu(3);
+        shell.dispatch(Action::Home);shell.dispatch(Action::Right);
         QVERIFY(shell.notificationsOpen());
         shell.dispatch(Action::Confirm);QCOMPARE(shell.navigationState(),origin);
         shell.dispatch(Action::NextPage);QCOMPARE(shell.navigationState(),origin);
         shell.dispatch(Action::Back);QVERIFY(!shell.notificationsOpen());QVERIFY(shell.homeMenuOpen());
         shell.dispatch(Action::Home);QVERIFY(!shell.homeMenuOpen());
-        shell.dispatch(Action::Home); shell.dispatch(Action::Confirm);
+        shell.goToSection("home");
         QCOMPARE(shell.page(), 0); QVERIFY(!shell.homeMenuOpen());
         shell.goToPage(1); shell.dispatch(Action::SystemMenu);
         shell.dispatch(Action::Home);
-        QCOMPARE(shell.page(), 1); QVERIFY(shell.menuOpen()); QVERIFY(shell.homeMenuOpen());
-        shell.dispatch(Action::Back); QVERIFY(!shell.homeMenuOpen()); QVERIFY(shell.menuOpen());
-        shell.dispatch(Action::Home); shell.dispatch(Action::Down); shell.dispatch(Action::Confirm);
-        QCOMPARE(shell.page(), 3); QCOMPARE(shell.socialFace(), "chats"); QVERIFY(shell.social()->contacts()); QVERIFY(!shell.menuOpen());
+        QCOMPARE(shell.page(), 1); QVERIFY(!shell.menuOpen()); QVERIFY(!shell.homeMenuOpen());
+        shell.goToSection("social");
+        QCOMPARE(shell.page(), 3); QCOMPARE(shell.socialFace(), "chats"); QVERIFY(!shell.menuOpen());
         shell.openGameHubFace("adapter");shell.selectAdapterScreen("party");
         QVERIFY((shell.page()==2 && shell.experienceModel()==shell.module("pokemon") && pokemonModule(shell).centerFace())); QVERIFY(!pokemonModule(shell).center()->configured());
         QCOMPARE(pokemonModule(shell).party()->section(), "party"); QVERIFY(shell.notice().isEmpty());
@@ -162,7 +160,6 @@ private slots:
             const std::pair<SDL_GameControllerButton, Action> bindings[] = {
                 {SDL_CONTROLLER_BUTTON_LEFTSHOULDER, Action::PreviousPage},
                 {SDL_CONTROLLER_BUTTON_RIGHTSHOULDER, Action::NextPage},
-                {SDL_CONTROLLER_BUTTON_GUIDE, Action::Home},
                 {SDL_CONTROLLER_BUTTON_BACK, Action::LocalAction},
                 // Test positions independently from ControllerInput's constants.
                 {SDL_CONTROLLER_BUTTON_B, Action::Confirm}, {SDL_CONTROLLER_BUTTON_A, Action::Back},
@@ -182,11 +179,16 @@ private slots:
             events.clear();
             SDL_JoystickSetVirtualButton(joystick, SDL_CONTROLLER_BUTTON_GUIDE, true);
             button(SDL_CONTROLLER_BUTTON_B, true);
-            QCOMPARE(events.size(), 1); QCOMPARE(qvariant_cast<Action>(events.first().first()),Action::Home);
+            QVERIFY(events.isEmpty()); // Home waits for release so it can act as a modifier.
             button(SDL_CONTROLLER_BUTTON_GUIDE, false); input.poll(); QCOMPARE(events.size(), 1);
+            QCOMPARE(qvariant_cast<Action>(events.first().first()),Action::Home);
             button(SDL_CONTROLLER_BUTTON_B, false); button(SDL_CONTROLLER_BUTTON_B, true);
             QCOMPARE(events.size(), 2); button(SDL_CONTROLLER_BUTTON_B, false);
             disconnect(layerGate);
+            events.clear();button(SDL_CONTROLLER_BUTTON_GUIDE,true);button(SDL_CONTROLLER_BUTTON_X,true);
+            QCOMPARE(events.size(),1);QCOMPARE(qvariant_cast<Action>(events.first().first()),Action::ToggleKeyboard);
+            button(SDL_CONTROLLER_BUTTON_GUIDE,false);input.poll();QCOMPARE(events.size(),1);
+            button(SDL_CONTROLLER_BUTTON_X,false);input.poll();QCOMPARE(events.size(),1);
             events.clear();
             SDL_JoystickSetVirtualAxis(joystick, SDL_CONTROLLER_AXIS_RIGHTY, 9000);input.poll();QVERIFY(events.isEmpty());
             SDL_JoystickSetVirtualAxis(joystick, SDL_CONTROLLER_AXIS_RIGHTY, 26000);input.poll();
@@ -273,7 +275,8 @@ private slots:
         empty.dispatch(Action::Right);
         QCOMPARE(empty.focusIndex(), 0);
         empty.dispatch(Action::Confirm);
-        QVERIFY(!empty.drawerOpen());
+        QVERIFY(empty.drawerOpen());QCOMPARE(empty.page(),0);
+        empty.dispatch(Action::Back);QVERIFY(!empty.drawerOpen());
         empty.goToPage(1);
         QVERIFY(empty.collectionsRoot());empty.activate(0);
         empty.activate(0);

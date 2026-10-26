@@ -125,6 +125,18 @@ private slots:
         QVERIFY(!hall.rows().first().toMap()["complete"].toBool());
         provider.games.clear();provider.publish();QVERIFY(hall.rows().isEmpty());
     }
+    void restoringHistoryReplacesGalleryModeAndContext() {
+        MutableArchive archive;GalleryProvider provider;HallOfFameController hall(archive,provider);
+        hall.setCurrentAdventure("current");
+        const auto history=hall.navigationState();
+        QVERIFY(!history["gallery"].toBool());
+        hall.showAchievementLibrary();hall.activate(0);hall.activate(7);
+        const auto gallery=hall.navigationState();QVERIFY(gallery["gallery"].toBool());
+        QCOMPARE(hall.route(),"achievement-detail");
+        hall.restoreNavigation(history);QCOMPARE(hall.navigationState(),history);
+        hall.restoreNavigation(gallery);QCOMPARE(hall.navigationState(),gallery);
+        hall.restoreNavigation(history);provider.publish();QCOMPARE(hall.navigationState(),history);
+    }
     void currentGameGalleryIdentityFilteringAndGridNavigation() {
         MutableArchive archive; GalleryProvider provider; HallOfFameController hall(archive,provider);
         hall.setCurrentAdventure("current"); hall.showCurrentAchievements();

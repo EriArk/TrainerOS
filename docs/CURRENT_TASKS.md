@@ -1,5 +1,13 @@
 # Задачи и условия готовности
 
+**Core/main, 26 октября — Home / Start / Games:** исправлены восстановление
+режима галереи GameHub и выход из старого локального профиля Trainer. Актуализированы
+сценарии Start/ScreenScraper, Home+X, пустой библиотеки и возврата в Games.
+Полные core/interactions/hall прошли на Windows и ARM64: 7/53/20 passed, 0 failed.
+Production установлен на Odin/Flip; профиль по аватару, Games ↔ GameHub и
+Start → Downloads → Back проверены на обоих устройствах.
+[Результат и доставка](evidence/navigation-20261026/README.md).
+
 **Core/main, 26 октября — per-game Performance / runtime Downloads:**
 подготовлены исходники R140 и продолжение R018: компактный общий редактор, provider-backed
 power/GPU/governor, применение и восстановление на границах Adventure, Proton
@@ -7,12 +15,11 @@ renderer/sync и общий кеш официальных GE-Proton/UMU. [Кон
 Горячее применение power/GPU/governor теперь подключено к фактической сессии:
 Apply & save без перезапуска, Reset к исходному состоянию, последовательный
 update/finalize и явная ошибка при отказе. Compatibility остаётся next-launch.
-Портативки по-прежнему заняты другим чатом. Linux D-Bus/flock,
-первый SteamRT bootstrap и реальные игры ещё требуют приёмки.
-Профильные PC/UI/process проверки прошли; расширенный Library-набор имеет
-3 сбоя (Start → Settings, World editing, прежняя тема), перечисленные в контракте.
-Следующее независимое улучшение — устранить эти три сбоя Settings/Library,
-сначала отделив устаревшие ожидания тестов от дефектов обычного UI-пути.
+Общая сборка доставлена на обе портативки в `c0ba3834`; D-Bus/lease/EOF/crash
+проверены. Три прежних сбоя Library устранены, полный набор прошёл.
+Первый SteamRT bootstrap и реальные игры через Wine/FEX ещё требуют приёмки.
+Следующий предлагаемый шаг — проверить полный PC-игровой цикл с per-game
+Performance/Compatibility, применением профиля и восстановлением после выхода.
 
 **Core/main, 26 октября — продолжение PC-настроек:** импорт получил локальную
 обложку и необязательный Steam-ярлык. Game settings связывает executable/рабочую

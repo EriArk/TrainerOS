@@ -132,10 +132,11 @@ runtimes не перезаписываются; удаления runtime чер�
   flock в Windows-части подменён и не считается Linux-проверкой.
 - `PcSessionTests.py`: 11 passed / 6 Linux skips; `PcSteamTests.py`: 7 passed.
   Preflight отказа session support: 1 passed. Apps smoke оболочки: PASSED.
-- Расширенный `trainer_library_tests` в предыдущем проходе: **17 passed / 3 failed**. Сбои относятся
+- Исторический результат `trainer_library_tests` до общей доставки: **17 passed / 3 failed**. Сбои относились
   к Start → Settings (ожидаемый service), разрешению World editing и ожиданию
   прежней темы `turquoise` вместо `light`. Чистая бинарная baseline-сборка для
-  сравнения не выполнялась; весь Library-набор зелёным не объявляется.
+  сравнения тогда не выполнялась. Эти три сбоя исправлены в `c0ba3834`, полный Library-набор
+  прошёл при [общей доставке](evidence/combined-handheld-20261026/README.md).
 
 Локальные evidence: `build/native/{performance,live-performance}-*-tests.txt`,
 `screenshots/game-performance/{light-960,dark-800,compatibility-800}.png` и

@@ -1879,7 +1879,7 @@ void ShellController::dispatch(Action action) {
         if (service_ == "trainer-setup") { trainerSetup_.dispatch(action); return; }
         if(service_=="profile") {
             if(trainer_.editing())trainer_.dispatch(action,true);
-            else if(action==Action::Back){service_.clear();homeMenuOpen_=true;homeMenuSelection_="profile";}
+            else if(action==Action::Back)service_.clear();
             else trainer_.dispatch(action,true);
             emit changed();return;
         }

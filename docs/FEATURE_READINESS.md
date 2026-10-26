@@ -1,5 +1,13 @@
 # Карта готовности функций TrainerOS
 
+**26 октября — навигация Home / Start / Games:** устранены два дефекта возврата
+контекста, обновлены прежние сценарии управления. Core/interactions/hall целиком
+прошли на Windows и ARM64 (7/53/20 passed, 0 failed). Production установлен
+на Odin/Flip; текущий профиль по аватару, Games ↔ GameHub и возврат фокуса из
+Downloads проверены удалённо. Это заменяет незелёный статус core/interactions
+в предыдущем отчёте, сохраняя отдельную физическую и игровую приёмку.
+[Изменения, доказательства и ограничения](evidence/navigation-20261026/README.md).
+
 **26 октября — общая доставка нескольких worktrees:** main, SDK/Crates,
 multiplayer, first-run/OTA и Backend source сведены; production shell и 13 helpers
 установлены на Odin/Flip. Реальные power lease/restore, WebEngine/keyboard и

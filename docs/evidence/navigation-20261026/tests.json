@@ -1,0 +1,53 @@
+{
+  "base_commit": "c0ba38342cff489d3991485a95b86b1cabe2768c",
+  "counts_include_qttest_init_cleanup": true,
+  "runs": {
+    "windows": {
+      "core": {
+        "passed": 7,
+        "failed": 0,
+        "skipped": 0,
+        "duration_ms": 2577
+      },
+      "interactions": {
+        "passed": 53,
+        "failed": 0,
+        "skipped": 0,
+        "duration_ms": 2470
+      },
+      "hall": {
+        "passed": 20,
+        "failed": 0,
+        "skipped": 0,
+        "duration_ms": 459
+      }
+    },
+    "arm64": {
+      "core": {
+        "passed": 7,
+        "failed": 0,
+        "skipped": 0,
+        "duration_ms": 2586
+      },
+      "interactions": {
+        "passed": 53,
+        "failed": 0,
+        "skipped": 0,
+        "duration_ms": 1919
+      },
+      "hall": {
+        "passed": 20,
+        "failed": 0,
+        "skipped": 0,
+        "duration_ms": 385
+      }
+    }
+  },
+  "tested_source_sha256": {
+    "src/core/navigation/ShellController.cpp": "59ee067e89d274c7bc803a7c972e5cb999a3813a4493f7dc10c236c72d7b2493",
+    "src/features/halloffame/HallOfFameController.cpp": "0b247a55de5a3cdbf7b046d442d1526b1e80629d1ced35df8af94f6c8b875302",
+    "tests/CoreTests.cpp": "f1897071cd6cb3011e02b0cba1227b392de0949770e078a9b4e21b23d78b6afa",
+    "tests/InteractionTests.cpp": "1830592f46e051499f84a297fbe5f578e1e31b0bbeb77f7502c2348d136f5930",
+    "tests/HallOfFameTests.cpp": "10d0e1ad4931437e877de9d8169f3417e01bcde2f8b2208933e0b4083e65c390"
+  }
+}

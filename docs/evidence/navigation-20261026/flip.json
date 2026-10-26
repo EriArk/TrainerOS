@@ -1,0 +1,36 @@
+{
+  "installation": {
+    "sha256": "a5ba45f54a3eda1a606cd67446be4717fd6f463a896f776bae4b0fa05d98662d",
+    "previous_sha256": "1c04fcd2d9ca621d871311d4ec7895fbd7466c2004b5256b838e146fd3ca0691",
+    "supervised_restart": true,
+    "capabilities": {
+      "account.identity": 1,
+      "avatar.local": 1,
+      "avatar.recipe": 1,
+      "context": 1,
+      "lifecycle": 1,
+      "lobby.activity": 1,
+      "network.group": 1,
+      "network.records": 1,
+      "play.scorecards": 1,
+      "ui.start.widget": 1
+    },
+    "backup_retained": true
+  },
+  "protected_files_checked": 1541,
+  "missing_files": 0,
+  "save_file_changes": 0,
+  "non_save_emulator_file_changes": 0,
+  "library_unchanged": true,
+  "existing_history_retained": true,
+  "additional_sessions": 0,
+  "session_exit": [],
+  "database_integrity": "ok",
+  "volume": "Volume: 0.20",
+  "ui_checks": [
+    "account_profile_open_back",
+    "games_gamehub_games_retains_selection",
+    "start_downloads_back_retains_widget"
+  ],
+  "source_files_verified": 1412
+}
