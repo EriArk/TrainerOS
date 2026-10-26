@@ -55,6 +55,27 @@ of this implementation.
 
 ## Delivery
 
-Production and the separate `flycast-lan` package are prepared for both handhelds;
-installation receipts will be added after verifying the live processes and state.
-Existing `flycast-netplay` and all other emulator packages are retained.
+**Installed and running on Flip 2 and Odin 2.** Implementation `537bfd8a`,
+combined source `776bbb25` (includes Crates `b92e48a8`).
+[Sanitized receipts and package hashes](delivery.json).
+
+- Final production shell SHA-256:
+  `c16454045073749590a451f20e49224a1a22fdbf85eb19510d0a66213efff698`.
+- Separate `flycast-lan` manifest SHA-256 on both devices:
+  `b072c27555b4fb0e259818a26de62084c3fb84923676c85a6888bb3374ef5913`.
+- Each live process and installed executable matched the collected artifact.
+  No QML startup errors; SQLite checks passed and play history was unchanged.
+- The existing **17 other emulator manifests**, including GGPO Flycast, matched
+  their pre-install values. Protected personal/configuration files were unchanged
+  (Flip 75, Odin 1284); system volumes were retained.
+- Crates `active/data` was additionally compared with the preceding Crates
+  delivery's retained SHA snapshot: **1463 files on Flip / 882 on Odin** unchanged,
+  including the file inventory. This is a separate retained baseline, not part of
+  the personal-file counts above.
+- Previous shell, settings and a consistent database backup remain private on
+  each device. Rollback restores the preceding shell and removes only the newly
+  added cabinet package; it does not restore old personal progress.
+
+No active game was replaced. There was no reboot, sleep-cycle test, ROM transfer
+or personal-save migration in this delivery. The installation does not change
+the gameplay/different-network evidence boundaries above.

@@ -12,7 +12,7 @@ source-only/not-delivered labels for these formats below.
 
 | Record | Exact targets | Current boundary |
 |---|---|---|
-| [Arcade cabinet link](../emulators/flycast-cabinet.md) | Pinned Dojo native capability, matching ROM/BIOS and three package executables | Two independent cabinets through common Lobby/ICE/DTLS; private temporary EEPROM/NVRAM. Build/namespace/transport checks recorded separately from native matches and delivery; no semantic save capability |
+| [Arcade cabinet link](../emulators/flycast-cabinet.md) | Pinned Dojo native capability, matching ROM/BIOS and three package executables | Installed on Flip/Odin: two independent cabinets through common Lobby/ICE/DTLS; private temporary EEPROM/NVRAM. Build/namespace/transport and installation checks are separate from native matches; no semantic save capability |
 | [GameCube native BBA LAN](../emulators/dolphin.md) | Pinned Dolphin, GM4/GKY/GTE LAN families across regions | Source integration, two consoles, bounded ICE/DTLS frame checks; native match and delivery open; temporary cards only |
 | [Vita native LAN runtime](../emulators/vita3k.md) | Pinned Vita3K ARM64 and exact rebuilt vitaQuake 2.1 | Installed invitation/native discovery, paired gameplay, own native progress, Home and bounded close/loss. Commercial AdHoc/PSN and wider compatibility open; no semantic save capability |
 | [3DS native wireless rooms](../emulators/azahar.md) | Pinned Azahar 2126.2 and exact base content | Installed two-player Nearby/Online admission and Minicraft3DS gameplay/Home/own save/Exit; retail updates/DLC and external acceptance open; no semantic save capability |

@@ -6,6 +6,8 @@
 [проверки и доставка](evidence/cabinet-link-20261026/README.md). R039 частично выполнен;
 следующее самостоятельное направление — native Dreamcast Online/DCNet и его
 игровые сервисы. GGPO и существующие платформы сохранены.
+Совмещённая реализация `776bbb25` установлена и запущена на обеих портативках;
+production `c1645404…` сохраняет параллельное обновление Crates `b92e48a8`.
 
 **26 октября — arcade NetPlay:** реализован общий Flycast Dojo route для Naomi,
 Naomi 2 и Atomiswave: native set dependencies, общий Lobby/Start/exit и private
