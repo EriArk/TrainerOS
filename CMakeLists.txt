@@ -7,6 +7,7 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_AUTOMOC ON)
 include(CTest)
 option(TRAINER_BUILD_PRACTICE_PROBE "Build the read-only Emerald battle proof tool" OFF)
+option(TRAINER_AVATAR_PREVIEW "Build the shared 3D avatar preview (required for normal shell builds)" ON)
 
 find_package(Qt6 6.4 REQUIRED COMPONENTS Core Gui Qml Quick Sql Network Xml Multimedia WebSockets Concurrent)
 find_package(Qt6Keychain REQUIRED)
@@ -14,7 +15,11 @@ find_package(OpenSSL 3 REQUIRED COMPONENTS Crypto)
 find_package(LibArchive REQUIRED)
 find_package(SDL2 2.0.14 REQUIRED CONFIG)
 find_package(Qt6 6.9 QUIET COMPONENTS WebEngineQuick)
-find_package(Qt6 QUIET COMPONENTS Quick3D)
+if(TRAINER_AVATAR_PREVIEW)
+    find_package(Qt6 REQUIRED COMPONENTS Quick3D Quick3DAssetUtils QuickTimeline)
+else()
+    message(WARNING "3D avatar preview explicitly disabled; this is not a full shell build")
+endif()
 
 add_library(trainer_core STATIC
     src/integrations/adventure/CartridgeContent.cpp
@@ -382,7 +387,7 @@ qt_add_resources(traineros display_fonts PREFIX "/fonts" BASE assets/fonts
           assets/fonts/ChakraPetch-Bold.ttf assets/fonts/ChakraPetch-OFL.txt
           assets/fonts/Bungee-Regular.ttf assets/fonts/Bungee-OFL.txt)
 target_link_libraries(traineros PRIVATE trainer_core Qt6::Quick Qt6::Multimedia)
-if(TARGET Qt6::Quick3D)
+if(TRAINER_AVATAR_PREVIEW)
     target_link_libraries(traineros PRIVATE Qt6::Quick3D)
     set_source_files_properties(src/features/trainer/TrainerController.cpp PROPERTIES COMPILE_DEFINITIONS TRAINER_AVATAR_QUICK3D=1)
 endif()

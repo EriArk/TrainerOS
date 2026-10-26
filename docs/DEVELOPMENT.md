@@ -20,6 +20,10 @@ The authoritative list is [CMakeLists.txt](../CMakeLists.txt):
 - Avatar preview: matching Qt Quick 3D, Quick Timeline, AssetUtils and the Assimp
   importer plugins/dependencies. The shared GLB service is independent of the
   preview renderer; see [the avatar contract](../sdk/AVATAR.md).
+  Normal builds require these development modules at configure time. An explicitly
+  reduced development build may set `-DTRAINER_AVATAR_PREVIEW=OFF`; this emits a
+  warning and must not be delivered as the complete shell. A missing dependency
+  no longer silently replaces the player's character with an emblem.
 - Qt6Keychain and a working platform keychain for real account credentials.
 - OpenSSL 3 Crypto and SDL2 2.0.14+, including development headers/CMake packages.
 - PS2 ZSO identity helper: system liblz4 (`lz4-libs` on Fedora, `liblz4-1`
@@ -36,8 +40,14 @@ The authoritative list is [CMakeLists.txt](../CMakeLists.txt):
 
 Package names depend on the build host. The checked Fedora 44 ARM64 builder uses
 `qt6-qtwebengine-devel`, `libfm-qt-devel` and `glib2-devel` in addition to the
-existing Qt/SDL/OpenSSL toolchain. Install development dependencies in the builder;
-do not mutate the handheld host merely to compile. A complete fresh-machine build
+existing Qt/SDL/OpenSSL toolchain. Install development dependencies in the builder.
+The avatar renderer additionally needs `qt6-qtquick3d-devel` and
+`qt6-qtquicktimeline-devel` at the matching Qt version. The handheld runtime needs
+`qt6-qtquick3d`, `qt6-qtquicktimeline` and their package dependencies, including
+the AssetUtils QML module and Assimp importer. A successful CMake configuration
+does not establish that those runtime plugins were deployed; open a real GLB in
+the profile and wardrobe on each target device.
+Do not mutate the handheld host merely to compile. A complete fresh-machine build
 remains #117; the old Ubuntu command did not cover Files/Browser and was removed.
 
 ## Build and run on Linux

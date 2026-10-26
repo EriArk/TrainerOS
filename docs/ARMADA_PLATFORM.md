@@ -1,5 +1,54 @@
 # TrainerOS on ArmadaOS
 
+## Build storage — 26 October 2026
+
+The owner requires handheld development sources, build trees, dependency caches
+and container storage on the mounted microSD, rather than the internal system
+partition. Keep installed binaries and working user state in their ordinary
+locations. A missing SD must fail the build; never silently create a fallback
+directory on the internal filesystem.
+
+For new independent environments, use a dedicated SD build root and a separate
+Podman `--root` there; keep its `--runroot` under the user's runtime directory.
+An existing Podman store may retain its recorded graph-root path through a symlink
+to the verified SD copy, preserving container/image identities. Set `TMPDIR` to a directory under
+that SD root for image export/import and package operations as well as compilation.
+Moving only CMake's build directory does not move Podman's image cache or
+`containers/image` temporary archives. Keep a free-space reserve on the SD.
+
+When relocating a build tree, first verify the affected container is idle and stop
+only that container. Moving a whole Podman store additionally requires every
+container and image operation using that store to be idle and stopped.
+Copy with ownership/modes/links intact, compare the result,
+then replace the old path with a symlink and restart the container. Retain source,
+delivery records and rollback copies; never include games, saves or live profile
+databases in a generic build-cache cleanup. New CMake build trees must use the SD
+path directly. Physical removal of that SD while a build runs remains unsupported.
+
+The 26 October Odin cleanup moved the previous `traineros-apps-build` tree,
+nine named build/delivery cache directories and the rootless Podman store to
+`.traineros-build-archive26` on the mounted SD. Each move passed an rsync
+size/metadata comparison before replacing the original with a symlink. The
+retained reports are `migration.json` and `containers-migration.json` in that
+private archive. This is not a checksum audit of personal files. Only obsolete,
+inactive top-level candidate executables were deleted; nested rollback copies,
+delivery records, games, saves and active profile data were preserved.
+The post-move check resolved all eleven retained paths onto the SD filesystem;
+internal free space was 20.33 GiB. Reports are private operational evidence,
+not a public backup of the owner's files. Flip's internal storage was not cleaned
+in this increment; its new delivery and rollback artifacts were staged on its SD.
+
+The old `traineros-apps-build` container did not restart after relocation. Its
+full dependency snapshot was retained as `localhost/traineros-apps-build:sd26-retained`
+and the original container as `traineros-apps-build-before-sd26`. The working
+replacement keeps the usual name, mounts the SD build path directly, and uses
+the standard rootless namespace instead of the former `keep-id` mapping. This
+avoids a full layer ownership rewrite; the old files are not recursively chowned.
+Startup, CMake/compiler execution and a temporary write/read/remove probe in
+`/work` passed. A full rebuild of that historical tree was not repeated. The
+new core builder image, `localhost/traineros-core-builder:20261026-quick3d`,
+successfully built the delivered shell from the current sources on SD.
+
 ## Odin shell Vulkan mitigation - 2026-10-04
 
 The previous Odin boot recorded GMU OOB GPU_SET timeouts at 02:12:42 +03:00,

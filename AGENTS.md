@@ -97,6 +97,11 @@ TrainerOS is a **controller-first native Linux shell / operating environment** w
 
 ## Current owner constraints
 
+- **Owner storage correction, 26 October:** keep handheld build sources, object
+  files, dependency caches and container build storage on microSD. The internal
+  partition is for the installed system and working user data. Check mount/free
+  space before building; preserve active jobs, profiles, saves and rollback
+  copies during cleanup. See [Armada build storage](docs/ARMADA_PLATFORM.md#build-storage--26-october-2026).
 - Picker #252–254 and PC #246–251 retain their unfinished criteria in the readiness map. The completed [library delivery](docs/MULTIPLAYER_SELECTION_DELIVERY.md) is evidence, not a new transfer task.
 - Earlier delivery scope, retained as requirements rather than execution order: PC Home/exit without repeating passed checks. Make the two visible libraries identical: the approved selection plus old games confirmed present on both handhelds; copy both supplied Sacred distributions. Replace the old collection views with genre collections while keeping each owner's saves, profile and history. Remove the temporary PC input fixture, its library cards and temporary folders from both devices at the end. Copy verification is not installer integrity or gameplay compatibility.
 - Keep one live room and separate scheduled rooms. All Ready enables the host's explicit Start; never auto-launch. Offline Lobby, private PSP and the full pass-controller catalogue remain unfinished features in the readiness map.
