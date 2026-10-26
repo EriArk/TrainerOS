@@ -301,21 +301,8 @@ public:
             }
         }
         if (openError.isEmpty()) {
-            state.library = readLibrary(db);
+            state.library = readLibrary(db, ownerId_);
             openError = state.library.error;
-            // The legacy row is a frozen migration default. New presentation
-            // choices belong to this Trainer, using the existing owned state
-            // table (including initial-owner adoption and profile removal).
-            QSqlQuery query(db);
-            query.prepare("SELECT payload FROM shell_state WHERE scope='preferences' AND trainer_id=?");
-            query.addBindValue(ownerId_);
-            if(!query.exec())openError="Your appearance preferences couldn't be read.";
-            else if(query.next()) {
-                const auto p=QJsonDocument::fromJson(query.value(0).toByteArray()).object();
-                if(p["version"].toInt()==1 && QStringList{"light","dark","turquoise","red","green","blue","orange"}.contains(p["theme"].toString())
-                    && p["reducedMotion"].isBool() && p["worldEditing"].isBool() && p["videoPreviews"].isBool())
-                    state.library.preferences={p["theme"].toString(),p["reducedMotion"].toBool(),p["worldEditing"].toBool(),p["videoPreviews"].toBool()};
-            }
         }
         if (!openError.isEmpty()) return fail(openError);
         openError = interruptOpenSessions(db);
@@ -494,8 +481,8 @@ public:
     }
     LibraryWriteResult adventure(const AdventureRegistration& record) { return writeAdventure(db, record); }
     QString libraryEdit(const LibraryEdit& edit, LibrarySnapshot& snapshot, QList<ExitMedia>& media) {
-        const auto error = editLibrary(db, edit);
-        snapshot = readLibrary(db); media = readExitMedia(db, ownerId_);
+        const auto error = editLibrary(db, edit, ownerId_);
+        snapshot = readLibrary(db, ownerId_); media = readExitMedia(db, ownerId_);
         return error.isEmpty() ? snapshot.error : error;
     }
     QString preferences(const ShellPreferences& value) {

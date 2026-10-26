@@ -29,7 +29,7 @@ Item {
         visible: root.selecting
         Rectangle { anchors.fill: parent; color: Theme.surfaceColor("#fffdf4"); radius: 12 }
         Rectangle { width: parent.width*0.30; height: parent.height; color: Theme.surfaceColor("#e4eddc"); radius: 12 }
-        Text { x: 18; y: 20; text: "YOUR ADVENTURE KIT"; font.family: Theme.brandFamily; font.pixelSize: 13; color: Theme.surfaceColor("#5a7d70") }
+        Text { x: 18; y: 20; text: "YOUR ADVENTURE KIT"; font.family: Theme.brandFamily; font.pixelSize: 13; color: Theme.textColor("#5a7d70") }
         SetupIllustration { x: 0; y: 62; width: parent.width*0.30; height: Math.min(245,parent.height-100); stage: root.flow.stage; checkedControls: root.flow.checkedControls }
         Item {
             x: parent.width*0.33; y: 18; width: parent.width-x-24; height: parent.height-30
@@ -82,7 +82,7 @@ Item {
                     }
                 }
             }
-            Text { anchors.bottom: parent.bottom; width: parent.width; height: 28; text: root.flow.busy ? "Preparing your library…" : root.flow.error; textFormat: Text.PlainText; color: Theme.surfaceColor("#853b24"); font.pixelSize: 13; wrapMode: Text.WordWrap }
+            Text { anchors.bottom: parent.bottom; width: parent.width; height: 28; text: root.flow.busy ? "Preparing your library…" : root.flow.error; textFormat: Text.PlainText; color: Theme.textColor("#853b24"); font.pixelSize: 13; wrapMode: Text.WordWrap }
         }
     }
     FirstRunServicePanel {

@@ -24,11 +24,17 @@ private slots:
         QTemporaryDir dir;
         {
             LocalStateStore store(dir.path());store.open();QTRY_VERIFY(store.ready());create(store,"one");create(store,"two");
-            auto prefs=store.preferences();prefs.theme="dark";bool done=false;
-            store.savePreferences(prefs,this,[&](auto error){QVERIFY(error.isEmpty());done=true;});QTRY_VERIFY(done);QTRY_COMPARE(store.pending(),0);stage(store,"two");
+            auto prefs=store.preferences();prefs.theme="dark";prefs.worldEditing=true;bool done=false;
+            store.savePreferences(prefs,this,[&](auto error){QVERIFY(error.isEmpty());done=true;});QTRY_VERIFY(done);QTRY_COMPARE(store.pending(),0);
+            done=false;LibraryEdit edit{LibraryEditKind::RenameWorld,"owned-world"};edit.text="First name";
+            store.editLibraryAsync(edit,this,[&](auto error){QVERIFY2(error.isEmpty(),qPrintable(error));done=true;});QTRY_VERIFY(done);
+            QCOMPARE(store.preferences().theme,QString("dark"));QVERIFY(store.preferences().worldEditing);stage(store,"two");
         }
         {
-            LocalStateStore store(dir.path());store.open();QTRY_VERIFY(store.ready());QVERIFY(store.preferences().theme!="dark");
+            LocalStateStore store(dir.path());store.open();QTRY_VERIFY(store.ready());QVERIFY(store.preferences().theme!="dark");QVERIFY(!store.preferences().worldEditing);
+            bool rejected=false;LibraryEdit edit{LibraryEditKind::RenameWorld,"owned-world"};edit.text="Other name";edit.previousName="First name";
+            store.editLibraryAsync(edit,this,[&](auto error){QVERIFY(!error.isEmpty());rejected=true;});QTRY_VERIFY(rejected);
+            QVERIFY(!store.preferences().worldEditing);
             auto prefs=store.preferences();prefs.theme="light";bool done=false;
             store.savePreferences(prefs,this,[&](auto error){QVERIFY(error.isEmpty());done=true;});QTRY_VERIFY(done);QTRY_COMPARE(store.pending(),0);stage(store,"one");
         }

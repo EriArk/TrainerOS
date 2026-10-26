@@ -300,7 +300,7 @@ private slots:
         shell.dispatch(Action::ContextMenu);QVERIFY(shell.libraryTools()->isOpen());
         shell.dispatch(Action::SystemMenu);QVERIFY(shell.menuOpen());
         // Start is now a widget dashboard; its initial focus is not Settings.
-        shell.controls()->select("settings");shell.dispatch(Action::Confirm);
+        shell.controls()->activate("settings");
         QCOMPARE(shell.service(),"settings");QVERIFY(!shell.libraryTools()->isOpen());
     }
     void contextualEditsDeleteRomAndPreserveIdentity() {
@@ -320,9 +320,10 @@ private slots:
         run({LibraryEditKind::RenameGame,id,1,"Stale"});QTRY_VERIFY(done);QVERIFY(!error.isEmpty());
         LibraryEdit worldEdit{LibraryEditKind::RenameWorld,"hoenn"};worldEdit.text="Our Hoenn";worldEdit.previousName="Hoenn";
         run(worldEdit);QTRY_VERIFY(done);QVERIFY(!error.isEmpty());
-        auto preferences=store.preferences();preferences.worldEditing=true;done=false;
+        auto preferences=store.preferences();preferences.worldEditing=true;preferences.theme="dark";done=false;
         store.savePreferences(preferences,this,[&](auto result){error=result;done=true;});QTRY_VERIFY(done);QVERIFY(error.isEmpty());
         run(worldEdit);QTRY_VERIFY(done);QVERIFY2(error.isEmpty(),qPrintable(error));
+        QCOMPARE(store.preferences().theme,QString("dark"));QVERIFY(store.preferences().worldEditing);
         CollectionRepository collection(store);bool renamed=false;
         for(const auto& w:collection.worlds())if(w.id=="hoenn")renamed=w.name=="Our Hoenn";
         QVERIFY(renamed);
@@ -562,8 +563,8 @@ private slots:
         {
             LocalStateStore store(dir.path()); store.open(); QTRY_VERIFY(store.ready());
             SettingsController settings; settings.setRepository(&store);
-            settings.activate(0); QVERIFY(settings.saving()); QCOMPARE(settings.theme(), "turquoise");
-            QTRY_VERIFY(!settings.saving()); QCOMPARE(settings.theme(), "red");
+            settings.activate(0); QVERIFY(settings.saving()); QCOMPARE(settings.theme(), "light");
+            QTRY_VERIFY(!settings.saving()); QCOMPARE(settings.theme(), "dark");
             Connection connection(dir.path()); QSqlQuery q(connection.db); QVERIFY(q.exec("BEGIN IMMEDIATE"));
             settings.activate(1); QTRY_VERIFY(!settings.saving()); QVERIFY(!settings.error().isEmpty()); QVERIFY(!settings.reducedMotion());
             QVERIFY(q.exec("ROLLBACK")); settings.activate(1); QTRY_VERIFY(!settings.saving()); QVERIFY(settings.reducedMotion());
@@ -582,7 +583,7 @@ private slots:
             settings.dispatch(Action::Left);QTRY_VERIFY(!settings.saving());QVERIFY(!settings.videoPreviews());
         }
         LocalStateStore store(dir.path()); store.open(); QTRY_VERIFY(store.ready());
-        QCOMPARE(store.preferences().theme, "red"); QVERIFY(store.preferences().reducedMotion);
+        QCOMPARE(store.preferences().theme, "dark"); QVERIFY(store.preferences().reducedMotion);
         QVERIFY(!store.preferences().videoPreviews);
     }
 };

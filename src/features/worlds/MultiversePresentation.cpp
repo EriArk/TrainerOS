@@ -219,7 +219,7 @@ QVariantList MultiversePresentation::systems() const {
             platforms.append({g.system,g.system.isEmpty()?QString("Other platforms"):g.system,g.system,"console"});
         for(const auto& p:platforms) {
             const auto count=std::count_if(entries_.begin(),entries_.end(),[&](const auto& g){return g.system==p.id && g.linked && belongs(g);});
-            if(count || (p.id=="pc" && repository_->editable()))result.append(QVariantMap{{"id",p.id},{"name",p.id=="pc"?QString("PC"):p.name},{"shape",p.shape},{"count",int(count)}});
+            if(count || (p.id=="pc" && repository_ && repository_->editable()))result.append(QVariantMap{{"id",p.id},{"name",p.id=="pc"?QString("PC"):p.name},{"shape",p.shape},{"count",int(count)}});
         }
         systemsCache_=result;systemsCached_=true;return result;
     }

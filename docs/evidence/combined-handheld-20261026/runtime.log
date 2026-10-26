@@ -1,0 +1,135 @@
+********* Start testing of trainer::RuntimeMultiplayerTests *********
+Config: Using QtTest library 6.11.2, Qt 6.11.2 (arm64-little_endian-lp64 shared (dynamic) release build; by GCC 16.2.1 20260819 (Red Hat 16.2.1-2)), fedora 44
+PASS   : trainer::RuntimeMultiplayerTests::initTestCase()
+PASS   : trainer::RuntimeMultiplayerTests::lobbyRoutesIgnoreOrdinaryEmulatorPreferences()
+PASS   : trainer::RuntimeMultiplayerTests::installedGameWithDifferentRuntimeIsNotAnImportProblem()
+PASS   : trainer::RuntimeMultiplayerTests::liveJoinCapabilityBelongsToTheLocalInstallation()
+PASS   : trainer::RuntimeMultiplayerTests::liveJoinRejectsInvalidPlatformCorePairsAndUnreviewedFamilies()
+PASS   : trainer::RuntimeMultiplayerTests::finishedGameClearsRelayForNextInvitation()
+PASS   : trainer::RuntimeMultiplayerTests::pspTransportLossKeepsGameAndRevokesPendingLaunch()
+PASS   : trainer::RuntimeMultiplayerTests::ps2TransportLossKeepsOwnedGameAndCannotRelaunch(ps2)
+PASS   : trainer::RuntimeMultiplayerTests::ps2TransportLossKeepsOwnedGameAndCannotRelaunch(gamecube-bba)
+PASS   : trainer::RuntimeMultiplayerTests::ps2TransportLossKeepsOwnedGameAndCannotRelaunch(arcade-cabinets)
+PASS   : trainer::RuntimeMultiplayerTests::destructionCannotReenterFromExternalLobbySignals()
+QWARN  : trainer::RuntimeMultiplayerTests::lobbyImportChecksBeforeWritingAndInvalidatesLateReplies() QFSFileEngine::open: No file name specified
+QWARN  : trainer::RuntimeMultiplayerTests::lobbyImportChecksBeforeWritingAndInvalidatesLateReplies() QFSFileEngine::open: No file name specified
+QWARN  : trainer::RuntimeMultiplayerTests::lobbyImportChecksBeforeWritingAndInvalidatesLateReplies() QFSFileEngine::open: No file name specified
+QWARN  : trainer::RuntimeMultiplayerTests::lobbyImportChecksBeforeWritingAndInvalidatesLateReplies() QFSFileEngine::open: No file name specified
+PASS   : trainer::RuntimeMultiplayerTests::lobbyImportChecksBeforeWritingAndInvalidatesLateReplies()
+PASS   : trainer::RuntimeMultiplayerTests::commonSplashCancelsBeforeCheckpointAndLeavesRunningGamesAlone()
+PASS   : trainer::RuntimeMultiplayerTests::remoteGuestUsesSharedSaveBarrierWithoutRequiringLocalContent(settled)
+PASS   : trainer::RuntimeMultiplayerTests::remoteGuestUsesSharedSaveBarrierWithoutRequiringLocalContent(save-error)
+PASS   : trainer::RuntimeMultiplayerTests::remoteGuestUsesSharedSaveBarrierWithoutRequiringLocalContent(rejoin-settled)
+PASS   : trainer::RuntimeMultiplayerTests::remoteGuestUsesSharedSaveBarrierWithoutRequiringLocalContent(rejoin-save-error)
+PASS   : trainer::RuntimeMultiplayerTests::liveLobbyAdmissionPreservesTheOwnedHostProcessAndExactIdentity(first-late-guest)
+QINFO  : trainer::RuntimeMultiplayerTests::liveLobbyAdmissionPreservesTheOwnedHostProcessAndExactIdentity(nes-returning-original-player) trainer.multiplayer: [Netplay] disconnected
+PASS   : trainer::RuntimeMultiplayerTests::liveLobbyAdmissionPreservesTheOwnedHostProcessAndExactIdentity(nes-returning-original-player)
+QINFO  : trainer::RuntimeMultiplayerTests::liveLobbyAdmissionPreservesTheOwnedHostProcessAndExactIdentity(snes-returning-original-player) trainer.multiplayer: [Netplay] disconnected
+PASS   : trainer::RuntimeMultiplayerTests::liveLobbyAdmissionPreservesTheOwnedHostProcessAndExactIdentity(snes-returning-original-player)
+QINFO  : trainer::RuntimeMultiplayerTests::liveLobbyAdmissionPreservesTheOwnedHostProcessAndExactIdentity(megadrive-returning-original-player) trainer.multiplayer: [Netplay] disconnected
+PASS   : trainer::RuntimeMultiplayerTests::liveLobbyAdmissionPreservesTheOwnedHostProcessAndExactIdentity(megadrive-returning-original-player)
+QINFO  : trainer::RuntimeMultiplayerTests::liveLobbyAdmissionPreservesTheOwnedHostProcessAndExactIdentity(runtime.retroarch.nes.fceumm.v1) trainer.multiplayer: [Netplay] disconnected
+PASS   : trainer::RuntimeMultiplayerTests::liveLobbyAdmissionPreservesTheOwnedHostProcessAndExactIdentity(runtime.retroarch.nes.fceumm.v1)
+QINFO  : trainer::RuntimeMultiplayerTests::liveLobbyAdmissionPreservesTheOwnedHostProcessAndExactIdentity(runtime.retroarch.fds.fceumm.v1) trainer.multiplayer: [Netplay] disconnected
+PASS   : trainer::RuntimeMultiplayerTests::liveLobbyAdmissionPreservesTheOwnedHostProcessAndExactIdentity(runtime.retroarch.fds.fceumm.v1)
+QINFO  : trainer::RuntimeMultiplayerTests::liveLobbyAdmissionPreservesTheOwnedHostProcessAndExactIdentity(runtime.retroarch.snes.snes9x.v1) trainer.multiplayer: [Netplay] disconnected
+PASS   : trainer::RuntimeMultiplayerTests::liveLobbyAdmissionPreservesTheOwnedHostProcessAndExactIdentity(runtime.retroarch.snes.snes9x.v1)
+QINFO  : trainer::RuntimeMultiplayerTests::liveLobbyAdmissionPreservesTheOwnedHostProcessAndExactIdentity(runtime.retroarch.sg1000.genesis_plus_gx.v1) trainer.multiplayer: [Netplay] disconnected
+PASS   : trainer::RuntimeMultiplayerTests::liveLobbyAdmissionPreservesTheOwnedHostProcessAndExactIdentity(runtime.retroarch.sg1000.genesis_plus_gx.v1)
+QINFO  : trainer::RuntimeMultiplayerTests::liveLobbyAdmissionPreservesTheOwnedHostProcessAndExactIdentity(runtime.retroarch.mastersystem.genesis_plus_gx.v1) trainer.multiplayer: [Netplay] disconnected
+PASS   : trainer::RuntimeMultiplayerTests::liveLobbyAdmissionPreservesTheOwnedHostProcessAndExactIdentity(runtime.retroarch.mastersystem.genesis_plus_gx.v1)
+QINFO  : trainer::RuntimeMultiplayerTests::liveLobbyAdmissionPreservesTheOwnedHostProcessAndExactIdentity(runtime.retroarch.megadrive.genesis_plus_gx.v1) trainer.multiplayer: [Netplay] disconnected
+PASS   : trainer::RuntimeMultiplayerTests::liveLobbyAdmissionPreservesTheOwnedHostProcessAndExactIdentity(runtime.retroarch.megadrive.genesis_plus_gx.v1)
+QINFO  : trainer::RuntimeMultiplayerTests::liveLobbyAdmissionPreservesTheOwnedHostProcessAndExactIdentity(runtime.retroarch.segacd.genesis_plus_gx.v1) trainer.multiplayer: [Netplay] disconnected
+PASS   : trainer::RuntimeMultiplayerTests::liveLobbyAdmissionPreservesTheOwnedHostProcessAndExactIdentity(runtime.retroarch.segacd.genesis_plus_gx.v1)
+QINFO  : trainer::RuntimeMultiplayerTests::liveLobbyAdmissionPreservesTheOwnedHostProcessAndExactIdentity(runtime.retroarch.mastersystem.picodrive.v1) trainer.multiplayer: [Netplay] disconnected
+PASS   : trainer::RuntimeMultiplayerTests::liveLobbyAdmissionPreservesTheOwnedHostProcessAndExactIdentity(runtime.retroarch.mastersystem.picodrive.v1)
+QINFO  : trainer::RuntimeMultiplayerTests::liveLobbyAdmissionPreservesTheOwnedHostProcessAndExactIdentity(runtime.retroarch.megadrive.picodrive.v1) trainer.multiplayer: [Netplay] disconnected
+PASS   : trainer::RuntimeMultiplayerTests::liveLobbyAdmissionPreservesTheOwnedHostProcessAndExactIdentity(runtime.retroarch.megadrive.picodrive.v1)
+QINFO  : trainer::RuntimeMultiplayerTests::liveLobbyAdmissionPreservesTheOwnedHostProcessAndExactIdentity(runtime.retroarch.segacd.picodrive.v1) trainer.multiplayer: [Netplay] disconnected
+PASS   : trainer::RuntimeMultiplayerTests::liveLobbyAdmissionPreservesTheOwnedHostProcessAndExactIdentity(runtime.retroarch.segacd.picodrive.v1)
+QINFO  : trainer::RuntimeMultiplayerTests::liveLobbyAdmissionPreservesTheOwnedHostProcessAndExactIdentity(runtime.retroarch.sega32x.picodrive.v1) trainer.multiplayer: [Netplay] disconnected
+PASS   : trainer::RuntimeMultiplayerTests::liveLobbyAdmissionPreservesTheOwnedHostProcessAndExactIdentity(runtime.retroarch.sega32x.picodrive.v1)
+QINFO  : trainer::RuntimeMultiplayerTests::liveLobbyAdmissionPreservesTheOwnedHostProcessAndExactIdentity(runtime.retroarch.pcengine.mednafen_pce_fast.v1) trainer.multiplayer: [Netplay] disconnected
+PASS   : trainer::RuntimeMultiplayerTests::liveLobbyAdmissionPreservesTheOwnedHostProcessAndExactIdentity(runtime.retroarch.pcengine.mednafen_pce_fast.v1)
+QINFO  : trainer::RuntimeMultiplayerTests::liveLobbyAdmissionPreservesTheOwnedHostProcessAndExactIdentity(runtime.retroarch.pcenginecd.mednafen_pce_fast.v1) trainer.multiplayer: [Netplay] disconnected
+PASS   : trainer::RuntimeMultiplayerTests::liveLobbyAdmissionPreservesTheOwnedHostProcessAndExactIdentity(runtime.retroarch.pcenginecd.mednafen_pce_fast.v1)
+QINFO  : trainer::RuntimeMultiplayerTests::liveLobbyAdmissionPreservesTheOwnedHostProcessAndExactIdentity(runtime.retroarch.supergrafx.mednafen_supergrafx.v1) trainer.multiplayer: [Netplay] disconnected
+PASS   : trainer::RuntimeMultiplayerTests::liveLobbyAdmissionPreservesTheOwnedHostProcessAndExactIdentity(runtime.retroarch.supergrafx.mednafen_supergrafx.v1)
+QINFO  : trainer::RuntimeMultiplayerTests::liveLobbyAdmissionPreservesTheOwnedHostProcessAndExactIdentity(runtime.retroarch.pcengine.mednafen_supergrafx.v1) trainer.multiplayer: [Netplay] disconnected
+PASS   : trainer::RuntimeMultiplayerTests::liveLobbyAdmissionPreservesTheOwnedHostProcessAndExactIdentity(runtime.retroarch.pcengine.mednafen_supergrafx.v1)
+QINFO  : trainer::RuntimeMultiplayerTests::liveLobbyAdmissionPreservesTheOwnedHostProcessAndExactIdentity(runtime.retroarch.pcenginecd.mednafen_supergrafx.v1) trainer.multiplayer: [Netplay] disconnected
+PASS   : trainer::RuntimeMultiplayerTests::liveLobbyAdmissionPreservesTheOwnedHostProcessAndExactIdentity(runtime.retroarch.pcenginecd.mednafen_supergrafx.v1)
+QINFO  : trainer::RuntimeMultiplayerTests::liveLobbyAdmissionPreservesTheOwnedHostProcessAndExactIdentity(runtime.retroarch.atari2600.stella.v1) trainer.multiplayer: [Netplay] disconnected
+PASS   : trainer::RuntimeMultiplayerTests::liveLobbyAdmissionPreservesTheOwnedHostProcessAndExactIdentity(runtime.retroarch.atari2600.stella.v1)
+QINFO  : trainer::RuntimeMultiplayerTests::liveLobbyAdmissionPreservesTheOwnedHostProcessAndExactIdentity(runtime.retroarch.psx.pcsx_rearmed.v1) trainer.multiplayer: [Netplay] disconnected
+PASS   : trainer::RuntimeMultiplayerTests::liveLobbyAdmissionPreservesTheOwnedHostProcessAndExactIdentity(runtime.retroarch.psx.pcsx_rearmed.v1)
+QINFO  : trainer::RuntimeMultiplayerTests::liveLobbyAdmissionPreservesTheOwnedHostProcessAndExactIdentity(runtime.retroarch.neogeo.fbneo.v1) trainer.multiplayer: [Netplay] disconnected
+PASS   : trainer::RuntimeMultiplayerTests::liveLobbyAdmissionPreservesTheOwnedHostProcessAndExactIdentity(runtime.retroarch.neogeo.fbneo.v1)
+QINFO  : trainer::RuntimeMultiplayerTests::liveLobbyAdmissionPreservesTheOwnedHostProcessAndExactIdentity(runtime.retroarch.fbneo.fbneo.v1) trainer.multiplayer: [Netplay] disconnected
+PASS   : trainer::RuntimeMultiplayerTests::liveLobbyAdmissionPreservesTheOwnedHostProcessAndExactIdentity(runtime.retroarch.fbneo.fbneo.v1)
+PASS   : trainer::RuntimeMultiplayerTests::confirmedReturnRequiresTemporaryProgressAndSuccessfulFinalization(ordinary-manual-save)
+PASS   : trainer::RuntimeMultiplayerTests::confirmedReturnRequiresTemporaryProgressAndSuccessfulFinalization(isolated-progress)
+PASS   : trainer::RuntimeMultiplayerTests::confirmedReturnRequiresTemporaryProgressAndSuccessfulFinalization(finalization-failure)
+PASS   : trainer::RuntimeMultiplayerTests::contentOverlaySharesTheLeaseAndNeverReplaysHeldGameButtons()
+QINFO  : trainer::RuntimeMultiplayerTests::shellEntryWaitsForFreshInputAndCancellationKeepsTheOwnedGame() trainer.overlay: invitation options true 4 true false false
+QINFO  : trainer::RuntimeMultiplayerTests::shellEntryWaitsForFreshInputAndCancellationKeepsTheOwnedGame() trainer.overlay: invitation options true 4 true false false
+PASS   : trainer::RuntimeMultiplayerTests::shellEntryWaitsForFreshInputAndCancellationKeepsTheOwnedGame()
+PASS   : trainer::RuntimeMultiplayerTests::deferredLobbyInvitationSurvivesAnIndependentGameExit()
+QWARN  : trainer::RuntimeMultiplayerTests::localPlayerCountsFilterSharedConsoleButKeepWirelessAndLanInLobby() QFSFileEngine::open: No file name specified
+PASS   : trainer::RuntimeMultiplayerTests::localPlayerCountsFilterSharedConsoleButKeepWirelessAndLanInLobby()
+PASS   : trainer::RuntimeMultiplayerTests::gameCubeLanAndNetplayKeepSeparateLocalProfiles(gamecube)
+PASS   : trainer::RuntimeMultiplayerTests::gameCubeLanAndNetplayKeepSeparateLocalProfiles(arcade)
+PASS   : trainer::RuntimeMultiplayerTests::gameCubeLanAndNetplayKeepSeparateLocalProfiles(dreamcast-online)
+PASS   : trainer::RuntimeMultiplayerTests::nativeReadyIsBoundToEachAssignedSeat()
+PASS   : trainer::RuntimeMultiplayerTests::dreamcastOnlineLaunchIsNotAMatchAndLobbyLossKeepsTheGame()
+PASS   : trainer::RuntimeMultiplayerTests::lobbyReadyRunsBothOwnedChildrenAndReturnsToTheSameRoom(online-normal)
+PASS   : trainer::RuntimeMultiplayerTests::lobbyReadyRunsBothOwnedChildrenAndReturnsToTheSameRoom(online-connection-failure)
+PASS   : trainer::RuntimeMultiplayerTests::lobbyReadyRunsBothOwnedChildrenAndReturnsToTheSameRoom(online-party-left)
+PASS   : trainer::RuntimeMultiplayerTests::lobbyReadyRunsBothOwnedChildrenAndReturnsToTheSameRoom(local-normal)
+PASS   : trainer::RuntimeMultiplayerTests::lobbyReadyRunsBothOwnedChildrenAndReturnsToTheSameRoom(local-connection-failure)
+PASS   : trainer::RuntimeMultiplayerTests::lobbyReadyRunsBothOwnedChildrenAndReturnsToTheSameRoom(local-party-left)
+PASS   : trainer::RuntimeMultiplayerTests::lobbyPreparationKeepsAnUnrelatedGameUntilExplicitSavedConsent(saved)
+PASS   : trainer::RuntimeMultiplayerTests::lobbyPreparationKeepsAnUnrelatedGameUntilExplicitSavedConsent(save-recovery-required)
+PASS   : trainer::RuntimeMultiplayerTests::lobbyCancelNeverClosesTheCurrentGameOrAcceptsLatePreparation()
+PASS   : trainer::RuntimeMultiplayerTests::sharedControllerModeIsExplicitAndBoundToTheLiveGame()
+PASS   : trainer::RuntimeMultiplayerTests::sharedControllerAbortKeepsOrdinarySaveConsentAndCancelsOwnedPreparation()
+PASS   : trainer::RuntimeMultiplayerTests::sharedControllerBindingsRejectStaleClicksAndEndBothOwnedCopies(retroarch-split-roles)
+PASS   : trainer::RuntimeMultiplayerTests::sharedControllerBindingsRejectStaleClicksAndEndBothOwnedCopies(dolphin-native-authority)
+PASS   : trainer::RuntimeMultiplayerTests::vitaRestartKeepsConsentAndRejectsStaleReady()
+PASS   : trainer::RuntimeMultiplayerTests::vitaRejectsChangedGameAndForeignStatus()
+PASS   : trainer::RuntimeMultiplayerTests::azaharRestartKeepsConsentAndRejectsStaleReady()
+PASS   : trainer::RuntimeMultiplayerTests::azaharRejectsChangedGameAndForeignStatus()
+PASS   : trainer::RuntimeMultiplayerTests::dsRestartKeepsSaveConsentAndCancelledEndpointCannotLaunch()
+PASS   : trainer::RuntimeMultiplayerTests::dsRejectsChangedGameAndConsumesOnlyItsOwnStatusMarkers()
+PASS   : trainer::RuntimeMultiplayerTests::dsPrivateEndpointParserRejectsExtraFieldsAndMalformedCredentials()
+PASS   : trainer::RuntimeMultiplayerTests::genericPspKeepsSaveConsentAndRejectsChangedInvitation()
+PASS   : trainer::RuntimeMultiplayerTests::dreamcastHostSaveCancellationAndStaleMarkers()
+PASS   : trainer::RuntimeMultiplayerTests::dreamcastRejectsChangedIdentityAndTracksDisconnect()
+PASS   : trainer::RuntimeMultiplayerTests::n64HostRetainsSaveQuestionAndCancellationStopsPreparation()
+PASS   : trainer::RuntimeMultiplayerTests::n64RejectsChangedIdentityBeforeRoomPreparation()
+PASS   : trainer::RuntimeMultiplayerTests::n64PrivateNativeReadinessAndLateOutputCannotRestartCancelledGame()
+PASS   : trainer::RuntimeMultiplayerTests::pendingInvitationSurvivesUnrelatedGameExitAndCanBeCollapsed()
+PASS   : trainer::RuntimeMultiplayerTests::acceptingPlayingGuestWaitsForCleanExitBeforeSendingConsent(clean)
+PASS   : trainer::RuntimeMultiplayerTests::acceptingPlayingGuestWaitsForCleanExitBeforeSendingConsent(save-failure)
+PASS   : trainer::RuntimeMultiplayerTests::cancelledInvitationDuringCaptureKeepsTheGameAndCannotAcceptReplacement()
+PASS   : trainer::RuntimeMultiplayerTests::locallySupportedNativeJoinRetainsTheRunningGame()
+PASS   : trainer::RuntimeMultiplayerTests::remoteNativeHintCannotBypassExitOrAuthorizeAnotherRunningGame()
+PASS   : trainer::RuntimeMultiplayerTests::linkedFinalEndpointWaitsForOwnSeedAndCancellationClearsIt(gb)
+PASS   : trainer::RuntimeMultiplayerTests::linkedFinalEndpointWaitsForOwnSeedAndCancellationClearsIt(gba)
+PASS   : trainer::RuntimeMultiplayerTests::fourLinkedBatteriesWaitForEverySeatAndCancelTogether()
+PASS   : trainer::RuntimeMultiplayerTests::duplicateOrMalformedLinkedSeatCannotCompletePreparation()
+PASS   : trainer::RuntimeMultiplayerTests::leavingDuringLinkedPreparationCancelsAllOwnedTransfers()
+PASS   : trainer::RuntimeMultiplayerTests::verifiedGameIsAvailableWhileOtherGamesAreStillScanning()
+PASS   : trainer::RuntimeMultiplayerTests::launchedUncheckedGameMovesAheadOfPendingLibraryScan()
+PASS   : trainer::RuntimeMultiplayerTests::discDependenciesRefreshWithoutLibraryEvents(ps1-m3u-cue-sidecars)
+PASS   : trainer::RuntimeMultiplayerTests::discDependenciesRefreshWithoutLibraryEvents(pcengine-cue-firmware)
+PASS   : trainer::RuntimeMultiplayerTests::dependencyChangeRetiresPendingScanAndOldMetadataReply()
+PASS   : trainer::RuntimeMultiplayerTests::changedLibraryRetiresObsoleteDiscScan()
+PASS   : trainer::RuntimeMultiplayerTests::savePromptRetainsOwnedGameAndCancelDoesNotLaunch()
+PASS   : trainer::RuntimeMultiplayerTests::successfulCloseStartsANewConnectionBudget()
+PASS   : trainer::RuntimeMultiplayerTests::failedSaveFinalizationPreventsMultiplayerLaunch()
+PASS   : trainer::RuntimeMultiplayerTests::queuedLaunchCannotAttachToAReplacementInvitation()
+PASS   : trainer::RuntimeMultiplayerTests::cleanupTestCase()
+Totals: 101 passed, 0 failed, 0 skipped, 0 blacklisted, 126000ms
+********* Finished testing of trainer::RuntimeMultiplayerTests *********

@@ -123,7 +123,7 @@ Rectangle {
             Row { x: 22; y: 51; spacing: 16
                 ActionButton { width: 126; label: "Sources"; selected: root.shell.device.mixer; onActivated: root.shell.device.showMixer(true) }
                 ActionButton { width: 126; label: "Microphones"; selected: root.shell.device.inputs; onActivated: root.shell.device.showInputs() }
-                ActionButton { width: 126; label: "Output device"; selected: !root.shell.device.mixer&&!root.shell.device.inputs; onActivated: root.shell.device.showMixer(false) }
+                ActionButton { objectName: "start-audio-output-tab"; width: 126; label: "Output device"; selected: !root.shell.device.mixer&&!root.shell.device.inputs; onActivated: root.shell.device.showMixer(false) }
             }
             ListView { id: streams; x: 22; y: 96; width: parent.width-44; height: parent.height-y-58; clip: true
                 visible: root.shell.device.mixer || root.shell.device.inputs; model: visible ? root.shell.device.inputs ? root.shell.device.audioInputs : root.shell.device.audioStreams : []; currentIndex: root.shell.device.audioFocus

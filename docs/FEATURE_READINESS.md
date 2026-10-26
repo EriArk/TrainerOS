@@ -1,5 +1,14 @@
 # Карта готовности функций TrainerOS
 
+**26 октября — общая доставка нескольких worktrees:** main, SDK/Crates,
+multiplayer, first-run/OTA и Backend source сведены; production shell и 13 helpers
+установлены на Odin/Flip. Реальные power lease/restore, WebEngine/keyboard и
+managed Golf→SDK→Exit проверены. 37 suites прошли; два старых набора
+core/interactions не считаются зелёными. Сохранность личных данных проверена.
+[Состав, исправления, receipts и оставшаяся приёмка](evidence/combined-handheld-20261026/README.md).
+Это обновляет прежние source-only отметки core/per-game, но не заявляет
+физическую приёмку, полноценный игровой матч или управляемую OTA-публикацию.
+
 **26.10 — R035/R041:** добавлен групповой PS2 LAN / Dolphin BBA на 2–4
 независимые консоли через общий Lobby. [Контракт и состояние поставки](emulators/native-lan-groups.md).
 Старые парные описания относятся к предыдущей реализации; обычный Dolphin

@@ -605,11 +605,9 @@ if(BUILD_TESTING)
     add_test(NAME software_release COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/SoftwareReleaseTests.py)
     add_test(NAME software_channel COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/SoftwareChannelTests.py)
     add_test(NAME software_installation COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/SoftwareInstallationTests.py)
-    qt_add_executable(trainer_software_update_tests tests/SoftwareUpdateTests.cpp
-        src/features/settings/SoftwareUpdateController.cpp src/features/settings/SoftwareUpdateController.h
-        src/features/downloads/DownloadsController.cpp src/features/downloads/DownloadsController.h)
+    qt_add_executable(trainer_software_update_tests tests/SoftwareUpdateTests.cpp)
     target_include_directories(trainer_software_update_tests PRIVATE src)
-    target_link_libraries(trainer_software_update_tests PRIVATE Qt6::Core Qt6::Test)
+    target_link_libraries(trainer_software_update_tests PRIVATE trainer_core Qt6::Test)
     set_target_properties(trainer_software_update_tests PROPERTIES WIN32_EXECUTABLE FALSE)
     target_compile_definitions(trainer_software_update_tests PRIVATE UPDATE_PYTHON="${Python3_EXECUTABLE}")
     add_test(NAME software_update COMMAND trainer_software_update_tests -o -,txt)

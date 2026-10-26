@@ -64,6 +64,8 @@ inline void startPlatformSmoke(QQuickWindow* window, trainer::ShellController& s
     auto step=std::make_shared<int>(0);
     auto ticks=std::make_shared<int>(0);
     auto actions=std::make_shared<int>(0);
+    const int initialPages=shell.controls()->pages();
+    const int initialWidgets=shell.controls()->widgets().size();
     auto timer=new QTimer(window);timer->setInterval(400);
     QObject::connect(shell.controls(),&trainer::ControlsDashboard::contributionActivated,timer,[actions](const QString&){++*actions;});
     QObject::connect(timer,&QTimer::timeout,window,[=,&shell,&completed,&warnings,&diagnostics]{
@@ -93,7 +95,7 @@ inline void startPlatformSmoke(QQuickWindow* window, trainer::ShellController& s
             for(int i=1;i<=8;++i){const auto point=a+(b-a)*i/8.;QMouseEvent motion(QEvent::MouseMove,point,QPointF(window->mapToGlobal(point.toPoint())),Qt::NoButton,Qt::LeftButton,Qt::NoModifier);QCoreApplication::sendEvent(window,&motion);QCoreApplication::processEvents();}
             QMouseEvent up(QEvent::MouseButtonRelease,b,QPointF(window->mapToGlobal(b.toPoint())),Qt::LeftButton,Qt::NoButton,Qt::NoModifier);QCoreApplication::sendEvent(window,&up);QCoreApplication::processEvents();
         };
-        if(++*ticks>55){diagnostics<<"SDK/Start UI process timed out";*step=99;}
+        if(++*ticks>55){diagnostics<<QString("SDK/Start UI process timed out at step %1").arg(*step);*step=99;}
         switch(*step) {
         case 0:
             if(board->available().isEmpty())break;
@@ -106,14 +108,18 @@ inline void startPlatformSmoke(QQuickWindow* window, trainer::ShellController& s
             board->dispatch(trainer::Action::Confirm);check(*actions==1,"SDK widget action did not dispatch");
             ++*step;break;
         }
-        case 2:
-            if(board->widgets().isEmpty()||!board->widgets().first().toMap()["text"].toString().contains("Activations: 1"))break;
+        case 2: {
+            bool activated=false;
+            for(const auto& value:board->widgets()) {const auto row=value.toMap();if(row["id"]=="sdk:org.example.hello:hello"&&row["text"].toString().contains("Activations: 1"))activated=true;}
+            if(!activated)break;
             if(!directory.isEmpty())check(window->grabWindow().save(directory+"/platform-activated.png"),"Cannot save SDK callback frame");
             // A console Python process on Windows need not handle WM_CLOSE.
             // Abrupt exit also proves host cleanup needs no client cooperation.
             child->kill();++*step;break;
+        }
         case 3:
-            if(child->state()!=QProcess::NotRunning||board->pages()!=1)break;
+            if(child->state()!=QProcess::NotRunning||board->pages()!=initialPages)break;
+            board->changePage(-board->page());
             shell.downloads()->publish("start-fixture",{
                 QVariantMap{{"id","active"},{"title","Adventure artwork"},{"state","running"},{"detail","Downloading · 42%"},{"progress",.42}},
                 QVariantMap{{"id","queued"},{"title","Second download"},{"state","queued"},{"detail","Waiting in queue"}},
@@ -166,12 +172,12 @@ inline void startPlatformSmoke(QQuickWindow* window, trainer::ShellController& s
             if(!directory.isEmpty())check(window->grabWindow().save(directory+"/start-moving.png"),"Cannot save edit frame");
             ++*step;break;
         case 11:
-            tap("start-cancel");check(board->page()==0&&!board->moving()&&board->pages()==1,"Touch cancel did not restore page and layout");
-            tap("start-hide");check(board->widgets().size()==9,"Touch hide did not remove clock");++*step;break;
+            tap("start-cancel");check(board->page()==0&&!board->moving()&&board->pages()==initialPages,"Touch cancel did not restore page and layout");
+            tap("start-hide");check(board->widgets().size()==initialWidgets-1,"Touch hide did not remove clock");++*step;break;
         case 12:
             tap("start-add");check(board->picking(),"Touch Add did not open picker");++*step;break;
         case 13:
-            shell.dispatch(trainer::Action::Confirm);check(!board->picking()&&board->widgets().size()==10,"Picker restore failed");
+            shell.dispatch(trainer::Action::Confirm);check(!board->picking()&&board->widgets().size()==initialWidgets,"Picker restore failed");
             tap("start-edit");check(!board->editing(),"Done did not leave edit mode");
             shell.settings()->cycleTheme(1);++*step;break;
         case 14:
@@ -200,6 +206,7 @@ inline void startPlatformSmoke(QQuickWindow* window, trainer::ShellController& s
             tap("start-output-volume");++*step;break;
         case 20:
             check(shell.device()->audioOpen(),"Volume touch did not open audio outputs");
+            tap("start-audio-output-tab");check(!shell.device()->mixer()&&!shell.device()->inputs(),"Output tab did not leave the mixer");
             if(!directory.isEmpty())check(window->grabWindow().save(directory+"/start-audio-output.png"),"Cannot save audio output frame");
             tap("audio-output-1");++*step;break;
         case 21:
@@ -211,7 +218,7 @@ inline void startPlatformSmoke(QQuickWindow* window, trainer::ShellController& s
         default:
             if(child->state()!=QProcess::NotRunning){child->kill();child->waitForFinished(2000);}
             const auto stderrText=child->readAllStandardError();check(stderrText.isEmpty(),QString::fromUtf8(stderrText));
-            check(board->pages()==1,"SDK removal left a ghost page");
+            check(board->pages()==initialPages,"SDK removal left a ghost page");
             check(warnings==0,"QML warnings during SDK widget rendering");
             for(const auto& message:diagnostics)qWarning().noquote()<<message;
             completed=true;timer->stop();QCoreApplication::exit(diagnostics.isEmpty()?0:1);

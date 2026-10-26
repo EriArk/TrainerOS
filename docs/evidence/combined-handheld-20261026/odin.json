@@ -1,0 +1,39 @@
+{
+  "installation": {
+    "sha256": "1c04fcd2d9ca621d871311d4ec7895fbd7466c2004b5256b838e146fd3ca0691",
+    "previous_sha256": "102adeb3bc0f939f2585191b41c2c26e10ecd4903043c43673b5f8e915e2e603",
+    "supervised_restart": true,
+    "capabilities": {
+      "account.identity": 1,
+      "avatar.local": 1,
+      "avatar.recipe": 1,
+      "context": 1,
+      "lifecycle": 1,
+      "lobby.activity": 1,
+      "network.group": 1,
+      "network.records": 1,
+      "play.scorecards": 1,
+      "ui.start.widget": 1
+    },
+    "backup_retained": true
+  },
+  "protectedFilesChecked": 2167,
+  "saveContentChanges": 0,
+  "expectedGameLogRotations": 2,
+  "databaseIntegrity": "ok",
+  "libraryUnchanged": true,
+  "history": {
+    "existingRetained": 243,
+    "addedSmokeSession": 1,
+    "fields": {
+      "ended_at": "2026-10-26T13:37:15.792Z",
+      "outcome": "returned"
+    }
+  },
+  "volume": "Volume: 0.00",
+  "managedGolfConnectedAndExited": true,
+  "browserInputStages": 62,
+  "touchKeyboardStages": 50,
+  "helpersVerified": 13,
+  "sourceFilesVerified": 1412
+}

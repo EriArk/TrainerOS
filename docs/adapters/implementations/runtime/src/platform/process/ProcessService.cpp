@@ -2,6 +2,7 @@
 #include <QDir>
 #include <QJsonDocument>
 #include <QJsonObject>
+#include <QPointer>
 
 namespace trainer {
 ProcessService::ProcessService(QObject* parent) : QObject(parent), worker_(new QObject) {
@@ -23,6 +24,7 @@ ProcessService::ProcessService(QObject* parent) : QObject(parent), worker_(new Q
 }
 ProcessService::~ProcessService() {
     if (cancelled_) *cancelled_ = true;
+    if (settingsCancelled_) *settingsCancelled_ = true;
     thread_.quit(); thread_.wait();
 }
 bool ProcessService::start(const ProcessCommand& command) {
@@ -30,6 +32,9 @@ bool ProcessService::start(const ProcessCommand& command) {
     // The prepared command is checked again by execute before any child starts.
     if (active_ || (!command.prepare && !QDir::isAbsolutePath(command.program))) return false;
     active_ = true;
+    updateSettings_ = {};
+    updatingSettings_ = false;
+    settingsCancelled_ = std::make_shared<std::atomic_bool>(false);
     runtimeControls_.clear();
     stopRequested_ = false;
     childStarted_ = false; finalizing_ = false; settled_=command.settled;finalize_=command.finalize;
@@ -60,6 +65,7 @@ void ProcessService::execute(const ProcessCommand& command) {
     if (!QDir::isAbsolutePath(command.program)) { complete(-1, false, "The Adventure's play setup changed."); return; }
     inspectOutput_ = command.inspectOutput;
     runtimeControls_=command.runtimeControls;
+    updateSettings_=command.updateSettings;
     process_.setProcessChannelMode(QProcess::MergedChannels);
     process_.setStandardOutputFile(inspectOutput_ || runtimeControls_.contains("netplay") || runtimeControls_.contains("achievements") ? QString() : QProcess::nullDevice());
     process_.setProgram(command.program); process_.setArguments(command.arguments);
@@ -109,6 +115,7 @@ bool ProcessService::runtimeCommand(const QString& action,const QString& text) {
 void ProcessService::stop() {
     if (!active_ || finalizing_) return;
     stopRequested_ = true;
+    if(settingsCancelled_) *settingsCancelled_ = true;
     if (preparing_) {
         *cancelled_ = true; return; // Let worker preparation settle before return/relaunch.
     }
@@ -117,6 +124,8 @@ void ProcessService::stop() {
 void ProcessService::complete(int code, bool crashed, const QString& error) {
     if (!active_ || finalizing_) return;
     killTimer_.stop();
+    if(settingsCancelled_) *settingsCancelled_ = true;
+    updateSettings_ = {};
     if(settled_||finalize_) {
         finalizing_=true;
         auto settled=std::move(settled_);
@@ -131,5 +140,30 @@ void ProcessService::complete(int code, bool crashed, const QString& error) {
             },Qt::QueuedConnection);
         },Qt::QueuedConnection);
     } else { active_=false; emit finished(code,crashed,error); }
+}
+bool ProcessService::supportsRuntimeSettings() const {
+    return active_ && childStarted_ && !stopRequested_ && !finalizing_
+        && process_.state()==QProcess::Running && bool(updateSettings_);
+}
+bool ProcessService::updateSettings(const QJsonObject& settings, QObject* context,
+                                    std::function<void(QJsonObject)> done) {
+    if(!context || !done || !supportsRuntimeSettings() || updatingSettings_) return false;
+    updatingSettings_=true;
+    const auto token=request_;
+    const QPointer<QObject> guard(context);
+    QMetaObject::invokeMethod(worker_,[this,token,guard,settings,done=std::move(done),
+                                      update=updateSettings_,cancel=settingsCancelled_] {
+        auto reply=*cancel ? QJsonObject{{"error","The game is ending."}} : update(settings);
+        QMetaObject::invokeMethod(this,[this,token,guard,done,reply,cancel]() mutable {
+            if(token==request_) {
+                updatingSettings_=false;
+                if(reply["unavailable"].toBool())updateSettings_={};
+            }
+            if(*cancel || token!=request_)
+                reply={{"error","The game ended; the saved profile will apply on its next launch."}};
+            if(guard) done(reply);
+        },Qt::QueuedConnection);
+    },Qt::QueuedConnection);
+    return true;
 }
 }

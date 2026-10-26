@@ -69,7 +69,28 @@ QString migrateLibraryDomains(QSqlDatabase& db) {
     if (!q.exec("PRAGMA foreign_keys=ON")) error = sqlFailure();
     return error;
 }
-LibrarySnapshot readLibrary(QSqlDatabase& db) {
+// The legacy row remains the migration default; every read and edit uses the active Trainer overlay.
+ShellPreferences readPreferences(QSqlDatabase& db, const QString& owner, QString& error) {
+    ShellPreferences result;
+    QSqlQuery q(db);
+    if (!q.exec("SELECT theme,reduced_motion,world_editing,video_previews FROM preferences WHERE slot=1")) {
+        error=sqlFailure();return result;
+    }
+    if(q.next())result={q.value(0).toString(),q.value(1).toBool(),q.value(2).toBool(),q.value(3).toBool()};
+    const QStringList themes{"light","dark","turquoise","red","green","blue","orange"};
+    if(!themes.contains(result.theme))result.theme="turquoise";
+    q.prepare("SELECT payload FROM shell_state WHERE scope='preferences' AND trainer_id=?");
+    q.addBindValue(owner);
+    if(!q.exec()){error="Your appearance preferences couldn't be read.";return result;}
+    if(q.next()) {
+        const auto p=QJsonDocument::fromJson(q.value(0).toByteArray()).object();
+        if(p["version"].toInt()==1 && themes.contains(p["theme"].toString())
+            && p["reducedMotion"].isBool() && p["worldEditing"].isBool() && p["videoPreviews"].isBool())
+            result={p["theme"].toString(),p["reducedMotion"].toBool(),p["worldEditing"].toBool(),p["videoPreviews"].toBool()};
+    }
+    return result;
+}
+LibrarySnapshot readLibrary(QSqlDatabase& db, const QString& owner) {
     LibrarySnapshot result;
     QSqlQuery q(db);
     const auto fail = [&] { result.error = "Your library couldn't be read. The existing data has been kept."; return result; };
@@ -98,9 +119,8 @@ LibrarySnapshot readLibrary(QSqlDatabase& db) {
         r.adventure.additionalWorldIds.append(q.value(1).toString());
     if (!q.exec("SELECT adventure_id,trash_path FROM library_removals")) return fail();
     while(q.next()) for(auto& r:result.registrations) if(r.adventure.id==q.value(0).toString()) {r.removed=true;r.trashPath=q.value(1).toString();}
-    if (!q.exec("SELECT theme,reduced_motion,world_editing,video_previews FROM preferences WHERE slot=1")) return fail();
-    if (q.next()) result.preferences = {q.value(0).toString(), q.value(1).toBool(), q.value(2).toBool(), q.value(3).toBool()};
-    if (!QStringList{"light", "dark", "turquoise", "red", "green", "blue", "orange"}.contains(result.preferences.theme)) result.preferences.theme = "turquoise";
+    result.preferences=readPreferences(db,owner,result.error);
+    if(!result.error.isEmpty())return result;
     if (!q.exec("PRAGMA foreign_key_check") || q.next()) return fail();
     return result;
 }

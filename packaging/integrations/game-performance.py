@@ -115,6 +115,8 @@ class Lease:
                         scope=state.get(self.host.profile_key))
             if key == self.host.profile_key:
                 step['clock'] = state.get('ManualGpuClock')
+                step['governor'] = state.get('CpuScalingGovernor')
+                step['gpuMode'] = state.get('GpuPerformanceLevel')
             self.steps.append(step)
             self.save()  # intent before side effect, also recoverable after helper crash
             self.host.write(key, value)
@@ -158,6 +160,15 @@ class Lease:
                     self.host.write(step['key'], step['before'])
                 if step['key'] == self.host.profile_key and step.get('clock') is not None:
                     self.host.write('ManualGpuClock', step['clock'])
+                # Armada profiles can change the global governor/mode without
+                # restoring them when the previous profile is selected again.
+                # Recover the observed baseline, also after an interrupted undo.
+                if step['key'] == self.host.profile_key:
+                    for field, key in [('governor', 'CpuScalingGovernor'), ('gpuMode', 'GpuPerformanceLevel')]:
+                        if step.get(field) is not None and self.host.read().get(key) != step[field]:
+                            self.host.write(key, step[field])
+                            if self.host.read().get(key) != step[field]:
+                                raise RuntimeError('Host did not restore ' + key)
                 if self.host.read()[step['key']] != step['before']:
                     raise RuntimeError('Host did not restore ' + step['key'])
             self.steps.pop()

@@ -34,7 +34,7 @@ QVariantList SettingsController::pages() const {
 }
 void SettingsController::selectSection(int index) {
     index=std::clamp(index,0,int(sectionPages.size())-1);
-    if(index==4) {if(storage_.busy()||clock_.busy())return;clock_.leave();communication_.leave();storage_.close();category_=15;row_=0;pane_=false;emit changed();}
+    if(index==4) {if(storage_.busy()||clock_.busy())return;clock_.leave();communication_.leave();storage_.close();updatesOpen_=false;updates_.closeNotes();category_=15;row_=0;pane_=false;emit changed();}
     else selectCategory(sectionPages[index][0],false);
 }
 void SettingsController::selectPage(const QString& id,bool enter) {const int index=pageIds.indexOf(id);if(index>=0)selectCategory(index,enter);}

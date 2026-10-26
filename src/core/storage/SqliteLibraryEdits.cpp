@@ -26,7 +26,7 @@ QString migrateLibraryEditing(QSqlDatabase& db) {
         if(!q.exec(sql)){db.rollback();return failure();}
     if(!db.commit()){db.rollback();return failure();}return {};
 }
-QString editLibrary(QSqlDatabase& db, const LibraryEdit& edit) {
+QString editLibrary(QSqlDatabase& db, const LibraryEdit& edit, const QString& owner) {
     if(edit.kind==LibraryEditKind::MoveFile)return moveLibraryFile(db,edit);
     if(edit.id.isEmpty())return "Choose an item first.";
     if(!db.transaction())return failure();
@@ -47,8 +47,10 @@ QString editLibrary(QSqlDatabase& db, const LibraryEdit& edit) {
     }
     if(edit.kind==LibraryEditKind::RenameWorld) {
         if(!labelValid(edit.text,32))return fail("Use a World name of 1–32 characters.");
-        if(!q.exec("SELECT world_editing FROM preferences WHERE slot=1") || !q.next() || !q.value(0).toBool())
-            return fail("Enable World editing in Settings first.");
+        QString preferenceError;
+        const auto preferences=readPreferences(db,owner,preferenceError);
+        if(!preferenceError.isEmpty())return fail(preferenceError);
+        if(!preferences.worldEditing)return fail("Enable World editing in Settings first.");
         q.prepare("SELECT name FROM worlds WHERE id=?");q.addBindValue(edit.id);
         if(!q.exec())return fail(failure());
         if(q.next() && q.value(0).toString()!=edit.previousName)return fail("This World changed. Reopen its editor.");

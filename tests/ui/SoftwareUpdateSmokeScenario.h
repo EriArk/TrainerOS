@@ -36,8 +36,8 @@ inline void startSoftwareUpdateSmoke(QQuickWindow* window,trainer::ShellControll
         case 0: window->resize(960,540);press(SDL_CONTROLLER_BUTTON_START);shell.activate(0);shell.settings()->selectCategory(5);++*step;break;
         case 1:
             capture("system-960");
-            for(int i=0;i<3;++i)press(SDL_CONTROLLER_BUTTON_DPAD_DOWN);
-            if(shell.settings()->rowFocus()!=3){check(false,"Updates row was not focused");*step=99;break;}
+            for(int i=0;i<4;++i)press(SDL_CONTROLLER_BUTTON_DPAD_DOWN);
+            if(shell.settings()->rowFocus()!=4){check(false,"Updates row was not focused");*step=99;break;}
             press(trainer::ControllerInput::ConfirmButton);++*step;break;
         case 2:
             check(shell.settings()->updatesOpen(),"Controller did not open System Updates");
@@ -67,7 +67,7 @@ inline void startSoftwareUpdateSmoke(QQuickWindow* window,trainer::ShellControll
         case 11:
             if(flow->busy())break;
             check(flow->status()=="paused","Controller pause failed");capture("paused-960");
-            press(trainer::ControllerInput::BackButton);check(!shell.settings()->updatesOpen() && shell.settings()->rowFocus()==3,"Back lost System Updates focus");
+            press(trainer::ControllerInput::BackButton);check(!shell.settings()->updatesOpen() && shell.settings()->rowFocus()==4,"Back lost System Updates focus");
             press(trainer::ControllerInput::ConfirmButton);++*step;break;
         case 12:
             check(flow->status()=="paused","Reopening Settings discarded paused update");

@@ -1,0 +1,27 @@
+{
+  "passed": true,
+  "checks": [
+    "live-handshake",
+    "live-Eco",
+    "live-GPU-governor",
+    "invalid-keeps-active",
+    "reset-restores-baseline",
+    "EOF-restores-baseline",
+    "killed-helper-journal-recovery"
+  ],
+  "before": {
+    "Profile": "Balanced",
+    "CpuScalingGovernor": "schedutil",
+    "ManualGpuClock": 680,
+    "GpuPerformanceLevel": "auto"
+  },
+  "after": {
+    "Profile": "Balanced",
+    "CpuScalingGovernor": "schedutil",
+    "ManualGpuClock": 680,
+    "GpuPerformanceLevel": "auto"
+  },
+  "provider": "org.armada.Power",
+  "gpuMin": 220,
+  "gpuMax": 680
+}

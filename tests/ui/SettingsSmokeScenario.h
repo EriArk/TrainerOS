@@ -104,7 +104,7 @@ inline void startSettingsSmoke(QQuickWindow* window, trainer::ShellController& s
                 else done(500,{});
             };
             shell.backendAccount()->setServices(std::move(services));shell.backendAccount()->configure("settings-account-fixture");
-            settings->selectPage("trainer");break;
+            shell.systemAction("settings");settings->selectPage("trainer");break;
         }
         case 24:
             for(int i=0;i<5;++i)shell.dispatch(trainer::Action::Down);

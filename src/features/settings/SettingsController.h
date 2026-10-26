@@ -76,7 +76,7 @@ public:
     int category() const { return category_; }
     int rowFocus() const { return category_==16?gameInput_.focusIndex():row_; }
     bool controlsFocused() const { return pane_; }
-    QStringList categories() const { return {"Appearance", "Sound", "Media", "Feedback", "Trainer", "System", "Credits", "Controller", "Library", "Saves", "Connections", "Date & time", "Nearby play", "Communication", "ScreenScraper"}; }
+    QStringList categories() const { return {"Appearance", "Sound", "Media", "Feedback", "Trainer", "System", "Credits", "Controller", "Library", "Saves", "Connections", "Date & time", "Nearby play", "Communication", "ScreenScraper", "Software", "Game input"}; }
     QVariantList controls() const;
     QVariantList sections() const;
     QVariantList pages() const;

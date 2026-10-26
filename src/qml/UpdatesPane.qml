@@ -33,7 +33,7 @@ Item {
                     Text { visible: !root.compact; text: "TrainerOS Software"; color: Theme.ink; font.pixelSize: 19; font.bold: true }
                     Text { objectName: "updates-installed"; width: parent.width; text: "Installed: "+root.flow.installedVersion; textFormat: Text.PlainText; wrapMode: Text.WrapAnywhere; color: Theme.muted; font.pixelSize: root.compact?12:14 }
                     Text { width: parent.width; visible: root.flow.version.length>0; text: "Release: "+root.flow.version+(root.flow.sizeText.length?" · "+root.flow.sizeText:""); textFormat: Text.PlainText; wrapMode: Text.WrapAnywhere; color: Theme.ink; font.pixelSize: root.compact?14:16; font.bold: true }
-                    Text { objectName: "updates-status"; width: parent.width; text: root.flow.message; textFormat: Text.PlainText; wrapMode: Text.WordWrap; color: root.flow.status==="error" || root.flow.status==="blocked" ? Theme.surfaceColor("#853b24") : Theme.muted; font.pixelSize: root.compact?12:14 }
+                    Text { objectName: "updates-status"; width: parent.width; text: root.flow.message; textFormat: Text.PlainText; wrapMode: Text.WordWrap; color: root.flow.status==="error" || root.flow.status==="blocked" ? Theme.textColor("#853b24") : Theme.muted; font.pixelSize: root.compact?12:14 }
                     Rectangle {
                         width: parent.width; height: 5; radius: 3; color: Theme.surfaceColor("#bacfc3"); visible: root.flow.busy
                         Rectangle { width: parent.width*(root.flow.progress>=0?root.flow.progress:0.2); height: parent.height; radius: 3; color: Theme.surfaceColor("#4e8fb5")

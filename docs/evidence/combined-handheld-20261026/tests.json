@@ -1,0 +1,252 @@
+{
+  "suites": {
+    "software_release": "Passed    7.01 sec",
+    "software_channel": "Passed    8.52 sec",
+    "software_installation": "Passed    5.27 sec",
+    "game_input_mapping": "Passed    0.18 sec",
+    "keyboard_shortcuts": "Passed    0.11 sec",
+    "overlay_helper": "Passed    1.48 sec",
+    "apps_service": "Passed    0.26 sec",
+    "emulator_support_install": "Passed    0.25 sec",
+    "game_performance": "Passed    0.25 sec",
+    "pc_runtime_downloads": "Passed    0.23 sec",
+    "session_supervisor": "Passed    7.30 sec",
+    "pc_session": "Passed    6.92 sec",
+    "crates_sdk_launch": "Passed    0.78 sec",
+    "crates_installer": "Passed    7.59 sec",
+    "crates_catalogue": "Passed    1.34 sec",
+    "backend_account": "Passed    0.07 sec",
+    "platform_sdk": "Passed    2.32 sec",
+    "browser": "Passed    0.51 sec",
+    "screenscraper": "Passed    7.92 sec",
+    "pc_import_ui": "Passed    3.52 sec",
+    "software_update": "Passed   19.98 sec",
+    "pc_games": "Passed    1.37 sec",
+    "crates_showcase": "Passed    4.22 sec",
+    "runtime_multiplayer": "Passed: 101 QtTest cases",
+    "core": "***Failed    0.30 sec",
+    "interactions": "***Exception: SegFault  7.49 sec",
+    "first_run": "Passed    2.37 sec",
+    "trainer_profiles": "Passed    2.91 sec",
+    "library": "Passed    9.43 sec",
+    "process": "Passed    3.42 sec",
+    "input_profiles": "Passed    0.32 sec",
+    "lobby": "Passed: 84 QtTest cases",
+    "settings_qml_smoke": "Passed   14.14 sec",
+    "software_update_qml_smoke": "Passed   11.66 sec",
+    "first_run_qml_smoke": "Passed    8.88 sec",
+    "platform_qml_smoke": "Passed   10.78 sec",
+    "crates_qml_smoke": "Passed   14.47 sec",
+    "apps_qml_smoke": "Passed    4.85 sec",
+    "downloads_qml_smoke": "Passed    9.43 sec"
+  },
+  "runs": [
+    {
+      "log": "python-tests.log",
+      "results": [
+        {
+          "name": "software_release",
+          "result": "Passed    7.01 sec"
+        },
+        {
+          "name": "software_channel",
+          "result": "Passed    8.52 sec"
+        },
+        {
+          "name": "software_installation",
+          "result": "***Failed    5.01 sec"
+        },
+        {
+          "name": "game_input_mapping",
+          "result": "Passed    0.18 sec"
+        },
+        {
+          "name": "keyboard_shortcuts",
+          "result": "Passed    0.11 sec"
+        },
+        {
+          "name": "overlay_helper",
+          "result": "Passed    1.48 sec"
+        },
+        {
+          "name": "apps_service",
+          "result": "Passed    0.26 sec"
+        },
+        {
+          "name": "emulator_support_install",
+          "result": "Passed    0.25 sec"
+        },
+        {
+          "name": "game_performance",
+          "result": "Passed    0.25 sec"
+        },
+        {
+          "name": "pc_runtime_downloads",
+          "result": "Passed    0.23 sec"
+        },
+        {
+          "name": "session_supervisor",
+          "result": "Passed    7.30 sec"
+        },
+        {
+          "name": "pc_session",
+          "result": "Passed    6.92 sec"
+        },
+        {
+          "name": "crates_sdk_launch",
+          "result": "Passed    0.78 sec"
+        },
+        {
+          "name": "crates_installer",
+          "result": "Passed    7.59 sec"
+        },
+        {
+          "name": "crates_catalogue",
+          "result": "Passed    1.34 sec"
+        }
+      ]
+    },
+    {
+      "log": "native-tests.log",
+      "results": [
+        {
+          "name": "software_installation",
+          "result": "Passed    5.27 sec"
+        },
+        {
+          "name": "backend_account",
+          "result": "Passed    0.07 sec"
+        },
+        {
+          "name": "platform_sdk",
+          "result": "Passed    2.32 sec"
+        },
+        {
+          "name": "browser",
+          "result": "Passed    0.51 sec"
+        },
+        {
+          "name": "screenscraper",
+          "result": "Passed    7.92 sec"
+        },
+        {
+          "name": "pc_import_ui",
+          "result": "Passed    3.52 sec"
+        },
+        {
+          "name": "software_update",
+          "result": "Passed   19.98 sec"
+        },
+        {
+          "name": "pc_games",
+          "result": "Passed    1.37 sec"
+        },
+        {
+          "name": "crates_showcase",
+          "result": "Passed    4.22 sec"
+        },
+        {
+          "name": "runtime_multiplayer",
+          "result": "***Failed  371.54 sec"
+        },
+        {
+          "name": "core",
+          "result": "***Failed    0.30 sec"
+        },
+        {
+          "name": "interactions",
+          "result": "***Exception: SegFault  7.49 sec"
+        },
+        {
+          "name": "first_run",
+          "result": "Passed    2.37 sec"
+        },
+        {
+          "name": "trainer_profiles",
+          "result": "Passed    2.91 sec"
+        },
+        {
+          "name": "library",
+          "result": "Passed    9.43 sec"
+        },
+        {
+          "name": "process",
+          "result": "Passed    3.42 sec"
+        },
+        {
+          "name": "input_profiles",
+          "result": "Passed    0.32 sec"
+        },
+        {
+          "name": "lobby",
+          "result": "Subprocess terminated***Exception: 510.44 sec"
+        }
+      ]
+    },
+    {
+      "log": "ui-final.log",
+      "results": [
+        {
+          "name": "settings_qml_smoke",
+          "result": "***Failed   14.89 sec"
+        },
+        {
+          "name": "software_update_qml_smoke",
+          "result": "Passed   11.66 sec"
+        },
+        {
+          "name": "first_run_qml_smoke",
+          "result": "Passed    8.88 sec"
+        },
+        {
+          "name": "platform_qml_smoke",
+          "result": "***Failed   24.03 sec"
+        },
+        {
+          "name": "crates_qml_smoke",
+          "result": "***Failed   14.44 sec"
+        },
+        {
+          "name": "apps_qml_smoke",
+          "result": "Passed    4.85 sec"
+        },
+        {
+          "name": "downloads_qml_smoke",
+          "result": "Passed    9.43 sec"
+        }
+      ]
+    },
+    {
+      "log": "ui-corrected.log",
+      "results": [
+        {
+          "name": "settings_qml_smoke",
+          "result": "Passed   14.14 sec"
+        },
+        {
+          "name": "platform_qml_smoke",
+          "result": "***Failed   10.78 sec"
+        },
+        {
+          "name": "crates_qml_smoke",
+          "result": "Passed   14.47 sec"
+        }
+      ]
+    },
+    {
+      "log": "platform-final.log",
+      "results": [
+        {
+          "name": "platform_qml_smoke",
+          "result": "Passed   10.78 sec"
+        }
+      ]
+    }
+  ],
+  "emptyLibraryRegression": "Passed after null guard",
+  "notes": [
+    "No-interface network fixture failures superseded by network namespace rerun.",
+    "Core/interactions remain open; their crash was fixed and its focused regression passed.",
+    "UI fixture updates preserve original layout pages and exercise actual output tab."
+  ]
+}

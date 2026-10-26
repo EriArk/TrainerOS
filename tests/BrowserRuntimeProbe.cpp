@@ -44,7 +44,7 @@ int main(int argc,char** argv){
         engine.rootContext()->setContextProperty("pointerProbe",&pointer);
         trainer::TextEntryController keyboard;
         trainer::ControllerInput input;app.installEventFilter(&input);
-        QObject::connect(&browser,&trainer::BrowserController::pageInputRequested,&keyboard,&trainer::TextEntryController::beginLive);
+        QObject::connect(&browser,&trainer::BrowserController::pageInputRequested,&keyboard,[&](int hints){keyboard.beginLive(hints);});
         QObject::connect(&browser,&trainer::BrowserController::pageInputEnded,&keyboard,&trainer::TextEntryController::cancel);
         QObject::connect(&keyboard,&trainer::TextEntryController::textCommitted,&browser,&trainer::BrowserController::commitPageText);
         QObject::connect(&keyboard,&trainer::TextEntryController::keyRequested,&browser,&trainer::BrowserController::pageKey);

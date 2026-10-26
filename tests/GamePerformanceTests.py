@@ -64,6 +64,37 @@ class Tests(unittest.TestCase):
             self.lease.apply(dict(power='Eco', gpu=9999))
         self.assertEqual(before, self.host.read())
 
+    def test_profile_with_sticky_global_governor_restores_baseline(self):
+        original = self.host.write
+        def sticky(key, value):
+            governor = self.host.read()['CpuScalingGovernor']
+            original(key, value)
+            if key == 'Profile':
+                self.host.gov[value] = 'conservative' if value == 'Eco' else governor
+                self.host.s['GpuPerformanceLevel'] = 'auto'
+        with unittest.mock.patch.object(self.host, 'write', side_effect=sticky):
+            self.host.s['GpuPerformanceLevel'] = 'manual'
+            before = self.host.read()
+            self.lease.update({'power': 'Eco'})
+            self.lease.update({'power': 'Balanced', 'gpu': 400, 'governor': 'schedutil'})
+            self.lease.update({})
+            self.assertEqual(before, self.host.read())
+            self.lease.update({'power': 'Eco'})
+            power.Lease(self.host, self.journal).recover()
+            self.assertEqual(before, self.host.read())
+
+    def test_failed_governor_restore_is_recovered_after_profile_switch(self):
+        before = self.host.read()
+        self.lease.apply({'power': 'Eco'})
+        # Some hosts keep the new governor when selecting Balanced again.
+        self.host.gov['Balanced'] = 'conservative'
+        self.host.fail = 'CpuScalingGovernor'
+        with self.assertRaises(RuntimeError):
+            self.lease.release()
+        self.assertTrue(self.journal.exists())
+        power.Lease(self.host, self.journal).recover()
+        self.assertEqual(before, self.host.read())
+
     def test_partial_failure_restores_changes(self):
         before = self.host.read()
         self.host.fail = 'GpuPerformanceLevel'

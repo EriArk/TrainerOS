@@ -12,9 +12,10 @@ struct LibrarySnapshot {
 // Called exclusively by the connection's worker thread.
 QString migrateLibrary(QSqlDatabase&);
 QString migrateLibraryDomains(QSqlDatabase&); // Owns its FK-safe transaction.
-LibrarySnapshot readLibrary(QSqlDatabase&);
+ShellPreferences readPreferences(QSqlDatabase&, const QString& owner, QString& error);
+LibrarySnapshot readLibrary(QSqlDatabase&, const QString& owner);
 LibraryWriteResult writeAdventure(QSqlDatabase&, const AdventureRegistration&);
 QString writePreferences(QSqlDatabase&, const ShellPreferences&);
 QString migrateLibraryEditing(QSqlDatabase&);
-QString editLibrary(QSqlDatabase&, const LibraryEdit&);
+QString editLibrary(QSqlDatabase&, const LibraryEdit&, const QString& owner);
 }
