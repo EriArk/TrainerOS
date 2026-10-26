@@ -1,0 +1,88 @@
+{
+  "schema": 1,
+  "rig": "trainer-humanoid-54-v1",
+  "base": "avatar-prepared-face.glb",
+  "units": "metres",
+  "forward": "+Z",
+  "variants": [
+    {
+      "id": "rogue-base",
+      "label": "Хулиганские",
+      "feminine": false,
+      "file": "eyes-rogue-base.glb"
+    },
+    {
+      "id": "rogue-feminine",
+      "label": "Хулиганские",
+      "feminine": true,
+      "file": "eyes-rogue-feminine.glb"
+    },
+    {
+      "id": "innocent-base",
+      "label": "Наивные",
+      "feminine": false,
+      "file": "eyes-innocent-base.glb"
+    },
+    {
+      "id": "innocent-feminine",
+      "label": "Наивные",
+      "feminine": true,
+      "file": "eyes-innocent-feminine.glb"
+    },
+    {
+      "id": "sly-base",
+      "label": "Ехидные",
+      "feminine": false,
+      "file": "eyes-sly-base.glb"
+    },
+    {
+      "id": "sly-feminine",
+      "label": "Ехидные",
+      "feminine": true,
+      "file": "eyes-sly-feminine.glb"
+    },
+    {
+      "id": "calm-base",
+      "label": "Спокойные",
+      "feminine": false,
+      "file": "eyes-calm-base.glb"
+    },
+    {
+      "id": "calm-feminine",
+      "label": "Спокойные",
+      "feminine": true,
+      "file": "eyes-calm-feminine.glb"
+    },
+    {
+      "id": "sleepy-base",
+      "label": "Сонные",
+      "feminine": false,
+      "file": "eyes-sleepy-base.glb"
+    },
+    {
+      "id": "sleepy-feminine",
+      "label": "Сонные",
+      "feminine": true,
+      "file": "eyes-sleepy-feminine.glb"
+    },
+    {
+      "id": "determined-base",
+      "label": "Решительные",
+      "feminine": false,
+      "file": "eyes-determined-base.glb"
+    },
+    {
+      "id": "determined-feminine",
+      "label": "Решительные",
+      "feminine": true,
+      "file": "eyes-determined-feminine.glb"
+    }
+  ],
+  "integration": "Merge one eye set onto the matching prepared face using the shared skeleton; do not overlay on the old baked eyes. Runtime resolver integration is intentionally pending.",
+  "paletteRoles": {
+    "iris": "Original painted iris",
+    "eyelids": "Soft warm eyelid",
+    "eyebrows": "Warm brown eyebrow",
+    "skin": "Face skin transition"
+  }
+}
