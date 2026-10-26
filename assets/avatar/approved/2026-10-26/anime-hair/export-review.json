@@ -1,0 +1,146 @@
+{
+  "reimportedExport": true,
+  "clips": [
+    "Wave",
+    "Twist",
+    "T_Pose",
+    "Step",
+    "Squat",
+    "Sit",
+    "Flex",
+    "Arms_Up"
+  ],
+  "samples": [
+    {
+      "clip": "Wave",
+      "frame": 1,
+      "maxRigidHeadErrorMetres": 9.094947017729282e-13
+    },
+    {
+      "clip": "Wave",
+      "frame": 36,
+      "maxRigidHeadErrorMetres": 1.1920928955078125e-07
+    },
+    {
+      "clip": "Wave",
+      "frame": 73,
+      "maxRigidHeadErrorMetres": 9.094947017729282e-13
+    },
+    {
+      "clip": "Twist",
+      "frame": 1,
+      "maxRigidHeadErrorMetres": 9.094947017729282e-13
+    },
+    {
+      "clip": "Twist",
+      "frame": 36,
+      "maxRigidHeadErrorMetres": 2.9802322387695312e-08
+    },
+    {
+      "clip": "Twist",
+      "frame": 73,
+      "maxRigidHeadErrorMetres": 9.094947017729282e-13
+    },
+    {
+      "clip": "T_Pose",
+      "frame": 1,
+      "maxRigidHeadErrorMetres": 9.094947017729282e-13
+    },
+    {
+      "clip": "T_Pose",
+      "frame": 36,
+      "maxRigidHeadErrorMetres": 9.094947017729282e-13
+    },
+    {
+      "clip": "T_Pose",
+      "frame": 73,
+      "maxRigidHeadErrorMetres": 9.094947017729282e-13
+    },
+    {
+      "clip": "Step",
+      "frame": 1,
+      "maxRigidHeadErrorMetres": 9.094947017729282e-13
+    },
+    {
+      "clip": "Step",
+      "frame": 36,
+      "maxRigidHeadErrorMetres": 2.9802322387695312e-08
+    },
+    {
+      "clip": "Step",
+      "frame": 73,
+      "maxRigidHeadErrorMetres": 9.094947017729282e-13
+    },
+    {
+      "clip": "Squat",
+      "frame": 1,
+      "maxRigidHeadErrorMetres": 1.862645149230957e-09
+    },
+    {
+      "clip": "Squat",
+      "frame": 36,
+      "maxRigidHeadErrorMetres": 5.960464477539063e-08
+    },
+    {
+      "clip": "Squat",
+      "frame": 73,
+      "maxRigidHeadErrorMetres": 1.862645149230957e-09
+    },
+    {
+      "clip": "Sit",
+      "frame": 1,
+      "maxRigidHeadErrorMetres": 1.862645149230957e-09
+    },
+    {
+      "clip": "Sit",
+      "frame": 36,
+      "maxRigidHeadErrorMetres": 2.9802322387695312e-08
+    },
+    {
+      "clip": "Sit",
+      "frame": 73,
+      "maxRigidHeadErrorMetres": 1.862645149230957e-09
+    },
+    {
+      "clip": "Flex",
+      "frame": 1,
+      "maxRigidHeadErrorMetres": 9.094947017729282e-13
+    },
+    {
+      "clip": "Flex",
+      "frame": 36,
+      "maxRigidHeadErrorMetres": 9.094947017729282e-13
+    },
+    {
+      "clip": "Flex",
+      "frame": 73,
+      "maxRigidHeadErrorMetres": 9.094947017729282e-13
+    },
+    {
+      "clip": "Arms_Up",
+      "frame": 1,
+      "maxRigidHeadErrorMetres": 9.094947017729282e-13
+    },
+    {
+      "clip": "Arms_Up",
+      "frame": 36,
+      "maxRigidHeadErrorMetres": 9.094947017729282e-13
+    },
+    {
+      "clip": "Arms_Up",
+      "frame": 73,
+      "maxRigidHeadErrorMetres": 9.094947017729282e-13
+    }
+  ],
+  "staticViews": [
+    "swept",
+    "ponytail",
+    "crop",
+    "bob"
+  ],
+  "motionViews": [
+    "Wave",
+    "Twist"
+  ],
+  "deviceAcceptance": false
+}

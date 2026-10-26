@@ -1,0 +1,136 @@
+{
+  "eyePairs": 12,
+  "clips": 8,
+  "poseSamples": [
+    {
+      "clip": "Wave",
+      "frame": 1,
+      "maxRigidHeadErrorMetres": 0
+    },
+    {
+      "clip": "Wave",
+      "frame": 36,
+      "maxRigidHeadErrorMetres": 0
+    },
+    {
+      "clip": "Wave",
+      "frame": 73,
+      "maxRigidHeadErrorMetres": 0
+    },
+    {
+      "clip": "Twist",
+      "frame": 1,
+      "maxRigidHeadErrorMetres": 0
+    },
+    {
+      "clip": "Twist",
+      "frame": 36,
+      "maxRigidHeadErrorMetres": 1.4901161193847656e-08
+    },
+    {
+      "clip": "Twist",
+      "frame": 73,
+      "maxRigidHeadErrorMetres": 0
+    },
+    {
+      "clip": "T_Pose",
+      "frame": 1,
+      "maxRigidHeadErrorMetres": 0
+    },
+    {
+      "clip": "T_Pose",
+      "frame": 36,
+      "maxRigidHeadErrorMetres": 0
+    },
+    {
+      "clip": "T_Pose",
+      "frame": 73,
+      "maxRigidHeadErrorMetres": 0
+    },
+    {
+      "clip": "Step",
+      "frame": 1,
+      "maxRigidHeadErrorMetres": 0
+    },
+    {
+      "clip": "Step",
+      "frame": 36,
+      "maxRigidHeadErrorMetres": 0
+    },
+    {
+      "clip": "Step",
+      "frame": 73,
+      "maxRigidHeadErrorMetres": 0
+    },
+    {
+      "clip": "Squat",
+      "frame": 1,
+      "maxRigidHeadErrorMetres": 0
+    },
+    {
+      "clip": "Squat",
+      "frame": 36,
+      "maxRigidHeadErrorMetres": 0
+    },
+    {
+      "clip": "Squat",
+      "frame": 73,
+      "maxRigidHeadErrorMetres": 0
+    },
+    {
+      "clip": "Sit",
+      "frame": 1,
+      "maxRigidHeadErrorMetres": 0
+    },
+    {
+      "clip": "Sit",
+      "frame": 36,
+      "maxRigidHeadErrorMetres": 7.450580596923828e-09
+    },
+    {
+      "clip": "Sit",
+      "frame": 73,
+      "maxRigidHeadErrorMetres": 0
+    },
+    {
+      "clip": "Flex",
+      "frame": 1,
+      "maxRigidHeadErrorMetres": 0
+    },
+    {
+      "clip": "Flex",
+      "frame": 36,
+      "maxRigidHeadErrorMetres": 0
+    },
+    {
+      "clip": "Flex",
+      "frame": 73,
+      "maxRigidHeadErrorMetres": 0
+    },
+    {
+      "clip": "Arms_Up",
+      "frame": 1,
+      "maxRigidHeadErrorMetres": 0
+    },
+    {
+      "clip": "Arms_Up",
+      "frame": 36,
+      "maxRigidHeadErrorMetres": 0
+    },
+    {
+      "clip": "Arms_Up",
+      "frame": 73,
+      "maxRigidHeadErrorMetres": 0
+    }
+  ],
+  "sideViews": [
+    "rogue-base",
+    "innocent-feminine"
+  ],
+  "motionViews": [
+    "sleepy-feminine Wave",
+    "determined-base Twist"
+  ],
+  "runtimeIntegration": false,
+  "deviceAcceptance": false
+}

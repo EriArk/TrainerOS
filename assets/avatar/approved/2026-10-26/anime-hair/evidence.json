@@ -1,0 +1,51 @@
+{
+  "schema": 1,
+  "date": "2026-10-26",
+  "status": "owner-approved appearance; runtime integration pending",
+  "approval": "Отлично. Отлично получилось",
+  "previousApprovedCommit": "7ba87f2bab510d587ee23ecad090f80114aa7212",
+  "runtimePackUpdated": false,
+  "deviceDelivery": false,
+  "files": {
+    "avatar-authoring.blend": {
+      "sha256": "15cbe948657a4386bcdbfb0719719daa5a7990cb99d9e70cf3504505fa31a3f0",
+      "bytes": 24806482
+    },
+    "avatar-all-hair-options.glb": {
+      "sha256": "2561aeb351feef8e8e0122cf4235351c36a0c184111720e8ef7c5de1a011f6f9",
+      "bytes": 17063540
+    },
+    "four-hairstyles.png": {
+      "sha256": "451c2e9c754f76e8508f030ac5495c0e15e2195acfdad51c9251cdb2028a8ea0",
+      "bytes": 1958086
+    },
+    "temple-details.png": {
+      "sha256": "e51a035aa227d89c69f9ec555ac6e17925d9f458e62c96e750a7f597d6d202f1",
+      "bytes": 1766776
+    },
+    "validation.json": {
+      "sha256": "74ac7fb9e79ae83ee4537e2ab7ce03f11130fbeea5bdd197e84044cf1a15c647",
+      "bytes": 2393
+    },
+    "export-review.json": {
+      "sha256": "7e1512a2052fea06b71e77a9f277814f23ec1b7e9ac4c57a4aa810f194bab119",
+      "bytes": 3095
+    },
+    "hair-swept.glb": {
+      "sha256": "c6d047bf8c5afd2ce7a06a4e5a174ba06034b6b97c98acb329c0237898bc162c",
+      "bytes": 918148
+    },
+    "hair-crop.glb": {
+      "sha256": "6b815dc1dd6ae1354f3f175629aadee0069e4f3f3ddcb786b8cd30b734ac969f",
+      "bytes": 1072600
+    },
+    "hair-bob.glb": {
+      "sha256": "815058762fecd386c73e87ddacac6f8b1da7749864b5251283c70e9344327893",
+      "bytes": 786700
+    },
+    "hair-ponytail.glb": {
+      "sha256": "47dd375225a72ef1993d17124e18322f2084d87302c9625951acc1c5e11ac220",
+      "bytes": 554336
+    }
+  }
+}

@@ -1,0 +1,126 @@
+{
+  "sourceSha256": "2561aeb351feef8e8e0122cf4235351c36a0c184111720e8ef7c5de1a011f6f9",
+  "status": "local authoring candidates; not approved or installed",
+  "variants": [
+    {
+      "id": "rogue-base",
+      "label": "Хулиганские",
+      "feminine": false,
+      "changedFaceVertices": 1470,
+      "maxFaceDepthChangeMetres": 0.012756124138832092,
+      "originalBodyTopologyWeightsUvsAndCorrectives": true,
+      "hairClothingRigAnimationsPreserved": true,
+      "finiteGeometryNormalizedWeightsNormals": true
+    },
+    {
+      "id": "rogue-feminine",
+      "label": "Хулиганские",
+      "feminine": true,
+      "changedFaceVertices": 1470,
+      "maxFaceDepthChangeMetres": 0.012756124138832092,
+      "originalBodyTopologyWeightsUvsAndCorrectives": true,
+      "hairClothingRigAnimationsPreserved": true,
+      "finiteGeometryNormalizedWeightsNormals": true
+    },
+    {
+      "id": "innocent-base",
+      "label": "Наивные",
+      "feminine": false,
+      "changedFaceVertices": 1470,
+      "maxFaceDepthChangeMetres": 0.012756124138832092,
+      "originalBodyTopologyWeightsUvsAndCorrectives": true,
+      "hairClothingRigAnimationsPreserved": true,
+      "finiteGeometryNormalizedWeightsNormals": true
+    },
+    {
+      "id": "innocent-feminine",
+      "label": "Наивные",
+      "feminine": true,
+      "changedFaceVertices": 1470,
+      "maxFaceDepthChangeMetres": 0.012756124138832092,
+      "originalBodyTopologyWeightsUvsAndCorrectives": true,
+      "hairClothingRigAnimationsPreserved": true,
+      "finiteGeometryNormalizedWeightsNormals": true
+    },
+    {
+      "id": "sly-base",
+      "label": "Ехидные",
+      "feminine": false,
+      "changedFaceVertices": 1470,
+      "maxFaceDepthChangeMetres": 0.012756124138832092,
+      "originalBodyTopologyWeightsUvsAndCorrectives": true,
+      "hairClothingRigAnimationsPreserved": true,
+      "finiteGeometryNormalizedWeightsNormals": true
+    },
+    {
+      "id": "sly-feminine",
+      "label": "Ехидные",
+      "feminine": true,
+      "changedFaceVertices": 1470,
+      "maxFaceDepthChangeMetres": 0.012756124138832092,
+      "originalBodyTopologyWeightsUvsAndCorrectives": true,
+      "hairClothingRigAnimationsPreserved": true,
+      "finiteGeometryNormalizedWeightsNormals": true
+    },
+    {
+      "id": "calm-base",
+      "label": "Спокойные",
+      "feminine": false,
+      "changedFaceVertices": 1470,
+      "maxFaceDepthChangeMetres": 0.012756124138832092,
+      "originalBodyTopologyWeightsUvsAndCorrectives": true,
+      "hairClothingRigAnimationsPreserved": true,
+      "finiteGeometryNormalizedWeightsNormals": true
+    },
+    {
+      "id": "calm-feminine",
+      "label": "Спокойные",
+      "feminine": true,
+      "changedFaceVertices": 1470,
+      "maxFaceDepthChangeMetres": 0.012756124138832092,
+      "originalBodyTopologyWeightsUvsAndCorrectives": true,
+      "hairClothingRigAnimationsPreserved": true,
+      "finiteGeometryNormalizedWeightsNormals": true
+    },
+    {
+      "id": "sleepy-base",
+      "label": "Сонные",
+      "feminine": false,
+      "changedFaceVertices": 1470,
+      "maxFaceDepthChangeMetres": 0.012756124138832092,
+      "originalBodyTopologyWeightsUvsAndCorrectives": true,
+      "hairClothingRigAnimationsPreserved": true,
+      "finiteGeometryNormalizedWeightsNormals": true
+    },
+    {
+      "id": "sleepy-feminine",
+      "label": "Сонные",
+      "feminine": true,
+      "changedFaceVertices": 1470,
+      "maxFaceDepthChangeMetres": 0.012756124138832092,
+      "originalBodyTopologyWeightsUvsAndCorrectives": true,
+      "hairClothingRigAnimationsPreserved": true,
+      "finiteGeometryNormalizedWeightsNormals": true
+    },
+    {
+      "id": "determined-base",
+      "label": "Решительные",
+      "feminine": false,
+      "changedFaceVertices": 1470,
+      "maxFaceDepthChangeMetres": 0.012756124138832092,
+      "originalBodyTopologyWeightsUvsAndCorrectives": true,
+      "hairClothingRigAnimationsPreserved": true,
+      "finiteGeometryNormalizedWeightsNormals": true
+    },
+    {
+      "id": "determined-feminine",
+      "label": "Решительные",
+      "feminine": true,
+      "changedFaceVertices": 1470,
+      "maxFaceDepthChangeMetres": 0.012756124138832092,
+      "originalBodyTopologyWeightsUvsAndCorrectives": true,
+      "hairClothingRigAnimationsPreserved": true,
+      "finiteGeometryNormalizedWeightsNormals": true
+    }
+  ]
+}

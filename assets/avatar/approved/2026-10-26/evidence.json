@@ -1,0 +1,99 @@
+{
+  "schema": 1,
+  "status": "owner-approved appearance; shared runtime pack integration pending",
+  "date": "2026-10-26",
+  "headScale": 0.92,
+  "garment": "separate original thin-strap sports tank",
+  "rig": "trainer-humanoid-54-v1",
+  "runtimePackUpdated": false,
+  "deviceDelivery": false,
+  "hairlineChangesIncluded": false,
+  "headValidation": {
+    "scale": 0.92,
+    "skeletonAndAnimationBuffersExact": true,
+    "skinWeightsAndUVsExact": true,
+    "bodyBelowNeckAndItsCorrectivesExact": true,
+    "shirtAndShoesExact": true,
+    "sha256": "115f3b617faffd4a3181627c464b3aa8cec8af60a78d6e0f3d5bff8d7e9a4b04"
+  },
+  "tankValidation": {
+    "runtimeGlbSha256": "c36c5e30a83a23417b3af4396b9cb62bfd9ebddf89d83dc4c60ce6577d558f87",
+    "manifoldExceptOpenings": true,
+    "boundaryLoops": 4,
+    "normalizedSkinWeights": true,
+    "sampledFrames": 72,
+    "poses": [
+      {
+        "clip": "Arms_Up",
+        "samples": 9,
+        "maximumEdgeStretch": 1.4729402777146348
+      },
+      {
+        "clip": "Squat",
+        "samples": 9,
+        "maximumEdgeStretch": 1.347942383165167
+      },
+      {
+        "clip": "Twist",
+        "samples": 9,
+        "maximumEdgeStretch": 1.9984726743230143
+      },
+      {
+        "clip": "Step",
+        "samples": 9,
+        "maximumEdgeStretch": 1.2584246846214946
+      },
+      {
+        "clip": "Sit",
+        "samples": 9,
+        "maximumEdgeStretch": 1.161035037312056
+      },
+      {
+        "clip": "Flex",
+        "samples": 9,
+        "maximumEdgeStretch": 1.0923018151472357
+      },
+      {
+        "clip": "Wave",
+        "samples": 9,
+        "maximumEdgeStretch": 1.1525523773410338
+      },
+      {
+        "clip": "T_Pose",
+        "samples": 9,
+        "maximumEdgeStretch": 1.2154015435969263
+      }
+    ],
+    "scope": "Offline GLB import and deformation; no device or cloth simulation acceptance"
+  },
+  "shortsRepair": {
+    "changedSourceVertices": 92,
+    "changedBlenderVertices": 89,
+    "maxDisplacementMetres": 0.004000000189989805,
+    "indicesUVWeightsMorphDeltasPreserved": true,
+    "originalFileUntouched": true,
+    "outputSha256": "c36c5e30a83a23417b3af4396b9cb62bfd9ebddf89d83dc4c60ce6577d558f87"
+  },
+  "files": {
+    "avatar-all-hair-options.glb": {
+      "sha256": "115f3b617faffd4a3181627c464b3aa8cec8af60a78d6e0f3d5bff8d7e9a4b04",
+      "bytes": 22733348
+    },
+    "avatar-authoring.blend": {
+      "sha256": "3149fd537c397297ea84c5445d4193c4c2f988a45859c4a03f6eb1b55bceba2a",
+      "bytes": 24616376
+    },
+    "head-proportions.png": {
+      "sha256": "c789698786b7c18b8d27d99c78274506a80673ea79b4c63075520c4eb1c4ef70",
+      "bytes": 1276263
+    },
+    "sports-tank.glb": {
+      "sha256": "c9f6266db3ef810f11b0fc0ae9f933cde51cbc78590d702d14bd91b422fa69e5",
+      "bytes": 233584
+    },
+    "tank-movement.png": {
+      "sha256": "22407e29cb3dd13ee6ec3456bbd965eb6aff2060789321dd4fc8b4c4e5e13478",
+      "bytes": 3689821
+    }
+  }
+}

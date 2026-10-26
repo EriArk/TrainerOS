@@ -1,0 +1,77 @@
+{
+  "status": "local anime fitting revision; not owner approved or installed",
+  "preservedMeshesExact": {
+    "tripo_mesh_87fb1137-b9b5-4a56-ae41-fbc2ae059eae.001": true,
+    "Original thin-strap sports tank": true,
+    "shoes": true
+  },
+  "skeletonAndAnimationsExact": true,
+  "geometry": {
+    "hair-swept": {
+      "vertices": 11269,
+      "triangles": 22278,
+      "trianglesBelow1e12SquareMetres": 0,
+      "finite": true,
+      "normalizedWeightsAndNormals": true
+    },
+    "hair-ponytail": {
+      "vertices": 6717,
+      "triangles": 13204,
+      "trianglesBelow1e12SquareMetres": 0,
+      "finite": true,
+      "normalizedWeightsAndNormals": true
+    },
+    "hair-crop": {
+      "vertices": 13699,
+      "triangles": 23809,
+      "trianglesBelow1e12SquareMetres": 0,
+      "finite": true,
+      "normalizedWeightsAndNormals": true
+    },
+    "hair-bob": {
+      "vertices": 10144,
+      "triangles": 16471,
+      "trianglesBelow1e12SquareMetres": 0,
+      "finite": true,
+      "normalizedWeightsAndNormals": true
+    }
+  },
+  "files": {
+    "avatar-anime-hair-all.glb": {
+      "bytes": 17063540,
+      "sha256": "2561aeb351feef8e8e0122cf4235351c36a0c184111720e8ef7c5de1a011f6f9"
+    },
+    "avatar-bob.glb": {
+      "bytes": 17063532,
+      "sha256": "bc9153ea7b8a61308ea402abba833c71d884a426dc531fa2695f20c3c68e34ea"
+    },
+    "avatar-crop.glb": {
+      "bytes": 17063532,
+      "sha256": "15b2922c658097f7f07b7af8fc3299a70279d33cb6346149d8ad7ac29871627e"
+    },
+    "avatar-ponytail.glb": {
+      "bytes": 17063532,
+      "sha256": "f5bdd9395d57a51748ad7ab415fb0d163c8a31d44b5deda6432b092d6051ae1b"
+    },
+    "avatar-swept.glb": {
+      "bytes": 17063532,
+      "sha256": "8e7ad470e8bd25d5530be6373d572144b736c2e29b357d87cb621f9a3b524cf6"
+    },
+    "hair-bob.glb": {
+      "bytes": 786700,
+      "sha256": "815058762fecd386c73e87ddacac6f8b1da7749864b5251283c70e9344327893"
+    },
+    "hair-crop.glb": {
+      "bytes": 1072600,
+      "sha256": "6b815dc1dd6ae1354f3f175629aadee0069e4f3f3ddcb786b8cd30b734ac969f"
+    },
+    "hair-ponytail.glb": {
+      "bytes": 554336,
+      "sha256": "47dd375225a72ef1993d17124e18322f2084d87302c9625951acc1c5e11ac220"
+    },
+    "hair-swept.glb": {
+      "bytes": 918148,
+      "sha256": "c6d047bf8c5afd2ce7a06a4e5a174ba06034b6b97c98acb329c0237898bc162c"
+    }
+  }
+}

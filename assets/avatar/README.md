@@ -1,5 +1,20 @@
 # Shared Trainer avatar pack
 
+The corrected **standalone base body**, without wearable clothing, shoes or hair,
+is [`approved/base-body/trainer-body.glb`](approved/base-body/trainer-body.glb).
+Its [Blender source and verification](approved/base-body/README.md) preserve the
+approved smaller head and shorts repair. This is the original corrected body;
+the separate eye-ready face revision is documented alongside the eye components.
+
+The owner-approved 26 October authoring revision is preserved separately in
+[`approved/2026-10-26`](approved/2026-10-26/README.md): an original thin-strap
+sports tank, editable Blender source, and a head/hair scale of 0.92. It is not
+yet the installed/shared runtime pack. The downloaded tank attribution below
+describes the retained runtime revision 3; its geometry was not used for the
+new approved tank. The subsequently approved [anime hairstyles](approved/2026-10-26/anime-hair/README.md)
+and [12 chibi eye variants](approved/2026-10-26/chibi-eyes/README.md) are also
+preserved as separate authoring revisions; SDK/system import remains pending.
+
 TrainerOS owns this pack. Games load a resolved character through
 [`avatar.local`](../../sdk/AVATAR.md); they do not redistribute a copy in each
 game. The owner authorized adding the prepared models to this repository on
