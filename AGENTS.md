@@ -81,16 +81,17 @@ TrainerOS is a **controller-first native Linux shell / operating environment** w
 
 ### Current target navigation
 
-**Exactly five shell primaries:** `Home | Games | GameHub | Social | Apps` (L1/R1).
+**Exactly five shell primaries:** `Home | Games | GameHub | Online | Apps` (L1/R1).
 
-- **Games:** collections + platforms. **GameHub:** My Story across the library / RetroAchievements / optional game Adapter / universal Lobby (L2/R2), including Timeline and Gallery.
-- **Social:** Messages / Communities / Discover. The social conversation and GameHub Lobby remain distinct, linked surfaces.
-- **Apps:** Apps / Crates / Browser / Files. Ordinary Linux apps remain ordinary apps; Crates is a curated opt-in source, not a second package manager.
+- **Owner correction, 26 October (TARGET, not yet migrated):** profile through the header avatar owns Profile / Player Journey (My Story, Timeline, Gallery) / RetroAchievements / Wardrobe. Profile comes before Bazaar implementation; see [the profile/Online contract](docs/PLAYER_PROFILE.md).
+- **Games:** collections + platforms. **GameHub:** game spaces and the selected game's Adapter.
+- **Online replaces Social:** Lobby / Bazaar / Crates / Chats. Chats retain people, groups, communities, discovery and voice through the existing provider. Preserve independent lifecycles and route/focus return; do not build replacement services.
+- **Apps:** Apps / Browser / Files. Installed applications remain here; the Crates catalogue moves to Online. Ordinary Linux apps remain ordinary apps; Crates is a curated opt-in source, not a second package manager.
 - **X** globally toggles Quick Apps dock and **Y** globally toggles Recent Games/Favorites in the **shell**; do not steal them in inner pages. Select targets the focused object; Browser/Files toolbar exceptions and long-A context action follow their specific issue contracts.
 - Physical **Home** opens the current-activity menu (game, notifications and game settings); gameplay controls belong to the **actual running session**. Selected game, live PID/session and foreground/input owner are different facts.
 - Physical **Start** in the shell is the unified widget dashboard with quick actions, Settings and Power. Native Start during unmodified gameplay belongs to the game. Home → Game Options → Start opens the same dashboard in-game. Game settings belong to Home; system Settings/Power belong to Start.
 - Opening Home alone is not auto-pause, auto-minimize or Exit. Preserve explicit Minimize/Return, input leases, neutral barriers, a predictable focus return and protected exit/save workflow.
-- The **only** ordinary multiplayer destination is **GameHub Lobby**. Special game-specific semantic interactions can remain in the Adapter; do not create a parallel Social/GameParty or NetPlay/Remote Play UI.
+- The **only** ordinary multiplayer destination is **Online Lobby**. Special game-specific semantic interactions can remain in the Adapter; do not create a parallel Social/GameParty or NetPlay/Remote Play UI. Existing route names must migrate safely; this target does not claim new installed navigation.
 
 **Source of truth for these targets:** #111, #168, #170, #179, #206, #207, #216, #224, #227, #233, #234 and their accepted later amendments. Delivery is recorded by build/date in PROJECT_STATUS; SDK targets are not installed API claims.
 
