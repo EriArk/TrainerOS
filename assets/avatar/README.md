@@ -1,5 +1,12 @@
 # Shared Trainer avatar pack
 
+The owner-approved 26 October authoring revision is preserved separately in
+[`approved/2026-10-26`](approved/2026-10-26/README.md): an original thin-strap
+sports tank, editable Blender source, and a head/hair scale of 0.92. It is not
+yet the installed/shared runtime pack. The downloaded tank attribution below
+describes the retained runtime revision 3; its geometry was not used for the
+new approved tank. Hairline proposals remain outside the approved revision.
+
 TrainerOS owns this pack. Games load a resolved character through
 [`avatar.local`](../../sdk/AVATAR.md); they do not redistribute a copy in each
 game. The owner authorized adding the prepared models to this repository on
