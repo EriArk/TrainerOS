@@ -23,7 +23,9 @@ public:
     bool requestShell();
     void returnToGame(bool options = false);
     void openOptions();
+    void keyboardCommand(const QJsonObject& packet) {send(packet);}
 signals:
+    void keyboardEvent(QJsonObject packet);
     void inputMappingFailed(QString message);
     void radialChanged(QVariantMap state);
     void shellRequested();

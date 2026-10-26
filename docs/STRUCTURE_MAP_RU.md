@@ -143,6 +143,18 @@ flowchart LR
 
 ## 4. Подключаемое содержимое: вход, работа, выход
 
+PC-подготовка 26 октября: `PcGamesController` владеет намерением импорта,
+изолированным destination/prefix и подтверждением S02; `FilesService` исполняет
+копирование/распаковку через libfm/libarchive. `ProcessService` + PC subreaper
+владеют установщиком, существующий Apps service — его окнами и input lease.
+Журнал импорта и PID/start identity защищают незавершённую установку при возврате.
+Home+X распознают SDL `ControllerInput` и общий raw-pad `HomeChord`;
+`TextEntryController`/`KeyboardPanel` сохраняют единые раскладки. Внешняя
+`ExternalKeyboardWindow` использует существующий passive overlay, а отдельный
+`keyboard_input.py` output worker проверяет владение активным X11-окном и
+заканчивает отпускание клавиш при потере вызывающего процесса.
+[Механизм и ещё открытые части](../packaging/pc/README.md#pc-import-and-installer-preparation--26-october-2026).
+
 Один пакет может совмещать роли. Для обычной Linux-программы не обязательны SDK,
 Crates, особый аккаунт или отдельный сервер. Сервисы подключаются по потребности.
 

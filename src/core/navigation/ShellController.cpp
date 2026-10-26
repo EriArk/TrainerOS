@@ -75,6 +75,13 @@ ShellController::ShellController(LibraryRepository& repo, TrainerRepository& pro
       libraryManager_(repo, nullptr, this), libraryTools_(repo,this), scraper_(repo,this), pcGames_(repo,*files_.service(),this), settings_(this), device_(this), diagnostics_(this), dashboard_(repo,achievements,social_,this), story_(repo,achievements) {
 
     connect(&pcGames_,&PcGamesController::changed,this,&ShellController::changed);
+    connect(&pcGames_,&PcGamesController::installerStarted,&apps_,&AppsController::watchInstaller);
+    connect(&pcGames_,&PcGamesController::installerFinished,&apps_,&AppsController::finishInstaller);
+    connect(&pcGames_,&PcGamesController::resumeInstaller,&apps_,&AppsController::resumeInstaller);
+    connect(&pcGames_,&PcGamesController::changed,this,[this]{downloads_.publish("pc",pcGames_.tasks());});
+    connect(&downloads_,&DownloadsController::commandRequested,this,[this](QString provider,QString,QString command){
+        if(provider=="pc"){if(command=="open")downloads_.close();pcGames_.taskCommand(command);}
+    });
     settings_.gameInput()->configure(&repo,{},{});
     connect(settings_.gameInput(),&GameInputProfiles::changed,&settings_,&SettingsController::changed);
     connect(settings_.gameInput(),&GameInputProfiles::backRequested,this,[this]{settings_.selectPage("game-input",false);});
@@ -1627,6 +1634,18 @@ void ShellController::openSocialNotification() {
     social_.openNotification();emit changed();
 }
 void ShellController::dispatch(Action action) {
+    if(action==Action::ToggleKeyboard) {
+        if(!notice_.isEmpty())return;
+        menuOpen_=homeMenuOpen_=quickAppsOpen_=false;
+        if(keyboard_.isOpen()) {
+            if(keyboard_.live())keyboard_.cancel();else keyboard_.toggleVisibility();
+        } else if(keyboard_.hidden())keyboard_.toggleVisibility();
+        else {
+            if(page_==AppsPage && appsFace_=="browser")browser_.requestPageKeyboard();
+            if(!keyboard_.isOpen()){textTarget_=TextTarget::None;keyboard_.beginLive(0,"Keyboard");}
+        }
+        return;
+    }
     if(social_.dispatchIncomingCall(action))return;
     if(page_==AppsPage && appsFace_=="browser" && service_.isEmpty() && !keyboard_.isOpen() && !menuOpen_ && !homeMenuOpen_ && !drawerOpen_ && !quickAppsOpen_ && notice_.isEmpty() && !localModalOpen()) {
         if(action==Action::Up||action==Action::Down||action==Action::Left||action==Action::Right||action==Action::Confirm||action==Action::ContextMenu||action==Action::Back||action==Action::LocalAction||action==Action::ScrollUp||action==Action::ScrollDown){browser_.dispatch(action);return;}

@@ -80,14 +80,15 @@ void AppsController::accept(const QJsonObject& packet) {
             ids.insert(id);catalogue_.append(row);
         }
         std::sort(catalogue_.begin(),catalogue_.end(),[](const QVariant& a,const QVariant& b){return QString::localeAwareCompare(a.toMap()["name"].toString(),b.toMap()["name"].toString())<0;});
-    } else if(event=="ready") {ready_=true;status_.clear();}
+    } else if(event.startsWith("keyboard")) {controls_=false;emit keyboardEvent(packet);}
+    else if(event=="ready") {ready_=true;status_.clear();}
     else if(event=="state") {
         running_.clear();for(const auto& value:packet["running"].toArray())running_.insert(value.toString());
         current_=packet["current"].toString();launching_=packet["launching"].toString();
         if(current_.isEmpty())controls_=false;
     } else if(event=="foreground") {current_=packet["id"].toString();processId_=packet["pid"].toVariant().toLongLong();controls_=false;emit foregroundRequested();}
     else if(event=="shell") {current_.clear();processId_=0;controls_=false;emit shellRequested();}
-    else if(event=="controls") {controls_=true;controlFocus_=0;}
+    else if(event=="controls") {controls_=true;controlFocus_=0;emit keyboardEvent({{"event","keyboard-closed"}});}
     else if(event=="action") {
         const auto name=packet["action"].toString();
         if(name=="confirm")control(controlFocus_);
@@ -144,6 +145,11 @@ void AppsController::openFile(const QString& url) {
     if(launchGuard){const auto error=launchGuard();if(!error.isEmpty()){status_=error;emit changed();return;}}
     status_.clear();emit commandRequested({{"command","open-file"},{"url",url}});emit changed();
 }
+void AppsController::watchInstaller(qint64 pid,const QString& title) {
+    if(ready_&&pid>1)emit commandRequested({{"command","watch-installer"},{"pid",QString::number(pid)},{"title",title.left(96)}});
+}
+void AppsController::finishInstaller() {emit commandRequested({{"command","finish-installer"}});}
+void AppsController::resumeInstaller() {emit commandRequested({{"command","resume-installer"}});}
 void AppsController::refresh(){
     if(process_.state()==QProcess::NotRunning&&!helper_.isEmpty()){start(python_,helper_);return;}
     emit commandRequested({{"command","refresh"}});

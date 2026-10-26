@@ -90,6 +90,7 @@ void AdventureOverlayService::start() {
     helperProcess_.start("/usr/bin/python3", arguments);
 }
 void AdventureOverlayService::stop() {
+    emit keyboardEvent({{"event","keyboard-closed"}});
     emit radialChanged({});
     openingShell_=false;
     active_ = false; retry_.stop(); heartbeat_.stop(); handoffDeadline_.stop();
@@ -99,6 +100,7 @@ void AdventureOverlayService::stop() {
     }
 }
 void AdventureOverlayService::lost() {
+    emit keyboardEvent({{"event","keyboard-closed"}});
     emit radialChanged({});
     if(active_ && game_.active() && game_.processId() && profileRequested_ && !mappingFailed_) {
         mappingFailed_=true;
@@ -135,7 +137,8 @@ void AdventureOverlayService::receive() {
         const auto message = QJsonDocument::fromJson(buffer_.left(index)).object(); buffer_.remove(0, index + 1);
         if (!active_ || !game_.active()) continue;
         const auto event = message["event"].toString();
-        if (event == "radial") {emit radialChanged(message.toVariantMap());}
+        if(event.startsWith("keyboard"))emit keyboardEvent(message);
+        else if (event == "radial") {emit radialChanged(message.toVariantMap());}
         else if (event == "ready") {protocol_=message["protocol"].toInt();exit_.setAvailable(protocol_>=2 && protocol_<=4);qCInfo(overlayLog)<<"helper ready"<<protocol_;}
         else if(event=="minimized") {
             if(minimizing_ && launch_.setMinimized(true)){handoffDeadline_.stop();minimizing_=false;shellReady_=false;heldAction_.clear();view_.handOffToShell();emit shellRequested();}
@@ -203,7 +206,7 @@ void AdventureOverlayService::shellInput(const QJsonObject& input) {
     if(!input["connected"].toBool()){shellReady_=false;heldAction_.clear();return;}
     if(!shellReady_){if(input["neutral"].toBool())shellReady_=true;return;}
     const auto deliver=[this](Action action){if(view_.contentInput())emit contentAction(action);else emit shellAction(action);};
-    const QList<QPair<QString,Action>> bindings{{"home",Action::Home},{"back",Action::Back},
+    const QList<QPair<QString,Action>> bindings{{"keyboard",Action::ToggleKeyboard},{"home",Action::Home},{"back",Action::Back},
         {"start",Action::SystemMenu},{"previousPage",Action::PreviousPage},{"nextPage",Action::NextPage},
         {"previousFace",Action::PreviousFace},{"nextFace",Action::NextFace},
         {"up",Action::Up},{"down",Action::Down},{"left",Action::Left},{"right",Action::Right},

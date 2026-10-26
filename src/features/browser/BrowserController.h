@@ -48,6 +48,7 @@ public:
     Q_INVOKABLE void wheel(QObject* item,qreal x,qreal y,qreal dx,qreal dy);
     Q_INVOKABLE void editPageField(QObject* surface, bool explicitRequest = true);
     Q_INVOKABLE void stopPageInput();
+    void requestPageKeyboard() {if(inputSurface_)editPageField(inputSurface_,true);}
     void commitPageText(const QString& text);
     void pageKey(const QString& action);
     void pageKeyStroke(int key,int modifiers,const QString& text);

@@ -21,6 +21,7 @@ public:
     Q_INVOKABLE void attach(QObject* window);
     Q_INVOKABLE void setRegion(QRect region);
     Q_INVOKABLE void setRegions(QVariantList regions);
+    Q_INVOKABLE void forwardPointer(QString phase,QPointF position);
     void setGame(qint64 pid);
 signals:
     void changed();

@@ -1,4 +1,5 @@
 #include "FilesService.h"
+#include "ArchiveExtractor.h"
 #include <QDir>
 #include <QFileInfo>
 #include <QMimeDatabase>
@@ -171,13 +172,22 @@ QVariantList FilesService::places() const {
     return result;
 }
 QString FilesService::start(const QString& op,const QStringList& sources,const QString& destination) {
-    if(!QStringList{"copy","move","rename","trash","delete","mkdir"}.contains(op))return {};
+    if(!QStringList{"copy","move","rename","trash","delete","mkdir","extract"}.contains(op))return {};
     auto task=std::make_shared<Task>();task->operation=op;task->sources=sources;task->destination=destination;impl_->jobs<<task;
+    if(op=="extract") {
+        task->future=QtConcurrent::run([task]{
+            const auto error=task->sources.size()==1?ArchiveExtractor::extract(local(task->sources.first()),local(task->destination),
+                [task]{std::lock_guard lock(task->mutex);return task->cancelled;},
+                [task](double value){std::lock_guard lock(task->mutex);task->progress=value;}):QString("Choose one local archive.");
+            std::lock_guard lock(task->mutex);task->error=task->cancelled?QString():error;task->finished=true;
+        });
+    } else {
 #ifdef TRAINER_WITH_LIBFM
     task->future=QtConcurrent::run([task]{execute(task);});
 #else
     task->finished=true;task->error="File operations require the Linux libfm-qt backend.";
 #endif
+    }
     impl_->timer.start();Q_EMIT changed();return task->id;
 }
 void FilesService::cancel(const QString& id){for(const auto& task:impl_->jobs)if(id.isEmpty()||task->id==id){std::lock_guard lock(task->mutex);if(task->finished)continue;task->cancelled=true;task->question.clear();

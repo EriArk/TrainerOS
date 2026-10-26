@@ -65,7 +65,7 @@ public:
     Q_INVOKABLE void toggleNumberPad();
     Q_INVOKABLE void toggleGroup(const QString& group);
     Q_INVOKABLE void pressKey(int key, int modifiers = 0, const QString& text = {});
-    void beginLive(int hints);
+    void beginLive(int hints,const QString& title="Website");
     Q_INVOKABLE void select(int anchor, int cursor);
     Q_INVOKABLE void moveCursor(int delta);
     Q_INVOKABLE void shift(bool lock = false);
@@ -87,7 +87,9 @@ public:
     QVariantList keys() const;
     void begin(const QString& title, const QString& initial, int maximumLength, bool secret = false,
                const QString& submitLabel = "Apply", bool emoji = false);
-    void cancel();
+    Q_INVOKABLE void cancel();
+    bool hidden() const {return hidden_;}
+    void toggleVisibility();
     void dispatch(Action);
     Q_INVOKABLE void activate(int index);
     static int characterCount(const QString& text);
@@ -124,6 +126,7 @@ private:
     int code(const Key&) const;
     QList<Key> keys_;
     bool open_ = false;
+    bool hidden_ = false;
     bool live_ = false, shift_ = false, capsLock_ = false, numLock_ = true;
     bool control_ = false, alt_ = false, meta_ = false;
     bool numberPad_ = true, optionsOpen_ = false;

@@ -86,6 +86,7 @@ class RawPad:
         return {'buttons': buttons, 'sticks': sticks,
                 'connected': True, 'neutral': bool(neutral), 'confirm': confirm in keys,
                 'back': back in keys, 'backButton': 'south' if back==304 else 'east', 'home': 316 in keys,
+                'keyboardX': (307 if self.shell_mapping.get('keyboardButton','north')=='north' else 308) in keys,
                 'up': 544 in keys or ly < -engage,
                 'down': 545 in keys or ly > engage,
                 'left': 546 in keys or lx < -engage,

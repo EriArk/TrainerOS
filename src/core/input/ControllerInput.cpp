@@ -151,7 +151,7 @@ void ControllerInput::publishShellMapping() {
     QSaveFile file(directory+"/traineros-shell-input.json");
     if(!file.open(QIODevice::WriteOnly))return;
     const auto data=QJsonDocument(QJsonObject{{"version",1},{"device",physicalName_.isEmpty()?kernelDeviceName():physicalName_},
-        {"calibration",QJsonObject::fromVariantMap(profile_.json())},{"southConfirms",confirmButton()==SDL_CONTROLLER_BUTTON_A},{"invertX",profile_.invertX},{"invertY",profile_.invertY}}).toJson(QJsonDocument::Compact);
+        {"calibration",QJsonObject::fromVariantMap(profile_.json())},{"keyboardButton",family()=="nintendo"?"north":"west"},{"southConfirms",confirmButton()==SDL_CONTROLLER_BUTTON_A},{"invertX",profile_.invertX},{"invertY",profile_.invertY}}).toJson(QJsonDocument::Compact);
     if(file.write(data)==data.size())file.commit();
 #endif
 }
@@ -211,6 +211,7 @@ void ControllerInput::deliver(Action semantic, bool fromController) {
     emit action(semantic);
 }
 void ControllerInput::requireNeutral() {
+    homeHeld_=homeChord_=false;
     awaitingNeutral_ = true; confirmPending_ = false;
     heldDirection_.reset(); previous_.fill(false); triggers_.fill(false);
     sample_.awaitingNeutral = true;
@@ -303,11 +304,24 @@ void ControllerInput::poll() {
         awaitingNeutral_ = false;
     }
     sample_.awaitingNeutral = awaitingNeutral_; emit sampled();
+    // Home is a modifier until released. Swallow the whole chord through release,
+    // including the face button, so neither navigation nor text receives X.
+    const bool home=buttons[SDL_CONTROLLER_BUTTON_GUIDE];
+    const int keyboardButton=family()=="nintendo"?SDL_CONTROLLER_BUTTON_Y:SDL_CONTROLLER_BUTTON_X;
+    if(home) {
+        homeHeld_=true;
+        if(buttons[keyboardButton]&&!homeChord_) {homeChord_=true;deliver(Action::ToggleKeyboard,true);}
+        previous_=buttons;confirmPending_=false;heldDirection_.reset();return;
+    }
+    if(homeHeld_) {
+        const bool chord=homeChord_;homeHeld_=homeChord_=false;
+        if(!chord)deliver(Action::Home,true);
+        requireNeutral();return;
+    }
     const std::pair<int, Action> bindings[] = {
         {SDL_CONTROLLER_BUTTON_LEFTSHOULDER, Action::PreviousPage},
         {SDL_CONTROLLER_BUTTON_RIGHTSHOULDER, Action::NextPage},
         {SDL_CONTROLLER_BUTTON_START, Action::SystemMenu},
-        {SDL_CONTROLLER_BUTTON_GUIDE, Action::Home},
         {SDL_CONTROLLER_BUTTON_BACK, Action::LocalAction},
         {SDL_CONTROLLER_BUTTON_RIGHTSTICK, Action::ChangeView},
         {SDL_CONTROLLER_BUTTON_LEFTSTICK, Action::ToggleFavorite},

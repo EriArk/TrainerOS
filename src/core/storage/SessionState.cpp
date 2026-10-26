@@ -213,6 +213,11 @@ void SessionState::activate(int index) {
     emit changed();
 }
 void SessionState::dispatch(Action action) {
+    if(action==Action::ToggleKeyboard) {
+        if(!creating_&&!switching_&&!access_.active()&&(!adventureActive_||adventureMinimized_)
+           &&(!blocked()||shell_.keyboard()->isOpen()||shell_.keyboard()->hidden()))shell_.dispatch(action);
+        return;
+    }
     if(access_.active()){
         if(!entryGate_ && !firstRun_.active() && !access_.busy() && (action==Action::PreviousPage || action==Action::NextPage || action==Action::Home)) {
             access_.cancel();shell_.dispatch(action);emit changed();

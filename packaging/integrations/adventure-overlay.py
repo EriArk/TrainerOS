@@ -17,6 +17,7 @@ import tempfile
 import time
 from overlay_support import RawPad, X11, identity, supported_emulator_process
 from game_input import Mapper, HeldOutput, XTestSink, mapped_guard, validate
+from keyboard_input import HomeChord, KeyboardNavigation, KeyboardWriter
 
 SERVICE = 'org.shadowblip.InputPlumber'
 INTERFACE = 'org.shadowblip.Input.CompositeDevice'
@@ -200,6 +201,7 @@ def run(args):
     capture_event = 'previewed'; capture_deadline = 0; clean_since = None
     capture_job = None; capture_started = 0
     handoff_deadline = 0; return_options = False
+    chord = HomeChord();keyboard_navigation = KeyboardNavigation();keyboard_output = None
     try:
         device.mode(gameplay_mode); emit('ready', protocol=4)
         while guard.poll() is None:
@@ -213,6 +215,11 @@ def run(args):
                     line,buffer = buffer.split(b'\n',1); command = json.loads(line)
                     op = command.get('command')
                     if op == 'ping': parent.sendall(b'K\n' if mapper else b'K')
+                    elif op == 'keyboard-close' and state == 'keyboard':
+                        if keyboard_output:keyboard_output.close();keyboard_output=None
+                        state = 'release';neutral_since = None;emit('keyboard-closed')
+                    elif op == 'keyboard-input' and state == 'keyboard' and keyboard_output:
+                        keyboard_output.apply(command)
                     elif op == 'radial-select' and mapper and state == 'game':
                         mapper.select_slot(command.get('slot'))
                     elif op == 'context': epoch = str(command['epoch'])
@@ -244,16 +251,36 @@ def run(args):
                         else: emit('close-failed',token=token); state = 'release'
                     elif op == 'stop': return
             sample = pad.sample()
+            shortcut = chord.update(sample['home'],sample.get('keyboardX',False),sample['neutral'])
             mode = device.mode()
             if mode not in (1,2): raise RuntimeError('Input lease changed')
+            if shortcut == 'keyboard' and state in ('game','keyboard'):
+                if state == 'keyboard':
+                    if keyboard_output:keyboard_output.close();keyboard_output=None
+                    state = 'release';neutral_since = None;emit('keyboard-closed')
+                elif x11.owns(x11.active(),args.game,game_start):
+                    device.mode(2);state = 'keyboard';keyboard_navigation = KeyboardNavigation()
+                    if keyboard_output is None:
+                        keyboard_output = KeyboardWriter((args.game,game_start))
+                    emit('keyboard')
             if mapper:
                 focused = x11.owns(x11.active(), args.game, game_start)
-                frame = mapper.frame(sample, state == 'game' and focused and not home_requested, time.monotonic())
+                frame = mapper.frame(sample, state == 'game' and focused and not home_requested and not sample['home'] and not chord.blocked, time.monotonic())
                 emitted_keys.update(frame['held'])
                 parent.sendall((json.dumps({'held':frame['held'],'motion':frame['motion']})+'\n').encode())
                 if frame['radial'] != previous_radial:
                     previous_radial = frame['radial']; emit('radial', **previous_radial)
-            if state == 'game' and (home_requested or (sample['home'] if mapper else mode == 2)):
+            if state == 'keyboard':
+                if shortcut == 'home':
+                    if keyboard_output:keyboard_output.close();keyboard_output=None
+                    state='game';home_requested=True;emit('keyboard-closed')
+                elif not x11.owns(x11.active(),args.game,game_start):
+                    if keyboard_output:keyboard_output.close();keyboard_output=None
+                    state = 'release';neutral_since = None;emit('keyboard-closed')
+                elif not sample['home'] and not chord.blocked:
+                    action=keyboard_navigation.action(sample)
+                    if action:emit('keyboard-action',action=action)
+            if state == 'game' and (home_requested or shortcut == 'home' or (not mapper and mode==2 and sample['neutral'] and not chord.held)):
                 home_requested = False
                 target = x11.active()
                 # Enable adapters one at a time. Other emulators may open their
@@ -287,7 +314,10 @@ def run(args):
                 # A different focused application receives neither raw commands
                 # nor permission to release the game's input lease.
                 focused = x11.owns(x11.active(), args.shell, args.shell_start)
-                emit('shell-input', epoch=epoch, **(sample if focused else {'connected': False}))
+                shell_sample=dict(sample,home=shortcut=='home',keyboard=shortcut=='keyboard')
+                if sample['home'] or chord.blocked:
+                    shell_sample={k:(v if k in ('connected','neutral','keyboard') else False) for k,v in shell_sample.items()}
+                emit('shell-input', epoch=epoch, **(shell_sample if focused else {'connected': False}))
             if state == 'returning':
                 focused = x11.active() == target and x11.owns(target, args.game, game_start)
                 neutral_since = (neutral_since or time.monotonic()) if focused and sample['neutral'] else None
@@ -305,6 +335,7 @@ def run(args):
                 if neutral_since and time.monotonic()-neutral_since >= .08 and future is None:
                     device.mode(gameplay_mode); state = 'game'; emit('released')
     finally:
+        if keyboard_output:keyboard_output.close()
         parent.close()  # Watchdog alone restores mode zero, even after SIGKILL.
         if guard.poll() is not None:
             if mapper:

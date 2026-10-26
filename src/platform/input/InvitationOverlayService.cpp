@@ -7,6 +7,7 @@
 #include <QSet>
 #include <QRegion>
 #include <QLoggingCategory>
+#include <QMouseEvent>
 
 namespace trainer {
 Q_LOGGING_CATEGORY(invitationOverlayLog,"trainer.invitation")
@@ -80,6 +81,15 @@ void InvitationOverlayService::setRegions(QVariantList regions) {
     sync();
 }
 void InvitationOverlayService::setGame(qint64 pid){game_=pid;sync();}
+void InvitationOverlayService::forwardPointer(QString phase,QPointF position) {
+    if(!ready_||!window_||!window_->isVisible())return;
+    if(phase=="cancel"){phase="release";position=QPointF(-1,-1);}
+    if(phase!="press"&&phase!="release"&&phase!="move")return;
+    const auto type=phase=="press"?QEvent::MouseButtonPress:phase=="release"?QEvent::MouseButtonRelease:QEvent::MouseMove;
+    QMouseEvent event(type,position,window_->mapToGlobal(position),type==QEvent::MouseMove?Qt::NoButton:Qt::LeftButton,
+        type==QEvent::MouseButtonRelease?Qt::NoButton:Qt::LeftButton,Qt::NoModifier);
+    QCoreApplication::sendEvent(window_,&event);
+}
 void InvitationOverlayService::send(const QJsonObject& packet) {
     if(process_.state()!=QProcess::Running)return;
     if(process_.bytesToWrite()>8192){process_.kill();lost();return;}

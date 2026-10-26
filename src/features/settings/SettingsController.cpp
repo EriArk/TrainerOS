@@ -131,7 +131,7 @@ QVariantList SettingsController::controls() const {
             row("Invert left stick X",kind,p["invertX"].toBool()?"On":"Off"),
             row("Invert left stick Y",kind,p["invertY"].toBool()?"On":"Off"),
             row("Reset this controller",input_&&input_->connected()?"action":"unavailable","Restore automatic layout and default calibration"),
-            row("Recovery","status",input_&&!input_->profileError().isEmpty()?input_->profileError():"Touch and keyboard remain available. Home always opens game controls.")};
+            row("Recovery","status",input_&&!input_->profileError().isEmpty()?input_->profileError():QString("Home: controls · Home + %1: keyboard. Touch remains available.").arg(input_?input_->glyph(input_->family()=="nintendo"?"north":"west"):QString("X")))};
     }
     case 8: {
         QVariantList result{row("Collections","action","Create and edit your game collections")};

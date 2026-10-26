@@ -288,7 +288,7 @@ public:
     bool powerMenu() const { return powerMenu_; }
     QString notice() const { return notice_; }
     bool moduleServiceBusy() const { return moduleWriting() || modulesBlocked(); }
-    bool runtimeChangeBlocked() const { return diagnostics_.checking() || scraper_.busy() || moduleWriting() || navigationLocked(); }
+    bool runtimeChangeBlocked() const { return pcGames_.busy() || diagnostics_.checking() || scraper_.busy() || moduleWriting() || navigationLocked(); }
     QVariantMap home() const;
     QVariantList resumePoints() const;
     QVariantList drawerGames() const;

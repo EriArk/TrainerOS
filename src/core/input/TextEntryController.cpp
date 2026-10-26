@@ -256,8 +256,8 @@ void TextEntryController::tapShift() {
     shift(lock);if(!lock)shiftTap_.start();
 }
 void TextEntryController::symbols() { dispatch(Action::ToggleContinue); }
-void TextEntryController::beginLive(int hints) {
-    begin("Website",{},8192,hints&Qt::ImhHiddenText,"Enter",true);
+void TextEntryController::beginLive(int hints,const QString& title) {
+    begin(title,{},8192,hints&Qt::ImhHiddenText,"Enter",true);
     live_=true;shift_=capsLock_=false;
     if(touchLayout_){symbolPage_=(hints&(Qt::ImhDigitsOnly|Qt::ImhFormattedNumbersOnly|Qt::ImhDialableCharactersOnly))?1:0;rebuild();}
 
@@ -317,7 +317,7 @@ void TextEntryController::begin(const QString& title, const QString& initial, in
     hint_.clear();
     focus_ = 0;
     preferredColumn_ = keys_.first().column + 0.5;
-    open_ = true;
+    open_ = true;hidden_ = false;
     secret_ = secret; shift_=!secret&&initial.isEmpty()&&submitLabel!="Go"; symbolPage_ = 0;preferredRow_=keys_.first().row;
     submitLabel_ = submitLabel; emoji_ = emoji && !secret;spaceTap_.invalidate();
     if(touchLayout_)rebuild();
@@ -325,11 +325,15 @@ void TextEntryController::begin(const QString& title, const QString& initial, in
     emit changed();
 }
 void TextEntryController::cancel() {
-    if (!open_) return;
-    open_ = false;
+    if (!open_&&!hidden_) return;
+    open_ = hidden_ = false;
     text_.clear();cursor_=anchor_=0;undo_.clear();redo_.clear();
     live_=false;shift_=capsLock_=control_=alt_=meta_=false;optionsOpen_=false;hint_.clear();emit layoutChanged();
     emit changed();
+}
+void TextEntryController::toggleVisibility() {
+    if(!open_&&!hidden_)return;
+    open_=!open_;hidden_=!open_;emit changed();
 }
 int TextEntryController::code(const Key& key) const {
     if(key.numeric&&!numLock_) {

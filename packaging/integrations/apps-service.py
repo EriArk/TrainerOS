@@ -15,6 +15,7 @@ import sys
 import tempfile
 import time
 from overlay_support import X11, identity
+from keyboard_input import KeyboardWriter
 
 
 def emit(event, **data):
@@ -144,15 +145,21 @@ class Service:
             saved = json.loads(self.journal.read_text())
             windows = self.windows.all()
             for app_id, session in saved.items():
+                root=session.get('root')
+                if root:
+                    try:
+                        if identity(root[0])!=root[1]:root=None
+                    except OSError:root=None
                 matched = {int(w):windows[int(w)] for w,r in session['windows'].items()
                            if int(w) in windows and windows[int(w)]['pid']==r['pid'] and windows[int(w)]['start']==r['start']}
-                if matched:
+                if matched or root:
                     self.sessions[app_id] = dict(windows=matched,owners={(r['pid'],r['start']) for r in matched.values()},row=session['row'])
+                    if root:self.sessions[app_id]['root']=root
                     self.windows.map(matched,False)
         except (OSError,ValueError,KeyError,TypeError): pass
 
     def save_sessions(self):
-        saved = {app_id:dict(windows=session['windows'],row=session['row']) for app_id,session in self.sessions.items()}
+        saved = {app_id:dict(windows=session['windows'],row=session['row'],root=session.get('root')) for app_id,session in self.sessions.items()}
         fd, temporary = tempfile.mkstemp(prefix='.traineros-apps-', dir=self.journal.parent)
         try:
             with os.fdopen(fd,'w') as stream:
@@ -174,15 +181,21 @@ class Service:
         # Launch captures its own before-set; restore_sessions scans at startup.
         windows = self.windows.all() if self.sessions or self.pending else {}
         for app_id, session in list(self.sessions.items()):
+            root = session.get('root')
+            root_alive = False
+            if root:
+                try: root_alive = identity(root[0]) == root[1]
+                except OSError: pass
             session['windows'] = {w: r for w, r in session['windows'].items()
                                   if w in windows and windows[w]['pid'] == r['pid'] and windows[w]['start'] == r['start']}
             # Include new windows/dialogs from the exact same application process,
             # plus direct transients. PID reuse must never inherit window ownership.
             for w, r in windows.items():
-                if r['mapped'] and ((r['pid'], r['start']) in session['owners'] or r['transient'] in session['windows']):
+                owned_child = root_alive and self.windows.x.owns(w, *root)
+                if r['mapped'] and (owned_child or (r['pid'], r['start']) in session['owners'] or r['transient'] in session['windows']):
                     session['windows'][w] = r
                     if app_id != self.current: self.windows.map({w:r},False)
-            if not session['windows']:
+            if not session['windows'] and not root_alive:
                 del self.sessions[app_id]
                 if self.current == app_id:
                     self.current = ''; self.release(); emit('shell')
@@ -210,25 +223,75 @@ class Service:
 
     def activate(self, app_id):
         if app_id not in self.sessions: return
-        self.acquire()
+        installer=self.sessions[app_id].get('root')
+        if self.lease and getattr(self.lease,'installer',None)!=installer:self.release()
+        self.acquire(installer)
         for other, session in self.sessions.items():
             if other != app_id: self.windows.map(session['windows'], False)
         self.windows.map(self.sessions[app_id]['windows'], True)
         self.current = app_id
-        emit('foreground', id=app_id, pid=next(iter(self.sessions[app_id]['windows'].values()))['pid'])
+        session = self.sessions[app_id]
+        pid = session['root'][0] if session.get('root') else next(iter(session['windows'].values()))['pid']
+        emit('foreground', id=app_id, pid=pid)
 
-    def acquire(self):
+    def acquire(self, installer=None):
         if self.lease is None:
             from apps_input import Lease
-            self.lease = Lease()
+            self.lease = Lease(installer)
 
     def release(self):
+        self.close_keyboard_output()
         if self.lease:
             self.lease.close(); self.lease = None
 
+    def close_keyboard_output(self):
+        output=getattr(self,'keyboard_output',None)
+        if output:output.close();self.keyboard_output=None
+
+    def keyboard_focus(self):
+        session=self.sessions.get(self.current)
+        if not session:return False
+        active=self.windows.x.active()
+        record=session['windows'].get(active)
+        return bool(record and self.windows.valid(active,record))
+
     def command(self, message):
         op, app_id = message.get('command'), message.get('id', '')
-        if op == 'ping':
+        if op == 'keyboard-close':
+            self.close_keyboard_output()
+            if self.lease and self.lease.keyboard:self.lease.resume()
+            return
+        if op == 'keyboard-input':
+            if self.lease and self.lease.keyboard and self.keyboard_focus():
+                record=self.sessions[self.current]['windows'][self.windows.x.active()]
+                root=(record['pid'],record['start'])
+                if getattr(self,'keyboard_output',None) and self.keyboard_output.root!=root:self.close_keyboard_output()
+                if not getattr(self,'keyboard_output',None):self.keyboard_output=KeyboardWriter(root)
+                self.keyboard_output.apply(message)
+            return
+        if op == 'watch-installer':
+            # The shell owns ProcessService and the subreaper. This service owns
+            # only windows/input, and never executes a supplied command.
+            pid = int(message['pid'])
+            proc = Path('/proc') / str(pid)
+            if pid <= 1 or proc.stat().st_uid != os.getuid():
+                raise ValueError('Installer process is unavailable.')
+            command = (proc/'cmdline').read_bytes().split(b'\0')
+            if b'/var/opt/traineros/pc/launch.py' not in command:
+                raise ValueError('This is not a managed PC installer.')
+            app_id = 'traineros-pc-installer'
+            row = dict(id=app_id, name=message.get('title', 'Game installer')[:96],
+                       description='Game installation', icon='package-x-generic', startupClass='')
+            self.sessions[app_id] = dict(windows={}, owners=set(), row=row, root=(pid,identity(pid)))
+            self.publish(); self.activate(app_id)
+        elif op == 'resume-installer': self.activate('traineros-pc-installer')
+        elif op == 'finish-installer':
+            session = self.sessions.pop('traineros-pc-installer', None)
+            if session:
+                if self.current == 'traineros-pc-installer':
+                    self.current = ''; self.release(); emit('shell')
+                self.publish()
+        elif op == 'ping':
             self.heartbeat = time.monotonic()
             if self.lease: self.lease.ping()
         elif op == 'refresh': self.apps = catalogue(self.Gio); self.publish()
@@ -304,7 +367,11 @@ class Service:
                         except Exception as error: emit('error', message=str(error)[:240])
                 if time.monotonic() >= next_scan:
                     self.scan(); next_scan = time.monotonic() + .2
-                if self.lease: self.lease.poll(emit)
+                if self.lease:
+                    self.lease.poll(emit)
+                    if self.lease.keyboard and not self.keyboard_focus():
+                        self.lease.resume();emit('keyboard-closed')
+                    if not self.lease.keyboard:self.close_keyboard_output()
         finally:
             self.release()
             # A shell/helper crash must not leave live applications inaccessible.

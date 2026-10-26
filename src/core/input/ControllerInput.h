@@ -111,6 +111,7 @@ private:
     QString detectedFamily_="generic", profileError_, physicalName_, profileKey_;
     void loadProfile();
     void publishShellMapping();
+    bool homeHeld_ = false, homeChord_ = false;
     QString captureMode_,captureStatus_;
     bool captureArmed_=false;
     int calibrationSamples_=0;

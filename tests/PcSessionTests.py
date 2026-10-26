@@ -7,11 +7,61 @@ import sys
 import tempfile
 import time
 import unittest
+import types
+
+if sys.platform == "win32":
+    sys.modules.setdefault("fcntl", types.ModuleType("fcntl"))
 
 HELPER = Path(__file__).resolve().parents[1] / "packaging/pc/launch.py"
 spec = importlib.util.spec_from_file_location("pc_launch", HELPER)
 module = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(module)
+
+
+class InstallerCommands(unittest.TestCase):
+    def setUp(self):
+        self.temp = tempfile.TemporaryDirectory(prefix="PC install ")
+        self.root = Path(self.temp.name)
+        self.source = self.root / "source with spaces.msi"
+        self.source.write_bytes(b"fixture")
+        self.install = self.root / "new game"
+        self.install.mkdir()
+        self.proton = self.root / "proton"
+        self.proton.mkdir()
+        (self.proton / "proton").touch()
+        self.umu = self.root / "umu-run"
+        self.umu.touch()
+
+    def tearDown(self):
+        self.temp.cleanup()
+
+    def config(self):
+        return dict(mode="installer", executable=str(self.source), installRoot=str(self.install),
+                    workingDirectory=str(self.install), runner="proton", installerFormat="msi",
+                    proton=str(self.proton), umu=str(self.umu), prefix=str(self.install / "prefix"))
+
+    def test_msi_uses_msiexec_in_owned_prefix(self):
+        config = self.config()
+        argv, cwd, env = module.command(config)
+        self.assertEqual(argv, [sys.executable, str(self.umu), "msiexec", "/i", str(self.source)])
+        self.assertEqual(env["WINEPREFIX"], config["prefix"])
+        self.assertEqual(env["PROTON_VERB"], "waitforexitandrun")
+        self.assertEqual(cwd, str(self.install))
+
+    def test_external_installer_does_not_relax_game_path_boundary(self):
+        config = self.config()
+        del config["mode"]
+        with self.assertRaises(ValueError): module.command(config)
+
+    def test_native_script_interpreter_is_explicit_and_no_shell_interpolation(self):
+        self.source.write_bytes(b"#!/bin/sh\nexit 0\n")
+        config = self.config()
+        config.update(runner="native", installerFormat="script", arguments=["$(touch stolen)"])
+        argv, cwd, env = module.command(config)
+        self.assertEqual(argv, ["/bin/sh", str(self.source), "$(touch stolen)"])
+        self.assertEqual(env["TRAINEROS_INSTALL_DIRECTORY"], str(self.install))
+        self.source.write_bytes(b"#!/usr/bin/python3\n")
+        with self.assertRaises(ValueError): module.command(config)
 
 
 @unittest.skipUnless(sys.platform.startswith("linux"), "Linux subreaper")

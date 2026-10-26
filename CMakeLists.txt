@@ -11,6 +11,7 @@ option(TRAINER_BUILD_PRACTICE_PROBE "Build the read-only Emerald battle proof to
 find_package(Qt6 6.4 REQUIRED COMPONENTS Core Gui Qml Quick Sql Network Xml Multimedia WebSockets Concurrent)
 find_package(Qt6Keychain REQUIRED)
 find_package(OpenSSL 3 REQUIRED COMPONENTS Crypto)
+find_package(LibArchive REQUIRED)
 find_package(SDL2 2.0.14 REQUIRED CONFIG)
 find_package(Qt6 6.9 QUIET COMPONENTS WebEngineQuick)
 find_package(Qt6 QUIET COMPONENTS Quick3D)
@@ -85,6 +86,7 @@ add_library(trainer_core STATIC
     src/features/home/PlayerStory.cpp
     src/features/files/FilesController.cpp
     src/platform/files/FilesService.cpp
+    src/platform/files/ArchiveExtractor.cpp
     src/features/apps/AppsController.cpp
     src/features/crates/CratesController.cpp
     src/features/pc/PcGamesController.cpp
@@ -312,6 +314,7 @@ add_library(trainer_core STATIC
 )
 target_include_directories(trainer_core PUBLIC src)
 target_link_libraries(trainer_core PUBLIC Qt6::Quick)
+target_link_libraries(trainer_core PUBLIC LibArchive::LibArchive)
 if(TARGET Qt6::WebEngineQuick)
     target_link_libraries(trainer_core PUBLIC Qt6::WebEngineQuick)
     target_compile_definitions(trainer_core PUBLIC TRAINER_WEBENGINE=1)
@@ -434,6 +437,7 @@ qt_add_qml_module(traineros
     src/qml/AppsMenu.qml
         src/qml/AppsDock.qml
         src/qml/AppControlsWindow.qml
+        src/qml/ExternalKeyboardWindow.qml
         src/qml/Main.qml
         src/qml/AdventureExitWindow.qml
         src/qml/InvitationBadge.qml
@@ -637,6 +641,7 @@ if(BUILD_TESTING)
         add_test(NAME adapter_boundary COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/AdapterBoundaryTests.py)
         add_test(NAME session_supervisor COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/SessionSupervisorTests.py)
         add_test(NAME game_input_mapping COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/GameInputTests.py)
+        add_test(NAME keyboard_shortcuts COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/KeyboardShortcutTests.py)
         add_test(NAME lobby_input_lease COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/LobbyInputLeaseTests.py)
         add_test(NAME remote_play_group COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/RemotePlayGroupTests.py)
         add_test(NAME overlay_helper COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/OverlayHelperTests.py)
@@ -656,6 +661,17 @@ if(BUILD_TESTING)
     qt_add_executable(trainer_crates_tests tests/CratesTests.cpp)
     qt_add_executable(trainer_pc_tests tests/PcGamesTests.cpp)
     target_link_libraries(trainer_pc_tests PRIVATE trainer_core Qt6::Test)
+    qt_add_resources(trainer_pc_tests pc_archive_fixtures PREFIX "/pc-fixtures" BASE tests/fixtures/pc-archives
+        FILES tests/fixtures/pc-archives/rar5.rar tests/fixtures/pc-archives/rar4-link.rar)
+    qt_add_executable(trainer_pc_ui_tests tests/PcImportUiTests.cpp)
+    target_link_libraries(trainer_pc_ui_tests PRIVATE trainer_core Qt6::Test)
+    target_compile_definitions(trainer_pc_ui_tests PRIVATE TRAINER_SOURCE_DIR="${CMAKE_SOURCE_DIR}")
+    qt_add_resources(trainer_pc_ui_tests pc_ui_fonts PREFIX "/fonts" BASE assets/fonts
+        FILES assets/fonts/Fredoka.ttf assets/fonts/ChakraPetch-Bold.ttf assets/fonts/Bungee-Regular.ttf)
+    qt_add_resources(trainer_pc_ui_tests pc_ui_social PREFIX "/social-icons" BASE assets/icons/phosphor FILES assets/icons/phosphor/x.svg)
+    qt_add_resources(trainer_pc_ui_tests pc_ui_files PREFIX "/files-icons" BASE assets/icons/files FILES assets/icons/files/folder.svg)
+    add_test(NAME pc_import_ui COMMAND trainer_pc_ui_tests)
+    set_tests_properties(pc_import_ui PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software" TIMEOUT 30)
     add_test(NAME pc_games COMMAND trainer_pc_tests)
     if(UNIX AND Python3_Interpreter_FOUND)
         add_test(NAME pc_session COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/PcSessionTests.py)

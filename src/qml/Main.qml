@@ -17,6 +17,7 @@ Window {
     Binding { target: controllerInput; property: "browserMode"; value: !shell.social.incomingCall.id && browserPane.takesFocus }
     RadialInputWindow { flow: shell.settings.gameInput; bridge: radialOverlay; permitted: adventureLaunch.active && !adventureLaunch.minimized && !sessionState.blocked && !adventureExitPresentation.visible }
     AppControlsWindow { flow: shell.apps; bridge: appsOverlay }
+    ExternalKeyboardWindow { keyboard: externalKeyboard; bridge: keyboardOverlay }
     AdventureExitWindow {
         presentation: adventureExitPresentation
         width: window.width; height: window.height

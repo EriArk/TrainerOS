@@ -50,6 +50,10 @@ public:
     int controlIndex() const{return controlFocus_;}
     void openFile(const QString& url);
     void openDesktopId(const QString& id);
+    void watchInstaller(qint64 pid,const QString& title);
+    void finishInstaller();
+    void resumeInstaller();
+    void keyboardCommand(const QJsonObject& packet) { send(packet); }
     Q_INVOKABLE void refresh();
     void focusRail() { railFocused_=true;normalize();emit changed(); }
     Q_INVOKABLE void select(int index,bool rail=false);
@@ -61,6 +65,7 @@ public:
     Q_INVOKABLE void control(int index);
     void leave(bool preserveLocation=false);
 signals:
+    void keyboardEvent(QJsonObject packet);
     void changed();
     void commandRequested(QJsonObject);
     void foregroundRequested();

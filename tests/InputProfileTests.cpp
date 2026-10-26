@@ -1,6 +1,7 @@
 #include "features/settings/GameInputProfiles.h"
 #include "features/settings/SettingsController.h"
 #include "core/input/ControllerInput.h"
+#include "core/input/TextEntryController.h"
 #include <QtTest>
 #include <QSettings>
 #include <QTemporaryDir>
@@ -23,6 +24,42 @@ public:
 class InputProfileTests final : public QObject {
     Q_OBJECT
 private slots:
+    void homeKeyboardChordConsumesButtonsAndRequiresRelease() {
+        QTemporaryDir preferences;
+        QCoreApplication::setOrganizationName("TrainerOSTests");QCoreApplication::setApplicationName("InputProfiles");
+        QSettings::setDefaultFormat(QSettings::IniFormat);QSettings::setPath(QSettings::IniFormat,QSettings::UserScope,preferences.path());
+        SDL_SetMainReady();QVERIFY(SDL_InitSubSystem(SDL_INIT_GAMECONTROLLER)==0);
+        const int device=SDL_JoystickAttachVirtual(SDL_JOYSTICK_TYPE_GAMECONTROLLER,SDL_CONTROLLER_AXIS_MAX,SDL_CONTROLLER_BUTTON_MAX,0);
+        QVERIFY(device>=0);auto* pad=SDL_JoystickOpen(device);
+        SDL_JoystickSetVirtualAxis(pad,SDL_CONTROLLER_AXIS_TRIGGERLEFT,-32768);
+        SDL_JoystickSetVirtualAxis(pad,SDL_CONTROLLER_AXIS_TRIGGERRIGHT,-32768);
+        {
+            ControllerInput input(nullptr,SDL_JoystickInstanceID(pad));input.poll();input.poll();
+            QSignalSpy actions(&input,&ControllerInput::action);
+            for(const auto& family:QStringList{"xbox","nintendo","playstation"}) {
+                auto profile=input.profile();profile["family"]=family;QVERIFY2(input.setProfile(profile),qPrintable(input.profileError()));input.poll();actions.clear();
+                const auto x=family=="nintendo"?SDL_CONTROLLER_BUTTON_Y:SDL_CONTROLLER_BUTTON_X;
+                SDL_JoystickSetVirtualButton(pad,SDL_CONTROLLER_BUTTON_GUIDE,1);input.poll();QVERIFY(actions.isEmpty());
+                SDL_JoystickSetVirtualButton(pad,x,1);input.poll();input.poll();
+                QCOMPARE(actions.size(),1);QCOMPARE(qvariant_cast<Action>(actions[0][0]),Action::ToggleKeyboard);
+                SDL_JoystickSetVirtualButton(pad,SDL_CONTROLLER_BUTTON_GUIDE,0);input.poll();input.poll();QCOMPARE(actions.size(),1);
+                SDL_JoystickSetVirtualButton(pad,x,0);input.poll();
+                SDL_JoystickSetVirtualButton(pad,SDL_CONTROLLER_BUTTON_GUIDE,1);input.poll();QCOMPARE(actions.size(),1);
+                SDL_JoystickSetVirtualButton(pad,SDL_CONTROLLER_BUTTON_GUIDE,0);input.poll();
+                QCOMPARE(actions.size(),2);QCOMPARE(qvariant_cast<Action>(actions[1][0]),Action::Home);input.poll();
+                // A context switch mid-chord must not produce Home on return.
+                SDL_JoystickSetVirtualButton(pad,SDL_CONTROLLER_BUTTON_GUIDE,1);input.poll();input.setEnabled(false);input.setEnabled(true);
+                SDL_JoystickSetVirtualButton(pad,SDL_CONTROLLER_BUTTON_GUIDE,0);input.poll();input.poll();QCOMPARE(actions.size(),2);
+            }
+        }
+        SDL_JoystickClose(pad);SDL_JoystickDetachVirtual(device);SDL_QuitSubSystem(SDL_INIT_GAMECONTROLLER);
+    }
+    void keyboardShortcutHidesWithoutDiscardingDraft() {
+        TextEntryController keyboard;keyboard.begin("Name","draft",50);keyboard.select(1,3);
+        keyboard.toggleVisibility();QVERIFY(!keyboard.isOpen());QVERIFY(keyboard.hidden());
+        keyboard.toggleVisibility();QVERIFY(keyboard.isOpen());QCOMPARE(keyboard.text(),QString("draft"));QCOMPARE(keyboard.anchor(),1);QCOMPARE(keyboard.cursor(),3);
+        keyboard.toggleVisibility();keyboard.cancel();QVERIFY(!keyboard.hidden());QVERIFY(keyboard.text().isEmpty());
+    }
     void settingsSectionsKeepStableRoutes() {
         SettingsController settings;
         QCOMPARE(settings.sections().size(),6);
