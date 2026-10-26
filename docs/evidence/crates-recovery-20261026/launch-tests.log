@@ -1,0 +1,7 @@
+test_installed_process_discovers_host_and_keeps_private_data (__main__.LaunchTests.test_installed_process_discovers_host_and_keeps_private_data) ... ok
+test_only_reviewed_release_repositories (__main__.LaunchTests.test_only_reviewed_release_repositories) ... ok
+
+----------------------------------------------------------------------
+Ran 2 tests in 0.230s
+
+OK

@@ -14,11 +14,21 @@ import re
 import shutil
 import sys
 import tarfile
-import tempfile
 import urllib.request
 from urllib.parse import urlsplit
 
 ID = re.compile(r"[a-z0-9][a-z0-9._-]{0,79}\Z")
+
+
+def sync_directory(path):
+    fd = os.open(path, os.O_RDONLY | os.O_DIRECTORY)
+    try: os.fsync(fd)
+    finally: os.close(fd)
+
+
+def durable_unlink(path):
+    path.unlink(missing_ok=True)
+    if path.parent.exists(): sync_directory(path.parent)
 
 
 def atomic_json(path, value):
@@ -29,9 +39,7 @@ def atomic_json(path, value):
         stream.flush()
         os.fsync(stream.fileno())
     temporary.replace(path)
-    fd = os.open(path.parent, os.O_RDONLY)
-    try: os.fsync(fd)
-    finally: os.close(fd)
+    sync_directory(path.parent)
 
 
 def safe_path(name):
@@ -98,10 +106,11 @@ class Store:
         self.root = Path(root).absolute()
         self.root.mkdir(parents=True, exist_ok=True)
         if self.root.is_symlink(): raise ValueError('Package root cannot be a link')
-        for name in ('objects','active','locks','data','staging'):
+        for name in ('objects','active','locks','data','staging','transactions'):
             p = self.root / name
             if p.is_symlink(): raise ValueError('Package storage cannot be a link')
             p.mkdir(exist_ok=True)
+        sync_directory(self.root)
 
     @contextlib.contextmanager
     def lock(self, project, exclusive=True):
@@ -118,8 +127,54 @@ class Store:
     def installed(self):
         return {p.stem: json.loads(p.read_text()) for p in (self.root/'active').glob('*.json')}
 
+    def recover(self):
+        # Never clean another worker's staging or a launcher's leased image.
+        busy = False
+        for path in sorted((self.root/'transactions').glob('*.json')):
+            try:
+                with self.lock(path.stem): self._recover_locked(path.stem)
+            except BlockingIOError: busy = True
+        return not busy
+
+    def _recover_locked(self, project):
+        journal = self.root/'transactions'/(project+'.json')
+        if not journal.exists(): return
+        transaction = json.loads(journal.read_text())
+        if transaction.get('operation') not in ('install','remove'):
+            raise ValueError('Invalid package transaction')
+        receipt = self.receipt(project)
+        # The durable active receipt is the commit point for both operations.
+        # A pre-commit interruption keeps the old image; a post-commit one
+        # completes the derived desktop/cleanup work, even while offline.
+        if receipt:
+            if receipt.get('id') != project: raise ValueError('Invalid package receipt')
+            self.desktop(receipt)
+        else:
+            durable_unlink(self.desktop_path(project))
+        durable_unlink(self.desktop_path(project).with_suffix('.pending'))
+        stage = self.root/'staging'/('unpack-'+project)
+        if stage.is_symlink(): raise ValueError('Unsafe package staging')
+        if stage.exists(): shutil.rmtree(stage)
+        sync_directory(stage.parent)
+        if transaction['operation'] == 'remove' and receipt is None:
+            for p in (self.root/'objects').glob(project+'-*'):
+                if re.fullmatch(re.escape(project)+'-[0-9a-f]{64}',p.name) and p.is_dir() and not p.is_symlink():
+                    shutil.rmtree(p)
+        elif transaction.get('newObject'):
+            name = transaction['newObject']
+            if not re.fullmatch(re.escape(project)+'-[0-9a-f]{64}',name):
+                raise ValueError('Invalid transaction object')
+            if not receipt or name not in (receipt.get('object'),receipt.get('previousObject')):
+                p = self.root/'objects'/name
+                if p.is_symlink(): raise ValueError('Unsafe installed object')
+                if p.exists(): shutil.rmtree(p)
+        sync_directory(self.root/'objects')
+        durable_unlink((self.root/'active'/(project+'.json')).with_suffix('.pending'))
+        durable_unlink(journal)
+
     def activate(self, archive, record, emit=lambda *a: None, cancelled=lambda: False):
         with self.lock(record['id']):
+            self._recover_locked(record['id'])
             return self._activate_locked(archive, record, emit, cancelled)
 
     def _activate_locked(self, archive, record, emit, cancelled):
@@ -129,8 +184,15 @@ class Store:
             if hashlib.file_digest(stream,'sha256').hexdigest() != record['sha256']:
                 raise ValueError('Package checksum does not match')
         if Path(archive).stat().st_size != record['size']: raise ValueError('Package size does not match')
-        with tempfile.TemporaryDirectory(dir=self.root/'staging',prefix='unpack-') as temp:
-            stage = Path(temp)
+        project = record['id']
+        object_name = project+'-'+record['sha256']
+        destination = self.root/'objects'/object_name
+        if destination.is_symlink(): raise ValueError('Unsafe installed object')
+        journal = self.root/'transactions'/(project+'.json')
+        atomic_json(journal,dict(operation='install',newObject=object_name if not destination.exists() else None))
+        stage = self.root/'staging'/('unpack-'+project)
+        try:
+            stage.mkdir()
             with tarfile.open(archive,'r|gz') as tar:
                 names = set()
                 total = 0
@@ -149,47 +211,58 @@ class Store:
                         target.parent.mkdir(parents=True,exist_ok=True)
                         with tar.extractfile(m) as src, target.open('xb') as dst:
                             shutil.copyfileobj(src,dst)
-                            dst.flush(); os.fsync(dst.fileno())
-                        target.chmod(0o755 if m.mode & 0o111 else 0o644)
+                            dst.flush()
+                            os.fchmod(dst.fileno(),0o755 if m.mode & 0o111 else 0o644)
+                            os.fsync(dst.fileno())
             if not (stage/record['entry']).is_file() or not (stage/record['entry']).stat().st_mode & 0o111:
                 raise ValueError('Package launch entry missing')
             emit('Installing')
             if cancelled(): raise InterruptedError('Cancelled')
             # Immutable content-addressed directories; the previous receipt
             # remains authoritative until the durable pointer replacement.
-            name = record['id']+'-'+record['sha256']
-            destination = self.root/'objects'/name
-            if destination.is_symlink(): raise ValueError('Unsafe installed object')
+            for folder,_,_ in os.walk(stage,topdown=False): sync_directory(folder)
             if not destination.exists(): stage.rename(destination)
+            sync_directory(destination.parent)
+            sync_directory(stage.parent)
             previous = self.receipt(record['id'])
-            receipt = dict(record, object=name)
+            receipt = dict(record, object=object_name)
             if previous: receipt['previousObject'] = previous['object']
-            self.desktop(receipt)
             atomic_json(self.root/'active'/(record['id']+'.json'),receipt)
+            self._recover_locked(project)
             return receipt
+        except Exception:
+            # Retain the journal if recovery itself fails (e.g. disk full).
+            self._recover_locked(project)
+            raise
+
+    @staticmethod
+    def desktop_path(project):
+        return Path.home()/'.local/share/applications'/('org.traineros.crates.'+project+'.desktop')
 
     def desktop(self, record):
-        if record['kind'] != 'app': return
+        if record['kind'] != 'app':
+            durable_unlink(self.desktop_path(record['id']))
+            return
         folder = Path.home()/'.local/share/applications'
         folder.mkdir(parents=True,exist_ok=True)
         launcher = Path(__file__).with_name('launch.py').resolve()
         def quote(s):
             return '"'+str(s).replace('\\','\\\\').replace('"','\\"').replace('`','\\`').replace('$','\\$').replace('%','%%')+'"'
         title = record['title'].replace('\n',' ').replace('\r',' ')
-        path = folder/('org.traineros.crates.'+record['id']+'.desktop')
+        path = self.desktop_path(record['id'])
         icon = self.root/'objects'/record['object']/record.get('icon','icon.svg')
         text = '[Desktop Entry]\nType=Application\nName='+title+'\nExec=/usr/bin/python3 '+quote(launcher)+' '+quote(self.root)+' '+quote(record['id'])+'\nIcon='+str(icon)+'\nTerminal=false\nCategories=Utility;\n'
-        pending=path.with_suffix('.pending');pending.write_text(text);pending.replace(path)
+        pending=path.with_suffix('.pending')
+        with pending.open('w') as stream:
+            stream.write(text);stream.flush();os.fsync(stream.fileno())
+        pending.replace(path);sync_directory(folder)
 
     def remove(self, project):
         with self.lock(project):
-            # Deactivate only our receipt. Data and previous package are retained;
-            # interrupted removal cannot delete any user file or running image.
-            (self.root/'active'/(project+'.json')).unlink(missing_ok=True)
-            (Path.home()/'.local/share/applications'/('org.traineros.crates.'+project+'.desktop')).unlink(missing_ok=True)
-            for p in (self.root/'objects').glob(project+'-*'):
-                if re.fullmatch(re.escape(project)+'-[0-9a-f]{64}',p.name) and p.is_dir() and not p.is_symlink():
-                    shutil.rmtree(p)
+            self._recover_locked(project)
+            atomic_json(self.root/'transactions'/(project+'.json'),dict(operation='remove'))
+            durable_unlink(self.root/'active'/(project+'.json'))
+            self._recover_locked(project)
 
 
 class ReleaseRedirect(urllib.request.HTTPRedirectHandler):
@@ -259,7 +332,11 @@ def main():
             event['total']=record['size']
         print(json.dumps(event),flush=True)
     try:
-        if operation == 'remove':
+        if operation == 'recover':
+            if not store.recover():
+                emit('Waiting for the application to close')
+                return 75
+        elif operation == 'remove':
             while True:
                 try:
                     store.remove(project); break

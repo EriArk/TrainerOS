@@ -97,6 +97,64 @@ private slots:
         QCOMPARE(jobs->state("preview-1")["job"].toMap()["operation"].toString(),QString("remove"));
         QVERIFY(!c.canRemove());c.showActions();QVERIFY(!c.actionsOpen());
     }
+    void restartSettlesCommittedOperationsAndPreservesQueue() {
+        QTemporaryDir temp;QDir root(temp.path());QVERIFY(root.mkpath("active"));
+        const auto write=[&](QString path,QByteArray bytes){QFile f(root.filePath(path));return f.open(QIODevice::WriteOnly)&&f.write(bytes)==bytes.size();};
+        const QString sha(64,'a');QVariantList tasks;
+        for(const auto& id:{"installed","old","removed","retained","queued","paused"}){
+            tasks<<QVariantMap{{"id",id},{"version","2"},{"sha256",sha},{"operation",QString(id)=="removed"||QString(id)=="retained"?"remove":"install"},
+                {"state",QString(id)=="queued"?"queued":QString(id)=="paused"?"paused":"running"},{"terminal",false}};
+        }
+        for(const auto& id:{"installed","old","retained"})
+            QVERIFY(write(QString("active/")+id+".json",QJsonDocument(QJsonObject{{"id",id},{"version",QString(id)=="installed"?"2":"1"},{"sha256",sha}}).toJson()));
+        QVERIFY(write("jobs.json",QJsonDocument(QJsonArray::fromVariantList(tasks)).toJson()));
+        CratesInstaller jobs;jobs.setOnline(false);jobs.configure({}, {},temp.path());
+        const auto state=[&](QString id){return jobs.state(id)["job"].toMap()["state"].toString();};
+        QCOMPARE(state("installed"),"done");QCOMPARE(state("removed"),"done");
+        QCOMPARE(state("old"),"failed");QCOMPARE(state("retained"),"failed");
+        QCOMPARE(state("queued"),"queued");QCOMPARE(state("paused"),"paused");
+    }
+    void startupRecoveryRunsOfflineAndWaitsForLease() {
+#ifndef Q_OS_LINUX
+        QSKIP("Production worker requires Linux flock");
+#else
+        const auto helper=QFINDTESTDATA("../packaging/crates/installer.py");QVERIFY(!helper.isEmpty());
+        QTemporaryDir temp;QDir root(temp.path());QVERIFY(root.mkpath("active"));QVERIFY(root.mkpath("transactions"));QVERIFY(root.mkpath("locks"));
+        const auto write=[&](QString path,QJsonDocument doc){QFile f(root.filePath(path));return f.open(QIODevice::WriteOnly)&&f.write(doc.toJson())>0;};
+        const QString sha(64,'a'),object="fixture-"+sha;
+        QVERIFY(root.mkpath("objects/"+object));
+        QVERIFY(write("active/fixture.json",QJsonDocument(QJsonObject{{"id","fixture"},{"version","2"},{"kind","game"},{"sha256",sha},{"object",object}})));
+        QVERIFY(write("transactions/fixture.json",QJsonDocument(QJsonObject{{"operation","install"},{"newObject",object}})));
+        QVERIFY(write("jobs.json",QJsonDocument(QJsonArray{QJsonObject{{"id","fixture"},{"operation","install"},{"version","2"},{"sha256",sha},{"state","running"},{"terminal",false}}})));
+        QProcess lease;lease.start("/usr/bin/python3",{"-c","import fcntl,sys,time\nf=open(sys.argv[1],'a');fcntl.flock(f,fcntl.LOCK_SH);print('locked',flush=True);time.sleep(20)",root.filePath("locks/fixture")});
+        QVERIFY(lease.waitForReadyRead());QCOMPARE(lease.readLine().trimmed(),QByteArray("locked"));
+        CratesInstaller jobs;jobs.setOnline(false);jobs.configure(helper,"missing-offline-registry",temp.path());
+        QTest::qWait(350);QCOMPARE(jobs.state("fixture")["job"].toMap()["state"].toString(),"recovering");
+        QVERIFY(QFileInfo::exists(root.filePath("transactions/fixture.json")));
+        lease.terminate();QVERIFY(lease.waitForFinished());
+        QTRY_COMPARE(jobs.state("fixture")["job"].toMap()["state"].toString(),"done");
+        QVERIFY(!QFileInfo::exists(root.filePath("transactions/fixture.json")));
+        QCOMPARE(jobs.state("fixture")["installedVersion"].toString(),"2");
+#endif
+    }
+    void failedRemovalRecoveryCanBeRetriedWithoutInstalledRecordOrNetwork() {
+#ifndef Q_OS_LINUX
+        QSKIP("Production worker requires Linux");
+#else
+        const auto helper=QFINDTESTDATA("../packaging/crates/installer.py");QVERIFY(!helper.isEmpty());
+        QTemporaryDir temp;QDir root(temp.path());QVERIFY(root.mkpath("transactions"));
+        const auto write=[&](QString path,QByteArray bytes){QFile f(root.filePath(path));return f.open(QIODevice::WriteOnly)&&f.write(bytes)==bytes.size();};
+        QVERIFY(write("transactions/fixture.json","{\"operation\":\"invalid\"}"));
+        QVERIFY(write("jobs.json","[{\"id\":\"fixture\",\"operation\":\"remove\",\"state\":\"running\",\"terminal\":false}]"));
+        CratesInstaller jobs;jobs.setOnline(false);jobs.configure(helper,{},temp.path());
+        QTRY_COMPARE(jobs.state("fixture")["job"].toMap()["state"].toString(),"failed");
+        QVERIFY(jobs.installed().isEmpty());
+        QVERIFY(write("transactions/fixture.json","{\"operation\":\"remove\"}"));
+        jobs.command("fixture","retry");
+        QTRY_COMPARE(jobs.state("fixture")["job"].toMap()["state"].toString(),"done");
+        QVERIFY(!QFileInfo::exists(root.filePath("transactions/fixture.json")));
+#endif
+    }
     void automaticUpdateFailureSurvivesRestart() {
         QTemporaryDir temp;QVERIFY(temp.isValid());QDir root(temp.path());QVERIFY(root.mkpath("active"));
         QFile receipt(root.filePath("active/game.json"));QVERIFY(receipt.open(QIODevice::WriteOnly));

@@ -36,6 +36,8 @@ private:
     void watchInventory();
     void event(const QByteArray&);
     void persistJobs();
+    bool hasTransactions() const;
+    void settleInterruptedJobs(bool recovered=true);
     QString helper_,registry_,root_,active_;
     QVariantList packages_,jobs_;
     QMap<QString,QVariantMap> inventory_;
@@ -46,5 +48,6 @@ private:
     QFileSystemWatcher inventoryWatch_;
     QTimer inventoryRefresh_;
     bool online_=true;
+    bool recoveryPending_=false;
 };
 }

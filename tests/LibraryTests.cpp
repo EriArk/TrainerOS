@@ -14,6 +14,7 @@
 #include "core/repository/CollectionRepository.h"
 #include "core/repository/BatoceraLibrary.h"
 #include "core/storage/LibraryFileMove.h"
+#include "features/crates/CratesLibrary.h"
 
 using namespace trainer;
 namespace {
@@ -84,6 +85,24 @@ private slots:
             QVERIFY2(!error.isEmpty(),qPrintable(name));QVERIFY(QFileInfo::exists(path));
             QVERIFY(!store.registration(record.adventure.id)->removed);
         }
+    }
+    void cratesReceiptReconciliationRestoresTheSameAdventure() {
+        QTemporaryDir dir;LocalStateStore store(dir.filePath("state"),nullptr,"user-library-v1");
+        store.open();QTRY_VERIFY(store.ready());CratesLibrary crates(store,dir.filePath("crates"));
+        QVERIFY(QDir().mkpath(dir.filePath("crates/active")));fixtureFile(dir.filePath("crates/active/fixture.json"));
+        QSignalSpy errors(&crates,&CratesLibrary::error);
+        const auto package=[](QString version){return QVariantMap{{"id","fixture"},{"title","Fixture"},{"kind","game"},{"version",version}};};
+        crates.update({package("1")});QTRY_VERIFY(store.registration("crates:fixture").has_value());
+        auto original=*store.registration("crates:fixture");
+        crates.update({});QTRY_VERIFY(store.registration("crates:fixture")->removed);
+        crates.update({package("2")});
+        QTRY_VERIFY(!store.registration("crates:fixture")->removed);
+        QTRY_COMPARE(store.registration("crates:fixture")->integrationConfig["version"].toString(),"2");
+        QCOMPARE(store.registration("crates:fixture")->adventure.id,original.adventure.id);
+        QCOMPARE(store.registration("crates:fixture")->contentPath,original.contentPath);
+        int count=0;for(const auto& r:store.registrations())if(r.adventure.adapterId=="crates-native")++count;
+        QCOMPARE(count,1);
+        QCOMPARE(errors.count(),0);
     }
     void managedPackageRemovalKeepsIdentityAndNeverMovesFiles() {
         QTemporaryDir dir;const auto path=dir.filePath("package.json");fixtureFile(path);
