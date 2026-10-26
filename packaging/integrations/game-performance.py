@@ -83,6 +83,7 @@ class Lease:
         self.host, self.journal = host, journal
         self.steps = []
         self.observed = {}
+        self.config = {}
 
     def save(self):
         temporary = self.journal.with_suffix('.new')
@@ -122,6 +123,13 @@ class Lease:
             state = self.host.read()
             self.observed = {k: state[k] for k in (self.host.profile_key, 'CpuScalingGovernor', 'ManualGpuClock', 'GpuPerformanceLevel') if k in state}
             self.save()
+        if operations:
+            # Even an override already equal to the host value has an observed
+            # state: a later explicit Apply must notice an external change.
+            state = self.host.read()
+            self.observed = {k: state[k] for k in (self.host.profile_key, 'CpuScalingGovernor', 'ManualGpuClock', 'GpuPerformanceLevel') if k in state}
+            if self.steps:
+                self.save()
 
     def release(self):
         # Reverse order matters: restore target profile's governor before leaving
@@ -155,6 +163,49 @@ class Lease:
             self.steps.pop()
             self.save()
         self.journal.unlink(missing_ok=True)
+
+    def update(self, config):
+        """Replace one session's overrides, retaining its original host baseline."""
+        plan(self.host, config)  # invalid input must not undo the working profile
+        previous = self.config or {}
+        state = self.host.read()
+        external = self.observed and any(state.get(k) != v for k, v in self.observed.items())
+        same = all(config.get(k, default) == previous.get(k, default)
+                   for k, default in [('power', ''), ('governor', ''), ('gpu', 0)])
+        if same and not external and self.config is not None:
+            return  # compatibility-only edits must not cycle the host profile
+        if external:
+            previous = {}  # an external client now owns the baseline
+        self.config = None  # an interrupted rollback is not a successfully applied config
+        self.release()
+        try:
+            self.apply(config)
+        except Exception as error:
+            # A refused update should retain the last working profile. If rollback
+            # itself fails, leave the journal intact and report that failure.
+            self.release()
+            self.apply(previous)
+            self.config = previous
+            raise RuntimeError('Could not apply changes; previous settings restored: ' + str(error)) from error
+        self.config = dict(config)
+
+
+def serve(lease, incoming, outgoing):
+    """Private inherited pipe, one bounded request/ack at a time; EOF releases."""
+    while True:
+        line = incoming.readline(8193)
+        if not line:
+            return
+        if len(line) > 8192 or not line.endswith(b'\n'):
+            raise ValueError('Invalid power update frame')
+        try:
+            config = json.loads(line)
+            if not isinstance(config, dict):
+                raise ValueError('Invalid power profile')
+            lease.update(config)
+            outgoing(dict(applied=True, capabilities=capabilities(lease.host)))
+        except Exception as error:
+            outgoing(dict(error=str(error)[:400]))
 
 
 def emit(value):
@@ -193,8 +244,9 @@ def main():
             signal.signal(signal.SIGINT, stop)
             try:
                 lease.apply(json.loads(sys.argv[2]))
-                emit(dict(ready=True, **capabilities(host)))
-                sys.stdin.buffer.read(1)  # close or EOF releases; no polling
+                lease.config = json.loads(sys.argv[2])
+                emit(dict(ready=True, updates=1, **capabilities(host)))
+                serve(lease, sys.stdin.buffer, emit)
             finally:
                 lease.release()
             emit(dict(restored=True))

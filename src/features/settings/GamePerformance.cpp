@@ -7,6 +7,7 @@
 #include <QJsonArray>
 #include <QElapsedTimer>
 #include <QSysInfo>
+#include <QPointer>
 
 namespace trainer {
 namespace {
@@ -18,6 +19,31 @@ struct PowerLease {
     std::unique_ptr<QProcess> process;
     QByteArray output;
     bool ready=false;
+    bool accepting=true;
+    bool updates=false;
+    QJsonObject update(const QJsonObject& config) {
+        if(!ready || !accepting || !process || process->state()!=QProcess::Running)
+            return {{"error","The power session is unavailable. Changes are saved for the next launch."},{"unavailable",true}};
+        const auto packet=json(config).toUtf8()+'\n';
+        if(process->write(packet)!=packet.size() || (process->bytesToWrite()>0 && !process->waitForBytesWritten(2000))) {
+            accepting=false;process->closeWriteChannel();
+            return {{"error","Could not send the profile. Reopen settings before trying again."},{"unavailable",true}};
+        }
+        QElapsedTimer timer;timer.start();
+        while(timer.elapsed()<60000) {
+            process->waitForReadyRead(100);output+=process->readAllStandardOutput();
+            if(output.contains('\n')) {
+                const auto reply=QJsonDocument::fromJson(output.left(output.indexOf('\n'))).object();
+                output.remove(0,output.indexOf('\n')+1);
+                if(reply.contains("applied") || reply.contains("error"))return reply;
+                break;
+            }
+            if(process->state()==QProcess::NotRunning)break;
+        }
+        // Never accept a delayed acknowledgement as the next request's reply.
+        accepting=false;process->closeWriteChannel();
+        return {{"error","Power update was not acknowledged. The host is restoring its settings."},{"unavailable",true}};
+    }
     QString start(const QJsonObject& config,const std::atomic_bool& cancel) {
         process=std::make_unique<QProcess>();
         process->start("/usr/bin/python3",{helper,"lease",json(config)});
@@ -27,7 +53,7 @@ struct PowerLease {
             process->waitForReadyRead(100);output+=process->readAllStandardOutput();
             if(output.contains('\n')) {
                 const auto reply=QJsonDocument::fromJson(output.left(output.indexOf('\n'))).object();output.remove(0,output.indexOf('\n')+1);
-                if(reply["ready"].toBool()){ready=true;return {};}
+                if(reply["ready"].toBool()){ready=true;updates=reply["updates"].toInt()==1;return {};}
                 return reply["error"].toString("Power profile could not be applied.");
             }
             if(process->state()==QProcess::NotRunning)break;
@@ -59,7 +85,14 @@ GamePerformance::GamePerformance(LibraryRepository& library,QObject* parent):QOb
     });
     connect(&probe_,&QProcess::errorOccurred,this,[this](QProcess::ProcessError){timeout_.stop();status_="Host power support is not installed.";emit changed();});
 }
-void GamePerformance::configure(const QString& directory,const QString& owner){if(directory_==directory&&owner_==owner)return;close();directory_=directory;owner_=owner;caps_={};}
+void GamePerformance::configure(const QString& directory,const QString& owner){if(directory_==directory&&owner_==owner)return;close();++editRevision_;applying_=false;directory_=directory;owner_=owner;caps_={};}
+void GamePerformance::setLiveAvailable(bool available){
+    if(liveAvailable_==available)return;
+    const bool wasLive=live();liveAvailable_=available;
+    if(live()&&!applying_)status_="Apply & save changes power settings now. Compatibility changes require a new launch.";
+    if(wasLive&&!available&&!applying_)status_="Live changes are no longer available. The saved profile applies on the next launch.";
+    emit changed();
+}
 QString GamePerformance::path(const QString& game) const{return directory_+"/game-performance/"+hash(owner_)+"/"+hash(game)+".json";}
 bool GamePerformance::valid(const QJsonObject& p){
     if(p.isEmpty())return true;
@@ -76,9 +109,11 @@ QJsonObject GamePerformance::snapshot(const QString& game) const {
 void GamePerformance::begin(const QString& game){
     const auto r=library_.registration(game);if(!r||r->removed||owner_.isEmpty()||busy())return;
     game_=game;title_=r->adventure.title;pc_=r->adventure.adapterId=="pc-local";proton_=pc_&&r->integrationConfig["runner"]=="proton";
+    ++editRevision_;
     draft_=snapshot(game);draft_["version"]=1;page_=focus_=0;status_="Saved for this game. Changes take effect on its next launch.";
     if(QSysInfo::kernelType()=="linux"&&QFileInfo::exists(helper)){probe_.start("/usr/bin/python3",{helper,"probe"});timeout_.start();}
     else status_="Power controls appear on supported Linux hosts. Changes apply on the next launch.";
+    if(live())status_="Apply & save changes power settings now. Compatibility changes require a new launch.";
     emit changed();
 }
 void GamePerformance::close(){game_.clear();emit changed();}
@@ -124,12 +159,29 @@ void GamePerformance::setGpuClock(int value){
     if(lo<=0||hi<lo||hi>10000)return;
     draft_["gpu"]=qBound(lo,((value+25)/50)*50,hi);focus_=1;emit changed();
 }
-void GamePerformance::reset(){draft_={{"version",1}};status_="System defaults selected. Save to remove this game's overrides.";emit changed();}
+void GamePerformance::reset(){if(busy())return;draft_={{"version",1}};status_=live()?"Apply & save to restore system settings now and clear this game's overrides.":"System defaults selected. Save to remove this game's overrides.";emit changed();}
 void GamePerformance::save(){
-    if(game_.isEmpty()||owner_.isEmpty()||!valid(draft_))return;
+    if(busy()||game_.isEmpty()||owner_.isEmpty()||!valid(draft_))return;
     QDir().mkpath(QFileInfo(path(game_)).absolutePath());QSaveFile f(path(game_));const auto bytes=QJsonDocument(draft_).toJson();
     if(!f.open(QIODevice::WriteOnly)||f.write(bytes)!=bytes.size()||!f.commit())status_="Could not save this game's profile.";
-    else status_="Saved for this game. The current session is unchanged; the next launch uses this profile.";
+    else {
+        status_="Saved for this game. The next launch uses this profile.";
+        if(live()&&applyLive){
+            applying_=true;
+            const auto revision=editRevision_;const QPointer<GamePerformance> guard(this);
+            const bool accepted=applyLive(game_,draft_,[guard,revision](QJsonObject reply){
+                if(!guard || guard->editRevision_!=revision)return;
+                auto& self=*guard;self.applying_=false;
+                if(reply["unavailable"].toBool())self.liveAvailable_=false;
+                if(reply["applied"].toBool()) {
+                    self.caps_=reply["capabilities"].toObject();
+                    self.status_="Power settings applied and profile saved. Compatibility changes take effect on the next launch.";
+                } else self.status_="Profile saved. "+reply["error"].toString("Could not apply power settings now.");
+                emit self.changed();
+            });
+            if(!accepted){applying_=false;status_="Profile saved. Live changes are unavailable; it will apply on the next launch.";}
+        }
+    }
     emit changed();
 }
 void GamePerformance::dispatch(Action a){
@@ -140,9 +192,10 @@ void GamePerformance::dispatch(Action a){
     else if(a==Action::PreviousPage||a==Action::NextPage){selectPage(1-page_);return;}
     emit changed();
 }
-ProcessCommand GamePerformance::prepare(ProcessCommand command,const QString& game) const {
-    const auto p=snapshot(game);if(p.isEmpty())return command;
+ProcessCommand GamePerformance::prepare(ProcessCommand command,const QString& game) {
+    const auto p=snapshot(game);
     const auto r=library_.registration(game);if(!r||r->removed)return command;
+    sessionGame_=game;sessionOwner_=owner_;liveAvailable_=false;
     const bool proton=r->adventure.adapterId=="pc-local"&&r->integrationConfig["runner"]=="proton";
     const bool power=!p["power"].toString().isEmpty()||!p["governor"].toString().isEmpty()||p["gpu"].toInt()!=0;
     const auto original=command.prepare;
@@ -156,11 +209,15 @@ ProcessCommand GamePerformance::prepare(ProcessCommand command,const QString& ga
             if(p["sync"]=="off")env<<"PROTON_NO_ESYNC=1"<<"PROTON_NO_FSYNC=1";
             if(!env.isEmpty()){env<<c.program;env<<c.arguments;c.program="/usr/bin/env";c.arguments=env;}
         }
-        if(!power)return {};
-        if(QSysInfo::kernelType()!="linux"||!QFileInfo::exists(helper))return "Game power support is not installed. Select System default to launch without overrides.";
+        if(QSysInfo::kernelType()!="linux"||!QFileInfo::exists(helper))return power?QString("Game power support is not installed. Select System default to launch without overrides."):QString();
         auto lease=std::make_shared<PowerLease>();const auto final=c.finalize;
         c.finalize=[lease,final](const ProcessOutcome& result){const auto earlier=final?final(result):QString();const auto restored=lease->finish();return earlier.isEmpty()?restored:restored.isEmpty()?earlier:earlier+'\n'+restored;};
-        return lease->start(p,cancel);
+        const auto error=lease->start(p,cancel);
+        if(error.isEmpty()){
+            if(lease->updates)c.updateSettings=[lease](const QJsonObject& config){return lease->update(config);};
+        }
+        else if(!power){const auto recovery=lease->finish();return recovery;}
+        return error;
     };
     return command;
 }

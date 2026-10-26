@@ -147,7 +147,12 @@ Per-game Performance, 26 октября: S04 `GamePerformance` хранит пр
 S03 `AdventureLaunchController.configureGame` подключает его к фактической команде
 через существующие prepare/finalize. S15 helper берёт временный host power lease
 через Armada/PPD и возвращает его по завершению, ошибке или EOF shell; журнал
-восстанавливает прерванные изменения. S13 PC runtime worker публикует проверенные
+восстанавливает прерванные изменения. Горячее применение идёт через S03
+`ProcessService.updateSettings` по тому же приватному pipe и worker; запрос
+привязан к фактической сессии/Trainer, exit сериализован с обновлением, поздний
+ответ не применяется к следующей игре. S04 сохраняет профиль до запроса и
+различает сохранение, host-ack и ошибку; Compatibility остаётся next-launch.
+S13 PC runtime worker публикует проверенные
 версии в общий неизменяемый кеш и задачи в существующий S04 Downloads; настройки
 игры явно выбирают версию, S02 identity/prefix остаются прежними.
 [Контракт и пределы доказательств](GAME_PERFORMANCE.md), R140/R018, F01/F02/F12.

@@ -561,6 +561,13 @@ int main(int argc, char* argv[]) {
         const auto liveExperienceSession=[&]{return adventureProcess.active()?QString::number(adventureProcess.processId())+":"+QString::number(experienceSession):QString();};
         AdventureLaunchController adventureLaunch(adventureProcess);
         adventureLaunch.configureGame=[&](ProcessCommand command,const QString& game){return shell.gamePerformance()->prepare(std::move(command),game);};
+        QObject::connect(&adventureLaunch,&AdventureLaunchController::changed,&shell,[&]{
+            shell.gamePerformance()->setLiveAvailable(adventureLaunch.state()=="running" && adventureProcess.supportsRuntimeSettings());
+        });
+        shell.gamePerformance()->applyLive=[&](const QString& game,const QJsonObject& settings,std::function<void(QJsonObject)> done){
+            if(adventureLaunch.state()!="running" || adventureLaunch.adventureId()!=game)return false;
+            return adventureProcess.updateSettings(settings,shell.gamePerformance(),std::move(done));
+        };
         std::unique_ptr<PlatformBinding> platformSdk;
         // Publish discovery only when the GUI event loop can answer clients,
         // after synchronous QML/startup work has finished.

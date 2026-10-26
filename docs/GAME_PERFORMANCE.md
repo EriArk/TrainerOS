@@ -14,9 +14,12 @@ ID фактической сессии и существующий Minimize, п�
 
 Performance содержит режим питания, частоту GPU и CPU governor. Значения и
 доступность приходят от хоста. System default / Automatic наследуют настройки
-хоста; Reset + Save снимает все overrides этой игры. Пока изменения действуют
-**со следующего запуска**, в том числе при редактировании из живой игры.
-Это явно указано в панели; горячее применение ещё не реализовано.
+хоста; Reset + Save снимает все overrides этой игры. Для фактической запущенной
+игры кнопка **Apply & save** сохраняет профиль и сразу применяет power/GPU/governor,
+без перезапуска процесса. Reset + Apply & save возвращает исходные системные
+настройки прямо в сессии. Для другой игры/другого Trainer остаётся Save profile
+со следующим запуском. Это заменяет первоначальное ограничение next-launch-only
+из `19e8642a`; **Compatibility по-прежнему действует только со следующего запуска**.
 
 В Compatibility у Proton доступны Runtime default / DXVK Vulkan / WineD3D
 OpenGL для DirectX 9–11 и диагностическое отключение Esync/Fsync. DirectX 12,
@@ -41,6 +44,24 @@ Native Linux и эмуляторы не получают не относящих
   Журнал намерений сохраняется перед записью; незавершённое восстановление
   повторяется при следующем открытии панели/получении lease. Ошибка возврата
   отображается через существующий результат завершения игры.
+- Горячие изменения идут по тому же приватному stdin pipe, с ограниченным JSON
+  запросом и подтверждением. `ProcessService.updateSettings` исполняет их на
+  том же worker, что prepare/finalize: один запрос за раз, завершение ждёт уже
+  начатую операцию и затем восстанавливает настройки. Cancel/exit запрещают новые
+  запросы; старый ответ не становится успехом следующей сессии/другого Trainer.
+- Helper подтверждает поддержку протокола updates=1. На поддержанном хосте lease
+  открывается и для игры без overrides: их можно добавить во время игры. Старый
+  helper или недоступный provider не блокирует обычный запуск с defaults.
+- При смене live-профиля старые overrides возвращаются, новые применяются с
+  журналом; отказ записи откатывается к последнему рабочему профилю. Невалидный
+  запрос не снимает текущие настройки. Ошибка восстановления оставляет журнал.
+  Compatibility-only сохранение не переключает питание повторно. После внешней
+  ручной смены режима явное новое применение использует её как новую исходную
+  точку. Это последовательность host API calls, не атомарная транзакция драйвера.
+- Профиль сохраняется **до** live-запроса. При отказе применения UI сообщает,
+  что файл сохранён, но текущее применение не удалось. Таймаут закрывает канал
+  обновлений и запускает восстановление; запоздалый ответ нельзя принять за
+  подтверждение следующего изменения.
 - Armada сохраняет governor внутри выбранного power profile. Операции поэтому
   отменяются в обратном порядке: governor целевого профиля, затем исходный режим.
   Сравнение с записанным результатом и проверка текущего профиля не позволяют
@@ -90,26 +111,34 @@ runtimes не перезаписываются; удаления runtime чер�
 
 - Тестовая сборка и обычная сборка `traineros` с `BUILD_TESTING=OFF` завершены
   успешно; последняя включает регистрацию новых QML и support files.
-- `trainer_pc_tests`: 29 passed, один прежний Linux/libfm skip; включает общий
-  контекстный вход, смещения browser actions, owner/game persistence и UMU IDs.
+- `trainer_pc_tests`: 30 passed, один прежний Linux/libfm skip; включает общий
+  контекстный вход, owner/game persistence, live identity, сохранение до ack,
+  повторное нажатие и защиту от устаревшего ответа при смене Trainer.
 - `trainer_pc_ui_tests`: 6 passed; реальные QML-render, переключение раздела,
   D-pad и pointer click GPU slider, сохранение и повторное открытие.
-- `trainer_process_tests`: 17 passed, включая новый configureGame + failed start
-  с исполнением finalizer, прежние cancel/crash/return/argument tests.
-- `GamePerformanceTests.py`: 10 passed; `PcRuntimeDownloadTests.py`: 7 passed.
+- `trainer_process_tests`: 19 passed. Реальный дочерний процесс сохраняет PID
+  при обновлении; update/finalize работают на одном worker в нужном порядке,
+  stop запрещает новый запрос и не выдаёт поздний applied, следующая сессия
+  не наследует канал. Потеря канала отключает повторное предложение live controls.
+- `GamePerformanceTests.py`: 19 passed. Несколько live-переключений, Reset,
+  отказ/частичный rollback, внешняя смена исходных настроек, compatibility-only
+  no-op и настоящий subprocess pipe/EOF проверены с тестовым host provider.
+- Сохранённые результаты предыдущего прохода: `PcRuntimeDownloadTests.py`: 7 passed.
   Runtime fixture install/reuse/failed staging реально пишет временные файлы;
   flock в Windows-части подменён и не считается Linux-проверкой.
 - `PcSessionTests.py`: 11 passed / 6 Linux skips; `PcSteamTests.py`: 7 passed.
   Preflight отказа session support: 1 passed. Apps smoke оболочки: PASSED.
-- Расширенный `trainer_library_tests`: **17 passed / 3 failed**. Сбои относятся
+- Расширенный `trainer_library_tests` в предыдущем проходе: **17 passed / 3 failed**. Сбои относятся
   к Start → Settings (ожидаемый service), разрешению World editing и ожиданию
   прежней темы `turquoise` вместо `light`. Чистая бинарная baseline-сборка для
   сравнения не выполнялась; весь Library-набор зелёным не объявляется.
 
-Локальные evidence: `build/native/performance-*-tests.txt`,
+Локальные evidence: `build/native/{performance,live-performance}-*-tests.txt`,
 `screenshots/game-performance/{light-960,dark-800,compatibility-800}.png` и
 `screenshots/performance-shell/apps-verification.txt`. Это временные build
 артефакты с искусственной библиотекой, не пользовательские данные или README art.
+Live-панель: `screenshots/game-performance/live-dark-800.png`; QML включает
+переключение подписи Apply & save и controller-confirm после перехода в live.
 
 Локальные тесты проверяют profile/owner isolation, сохранение аргументов и
 adapter lifecycle, host rollback/частичную ошибку/журнал/внешнюю смену режима,
@@ -121,9 +150,9 @@ QML проверяется в 960×540 и 800×450, в Light/Dark, с controller
 
 Это **не** проверка настоящих D-Bus прав, CPU/GPU/cooling, игры через Wine/FEX,
 первичного SteamRT bootstrap, Linux pipe/flock после crash или физических
-кнопок. Устройства не устанавливались и не тестировались. Горячее применение,
-персональные CPU-frequency/TDP/fan controls и полный compatibility catalogue
-ещё не реализованы.
+кнопок. Устройства не устанавливались и не тестировались. Горячее применение
+реализовано в исходниках; его реальная аппаратная приёмка, персональные
+CPU-frequency/TDP/fan controls и полный compatibility catalogue остаются открытыми.
 
 ## Проверенные upstream-контракты
 

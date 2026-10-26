@@ -48,6 +48,11 @@ private slots:
         QTest::qWait(50);slider=findSlider(view.rootObject());QVERIFY(slider);QVERIFY(slider->parentItem()->property("clockRatio").toDouble()>.7);
         profile.save();profile.close();profile.begin("pc:power");QCOMPARE(profile.draft()["power"].toString(),QString("Eco"));
         view.rootObject()->setProperty("dark",true);view.resize(800,450);QTest::qWait(100);QVERIFY(view.grabWindow().save("screenshots/game-performance/dark-800.png"));
+        profile.prepare({},"pc:power");profile.setLiveAvailable(true);QVERIFY(profile.live());
+        profile.applyLive=[](const QString&,const QJsonObject&,std::function<void(QJsonObject)> done){done({{"applied",true},{"capabilities",QJsonObject{{"current","Eco"}}}});return true;};
+        QTest::qWait(100);QVERIFY(view.grabWindow().save("screenshots/game-performance/live-dark-800.png"));
+        profile.dispatch(Action::Down);profile.dispatch(Action::Down);profile.dispatch(Action::Down);profile.dispatch(Action::Confirm);
+        QVERIFY(profile.status().contains("applied"));QVERIFY(!profile.applying());
         profile.dispatch(Action::NextPage);QCOMPARE(profile.page(),1);QTest::qWait(100);QVERIFY(view.grabWindow().save("screenshots/game-performance/compatibility-800.png"));
         profile.dispatch(Action::Back);QVERIFY(!profile.isOpen());
         QVERIFY2(warnings.isEmpty(),qPrintable(warnings.join('\n')));

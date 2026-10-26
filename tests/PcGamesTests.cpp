@@ -53,6 +53,31 @@ public:
 class PcGamesTests : public QObject {
     Q_OBJECT
 private slots:
+    void liveProfileUsesActualGameAndOwnerAndIgnoresStaleReplies() {
+        QTemporaryDir d;PcLibrary library;AdventureRegistration r;r.adventure.id="live";library.records<<r;
+        r.adventure.id="other";library.records<<r;
+        GamePerformance p(library);p.configure(d.path(),"one");
+        p.prepare({},"live");p.setLiveAvailable(true);p.begin("other");QVERIFY(!p.live());
+        int requests=0;QJsonObject sent;std::function<void(QJsonObject)> reply;
+        p.applyLive=[&](const QString& game,const QJsonObject& settings,std::function<void(QJsonObject)> done){
+            ++requests;if(game!="live")return false;sent=settings;reply=std::move(done);return true;
+        };
+        p.save();QCOMPARE(requests,0);
+        p.begin("live");QVERIFY(p.live());p.setCapabilities({{"profiles",QJsonArray{"Eco","Performance"}}});
+        p.adjust(0,1);p.save();QVERIFY(p.applying());QCOMPARE(requests,1);
+        QCOMPARE(p.snapshot("live")["power"].toString(),QString("Eco"));
+        QCOMPARE(sent["power"].toString(),QString("Eco"));p.save();p.reset();QCOMPARE(requests,1);
+        reply({{"applied",true},{"capabilities",QJsonObject{{"current","Eco"}}}});
+        QVERIFY(!p.busy());QVERIFY(p.status().contains("applied"));
+        p.reset();p.save();QCOMPARE(requests,2);QVERIFY(!sent.contains("power"));
+        reply({{"error","host refused update"}});QVERIFY(!p.busy());QVERIFY(p.status().contains("host refused"));
+        QVERIFY(!p.snapshot("live").contains("power"));
+        p.save();QVERIFY(p.applying());p.configure(d.path(),"two");p.begin("live");QVERIFY(!p.live());
+        const auto status=p.status();reply({{"applied",true}});
+        QCOMPARE(p.status(),status);QVERIFY(!p.applying());QVERIFY(p.snapshot("live").isEmpty());
+        p.configure(d.path(),"one");p.begin("live");p.setLiveAvailable(false);QVERIFY(!p.live());
+        p.save();QCOMPARE(requests,3);
+    }
     void universalGameSettingsPreservesBrowserContextActions() {
         PcLibrary library;AdventureRegistration r;r.adventure.id="emulator:game";r.adventure.title="Game";library.records<<r;
         LibraryToolsController tools(library);QSignalSpy settings(&tools,&LibraryToolsController::gameSettingsRequested),browser(&tools,&LibraryToolsController::browserActionRequested);

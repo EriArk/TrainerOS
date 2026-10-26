@@ -29,7 +29,7 @@ Item {
                 }
             }
             Text { x: 14; topPadding: 18; width: 146; text: "PER GAME"; font.pixelSize: 10; font.letterSpacing: 1.5; color: Theme.accent }
-            Text { x: 14; width: 140; text: "Applies at launch.\nSystem settings return\nwhen the game ends."; font.pixelSize: 12; lineHeight: 1.3; color: Theme.muted }
+            Text { x: 14; width: 140; text: root.profile.page === 1 ? "Compatibility changes\napply on the next launch." : root.profile.live ? "Apply power settings\nwithout restarting.\nSystem settings return\nwhen the game ends." : "Applies at launch.\nSystem settings return\nwhen the game ends."; font.pixelSize: 12; lineHeight: 1.3; color: Theme.muted }
             Text { x: 14; width: 140; text: root.profile.capabilities.current ? "Host · " + root.profile.capabilities.current : "Host controls unavailable"; wrapMode: Text.Wrap; font.pixelSize: 12; color: Theme.muted }
         }
         ListView {
@@ -86,20 +86,21 @@ Item {
                 }
             }
         }
-        Text { x: 220; y: panel.height - 100; width: panel.width - 250; height: 42; text: root.profile.busy ? "Reading host capabilities…" : root.profile.status; wrapMode: Text.Wrap; maximumLineCount: 3; elide: Text.ElideRight; font.pixelSize: 11; color: Theme.muted }
+        Text { x: 220; y: panel.height - 100; width: panel.width - 250; height: 42; text: root.profile.applying ? "Applying power settings…" : root.profile.busy ? "Reading host capabilities…" : root.profile.status; wrapMode: Text.Wrap; maximumLineCount: 3; elide: Text.ElideRight; font.pixelSize: 11; color: Theme.muted }
         Rectangle { x: 26; y: parent.height - 51; width: parent.width - 52; height: 1; color: Theme.divider }
         Text { x: 27; anchors.bottom: parent.bottom; anchors.bottomMargin: 19; text: "L1 / R1  Section    ← →  Adjust    " + Theme.buttonLabel("B") + "  Close"; color: Theme.muted; font.pixelSize: 11 }
         Row {
             anchors.right: parent.right; anchors.rightMargin: 22; anchors.bottom: parent.bottom; anchors.bottomMargin: 9; spacing: 12
             Repeater {
-                model: ["Reset", "Save profile"]
+                model: ["Reset", root.profile.live ? "Apply & save" : "Save profile"]
                 delegate: Rectangle {
                     required property int index
                     required property string modelData
-                    width: index ? 118 : 66; height: 34; radius: 8
+                    width: index ? 128 : 66; height: 34; radius: 8
+                    opacity: root.profile.busy ? 0.5 : 1
                     color: root.profile.focusIndex === root.profile.rows.length + (index ? 0 : 1) ? Theme.selection : "transparent"
                     Text { anchors.centerIn: parent; text: modelData; font.pixelSize: 14; color: index ? Theme.accent : Theme.muted }
-                    MouseArea { anchors.fill: parent; onClicked: index ? root.profile.save() : root.profile.reset() }
+                    MouseArea { anchors.fill: parent; enabled: !root.profile.busy; onClicked: index ? root.profile.save() : root.profile.reset() }
                 }
             }
         }

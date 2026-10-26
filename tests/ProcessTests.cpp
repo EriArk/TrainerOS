@@ -18,6 +18,46 @@ class ProcessTests final : public QObject {
         );
     }
 private slots:
+    void lostSettingsChannelIsNotOfferedAgainInTheSameSession() {
+        QTemporaryDir dir;ProcessService process;QSignalSpy finished(&process,&ProcessService::finished);
+        ProcessCommand command{probe(),{"controlled",dir.filePath("control"),dir.filePath("pid")},{}};
+        command.updateSettings=[](const QJsonObject&){return QJsonObject{{"error","helper exited"},{"unavailable",true}};};
+        QVERIFY(process.start(command));QTRY_VERIFY(process.supportsRuntimeSettings());
+        QJsonObject reply;QVERIFY(process.updateSettings({},this,[&](QJsonObject r){reply=r;}));
+        QTRY_VERIFY(reply.contains("error"));QVERIFY(!process.supportsRuntimeSettings());
+        QVERIFY(!process.updateSettings({},this,[](QJsonObject){}));
+        process.stop();QTRY_COMPARE(finished.size(),1);
+    }
+    void liveSettingsUseSessionWorkerAndSerializeWithExit() {
+        QTemporaryDir dir;ProcessService process;QObject context;
+        QSignalSpy finished(&process,&ProcessService::finished);
+        const auto entered=std::make_shared<std::atomic_bool>(false);
+        const auto release=std::make_shared<std::atomic_bool>(false);
+        QStringList order;QThread* updater=nullptr;QThread* finalizer=nullptr;
+        ProcessCommand command{probe(),{"controlled",dir.filePath("control"),dir.filePath("pid")},{}};
+        command.updateSettings=[&](const QJsonObject& settings){
+            updater=QThread::currentThread();order<<settings["name"].toString();
+            if(settings["wait"].toBool()){*entered=true;while(!*release)QThread::msleep(1);}
+            return QJsonObject{{"applied",true}};
+        };
+        command.finalize=[&](const ProcessOutcome&){finalizer=QThread::currentThread();order<<"restore";return QString();};
+        QVERIFY(!process.updateSettings({},&context,[](QJsonObject){}));
+        QVERIFY(process.start(command));QTRY_VERIFY(process.supportsRuntimeSettings());
+        const auto pid=process.processId();QJsonObject first,ending;
+        QVERIFY(process.updateSettings({{"name","first"}},&context,[&](QJsonObject r){first=r;}));
+        QTRY_VERIFY(first["applied"].toBool());QCOMPARE(process.processId(),pid);
+        QVERIFY(process.updateSettings({{"name","second"},{"wait",true}},&context,[&](QJsonObject r){ending=r;}));
+        QTRY_VERIFY(*entered);
+        QVERIFY(!process.updateSettings({},&context,[](QJsonObject){}));
+        process.stop();QVERIFY(!process.supportsRuntimeSettings());*release=true;
+        QTRY_COMPARE(finished.size(),1);QTRY_VERIFY(ending.contains("error"));
+        QVERIFY(!ending.contains("applied"));QCOMPARE(order,QStringList({"first","second","restore"}));
+        QVERIFY(updater!=QThread::currentThread());QCOMPARE(updater,finalizer);
+        QVERIFY(process.start({probe(),{"controlled",dir.filePath("new-control"),dir.filePath("new-pid")},{}}));
+        QTRY_VERIFY(process.processId()>0);QVERIFY(!process.supportsRuntimeSettings());
+        QVERIFY(!process.updateSettings({},&context,[](QJsonObject){}));
+        process.stop();QTRY_COMPARE(finished.size(),2);
+    }
     void gameConfigurationUsesLiveIdentityAndFinalizesFailedStart() {
         QTemporaryDir directory;ProcessService process;AdventureLaunchController launch(process);
         QString configured;bool prepared=false,finalized=false;

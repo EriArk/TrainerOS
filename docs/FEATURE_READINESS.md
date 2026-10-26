@@ -249,7 +249,7 @@ R-ID не перенумеровывать; новая функция получ
 
 | Готово | Функция | Владелец; связи | Статус | Подтверждение / остаток |
 | --- | --- | --- | --- | --- |
-| ☐ | <a id="r140"></a>**R140** Per-game performance profiles | **[S15]**; [S03], [S04] | Недоделано | [26 октября](GAME_PERFORMANCE.md): source UI по Trainer/game, реальные Armada/PPD capabilities, GPU MHz/governor/power presets, session apply/restore и журнал. Локальные tests/UI отделены от Linux/Armada и физических проверок. Горячее применение, ручные CPU MHz/TDP/fan curves и все host ещё открыты; не является исправлением Sacred. |
+| ☐ | <a id="r140"></a>**R140** Per-game performance profiles | **[S15]**; [S03], [S04] | Недоделано | [26 октября](GAME_PERFORMANCE.md): source UI по Trainer/game, реальные Armada/PPD capabilities, GPU MHz/governor/power presets, session apply/restore и журнал. Локальные tests/UI отделены от Linux/Armada и физических проверок. Горячее Apply & save/Reset реализовано через текущую сессию, с rollback и защитой от позднего ответа; реальная Armada-приёмка, ручные CPU MHz/TDP/fan curves и все host ещё открыты; не является исправлением Sacred. |
 | ☐ | <a id="r141"></a>**R141** Gyro Bridge и mappings | **[S04]**; [S15], [S03] | Не проверено | Core input responsibility; sensor support/mapping/lifecycle конкретных устройств не установлены этой SDK-работой. |
 | ☐ | <a id="r142"></a>**R142** Challenge Cards | **[S05]**; [S06], [S10], [S14] | Не проверено | Общая Social/game функция для live и async challenges; формат/expiry/validation и связывание результата открыты, не отдельная Activity app. |
 

@@ -4,6 +4,7 @@
 #include <QTimer>
 #include <QThread>
 #include <QVariantMap>
+#include <QJsonObject>
 #include <functional>
 #include <atomic>
 #include <memory>
@@ -27,6 +28,8 @@ struct ProcessCommand {
     QVariantMap runtimeControls;
     // Adapter finalization before observations/return, with visible save errors.
     std::function<QString(const ProcessOutcome&)> finalize{};
+    // Session-owned settings channel. Runs on the same worker as prepare/finalize.
+    std::function<QJsonObject(const QJsonObject&)> updateSettings{};
 };
 class ProcessService final : public QObject {
     Q_OBJECT
@@ -42,6 +45,8 @@ public:
     void stop();
     QVariantMap runtimeControls() const{return active_?runtimeControls_:QVariantMap{};}
     bool runtimeCommand(const QString& action,const QString& text={});
+    bool supportsRuntimeSettings() const;
+    bool updateSettings(const QJsonObject&, QObject* context, std::function<void(QJsonObject)> done);
 signals:
     void launchStageChanged();
     void runtimeOutput(QByteArray bytes);
@@ -60,6 +65,9 @@ private:
     std::function<QString(const QByteArray&)> inspectOutput_;
     std::function<void(const ProcessOutcome&)> settled_;
     std::function<QString(const ProcessOutcome&)> finalize_;
+    std::function<QJsonObject(const QJsonObject&)> updateSettings_;
+    std::shared_ptr<std::atomic_bool> settingsCancelled_;
+    bool updatingSettings_ = false;
     QString validationError_;
     QString launchStage_;
     quint64 request_ = 0;
