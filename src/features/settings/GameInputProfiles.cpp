@@ -81,6 +81,7 @@ void GameInputProfiles::configure(LibraryRepository* library,const QString& dire
     library_=library;directory_=directory;owner_=owner;begin();
 }
 void GameInputProfiles::begin(){toolsOpen_=false;preview_=-1;game_.clear();draft_={};choosing_=copying_=false;gesture_="press";textRing_=textSlot_=-1;ring_=slot_=-1;focus_=page_=targetGroup_=0;status_.clear();emit changed();}
+void GameInputProfiles::beginGame(const QString& id){begin();const auto list=games();for(int i=0;i<list.size();++i)if(list[i].id==id){activate(i);return;}}
 QVariantList GameInputProfiles::visibleRows() const {
     const auto all=rows();QVariantList result;
     for(int i=0;i<all.size();++i) {

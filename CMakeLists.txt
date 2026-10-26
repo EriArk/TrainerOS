@@ -91,6 +91,11 @@ add_library(trainer_core STATIC
     src/features/crates/CratesController.cpp
     src/features/pc/PcGamesController.cpp
     src/features/pc/PcGamesController.h
+    src/features/pc/PcRuntime.cpp
+    src/features/pc/PcGameSettings.cpp
+    src/features/pc/PcRuntime.h
+    src/features/pc/PcSteamBridge.cpp
+    src/features/pc/PcSteamBridge.h
     src/features/crates/CratesInstaller.cpp
     src/features/crates/CratesLibrary.h
     src/features/crates/CratesCatalogue.cpp

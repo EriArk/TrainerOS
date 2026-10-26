@@ -2,6 +2,10 @@
 #include <QTemporaryDir>
 #include <QFile>
 #include <QSysInfo>
+#include <QImage>
+#include <QJsonArray>
+#include "features/pc/PcRuntime.h"
+#include "core/repository/BatoceraLibrary.h"
 #include <archive.h>
 #include <archive_entry.h>
 #include "platform/files/ArchiveExtractor.h"
@@ -38,11 +42,63 @@ public:
     QList<ResumePoint> resumePoints() const override { return {}; }
     HomeSnapshot home() const override { return {}; }
     std::optional<AdventureRegistration> registration(const QString& id) const override {for(const auto& r:records)if(r.adventure.id==id)return r;return {};}
-    void saveAdventureAsync(const AdventureRegistration& r,QObject*,std::function<void(LibraryWriteResult)> done) override {records.append(r);done({true,{}});}
+    void saveAdventureAsync(const AdventureRegistration& r,QObject*,std::function<void(LibraryWriteResult)> done) override {
+        auto next=r;next.revision++;
+        for(auto& existing:records)if(existing.adventure.id==r.adventure.id){if(existing.revision!=r.revision){done({false,"Revision conflict"});return;}existing=next;done({true,{},next.revision});return;}
+        records.append(next);done({true,{},next.revision});
+    }
 };
 class PcGamesTests : public QObject {
     Q_OBJECT
 private slots:
+    void settingsPersistIdentityArtworkArgumentsAndRespectConflicts() {
+        QTemporaryDir d;PcLibrary library;FilesService files;LocalFileCatalog catalog;
+        const auto root=d.filePath("game");QVERIFY(QDir().mkpath(root));QFile exe(root+"/play.exe");QVERIFY(exe.open(QIODevice::WriteOnly));exe.write(nativeHeader());exe.close();QVERIFY(exe.setPermissions(QFile::ReadOwner|QFile::WriteOwner|QFile::ExeOwner));
+        AdventureRegistration r;r.adventure.id="pc:65aec49c-67dc-4ee0-84cb-c3148c5f59a1";r.adventure.adapterId="pc-local";r.adventure.title="Original";r.adventure.platformId="pc";r.contentPath=exe.fileName();r.revision=4;
+        r.integrationConfig={{"runner","native"},{"installRoot",root},{"workingDirectory",root},{"prefix",root+"/prefix"}};library.records<<r;
+        PcGamesController c(library,files);c.setCatalog(&catalog);c.configure(d.filePath("state"),"owner");c.edit(r.adventure.id);QVERIFY(c.editing());
+        c.activate(0);QCOMPARE(c.stage(),QString("launch-settings"));QVERIFY(!c.rows()[3].toMap()["enabled"].toBool());
+        c.activate(2);c.applyText("--title \"two words\" $(literal)");c.dispatch(Action::Back);c.activate(2);c.activate(0);c.applyText("Renamed");
+        QImage picture(60,80,QImage::Format_ARGB32);picture.fill(Qt::blue);QVERIFY(picture.save(d.filePath("cover.png")));
+        c.activate(1);c.picker()->navigate(d.path());QTRY_VERIFY(!c.picker()->busy());
+        int cover=-1;for(int i=0;i<c.picker()->rows().size();++i)if(c.picker()->rows()[i].toMap()["title"]=="cover.png")cover=i;
+        QVERIFY(cover>=0);c.picker()->select(cover);c.picker()->choose();QVERIFY(!c.picker()->isOpen());QVERIFY(!c.artwork().isEmpty());
+        QCOMPARE(library.records[0].adventure.title,QString("Original"));c.dispatch(Action::Back);c.activate(4);
+        QCOMPARE(library.records.size(),1);QCOMPARE(library.records[0].adventure.title,QString("Renamed"));QCOMPARE(library.records[0].adventure.id,r.adventure.id);
+        QCOMPARE(library.records[0].integrationConfig["arguments"].toArray(),QJsonArray({"--title","two words","$(literal)"}));
+        QCOMPARE(library.records[0].integrationConfig["prefix"],r.integrationConfig["prefix"]);
+        BatoceraLibrary presentation(library,d.filePath("roms"));QCOMPARE(presentation.artwork(r.adventure.id)["cover"].toString(),c.artwork());
+        c.close();c.edit(r.adventure.id);QCOMPARE(c.title(),QString("Renamed"));
+        c.activate(1);QCOMPARE(c.rows().size(),2);QVERIFY(!c.rows()[0].toMap()["title"].toString().contains("EXE"));c.dispatch(Action::Back);
+        c.settingsGuard=[]{return QString("Game is running");};c.activate(4);QCOMPARE(c.message(),QString("Game is running"));c.settingsGuard={};
+        library.records[0].revision++;c.activate(4);QVERIFY(c.message().contains("changed"));
+        c.close();c.begin();QVERIFY(!c.editing());QCOMPARE(c.stage(),QString("source"));
+    }
+    void runtimeDiscoveryAndPinsStaySeparateForTwoGames() {
+        QTemporaryDir d;PcLibrary library;FilesService files;const auto state=d.filePath("state");
+        const auto arch=QSysInfo::currentCpuArchitecture();const auto suffix=arch=="arm64"?"-aarch64":QString();
+        QVERIFY(QDir().mkpath(state+"/runtimes/umu/1.4.4"));QFile umu(state+"/runtimes/umu/1.4.4/umu-run");QVERIFY(umu.open(QIODevice::WriteOnly));umu.close();
+        for(const auto& name:{"Runner-1","Runner-2","Broken"}) {
+            const auto path=state+"/runtimes/proton/"+name+suffix;QVERIFY(QDir().mkpath(path+"/files/bin"));
+            QFile proton(path+"/proton");QVERIFY(proton.open(QIODevice::WriteOnly));proton.close();
+            QFile wine(path+"/files/bin/wine");QVERIFY(wine.open(QIODevice::WriteOnly));wine.write(nativeHeader());wine.close();
+            if(QString(name)!="Broken"){QFile manifest(path+"/toolmanifest.vdf");QVERIFY(manifest.open(QIODevice::WriteOnly));manifest.write("standalone fixture");}
+        }
+        const auto choices=pc::runtimes(state,d.path(),arch);QCOMPARE(choices.size(),3);
+        int valid=0;for(const auto& value:choices)if(value.toMap()["enabled"].toBool())++valid;QCOMPARE(valid,2);
+        QJsonObject runtime=QJsonObject::fromVariantMap(choices[0].toMap()["config"].toMap());QVERIFY(pc::runtimeIssue(runtime,arch=="arm64"?"x86_64":"arm64").contains("Unsupported"));
+        for(int i=0;i<2;++i) {
+            const auto root=d.filePath("game"+QString::number(i));QVERIFY(QDir().mkpath(root));QFile exe(root+"/play.exe");QVERIFY(exe.open(QIODevice::WriteOnly));
+            QByteArray pe(100,0);pe[0]='M';pe[1]='Z';pe[60]=64;pe.replace(64,4,QByteArray("PE\0\0",4));exe.write(pe);exe.close();
+            AdventureRegistration r;r.adventure.id="pc:"+QString::number(i);r.adventure.title="Game";r.adventure.adapterId="pc-local";r.contentPath=exe.fileName();r.integrationConfig=runtime;
+            r.integrationConfig["installRoot"]=root;r.integrationConfig["workingDirectory"]=root;r.integrationConfig["prefix"]=root+"/prefix";library.records<<r;
+        }
+        const auto other=library.records[1].integrationConfig;PcGamesController c(library,files);c.configure(state,"owner");c.edit("pc:0");c.activate(0);c.activate(3);
+        int choice=-1;for(int i=0;i<c.rows().size();++i)if(c.rows()[i].toMap()["title"]=="Runner-1"+suffix)choice=i;QVERIFY(choice>=0);c.activate(choice);c.dispatch(Action::Back);c.activate(4);
+        QVERIFY(library.records[0].integrationConfig["proton"].toString().endsWith("Runner-1"+suffix));QCOMPARE(library.records[1].integrationConfig,other);
+        QVERIFY(!QFileInfo(library.records[0].integrationConfig["prefix"].toString()).exists());
+        c.close();c.edit("pc:0");c.activate(0);c.activate(4);c.dispatch(Action::Back);c.activate(4);QCOMPARE(library.records[0].integrationConfig["proton"],runtime["proton"]);
+    }
     void twoEntryChoicesAndArchiveImportSurvivesReopening() {
         PcLibrary library;FilesService files;QTemporaryDir d;
         const auto zip=d.filePath("Ready game.zip");QVERIFY(makeArchive(zip,{{"My game/play.exe",nativeHeader()},{"My game/data.txt","adjacent assets"}}));

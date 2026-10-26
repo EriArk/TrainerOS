@@ -68,6 +68,7 @@ public:
     using QObject::QObject;
     void configure(LibraryRepository* library,const QString& directory,const QString& owner);
     void begin();
+    void beginGame(const QString& id);
     QVariantList rows() const;
     QString title() const;
     QString status() const { return status_; }

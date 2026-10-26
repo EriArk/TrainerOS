@@ -795,6 +795,7 @@ int main(int argc, char* argv[]) {
             QVariantList actions{QVariantMap{{"id","minimize"},{"label","Minimize"},
                 {"readOnly",!(adventureOverlay && adventureOverlay->canMinimize())}}};
             if(adventureProcess.runtimeControls()["kind"]=="retroarch")actions.append(QVariantMap{{"id","display"},{"label","Game settings"},{"column","game"}});
+            if(const auto r=activeLibrary.registration(adventureLaunch.adventureId());r&&r->adventure.adapterId=="pc-local")actions.append(QVariantMap{{"id","pc-settings"},{"label","Game settings"},{"column","game"},{"readOnly",!(adventureOverlay&&adventureOverlay->canMinimize())}});
             const auto achievements=gameAchievementRows();
             if(!achievements.isEmpty()) {
                 int earned=0;for(const auto& row:achievements)if(row.toMap()["earned"].toBool())++earned;
@@ -837,6 +838,7 @@ int main(int argc, char* argv[]) {
         QObject::connect(&exitPresentation,&AdventureExitPresentation::menuActionRequested,&exitPresentation,[&](const QString& action){
             if(action=="achievements"){auto rows=gameAchievementRows();rows.append(QVariantMap{{"id","back"},{"label","Back"}});exitPresentation.setPanel("achievements","Achievements",rows);return;}
             if(action=="controls"){exitPresentation.setContentInput(true);shell.setGameControlsOpen(true);return;}
+            if(action=="pc-settings"){pendingSystemAction="pc-settings";if(adventureOverlay)adventureOverlay->minimize();return;}
             if(playerOverlay.menuAction(action))return;
             if(shell.invokeLiveExperienceAction(action,adventureLaunch.adventureId(),liveExperienceSession()))return;
             if(action=="current-lobby"){pendingSystemAction="current-lobby";if(adventureOverlay)adventureOverlay->minimize();return;}
@@ -915,7 +917,7 @@ int main(int argc, char* argv[]) {
                 adventureOverlay = std::make_unique<AdventureOverlayService>(adventureProcess, adventureLaunch,
                     exitPresentation, overlayHelper);
             if(adventureOverlay) {
-                adventureOverlay->inputProfile=[&](const QString& id){return shell.settings()->gameInput()->snapshot(id);};
+                adventureOverlay->inputProfile=[&](const QString& id){return shell.pcGames()->steam.active()?QJsonObject{}:shell.settings()->gameInput()->snapshot(id);};
                 QObject::connect(adventureOverlay.get(),&AdventureOverlayService::radialChanged,shell.settings()->gameInput(),&GameInputProfiles::setRadial);
                 QObject::connect(shell.settings()->gameInput(),&GameInputProfiles::radialSlotRequested,adventureOverlay.get(),&AdventureOverlayService::selectRadialSlot);
                 QObject::connect(adventureOverlay.get(),&AdventureOverlayService::inputMappingFailed,&shell,&ShellController::showNotice);
@@ -1222,6 +1224,9 @@ int main(int argc, char* argv[]) {
                 if(!shell.apps()->ready())return QString("Application window controls are unavailable in this session.");
                 return QString();
             };
+            shell.pcGames()->settingsGuard=[&]{
+                return adventureLaunch.active()||session.blocked()||shell.runtimeChangeBlocked()?QString("Close the game and finish the current operation before saving launch settings."):QString();
+            };
             QObject::connect(shell.apps(),&AppsController::foregroundRequested,window,[window]{window->hide();});
             QObject::connect(shell.apps(),&AppsController::shellRequested,window,[&,window]{
                 if(adventureLaunch.active())return;
@@ -1322,6 +1327,15 @@ int main(int argc, char* argv[]) {
                 cratesRuntime.requestLaunch = requestAdventure;
                 pcRuntime.library=&activeLibrary;
                 pcRuntime.requestLaunch=requestAdventure;
+                pcRuntime.steamEnvironment=[&]{return shell.pcGames()->steam.active()?shell.pcGames()->steam.environment():QJsonObject{};};
+                shell.pcGames()->steam.launch=[&](const QString& id)->QString {
+                    if(session.blocked()||shell.runtimeChangeBlocked()||adventureLaunch.active())return "Finish the current game or operation first.";
+                    const auto r=activeLibrary.registration(id);
+                    if(!r||r->removed||r->adventure.adapterId!="pc-local")return "This PC game is not available in the current Trainer profile.";
+                    const auto error=pcRuntime.verifyInstallation(*r);if(!error.isEmpty())return error;
+                    const auto result=pcRuntime.launch(r->adventure);return result.success?QString():result.message;
+                };
+                QObject::connect(&adventureLaunch,&AdventureLaunchController::adventureFinished,&shell,[&](bool failed){shell.pcGames()->steam.finished(failed);});
                 cratesRuntime.ownerId=[&]{return store->ownerId();};
                 auto* packages=shell.crates()->installer();
                 packages->replacementGuard=[&]{return adventureLaunch.active()||session.blocked()?QString("Waiting for your game or save operation to finish"):QString();};
@@ -1380,7 +1394,7 @@ int main(int argc, char* argv[]) {
                         adventureLaunch.updateReturnContext(shell.navigationState());window->hide();
                     });
                     QObject::connect(adventureOverlay.get(),&AdventureOverlayService::contentAction,&shell,[&](Action action){if(shell.social()->dispatchIncomingCall(action))return;if(shell.gameControlsOpen())shell.dispatchGameControls(action);else playerOverlay.dispatch(action);});
-                    QObject::connect(adventureOverlay.get(),&AdventureOverlayService::shellRequested,&shell,[&]{if(!pendingSystemAction.isEmpty()){const auto id=std::exchange(pendingSystemAction,QString());if(id=="current-lobby")shell.openGameHubFace("lobby");else shell.systemAction(id);}});
+                    QObject::connect(adventureOverlay.get(),&AdventureOverlayService::shellRequested,&shell,[&]{if(!pendingSystemAction.isEmpty()){const auto id=std::exchange(pendingSystemAction,QString());if(id=="current-lobby")shell.openGameHubFace("lobby");else if(id=="pc-settings")shell.pcGames()->edit(adventureLaunch.adventureId());else shell.systemAction(id);}});
                     QObject::connect(adventureOverlay.get(),&AdventureOverlayService::shellAction,&session,[&](Action action){
                         if(adventureLaunch.minimized())session.dispatch(action);
                     });

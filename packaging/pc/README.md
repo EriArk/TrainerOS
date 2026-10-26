@@ -70,7 +70,7 @@ compatibility are not claimed. `KeyboardShortcutTests.py` covers chords,
 neutral gating and packet/focus boundaries; real compositor and text acceptance
 remain deferred with the devices.
 
-**Not delivered by this source increment:**
+**Not delivered by the initial import increment (superseded in part below):**
 artwork/Steam-shortcut confirmation, richer shortcut/manifest-based executable
 discovery, runtime version/download/dependency management (#250), and a tested
 real EXE/MSI/Linux installer journey on Armada. Native installation location must
@@ -95,6 +95,9 @@ explicitly skipped on Windows. Libarchive RAR fixture provenance is in
 
 ## Windows runtime prerequisite
 
+The later game-settings increment below replaces the single-default discovery
+with explicit installed-runner selection. The UMU installation prerequisite remains.
+
 The checked launcher is upstream **UMU 1.4.4**, the official zipapp release:
 
 - https://github.com/Open-Wine-Components/umu-launcher/releases/tag/1.4.4
@@ -114,6 +117,89 @@ SteamRT-managed Proton and runtime acquisition still belong to the version manag
 Check with `trainer_pc_tests` / CTest `pc_games` and `python3 tests/PcSessionTests.py`.
 These establish import and lifecycle behavior, not a Windows game's compatibility,
 physical controller acceptance or PC multiplayer support.
+
+## PC game settings — 26 October 2026
+
+Games → a PC game's context menu → **Game settings**, or Home → **Game settings**,
+opens the same compact surface. The live Home route minimizes the actual game
+before opening its settings; saving a launch change requires the game to be closed.
+Launch, Components, Artwork & Steam and Controls lead to short contextual lists.
+Controls opens the existing stable-game-ID input editor, without a second mapper.
+
+- Import confirmation now accepts local PNG/JPEG/etc. artwork through the shared
+  picker. Images are decoded with size limits and reduced to a retained owner-local
+  PNG; library presentation reads that reference. Title, executable, working folder
+  and argument vector edits keep the same game ID and optimistic library revision.
+- Native Linux hides Wine-specific choices. Read-only discovery lists host Steam
+  compatibility tools, Lutris Wine builds and the TrainerOS Proton cache, including
+  distinct missing, broken and unsupported reasons. A standalone Proton needs a
+  matching Wine ELF, tool manifest, UMU and no unprepared SteamRT app dependency.
+  ARM discovery retains the existing explicitly named aarch64 bundle boundary;
+  generic x86 Proton is not advertised on ARM. Standalone Wine is limited to x86-64.
+  These are structural eligibility checks, **not gameplay certification**.
+- Selecting a different installed runner persists an absolute version per game.
+  On first use the helper copies the previous prefix into a new UUID environment,
+  preserving Wine links without following drive links. Atomic publication prevents
+  a partial copy being used. The old prefix and selection remain available through
+  **Restore previous runtime**. Games installed inside drive_c are resolved inside
+  the selected copy, while the original library reference/ID is retained. Prefix
+  copies can be large; there is no automatic removal or runtime-cache eviction.
+  Restoring the previous environment restores its earlier state, not later saves.
+- Components uses maintained Winetricks verbs (`vcrun2022`, `d3dx9`, `dotnet48`)
+  through UMU's supported entry point or the selected Wine + matching wineserver.
+  Missing tools fail explicitly. Windows settings and the program uninstaller use
+  that same environment. Native installers and patch EXE/MSI reuse ProcessService,
+  the Linux child supervisor, Apps windows/input and shared Downloads cancellation.
+  A prefix/session lease also prevents a second operation after a shell restart.
+  Component/patch cancellation stops owned processes; already-applied installer
+  changes are **not** a transactional rollback of game files or dependencies.
+- The optional Steam choice is initially off and requires an explicit user target.
+  `steam.py` refuses running Steam and malformed/unrecognised databases, checks an
+  exact owned shortcut marker, verifies a content-addressed backup, detects changed
+  source bytes and atomically replaces only the shortcut database. Add/rename is
+  idempotent; removal retains unrelated entries and every game/prefix/save file.
+- The shortcut stores only Trainer owner + stable game ID and contacts the active
+  shell over a user-only local socket. The existing adapter reads the **current**
+  registration and owns history, launch, Home/return and exit. Steam's helper waits
+  for the real Adventure completion. A different active Trainer or unavailable
+  shell refuses launch. Steam owns remapping for this entry; TrainerOS's game
+  keyboard/mouse mapper is not started alongside Steam Input. Ordinary direct
+  TrainerOS launch continues to use its saved input profile.
+
+Deployment must include `launch.py` **and `steam.py`** in `/var/opt/traineros/pc/`.
+No device deployment was performed: Odin/Flip remain reserved for the other chat.
+Linux compositor, real Steam launch/control/exit, Wine/FEX/component installers,
+prefix migration on SD and physical controller acceptance remain outstanding.
+Version acquisition/downloads, verified FEX/runtime combinations, a broader component
+catalogue, graphics/performance switches and richer installer-shortcut discovery
+remain unfinished under #250/#248. This increment does not close those issues.
+
+Local verification on 26 October (Windows GCC 16.1 / Qt 6.11.1): the full shell
+build passed; `trainer_pc_tests` passed 25 with one Linux-libfm skip;
+`trainer_pc_ui_tests` passed 5, and input-profile tests passed 11. UI captures at
+960×540 and 800×450 were inspected in light/dark themes; the primary Save/Add
+action stays pinned below the rows. The isolated Apps shell smoke returned
+`apps-verification.txt: PASSED`. The offscreen backend's keyboard mask/opacity
+warnings remain separate from real compositor acceptance.
+
+`PcSteamTests.py`: 7 passed, covering owned add/repeat/rename/remove, exact backup,
+changed/malformed source refusal, running Steam refusal and literal arguments.
+`PcSessionTests.py`: 11 passed / 6 Linux-process skips, covering prefix separation,
+copy failure, repeat launch, drive_c relocation, pin-before-first-launch and bounded
+Steam context. Windows tests stub `flock`; actual Linux exclusion, process adoption,
+Steam client consumption and input/compositor behavior were not tested here.
+
+### Reused upstream mechanisms
+
+Reviewed [Faugus](https://github.com/Faugus/faugus-launcher)'s UMU-based per-game
+launcher model, [UMU's command contract](https://github.com/Open-Wine-Components/umu-launcher/blob/main/docs/umu.1.scd),
+[Bottles dependency handling](https://github.com/bottlesdevs/Bottles/blob/main/bottles/backend/managers/dependency.py)
+and [Lutris runners](https://github.com/lutris/lutris/blob/master/lutris/runners/wine.py)
+and [Steam shortcuts](https://github.com/lutris/lutris/blob/master/lutris/util/steam/shortcut.py).
+Reuse UMU/Winetricks rather than import another launcher's account/config/package
+manager. TrainerOS's VDF reader/writer is bounded original code; unknown field
+types are refused. No third-party runtime binaries or implementation were copied.
+Keep each installed upstream package's own licence notices.
 
 ## Delivery checkpoint — 21 October 2026
 

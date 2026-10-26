@@ -350,6 +350,10 @@ QString BatoceraLibrary::storageRootFor(const QString& id) const {
 }
 QVariantMap BatoceraLibrary::artwork(const QString& id) const {
     auto result=media_.value(id);
+    if(const auto record=library_.registration(id);record&&record->adventure.adapterId=="pc-local") {
+        const auto cover=record->integrationConfig["artwork"].toString();
+        if(!cover.isEmpty())result["cover"]=cover;
+    }
     result.remove("experienceIdentity");
     const bool cover=display_["picture"].toString()=="cover";
     const auto tags=cover?QStringList{"cover","image","screenshot","titleshot","thumbnail"}:QStringList{"screenshot","image","titleshot","thumbnail","cover"};

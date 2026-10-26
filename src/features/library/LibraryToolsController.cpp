@@ -79,7 +79,7 @@ QVariantList LibraryToolsController::rows() const {
     }
     const auto viewRows=[&] { return QVariantList{row("View: Wheel"+(browserView_=="wheel"?QString(" ✓"):QString())),row("View: List"+(browserView_=="list"?QString(" ✓"):QString())),row("View: Shelves"+(browserView_=="shelves"?QString(" ✓"):QString())),row("View: Grid"+(browserView_=="grid"?QString(" ✓"):QString()))}; };
     if(route_=="browse") { QVariantList result{row("Search library"),row("Change filter")};if(!browserView_.isEmpty())result.append(viewRows());result.append(row("Back"));return result; }
-    if(route_=="game"){QVariantList result{row("Rename"),row("Move",catalog_ && !repository_.storageRootFor(game_.adventure.id).isEmpty()),row("Удалить"),row("Properties"),row("Download information & artwork",!repository_.storageRootFor(game_.adventure.id).isEmpty()),row("Add to collection")};if(browserActions_){result.append(row("Search library"));result.append(row("Change filter"));if(!browserView_.isEmpty())result.append(viewRows());}return result;}
+    if(route_=="game"){QVariantList result{row("Rename"),row("Move",catalog_ && !repository_.storageRootFor(game_.adventure.id).isEmpty()),row("Удалить"),row("Properties"),row("Download information & artwork",!repository_.storageRootFor(game_.adventure.id).isEmpty()),row("Add to collection")};if(game_.adventure.adapterId=="pc-local")result.append(row("Game settings"));if(browserActions_){result.append(row("Search library"));result.append(row("Change filter"));if(!browserView_.isEmpty())result.append(viewRows());}return result;}
     if(route_=="move-kind")return {row("Platform / folder",catalog_ && !repository_.storageRootFor(game_.adventure.id).isEmpty()),row("Another World")};
     if(route_=="move-file")return {row("Cancel"),row("Move")};
     if(route_=="world")return {row("Rename World"),row("Done"),row("Scrape this collection")};
@@ -129,8 +129,10 @@ void LibraryToolsController::dispatch(Action action) {
 void LibraryToolsController::activate(int index) {
     const auto values=rows();if(busy_ || index<0 || index>=values.size())return;
     focus_=index;if(!values[index].toMap().value("enabled").toBool())return;
-    if(route_=="browse" || (route_=="game" && browserActions_ && index>=6)) {
-        const auto command=(route_=="browse"?index:index-6);
+    if(route_=="game"&&game_.adventure.adapterId=="pc-local"&&index==6){const auto id=game_.adventure.id;close();emit pcSettingsRequested(id);return;}
+    const int browserOffset=game_.adventure.adapterId=="pc-local"?7:6;
+    if(route_=="browse" || (route_=="game" && browserActions_ && index>=browserOffset)) {
+        const auto command=(route_=="browse"?index:index-browserOffset);
         const bool hasView=!browserView_.isEmpty();
         close();if(command<2)emit browserActionRequested(command==0?"search":"filter");
         else if(hasView && command<6)emit browserActionRequested(command==2?"view:wheel":command==3?"view:list":command==4?"view:shelves":"view:grid");

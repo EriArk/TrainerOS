@@ -1,4 +1,7 @@
 #include "PcGamesController.h"
+#include "PcRuntime.h"
+#include <QImageReader>
+#include <QImage>
 #include <QtConcurrent>
 #include <QCryptographicHash>
 #include <QDirIterator>
@@ -6,6 +9,7 @@
 #include <QSaveFile>
 #include <QEventLoop>
 #include <QJsonDocument>
+#include <QJsonArray>
 #include <QStorageInfo>
 #include <QSysInfo>
 #include <QUrl>
@@ -57,6 +61,7 @@ QString defaultProton() {
     return {};
 }
 }
+QString PcGamesController::fileKind(const QString& path,bool installer) {return installer?installerKind(QFileInfo(path)):kind(QFileInfo(path));}
 PcGamesController::PcGamesController(LibraryRepository& library,FilesService& files,QObject* parent)
     :QObject(parent),library_(library),files_(files) {
     auto* recovery=new QTimer(this);recovery->setInterval(1000);
@@ -84,6 +89,13 @@ PcGamesController::PcGamesController(LibraryRepository& library,FilesService& fi
     connect(&installer_,&ProcessService::started,this,[this]{emit installerStarted(installer_.processId(),title_);emit changed();});
     connect(&installer_,&ProcessService::finished,this,[this](int code,bool crashed,const QString& error){
         busy_=false;emit installerFinished();
+        if(editing()) {
+            stage_="settings";focus_=0;
+            operationState_=installer_.stopRequested()?"cancelled":code==0&&!crashed&&error.isEmpty()?"done":"failed";
+            message_=code==0&&!crashed&&error.isEmpty()&&!installer_.stopRequested()?"Operation completed.":
+                installer_.stopRequested()?"Operation cancelled. Changes already made by the installer may remain.":QString("Operation failed (%1). %2").arg(code).arg(error);
+            emit changed();return;
+        }
         if(code==0&&!crashed&&error.isEmpty()&&!installer_.stopRequested())inspectFolder(installRoot_,true);
         else {stage_="failed";message_=installer_.stopRequested()?"Installation cancelled. Keep the incomplete environment or discard it.":
             QString("Installer ended with code %1. %2 You can inspect the files before deciding what to keep.").arg(code).arg(error);persist();emit changed();}
@@ -104,6 +116,7 @@ void PcGamesController::configure(QString directory,QString owner) {
     if(busy_||writing_||installer_.active())return;
     ++generation_;picker_.cancel();open_=false;directory_=std::move(directory);owner_=std::move(owner);
     ownerKey_=QString::fromLatin1(QCryptographicHash::hash(owner_.toUtf8(),QCryptographicHash::Sha256).toHex());
+    steam.configure(directory_,owner_.isEmpty()?QString():ownerKey_);
     journal_=owner_.isEmpty()?QString():directory_+"/pc/"+ownerKey_+"/import.json";
     resetFlow();
     QFile file(journal_);
@@ -113,6 +126,7 @@ void PcGamesController::configure(QString directory,QString owner) {
         if(ownsDestination()&&!library_.registration("pc:"+id_)) {
             mode_=state["mode"].toString();format_=state["format"].toString();source_=state["source"].toString();
             installRoot_=state["installRoot"].toString();title_=state["title"].toString();proton_=state["proton"].toString();
+            runtimeConfig_=state["runtime"].toObject();
             if(inside(installRoot_,destination_)) {
                 stage_="failed";message_="An unfinished import was kept. Inspect its files or discard only this import.";
                 recoveredPid_=liveInstaller();
@@ -124,16 +138,18 @@ void PcGamesController::configure(QString directory,QString owner) {
     emit changed();
 }
 void PcGamesController::resetFlow() {
+    editId_.clear();artwork_.clear();textField_.clear();operation_.clear();operationState_.clear();steamUser_.clear();steamStatus_.clear();addSteam_=false;removeSteam_=false;runtimeConfig_={};runtimeReturn_.clear();
     stage_="source";mode_.clear();format_.clear();picking_.clear();source_.clear();destination_.clear();
     installRoot_.clear();id_.clear();chosen_.clear();candidates_.clear();workingDirectory_.clear();
     message_.clear();title_.clear();proton_.clear();bytes_=0;focus_=0;progress_=0;
 }
 void PcGamesController::persist() {
+    if(editing())return;
     if(journal_.isEmpty())return;
     if(id_.isEmpty()||stage_=="done") {QFile::remove(journal_);return;}
     QDir().mkpath(QFileInfo(journal_).absolutePath());QSaveFile out(journal_);
     const auto data=QJsonDocument(QJsonObject{{"id",id_},{"destination",destination_},{"source",source_},
-        {"installRoot",installRoot_},{"title",title_},{"mode",mode_},{"format",format_},{"proton",proton_}}).toJson();
+        {"installRoot",installRoot_},{"title",title_},{"mode",mode_},{"format",format_},{"proton",proton_},{"runtime",runtimeConfig_}}).toJson();
     if(!out.open(QIODevice::WriteOnly)||out.write(data)!=data.size()||!out.commit())message_="Could not save import recovery information. Keep this window open until the import finishes.";
 }
 bool PcGamesController::ownsDestination() const {
@@ -157,7 +173,7 @@ qint64 PcGamesController::liveInstaller() const {
     if(fields.size()>19&&fields[19]==record["start"].toString().toUtf8()&&command.readAll().contains("/var/opt/traineros/pc/launch.py"))return pid;
     return 0;
 }
-void PcGamesController::begin() {if(!library_.editable()||owner_.isEmpty())return;open_=true;emit changed();}
+void PcGamesController::begin() {if(!library_.editable()||owner_.isEmpty())return;if(editing()&&!busy_)resetFlow();open_=true;emit changed();}
 void PcGamesController::close() {if(writing_)return;picker_.cancel();open_=false;emit changed();}
 QVariantList PcGamesController::rows() const {
     if(writing_)return {};
@@ -167,6 +183,21 @@ QVariantList PcGamesController::rows() const {
         return result;
     }
     if(busy_)return {row("Hide","Progress remains in Downloads"),row("Cancel","Keep the source and any incomplete copy")};
+    if(stage_=="runtimes") {auto result=runtimeRows_;result<<row("Back");return result;}
+    if(stage_=="steam-users") {auto result=steamUsers_;result<<row("Back");return result;}
+    if(stage_=="settings")return {row("Launch",edited_.integrationConfig["runner"]=="native"?"Native Linux":edited_.integrationConfig["runner"]=="wine"?"Wine":QFileInfo(edited_.integrationConfig["proton"].toString()).fileName()),
+        row(edited_.integrationConfig["runner"]=="native"?"Updates & patches":"Components",edited_.integrationConfig["runner"]=="native"?"Run an installer for this game":"Dependencies, patches and Windows settings"),
+        row("Artwork & Steam",title_),row("Controls",steam.active()?"Steam Input owns this running session":"Controller, keyboard and radial menus"),row("Save changes","Keep this game's stable identity")};
+    if(stage_=="launch-settings") {
+        QVariantList result{row("Executable",chosen_["path"].toString()),row("Working folder",workingDirectory_),row("Arguments",edited_.integrationConfig["argumentText"].toString()),row("Runtime",edited_.integrationConfig["runner"]=="wine"?edited_.integrationConfig["wine"].toString():QFileInfo(edited_.integrationConfig["proton"].toString()).fileName()),row("Restore previous runtime","Return to its retained environment and earlier saves"),row("Back")};
+        if(edited_.integrationConfig["runner"]=="native") {result[3]=QVariantMap{{"title","Native Linux"},{"subtitle","Runs directly on this device"},{"enabled",false}};result.removeAt(4);}return result;
+    }
+    if(stage_=="components") {
+        if(edited_.integrationConfig["runner"]=="native")return {row("Run another installer","A native installer or patch for this game"),row("Back")};
+        return {row("Run another EXE / MSI","Patch, mod or DLC in this game's environment"),row("Visual C++ 2015–2022","Winetricks · vcrun2022"),row("DirectX 9 libraries","Winetricks · d3dx9"),row(".NET Framework 4.8","Winetricks · dotnet48"),row("Windows settings","Windows version, libraries and drives"),row("Installed Windows programs","Use each program's own uninstaller"),row("Back")};
+    }
+    if(stage_=="appearance")return {row("Name",title_),row("Artwork",artwork_.isEmpty()?"Choose an image":"Change image"),row("Steam shortcut",steamStatus_.isEmpty()?"Choose a Steam user":steamStatus_),row("Remove Steam shortcut","Only the owned shortcut is removed"),row("Back")};
+    if(stage_=="maintenance-confirm")return {row("Run",operation_=="component"?"Install "+operationValue_+" into this game's environment":"Use this game's current saved environment"),row("Back")};
     if(stage_=="source")return {row("Install a game","Windows EXE / MSI or a Linux installer"),row("Add a ready-to-play game","A folder, archive or executable")};
     if(stage_=="ready-source")return {row("Game folder","Copy the game and all its files"),row("Archive","ZIP, 7Z or RAR"),row("Executable","Copy its containing folder, including adjacent files")};
     if(stage_=="installer-source")return {row("Choose installer","EXE / MSI, native ELF / AppImage, or shell installer")};
@@ -174,9 +205,9 @@ QVariantList PcGamesController::rows() const {
         QStorageInfo disk(QDir::homePath());
         return {row("Internal storage",QString("%1 GiB available").arg(double(disk.bytesAvailable())/(1024*1024*1024),0,'f',1)),row("Choose storage","SD card or another mounted location")};
     }
-    if(stage_=="install-ready")return {row("Start installer",title_),row("Choose different storage"),row("Discard this preparation","Remove the empty environment")};
+    if(stage_=="install-ready") {QVariantList result{row("Start installer",title_),row("Choose different storage"),row("Discard this preparation","Remove the empty environment")};if(format_=="proton"||format_=="msi")result<<row("Compatibility",QFileInfo(proton_).fileName());return result;}
     if(stage_=="candidates") {auto result=candidates_;result<<row("Browse for executable","Choose a file inside this installation")<<row("Import options","Keep or discard the imported files");return result;}
-    if(stage_=="confirm")return {row("Name",title_),row("Executable",chosen_["subtitle"].toString()),row("Add to Games",chosen_["runner"]=="native"?"Linux · native":"Windows · Proton"),row("Working folder",workingDirectory_)};
+    if(stage_=="confirm") {QVariantList result{row("Name",title_),row("Executable",chosen_["subtitle"].toString()),row("Add to Games",chosen_["runner"]=="native"?"Linux · native":"Windows"),row("Working folder",workingDirectory_),row("Artwork",artwork_.isEmpty()?"Choose an image":"Change image"),row("Add to Steam library",addSteam_?"On · selected Steam user":"Off · optional")};if(chosen_["runner"]!="native")result<<row("Compatibility",runtimeConfig_["runner"].toString("Auto"));return result;}
     if(stage_=="discard")return {row("Keep files","Return without removing anything"),row("Discard incomplete import","Remove only the new folder created by this import")};
     if(stage_=="failed"&&ownsDestination())return {row("Inspect files","Look for the actual game executable"),row("Keep files and start another","The incomplete folder stays on storage"),row("Discard incomplete import")};
     return {row("Add another game")};
@@ -184,11 +215,49 @@ QVariantList PcGamesController::rows() const {
 void PcGamesController::activate(int index) {
     if(!open_||writing_||index<0||index>=rows().size())return;
     focus_=index;
+    if(!rows()[index].toMap().value("enabled",true).toBool())return;
     if(installing()) {if(index==0){if(recoveredPid_)emit installerStarted(recoveredPid_,title_);else emit resumeInstaller();}else if(index==1)close();else installer_.stop();return;}
     if(busy_) {
         if(index==0)close();else if(!job_.isEmpty())files_.cancel(job_);
         else {++generation_;busy_=false;stage_="failed";message_="Import cancelled. Source files are unchanged.";persist();emit changed();}
         return;
+    }
+    if(stage_=="settings") {
+        if(index==0)stage_="launch-settings";else if(index==1)stage_="components";else if(index==2)stage_="appearance";
+        else if(index==3){close();emit controlsRequested(editId_);return;}else {saveSettings();return;}focus_=0;emit changed();return;
+    }
+    if(stage_=="launch-settings") {
+        if(index==4&&edited_.integrationConfig["runner"]=="native"){stage_="settings";focus_=0;emit changed();return;}
+        if(index==0){picking_="game";picker_.begin(installRoot_);}else if(index==1){picking_="working";picker_.begin(workingDirectory_,true);}
+        else if(index==2){textField_="arguments";emit textRequested("Launch arguments",edited_.integrationConfig["argumentText"].toString(),1024);}
+        else if(index==3)chooseRuntime();
+        else if(index==4){const auto previous=edited_.integrationConfig["previousRuntime"].toObject();const auto issue=pc::runtimeIssue(previous,QSysInfo::currentCpuArchitecture());if(previous.isEmpty()||!issue.isEmpty())message_=previous.isEmpty()?"No previous runtime selection.":issue;else {for(const auto& key:{"runner","proton","wine","umu","prefix","prefixSource","prefixSourceExisted","contentPrefix"})if(previous.contains(key))edited_.integrationConfig[key]=previous[key];else edited_.integrationConfig.remove(key);message_="Previous runtime and retained environment selected. Save to apply.";}}
+        else {stage_="settings";focus_=0;}emit changed();return;
+    }
+    if(stage_=="runtimes") {
+        if(index<runtimeRows_.size()) {
+            const auto c=QJsonObject::fromVariantMap(runtimeRows_[index].toMap()["config"].toMap());
+            if(editing()){for(const auto& key:{"runner","proton","wine","umu"})edited_.integrationConfig[key]=c[key];}
+            else {runtimeConfig_=c;proton_=c["proton"].toString();persist();}
+        }
+        stage_=runtimeReturn_;focus_=0;emit changed();return;
+    }
+    if(stage_=="components") {
+        const bool native=edited_.integrationConfig["runner"]=="native";
+        if(index==0){picking_="patch";picker_.begin(installRoot_);}
+        else if(index==(native?1:6)){stage_="settings";focus_=1;}
+        else {operation_=index<4?"component":"tool";operationValue_=QStringList{"","vcrun2022","d3dx9","dotnet48","winecfg","uninstaller"}.value(index);stage_="maintenance-confirm";focus_=0;message_="Changes apply only to this game's Windows environment. Close the game first. Downloaded components may display their licence terms.";}
+        emit changed();return;
+    }
+    if(stage_=="maintenance-confirm") {if(index==0)startMaintenance(operation_,operationValue_);else {stage_="components";focus_=0;emit changed();}return;}
+    if(stage_=="appearance") {
+        if(index==0){textField_="name";emit textRequested("Game name",title_,96);}else if(index==1){picking_="artwork";picker_.begin();}
+        else if(index==2||index==3){removeSteam_=index==3;loadSteamUsers();}
+        else {stage_="settings";focus_=2;}emit changed();return;
+    }
+    if(stage_=="steam-users") {
+        if(index<steamUsers_.size()){steamUser_=steamUsers_[index].toMap()["path"].toString();addSteam_=true;if(editing()){steamAction(removeSteam_);return;}}
+        stage_=editing()?"appearance":"confirm";focus_=0;emit changed();return;
     }
     if(stage_=="source") {mode_=index==0?"installer":"ready";stage_=index==0?"installer-source":"ready-source";focus_=0;if(index==0){picking_="installer";picker_.begin();}}
     else if(stage_=="installer-source") {picking_="installer";picker_.begin();}
@@ -200,16 +269,19 @@ void PcGamesController::activate(int index) {
     } else if(stage_=="install-ready") {
         if(index==0)startInstaller();
         else if(index==1){stage_="storage";message_="Choose another location. The empty preparation folder will be kept.";}
-        else {stage_="discard";focus_=0;}
+        else if(index==2){stage_="discard";focus_=0;}else chooseRuntime();
     } else if(stage_=="candidates") {
         if(index==candidates_.size()){picking_="game";picker_.begin(installRoot_);}
         else if(index>candidates_.size()){stage_="failed";focus_=0;message_="Keep the imported files, inspect them again, or discard this import.";}
         else {chosen_=candidates_[index].toMap();workingDirectory_=QFileInfo(chosen_["path"].toString()).absolutePath();stage_="confirm";focus_=2;message_="Confirm the game itself, not its setup or uninstaller.";}
     } else if(stage_=="confirm") {
-        if(index==0)emit textRequested("Game name",title_,96);
+        if(index==0){textField_="name";emit textRequested("Game name",title_,96);}
         else if(index==1){stage_="candidates";focus_=0;}
         else if(index==2)registerGame();
-        else {picking_="working";picker_.begin(workingDirectory_,true);}
+        else if(index==3){picking_="working";picker_.begin(workingDirectory_,true);}
+        else if(index==4){picking_="artwork";picker_.begin();}
+        else if(index==5){if(addSteam_)addSteam_=false;else loadSteamUsers();}
+        else chooseRuntime();
     } else if(stage_=="discard") {
         if(index==0)stage_="failed";
         else if(ownsDestination()&&!liveInstaller()&&files_.available()) {
@@ -223,10 +295,18 @@ void PcGamesController::activate(int index) {
     } else {resetFlow();persist();}
     emit changed();
 }
-void PcGamesController::applyText(const QString& text) {if(stage_=="confirm"&&!busy_&&!writing_){title_=text.trimmed().left(96);persist();emit changed();}}
+void PcGamesController::applyText(const QString& text) {
+    if(busy_||writing_)return;
+    if(textField_=="arguments"&&editing()) {
+        // QProcess splitting yields an argv, never evaluated shell source.
+        edited_.integrationConfig["argumentText"]=text.left(1024);
+        edited_.integrationConfig["arguments"]=QJsonArray::fromStringList(QProcess::splitCommand(text.left(1024)));
+    }else if(stage_=="confirm"||stage_=="appearance")title_=text.trimmed().left(96);
+    textField_.clear();persist();emit changed();
+}
 void PcGamesController::dispatch(Action action) {
     if(picker_.isOpen()){picker_.dispatch(action);return;}
-    if(action==Action::Back){close();return;}
+    if(action==Action::Back){if(stage_=="runtimes"){stage_=runtimeReturn_;focus_=0;emit changed();}else if(stage_=="steam-users"){stage_=editing()?"appearance":"confirm";focus_=0;emit changed();}else if(editing()&&stage_!="settings"&&!busy_){stage_="settings";focus_=0;emit changed();}else close();return;}
     if(action==Action::Confirm){activate(focus_);return;}
     if(action==Action::Down)focus_=std::min(focus_+1,std::max(0,int(rows().size())-1));
     if(action==Action::Up)focus_=std::max(0,focus_-1);
@@ -235,20 +315,35 @@ void PcGamesController::dispatch(Action action) {
 void PcGamesController::selected(const QString& path) {
     const QFileInfo file(path);const auto canonical=file.canonicalFilePath();
     if(canonical.isEmpty()||file.isSymLink()){message_="Choose an existing local file or folder.";emit changed();return;}
+    if(picking_=="artwork") {
+        QImageReader reader(canonical);const auto size=reader.size();
+        if(file.size()>24*1024*1024||!size.isValid()||qint64(size.width())*size.height()>32000000) {message_="Choose an image smaller than 32 megapixels and 24 MB.";emit changed();return;}
+        reader.setScaledSize(size.scaled(1200,1200,Qt::KeepAspectRatio));const auto image=reader.read();
+        const auto folder=directory_+"/pc/"+ownerKey_+"/artwork";QDir().mkpath(folder);
+        const auto target=folder+"/"+QUuid::createUuid().toString(QUuid::WithoutBraces)+".png";
+        if(image.isNull()||!image.save(target,"PNG"))message_="Could not read or save the image.";else {artwork_=QUrl::fromLocalFile(target).toString();message_.clear();}emit changed();return;
+    }
+    if(picking_=="patch") {
+        const auto format=installerKind(file);const bool native=edited_.integrationConfig["runner"]=="native";
+        if(format.isEmpty()||native!=(format=="native"||format=="script")){message_="Choose an installer compatible with this game's runtime.";emit changed();return;}
+        operation_="patch";operationValue_=canonical;format_=format;stage_="maintenance-confirm";focus_=0;message_="Run this installer in the existing game environment. Its changes are not automatically undone.";emit changed();return;
+    }
     if(picking_=="game"||picking_=="working") {
         if(!inside(canonical,installRoot_)){message_="Choose a location inside this game's installation.";emit changed();return;}
         if(picking_=="working") {if(file.isDir())workingDirectory_=canonical;}
         else {const auto runner=kind(file);if(runner.isEmpty()){message_="This is not a supported game executable.";emit changed();return;}
+            if(editing()&&(runner=="native")!=(edited_.integrationConfig["runner"]=="native")){message_="Choose the same executable family as this game.";emit changed();return;}
             chosen_=row(file.fileName(),QDir(installRoot_).relativeFilePath(canonical));chosen_["path"]=canonical;chosen_["runner"]=runner;
-            workingDirectory_=file.absolutePath();stage_="confirm";focus_=2;}
+            workingDirectory_=file.absolutePath();stage_=editing()?"launch-settings":"confirm";focus_=editing()?0:2;}
         emit changed();return;
     }
     if(stage_=="source"||stage_=="ready-source"||stage_=="installer-source") {
         source_=canonical;title_=file.completeBaseName();
         if(picking_=="installer") {
             format_=installerKind(file);proton_=defaultProton();
+            runtimeConfig_={};for(const auto& item:pc::runtimes(directory_,QDir::homePath(),QSysInfo::currentCpuArchitecture()))if(item.toMap()["enabled"].toBool()){runtimeConfig_=QJsonObject::fromVariantMap(item.toMap()["config"].toMap());proton_=runtimeConfig_["proton"].toString();break;}
             if(format_.isEmpty()) {message_="Choose a valid EXE, MSI, native executable, or sh/bash installer.";emit changed();return;}
-            if((format_=="proton"||format_=="msi")&&(proton_.isEmpty()||!QFileInfo(directory_+"/runtimes/umu/1.4.4/umu-run").isFile())) {message_="A compatible Windows runtime is not installed on this device yet.";emit changed();return;}
+            if((format_=="proton"||format_=="msi")&&runtimeConfig_.isEmpty()) {message_="A compatible Windows runtime is not installed on this device yet.";emit changed();return;}
             bytes_=file.size();stage_="storage";message_="Choose storage for the game's own installation environment.";
         } else if(picking_=="archive") {
             if(!QStringList{"zip","7z","rar"}.contains(file.suffix().toLower())) {message_="Choose a ZIP, 7Z or RAR archive.";emit changed();return;}
@@ -335,12 +430,23 @@ void PcGamesController::startInstaller() {
     QJsonObject config{{"mode","installer"},{"executable",source_},{"installRoot",installRoot_},{"workingDirectory",installRoot_},
         {"runner",(format_=="msi"||format_=="proton")?"proton":"native"},{"installerFormat",format_},
         {"prefix",prefix()},{"proton",proton_},{"umu",directory_+"/runtimes/umu/1.4.4/umu-run"},{"activityFile",destination_+"/.traineros-running"}};
+    if(format_=="msi"||format_=="proton") {
+        for(auto it=runtimeConfig_.begin();it!=runtimeConfig_.end();++it)config[it.key()]=it.value();
+        const auto issue=pc::runtimeIssue(config,QSysInfo::currentCpuArchitecture());if(!issue.isEmpty()){message_=issue;emit changed();return;}
+    }
     ProcessCommand command;command.program="/usr/bin/python3";command.arguments={helper,QString::fromUtf8(QJsonDocument(config).toJson(QJsonDocument::Compact))};command.workingDirectory=installRoot_;
+    pc::captureFailure(command);
     busy_=true;stage_="installing";message_="Complete the installer. Home lets you return to TrainerOS while it runs.";persist();
     if(!installer_.start(command)){busy_=false;stage_="failed";message_="The installer could not start.";}
     emit changed();
 }
 QVariantList PcGamesController::tasks() const {
+    if(editing()) {
+        if(operationState_.isEmpty())return {};
+        QVariantList actions{QVariantMap{{"id","open"},{"label",installing()?"Return to installer":"Review game"},{"enabled",true}}};
+        if(installing())actions<<QVariantMap{{"id","cancel"},{"label","Cancel"},{"enabled",true}};
+        return {QVariantMap{{"id",editId_},{"kind","pc-maintenance"},{"title",title_},{"detail",message_},{"state",operationState_},{"terminal",!installing()},{"actions",actions}}};
+    }
     if(mode_!="installer"||id_.isEmpty()||stage_=="storage"||stage_=="install-ready")return {};
     const bool active=installing();
     QVariantList actions{QVariantMap{{"id","open"},{"label",active?"Return to installer":"Review game"},{"enabled",true}}};
@@ -350,23 +456,28 @@ QVariantList PcGamesController::tasks() const {
 }
 void PcGamesController::taskCommand(const QString& command) {
     if(command=="cancel"||command=="cancel-all") {if(installer_.active())installer_.stop();}
-    else if(command=="open") {if(recoveredPid_)emit installerStarted(recoveredPid_,title_);else if(installer_.active())emit resumeInstaller();else begin();}
+    else if(command=="open") {if(recoveredPid_)emit installerStarted(recoveredPid_,title_);else if(installer_.active())emit resumeInstaller();else {open_=true;emit changed();}}
 }
 void PcGamesController::registerGame() {
     if(title_.isEmpty()){message_="Give your game a name.";emit changed();return;}
     const auto exe=chosen_["path"].toString();const auto runner=kind(QFileInfo(exe));
     if(runner.isEmpty()||!inside(exe,installRoot_)||!inside(workingDirectory_,installRoot_)||!QFileInfo(workingDirectory_).isDir()) {message_="The executable or working folder changed. Choose it again.";emit changed();return;}
     const auto umu=directory_+"/runtimes/umu/1.4.4/umu-run";
-    if(runner=="proton"&&(proton_.isEmpty()||!QFileInfo(umu).isFile())) {message_="No compatible Windows runtime is available yet. Imported files are kept; return after runtime setup.";emit changed();return;}
+    if(runner=="proton") {
+        if(runtimeConfig_.isEmpty())for(const auto& item:pc::runtimes(directory_,QDir::homePath(),QSysInfo::currentCpuArchitecture()))if(item.toMap()["enabled"].toBool()){runtimeConfig_=QJsonObject::fromVariantMap(item.toMap()["config"].toMap());break;}
+        if(runtimeConfig_.isEmpty()||!pc::runtimeIssue(runtimeConfig_,QSysInfo::currentCpuArchitecture()).isEmpty()){message_="No compatible Windows runtime is available yet. Imported files are kept; choose Compatibility after runtime setup.";emit changed();return;}
+    }
     AdventureRegistration record;record.adventure.id="pc:"+id_;record.adventure.title=title_;
     record.adventure.platformId="pc";record.adventure.domain="multiverse";record.adventure.adapterId="pc-local";record.contentPath=exe;
     record.integrationConfig={{"runner",runner},{"installRoot",installRoot_},{"workingDirectory",workingDirectory_},
         {"dataRoot",directory_+"/pc/"+ownerKey_+"/"+id_+"/native"},{"prefix",prefix()},{"umu",umu},
         {"proton",runner=="proton"?proton_:QString()},{"ownership",mode_=="installer"?"installed":"copied"}};
+    record.integrationConfig["artwork"]=artwork_;
+    if(runner=="proton")for(auto it=runtimeConfig_.begin();it!=runtimeConfig_.end();++it)record.integrationConfig[it.key()]=it.value();
     writing_=busy_=true;message_="Adding to your library…";emit changed();
     library_.saveAdventureAsync(record,this,[this,id=record.adventure.id](LibraryWriteResult result){
         writing_=busy_=false;
-        if(result.success){stage_="done";message_="Ready to play. Find your game in Games → PC.";focus_=0;persist();emit saved(id);}
+        if(result.success){stage_="done";message_="Ready to play. Find your game in Games → PC.";focus_=0;persist();emit saved(id);if(addSteam_) {const auto user=steamUser_;edit(id);steamUser_=user;steamAction();}}
         else message_=result.error;
         emit changed();
     });

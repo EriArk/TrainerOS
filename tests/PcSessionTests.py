@@ -10,7 +10,7 @@ import unittest
 import types
 
 if sys.platform == "win32":
-    sys.modules.setdefault("fcntl", types.ModuleType("fcntl"))
+    sys.modules.setdefault("fcntl", types.SimpleNamespace(flock=lambda *args: None, LOCK_EX=2, LOCK_NB=4))
 
 HELPER = Path(__file__).resolve().parents[1] / "packaging/pc/launch.py"
 spec = importlib.util.spec_from_file_location("pc_launch", HELPER)
@@ -52,6 +52,101 @@ class InstallerCommands(unittest.TestCase):
         config = self.config()
         del config["mode"]
         with self.assertRaises(ValueError): module.command(config)
+
+    def test_patch_keeps_existing_prefix_and_msi_invocation(self):
+        config = self.config()
+        config.update(mode="maintenance", operation="patch")
+        argv, cwd, env = module.command(config)
+        self.assertEqual(argv[-3:], ["msiexec", "/i", str(self.source)])
+        self.assertEqual(env["WINEPREFIX"], config["prefix"])
+        config["operation"] = "tool"
+        with self.assertRaises(ValueError): module.command(config)
+
+    def test_components_use_umu_not_system_wine_and_refuse_unknown_verbs(self):
+        game = self.install / "game.exe"
+        game.touch()
+        config = self.config()
+        config.update(mode="maintenance", operation="component", operationValue="vcrun2022", executable=str(game))
+        with self.assertRaisesRegex(ValueError, "Winetricks"): module.command(config)
+        (self.proton / "protonfixes").mkdir()
+        (self.proton / "protonfixes" / "winetricks").touch()
+        argv, _, env = module.command(config)
+        self.assertEqual(argv, [sys.executable, str(self.umu), "winetricks", "vcrun2022"])
+        self.assertEqual(env["WINEPREFIX"], config["prefix"])
+        config["operationValue"] = "--force; touch /tmp/bad"
+        with self.assertRaises(ValueError): module.command(config)
+
+    def test_two_games_keep_distinct_prefixes_with_one_runtime(self):
+        first = self.config()
+        second = dict(first, prefix=str(self.install / "second-prefix"))
+        a = module.command(first); b = module.command(second)
+        self.assertEqual(a[0], b[0])
+        self.assertNotEqual(a[2]["WINEPREFIX"], b[2]["WINEPREFIX"])
+
+    def test_runtime_migration_keeps_original_and_does_not_repeat(self):
+        original = self.install / "prefix"
+        original.mkdir()
+        (original / "save.dat").write_bytes(b"precious save")
+        config = self.config()
+        config.update(prefix=str(self.install / "new-prefix"), prefixSource=str(original))
+        module.prepare_prefix(config)
+        new = Path(config["prefix"])
+        self.assertEqual((new / "save.dat").read_bytes(), b"precious save")
+        (new / "save.dat").write_bytes(b"new session")
+        module.prepare_prefix(config)
+        self.assertEqual((new / "save.dat").read_bytes(), b"new session")
+        self.assertEqual((original / "save.dat").read_bytes(), b"precious save")
+
+    def test_failed_migration_never_publishes_partial_prefix(self):
+        from unittest.mock import patch
+        original = self.install / "prefix"
+        original.mkdir()
+        (original / "save.dat").write_bytes(b"precious save")
+        config = self.config()
+        config.update(prefix=str(self.install / "new-prefix"), prefixSource=str(original))
+        with patch.object(module.shutil, "copytree", side_effect=OSError("disk full")):
+            with self.assertRaises(OSError): module.prepare_prefix(config)
+        self.assertFalse(Path(config["prefix"]).exists())
+        self.assertEqual((original / "save.dat").read_bytes(), b"precious save")
+        self.assertEqual(list(self.install.glob(".prefix-copy-*")), [])
+        config["prefixSource"] = str(self.install / "disconnected")
+        with self.assertRaisesRegex(ValueError, "Reconnect"): module.prepare_prefix(config)
+
+    def test_drive_c_install_follows_selected_environment(self):
+        original = self.install / "prefix"
+        game_dir = original / "drive_c/Game"
+        game_dir.mkdir(parents=True)
+        (game_dir / "play.exe").write_bytes(b"game")
+        config = self.config()
+        config.update(mode="game", executable=str(game_dir / "play.exe"), installRoot=str(original / "drive_c"),
+                      workingDirectory=str(game_dir), prefixSource=str(original), contentPrefix=str(original),
+                      prefix=str(self.install / "selected-prefix"))
+        module.prepare_prefix(config)
+        argv, cwd, env = module.command(config)
+        self.assertEqual(argv[-1], str(Path(config["prefix"]) / "drive_c/Game/play.exe"))
+        self.assertEqual(cwd, str(Path(config["prefix"]) / "drive_c/Game"))
+        self.assertTrue((game_dir / "play.exe").exists())
+
+    def test_runtime_pin_before_first_launch_does_not_require_an_old_prefix(self):
+        game = self.install / "play.exe"
+        game.touch()
+        config = self.config()
+        config.update(mode="game", executable=str(game), prefixSource=str(self.install / "unused-prefix"),
+                      prefixSourceExisted=False, contentPrefix=str(self.install / "unused-prefix"),
+                      prefix=str(self.install / "new-prefix"))
+        module.prepare_prefix(config)
+        self.assertEqual(module.command(config)[0][-1], str(game))
+
+    def test_steam_context_is_bounded_and_does_not_leak_to_direct_launch(self):
+        from unittest.mock import patch
+        config = self.config()
+        with patch.dict(os.environ, {"SteamAppId": "999"}):
+            self.assertNotIn("SteamAppId", module.command(config)[2])
+            config["steamEnvironment"] = {"SteamAppId": "123", "SteamGameId": "bad", "UNTRUSTED_TEST_KEY": "bad"}
+            env = module.command(config)[2]
+            self.assertEqual(env["SteamAppId"], "123")
+            self.assertNotIn("SteamGameId", env)
+            self.assertNotIn("UNTRUSTED_TEST_KEY", env)
 
     def test_native_script_interpreter_is_explicit_and_no_shell_interpolation(self):
         self.source.write_bytes(b"#!/bin/sh\nexit 0\n")

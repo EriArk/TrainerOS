@@ -86,6 +86,8 @@ ShellController::ShellController(LibraryRepository& repo, TrainerRepository& pro
     connect(settings_.gameInput(),&GameInputProfiles::changed,&settings_,&SettingsController::changed);
     connect(settings_.gameInput(),&GameInputProfiles::backRequested,this,[this]{settings_.selectPage("game-input",false);});
     connect(&pcGames_,&PcGamesController::saved,this,[this](QString){refreshLibrary();});
+    connect(&libraryTools_,&LibraryToolsController::pcSettingsRequested,&pcGames_,&PcGamesController::edit);
+    connect(&pcGames_,&PcGamesController::controlsRequested,this,[this](const QString& id){service_="settings";settings_.begin();settings_.selectPage("game-input",true);settings_.gameInput()->beginGame(id);emit changed();});
     connect(settings_.gameInput(),&GameInputProfiles::textRequested,this,[this](QString title,QString text,int limit){textTarget_=TextTarget::GameInput;keyboard_.begin(title,text,limit);});
     connect(&pcGames_,&PcGamesController::textRequested,this,[this](QString title,QString text,int limit){textTarget_=TextTarget::PcGame;keyboard_.begin(title,text,limit);});
 
@@ -1534,6 +1536,7 @@ QVariantList ShellController::homeMenuActions() const {
     }
     QVariantList rows;
     if(!social_.homeLobby()["id"].toString().isEmpty())rows.append(QVariantMap{{"id","lobby"},{"label","My lobby"}});
+    if(liveGame_.isEmpty())if(const auto r=repository_.registration(currentAdventureId());r&&r->adventure.adapterId=="pc-local")rows.append(QVariantMap{{"id","pc-settings"},{"label","Game settings"},{"detail",r->adventure.title}});
     if(!liveGame_.isEmpty()) {
         rows.prepend(QVariantMap{{"id","live-options"},{"label","Game Options"},{"detail",liveGame_.value("title")}});
         rows.prepend(QVariantMap{{"id","live-return"},{"label","Return to game"},{"detail","Still running · "+liveGame_.value("title").toString()}});
@@ -1560,6 +1563,7 @@ void ShellController::activateHomeMenu(int index) {
     const auto selected=homeMenuActions()[index].toMap();
     if(!selected.value("enabled",true).toBool())return;
     const auto id=selected["id"].toString();
+    if(id=="pc-settings"){closeHomeMenu();pcGames_.edit(currentAdventureId());return;}
     if(id=="together"){emit togetherRequested(liveGame_.value("id").toString());return;}
     if(id=="lobby"){if(liveGame_.isEmpty())social_.openLobby();else social_.openLobbyForGame(liveGame_.value("id").toString());return;}
     if(id=="live-return"||id=="live-options"){returnToLiveGame(id=="live-options");return;}

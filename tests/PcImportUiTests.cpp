@@ -5,12 +5,16 @@
 #include <QQuickView>
 #include <QQuickItem>
 #include <QTemporaryDir>
+#include <QImage>
+#include <QSysInfo>
 #include "features/pc/PcGamesController.h"
 #include "core/input/TextEntryController.h"
 #include "platform/input/InvitationOverlayService.h"
 using namespace trainer;
 class UiLibrary : public LibraryRepository {
 public:
+    AdventureRegistration record;
+    std::optional<AdventureRegistration> registration(const QString& id) const override {return id==record.adventure.id?std::optional(record):std::nullopt;}
     bool editable() const override {return true;}
     QList<World> worlds() const override {return {};}
     QList<Adventure> adventures() const override {return {};}
@@ -20,6 +24,24 @@ public:
 class PcImportUiTests : public QObject {
     Q_OBJECT
 private slots:
+    void gameSettingsArtworkAndLaunchAtHandheldSize() {
+        QTemporaryDir temp;const QDir source(QString(TRAINER_SOURCE_DIR)+"/src/qml");
+        for(const auto& name:source.entryList({"*.qml"},QDir::Files))QVERIFY(QFile::copy(source.filePath(name),temp.filePath(name)));
+        QFile dir(temp.filePath("qmldir"));QVERIFY(dir.open(QIODevice::WriteOnly));dir.write("singleton Theme 1.0 Theme.qml\n");dir.close();
+        QFile scene(temp.filePath("Probe.qml"));QVERIFY(scene.open(QIODevice::WriteOnly));scene.write("import QtQuick\nItem { width: 960; height: 540; property bool dark: false; onDarkChanged: Theme.themeId=dark ? 'dark' : 'light'; PcGamePopup { anchors.fill: parent; flow: probeFlow } }");scene.close();
+        UiLibrary library;library.record.adventure.id="pc:fixture";library.record.adventure.adapterId="pc-local";library.record.adventure.title="An ordinary PC game";
+        library.record.integrationConfig={{"runner","native"},{"installRoot",temp.path()},{"workingDirectory",temp.path()}};
+        FilesService files;PcGamesController flow(library,files);flow.configure(temp.filePath("state"),"ui");flow.edit("pc:fixture");
+        QQuickView view;QStringList warnings;connect(view.engine(),&QQmlEngine::warnings,this,[&](const QList<QQmlError>& errors){for(const auto& e:errors)warnings<<e.toString();});
+        view.rootContext()->setContextProperty("probeFlow",&flow);view.setResizeMode(QQuickView::SizeRootObjectToView);view.setSource(QUrl::fromLocalFile(scene.fileName()));
+        QVERIFY2(view.status()==QQuickView::Ready,qPrintable(warnings.join('\n')));view.resize(960,540);view.show();QTest::qWait(150);
+        QDir().mkpath("screenshots/pc-import");QVERIFY(view.grabWindow().save("screenshots/pc-import/settings-light.png"));
+        view.rootObject()->setProperty("dark",true);view.resize(800,450);flow.activate(2);QTest::qWait(120);
+        QVERIFY(view.grabWindow().save("screenshots/pc-import/artwork-dark-800.png"));
+        flow.dispatch(Action::Back);flow.activate(0);QTest::qWait(120);QVERIFY(view.grabWindow().save("screenshots/pc-import/launch-dark-800.png"));
+        flow.dispatch(Action::Down);QCOMPARE(flow.focusIndex(),1);flow.dispatch(Action::Back);QCOMPARE(flow.stage(),QString("settings"));
+        QVERIFY2(warnings.isEmpty(),qPrintable(warnings.join('\n')));
+    }
     void externalKeyboardUsesExistingLayoutAndPointerPath() {
         QTemporaryDir temp;const QDir source(QString(TRAINER_SOURCE_DIR)+"/src/qml");
         for(const auto& name:source.entryList({"*.qml"},QDir::Files))QVERIFY(QFile::copy(source.filePath(name),temp.filePath(name)));
