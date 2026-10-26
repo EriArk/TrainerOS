@@ -29,7 +29,7 @@
     "packaging/emulators/flycast-lan/README.md": "b8941df5f1fc96744cb11d4efe11eaf5e883b9813c43f4190c70b298804e0ed6",
     "packaging/emulators/flycast-lan/build.sh": "a979b912cf27de4499cd642782032c01145146583a2ca31ff03b364084680630",
     "packaging/emulators/flycast-lan/bundle.py": "7eb66a44199bc7605959850e5e9dd3b75416534502315eb0f9243eed7019c950",
-    "packaging/emulators/flycast-lan/cabinet-session.patch": "913772f2dc79869db7c65177d5d53ae39b03582c9ffdea9c72533718758c80c4",
+    "packaging/emulators/flycast-lan/cabinet-session.patch": "e6f17703c35af35d3889d8744dbeefe9d3fa25088a1338ec4565db3e77799d68",
     "packaging/emulators/flycast-lan/native-inspect.patch": "241e87196dacdd482e7dd67b76ac569471a98a998891810162fbbbe9d2b207fe",
     "packaging/emulators/flycast-lan/private-paths.patch": "3b430eab1174b825db6a9b5598b1d70b8ccacd80f219169f6bf13d8763fec1da",
     "packaging/emulators/flycast/LICENSE.arcade-metadata": "5749785c8bdefafcb5d798270ed0a967036fe2ca63dcedade1627565dfef81d2",

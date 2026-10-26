@@ -52,7 +52,9 @@ advertised native port, максимальный пакет, отказ чужо
 child при disconnect. Дополнительно — несколько LobbyConnection, уникальные
 connection IDs, отдельное удаление гостя, GameParty dispatch P2/P3/P4 и отказ чужому ready.
 
-Точные результаты и установка фиксируются после завершения сборки в evidence.
+Проверки: 4/4 shell suites, 2/2 transport suites, все маршруты 2/3/4 endpoint
+и отдельная host namespace preparation прошли. Сборка production и установка
+фиксируются в [evidence](../evidence/native-groups-20261026/README.md).
 Сохранены существующие пакеты/история/профили; native progress кабинетов остаётся временным,
 Dreamcast Online сохраняет свой прежний protected VMU archive. Остальные платформы
 не получают четыре места автоматически: PS2/BBA и другие native transports требуют
