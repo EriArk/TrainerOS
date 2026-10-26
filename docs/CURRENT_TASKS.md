@@ -5,7 +5,8 @@ Naomi 2 и Atomiswave: native set dependencies, общий Lobby/Start/exit и p
 progress. Helper/native suites и paired Dolphin Blue session start прошли.
 [Контракт и обновление](emulators/flycast.md#naomi--naomi-2--atomiswave--26-october-2026),
 [точная поставка](evidence/arcade-netplay-20261026/README.md). Cabinet link/native
-Dreamcast services — оставшийся отдельный механизм R039. Текущие нечитаемые
+Dreamcast services — оставшийся отдельный механизм R039. Реализация `f8b90298`
+установлена на обе портативки, состояние и другие packages сохранены. Текущие нечитаемые
 Atomiswave ROM записаны в таблице; их восстановление не выполнено. Не повторять
 пройденные checks как самостоятельную задачу; Sonic/Battlefront не возобновлялись.
 

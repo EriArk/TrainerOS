@@ -1,0 +1,68 @@
+{
+  "flip": {
+    "source": "f8b90298725127b52786f97036c837ee2ec72a7e",
+    "shell": "e873820f9b6f4c2cb44daeb1f4134a6625f85a0a7704c1145c03503fd73e6174",
+    "live": true,
+    "flycast": {
+      "manifest": "af5b9c4181223c39c1dbcb5dbcd25781ece90f3ee9cd15cbb03229acdf80eda6",
+      "runtime": "e81da3bbbdc14473c095478b969d4bf47b34bee83a58ea35a070d36e0eff5b77",
+      "arcade": {
+        "protocol": "flycast-arcade-sets-v1",
+        "arcade.py": "1536a7c8a1fcfc48d4b4b6c165f96c50eeaa93cfdf000ac21fc1f7beb5cc9119",
+        "arcade-catalog.json": "edf9fc95fe620e70d5be8e81d4f363e148017e30eabef3f7c63b01c260854caa"
+      }
+    },
+    "unchangedOtherPackages": 16,
+    "historyUnchanged": true,
+    "personalFilesUnchanged": true,
+    "protectedFiles": 75,
+    "qmlErrors": [],
+    "helperTestsPassed": 13,
+    "pairedNativeProbe": {
+      "game": "Dolphin Blue",
+      "set": "dolphin",
+      "transport": "nearby-same-network",
+      "running": true,
+      "sessionStart": true,
+      "exitCode": 0,
+      "termination": "100-second diagnostic watchdog",
+      "temporaryStageRemoved": true,
+      "personalFilesUnchanged": true,
+      "fullLobbyJourney": false,
+      "matchAcceptance": false
+    }
+  },
+  "odin": {
+    "source": "f8b90298725127b52786f97036c837ee2ec72a7e",
+    "shell": "e873820f9b6f4c2cb44daeb1f4134a6625f85a0a7704c1145c03503fd73e6174",
+    "live": true,
+    "flycast": {
+      "manifest": "af5b9c4181223c39c1dbcb5dbcd25781ece90f3ee9cd15cbb03229acdf80eda6",
+      "runtime": "e81da3bbbdc14473c095478b969d4bf47b34bee83a58ea35a070d36e0eff5b77",
+      "arcade": {
+        "protocol": "flycast-arcade-sets-v1",
+        "arcade.py": "1536a7c8a1fcfc48d4b4b6c165f96c50eeaa93cfdf000ac21fc1f7beb5cc9119",
+        "arcade-catalog.json": "edf9fc95fe620e70d5be8e81d4f363e148017e30eabef3f7c63b01c260854caa"
+      }
+    },
+    "unchangedOtherPackages": 16,
+    "historyUnchanged": true,
+    "personalFilesUnchanged": true,
+    "protectedFiles": 1283,
+    "qmlErrors": [],
+    "helperTestsPassed": 13,
+    "pairedNativeProbe": {
+      "game": "Dolphin Blue",
+      "set": "dolphin",
+      "transport": "nearby-same-network",
+      "running": true,
+      "sessionStart": true,
+      "exitCode": 0,
+      "termination": "100-second diagnostic watchdog",
+      "temporaryStageRemoved": true,
+      "personalFilesUnchanged": true,
+      "fullLobbyJourney": false,
+      "matchAcceptance": false
+    }
+  }
+}

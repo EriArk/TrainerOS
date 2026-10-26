@@ -8,6 +8,8 @@ Nearby/Online, ручной Start, проверка ZIP/7z/parent/BIOS/GD-ROM и
 Helper/native suites прошли, Dolphin Blue достиг общей native-сессии на Flip/Odin.
 [Реализация и ограничения](docs/emulators/flycast.md#naomi--naomi-2--atomiswave--26-october-2026),
 [состояние доставки](docs/evidence/arcade-netplay-20261026/README.md).
+Реализация `f8b90298` установлена на **Flip/Odin**: обе оболочки работают,
+история и проверенные личные файлы сохранены, другие emulator packages не изменены.
 Cabinet link и native Dreamcast services этим не реализованы. Пять нечитаемых
 Atomiswave архивов записаны отдельно; исходные ROM сохранены.
 
