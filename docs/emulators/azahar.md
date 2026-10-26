@@ -42,6 +42,7 @@ and `--drop-channel --counts 4` for interrupted transport. Remove the optional
 CMake include when maintaining an ordinary release build. Rebase the room patch
 and its included file together; preserve the existing content patch and save paths.
 
+Installed on Flip/Odin from `531e9af1`; shell SHA-256 `3317a810674c723f33df2ea928561aac558a0f96b0c5ada44bcdf67408a2f1f9`.
 [Checks, delivery and rollback](../evidence/azahar-groups-20261026/README.md).
 
 ## Native content installation — 26 October 2026
