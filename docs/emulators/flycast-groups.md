@@ -53,8 +53,8 @@ child при disconnect. Дополнительно — несколько Lobby
 connection IDs, отдельное удаление гостя, GameParty dispatch P2/P3/P4 и отказ чужому ready.
 
 Проверки: 4/4 shell suites, 2/2 transport suites, все маршруты 2/3/4 endpoint
-и отдельная host namespace preparation прошли. Сборка production и установка
-фиксируются в [evidence](../evidence/native-groups-20261026/README.md).
+и отдельная host namespace preparation прошли. Production `53027e6b…` / исходники
+`ac71fc83` установлены на Flip и Odin; [хеши и сохранность состояния](../evidence/native-groups-20261026/README.md).
 Сохранены существующие пакеты/история/профили; native progress кабинетов остаётся временным,
 Dreamcast Online сохраняет свой прежний protected VMU archive. Остальные платформы
 не получают четыре места автоматически: PS2/BBA и другие native transports требуют

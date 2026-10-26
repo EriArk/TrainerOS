@@ -1,0 +1,79 @@
+{
+  "source": "ac71fc83029d6e44f8054d463a85d1eb94825ff7",
+  "production": {
+    "shell": "53027e6b02da7fcc8eea91e29faf55653ec099568f7a205dac35525310dcbbc4",
+    "sourceFiles": 980,
+    "production": true
+  },
+  "devices": {
+    "flip": {
+      "source": "ac71fc83029d6e44f8054d463a85d1eb94825ff7",
+      "shell": "53027e6b02da7fcc8eea91e29faf55653ec099568f7a205dac35525310dcbbc4",
+      "cabinetManifest": "dc806b3e37f60245226945f0c543d7b6698afb0fede65fa5e2169eaa43e2c076",
+      "nativeFiles": {
+        "bin/flycast": "1454e427f3fee62bbdd1f78389127ecf74cc8fb532201868b73bd674eb0e3856",
+        "cabinet_endpoint": "deb9a155d7321ecaa1574a3e5a0903362c21e33c162d034f47849db2d887637d",
+        "stream_transport": "65246b37b3492165a9dbdb56ca6011d0e5c95c31ee05feb5c3da674f5e6bf832"
+      },
+      "otherPackagesPreserved": 18,
+      "historyPreserved": true,
+      "protectedFiles": 1539,
+      "changedPersonalFiles": 0,
+      "qmlErrors": 0,
+      "inputMode": 0,
+      "volume": "Volume: 0.20"
+    },
+    "odin": {
+      "source": "ac71fc83029d6e44f8054d463a85d1eb94825ff7",
+      "shell": "53027e6b02da7fcc8eea91e29faf55653ec099568f7a205dac35525310dcbbc4",
+      "cabinetManifest": "dc806b3e37f60245226945f0c543d7b6698afb0fede65fa5e2169eaa43e2c076",
+      "nativeFiles": {
+        "bin/flycast": "1454e427f3fee62bbdd1f78389127ecf74cc8fb532201868b73bd674eb0e3856",
+        "cabinet_endpoint": "deb9a155d7321ecaa1574a3e5a0903362c21e33c162d034f47849db2d887637d",
+        "stream_transport": "65246b37b3492165a9dbdb56ca6011d0e5c95c31ee05feb5c3da674f5e6bf832"
+      },
+      "otherPackagesPreserved": 18,
+      "historyPreserved": true,
+      "protectedFiles": 2166,
+      "changedPersonalFiles": 0,
+      "qmlErrors": 0,
+      "inputMode": 0,
+      "volume": "Volume: 0.00"
+    }
+  },
+  "nativeSource": {
+    "source": "d0e47e572b1e7b355e88bda8308c89d0c5156cbf",
+    "modified": {
+      "CMakeLists.txt": "26863dcdb2350c2b33415ce7fe0d8acc6c880a17f4ea6366349bcd55ae4381ce",
+      "core/deps/glslang": "96f4f7b40877c4df368c65beaeb733bb6483f587f912a98a623aba614de7cdf3",
+      "core/dojo/DojoGui.cpp": "10485d8f97ccc9a8f0dc463a500039dbf8b49e69011572532857cdf4f2a32e8d",
+      "core/dojo/RelayClient.cpp": "a41b0686010acc9e1f6b0febf3ec9c14ea089120f399309a9e7193e3e5fdea87",
+      "core/linux-dist/main.cpp": "dd0b188ff53ac455a79839d14f7b3e0593cdcdca2f88184c8609921238f04025",
+      "core/network/ggpo.cpp": "887b95398c3c36916a69061de5feeedaa1c6b9304316b3b3a7564127d2c7ca90",
+      "core/network/naomi_network.cpp": "fb25765f6fe3f86a63739b85ffffac1e4fa1c4ef442d1413e2d93671a69987dc",
+      "core/nullDC.cpp": "8947a29e8b4984cc62d1dc54dfa0f0664a0cdf2024dee6dbc91ae6211b4b7404",
+      "core/rend/gui.cpp": "03233b9b9e25bda10b0067d959d47501894db67375599c68000aaf13a0566398",
+      "core/sdl/sdl.cpp": "25193ddafaee9cb0bcae3bb2354c7a62d9048ba446c525c1e1e9299ef09e8383"
+    },
+    "native": "1454e427f3fee62bbdd1f78389127ecf74cc8fb532201868b73bd674eb0e3856",
+    "patches": {
+      "native-inspect.patch": "241e87196dacdd482e7dd67b76ac569471a98a998891810162fbbbe9d2b207fe",
+      "cabinet-session.patch": "e6f17703c35af35d3889d8744dbeefe9d3fa25088a1338ec4565db3e77799d68",
+      "private-paths.patch": "3b430eab1174b825db6a9b5598b1d70b8ccacd80f219169f6bf13d8763fec1da"
+    },
+    "exactReconstructedFiles": 9
+  },
+  "checks": {
+    "shellSuites": 4,
+    "transportSuites": 2,
+    "transportCases": 18,
+    "cabinetCounts": [
+      2,
+      3,
+      4
+    ],
+    "hostNamespacePreparation": true,
+    "nativeMatchClaimed": false,
+    "differentNetworksClaimed": false
+  }
+}

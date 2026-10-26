@@ -2,7 +2,8 @@
 
 **26 октября — native группы Flycast:** реализованы групповой DCNet launch до четырёх
 клиентов и 2–4 Naomi кабинета через существующие соединения; serial остаётся парным.
-[Контракт и границы](emulators/flycast-groups.md). Состояние сборки/установки — в evidence.
+[Контракт и границы](emulators/flycast-groups.md). `ac71fc83` установлен на Flip/Odin;
+[production 53027e6b, проверки и сохранность](evidence/native-groups-20261026/README.md).
 
 **26 октября — реализован native Dreamcast Online/DCNet:** владелец принял
 отдельный режим Lobby с ручным входом в комнату внутри игры. Добавлены распознавание
