@@ -1,9 +1,9 @@
 {
   "schema": 1,
   "pack": "trainer-avatar-1",
-  "revision": 3,
+  "revision": 4,
   "template": "template.glb",
-  "bodyImage": 0,
+  "bodyImage": 1,
   "almondPatches": [
     {
       "file": "almond-position.bin",
@@ -23,16 +23,17 @@
     "bob": 61
   },
   "materialRoles": {
+    "12": "hairColor",
     "1": "shirtColor",
+    "4": "hairColor",
+    "5": "hairColor",
     "6": "hairColor",
-    "7": "hairColor",
-    "8": "hairColor",
-    "9": "hairColor"
+    "7": "hairColor"
   },
   "rig": "trainer-humanoid-54-v1",
   "units": "metres",
   "forward": "+Z",
-  "eyeHeight": 0.8,
+  "eyeHeight": 0.787,
   "actions": {
     "wave": "Wave",
     "sit": "Sit",
@@ -42,28 +43,132 @@
   },
   "licenseStatus": "local-review-only",
   "sourceSha256": {
-    "body-almond.glb": "2ee4e67df65bd55555f408d1bfef80eb94d7b509cccc3411587761e32478db46",
-    "body-round.glb": "a51b450be12a88d5f0c09f0c758f862c227e79bd2ae8b63474b93b351fff5ccd",
-    "hair-bob.glb": "f73223c1928de9f5648532aa7eef2ff697746268b34f361ad02dc5d5009e37d4",
-    "hair-crop.glb": "f9323d8dba0140a5fb1f7be60d59d544b16285da337eee5ed561bf8aa0885c2d",
-    "hair-ponytail.glb": "962fad76152b18f0e2dbb05cfecb41d7b3c871177ad31e6b83ee9e889993b47c",
-    "hair-swept.glb": "7ad2418c79668d9dc576f9ed2f336615f6b71aefe90dbe8c8a075bdce98bbf0a",
-    "shirt.glb": "4711490816b004399e01d03efa104b3930640686117030c87fbbf2de345d4bd5",
-    "shoes.glb": "4ec53c367a84e2243135c013714227213d7ec65e789e6220c4e3e23d8b77e019"
+    "base-body\\trainer-body.glb": "ed818b016430665e7eaef50fdfd8188b894cf9607d6a4f1bc3ae9a7b4c55a333",
+    "2026-10-26\\anime-hair\\avatar-all-hair-options.glb": "2561aeb351feef8e8e0122cf4235351c36a0c184111720e8ef7c5de1a011f6f9",
+    "2026-10-26\\chibi-eyes\\avatar-prepared-face.glb": "f3f4af2d7c0c5ac181949a814c241d2fbdfe99880ff4742ae20c16af55f9fcda",
+    "2026-10-26\\chibi-eyes\\eyes-calm-base.glb": "0fd44342083fc8c75197633eedaf74b1ab8c6b9d801854b1bfe770f36bb14528",
+    "2026-10-26\\chibi-eyes\\eyes-calm-feminine.glb": "39b325b9b855c51b36c5bcc3b1c681e137b8ee5d3a13a9c3c14746cf4e57a28d",
+    "2026-10-26\\chibi-eyes\\eyes-determined-base.glb": "f07b9249792241152bd850b1b9a4d61732c2ed059facb90852e892946b3c2db7",
+    "2026-10-26\\chibi-eyes\\eyes-determined-feminine.glb": "a9f945c909b784b83d91da3fce46924a814f5fbef2df9d3fd0670e4444e55c52",
+    "2026-10-26\\chibi-eyes\\eyes-innocent-base.glb": "d97caba7eba06a8a2d596e978b1bfe28d7023d0798b420775b3809da4fdcb178",
+    "2026-10-26\\chibi-eyes\\eyes-innocent-feminine.glb": "77c9df5835037878e63f251483960a1df72ca9eaf520bf654fbb3d4887abc82f",
+    "2026-10-26\\chibi-eyes\\eyes-rogue-base.glb": "4fa390957fd84203008ffa1981d177c8b0a2167cc25098b1ee0d86112894c504",
+    "2026-10-26\\chibi-eyes\\eyes-rogue-feminine.glb": "23237a1d4c9d579d0d7788ce1acf8d8e8fd23df73c56807d299e3ee5c55f8f78",
+    "2026-10-26\\chibi-eyes\\eyes-sleepy-base.glb": "13e9a74f7533b3597c494b68d0bc4fe339ce0431a662c1cceb02837d5aeaae25",
+    "2026-10-26\\chibi-eyes\\eyes-sleepy-feminine.glb": "4b1bd43ab11a953051c391e06d47ddaeb23299a8f801acdc610ae7a57f668c1e",
+    "2026-10-26\\chibi-eyes\\eyes-sly-base.glb": "070b5aa55e68aaca4269a2fca7d993c3ec214a70867593e9df84de5710e41317",
+    "2026-10-26\\chibi-eyes\\eyes-sly-feminine.glb": "95eb58e728966485fbaf7a1197cff8f3571f020ef80282e4b4e39cb1062f2754"
   },
   "atlasVersion": 2,
   "files": {
-    "almond-normal.bin": "c37794c9e5ac3435e62217c13527faeb9f6d2968115dd5ae2e16b39b159ed8c2",
-    "almond-position.bin": "1e9c07dc5ddce988f619627e85756898a27f7f738ca7ca76690e0a994b8bbb40",
-    "face-almond.png": "374ff3067e9a7b9622fb80bdcdb39f0b172ab1384b2186dac477f784ff6b0d99",
+    "template.glb": "c688f16d490d93e5b964552a84f77e93e312a627eb8b8033f5ccd063bcb957ea",
     "face-round.png": "ab8d363c7a0fafe920f38d6636f9e7163dc5b8f27e0990f9a2e9e6fc673abc5e",
-    "mask-almond.png": "06cbd8cef7656bf906acf3707e2e989b49de580353292829514f89ca52a40ffa",
+    "face-almond.png": "374ff3067e9a7b9622fb80bdcdb39f0b172ab1384b2186dac477f784ff6b0d99",
     "mask-round.png": "c10d8575189afcf21654acddcb97d01b28658e295398bd10cca43c260a71cd00",
-    "template.glb": "cb0f27c6dc0c4c6221ce18ef0cb9061b32e2f46e9a85e13b566f8a55355b443d"
+    "mask-almond.png": "06cbd8cef7656bf906acf3707e2e989b49de580353292829514f89ca52a40ffa",
+    "almond-position.bin": "637954e887c522a9affe438ad5755b1e56d2b2da22ad6028de63f30c2974abe3",
+    "almond-normal.bin": "6e77f7fa693fafbc1b6161ed4b7f8beb1d6ab8285e81fabd5ae69fd39d2cf577",
+    "iris.png": "39046a7be4fca889957e4916bdc561f6c68794e188e980844183e184c9451557",
+    "mask-iris.png": "446f045d0980ebe6a99e05753b19867d9638e59b12156fff1c6e4013aee0abd4"
   },
   "clothing": {
     "deformation": "torso-skin",
     "simulation": false,
-    "fit": 2
-  }
+    "fit": 3
+  },
+  "eyeNodes": {
+    "rogue-base": [
+      62,
+      63,
+      64,
+      65
+    ],
+    "rogue-feminine": [
+      66,
+      67,
+      68,
+      69
+    ],
+    "innocent-base": [
+      70,
+      71,
+      72,
+      73
+    ],
+    "innocent-feminine": [
+      74,
+      75,
+      76,
+      77
+    ],
+    "sly-base": [
+      78,
+      79,
+      80,
+      81
+    ],
+    "sly-feminine": [
+      82,
+      83,
+      84,
+      85
+    ],
+    "calm-base": [
+      86,
+      87,
+      88,
+      89
+    ],
+    "calm-feminine": [
+      90,
+      91,
+      92,
+      93
+    ],
+    "sleepy-base": [
+      94,
+      95,
+      96,
+      97
+    ],
+    "sleepy-feminine": [
+      98,
+      99,
+      100,
+      101
+    ],
+    "determined-base": [
+      102,
+      103,
+      104,
+      105
+    ],
+    "determined-feminine": [
+      106,
+      107,
+      108,
+      109
+    ]
+  },
+  "bodyNode": 54,
+  "legacyBodyMesh": 0,
+  "preparedBodyMesh": 7,
+  "vertexPalette": [
+    {
+      "accessor": 439,
+      "role": "skinColor",
+      "base": [
+        0.87137,
+        0.55201,
+        0.37626
+      ]
+    }
+  ],
+  "extraPaletteImages": [
+    {
+      "image": 2,
+      "file": "iris.png",
+      "mask": "mask-iris.png"
+    }
+  ]
 }

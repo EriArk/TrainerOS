@@ -1,5 +1,10 @@
 # TrainerOS — 12 одобренных пар чиби-глаз
 
+> 27 October update: approved models are included in runtime pack revision 4.
+> Authoring files remain separate. See [SDK](../../../../../sdk/AVATAR.md) and [integration evidence](../../../../../docs/AVATAR_IMPORT_20261027.md).
+> Earlier pending-integration statements below describe the authoring checkpoint.
+
+
 Первая версия отклонена владельцем. Новая проработка выполнена после
 изучения игровых примеров MapleStory 2, Fantasy Life i и Pokémon BDSP.
 Конкретные источники и визуальные выводы — reference-notes.txt.

@@ -1,0 +1,95 @@
+{
+  "date": "2026-10-27",
+  "authoringCommit": "e02a19c4ad039f6d88ee227d7a614085dc23caa7",
+  "mergeCommit": "bd695793",
+  "packBytes": 23979292,
+  "nativeBuild": "ARM64 Release, Quick3D ON, BUILD_TESTING OFF",
+  "buildInputFilesVerified": 1245,
+  "avatarTests": {
+    "passed": 6,
+    "failed": 0,
+    "skipped": 0
+  },
+  "platformTests": {
+    "passed": 14,
+    "failed": 0,
+    "skipped": 1,
+    "skipReason": "External Godot unavailable"
+  },
+  "uiSmoke": {
+    "success": true,
+    "warnings": 0,
+    "diagnostics": []
+  },
+  "backend": {
+    "profileTestsPassed": 23,
+    "image": "traineros-backend:avatar4-20261027",
+    "readinessHttp": 200,
+    "databaseMigration": false
+  },
+  "devices": {
+    "odin": {
+      "binarySha256": "77e0ffe4bd470420ec9519b3aa51fdc4ba4ba24fcb300c96d6b965fef57d7d76",
+      "liveSha256": "77e0ffe4bd470420ec9519b3aa51fdc4ba4ba24fcb300c96d6b965fef57d7d76",
+      "packRevision": 4,
+      "packManifestSha256": "857d52a2287640895a127b373ad70d77dd7b7b6af500fad0090ae1cf17105397",
+      "supervisedRestart": true,
+      "rollbackRetained": true,
+      "sdk": {
+        "avatarLocal": true,
+        "packRevision": 4,
+        "recipeMatchesInstalledPack": true,
+        "fileShaVerified": true,
+        "animationClips": 8,
+        "joints": 54,
+        "visibleHairCount": 1
+      },
+      "databaseUnchanged": true,
+      "databaseTables": [
+        "worlds",
+        "play_sessions",
+        "adventures"
+      ],
+      "databaseIntegrity": "ok",
+      "settingsUnchanged": true,
+      "draftNewEyesVisuallyVerified": true,
+      "draftCancelled": true,
+      "returnedHome": true,
+      "systemVolume": "Volume: 0.00"
+    },
+    "flip": {
+      "binarySha256": "77e0ffe4bd470420ec9519b3aa51fdc4ba4ba24fcb300c96d6b965fef57d7d76",
+      "liveSha256": "77e0ffe4bd470420ec9519b3aa51fdc4ba4ba24fcb300c96d6b965fef57d7d76",
+      "packRevision": 4,
+      "packManifestSha256": "857d52a2287640895a127b373ad70d77dd7b7b6af500fad0090ae1cf17105397",
+      "supervisedRestart": true,
+      "rollbackRetained": true,
+      "sdk": {
+        "avatarLocal": true,
+        "packRevision": 4,
+        "recipeMatchesInstalledPack": true,
+        "fileShaVerified": true,
+        "animationClips": 8,
+        "joints": 54,
+        "visibleHairCount": 1
+      },
+      "databaseUnchanged": true,
+      "databaseTables": [
+        "worlds",
+        "play_sessions",
+        "adventures"
+      ],
+      "databaseIntegrity": "ok",
+      "settingsUnchanged": true,
+      "draftNewEyesVisuallyVerified": true,
+      "draftCancelled": true,
+      "returnedHome": true,
+      "systemVolume": "Volume: 0.20"
+    }
+  },
+  "limits": [
+    "No fresh Godot gameplay or physical button acceptance",
+    "No cloth simulation or blinking added",
+    "Windows full-shell link did not complete; standalone Qt portrait verified in a real window"
+  ]
+}

@@ -1,0 +1,20 @@
+********* Start testing of PlatformHostTests *********
+Config: Using QtTest library 6.11.2, Qt 6.11.2 (arm64-little_endian-lp64 shared (dynamic) release build; by GCC 16.2.1 20260819 (Red Hat 16.2.1-2)), fedora 44
+PASS   : PlatformHostTests::initTestCase()
+PASS   : PlatformHostTests::backendGameFacadeUsesRealSdkSocketAndHidesCredentials()
+PASS   : PlatformHostTests::discoveryAndExclusiveEndpoint()
+PASS   : PlatformHostTests::localAvatarSubscriptionAndRevocation()
+PASS   : PlatformHostTests::accountIdentityChangeRevokesOldClient()
+PASS   : PlatformHostTests::asynchronousAvatarRecipes()
+SKIP   : PlatformHostTests::realGodotAvatarConsumer() External Godot and local pack required
+   Loc: [/work/combined26/source/tests/PlatformHostTests.cpp(156)]
+PASS   : PlatformHostTests::authVersionAndMalformedInput()
+PASS   : PlatformHostTests::widgetActivationAndCrashCleanup()
+PASS   : PlatformHostTests::namespaceAndStaleContext()
+PASS   : PlatformHostTests::pipelinedFramesAreNotOneOversizedMessage()
+PASS   : PlatformHostTests::subscribeUnsubscribeAndNoProfile()
+PASS   : PlatformHostTests::layoutSurvivesReconnectWithoutChangingBuiltins()
+PASS   : PlatformHostTests::realPythonProcess()
+PASS   : PlatformHostTests::cleanupTestCase()
+Totals: 14 passed, 0 failed, 1 skipped, 0 blacklisted, 13467ms
+********* Finished testing of PlatformHostTests *********

@@ -14,6 +14,7 @@
 #include <QtEndian>
 #include <cmath>
 #include <algorithm>
+#include <cstring>
 
 namespace trainer {
 QJsonObject AvatarAssets::defaults() {
@@ -23,7 +24,10 @@ QJsonObject AvatarAssets::defaults() {
 QStringList AvatarAssets::keys(){return {"hair","eyes","hairColor","eyeColor","skinColor","shirtColor","shortsColor"};}
 QStringList AvatarAssets::choices(const QString& key) {
     if(key=="hair")return {"swept","ponytail","crop","bob"};
-    if(key=="eyes")return {"round","almond"};
+    if(key=="eyes")return {"round","almond","rogue-base","rogue-feminine",
+        "innocent-base","innocent-feminine","sly-base","sly-feminine",
+        "calm-base","calm-feminine","sleepy-base","sleepy-feminine",
+        "determined-base","determined-feminine"};
     if(key=="hairColor")return {"#302a2d","#62402c","#975743","#d1ab68","#e9dcd0","#a35a69","#64888c"};
     if(key=="eyeColor")return {"#98602d","#779486","#547d9a","#9794ae","#bb8b47","#6b6269"};
     if(key=="skinColor")return {"#f7d8bf","#f0c4a5","#d9ab86","#ba8764","#8c5e43","#614132"};
@@ -90,8 +94,14 @@ QJsonObject AvatarAssets::resolve(const QJsonObject& a,const QString& explicitRo
             if(offset<0||length!=bytes.size()||offset>binary.size()-length)return fail("invalid_avatar_patch");
             binary.replace(offset,length,bytes);
         }
-        QImage face(root+"/face-"+a["eyes"].toString()+".png"),mask(root+"/mask-"+a["eyes"].toString()+".png");
-        if(face.isNull()||mask.size()!=face.size()||face.width()>4096||face.height()>4096)return fail("invalid_avatar_texture");
+        const auto eyeNodes=m["eyeNodes"].toObject();
+        const auto eyeStyle=a["eyes"].toString();
+        const bool modularEyes=eyeNodes.contains(eyeStyle);
+        if(eyeStyle!="round" && eyeStyle!="almond" && !modularEyes)return fail("avatar_pack_mismatch");
+        const auto textureStyle=modularEyes?QStringLiteral("round"):eyeStyle;
+        auto paintImage=[&](const QString& file,const QString& maskFile,int imageIndex)->bool {
+        QImage face(root+"/"+file),mask(root+"/"+maskFile);
+        if(face.isNull()||mask.size()!=face.size()||face.width()>4096||face.height()>4096)return false;
         face=face.convertToFormat(QImage::Format_RGB32);mask=mask.convertToFormat(QImage::Format_RGB32);
         const QColor skin(a["skinColor"].toString()),shorts(a["shortsColor"].toString()),eye(a["eyeColor"].toString());
         const float skinBase[]={.87137f,.55201f,.37626f};float tones[3][3];
@@ -104,14 +114,53 @@ QJsonObject AvatarAssets::resolve(const QJsonObject& a,const QString& explicitRo
                 pixels[x]=qRgb(result[0],result[1],result[2]);
             }
         }
-        QByteArray image;QBuffer buffer(&image);buffer.open(QIODevice::WriteOnly);if(!face.save(&buffer,"PNG"))return fail("avatar_texture_failed");
+        QByteArray image;QBuffer buffer(&image);buffer.open(QIODevice::WriteOnly);if(!face.save(&buffer,"PNG"))return false;
         while(binary.size()%4)binary.append('\0');
         auto views=g["bufferViews"].toArray();const int view=views.size();views.append(QJsonObject{{"buffer",0},{"byteOffset",binary.size()},{"byteLength",image.size()}});binary+=image;g["bufferViews"]=views;
-        auto images=g["images"].toArray();auto im=images[m["bodyImage"].toInt()].toObject();im["bufferView"]=view;images[m["bodyImage"].toInt()]=im;g["images"]=images;
+        auto images=g["images"].toArray();if(imageIndex<0||imageIndex>=images.size())return false;
+        auto im=images[imageIndex].toObject();im["bufferView"]=view;images[imageIndex]=im;g["images"]=images;
+        return true;
+        };
+        if(!paintImage("face-"+textureStyle+".png","mask-"+textureStyle+".png",m["bodyImage"].toInt()))return fail("invalid_avatar_texture");
+        if(modularEyes)for(const auto& entry:m["extraPaletteImages"].toArray()){
+            const auto p=entry.toObject();
+            if(!paintImage(p["file"].toString(),p["mask"].toString(),p["image"].toInt(-1)))return fail("invalid_avatar_texture");
+        }
+        // The prepared eye surface carries the original skin shading in COLOR_0.
+        // Recolour it with the same linear-space ratio as the body texture.
+        if(modularEyes)for(const auto& entry:m["vertexPalette"].toArray()){
+            const auto p=entry.toObject();const auto accessors=g["accessors"].toArray();
+            const int index=p["accessor"].toInt(-1);if(index<0||index>=accessors.size())return fail("invalid_avatar_palette");
+            const auto acc=accessors[index].toObject();const auto views=g["bufferViews"].toArray();
+            const int vi=acc["bufferView"].toInt(-1);if(vi<0||vi>=views.size()||acc["componentType"]!=5126||acc.contains("sparse"))return fail("invalid_avatar_palette");
+            const auto v=views[vi].toObject();const int components=acc["type"]=="VEC4"?4:acc["type"]=="VEC3"?3:0;
+            const qint64 offset=qint64(v["byteOffset"].toInt())+acc["byteOffset"].toInt();
+            const int count=acc["count"].toInt(),stride=v["byteStride"].toInt(components*4);
+            const auto base=p["base"].toArray();const QColor colour(a[p["role"].toString()].toString());
+            if(!components||count<1||stride<components*4||offset<0||offset+qint64(count-1)*stride+components*4>binary.size()||base.size()!=3)return fail("invalid_avatar_palette");
+            const float tones[]={linear(colour.redF()),linear(colour.greenF()),linear(colour.blueF())};
+            for(int i=0;i<count;++i)for(int ch=0;ch<3;++ch){
+                char* dest=binary.data()+offset+qint64(i)*stride+ch*4;
+                const auto bits=qFromLittleEndian<quint32>(dest);float value;std::memcpy(&value,&bits,4);
+                const double denominator=base[ch].toDouble();if(denominator<=0)return fail("invalid_avatar_palette");
+                value=std::clamp(float(value*tones[ch]/denominator),0.f,1.f);
+                quint32 result;std::memcpy(&result,&value,4);qToLittleEndian(result,dest);
+            }
+        }
         auto materials=g["materials"].toArray();const auto roles=m["materialRoles"].toObject();
         for(auto i=roles.begin();i!=roles.end();++i){const int index=i.key().toInt();auto mat=materials[index].toObject();auto pbr=mat["pbrMetallicRoughness"].toObject();QColor c(a[i.value().toString()].toString());pbr["baseColorFactor"]=QJsonArray{linear(c.redF()),linear(c.greenF()),linear(c.blueF()),1};mat["pbrMetallicRoughness"]=pbr;materials[index]=mat;}g["materials"]=materials;
         auto scenes=g["scenes"].toArray();int scene=g["scene"].toInt();auto sc=scenes[scene].toObject();QJsonArray roots;const auto hairs=m["hairNodes"].toObject();
         auto nodes=g["nodes"].toArray();
+        if(!eyeNodes.isEmpty()){
+            const int body=m["bodyNode"].toInt(-1),mesh=m[modularEyes?"preparedBodyMesh":"legacyBodyMesh"].toInt(-1);
+            if(body<0||body>=nodes.size()||mesh<0||mesh>=g["meshes"].toArray().size())return fail("invalid_avatar_pack");
+            auto node=nodes[body].toObject();node["mesh"]=mesh;nodes[body]=node;
+            for(auto it=eyeNodes.begin();it!=eyeNodes.end();++it)if(it.key()!=eyeStyle)
+                for(const auto& id:it.value().toArray()){
+                    const int index=id.toInt(-1);if(index<0||index>=nodes.size())return fail("invalid_avatar_pack");
+                    auto hidden=nodes[index].toObject();hidden.remove("mesh");hidden.remove("skin");nodes[index]=hidden;
+                }
+        }
         for(auto i=hairs.begin();i!=hairs.end();++i)if(i.key()!=a["hair"].toString()){
             auto node=nodes[i.value().toInt()].toObject();node.remove("mesh");node.remove("skin");nodes[i.value().toInt()]=node;
         }

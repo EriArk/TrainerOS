@@ -38,6 +38,15 @@ def test_avatar_is_bounded_free_pack_recipe(mutation):
     with pytest.raises(AuthError,match='invalid_avatar_recipe'):avatar_recipe(value)
 
 
+@pytest.mark.parametrize('style',['rogue','innocent','sly','calm','sleepy','determined'])
+@pytest.mark.parametrize('variant',['base','feminine'])
+def test_approved_eye_variants_preserve_recipe_contract(style,variant):
+    value=copy.deepcopy(RECIPE);value['appearance']['eyes']=f'{style}-{variant}'
+    assert avatar_recipe(value)==value
+    value['appearance']['eyes']+='-unknown'
+    with pytest.raises(AuthError,match='invalid_avatar_recipe'):avatar_recipe(value)
+
+
 def test_own_avatar_update_retry_clear_and_revocation(account,postgres):
     user=login(account);token=user['access_token']
     first=account.profile(token,avatar=RECIPE)

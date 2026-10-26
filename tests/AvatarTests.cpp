@@ -3,6 +3,8 @@
 #include <QFileInfo>
 #include <QJsonDocument>
 #include <QTemporaryDir>
+#include <QJsonArray>
+#include <QtEndian>
 #include "features/trainer/AvatarAssets.h"
 #include "features/trainer/TrainerController.h"
 using namespace trainer;
@@ -10,6 +12,61 @@ class AvatarTests:public QObject {
     Q_OBJECT
 private slots:
     void schema(){auto a=AvatarAssets::defaults();QVERIFY(AvatarAssets::valid(a));a["eyes"]="unknown";QVERIFY(!AvatarAssets::valid(a));a=AvatarAssets::defaults();a["skinColor"]="../../secret";QVERIFY(!AvatarAssets::valid(a));}
+    void approvedVariants(){
+        if(!AvatarAssets::available())QSKIP("External avatar pack not installed");
+        QTemporaryDir cache;QSet<QString> hashes;int index=0;
+        QFile manifest(AvatarAssets::packRoot()+"/manifest.json");QVERIFY(manifest.open(QIODevice::ReadOnly));
+        const auto pack=QJsonDocument::fromJson(manifest.readAll()).object();QCOMPARE(pack["revision"].toInt(),4);
+        QFile templateFile(AvatarAssets::packRoot()+"/template.glb");QVERIFY(templateFile.open(QIODevice::ReadOnly));
+        const auto templateBytes=templateFile.readAll();
+        const auto templateJson=QJsonDocument::fromJson(templateBytes.mid(20,qFromLittleEndian<quint32>(templateBytes.constData()+12))).object();
+        const auto bodyPrimitive=templateJson["meshes"].toArray()[pack["legacyBodyMesh"].toInt()].toObject()["primitives"].toArray()[0].toObject();
+        const auto bodyMaterial=templateJson["materials"].toArray()[bodyPrimitive["material"].toInt()].toObject();
+        const auto textures=templateJson["textures"].toArray();
+        const int colourTexture=bodyMaterial["pbrMetallicRoughness"].toObject()["baseColorTexture"].toObject()["index"].toInt();
+        QCOMPARE(pack["bodyImage"],textures[colourTexture].toObject()["source"]);
+        QVERIFY(pack["bodyImage"]!=textures[bodyMaterial["normalTexture"].toObject()["index"].toInt()].toObject()["source"]);
+        const auto preparedPrimitives=templateJson["meshes"].toArray()[pack["preparedBodyMesh"].toInt()].toObject()["primitives"].toArray();
+        for(const auto& primitive:preparedPrimitives)
+            QVERIFY(primitive.toObject()["attributes"].toObject().contains("COLOR_0"));
+        const int whiteIndex=preparedPrimitives[0].toObject()["attributes"].toObject()["COLOR_0"].toInt();
+        const auto whiteAccessor=templateJson["accessors"].toArray()[whiteIndex].toObject();
+        const auto whiteView=templateJson["bufferViews"].toArray()[whiteAccessor["bufferView"].toInt()].toObject();
+        const int binaryStart=28+qFromLittleEndian<quint32>(templateBytes.constData()+12);
+        const char* white=templateBytes.constData()+binaryStart+whiteView["byteOffset"].toInt();
+        for(int i=0;i<whiteAccessor["count"].toInt()*4;++i)
+            QCOMPARE(qFromLittleEndian<quint32>(white+i*4),quint32(0x3f800000));
+        const auto destination=qEnvironmentVariable("TRAINER_AVATAR_TEST_OUTPUT");
+        const auto cachePath=destination.isEmpty()?cache.path():QFileInfo(destination).absolutePath()+"/variants";
+        for(const auto& eyes:AvatarAssets::choices("eyes")){
+            auto a=AvatarAssets::defaults();a["eyes"]=eyes;a["hair"]=AvatarAssets::choices("hair")[index%4];
+            a["skinColor"]=index%2?"#614132":"#f7d8bf";a["eyeColor"]="#547d9a";
+            const auto r=AvatarAssets::resolve(a,AvatarAssets::packRoot(),cachePath);
+            QVERIFY2(!r.contains("error"),qPrintable(eyes+": "+r["error"].toString()));
+            QVERIFY(!hashes.contains(r["sha256"].toString()));hashes.insert(r["sha256"].toString());
+            QFile f(r["glb"].toString());QVERIFY(f.open(QIODevice::ReadOnly));const auto bytes=f.readAll();
+            QVERIFY(bytes.size()<64*1024*1024);
+            const auto g=QJsonDocument::fromJson(bytes.mid(20,qFromLittleEndian<quint32>(bytes.constData()+12))).object();
+            const auto nodes=g["nodes"].toArray();int visibleHair=0,visibleEyes=0;
+            for(const auto& value:nodes){const auto node=value.toObject();if(!node.contains("mesh"))continue;
+                for(const auto& primitive:g["meshes"].toArray()[node["mesh"].toInt()].toObject()["primitives"].toArray()){
+                    const auto attrs=primitive.toObject()["attributes"].toObject();
+                    for(const auto& accessor:attrs)QVERIFY(g["accessors"].toArray()[accessor.toInt()].toObject().contains("bufferView"));
+                }
+                if(node["name"].toString().startsWith("hair-"))++visibleHair;
+                if(node["name"].toString().startsWith("eyes-")){++visibleEyes;QVERIFY(node["name"].toString().startsWith("eyes-"+eyes+"-"));}
+            }
+            QCOMPARE(visibleHair,1);
+            const auto expected=pack["eyeNodes"].toObject()[eyes].toArray();QCOMPARE(visibleEyes,expected.size());
+            const auto body=nodes[pack["bodyNode"].toInt()].toObject();
+            QCOMPARE(body["mesh"],pack[expected.isEmpty()?"legacyBodyMesh":"preparedBodyMesh"]);
+            QCOMPARE(g["animations"].toArray().size(),8);
+            QCOMPARE(AvatarAssets::resolveRecipe(r["recipe"].toObject(),cachePath)["sha256"],r["sha256"]);
+            if(!destination.isEmpty()){QFile descriptor(QFileInfo(destination).absolutePath()+"/"+eyes+".json");QVERIFY(descriptor.open(QIODevice::WriteOnly));descriptor.write(QJsonDocument(r).toJson());}
+            ++index;
+        }
+        QCOMPARE(index,14);
+    }
     void editingIsolation(){
         if(!AvatarAssets::available())QSKIP("External avatar pack not installed");
         TrainerProfile p;p.id="alice";p.name="Alice";p.createdAt=QDateTime::currentDateTimeUtc();

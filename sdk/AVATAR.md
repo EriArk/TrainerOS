@@ -97,6 +97,32 @@ before replacing appearance. No handheld delivery is implied.
 
 ## Local preparation
 
+### Approved art, pack revision 4 (27 October 2026)
+
+The shared pack now includes the corrected standalone body (head scale 0.92 and
+the retained shorts repair), separate thin-strap tank and four approved anime
+hairstyles. The source body remains in
+[`approved/base-body`](../assets/avatar/approved/base-body/README.md).
+
+The `eyes` field accepts the retained `round` / `almond` choices and twelve new
+IDs: `rogue-base`, `rogue-feminine`, `innocent-base`, `innocent-feminine`,
+`sly-base`, `sly-feminine`, `calm-base`, `calm-feminine`, `sleepy-base`,
+`sleepy-feminine`, `determined-base`, `determined-feminine`. The wardrobe exposes
+them to touch and controller input. Saved legacy choices are preserved.
+
+The resolver selects the matching prepared face and exactly one eye set, retaining
+the same skeleton and animation clips. Iris, skin, hair/brows, shirt and shorts
+follow the existing appearance colours. Facial blinking/gaze and cloth simulation
+are not added. Consumers still load one resolved GLB; they do not assemble meshes
+or copy art into games. Descriptor/recipe schema and identity rules are unchanged;
+pack hashes fence peers with different installed revisions.
+
+`tools/avatar/import_approved.py APPROVED_ROOT LEGACY_V3_PACK OUTPUT` reproduces
+revision 4 from the approved source models and retained v3 face textures/masks.
+The v3 inputs can be restored from commit `ebfdd07c` under
+`assets/avatar/packs/trainer-avatar-1`. Only the resulting runtime pack installs
+on a console; Blender sources and comparison renders remain authoring assets.
+
 ### Static player portraits
 
 Games can capture the resolved model once into a 256px transparent portrait.

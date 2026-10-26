@@ -1,5 +1,10 @@
 # Утверждённые анимешные причёски
 
+> 27 October update: approved models are included in runtime pack revision 4.
+> Authoring files remain separate. See [SDK](../../../../../sdk/AVATAR.md) and [integration evidence](../../../../../docs/AVATAR_IMPORT_20261027.md).
+> Earlier pending-integration statements below describe the authoring checkpoint.
+
+
 26 октября 2026 владелец принял эту версию: «Отлично. Отлично получилось».
 Она продолжает [утверждённые майку и пропорции](../README.md), сохранённые
 в коммите `7ba87f2b`. Тело, лицо, голова, отдельная майка и обувь не изменены.

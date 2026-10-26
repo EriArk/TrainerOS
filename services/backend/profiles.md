@@ -32,3 +32,10 @@ is not account deletion.
 
 Checks: 68 real PostgreSQL/API tests, native account/SDK tests and a four-player
 Golf SDK/TLS/HTTP/worker chain. Evidence: docs/evidence/backend-profiles-20261026.
+
+27 October: the existing appearance recipe whitelist additionally accepts the
+12 approved chibi eye styles (six personalities, base/feminine). The schema,
+ownership and size constraints are unchanged. All 23 scoped profile tests passed
+on the server with isolated PostgreSQL; image `traineros-backend:avatar4-20261027`
+was deployed to API/worker and readiness returned HTTP 200. No database migration
+or Lobby service replacement. See [avatar import](../../docs/AVATAR_IMPORT_20261027.md).

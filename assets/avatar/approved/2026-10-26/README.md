@@ -1,5 +1,10 @@
 # Утверждённая внешность — 26 октября 2026
 
+> 27 October update: approved models are included in runtime pack revision 4.
+> Authoring files remain separate. See [SDK](../../../../sdk/AVATAR.md) and [integration evidence](../../../../docs/AVATAR_IMPORT_20261027.md).
+> Earlier pending-integration statements below describe the authoring checkpoint.
+
+
 Владелец принял новую спортивную майку с тонкими лямками и уменьшение головы
 вместе с причёсками на 8%. По отдельному поручению эти результаты сохранены
 в репозитории вместе с редактируемым исходником и проверками.

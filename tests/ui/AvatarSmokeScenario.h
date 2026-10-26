@@ -34,24 +34,33 @@ inline void startAvatarSmoke(QQuickWindow* window,trainer::ShellController& shel
         case 3: {
             if(controller->avatarBusy())break;
             const auto previews=window->findChildren<QObject*>("avatar-preview");
+            if(!previews.isEmpty()&&!previews.first()->property("loadError").toString().isEmpty()){
+                diagnostics<<"Native GLB import: "+previews.first()->property("loadError").toString();*stage=99;break;
+            }
             if(!previews.isEmpty()&&!previews.first()->property("ready").toBool())break;
             check(!previews.isEmpty()&&previews.first()->property("ready").toBool(),"Native GLB preview failed to load");
             check(controller->avatarDescriptor()==*original,"Draft leaked into live avatar");
             if(!directory.isEmpty())check(window->grabWindow().save(directory+"/avatar-editor.png"),"Editor screenshot failed");
             const std::function<QQuickItem*(QQuickItem*)> find=[&](QQuickItem* item)->QQuickItem*{
-                if(item->objectName()=="avatar-field-1"&&item->isVisible())return item;
+                if(item->objectName()=="avatar-choice-rogue-feminine"&&item->isVisible())return item;
                 for(auto* c:item->childItems())if(auto* r=find(c))return r;return nullptr;};
             auto* row=find(window->contentItem());check(row,"Eye touch row missing");
-            if(row){auto point=row->mapToScene({row->width()*.75,row->height()-10});auto global=QPointF(window->mapToGlobal(point.toPoint()));
+            if(row){auto point=row->mapToScene({row->width()/2,row->height()/2});auto global=QPointF(window->mapToGlobal(point.toPoint()));
                 QMouseEvent down(QEvent::MouseButtonPress,point,global,Qt::LeftButton,Qt::LeftButton,Qt::NoModifier),up(QEvent::MouseButtonRelease,point,global,Qt::LeftButton,Qt::NoButton,Qt::NoModifier);
                 QCoreApplication::sendEvent(window,&down);QCoreApplication::sendEvent(window,&up);}
             ++*stage;break;
         }
         case 4:
             if(controller->avatarBusy())break;
-            check(controller->avatarRows()[1].toMap()["detail"]=="almond","Eye touch did not change appearance");
+            check(controller->avatarRows()[1].toMap()["detail"]=="rogue-feminine","New eye touch did not change appearance");
+            for(int i=0;i<10;++i)shell.dispatch(trainer::Action::Right);
+            *stage=40;break;
+        case 40:
+            if(controller->avatarBusy())break;
+            check(controller->avatarRows()[1].toMap()["detail"]=="determined-feminine","Controller did not reach the last eye variant");
+            if(!directory.isEmpty())check(window->grabWindow().save(directory+"/avatar-new-eyes.png"),"New eyes screenshot failed");
             for(int i=0;i<5;++i)shell.dispatch(trainer::Action::Down);
-            ++*stage;break;
+            *stage=5;break;
         case 5:
         {
             const std::function<QQuickItem*(QQuickItem*,const QString&)> find=[&](QQuickItem* item,const QString& name)->QQuickItem*{
@@ -66,7 +75,7 @@ inline void startAvatarSmoke(QQuickWindow* window,trainer::ShellController& shel
         }
         case 6:
             if(controller->saving()||controller->avatarBusy())break;
-            check(controller->avatarDescriptor()["appearance"].toObject()["eyes"]=="almond","Saved appearance not live");
+            check(controller->avatarDescriptor()["appearance"].toObject()["eyes"]=="determined-feminine","Saved appearance not live");
             if(!directory.isEmpty())check(window->grabWindow().save(directory+"/avatar-profile.png"),"Profile screenshot failed");
             controller->beginAvatarEdit();shell.dispatch(trainer::Action::Back);check(!controller->avatarEditing(),"Back did not cancel");++*stage;break;
         case 7:

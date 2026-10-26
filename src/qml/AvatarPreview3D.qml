@@ -6,6 +6,7 @@ View3D {
     id: root
     objectName: "avatar-preview"
     readonly property bool ready: avatar.status===RuntimeLoader.Success
+    readonly property string loadError: avatar.status===RuntimeLoader.Error ? avatar.errorString : ""
     property url modelSource
     property real yaw: 0
     readonly property real displayScale: Math.max(1, Window.window ? Window.window.uiScale || 1 : 1)

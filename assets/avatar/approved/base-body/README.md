@@ -1,5 +1,10 @@
 # Исправленная базовая модель Trainer
 
+> 27 October update: approved models are included in runtime pack revision 4.
+> Authoring files remain separate. See [SDK](../../../../sdk/AVATAR.md) and [integration evidence](../../../../docs/AVATAR_IMPORT_20261027.md).
+> Earlier pending-integration statements below describe the authoring checkpoint.
+
+
 Это отдельная основа персонажа, на которую надеваются одежда, обувь и волосы.
 27 октября 2026 она извлечена без изменения геометрии из ранее одобренной
 [сборки](../2026-10-26/anime-hair/README.md), по требованию владельца хранить

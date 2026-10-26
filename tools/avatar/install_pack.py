@@ -7,8 +7,12 @@ base=Path(os.environ.get('LOCALAPPDATA') or os.environ.get('XDG_DATA_HOME') or P
 destination=(a.destination or base/'traineros/avatar/packs/trainer-avatar-1').resolve()
 manifest=json.loads((source/'manifest.json').read_text(encoding='utf-8'))
 assert manifest['schema']==1 and manifest['pack']=='trainer-avatar-1'
-files=['template.glb','face-round.png','face-almond.png','mask-round.png','mask-almond.png','almond-position.bin','almond-normal.bin']
-for name in files:assert (source/name).is_file(),name
+files=list(manifest['files'])
+assert 'template.glb' in files
+for name in files:
+    assert Path(name).name == name and name not in ('.', '..'), name
+    assert (source/name).is_file(),name
+    assert hashlib.sha256((source/name).read_bytes()).hexdigest()==manifest['files'][name],name
 destination.parent.mkdir(parents=True,exist_ok=True)
 if destination.exists():
     # Idempotent only. Never overwrite an installed revision used by a running game.

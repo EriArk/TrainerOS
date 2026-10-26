@@ -30,7 +30,10 @@ def avatar_recipe(value):
     colors = {'skinColor', 'hairColor', 'eyeColor', 'shirtColor', 'shortsColor'}
     valid = valid and isinstance(a, dict) and set(a) == colors | {'schema', 'pack', 'hair', 'eyes'}
     valid = valid and type(a['schema']) is int and a['schema'] == 1 and a['pack'] == 'trainer-avatar-1'
-    valid = valid and a['hair'] in ('swept', 'ponytail', 'crop', 'bob') and a['eyes'] in ('round', 'almond')
+    eyes = ('round', 'almond') + tuple(f'{style}-{variant}'
+        for style in ('rogue', 'innocent', 'sly', 'calm', 'sleepy', 'determined')
+        for variant in ('base', 'feminine'))
+    valid = valid and a['hair'] in ('swept', 'ponytail', 'crop', 'bob') and a['eyes'] in eyes
     valid = valid and all(isinstance(a[k], str) and re.fullmatch('#[a-fA-F0-9]{6}', a[k]) for k in colors)
     if not valid:
         raise AuthError('invalid_avatar_recipe', 422)

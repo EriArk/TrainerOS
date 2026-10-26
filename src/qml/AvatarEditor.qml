@@ -6,17 +6,23 @@ Item {
     required property var shell
     readonly property var rows: profile.avatarRows
     readonly property bool focused: !shell.menuOpen && !shell.keyboard.open
-    function name(value) { return ({swept: "Side swept", ponytail: "Ponytail", crop: "Short crop", bob: "Bob", round: "Round", almond: "Almond"})[value] || value }
+    function name(value) {
+        const legacy = ({swept: "Side swept", ponytail: "Ponytail", crop: "Short crop", bob: "Bob", round: "Round", almond: "Almond"})[value]
+        if (legacy) return legacy
+        const style = ({rogue: "Rogue", innocent: "Innocent", sly: "Sly", calm: "Calm", sleepy: "Sleepy", determined: "Determined"})[value.split("-")[0]]
+        return style ? style + (value.endsWith("-feminine") ? " · feminine" : "") : value
+    }
     function revealSelection() {
         const field = profile.focusIndex
-        const item = field < 2 ? parts.itemAt(field) : field < 7 ? colours.itemAt(field-2) : null
+        const row = field < 2 ? parts.itemAt(field) : field < 7 ? colours.itemAt(field-2) : null
+        const item = field < 2 && row ? row.selectionItem : row
         if (!item) return
         const top = item.mapToItem(options, 0, 0).y
         if (top < choicesView.contentY) choicesView.contentY = top
         else if (top+item.height > choicesView.contentY+choicesView.height)
             choicesView.contentY = top+item.height-choicesView.height
     }
-    Connections { target: root.profile; function onChanged() { root.revealSelection() } }
+    Connections { target: root.profile; function onChanged() { Qt.callLater(root.revealSelection) } }
 
     Text { x: 26; y: 17; text: "Appearance"; font.family: Theme.displayFamily; font.pixelSize: 27; color: Theme.ink }
     Text { x: 27; y: 49; text: "A little more you."; font.pixelSize: 12; color: Theme.muted }
@@ -62,19 +68,24 @@ Item {
                 required property var modelData
                 required property int index
                 readonly property int field: index
-                width: options.width; height: index===0 ? 52 : 43
+                readonly property var selectionItem: partChoices.itemAt(modelData.choices.indexOf(modelData.detail))
+                width: options.width; height: choiceFlow.y + choiceFlow.implicitHeight + 7
                 objectName: "avatar-field-"+field
                 Text { text: part.modelData.title; font.pixelSize: 12; font.weight: Font.DemiBold; color: Theme.muted }
-                Row {
-                    y: 18; width: parent.width; height: parent.height-y; spacing: 7
+                Flow {
+                    id: choiceFlow
+                    y: 18; width: parent.width; spacing: 7
                     Repeater {
+                        id: partChoices
                         model: part.modelData.choices
                         delegate: Rectangle {
                             id: choice
+                            objectName: "avatar-choice-"+modelData
                             required property string modelData
                             readonly property bool chosen: part.modelData.detail===modelData
                             readonly property bool highlighted: chosen && root.focused && root.profile.focusIndex===part.field
-                            width: (part.width-7*(part.modelData.choices.length-1))/part.modelData.choices.length; height: parent.height
+                            readonly property int columns: part.field===0 ? 4 : 2
+                            width: (part.width-7*(columns-1))/columns; height: 34
                             radius: 9; color: chosen ? Theme.surfaceColor("#dcebe3") : Theme.surfaceColor("#f2f1e9")
                             border.width: highlighted ? 2 : 1; border.color: highlighted ? Theme.focusGlow : chosen ? Theme.surfaceColor("#719d8d") : Theme.surfaceColor("#e1e4da")
                             Accessible.role: Accessible.RadioButton; Accessible.name: root.name(modelData); Accessible.checked: chosen
@@ -84,11 +95,14 @@ Item {
                                     visible: part.field===1; width: 32; height: 20
                                     onPaint: {
                                         const c=getContext("2d"); c.reset(); c.strokeStyle="#244a42"; c.lineWidth=2; c.fillStyle="#fffef9";
-                                        c.beginPath(); c.moveTo(2,10); c.bezierCurveTo(9,choice.modelData==="round"?-4:2,24,0,30,10); c.bezierCurveTo(22,23,9,22,2,10); c.fill(); c.stroke();
+                                        const style=choice.modelData.split("-")[0]
+                                        const top=style==="sleepy"?7:style==="sly"?4:style==="round"||style==="innocent"?-4:1
+                                        c.beginPath(); c.moveTo(2,10); c.bezierCurveTo(9,top,24,top,30,10); c.bezierCurveTo(22,23,9,22,2,10); c.fill(); c.stroke();
                                         c.fillStyle="#749c89"; c.beginPath(); c.ellipse(12,4,10,13); c.fill(); c.fillStyle="#244a42"; c.beginPath(); c.ellipse(15,6,4,8); c.fill();
+                                        if(choice.modelData.endsWith("-feminine")){c.beginPath();c.moveTo(27,8);c.lineTo(31,4);c.stroke()}
                                     }
                                 }
-                                Text { text: root.name(choice.modelData); font.pixelSize: 12; font.weight: choice.chosen ? Font.DemiBold : Font.Normal; color: Theme.ink; anchors.verticalCenter: parent.verticalCenter }
+                                Text { text: root.name(choice.modelData); font.pixelSize: 11; font.weight: choice.chosen ? Font.DemiBold : Font.Normal; color: Theme.ink; anchors.verticalCenter: parent.verticalCenter }
                             }
                             MouseArea { anchors.fill: parent; enabled: !root.profile.saving; onClicked: root.profile.chooseAvatar(part.field,choice.modelData) }
                         }
