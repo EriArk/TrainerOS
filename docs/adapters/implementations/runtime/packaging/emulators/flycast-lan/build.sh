@@ -14,7 +14,7 @@ git -C "$work/source" remote add origin https://github.com/blueminder/flycast-do
 git -C "$work/source" fetch --depth 1 origin d0e47e572b1e7b355e88bda8308c89d0c5156cbf
 git -C "$work/source" checkout --detach FETCH_HEAD
 git -C "$work/source" submodule update --init --recursive --depth 1
-for patch in "$recipe/../flycast/traineros-launch.patch" "$recipe/../flycast/local-data-only.patch" "$recipe/native-inspect.patch" "$recipe/cabinet-session.patch"; do
+for patch in "$recipe/../flycast/traineros-launch.patch" "$recipe/../flycast/local-data-only.patch" "$recipe/native-inspect.patch" "$recipe/cabinet-session.patch" "$recipe/private-paths.patch"; do
   git -C "$work/source" apply --check "$patch"
   git -C "$work/source" apply "$patch"
 done

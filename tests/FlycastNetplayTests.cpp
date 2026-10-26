@@ -1,3 +1,4 @@
+#include "integrations/adventure/standalone/CabinetConnection.h"
 #include "integrations/adventure/standalone/FlycastNetplay.h"
 #include "core/model/GamePlayers.h"
 #include "features/adventure/RuntimeIdentity.h"
@@ -202,7 +203,7 @@ private slots:
                 QVERIFY(QFile::setPermissions(cabinet+'/'+name,QFile::ReadOwner|QFile::WriteOwner|QFile::ExeOwner));
             }
             write(cabinet+"/manifest.json",QJsonDocument(QJsonObject{{"protocol",1},{"source",flycast::sourceRevision},
-                {"settings","flycast-cabinet-private-v1"},{"files",files}}).toJson());
+                {"settings","flycast-cabinet-private-v2"},{"files",files}}).toJson());
         };
         std::atomic_bool cancel=false;
         AdventureRegistration r;r.adventure.id="cabinet";r.adventure.platformId="naomi";
@@ -218,8 +219,13 @@ private slots:
             QVERIFY(identity["temporaryProgress"].toBool());QVERIFY(!identity["lateJoin"].toBool());
             QTemporaryDir connection;
             const auto config=connection.filePath("connection.cfg");
-            for(const bool host:{true,false}) {
-                write(config,"mode=cabinet\nhost="+QByteArray(host?"true":"false")+"\nsocket="+connection.path().toUtf8()+"/cabinet.sock\n");
+            QCOMPARE(identity["players"].toInt(),link=="naomi"?4:2);
+            for(int count=2;count<=identity["players"].toInt();++count)for(int seat=1;seat<=count;++seat) {
+                const bool host=seat==1;
+                flycast::CabinetConnection network{seat,count,{}};
+                if(host)for(int other=2;other<=count;++other)network.sockets[other]=connection.path()+QString("/%1/cabinet.sock").arg(other);
+                else network.sockets[1]=connection.path()+"/cabinet.sock";
+                write(config,network.encode());
                 QVERIFY(QFile::setPermissions(config,QFile::ReadOwner|QFile::WriteOwner));
                 auto command=flycast::cabinetCommand(r,identity,config,host,{"/input-bridge","--"});
                 const auto error=command.prepare(command,cancel);QVERIFY2(error.isEmpty(),qPrintable(error));
@@ -227,7 +233,8 @@ private slots:
                 QVERIFY(command.arguments.contains(cabinet+"/cabinet_endpoint"));QVERIFY(command.arguments.contains("/input-bridge"));
                 const auto stage=command.workingDirectory;const auto ini=read(stage+"/emu.cfg");
                 QVERIFY(ini.contains("TrainerCabinet = yes"));QVERIFY(ini.contains("GGPO = no"));
-                QVERIFY(ini.contains(host?"LocalPort = 37391":"LocalPort = 37392"));
+                QVERIFY(ini.contains("LocalPort = "+QByteArray::number(37390+seat)));
+                QVERIFY(ini.contains("TrainerCabinetPlayers = "+QByteArray::number(count)));
                 QVERIFY(ini.contains(host?"server = 127.0.0.1:37392":"server = 127.0.0.1:37391"));
                 write(stage+"/data/private.eeprom","session progress");command.settled={};
                 QVERIFY(!QFileInfo::exists(stage));QVERIFY(!QFileInfo::exists(root+"/data/private.eeprom"));

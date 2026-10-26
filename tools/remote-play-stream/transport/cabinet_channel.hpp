@@ -7,11 +7,11 @@
 #include <functional>
 
 // Opaque native Flycast datagrams, framed only across private local IPC.
-// Native Naomi's largest packet is 4 + 0x4000 bytes. No IP destinations cross
-// this channel; the isolated endpoint has exactly one fixed emulator peer.
+// Native Naomi payload (4 + 0x4000 bytes) plus two bounded seat IDs.
+// No arbitrary IP destination crosses this channel.
 class CabinetChannel final : public QObject {
 public:
-    static constexpr int MaxPacket=0x4004;
+    static constexpr int MaxPacket=0x4006;
     static constexpr int QueueBytes=1024*1024;
     using Sender=std::function<bool(const QByteArray&)>;
     CabinetChannel(Sender send,std::function<void()> fail,QObject* parent=nullptr)

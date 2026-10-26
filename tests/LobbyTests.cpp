@@ -577,6 +577,35 @@ private slots:
         QCOMPARE(ended.size(),1);QVERIFY(!hc.active());QTRY_VERIFY(!gc.active());
         QVERIFY(!QFile::exists(hostFile));QVERIFY(!QFile::exists(guestFile));QCOMPARE(host.state()["phase"].toString(),"playing");
     }
+    void cabinetGroupKeepsPeerConnectionsSeparate() {
+        const auto helper=qEnvironmentVariable("TRAINEROS_STREAM_TRANSPORT");if(helper.isEmpty())QSKIP("Real Linux transport supplied by integration check");
+        for(int count:{3,4}) {
+            LobbyCoordinator a,b,c,d;QList<LobbyCoordinator*> nodes{&a,&b,&c,&d};
+            QList<LobbyConnection*> edges;int connected=0,ended=0;
+            for(int i=0;i<count;++i) {
+                auto* node=nodes[i];node->configure(QString::number(i+1),QString::number(i+1),true);
+                connect(node,&LobbyCoordinator::outgoing,node,[&,i](QString peer,QJsonObject p){int target=peer.toInt()-1;if(target>=0&&target<count)nodes[target]->receive(QString::number(i+1),QString::number(i+1),p);});
+                connect(node,&LobbyCoordinator::launchRequested,node,[&,i](QString ticket,QJsonObject){
+                    for(int guest=2;guest<=count;++guest) {
+                        if(i!=0&&guest!=i+1)continue;
+                        auto* connection=new LobbyConnection(*nodes[i],nodes[i]);edges.append(connection);
+                        connect(connection,&LobbyConnection::connected,connection,[&](QString){++connected;});
+                        connect(connection,&LobbyConnection::ended,connection,[&](QString){++ended;});
+                        QVERIFY(connection->start(QString::number(i+1),ticket,helper,{},"cabinet",QString::number(guest)));
+                    }
+                });
+            }
+            QVERIFY(a.create("public"));auto selected=game();selected.mode="runtime.flycast.cabinet.v1";selected.seats=4;selected.runtime={{"id",selected.mode},{"players",4}};
+            QVERIFY(a.selectGame(selected));for(int i=1;i<count;++i)QVERIFY(nodes[i]->join("1",a.state()["id"].toString()));
+            const auto gen=a.state()["generation"].toInteger();for(int i=0;i<count;++i){QVERIFY(nodes[i]->prepared(gen,true));QVERIFY(nodes[i]->ready(true));}
+            QVERIFY(a.start());QTRY_COMPARE_WITH_TIMEOUT(connected,2*(count-1),20000);
+            QSet<QString> hostIds;for(auto* edge:edges)if(edge->peer()!="1")hostIds.insert(edge->id());QCOMPARE(hostIds.size(),count-1);
+            const auto ticket=a.state()["ticket"].toString();for(int i=0;i<count;++i)QVERIFY(nodes[i]->acknowledgeLaunch(ticket,true));
+            QVERIFY(a.remove(QString::number(count)));QTRY_COMPARE(ended,2);
+            // Removing one peer cannot bind another guest to the old channel.
+            for(auto* edge:edges)edge->stop();
+        }
+    }
     void remoteInputRequiresPlayingRemoteModeAndAssignedGuest() {
         LobbyCoordinator host;host.configure("1","Host",true);QVERIFY(host.create("public"));
         auto selected=game();selected.mode="remoteplay.v1";QVERIFY(host.selectGame(selected));

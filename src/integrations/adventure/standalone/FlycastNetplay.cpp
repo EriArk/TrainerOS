@@ -1,3 +1,4 @@
+#include "CabinetConnection.h"
 #include "FlycastNetplay.h"
 #include "integrations/adventure/retroarch/RetroArchDisc.h"
 #include "core/model/GamePlayers.h"
@@ -142,7 +143,7 @@ QJsonObject cabinetBundle(const std::atomic_bool& cancel,const std::function<voi
     if(observe)for(const auto& name:{"manifest.json","bin/flycast","cabinet_endpoint","stream_transport"})observe(root+'/'+name);
     QFile f(root+"/manifest.json");if(!f.open(QIODevice::ReadOnly)||f.size()>8192)return {};
     auto m=QJsonDocument::fromJson(f.readAll()).object();const auto files=m["files"].toObject();
-    if(m["protocol"]!=1||m["source"]!=sourceRevision||m["settings"]!="flycast-cabinet-private-v1"
+    if(m["protocol"]!=1||m["source"]!=sourceRevision||m["settings"]!="flycast-cabinet-private-v2"
        ||files.size()!=3||!QFileInfo("/usr/bin/bwrap").isExecutable())return {};
     QCryptographicHash h(QCryptographicHash::Sha256);
     for(const auto& name:{"bin/flycast","cabinet_endpoint","stream_transport"}) {
@@ -153,17 +154,17 @@ QJsonObject cabinetBundle(const std::atomic_bool& cancel,const std::function<voi
     m["digest"]=QString::fromLatin1(h.result().toHex());return m;
 }
 QStringList cabinetEnvironment(const QString& root) {
-    return {"-u","TRAINEROS_FLYCAST_SESSION","-u","TRAINEROS_FLYCAST_INSPECT","FLYCAST_ROOT="+root,"XDG_CONFIG_HOME="+root,"XDG_DATA_HOME="+root,
-            "XDG_CONFIG_DIRS="+root,"XDG_DATA_DIRS="+root};
+    return {"-u","TRAINEROS_FLYCAST_INSPECT","TRAINEROS_FLYCAST_SESSION=cabinet","TRAINEROS_CABINET_SESSION=1","FLYCAST_ROOT="+root,"XDG_CONFIG_HOME="+root,"XDG_DATA_HOME="+root,
+            "XDG_CONFIG_DIRS="+root};
 }
-bool cabinetConfig(const QString& root,int region,bool host,const QString& renderer,bool inspect=false) {
+bool cabinetConfig(const QString& root,int region,bool host,const QString& renderer,bool inspect=false,int seat=0,int players=2) {
     return write(root+"/emu.cfg",QString("[config]\nDreamcast.AutoLoadState = no\nDreamcast.AutoSaveState = no\n"
         "Dreamcast.Region = %1\nDreamcast.Language = 1\naica.Volume = %6\npvr.rend = %2\nFetchBoxart = no\n"
         "[window]\nfullscreen = yes\n[network]\nGGPO = no\nEnable = yes\nTrainerCabinet = yes\nEnableUPnP = no\n"
-        "ActAsServer = %3\nLocalPort = %4\nserver = 127.0.0.1:%5\n"
+        "ActAsServer = %3\nLocalPort = %4\nserver = 127.0.0.1:%5\nTrainerCabinetPlayers = %7\n"
         "[dojo]\nEnable = no\nRelay = no\n")
-        .arg(region).arg(renderer=="vulkan"?4:0).arg(host?"yes":"no").arg(host?37391:37392).arg(host?37392:37391)
-        .arg(inspect?0:100).toUtf8());
+        .arg(region).arg(renderer=="vulkan"?4:0).arg(host?"yes":"no").arg(37390+(seat?seat:host?1:2)).arg(host?37392:37391)
+        .arg(inspect?0:100).arg(players).toUtf8());
 }
 }
 QJsonObject cabinetIdentity(const AdventureRegistration& r,const std::atomic_bool& cancel,
@@ -193,21 +194,18 @@ QJsonObject cabinetIdentity(const AdventureRegistration& r,const std::atomic_boo
     if(result.size()!=2||result["protocol"]!=1||(result["link"]!="naomi"&&result["link"]!="serial"))return {};
     identity["id"]="runtime.flycast.cabinet.v1";
     identity["runtime"]=QString::fromLatin1(QCryptographicHash::hash((identity["runtime"].toString()+m["digest"].toString()).toLatin1(),QCryptographicHash::Sha256).toHex());
-    identity["settings"]="flycast-cabinet-private-v1-"+r.adventure.platformId;
-    identity["link"]=result["link"];identity["connections"]=QJsonArray{"nearby","online"};return identity;
+    identity["settings"]="flycast-cabinet-private-v2-"+r.adventure.platformId;
+    identity["players"]=result["link"]=="naomi"?4:2;identity["link"]=result["link"];identity["connections"]=QJsonArray{"nearby","online"};return identity;
 }
 ProcessCommand cabinetCommand(const AdventureRegistration& r,const QJsonObject& expected,QString connection,bool host,const QStringList& inputPrefix) {
     ProcessCommand cmd;cmd.runtimeControls={{"kind","flycast"},{"game",r.adventure.id},{"netplay",expected.toVariantMap()},{"temporaryProgress",true}};
     cmd.prepare=[r,expected,connection,host,inputPrefix](ProcessCommand& out,const std::atomic_bool& cancel)->QString {
         if(!sameMultiplayerGame(cabinetIdentity(r,cancel),expected))return "Your arcade game or connection package changed. Choose the game again.";
-        QFile file(connection);QFileInfo info(connection);
-        if(!info.isAbsolute()||info.isSymLink()||!file.open(QIODevice::ReadOnly)||file.size()>4096
-           ||(info.permissions()&(QFile::ReadGroup|QFile::WriteGroup|QFile::ReadOther|QFile::WriteOther)))return "Couldn't protect the arcade connection.";
-        const QByteArray config="mode=cabinet\nhost="+QByteArray(host?"true":"false")+"\nsocket="+info.absolutePath().toUtf8()+"/cabinet.sock\n";
-        if(file.readAll()!=config)return "Invalid arcade connection.";
+        const auto config=CabinetConnection::read(connection);
+        if(!config.valid()||(config.seat==1)!=host||config.players>expected["players"].toInt())return "Invalid arcade connection.";
         auto stage=std::make_shared<QTemporaryDir>(QDir::tempPath()+"/trainer-cabinet-XXXXXX");if(!stage->isValid())return "Couldn't prepare arcade progress.";
         const auto content=arcadeContent(r,cancel,stage->path(),expected["content"].toString());
-        if(content["entry"].toString().isEmpty()||!cabinetConfig(stage->path(),content["region"].toInt(),host,bundle(cancel)["renderer"].toString()))return "Couldn't prepare the arcade set.";
+        if(content["entry"].toString().isEmpty()||!cabinetConfig(stage->path(),content["region"].toInt(),host,bundle(cancel)["renderer"].toString(),false,config.seat,config.players))return "Couldn't prepare the arcade set.";
         out.program="/usr/bin/bwrap";out.workingDirectory=stage->path();
         out.arguments={"--die-with-parent","--unshare-net","--bind","/","/","--",cabinetRoot()+"/cabinet_endpoint",connection,"/usr/bin/env"};
         out.arguments+=cabinetEnvironment(stage->path());
@@ -417,7 +415,7 @@ QJsonObject onlineIdentity(const AdventureRegistration& r,const std::atomic_bool
     const auto entry=catalog["entries"].toObject()[serial].toObject();if(entry["title"].toString().isEmpty()||!entry["bba"].isBool())return {};
     return {{"id","runtime.flycast.online.v1"},{"label",r.adventure.title.left(96)},
         {"content",content},{"runtime",installed["digest"]},{"settings","dcnet-owned-vmu-v1"},
-        {"product",serial},{"bba",entry["bba"]},{"players",2},{"lateJoin",false},
+        {"product",serial},{"bba",entry["bba"]},{"players",4},{"lateJoin",false},
         {"privateProgress",true},{"temporaryProgress",false},{"connections",QJsonArray{"online"}}};
 }
 ProcessCommand onlineCommand(const AdventureRegistration& r,const QJsonObject& expected,QString owner,QString backupRoot,const QStringList& inputPrefix) {

@@ -781,3 +781,12 @@ sample необязателен для простой realtime игры. Про�
 ### Public profiles — 26 October 2026
 
 Accounts/S01 owns verified display names and the shared avatar recipe. Boards/S10 project page-member profiles; SDK resolves installed models. Profile revisions are independent of score revisions. Source and server checks: [contract](../services/backend/profiles.md). Full account erasure and provider deletion detection remain open; R089/R107 remain partial. The owner now authorizes handheld installation/checks in this chat; delivery evidence follows separately.
+
+### F04: native группы Flycast — 26 октября
+
+S06 Ready/Start → S03 exact identity + собственный P2/P3/P4 → S07 отдельные
+LobbyConnection на гостя → namespace cabinet endpoint. Host пересылает неизменённые
+native пакеты между местами, S03/native ждут полный выбранный состав. Разрыв S07
+не закрывает game/save lifecycle S03/S08. DCNet использует независимые game-service
+клиенты и прежний private VMU archive; четыре места Lobby — группа запуска,
+не ёмкость каждой комнаты. [Контракт](emulators/flycast-groups.md).

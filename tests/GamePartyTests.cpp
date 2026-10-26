@@ -48,6 +48,27 @@ private slots:
             }
         }
     }
+    void nativeGroupLaunchDispatchesEveryAssignedSeat() {
+        for(const auto& mode:{QString("runtime.flycast.online.v1"),QString("runtime.flycast.cabinet.v1")})for(int count:{3,4}) {
+            GameParty host,b,c,d;QList<GameParty*> nodes{&host,&b,&c,&d};
+            QJsonObject profile=game();profile["id"]=mode;profile["lateJoin"]=false;
+            QJsonArray roster;for(int i=0;i<count;++i)roster.append(QJsonObject{{"id",QString::number(i+1)},{"seat",i+1},{"connected",true},{"prepared",true},{"ready",true}});
+            QMap<int,int> launches;
+            for(int i=0;i<count;++i) {
+                auto* node=nodes[i];node->configure(QString::number(i+1),{profile},profile,true);
+                connect(node,&GameParty::outgoing,node,[&,i](QString peer,QJsonObject packet){const int target=peer.mid(7).toInt()-1;if(target>=0&&target<count)nodes[target]->receive("online:"+QString::number(i+1),QString::number(i+1),packet);});
+                connect(node,&GameParty::startRequested,node,[&,i](bool isHost,QJsonObject endpoint){++launches[i];if(i>0){QVERIFY(!isHost);QCOMPARE(endpoint["slot"].toInt(),i+1);QCOMPARE(endpoint["identity"].toObject(),profile);}});
+            }
+            const auto ticket=QUuid::createUuid().toString(QUuid::WithoutBraces);
+            QVERIFY(host.bindLobby(ticket,profile,roster,"1","1"));
+            for(int i=1;i<count;++i)QVERIFY(nodes[i]->bindLobby(ticket,profile,roster,QString::number(i+1),"1"));
+            QCOMPARE(launches[0],1);
+            host.ready({{"kind",mode.contains("online")?"dc-online-ready":"cabinet-ready"},{"identity",profile}});
+            for(int i=1;i<count;++i)QCOMPARE(launches[i],1);
+            host.tick();for(int i=1;i<count;++i){nodes[i]->tick();QCOMPARE(launches[i],1);}
+            nodes[count-1]->leave();QVERIFY(host.running());
+        }
+    }
     void firstLiveGuestAndRejoinNeverRestartTheSoloHost() {
         GameParty host,guest;const auto profile=game(2);host.configure("Host",{profile},profile,true);guest.configure("Guest",{profile},{},true);
         connect(&host,&GameParty::outgoing,&guest,[&](QString,QJsonObject p){guest.receive("online:1","Host",p);});

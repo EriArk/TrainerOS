@@ -16,6 +16,6 @@ for name in ('bin/flycast', 'cabinet_endpoint', 'stream_transport'):
         raise SystemExit('Package file is not executable: '+name)
     files[name]=hashlib.sha256(path.read_bytes()).hexdigest()
 manifest={'protocol':1, 'source':'d0e47e572b1e7b355e88bda8308c89d0c5156cbf',
-          'settings':'flycast-cabinet-private-v1', 'files':files}
+          'settings':'flycast-cabinet-private-v2', 'files':files}
 (root/'manifest.json').write_text(json.dumps(manifest,indent=2)+'\n')
 print(json.dumps(manifest))

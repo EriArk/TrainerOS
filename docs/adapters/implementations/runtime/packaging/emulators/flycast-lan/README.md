@@ -1,6 +1,6 @@
 # Native Flycast cabinet package
 
-Two independent arcade cabinets, selected through the existing GameHub Lobby.
+Two to four independent Naomi arcade cabinets (Maximum Speed serial: two), selected through the existing GameHub Lobby.
 This package does not replace `flycast-netplay` or enable native Dreamcast servers.
 The shared GGPO package supplies verified ROM/BIOS dependencies and its native
 catalogue; no firmware, ROM or personal progress is included here.
@@ -38,10 +38,14 @@ Reuse the adjacent Flycast launch/private-data and glslang compiler patches.
   start, reports native Naomi/serial capability, then exits. It cannot declare
   capability from a filename or player-count field.
 - `cabinet-session.patch` uses port A for the session's local input; native Naomi
-  waits up to 60 seconds and starts once the second cabinet arrives. Both changes
+  waits up to 60 seconds and starts only when every cabinet selected in Lobby arrives. Both changes
   require private `network:TrainerCabinet`; ordinary Flycast remains unchanged.
 
-For upgrades, rebase both patches and check loader, native capability predicate,
+- `private-paths.patch` isolates native lookup to FLYCAST_ROOT for managed cabinet sessions,
+  preserving system XDG_DATA_DIRS for Vulkan ICD discovery. The session marker also
+  enables the existing owned-window Home/exit path.
+
+For upgrades, rebase all patches and check loader, native capability predicate,
 Maximum Speed serial, embedded peer port and native packet bounds. Regenerate
 the shared arcade catalogue when its source changes; compare source/runtime/
 content/settings on both participants. Do not mix a new native binary with old
@@ -55,7 +59,7 @@ python3 tools/flycast-lan/check.py TRANSPORT_BUILD/stream_transport ENDPOINT_BUI
 ```
 
 The second check runs on a Linux host supporting unprivileged `bwrap --unshare-net`;
-a build container may prohibit nested namespaces. It exercises both real isolated
+a build container may prohibit nested namespaces. It exercises 2/3/4 real isolated
 UDP endpoints and ICE/DTLS with a child protocol fixture, including foreign source
 ports, packet limits and connection loss. It is not an emulated game match.
 `trainer_flycast_netplay_tests cabinetCapabilityAndPrivateLaunch` checks the real
@@ -63,3 +67,6 @@ identity/staging/launch boundary with an explicit native-capability fixture.
 `TRAINEROS_TEST_FLYCAST_RECIPE` may locate its test-only recipe on the host.
 
 See [feature, selection rationale and limits](../../../docs/emulators/flycast-cabinet.md).
+
+Group settings/wire version: `flycast-cabinet-private-v2`. Update shell and package together;
+retain both previous versions for rollback. See [routing and seat contract](../../../docs/emulators/flycast-groups.md).

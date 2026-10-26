@@ -154,6 +154,10 @@ private:
     ProcessService& process_;AdventureLaunchController& lifecycle_;AdventureExitPresentation& overlay_;
     LobbyGamePreparation preparation_;
     LobbyConnection nativeConnection_;
+    QList<LobbyConnection*> cabinetConnections_;
+    QMap<int,QString> cabinetSockets_;
+    std::unique_ptr<QTemporaryDir> cabinetDirectory_;
+    void startCabinetConnections(QString ticket,const QJsonObject& context);
     QProcess pspRelay_{this};
     bool pspDirect_=false;
     bool nativeLanConnection_=false;

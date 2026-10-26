@@ -118,7 +118,7 @@ class TransportTests(unittest.TestCase):
                 sock.connect(configs[i]['socket']);clients.append(sock)
             time.sleep(.05)
             for sender in (0,1):
-                for size in (1,10,256,4096,0x4004):
+                for size in (1,10,256,4096,0x4004,0x4006):
                     packet=struct.pack('!H',size)+os.urandom(size)
                     clients[sender].sendall(packet[:1]);clients[sender].sendall(packet[1:])
                     self.assertEqual(exact(clients[1-sender],len(packet)),packet)
@@ -130,7 +130,7 @@ class TransportTests(unittest.TestCase):
             with socket.socket(socket.AF_UNIX,socket.SOCK_STREAM) as duplicate:
                 duplicate.settimeout(2);duplicate.connect(configs[0]['socket'])
                 self.assertEqual(duplicate.recv(1),b'')
-            clients[0].sendall(struct.pack('!H',0x4005))
+            clients[0].sendall(struct.pack('!H',0x4007))
             self.assertNotEqual(self.pair.processes[0].wait(timeout=5),0)
         finally:
             for sock in clients:sock.close()

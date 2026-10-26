@@ -481,7 +481,7 @@ void RuntimeMultiplayer::refresh(const RetroArchInstallation& installation,QStri
         const auto id=QString::fromLatin1(QCryptographicHash::hash((profile["id"].toString()+"/"+content).toUtf8(),QCryptographicHash::Sha256).toHex());
         lobbyGames.append(QVariantMap{{"key",record.adventure.id+(profile["id"]=="runtime.dolphin.bba.v1"?"#bba":profile["id"]=="runtime.flycast.cabinet.v1"?"#cabinet":profile["id"]=="runtime.flycast.online.v1"?"#online":"")},{"adventure",record.adventure.id},{"id",id},{"title",profile["label"].toString()},
             {"platform",record.adventure.platformId},{"mode",profile["id"].toString()},{"modeLabel",multiplayerPresentation(profile).value("label",QString("Emulator multiplayer"))},
-            {"modeDetail",profile["id"]=="runtime.dolphin.bba.v1"?"Own screen / LAN menu / temporary progress":profile["id"]=="runtime.flycast.cabinet.v1"?"Linked cabinets / own screen / temporary progress":profile["id"]=="runtime.flycast.online.v1"?"Choose a room in the game / own saved VMUs":""},{"cover",library_.artwork(record.adventure.id).value("cover")},{"seats",qMin(4,capacity)},{"runtime",profile.toVariantMap()}});
+            {"modeDetail",profile["id"]=="runtime.dolphin.bba.v1"?"Own screen / LAN menu / temporary progress":profile["id"]=="runtime.flycast.cabinet.v1"?"Linked cabinets / own screen / temporary progress":profile["id"]=="runtime.flycast.online.v1"?"Group launch / choose a room in-game / own saved VMUs":""},{"cover",library_.artwork(record.adventure.id).value("cover")},{"seats",qMin(4,capacity)},{"runtime",profile.toVariantMap()}});
         social_.lobbyRuntime()->registerService(profile["id"].toString(),this);
         }
     }
@@ -1085,12 +1085,12 @@ void RuntimeMultiplayer::frame(const QJsonObject& packet) {
     if(!active_)return;
     if(dcOnline()) {
         if(host_||packet["kind"]!="dc-online-ready"||lifecycle_.active()||launchPending_)return;
-        if(packet["identity"].toObject()!=descriptor_||packet["slot"]!=2){fail("Your Dreamcast Online invitation changed.");return;}
+        if(packet["identity"].toObject()!=descriptor_||packet["slot"].toInt()<2||packet["slot"].toInt()>descriptor_["players"].toInt(2)||packet["slot"].toInt()!=request_.slot){fail("Your Dreamcast Online invitation changed.");return;}
         launchPending_=true;launch();return;
     }
     if(nativeLan()) {
         if(host_||packet["kind"]!=(gcLan()?"bba-ready":cabinetLan()?"cabinet-ready":"ps2-ready")||lifecycle_.active()||launchPending_)return;
-        if(packet["identity"].toObject()!=descriptor_||packet["slot"]!=QJsonValue(2)) {
+        if(packet["identity"].toObject()!=descriptor_||packet["slot"].toInt()!=request_.slot||request_.slot<2||request_.slot>descriptor_["players"].toInt(2)) {
             fail("Your LAN game or invitation changed. Invite again.");return;
         }
         launchPending_=true;launch();return;
