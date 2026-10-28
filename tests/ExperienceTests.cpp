@@ -273,7 +273,8 @@ private slots:
         auto chat=HomeSocialFixture::chat("one","peer-one","First");
         QVariantMap snapshot{{"state","connected"},{"userId","self"},{"chats",QVariantList{chat}}};
         HomeSocialFixture::publish(*shell.social(),snapshot);QCOMPARE(shell.dashboard()->people().size(),1);
-        shell.dispatch(Action::Up);QCOMPARE(shell.dashboard()->focus(),"person:peer-one");
+        shell.dispatch(Action::Up);QCOMPARE(shell.dashboard()->focus(),"lobbies");
+        shell.dispatch(Action::Down);QCOMPARE(shell.dashboard()->focus(),"person:peer-one");
         shell.dispatch(Action::Confirm);QCOMPARE(shell.primaryId(),"online");QCOMPARE(shell.onlineFace(),"chats");QVERIFY(launches.isEmpty());
         QCOMPARE(commands.last()[0].toString(),"conversation");QCOMPARE(commands.last()[1].toMap()["id"],"one");
         shell.dispatch(Action::Back);QCOMPARE(shell.primaryId(),"home");QCOMPARE(shell.dashboard()->focus(),"person:peer-one");
@@ -302,19 +303,24 @@ private slots:
         QCOMPARE(people[0].toMap()["conversation"],"one");
         dashboard->setContext("emerald-demo",true);
         QSignalSpy launches(&shell,&ShellController::homeLaunchPressed);
-        shell.dispatch(Action::NextFace);QCOMPARE(dashboard->focus(),"person:11");
+        shell.dispatch(Action::NextFace);QCOMPARE(dashboard->focus(),"lobbies");
+        shell.dispatch(Action::Down);QCOMPARE(dashboard->focus(),"person:11");
         shell.dispatch(Action::NextFace);QVERIFY(dashboard->focus().startsWith("event:"));
         shell.dispatch(Action::NextFace);QCOMPARE(dashboard->focus(),"play");
         shell.dispatch(Action::PreviousFace);QVERIFY(dashboard->focus().startsWith("event:"));
-        shell.dispatch(Action::PreviousFace);QCOMPARE(dashboard->focus(),"person:11");QVERIFY(launches.isEmpty());
+        shell.dispatch(Action::PreviousFace);QCOMPARE(dashboard->focus(),"lobbies");
+        shell.dispatch(Action::Down);QCOMPARE(dashboard->focus(),"person:11");QVERIFY(launches.isEmpty());
         // Recency updates do not replace the selected person with another row.
         second["lastInteraction"]=9000;snapshot["chats"]=QVariantList{first,second};HomeSocialFixture::publish(*social,snapshot);
         QCOMPARE(dashboard->focus(),"person:11");QCOMPARE(dashboard->target(dashboard->focus())["conversation"],"one");
         first["unread"]=0;second["unread"]=0;snapshot["chats"]=QVariantList{first,second};HomeSocialFixture::publish(*social,snapshot);
         shell.dispatch(Action::NextFace);QCOMPARE(dashboard->focus(),"play");
-        shell.dispatch(Action::PreviousFace);QCOMPARE(dashboard->focus(),"person:22");
+        shell.dispatch(Action::PreviousFace);QCOMPARE(dashboard->focus(),"lobbies");
+        shell.dispatch(Action::Down);QCOMPARE(dashboard->focus(),"person:22");
         snapshot={{"userId","other"},{"state","connected"}};HomeSocialFixture::publish(*social,snapshot);
-        QVERIFY(dashboard->people().isEmpty());shell.dispatch(Action::NextFace);QCOMPARE(dashboard->focus(),"play");
+        QVERIFY(dashboard->people().isEmpty());QCOMPARE(dashboard->focus(),"play");
+        shell.dispatch(Action::NextFace);QCOMPARE(dashboard->focus(),"lobbies"); // Persistent Lobby entry remains available without people.
+        shell.dispatch(Action::NextFace);QCOMPARE(dashboard->focus(),"play"); // Empty activity block is skipped.
     }
     void dashboardAchievementsUseVerifiedAccountSnapshotsNotToasts() {
         MockLibraryRepository library;MockTrainerRepository profiles;MockAdventureAdapter adapter;DevelopmentPlatformService platform;

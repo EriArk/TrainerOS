@@ -1,5 +1,12 @@
 # Карта готовности функций TrainerOS
 
+**28 октября — S01/S11, опыт и Искры:** серверная RA-привязка, проверка событий,
+журнал начислений, XP/уровень и баланс подключены к профилю. Начальный баланс
+разрешён владельцем и вынесен в версионированную политику. R108/R146 частичны:
+живая первая награда ещё не подтверждена; поддержка/покупки/reversal открыты.
+[Поставка и проверки](PLAYER_PROFILE.md#начисление-опыта-и-искр--28-октября).
+Это уточнение заменяет прежнее «не реализовано» для цепочки начисления ниже.
+
 **28 октября — лицевые реакции, S01/S04/S14:** реализованы revision 5,
 общий resolver и SDK API: девять выражений, восемь ртов, четыре реакции.
 Проверены 14 eye sets, смена/отзыв профиля, Qt-карточка и отдельный пример
@@ -377,7 +384,7 @@ R-ID не перенумеровывать; новая функция получ
 | ☐ | <a id="r088"></a>**R088** Software updater и раздельные обновления | **[S13]**; [S14], [S15] | Недоделано | #153–155; signed Beta/Preview/check/prepare CLI дополнен Settings consumer: версия/канал/notes, отдельный Download, пауза/продолжение/отмена, общие Downloads/inbox. Managed bootstrap читает фактические host/data/receipt, добавлены явный apply через защищённый выход, совместимый rollback/repair, сохранение задания и очистка cache. В source build источника нет; production publication и реальная Armada lifecycle-приёмка открыты. [Механизм и границы проверки](EARLY_BETA_INSTALLER_RU.md); Crates не заменяет Software OTA. |
 | ☐ | <a id="r089"></a>**R089** TrainerOS ID: онлайн-привязки, сессия и восстановление | **[S01]**; [S04], [S05], [S14] | Частично: native вход, host session, SDK identity | [Accounts](../services/backend/accounts.md): Fluxer subject → Player UUID, PKCE/browser-only handoff без ручного кода, защищённая host session/rotation, Settings login/cancel/logout, `account.identity`. [Приёмка](evidence/backend-native-return-20261025/README.md): сервер и реальный браузерный возврат/refresh/revoke; SDK установлен на Odin/Flip ([доставка](evidence/crates-devices-20261026/README.md)), интерактивный вход на портативках ещё не проверен. Открыты целевое хранилище/foreground/input, cleanup при удалении Trainer, полные SDK grants/build attestation (bounded scorecard grants уже [реализованы](../sdk/PLAY.md)), push revocation, recovery/relink/deletion и auth retention. Локальный Trainer остаётся отдельным. [F08](STRUCTURE_MAP_RU.md#f08). |
 | ☐ | <a id="r107"></a>**R107** Backend: проверка результатов матчей и статистика | **[S10]**; [S01], [S03], [S09], [S14] | Частично: установлен scorecard preview | [SDK/контракт](../sdk/PLAY.md): host grants, матчи 2–16, команды 2/3, receipts/jobs, peer-confirmed результаты, records/wins/stats, ничьи/уникальные побеждённые, dispute/void/revision pages. [Приёмка](evidence/backend-play-20261025/README.md): 57 backend tests, 5 native hosts → SDK → HTTP/DB/worker, публичные маршруты и restore. [Golf integration](evidence/backend-golf-20261025/README.md): rules зарегистрированы, SDK/Golf source и пакеты подготовлены, реальные Godot/HTTP/DB/worker 2/4/5/8 пройдены. Публичные имена/аватары реализованы; SDK и Golf установлены на Odin/Flip ([доставка](evidence/crates-devices-20261026/README.md)). Physics validators, trusted admission, Elo/статус, турниры, эксплуатационные условия и полный матч на портативках не закрыты. [F05](STRUCTURE_MAP_RU.md#f05). |
-| ☐ | <a id="r108"></a>**R108** Экономика: журнал начислений/трат и награды | **[S11]**; [S10], [S01] | Не сделано | [#262, Economy v2](TRAINEROS_ACCOUNT_ECONOMY_RU.md): один ledger; допустимые RA increment rewards + отдельный больший completion prize. Crates не создают Sparks. Idempotency, owner isolation, reversal; non-RA completion policy открыта. [F05](STRUCTURE_MAP_RU.md#f05). |
+| ☐ | <a id="r108"></a>**R108** Экономика: журнал начислений/трат и награды | **[S11]**; [S10], [S01] | Частично | [Начисление](../services/backend/progression.md): RA increment + отдельная награда за полный основной набор, append-only ledger, дедупликация, изоляция владельцев и атомарность. Crates не создают Sparks. Живая награда, траты, reversal и non-RA completion остаются открыты. [F05](STRUCTURE_MAP_RU.md#f05). |
 | ☐ | <a id="r109"></a>**R109** Магазин: косметика, игровой контент и постоянные права | **[S11]**; [S01], [S04], [S14] | Не сделано | [#262–263](BAZAAR.md): доступен бесплатному игроку, атомарные debit/grant/receipt; permanent license отдельно от transferable/consumable/temporary. Покупки переживают отмену поддержки и reinstall; цены, Mastery gates, баланс и refunds открыты. [F06](STRUCTURE_MAP_RU.md#f06). |
 | ☐ | <a id="r110"></a>**R110** Patreon/Ko-fi: подтверждённая поддержка и права | **[S11]**; [S01], [S13], [S04] | Не сделано | [#262](TRAINEROS_ACCOUNT_ECONOMY_RU.md): ×1–×3 Sparks, без влияния на Mastery; недостающая ретродоплата по доверенным base rewards, highest granted multiplier, duplicate/out-of-order/upgrade/cancel/rejoin guards. Профиль показывает current/potential balance по серверному preview. Без monthly grants/скидок; тарифы открыты. [F06](STRUCTURE_MAP_RU.md#f06). |
 | ☐ | <a id="r111"></a>**R111** Arcade Today: событие дня, зачёт и архив | **[S10]**; [S06], [S09], [S11] | Не сделано | Правила допуска/результата/призов ещё открыты; использовать единый verified result. [Backend](TRAINEROS_BACKEND_PLAN_RU.md), [F05](STRUCTURE_MAP_RU.md#f05). |
@@ -418,7 +425,7 @@ R-ID не перенумеровывать; новая функция получ
 
 | Готово | ID / функция | Основной владелец; затронутые | Статус | Доказательства / остаток |
 | --- | --- | --- | --- | --- |
-| ☐ | <a id="r146"></a>**R146** Trainer Mastery / Level | **[S11]**; [S10], [S01], [S04] | Не сделано | [#262](TRAINEROS_ACCOUNT_ECONOMY_RU.md): постоянный нетратимый прогресс онлайн ID, не Sparks/рейтинг; поддержка не влияет. XP/caps/пороги и проверяемые источники требуют определения. F05/F06. |
+| ☐ | <a id="r146"></a>**R146** Trainer Mastery / Level | **[S11]**; [S10], [S01], [S04] | Частично | [Начальная политика](../services/backend/progression.md): нетратимый XP на TrainerOS ID, растущие пороги, уровень/шкала в профиле и шапке. Покупки/поддержка не создают XP. Первая живая RA-награда и расширенные источники остаются открыты. F05/F06. |
 | ☐ | <a id="r147"></a>**R147** GameHub Bazaar: каталог → точная комната → возврат | **[S04]**; [S06], [S12], [S13], [S14], [S03], [S01] | Не сделано | [#264, карта пути](BAZAAR.md): постоянный face; official worlds/player rooms через общий owner, typed admission, явная установка, destination/rejoin/return и tournament handoff. SDK, transport и настоящая Crates-игра — зависимости полноценного входа, не отдельные фиктивные UI-успехи. F01/F02/F04/F11/F12. |
 | ☐ | <a id="r148"></a>**R148** Bazaar: торговля игроков и barter | **[S11]**; [S01], [S06], [S14], [S08] | Не сделано | [#263](BAZAAR.md): existing Sparks, custody, оба согласия, versioned offer, atomic transfer/revoke/grant/receipt/outbox; конкурентный покупатель, replay/disconnect, споры/возвраты. Предметы адаптеров отдельно требуют verified exact-save commit/recovery. F03/F06/F11/F12. |
 
@@ -459,8 +466,8 @@ issues массово по карте и не создавать новую гл
 3D-персонаж установлен и визуально проверен на Odin/Flip: гардероб, смена
 причёски в черновике, отмена и возврат. Первоначальная поставка с эмблемой
 заменена сборкой с обязательными Quick3D/AssetUtils/QuickTimeline.
-R108/R110/R146 остаются незавершёнными: поля уровня/Искр честно показывают отсутствие
-серверных данных; виджет не реализует кошелёк или preview поддержки. Общая Online
-и окончательный перенос старых входов из GameHub ещё не выполнены.
+Статус на 26 октября был неполным. К 28 октября общая Online перенесена,
+уровень/Искры подключены к серверному начислению; R108/R146 остаются частичными,
+R110 и preview поддержки не реализованы. Актуальные границы — в записи выше.
 
 Accounts/S01 owns verified display names and the shared avatar recipe. Boards/S10 project page-member profiles; SDK resolves installed models. Profile revisions are independent of score revisions. Source and server checks: [contract](../services/backend/profiles.md). Full account erasure and provider deletion detection remain open; R089/R107 remain partial. The owner now authorizes handheld installation/checks in this chat; delivery evidence follows separately.

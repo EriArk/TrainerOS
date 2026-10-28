@@ -1,0 +1,22 @@
+{
+  "deployment": {
+    "ready": true,
+    "progressionCapability": 1,
+    "unauthenticatedRead": 401,
+    "migration": 7,
+    "liveUserAward": false
+  },
+  "tests": {
+    "exit": 0,
+    "summary": [
+      "89 passed, 1 warning in 11.87s"
+    ]
+  },
+  "source": {
+    "trainer_backend/economy/service.py": "1aad62e4f6279fac5243db93a8d482d854a48769aea776d114cba9bd527f218f",
+    "trainer_backend/economy/provider.py": "8647fd48e6724c656dc33270a1fd966149e7671ab3dc02ad375ca4f9d60dcc3b",
+    "trainer_backend/economy/__init__.py": "39c5cd3f08c3c9b5ad73100bd08845b4a88c12b1cfe31ba0520a4c28f6e96063",
+    "trainer_backend/economy/routes.py": "d32221393f7e16357df3d0e8172b83f31b13c872ff63dba2ac9ad5f215d2fdb1",
+    "trainer_backend/economy/policy.py": "e7f8ae8e6a53b35bdce5248860856735ed54604c9214a83ad4910969d8a9261b"
+  }
+}

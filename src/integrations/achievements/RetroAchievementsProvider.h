@@ -24,6 +24,7 @@ public:
     bool historyBusy() const override { return historyBusy_; }
     bool historyMore() const override { return historyMore_; }
     bool hasHistoryKey() const override {return account_.valid() && webAccount_.valid() && webAccount_.username==account_.username;}
+    QJsonObject rewardCredentials() const override { return hasHistoryKey()?QJsonObject{{"username",account_.username},{"web_key",webAccount_.token}}:QJsonObject{}; }
     void setHistoryKey(const QString&) override;
     void fetchHistory(bool more=false) override;
     bool canManageAccount() const override { return true; }

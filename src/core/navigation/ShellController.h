@@ -418,6 +418,7 @@ private:
     QJsonObject profileReturnNavigation_;
     int profileFocus_=0;
     QString profileRoute_="summary";
+    bool profileRaAccountReturn_=false;
     void activateProfile(int index);
     void dispatchProfile(Action action);
     void closeProfile();

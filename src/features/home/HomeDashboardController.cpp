@@ -110,6 +110,9 @@ void HomeDashboardController::move(Action action) {
     if(!generic_ && focus_=="play" && action==Action::Left){select("screens");return;}
     if(!generic_ && focus_=="screens" && action==Action::Right){select("play");return;}
     if(zone<0) {
+        if(focus_.startsWith("person:") && (action==Action::Left || action==Action::Right) && !people().isEmpty()) {
+            select(people().first().toMap()["key"].toString());return;
+        }
         if(action==Action::Left || action==Action::Up || action==Action::Down)for(const auto& group:groups)if(!group.isEmpty()){select(group.first());return;}
         return;
     }

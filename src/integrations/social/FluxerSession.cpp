@@ -5,6 +5,7 @@
 #include "CommunityIdentity.h"
 #include "LobbyChatIdentity.h"
 #include "platform/storage/EncryptedCredentials.h"
+#include "platform/storage/KeychainRequest.h"
 #include <QNetworkAccessManager>
 #include <QNetworkReply>
 #include <QNetworkRequest>
@@ -553,20 +554,15 @@ void FluxerSession::credential(bool write, bool remove) {
     }
     if(!credentialStoreAvailable())return;
     if(!write&&!remove){credentialLoading_=true;state_="restoring";status_="Signing in...";publish();}
-    QKeychain::Job* job;
-    if(remove) { auto* j=new QKeychain::DeletePasswordJob("TrainerOS.Fluxer",this); j->setKey(key); job=j; }
-    else if(write) { auto* j=new QKeychain::WritePasswordJob("TrainerOS.Fluxer",this); j->setKey(key); j->setTextData(token_); job=j; }
-    else { auto* j=new QKeychain::ReadPasswordJob("TrainerOS.Fluxer",this); j->setKey(key); job=j; }
-    job->setInsecureFallback(false);
-    connect(job,&QKeychain::Job::finished,this,[this,epoch,write,remove](QKeychain::Job* j){
+    KeychainRequest::run("TrainerOS.Fluxer",key,remove?KeychainRequest::Remove:write?KeychainRequest::Write:KeychainRequest::Read,
+        write?token_.toUtf8():QByteArray{},this,[this,epoch,write,remove](int error,QByteArray bytes){
         if(epoch!=epoch_ || remove) return;
         credentialLoading_=false;
-        if(j->error()!=QKeychain::NoError) { remembered_=false;if(!write){state_="signed-out";status_="Sign in";} publish(); return; }
+        if(error!=QKeychain::NoError) { remembered_=false;if(!write){state_="signed-out";status_="Sign in";} publish(); return; }
         remembered_=true;
-        if(!write) { token_=static_cast<QKeychain::ReadPasswordJob*>(j)->textData(); if(!token_.isEmpty()) authenticated(); else {remembered_=false;state_="signed-out";status_="Sign in";publish();} }
+        if(!write) { token_=QString::fromUtf8(bytes); if(!token_.isEmpty()) authenticated(); else {remembered_=false;state_="signed-out";status_="Sign in";publish();} }
         else publish();
     });
-    job->start();
 }
 void FluxerSession::login() {
     if(owner_.isEmpty() || credentialLoading_ || state_=="authorizing") return;

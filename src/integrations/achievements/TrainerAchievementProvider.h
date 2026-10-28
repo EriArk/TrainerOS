@@ -30,6 +30,7 @@ public:
     bool historyBusy() const override {return provider_&&provider_->historyBusy();}
     bool historyMore() const override {return provider_&&provider_->historyMore();}
     bool hasHistoryKey() const override {return provider_&&provider_->hasHistoryKey();}
+    QJsonObject rewardCredentials() const override { return provider_?provider_->rewardCredentials():QJsonObject{}; }
     void setHistoryKey(const QString& key) override {if(provider_)provider_->setHistoryKey(key);}
     void fetchHistory(bool more=false) override {if(provider_)provider_->fetchHistory(more);}
     bool canManageAccount() const override {return bool(provider_);}

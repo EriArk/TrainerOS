@@ -14,8 +14,9 @@ public:
             {"members",QVariantList{QVariantMap{{"id",peer}}}}};
     }
     static void encounter(SocialController& social,QString self,QString peer,qint64 when) {
-        social.recentTogether_.observe({{"id","fixture-room"},{"members",QJsonArray{
-            QJsonObject{{"id",self},{"connected",true}},QJsonObject{{"id",peer},{"name","Played friend"},{"connected",true}}}}},when);
+        social.recentTogether_.observe({{"id","fixture-room"},{"phase","playing"},{"ticket","session-"+QString::number(when)},
+            {"game",QJsonObject{{"id","fixture-game"},{"title","Played game"}}},{"members",QJsonArray{
+            QJsonObject{{"id",self},{"connected",true},{"seat",1}},QJsonObject{{"id",peer},{"name","Played friend"},{"connected",true},{"seat",2}}}}},when);
     }
     static void publish(SocialController& social, QVariantMap snapshot) {
         social.receive(0, std::move(snapshot));

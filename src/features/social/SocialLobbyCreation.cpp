@@ -83,7 +83,10 @@ void SocialController::submitLobbyDraft() {
     if(!gameApplied){room->leave();fail("The selection changed. Choose available games and modes again.");return;}
     if(!local)room->setAccess(lobbyDraft_["access"].toString());
     viewedLobbyId_=room->state()["id"].toString();
-    lobbyScope_=local?"local":"online";lobby_.activateRoom(viewedLobbyId_);
+    lobbyScope_=local?"local":"online";
+    // Creating/browsing another room does not replace the runtime room.
+    // The existing explicit Ready/Start path owns that transition.
+    if(lobby_.state().isEmpty())lobby_.activateRoom(viewedLobbyId_);
     if(starts)lobbyReminders_.accept(room->state(),now);
     const auto peer=lobbyDraftPeer_,conversation=lobbyDraftConversation_;
     lobbyDraftReturn_=false;cancelLobbyDraft();openLobby();syncMyLobbies();

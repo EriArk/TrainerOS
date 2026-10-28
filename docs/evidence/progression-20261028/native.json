@@ -1,0 +1,30 @@
+{
+  "account": {
+    "exit": 0,
+    "summary": [
+      "Totals: 18 passed, 0 failed, 0 skipped, 0 blacklisted, 1941ms"
+    ]
+  },
+  "social": {
+    "exit": 0,
+    "summary": [
+      "Totals: 205 passed, 0 failed, 1 skipped, 0 blacklisted, 3276ms"
+    ],
+    "repeatPassed": 2
+  },
+  "interaction": {
+    "exit": 0,
+    "summary": [
+      "Totals: 56 passed, 0 failed, 0 skipped, 0 blacklisted, 9624ms"
+    ]
+  },
+  "experience": {
+    "exit": 0,
+    "summary": [
+      "Totals: 29 passed, 0 failed, 0 skipped, 0 blacklisted, 7027ms"
+    ]
+  },
+  "ui": {
+    "exit": 0
+  }
+}

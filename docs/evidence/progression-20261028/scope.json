@@ -1,0 +1,36 @@
+{
+  "productionBase": "7d53a3b4de836989703b5a11901a2b2f82943b9b",
+  "coreSourceMatchesInstalled": true,
+  "retainedAvatarPackRevision": 4,
+  "concurrentAvatarRevision5Delivered": false,
+  "deviceUi": [
+    "profile",
+    "account-rewards",
+    "back-to-profile",
+    "back-to-home"
+  ],
+  "deviceUiSignedIn": false,
+  "syntheticAwardDisplayedOnDevices": false,
+  "localQmlSizes": [
+    [
+      1280,
+      720
+    ],
+    [
+      960,
+      540
+    ]
+  ],
+  "localQmlData": "isolated deterministic provider fixture; not live account rewards",
+  "liveRaLinkAndAwardVerified": false,
+  "screenshots": {
+    "flip-progression-account.png": "07e5d98455fdf39938474bd5d17a265eddc2276db5f03291e7cb6c74216dcbb1",
+    "flip-progression-home.png": "e412be29771811b5d1f9c6b75cfd6fa99d5b6db5fb37273289ec35a9fcf47dfd",
+    "flip-progression-profile.png": "27fc7af64ad020894bb595d5b9816b3da558ccbad27235aa307b40d80a271964",
+    "flip-progression-return.png": "07e5d98455fdf39938474bd5d17a265eddc2276db5f03291e7cb6c74216dcbb1",
+    "odin-progression-account.png": "911e8978edd2a79a9057304d1e6e0c5a735777b0d9ae6ab9413b5ece3607cad6",
+    "odin-progression-home.png": "aac5f13b23523bcb40e9def36879c34543e241d6693ad22acf58bdd05407d439",
+    "odin-progression-profile.png": "37de5949e301858d399d13b58357e27455d748f3c528ce744665e9d3ba54ad2d",
+    "odin-progression-return.png": "b87812912a53c55e616af38871ab227edba413972fd9b63bd3876a2b4b558010"
+  }
+}

@@ -15,6 +15,9 @@ class BackendAccount final : public QObject {
     Q_OBJECT
     Q_PROPERTY(QString actionLabel READ actionLabel NOTIFY changed)
     Q_PROPERTY(QString detail READ detail NOTIFY changed)
+    Q_PROPERTY(QVariantMap progression READ progression NOTIFY changed)
+    Q_PROPERTY(QString rewardStatus READ rewardStatus NOTIFY changed)
+    Q_PROPERTY(QString rewardActionLabel READ rewardActionLabel NOTIFY changed)
 public:
     using Reply = std::function<void(int,QJsonObject)>;
     struct Services {
@@ -40,7 +43,16 @@ public:
     void closePlay(const QString& channel);
     // Composition supplies the current owner's saved SDK recipe; games cannot write it.
     void setPublicAvatar(const QString& owner,const QJsonObject& recipe);
+    QVariantMap progression() const;
+    QString rewardStatus() const { return rewardStatus_; }
+    QString rewardActionLabel() const;
+    // Current owner's credential and game locators, never stored in presentation.
+    std::function<QJsonObject()> rewardSource;
+    void refreshProgression(bool sync=true);
+    void activateRewards();
+    void copyRewardChallenge();
 signals:
+    void rewardsEarned(qint64 xp,qint64 sparks);
     void changed();
     void returnRequested();
 private:
@@ -51,6 +63,8 @@ private:
     void tokens(const QJsonObject& result);
     void refresh();
     void syncPublicAvatar();
+    void rewardRequest(QString action,QJsonObject body,bool sync=false);
+    bool adoptProgression(const QJsonObject&);
     void logout();
     void fail(const QString& message);
     void request(QByteArray method,QString path,QJsonObject body,Reply done,QByteArray access={});
@@ -63,6 +77,11 @@ private:
     QTcpServer listener_{this};
     QTimer expiry_{this}, refreshTimer_{this};
     QTimer avatarRetry_{this};
+    QTimer progressionTimer_{this};
+    QJsonObject progression_;
+    QString rewardStatus_;
+    bool rewardBusy_=false,progressionStale_=false;
+    qint64 lastRewardSync_=0;
     QJsonObject publicAvatar_, publishedAvatar_;
     bool avatarBusy_=false;
     std::shared_ptr<QLockFile> lock_;

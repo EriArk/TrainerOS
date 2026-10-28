@@ -242,6 +242,24 @@ ShellController::ShellController(LibraryRepository& repo, TrainerRepository& pro
     connect(&backendAccount_,&BackendAccount::changed,this,[this]{
         settings_.setBackendAccount(backendAccount_.actionLabel(),backendAccount_.detail());emit changed();
     });
+    backendAccount_.rewardSource=[this,&achievements,offset=0]() mutable {
+        auto source=achievements.rewardCredentials();
+        if(source.isEmpty())return source;
+        QList<int> ids;
+        for(const auto& set:achievements.sets()) {
+            bool ok=false;const int id=set.gameId.toInt(&ok);
+            if(ok && id>0 && !ids.contains(id))ids.append(id);
+        }
+        for(const auto& item:achievements.accountHistory()) {
+            bool ok=false;const int id=item.toMap()["id"].toString().toInt(&ok);
+            if(ok && id>0 && !ids.contains(id))ids.append(id);
+        }
+        QJsonArray batch;
+        // Bounded rotating batches also catch offline awards in older linked games.
+        for(int i=0;i<qMin(5,int(ids.size()));++i)batch.append(ids[(offset+i)%ids.size()]);
+        if(!ids.isEmpty())offset=(offset+batch.size())%ids.size();
+        source["games"]=batch;return source;
+    };
     connect(&social_,&SocialController::changed,this,[this]{backendAccount_.setSocialSubject(social_.account()["userId"].toString());});
     connect(&files_, &FilesController::changed, this, &ShellController::changed);
     connect(&browser_, &BrowserController::pageInputRequested,this,[this](int hints){textTarget_=TextTarget::Browser;keyboard_.beginLive(hints);});
@@ -1603,12 +1621,14 @@ bool ShellController::profileContentActive() const {
         && !scraper_.isOpen() && !libraryTools_.isOpen() && notice_.isEmpty();
 }
 QVariantMap ShellController::profileAccount() const {
-    // Accounts/Play are implemented; the Economy v2 read/preview contract is
-    // not live. Do not infer a level or balance from local playtime/RA points.
     const auto identity=backendAccount_.snapshot();
+    const auto progress=backendAccount_.progression(),mastery=progress["mastery"].toMap();
+    const bool known=progress["known"].toBool();
     return {{"signedIn",identity["state"].toString()=="signed_in"},
-        {"levelKnown",false},{"balanceKnown",false},{"previewKnown",false},
-        {"levelText",QString::fromUtf8("\xe2\x80\x94")},{"sparksText",QString::fromUtf8("\xe2\x80\x94")}};
+        {"levelKnown",known},{"balanceKnown",known},{"previewKnown",false},
+        {"stale",progress["stale"]},{"xp",mastery["xp"]},{"levelXp",mastery["level_xp"]},{"nextLevelXp",mastery["next_level_xp"]},
+        {"levelText",known?QString::number(mastery["level"].toLongLong()):QString::fromUtf8("\xe2\x80\x94")},
+        {"sparksText",known?QString::number(progress["balance"].toLongLong()):QString::fromUtf8("\xe2\x80\x94")}};
 }
 void ShellController::openProfile() {
     if(navigationLocked() || moduleWriting() || keyboard_.isOpen() || trainer_.saving() || trainer_.editing())return;
@@ -1617,7 +1637,7 @@ void ShellController::openProfile() {
         {"overviewFocus",overviewFocus_},{"overviewSession",overviewSessionId_},
         {"album",QJsonObject::fromVariantMap(album_.navigationState())}};
     homeMenuOpen_=false;quickAppsOpen_=drawerOpen_=false;service_="profile";trainer_.reload();profileFocus_=0;
-    profileRoute_="summary";profileSnapshot_=story_.profile();emit changed();
+    profileRoute_="summary";profileRaAccountReturn_=false;profileSnapshot_=story_.profile();backendAccount_.refreshProgression();emit changed();
 }
 void ShellController::closeProfile() {
     hall_.closeHistory();hall_.closeGalleryMenu();album_.close();
@@ -1636,12 +1656,18 @@ void ShellController::closeProfile() {
 }
 void ShellController::activateProfile(int index) {
     if(!profileContentActive())return;
-    if(profileRoute_=="account") {if(index==0)backendAccount_.activate();return;}
+    if(profileRoute_=="account") {
+        if(index==0)backendAccount_.activate();
+        else if(index==1)backendAccount_.activateRewards();
+        else if(index==2){profileRaAccountReturn_=true;profileRoute_="ra";hall_.showAchievementLibrary();hall_.account()->begin();}
+        else if(index==3)backendAccount_.copyRewardChallenge();
+        emit changed();return;
+    }
     if(profileRoute_!="summary")return;
     if(index<0 || index>8)return;
     profileFocus_=index;
     if(index<2)trainer_.activate(index);
-    else if(index==4)profileRoute_="account";
+    else if(index==4){profileRoute_="account";profileFocus_=0;backendAccount_.refreshProgression(false);}
     else if(index==3 || index>=7) {
         hall_.showAchievementLibrary();profileRoute_="ra";
         if(index>=7) {
@@ -1668,6 +1694,11 @@ void ShellController::dispatchProfile(Action action) {
         dashboardReturn_=false;closeProfile();return;
     }
     if(profileRoute_=="ra") {
+        if(profileRaAccountReturn_ && action==Action::Back && hall_.account()->isOpen()) {
+            hall_.dispatch(action);
+            if(!hall_.account()->isOpen()){profileRaAccountReturn_=false;profileRoute_="account";profileFocus_=2;}
+            emit changed();return;
+        }
         if(action==Action::Back && hall_.route()=="sets" && !hall_.account()->isOpen() && !hall_.historyOpen() && !hall_.galleryMenuOpen())profileRoute_="summary";
         else hall_.dispatch(action==Action::LocalAction?Action::ToggleContinue:action);
     } else if(profileRoute_=="story") {
@@ -1684,8 +1715,15 @@ void ShellController::dispatchProfile(Action action) {
             overviewFocus_=std::clamp(overviewFocus_+(overviewFace_=="timeline"?-direction:direction),0,qMax(0,count-1));
         }
     } else if(profileRoute_=="account") {
-        if(action==Action::Back)profileRoute_="summary";
-        else if(action==Action::Confirm)backendAccount_.activate();
+        if(action==Action::Back){profileRoute_="summary";profileFocus_=4;}
+        else if(action==Action::Confirm && profileFocus_<4)activateProfile(profileFocus_);
+        else if(action==Action::Left && profileFocus_>=4)profileFocus_=1;
+        else if(action==Action::Right && !backendAccount_.progression()["history"].toList().isEmpty())profileFocus_=4;
+        else if(action==Action::Up || action==Action::Down) {
+            const int low=profileFocus_>=4?4:0;
+            const int high=low?3+backendAccount_.progression()["history"].toList().size():backendAccount_.progression()["challenge"].toMap().isEmpty()?2:3;
+            profileFocus_=std::clamp(profileFocus_+(action==Action::Up?-1:1),low,qMax(low,high));
+        }
     } else if(action==Action::Back)closeProfile();
     else if(action==Action::Confirm)activateProfile(profileFocus_);
     else if(action==Action::Up || action==Action::Left || action==Action::Down || action==Action::Right) {

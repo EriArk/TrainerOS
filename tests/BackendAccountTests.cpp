@@ -1,9 +1,12 @@
 #include <QtTest>
 #include <QTcpSocket>
 #include <QJsonDocument>
+#include <QJsonArray>
 #include <QStandardPaths>
 #include <QUuid>
 #include "features/accounts/BackendAccount.h"
+#include "platform/storage/KeychainRequest.h"
+#include <QThread>
 using namespace trainer;
 namespace {
 const QString Player="11111111-1111-4111-8111-111111111111", Attempt="22222222-2222-4222-8222-222222222222";
@@ -13,6 +16,9 @@ QJsonObject credentials() {
         {"expires_at",QDateTime::currentDateTimeUtc().addSecs(900).toString(Qt::ISODateWithMs)}};
 }
 struct Harness {
+    bool progressionOk=false,deferProgression=false;
+    QJsonObject progress;
+    BackendAccount::Reply pendingProgression;
     QHash<QString,QByteArray> disk;
     QUrl returnUri,browser;
     QList<QString> calls;
@@ -41,6 +47,9 @@ struct Harness {
                     bool tombstone=false;for(const auto& bytes:disk)tombstone|=QJsonDocument::fromJson(bytes).object()["pending"].toBool();
                     if(!tombstone){done(500,{});return;}
                     done(loseRefresh?0:200,loseRefresh?QJsonObject():credentials());
+                } else if(path=="/v1/me/progression" || path.startsWith("/v1/me/progression/ra/")) {
+                    Q_ASSERT(auth==QByteArray(43,'a'));
+                    if(deferProgression)pendingProgression=std::move(done);else done(progressionOk?200:503,progress);
                 } else if(path=="/v1/play/grants") {playAuth<<auth;playBodies<<body;if(deferGrant)pendingGrant=std::move(done);else done(200,grant());}
                 else if(path=="/v1/play/commands") {playAuth<<auth;playBodies<<body;done(200,{{"state","accepted"}});}
                 else if(path=="/v1/me/profile/avatar") {avatars<<body;Q_ASSERT(auth==QByteArray(43,'a'));if(deferAvatar)pendingAvatar=std::move(done);else done(200,{});}
@@ -67,6 +76,61 @@ struct Harness {
 class BackendAccountTests:public QObject {
     Q_OBJECT
 private slots:
+    void vaultJobsFromConcurrentShortLivedWorkersReturnOnReceiverThread() {
+#ifndef Q_OS_WIN
+        QSKIP("Windows credential-store regression; no desktop vault prompts on Linux CI");
+#else
+        int completed=0, abandoned=0;
+        QList<QThread*> workers;
+        for(int i=0;i<4;++i) {
+            auto* worker=QThread::create([this,&completed,&abandoned]{
+                for(int j=0;j<8;++j) {
+                    QObject transient;
+                    const auto key=QUuid::createUuid().toString();
+                    KeychainRequest::run("TrainerOS.ReadOnlyRegression",key,KeychainRequest::Read,{},&transient,
+                        [&abandoned](int,QByteArray){++abandoned;});
+                    KeychainRequest::run("TrainerOS.ReadOnlyRegression",key,KeychainRequest::Read,{},this,
+                        [this,&completed](int,QByteArray bytes){
+                            QCOMPARE(QThread::currentThread(),thread());
+                            QVERIFY(bytes.isEmpty());++completed;
+                        });
+                }
+            });
+            workers.append(worker);worker->start();
+        }
+        for(auto* worker:workers){worker->wait();delete worker;}
+        QTRY_COMPARE_WITH_TIMEOUT(completed,32,10000);
+        QCOMPARE(abandoned,0);
+#endif
+    }
+    void progressionPersistsOnServerAndFencesOwnerAndMalformedReplies() {
+        Harness h;h.progressionOk=true;
+        h.progress={{"player_id",Player},{"balance",1000},{"revision","31"},{"history",QJsonArray{}},
+            {"mastery",QJsonObject{{"xp",2000},{"level",5},{"level_xp",200},{"next_level_xp",700}}},
+            {"checked_at",QDateTime::currentDateTimeUtc().toString(Qt::ISODateWithMs)}};
+        BackendAccount a;a.setServices(h.services());a.configure("progression-alice");a.activate();h.callback();
+        QVERIFY(a.progression()["known"].toBool());QCOMPARE(a.progression()["balance"].toInt(),1000);
+        QSignalSpy awards(&a,&BackendAccount::rewardsEarned);
+        h.progress["balance"]=1015;h.progress["revision"]="32";
+        auto mastery=h.progress["mastery"].toObject();mastery["xp"]=2030;mastery["level_xp"]=230;h.progress["mastery"]=mastery;
+        a.refreshProgression(false);QCOMPARE(awards.size(),1);
+        a.refreshProgression(false);QCOMPARE(awards.size(),1);
+        h.progress["player_id"]="99999999-9999-4999-8999-999999999999";
+        a.refreshProgression(false);QCOMPARE(a.progression()["balance"].toInt(),1015);QVERIFY(a.progression()["stale"].toBool());
+        h.deferProgression=true;a.refreshProgression(false);auto reply=std::move(h.pendingProgression);
+        a.configure("progression-bob");reply(200,h.progress);QVERIFY(!a.progression()["known"].toBool());
+        QVERIFY(!QJsonDocument::fromVariant(a.progression()).toJson().contains("web_key"));
+    }
+    void progressionDoesNotSubmitRaCredentialsWithoutExplicitLink() {
+        Harness h;h.progressionOk=true;
+        h.progress={{"player_id",Player},{"balance",0},{"revision","0"},{"history",QJsonArray{}},
+            {"mastery",QJsonObject{{"xp",0},{"level",1},{"level_xp",0},{"next_level_xp",300}}},
+            {"checked_at",QDateTime::currentDateTimeUtc().toString(Qt::ISODateWithMs)}};
+        BackendAccount a;a.setServices(h.services());int sources=0;
+        a.rewardSource=[&]{++sources;return QJsonObject{{"username","Tester"},{"web_key",QString(32,'k')},{"games",QJsonArray{1}}};};
+        a.configure("consent-alice");a.activate();h.callback();a.refreshProgression();QCOMPARE(sources,0);
+        a.activateRewards();QCOMPARE(sources,1);QVERIFY(h.calls.contains("/v1/me/progression/ra/challenge"));
+    }
     void initTestCase(){QStandardPaths::setTestModeEnabled(true);QCoreApplication::setOrganizationName("TrainerOSAccountTests");QCoreApplication::setApplicationName(QUuid::createUuid().toString(QUuid::Id128));}
     void publicAvatarCoalescesAndFencesOwnerChanges() {
         Harness h;BackendAccount a;a.setServices(h.services());a.configure("alice");a.activate();h.callback();

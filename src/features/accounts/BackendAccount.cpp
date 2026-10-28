@@ -1,4 +1,5 @@
 #include "BackendAccount.h"
+#include "platform/storage/KeychainRequest.h"
 #include <QCryptographicHash>
 #include <QDesktopServices>
 #include <QDir>
@@ -13,6 +14,10 @@
 #include <QUuid>
 #include <QSet>
 #include <cstring>
+#include <QGuiApplication>
+#include <QClipboard>
+#include <QJsonArray>
+#include <cmath>
 #include <qt6keychain/keychain.h>
 #ifdef Q_OS_LINUX
 #include <QDBusConnection>
@@ -39,6 +44,8 @@ bool vaultRunning() {
 }
 }
 BackendAccount::BackendAccount(QObject* parent):QObject(parent) {
+    progressionTimer_.setInterval(120000);
+    connect(&progressionTimer_,&QTimer::timeout,this,[this]{refreshProgression();});
     connect(&listener_,&QTcpServer::newConnection,this,&BackendAccount::accept);
     expiry_.setSingleShot(true);refreshTimer_.setSingleShot(true);
     connect(&expiry_,&QTimer::timeout,this,[this]{fail("Sign-in expired. Try again.");});
@@ -47,6 +54,94 @@ BackendAccount::BackendAccount(QObject* parent):QObject(parent) {
     connect(&avatarRetry_,&QTimer::timeout,this,&BackendAccount::syncPublicAvatar);
 }
 BackendAccount::~BackendAccount(){reset();}
+QVariantMap BackendAccount::progression() const {
+    auto result=progression_.toVariantMap();
+    result["known"]=!progression_.isEmpty();result["stale"]=progressionStale_;result["busy"]=rewardBusy_;
+    return result;
+}
+QString BackendAccount::rewardActionLabel() const {
+    if(rewardBusy_)return "Checking rewards…";
+    if(!progression_["link"].toObject().isEmpty())return "Check earned rewards";
+    if(!progression_["challenge"].toObject().isEmpty())return "Verify RA profile code";
+    return "Enable RA rewards";
+}
+bool BackendAccount::adoptProgression(const QJsonObject& value) {
+    auto integer=[](QJsonValue v,double minimum){return v.isDouble() && std::isfinite(v.toDouble()) && v.toDouble()>=minimum && v.toDouble()<=9007199254740991.0 && std::floor(v.toDouble())==v.toDouble();};
+    const auto mastery=value["mastery"].toObject();
+    if(player_.isEmpty() || value["player_id"].toString()!=player_ || !integer(value["balance"],0)
+        || !integer(mastery["xp"],0) || !integer(mastery["level"],1) || !integer(mastery["level_xp"],0)
+        || !integer(mastery["next_level_xp"],1) || mastery["level_xp"].toDouble()>=mastery["next_level_xp"].toDouble()
+        || !value["history"].isArray() || value["history"].toArray().size()>50
+        || !QDateTime::fromString(value["checked_at"].toString(),Qt::ISODateWithMs).isValid())return false;
+    bool revisionOk=false;const auto revision=value["revision"].toString().toULongLong(&revisionOk);
+    if(!revisionOk || (!progression_.isEmpty() && revision<progression_["revision"].toString().toULongLong()))return false;
+    for(const auto item:value["history"].toArray()) {
+        const auto row=item.toObject();
+        if(!uuid(row["id"].toString()) || !integer(row["xp"],0) || !integer(row["sparks"],0)
+            || row["title"].toString().size()>256 || !QStringList{"ra.achievement","ra.completion"}.contains(row["source"].toString()))return false;
+    }
+    const bool had=!progression_.isEmpty();
+    const auto xpDelta=qint64(mastery["xp"].toDouble()-progression_["mastery"].toObject()["xp"].toDouble());
+    const auto sparkDelta=qint64(value["balance"].toDouble()-progression_["balance"].toDouble());
+    progression_=value;progressionStale_=false;
+    if(had && xpDelta>0 && sparkDelta>0)emit rewardsEarned(xpDelta,sparkDelta);
+    return true;
+}
+void BackendAccount::rewardRequest(QString action,QJsonObject body,bool sync) {
+    if(player_.isEmpty() || state_!="connected" || rewardBusy_)return;
+    rewardBusy_=true;emit changed();
+    const auto path="/v1/me/progression"+(action.isEmpty()?QString():"/ra/"+action);
+    request(action.isEmpty()?"GET":"POST",path,body,[this,action,sync](int status,QJsonObject result){
+        rewardBusy_=false;
+        if(status==200 && adoptProgression(result)) {
+            rewardStatus_=action=="verify"?"RA linked. New verified achievements now earn XP and Sparks. You can remove the code from your RA motto.":"Account progress is up to date";
+            emit changed();
+            if(sync && !progression_["link"].toObject().isEmpty()) {
+                const auto now=QDateTime::currentMSecsSinceEpoch();
+                if(now-lastRewardSync_<120000)return;
+                auto source=rewardSource?rewardSource():QJsonObject{};
+                if(source["username"].toString().compare(progression_["link"].toObject()["username"].toString(),Qt::CaseInsensitive)!=0)return;
+                source.remove("username");
+                if(source["web_key"].toString().isEmpty() || source["games"].toArray().isEmpty())return;
+                lastRewardSync_=now;rewardRequest("sync",source);
+            }
+            return;
+        }
+        progressionStale_=!progression_.isEmpty();
+        const auto code=result["code"].toString();
+        if(code=="ra_challenge_missing")rewardStatus_="Add the exact code to your RA profile motto, save it, then verify again.";
+        else if(code=="ra_already_linked")rewardStatus_="This RA profile is already bound to a TrainerOS account. Existing rewards stay with their owner.";
+        else if(code=="ra_challenge_expired")rewardStatus_="The link code expired. Refresh account progress and start again.";
+        else if(status==429)rewardStatus_="Please wait a few seconds before checking again.";
+        else if(code=="ra_account_ineligible")rewardStatus_="This RA account is not eligible for rewards. Local play is unchanged.";
+        else rewardStatus_="Could not verify account progress. Retry when connected; earned rewards remain on the server.";
+        emit changed();
+        if(code=="ra_challenge_expired")refreshProgression(false);
+    },access_);
+}
+void BackendAccount::refreshProgression(bool sync) { rewardRequest({}, {},sync); }
+void BackendAccount::activateRewards() {
+    if(player_.isEmpty() || state_!="connected" || rewardBusy_)return;
+    auto source=rewardSource?rewardSource():QJsonObject{};
+    if(source["web_key"].toString().isEmpty()) {
+        rewardStatus_="Open RetroAchievements account settings and add your own Web API key to enable rewards.";emit changed();return;
+    }
+    if(progression_.isEmpty()){refreshProgression(false);return;}
+    if(!progression_["link"].toObject().isEmpty()) {
+        if(source["username"].toString().compare(progression_["link"].toObject()["username"].toString(),Qt::CaseInsensitive)!=0){rewardStatus_="The current RA account differs from the linked rewards profile. Select the linked RA account first.";emit changed();return;}
+        source.remove("username");
+        if(source["games"].toArray().isEmpty()){rewardStatus_="Open a linked RA game or load your RA game history, then check again.";emit changed();return;}
+        lastRewardSync_=QDateTime::currentMSecsSinceEpoch();rewardRequest("sync",source);
+    } else {
+        source.remove("games");
+        if(!progression_["challenge"].toObject().isEmpty()){source.remove("username");rewardRequest("verify",source);}
+        else rewardRequest("challenge",source);
+    }
+}
+void BackendAccount::copyRewardChallenge() {
+    const auto code=progression_["challenge"].toObject()["challenge"].toString();
+    if(!code.isEmpty() && QGuiApplication::clipboard()){QGuiApplication::clipboard()->setText(code);rewardStatus_="Code copied. Add it to your RA profile motto and save.";emit changed();}
+}
 void BackendAccount::state(QString value,QString detail){state_=std::move(value);detail_=std::move(detail);emit changed();}
 QJsonObject BackendAccount::snapshot() const {
     return {{"state",player_.isEmpty()?"signed_out":"signed_in"},{"player_id",player_}};
@@ -58,6 +153,7 @@ QString BackendAccount::actionLabel() const {
     return "Sign in to TrainerOS with Fluxer";
 }
 void BackendAccount::reset() {
+    progressionTimer_.stop();progression_={};rewardStatus_.clear();rewardBusy_=false;progressionStale_=false;lastRewardSync_=0;
     avatarRetry_.stop();publicAvatar_={};publishedAvatar_={};avatarBusy_=false;
     const auto channels=playGrants_.keys();for(const auto& channel:channels)closePlay(channel);
     ++epoch_;expiry_.stop();refreshTimer_.stop();listener_.close();encrypted_.cancel();
@@ -177,6 +273,7 @@ void BackendAccount::tokens(const QJsonObject& result) {
         if(logoutPending_){logoutPending_=false;logout();return;}
         state("connected","Connected through Fluxer");
         syncPublicAvatar();
+        progressionTimer_.start();refreshProgression();
         refreshTimer_.start(int(qBound(qint64(1000),QDateTime::currentDateTimeUtc().msecsTo(accessExpiry_)-60000,qint64(840000))));
     });
 }
@@ -212,7 +309,7 @@ void BackendAccount::request(QByteArray method,QString path,QJsonObject body,Rep
     };
     if(services_.request){services_.request(method,path,body,access,std::move(finish));return;}
     QNetworkRequest request(QUrl(Origin+path));request.setRawHeader("User-Agent","TrainerOS-Backend/0.0.1");request.setHeader(QNetworkRequest::ContentTypeHeader,"application/json");
-    request.setAttribute(QNetworkRequest::RedirectPolicyAttribute,QNetworkRequest::ManualRedirectPolicy);request.setTransferTimeout(15000);
+    request.setAttribute(QNetworkRequest::RedirectPolicyAttribute,QNetworkRequest::ManualRedirectPolicy);request.setTransferTimeout(path.endsWith("/progression/ra/sync")?80000:15000);
     if(!access.isEmpty())request.setRawHeader("Authorization","Bearer "+access);
     if(path=="/v1/auth/login-attempts")request.setRawHeader("Idempotency-Key",QUuid::createUuid().toString(QUuid::WithoutBraces).toLatin1());
     auto* reply=network_.sendCustomRequest(request,method,body.isEmpty()?QByteArray():QJsonDocument(body).toJson(QJsonDocument::Compact));
@@ -291,8 +388,8 @@ void BackendAccount::read(std::function<void(bool,QByteArray)> done) {
     if(services_.read){services_.read(key_,std::move(done));return;}
     if(encryptedStore_){encrypted_.read(key_,std::move(done));return;}
     if(!vaultRunning()){done(false,{});return;}
-    auto* job=new QKeychain::ReadPasswordJob("TrainerOS.Backend",this);job->setKey(key_);job->setInsecureFallback(false);
-    connect(job,&QKeychain::Job::finished,this,[job,done=std::move(done)]{done(job->error()==QKeychain::NoError||job->error()==QKeychain::EntryNotFound,job->binaryData());});job->start();
+    KeychainRequest::run("TrainerOS.Backend",key_,KeychainRequest::Read,{},this,
+        [done=std::move(done)](int error,QByteArray bytes){done(error==QKeychain::NoError||error==QKeychain::EntryNotFound,std::move(bytes));});
 }
 void BackendAccount::write(QByteArray bytes,std::function<void(bool)> done) {
     // Retain the old owner's lease until an asynchronous vault operation settles.
@@ -301,7 +398,7 @@ void BackendAccount::write(QByteArray bytes,std::function<void(bool)> done) {
     if(services_.write){services_.write(key_,std::move(bytes),std::move(done));return;}
     if(encryptedStore_){encrypted_.write(key_,std::move(bytes),[done=std::move(done)](bool ok,QByteArray){done(ok);});return;}
     if(!vaultRunning()){done(false);return;}
-    auto* job=new QKeychain::WritePasswordJob("TrainerOS.Backend",this);job->setKey(key_);job->setInsecureFallback(false);job->setBinaryData(bytes);
-    connect(job,&QKeychain::Job::finished,this,[job,done=std::move(done)]{done(job->error()==QKeychain::NoError);});job->start();
+    KeychainRequest::run("TrainerOS.Backend",key_,KeychainRequest::Write,std::move(bytes),this,
+        [done=std::move(done)](int error,QByteArray){done(error==QKeychain::NoError);});
 }
 }

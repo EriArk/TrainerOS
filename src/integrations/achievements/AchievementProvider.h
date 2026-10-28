@@ -1,5 +1,6 @@
 #pragma once
 #include <QObject>
+#include <QJsonObject>
 #include <QDateTime>
 #include <QHash>
 #include <optional>
@@ -67,6 +68,9 @@ public:
     virtual QString accountMessage() const { return {}; }
     virtual void login(const QString&, const QString&) {}
     virtual void disconnectAccount() {}
+    // C++ composition only; never a QML/SDK property. Sent only after explicit
+    // reward-link consent, transiently to the authenticated TrainerOS backend.
+    virtual QJsonObject rewardCredentials() const { return {}; }
 signals:
     void historyChanged();
     void snapshotChanged(const QString& setId);

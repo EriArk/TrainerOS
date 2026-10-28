@@ -11,8 +11,12 @@ functional result. Do not narrow this correction to failing tests, label UI or
 one implemented layer complete, or move on while required behavior is missing.
 Accounts/Play and unavailable-value profile fields do not implement progression
 or a wallet. See [the factual audit and open criteria](docs/PLAYER_PROFILE.md#функциональная-незавершённость--коррекция-28-октября).
-Retain #262 constraints and unresolved policy decisions; do not invent reward
-amounts or duplicate the Backend-owned economy in the shell.
+Retain #262 constraints and unresolved policy decisions; do not duplicate the
+Backend-owned economy in the shell. **Later owner instruction, 28 October:**
+choose approximate initial reward amounts and XP thresholds for an ordinary retro
+player; the owner will rebalance much later. Version the policy and preserve
+already granted rewards. This authorizes those initial numbers, not invented
+supporter prices, purchases or trust claims. See [progression policy](services/backend/progression.md).
 
 **Owner Backend correction, 25 October 2026:** prepare the complete shared
 server architecture before implementing/polishing individual working scenarios.

@@ -74,6 +74,31 @@ inline void startOnlineSmoke(QQuickWindow* window,trainer::ShellController& shel
             capture("online-connected-wide");window->resize(960,540);break;
         case 13:
             capture("online-connected-compact");shell.goToPage(0);break;
+        case 14: {
+            auto* account=shell.backendAccount();
+            const QString player="11111111-1111-4111-8111-111111111111";
+            const auto date=QDateTime::currentDateTimeUtc().toString(Qt::ISODateWithMs);
+            account->setServices({[player,date](QByteArray,QString path,QJsonObject,QByteArray,trainer::BackendAccount::Reply done){
+                if(path=="/v1/auth/refresh")done(200,{{"player_id",player},{"session_id","33333333-3333-4333-8333-333333333333"},{"fluxer_subject","12345"},
+                    {"access_token",QString(43,'a')},{"refresh_token",QString(43,'r')},{"expires_at",QDateTime::currentDateTimeUtc().addSecs(900).toString(Qt::ISODateWithMs)}});
+                else if(path=="/v1/me/progression")done(200,{{"player_id",player},{"balance",1000},{"revision","31"},{"checked_at",date},
+                    {"mastery",QJsonObject{{"xp",2000},{"level",5},{"level_xp",200},{"next_level_xp",700}}},
+                    {"challenge",QJsonObject{{"challenge","TrainerOS-example-link-code"},{"username","Example"}}},
+                    {"history",QJsonArray{QJsonObject{{"id","44444444-4444-4444-8444-444444444444"},{"source","ra.completion"},{"title","Example completed set"},{"xp",1100},{"sparks",550},{"earned_at",date}}}}});
+                else done(503,{});
+            },[](QString,auto done){done(true,QJsonDocument(QJsonObject{{"refresh_token",QString(43,'r')}}).toJson());},[](QString,QByteArray,auto done){done(true);},[](QUrl){return false;}});
+            account->configure("ui-progression-fixture");shell.openProfile();window->resize(1280,720);break;
+        }
+        case 15:
+            check(shell.profileAccount()["levelText"]=="5" && shell.profileAccount()["sparksText"]=="1000","Profile projects verified server data");
+            capture("progression-profile-wide");shell.activate(4,"profile");break;
+        case 16:
+            capture("progression-account-wide");shell.dispatch(Action::Down);shell.dispatch(Action::Down);shell.dispatch(Action::Down);
+            check(shell.profileFocus()==3,"Reward controller actions");window->resize(960,540);break;
+        case 17:
+            capture("progression-account-compact");shell.dispatch(Action::Back);break;
+        case 18:
+            capture("progression-profile-compact");shell.dispatch(Action::Back);break;
         default:
             check(warnings==0,"QML warnings during Online navigation");
             if(!directory.isEmpty()){QFile f(directory+"/online-report.json");if(f.open(QIODevice::WriteOnly))f.write(QJsonDocument(QJsonObject{{"warnings",warnings},{"success",diagnostics.isEmpty()},{"diagnostics",QJsonArray::fromStringList(diagnostics)}}).toJson());}
