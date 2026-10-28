@@ -153,6 +153,7 @@ void TrainerController::dispatch(Action action,bool vertical) {
     emit changed();
 }
 bool TrainerController::avatarAvailable() const {return AvatarAssets::available();}
+QJsonObject TrainerController::appearance() const {return profile_ && !profile_->avatar.isEmpty()?AvatarAssets::normalized(profile_->avatar):AvatarAssets::defaults();}
 bool TrainerController::avatarRendererAvailable() const {
 #ifdef TRAINER_AVATAR_QUICK3D
     return true;
@@ -166,7 +167,7 @@ QString TrainerController::avatarPreview() const {
 }
 QVariantList TrainerController::avatarRows() const {
     const auto a=draft_.avatar.isEmpty()?AvatarAssets::defaults():draft_.avatar;
-    const QStringList labels{"Hairstyle","Eyes","Top","Bottom","Socks","Shoes","Headwear","Hair colour","Eye colour","Skin colour","Top colour","Bottom colour"};
+    const QStringList labels{"Hairstyle","Eyes","Top","Bottom","Socks","Shoes","Headwear","Hair colour","Eye colour","Skin colour","Top colour","Bottom colour","Socks colour","Shoes colour","Headwear colour"};
     QVariantList rows;int i=0;for(const auto& key:AvatarAssets::keys())rows.append(QVariantMap{{"title",labels[i++]},{"detail",a[key].toString()},{"choices",AvatarAssets::choices(key)},{"colour",key.endsWith("Color")?a[key].toString():QString()}});
     rows.append(QVariantMap{{"title",saving_?"Saving…":"Save appearance"}});rows.append(QVariantMap{{"title","Cancel"}});return rows;
 }

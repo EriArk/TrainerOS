@@ -33,9 +33,11 @@ def avatar_recipe(value):
                 'socks': ('none', 'ankle-socks', 'crew-socks'),
                 'shoes': ('sandals', 'golf-shoes-classic', 'golf-shoes-sport'),
                 'headwear': ('none', 'golf-cap', 'golf-visor')}
-    valid = valid and isinstance(a, dict) and type(a.get('schema')) is int and a['schema'] in (1, 2)
+    valid = valid and isinstance(a, dict) and type(a.get('schema')) is int and a['schema'] in (1, 2, 3)
+    if valid and a['schema'] == 3:
+        colors |= {'socksColor', 'shoesColor', 'headwearColor'}
     required = colors | {'schema', 'pack', 'hair', 'eyes'}
-    if valid and a['schema'] == 2:
+    if valid and a['schema'] >= 2:
         required |= wardrobe.keys()
     valid = valid and set(a) == required and a['pack'] == 'trainer-avatar-1'
     valid = valid and (a['schema'] == 1 or all(isinstance(a[k], str) and a[k] in values for k, values in wardrobe.items()))

@@ -413,6 +413,8 @@ qt_add_resources(traineros crates_projects PREFIX "/crates" BASE assets/crates
           assets/crates/projects/tanks.png)
 set_source_files_properties(src/qml/Theme.qml PROPERTIES QT_QML_SINGLETON_TYPE TRUE)
 file(GLOB profile_avatars CONFIGURE_DEPENDS assets/avatars/*.png)
+file(GLOB wardrobe_icons CONFIGURE_DEPENDS assets/avatar/wardrobe-icons/*.png)
+qt_add_resources(traineros wardrobe_icons PREFIX "/wardrobe" BASE assets/avatar/wardrobe-icons FILES ${wardrobe_icons})
 qt_add_resources(traineros profile_avatars PREFIX "/avatars" BASE assets/avatars FILES ${profile_avatars})
 install(FILES ${profile_avatars} assets/avatars/README.md DESTINATION ${CMAKE_INSTALL_DATADIR}/traineros/avatars)
 

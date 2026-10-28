@@ -74,8 +74,10 @@ bool applyAvatarWearables(QJsonObject& g,QByteArray& binary,const QJsonObject& m
         }
         for(const auto& value:w["materials"].toArray()){
             auto mat=value.toObject();
-            if(mat["name"]==entry["tintMaterial"]&&!entry["tintRole"].toString().isEmpty()){
-                QColor c(a[entry["tintRole"].toString()].toString());auto pbr=mat["pbrMetallicRoughness"].toObject();
+            const QString role=QString(slot)=="socks"?"socksColor":QString(slot)=="shoes"?"shoesColor":QString(slot)=="headwear"?"headwearColor":entry["tintRole"].toString();
+            const QString material=QString(slot)=="socks"||QString(slot)=="shoes"?"ivory":QString(slot)=="headwear"?"forest":entry["tintMaterial"].toString();
+            if(mat["name"]==material&&!role.isEmpty()){
+                QColor c(a[role].toString());auto pbr=mat["pbrMetallicRoughness"].toObject();
                 pbr["baseColorFactor"]=QJsonArray{linear(c.redF()),linear(c.greenF()),linear(c.blueF()),1};mat["pbrMetallicRoughness"]=pbr;
             }materials.append(mat);
         }

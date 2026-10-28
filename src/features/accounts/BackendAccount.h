@@ -66,6 +66,10 @@ public:
     QVariantMap outfits() const;
     void reviewOutfitSlot();
     void saveOutfit(const QString& id,const QString& name,const QJsonObject& recipe,const QString& revision);
+    bool queueOutfit(const QString& id,const QString& name,const QJsonObject& recipe,const QString& revision,const QJsonObject& wardrobe={});
+    QJsonObject wardrobeState() const { return wardrobeState_; }
+    bool storeWardrobeState(const QJsonObject&);
+    void resolveOutfitConflict(const QString& id,bool keepLocal);
 signals:
     void rewardsEarned(qint64 xp,qint64 sparks);
     void changed();
@@ -84,6 +88,7 @@ private:
     bool adoptShop(const QJsonObject&,bool cached=false);
     bool validOutfits(const QJsonObject&) const;
     void loadCommerce();
+    void flushOutfits();
     bool saveCommerce();
     void recoverPurchase(bool retry=false);
     void finishPurchase(int,QJsonObject);
@@ -106,6 +111,8 @@ private:
     bool rewardBusy_=false,progressionStale_=false;
     qint64 lastRewardSync_=0;
     QJsonObject shopSnapshot_,shopPending_,shopReview_;
+    QJsonObject wardrobeState_,outfitWrites_;
+    bool outfitFlushing_=false;
     QString shopStatus_;
     bool shopBusy_=false,shopStale_=true;
     int shopIndex_=0;

@@ -1,7 +1,7 @@
 {
   "openapi": "3.1.1",
   "info": {
-    "title": "TrainerOS Backend — architecture draft",
+    "title": "TrainerOS Backend â€” architecture draft",
     "version": "architecture-draft.4",
     "description": "Unimplemented design. No production server URL. Provider callbacks and normalized adapter ingress are different contracts."
   },
@@ -4982,7 +4982,17 @@
             "$ref": "#/components/schemas/Digest"
           },
           "appearance": {
-            "$ref": "#/components/schemas/AvatarAppearanceV1"
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/AvatarAppearanceV1"
+              },
+              {
+                "$ref": "#/components/schemas/AvatarAppearanceV2"
+              },
+              {
+                "$ref": "#/components/schemas/AvatarAppearanceV3"
+              }
+            ]
           }
         },
         "additionalProperties": false,
@@ -7933,6 +7943,225 @@
         "required": [
           "context_revision",
           "body"
+        ]
+      },
+      "AvatarAppearanceV2": {
+        "type": "object",
+        "properties": {
+          "schema": {
+            "const": 2
+          },
+          "pack": {
+            "$ref": "#/components/schemas/Code"
+          },
+          "hair": {
+            "$ref": "#/components/schemas/Code"
+          },
+          "eyes": {
+            "$ref": "#/components/schemas/Code"
+          },
+          "hairColor": {
+            "type": "string",
+            "minLength": 7,
+            "maxLength": 7,
+            "pattern": "^#[0-9a-fA-F]{6}$"
+          },
+          "eyeColor": {
+            "type": "string",
+            "minLength": 7,
+            "maxLength": 7,
+            "pattern": "^#[0-9a-fA-F]{6}$"
+          },
+          "skinColor": {
+            "type": "string",
+            "minLength": 7,
+            "maxLength": 7,
+            "pattern": "^#[0-9a-fA-F]{6}$"
+          },
+          "shirtColor": {
+            "type": "string",
+            "minLength": 7,
+            "maxLength": 7,
+            "pattern": "^#[0-9a-fA-F]{6}$"
+          },
+          "shortsColor": {
+            "type": "string",
+            "minLength": 7,
+            "maxLength": 7,
+            "pattern": "^#[0-9a-fA-F]{6}$"
+          },
+          "top": {
+            "enum": [
+              "tank",
+              "polo-short-sleeve",
+              "polo-sleeveless"
+            ]
+          },
+          "bottom": {
+            "enum": [
+              "base-shorts",
+              "golf-shorts",
+              "pleated-skirt"
+            ]
+          },
+          "socks": {
+            "enum": [
+              "none",
+              "ankle-socks",
+              "crew-socks"
+            ]
+          },
+          "shoes": {
+            "enum": [
+              "sandals",
+              "golf-shoes-classic",
+              "golf-shoes-sport"
+            ]
+          },
+          "headwear": {
+            "enum": [
+              "none",
+              "golf-cap",
+              "golf-visor"
+            ]
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "schema",
+          "pack",
+          "hair",
+          "eyes",
+          "hairColor",
+          "eyeColor",
+          "skinColor",
+          "shirtColor",
+          "shortsColor",
+          "top",
+          "bottom",
+          "socks",
+          "shoes",
+          "headwear"
+        ]
+      },
+      "AvatarAppearanceV3": {
+        "type": "object",
+        "properties": {
+          "schema": {
+            "const": 3
+          },
+          "pack": {
+            "$ref": "#/components/schemas/Code"
+          },
+          "hair": {
+            "$ref": "#/components/schemas/Code"
+          },
+          "eyes": {
+            "$ref": "#/components/schemas/Code"
+          },
+          "hairColor": {
+            "type": "string",
+            "minLength": 7,
+            "maxLength": 7,
+            "pattern": "^#[0-9a-fA-F]{6}$"
+          },
+          "eyeColor": {
+            "type": "string",
+            "minLength": 7,
+            "maxLength": 7,
+            "pattern": "^#[0-9a-fA-F]{6}$"
+          },
+          "skinColor": {
+            "type": "string",
+            "minLength": 7,
+            "maxLength": 7,
+            "pattern": "^#[0-9a-fA-F]{6}$"
+          },
+          "shirtColor": {
+            "type": "string",
+            "minLength": 7,
+            "maxLength": 7,
+            "pattern": "^#[0-9a-fA-F]{6}$"
+          },
+          "shortsColor": {
+            "type": "string",
+            "minLength": 7,
+            "maxLength": 7,
+            "pattern": "^#[0-9a-fA-F]{6}$"
+          },
+          "top": {
+            "enum": [
+              "tank",
+              "polo-short-sleeve",
+              "polo-sleeveless"
+            ]
+          },
+          "bottom": {
+            "enum": [
+              "base-shorts",
+              "golf-shorts",
+              "pleated-skirt"
+            ]
+          },
+          "socks": {
+            "enum": [
+              "none",
+              "ankle-socks",
+              "crew-socks"
+            ]
+          },
+          "shoes": {
+            "enum": [
+              "sandals",
+              "golf-shoes-classic",
+              "golf-shoes-sport"
+            ]
+          },
+          "headwear": {
+            "enum": [
+              "none",
+              "golf-cap",
+              "golf-visor"
+            ]
+          },
+          "socksColor": {
+            "type": "string",
+            "minLength": 7,
+            "maxLength": 7,
+            "pattern": "^#[0-9a-fA-F]{6}$"
+          },
+          "shoesColor": {
+            "type": "string",
+            "minLength": 7,
+            "maxLength": 7,
+            "pattern": "^#[0-9a-fA-F]{6}$"
+          },
+          "headwearColor": {
+            "type": "string",
+            "minLength": 7,
+            "maxLength": 7,
+            "pattern": "^#[0-9a-fA-F]{6}$"
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "schema",
+          "pack",
+          "hair",
+          "eyes",
+          "hairColor",
+          "eyeColor",
+          "skinColor",
+          "shirtColor",
+          "shortsColor",
+          "top",
+          "bottom",
+          "socks",
+          "shoes",
+          "headwear",
+          "socksColor",
+          "shoesColor",
+          "headwearColor"
         ]
       }
     }

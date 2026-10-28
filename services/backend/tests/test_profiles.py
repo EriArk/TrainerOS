@@ -43,6 +43,15 @@ def test_avatar_is_bounded_free_pack_recipe(mutation):
 def test_approved_eye_variants_preserve_recipe_contract(style,variant):
     value=copy.deepcopy(RECIPE);value['appearance']['eyes']=f'{style}-{variant}'
     assert avatar_recipe(value)==value
+    modern=copy.deepcopy(value)
+    modern['appearance'].update(schema=3,socksColor='#f4f0df',shoesColor='#234f43',headwearColor='#efa58b')
+    modern['appearance'].update(top='tank',bottom='base-shorts',socks='none',shoes='sandals',headwear='none')
+    assert avatar_recipe(modern)==modern
+    for key in ('socksColor','shoesColor','headwearColor'):
+        broken=copy.deepcopy(modern);broken['appearance'][key]='url(external)'
+        with pytest.raises(AuthError,match='invalid_avatar_recipe'):avatar_recipe(broken)
+        del broken['appearance'][key]
+        with pytest.raises(AuthError,match='invalid_avatar_recipe'):avatar_recipe(broken)
     value['appearance']['eyes']+='-unknown'
     with pytest.raises(AuthError,match='invalid_avatar_recipe'):avatar_recipe(value)
 

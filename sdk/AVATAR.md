@@ -20,7 +20,7 @@ Call `avatar.subscribe` (or one-shot `avatar.get`). Result:
 
 ```json
 {"avatar":{"schema":1,"profile":"local-profile-id","pack":"trainer-avatar-1",
-"revision":"content-key","appearance":{"schema":2,"pack":"trainer-avatar-1","hair":"swept","eyes":"round","hairColor":"#62402c","eyeColor":"#98602d","skinColor":"#f0c4a5","shirtColor":"#ec9e8d","shortsColor":"#577c87","top":"tank","bottom":"base-shorts","socks":"none","shoes":"sandals","headwear":"none"},
+"revision":"content-key","appearance":{"schema":3,"pack":"trainer-avatar-1","hair":"swept","eyes":"round","hairColor":"#62402c","eyeColor":"#98602d","skinColor":"#f0c4a5","shirtColor":"#ec9e8d","shortsColor":"#577c87","socksColor":"#f4f0df","shoesColor":"#f4f0df","headwearColor":"#234f43","top":"tank","bottom":"base-shorts","socks":"none","shoes":"sandals","headwear":"none"},
 "glb":"/absolute/console-cache/content-key.glb","preview":"/absolute/console-cache/content-key-preview.glb",
 "sha256":"file-sha256","rig":"trainer-humanoid-54-v1","units":"metres","forward":"+Z","eyeHeight":0.8,"actions":{"wave":"Wave","sit":"Sit","squat":"Squat","step":"Step","raise_arms":"Arms_Up"}}}
 ```
@@ -30,6 +30,12 @@ Appearance schema 2 has the original nine fields plus `top`, `bottom`, `socks`,
 `tank`, `base-shorts`, `none`, `sandals`, `none`. Descriptor/recipe envelopes remain
 schema 1. IDs and colours are validated, and peer pack hashes must still match.
 No purchase is required for these ten garments; paid slots remain separate.
+Current appearance schema 3 additionally carries `socksColor`, `shoesColor`,
+and `headwearColor` as `#RRGGBB`. Schema 1/2 inputs remain accepted; normalization
+adds ivory socks/golf shoes, the original blue-grey sandals and forest headwear.
+The wardrobe saves equipment and
+colour changes immediately in the active look, using the same `avatar.changed`
+delivery. A focused catalogue item is distinct from an equipped item.
 Garment selection, optional primary fabric colour and headwear fitting belong
 to the console resolver. It preserves one 54-joint rig, garment corrective
 tracks and facial metadata, omitting unused meshes/buffers within the existing

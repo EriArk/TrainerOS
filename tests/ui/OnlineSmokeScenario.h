@@ -221,7 +221,7 @@ inline void startOnlineSmoke(QQuickWindow* window,trainer::ShellController& shel
             check(shell.outfits()->view()["rows"].toList().size()==4,"Owned slots plus one purchase entry");capture("outfits-wide");
             *pauseInventory=true;shell.backendAccount()->refreshShop();
             check(shell.backendAccount()->outfits()["busy"].toBool()&&!shell.outfits()->view()["busy"].toBool(),"Slow inventory refresh does not block cached looks");
-            shell.outfits()->activate(0);break;
+            shell.outfits()->select(1);break;
         case 39:
             if(shell.trainer()->saving()||shell.trainer()->avatarBusy()){--*step;break;}
             check(shell.trainer()->avatarDescriptor()["appearance"].toObject()["hair"]=="bob","Wear applies complete saved look");
@@ -230,10 +230,11 @@ inline void startOnlineSmoke(QQuickWindow* window,trainer::ShellController& shel
             shell.outfits()->activate(2);shell.keyboard()->cancel();shell.outfits()->acceptName("Arcade night");window->resize(960,540);break;
         case 40:
             check(shell.outfits()->view()["selected"].toMap()["name"]=="Arcade night","Slot rename reaches inventory");capture("outfits-compact");
-            shell.outfits()->activate(1);break;
+            shell.outfits()->selectCategory(1);shell.outfits()->selectItem(1);shell.outfits()->equip();break;
         case 41:
-            capture("outfits-replace");shell.dispatch(Action::Back);check(!shell.outfits()->view()["replace"].toBool(),"Cancel replace preserves saved look");
-            shell.outfits()->select(3);shell.outfits()->activate(0);break;
+            if(shell.trainer()->saving()||shell.trainer()->avatarBusy()){--*step;break;}
+            capture("outfits-autosaved");check(shell.trainer()->appearance()["top"]=="polo-short-sleeve","Set edits save without confirmation");
+            shell.outfits()->select(3);break;
         case 42:
             capture("outfits-purchase");check(!shell.backendAccount()->shop()["review"].toMap().isEmpty(),"Slot has explicit purchase review");
             shell.dispatch(Action::Back);shell.dispatch(Action::Back);check(shell.profileRoute()=="summary"&&shell.profileFocus()==1,"Wardrobe returns to focused entry");shell.dispatch(Action::Back);break;

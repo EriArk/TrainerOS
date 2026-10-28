@@ -44,6 +44,7 @@ bool vaultRunning() {
 }
 }
 BackendAccount::BackendAccount(QObject* parent):QObject(parent) {
+    connect(this,&BackendAccount::changed,this,[this]{QTimer::singleShot(0,this,&BackendAccount::flushOutfits);});
     progressionTimer_.setInterval(120000);
     connect(&progressionTimer_,&QTimer::timeout,this,[this]{refreshProgression();});
     connect(&listener_,&QTcpServer::newConnection,this,&BackendAccount::accept);
@@ -183,7 +184,7 @@ QString BackendAccount::actionLabel() const {
     return "Sign in to TrainerOS with Fluxer";
 }
 void BackendAccount::reset() {
-    shopBusy_=false;shopReview_={};shopStale_=true;
+    shopBusy_=false;shopReview_={};shopStale_=true;outfitFlushing_=false;
     progressionTimer_.stop();progression_={};rewardStatus_.clear();rewardBusy_=false;progressionStale_=false;lastRewardSync_=0;
     avatarRetry_.stop();publicAvatar_={};publishedAvatar_={};avatarBusy_=false;
     const auto channels=playGrants_.keys();for(const auto& channel:channels)closePlay(channel);
@@ -194,7 +195,7 @@ void BackendAccount::reset() {
 }
 void BackendAccount::configure(const QString& owner) {
     if(owner_==owner)return;
-    reset();lock_.reset();shopSnapshot_={};shopPending_={};shopStatus_.clear();shopIndex_=0;owner_=owner;socialSubject_.clear();
+    reset();lock_.reset();shopSnapshot_={};shopPending_={};wardrobeState_={};outfitWrites_={};outfitFlushing_=false;shopStatus_.clear();shopIndex_=0;owner_=owner;socialSubject_.clear();
     if(owner.isEmpty()){state("disabled","Open your Trainer to sign in");return;}
     key_=QString::fromLatin1(QCryptographicHash::hash(("traineros-backend-v1\n"+Origin+"\n"+owner).toUtf8(),QCryptographicHash::Sha256).toHex());
     const auto directory=QStandardPaths::writableLocation(QStandardPaths::AppLocalDataLocation)+"/credentials";

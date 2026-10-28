@@ -48,6 +48,10 @@ QVariantMap BackendAccount::outfits() const {
     if(same)for(const auto entry:shopSnapshot_["outfit_items"].toArray()) {
         auto row=entry.toObject();owned.insert(row["id"].toString());
         for(const auto saved:shopSnapshot_["outfits"].toArray())if(saved.toObject()["offer_id"]==row["id"])row["saved"]=saved;
+        const auto local=outfitWrites_[row["id"].toString()].toObject();
+        if(local["player_id"]==shopSnapshot_["player_id"] && AvatarAssets::valid(local["recipe"].toObject()["appearance"].toObject())) {
+            row["saved"]=local;row["local"]=true;row["conflict"]=local["conflict"].toBool();
+        }
         rows.append(row.toVariantMap());
     }
     std::sort(rows.begin(),rows.end(),[](const QVariant& a,const QVariant& b){return a.toMap()["slot_number"].toInt()<b.toMap()["slot_number"].toInt();});
@@ -70,16 +74,61 @@ void BackendAccount::reviewOutfitSlot() {
     shopReview_=QJsonObject::fromVariantMap(outfits()["next"].toMap());emit changed();
 }
 void BackendAccount::saveOutfit(const QString& id,const QString& name,const QJsonObject& recipe,const QString& revision) {
-    if(shopBusy_||!shopPending_.isEmpty()||state_!="connected")return;
-    if(shopStale_){refreshShop();return;}
+    queueOutfit(id,name,recipe,revision);
+}
+bool BackendAccount::storeWardrobeState(const QJsonObject& value) {
+    const auto previous=wardrobeState_;wardrobeState_=value;
+    if(saveCommerce())return true;
+    wardrobeState_=previous;return false;
+}
+bool BackendAccount::queueOutfit(const QString& id,const QString& name,const QJsonObject& recipe,const QString& revision,const QJsonObject& wardrobe) {
     bool owned=false;for(const auto entry:outfits()["items"].toList())owned|=entry.toMap()["id"]==id;
-    if(!owned||!AvatarAssets::valid(recipe["appearance"].toObject()))return;
-    shopBusy_=true;shopStatus_="Saving your look…";emit changed();
-    request("PUT","/v1/me/inventory/outfits/"+id,{{"name",name},{"recipe",recipe},{"revision",revision}},[this](int status,QJsonObject result){
-        shopBusy_=false;
-        if(status==200&&adoptShop(result)){saveCommerce();shopStatus_="Look saved. Ready on your other devices too.";}
-        else {shopStale_=true;shopStatus_=result["code"]=="outfit_changed"?"This slot changed on another device. Refresh before replacing it.":"Save not confirmed. Refresh to check the slot before trying again.";}
+    if(!owned||!AvatarAssets::valid(recipe["appearance"].toObject())||name.trimmed().isEmpty()||name.size()>64)return false;
+    const auto previous=outfitWrites_,previousState=wardrobeState_;auto pending=outfitWrites_[id].toObject();
+    const auto base=pending.isEmpty()?revision:pending["revision"].toString();
+    pending={{"offer_id",id},{"name",name.trimmed()},{"recipe",recipe},{"revision",base},
+        {"player_id",shopSnapshot_["player_id"]},{"conflict",pending["conflict"].toBool()}};
+    outfitWrites_[id]=pending;
+    if(!wardrobe.isEmpty())wardrobeState_=wardrobe;
+    if(!saveCommerce()){outfitWrites_=previous;wardrobeState_=previousState;shopStatus_="Could not save this look on the device.";emit changed();return false;}
+    shopStatus_="Saved on this device";emit changed();flushOutfits();return true;
+}
+void BackendAccount::flushOutfits() {
+    if(outfitFlushing_||shopBusy_||shopStale_||!shopPending_.isEmpty()||state_!="connected")return;
+    QString id;QJsonObject pending;
+    for(auto it=outfitWrites_.begin();it!=outfitWrites_.end();++it) {
+        const auto candidate=it.value().toObject();
+        if(candidate["player_id"]==player_&&!candidate["conflict"].toBool()) {id=it.key();pending=candidate;break;}
+    }
+    if(id.isEmpty()||!AvatarAssets::valid(pending["recipe"].toObject()["appearance"].toObject()))return;
+    bool owned=false;for(const auto row:shopSnapshot_["outfit_items"].toArray())owned|=row.toObject()["id"]==id;
+    if(!owned)return;
+    QJsonObject remote;for(const auto row:shopSnapshot_["outfits"].toArray())if(row.toObject()["offer_id"]==id)remote=row.toObject();
+    if(remote["recipe"]==pending["recipe"]&&remote["name"]==pending["name"]) {
+        outfitWrites_.remove(id);saveCommerce();emit changed();return;
+    }
+    if(remote.value("revision").toString("0")!=pending["revision"].toString()) {
+        pending["conflict"]=true;outfitWrites_[id]=pending;saveCommerce();
+        shopStatus_="This set changed on another device. Choose which version to keep.";emit changed();return;
+    }
+    outfitFlushing_=true;shopBusy_=true;
+    request("PUT","/v1/me/inventory/outfits/"+id,{{"name",pending["name"]},{"recipe",pending["recipe"]},{"revision",pending["revision"]}},[this,id,pending](int status,QJsonObject result){
+        outfitFlushing_=false;shopBusy_=false;
+        if(status==200&&adoptShop(result)) {
+            auto latest=outfitWrites_[id].toObject();
+            if(latest==pending)outfitWrites_.remove(id);
+            else {for(const auto row:result["outfits"].toArray())if(row.toObject()["offer_id"]==id)latest["revision"]=row.toObject()["revision"];outfitWrites_[id]=latest;}
+            saveCommerce();shopStatus_=outfitWrites_.isEmpty()?"Saved":"Saved on this device";
+        }else {shopStale_=true;shopStatus_="Saved on this device. Reconnect or refresh to sync.";}
         emit changed();
     },access_);
+}
+void BackendAccount::resolveOutfitConflict(const QString& id,bool keepLocal) {
+    auto pending=outfitWrites_[id].toObject();if(pending.isEmpty()||pending["player_id"]!=player_)return;
+    if(keepLocal){
+        QJsonObject remote;for(const auto row:shopSnapshot_["outfits"].toArray())if(row.toObject()["offer_id"]==id)remote=row.toObject();
+        pending["revision"]=remote.value("revision").toString("0");pending["conflict"]=false;outfitWrites_[id]=pending;
+    }else outfitWrites_.remove(id);
+    saveCommerce();emit changed();
 }
 }

@@ -7,12 +7,64 @@
 #include <QtEndian>
 #include "features/trainer/AvatarAssets.h"
 #include "features/trainer/TrainerController.h"
+#include "features/trainer/OutfitController.h"
+#include "features/accounts/BackendAccount.h"
 using namespace trainer;
 class AvatarTests:public QObject {
     Q_OBJECT
 private slots:
+    void shoePalettePreservesLegacyAndAppliesIvory() {
+        auto legacy=AvatarAssets::defaults();legacy["schema"]=2;
+        for(const auto& key:{"socksColor","shoesColor","headwearColor"})legacy.remove(key);
+        QCOMPARE(AvatarAssets::normalized(legacy)["shoesColor"].toString(),QString("#699598"));
+        legacy["shoes"]="golf-shoes-classic";
+        QCOMPARE(AvatarAssets::normalized(legacy)["shoesColor"].toString(),QString("#f4f0df"));
+        if(!AvatarAssets::available())QSKIP("Avatar pack unavailable");
+        QTemporaryDir cache;auto appearance=AvatarAssets::defaults();appearance["shoesColor"]="#f4f0df";
+        const auto resolved=AvatarAssets::resolve(appearance,{},cache.path());
+        QVERIFY2(!resolved.contains("error"),qPrintable(resolved["error"].toString()));
+        QFile file(resolved["glb"].toString());QVERIFY(file.open(QIODevice::ReadOnly));const auto bytes=file.readAll();
+        const auto gltf=QJsonDocument::fromJson(bytes.mid(20,qFromLittleEndian<quint32>(bytes.constData()+12))).object();
+        bool found=false;
+        for(const auto entry:gltf["materials"].toArray())if(entry.toObject()["name"]=="SandalStrap"){
+            const auto rgb=entry.toObject()["pbrMetallicRoughness"].toObject()["baseColorFactor"].toArray();
+            QVERIFY(rgb[0].toDouble()>.89&&rgb[1].toDouble()>.86&&rgb[2].toDouble()>.73);found=true;
+        }
+        QVERIFY(found);
+    }
+    void wardrobeAutosaveAndOfflineSlots() {
+        if(!AvatarAssets::available())QSKIP("Avatar pack unavailable");
+        TrainerProfile p;p.id="wardrobe-autosave";p.name="Alice";p.avatar=AvatarAssets::defaults();
+        MockTrainerRepository repo(p);TrainerController trainer(repo);
+        auto look=AvatarAssets::defaults();look["hair"]="bob";
+        QJsonObject saved{{"offer_id","outfit.slot.1"},{"player_id","11111111-1111-4111-8111-111111111111"},{"revision","1"},{"name","Weekend"},
+            {"recipe",QJsonObject{{"schema",1},{"packRevision",QString(64,'a')},{"appearance",look}}}};
+        QJsonObject slot{{"id","outfit.slot.1"},{"slot_number",1},{"purpose","outfit_slot"},{"kind","permanent_license"},{"revision","1"},{"price",100},{"title","Set"},{"purchase_id","44444444-4444-4444-8444-444444444444"}};
+        QByteArray disk=QJsonDocument(QJsonObject{{"snapshot",QJsonObject{{"player_id",saved["player_id"]},{"revision","1"},{"items",QJsonArray{}},{"catalogue",QJsonArray{}},{"outfit_items",QJsonArray{slot}},{"outfit_catalogue",QJsonArray{slot}},{"outfits",QJsonArray{saved}}}}}).toJson();
+        BackendAccount account;BackendAccount::Services services;
+        services.read=[](QString,auto done){done(true,QByteArray());};services.readCommerce=[&](QString){return disk;};
+        bool fail=false;services.writeCommerce=[&](QString,QByteArray data){if(fail)return false;disk=data;return true;};
+        services.request=[](QByteArray,QString,QJsonObject,QByteArray,auto done){done(0,{});};
+        account.setServices(services);account.configure(p.id);
+        OutfitController wardrobe(account,trainer);wardrobe.open();wardrobe.select(1);
+        QCOMPARE(trainer.appearance()["hair"],QJsonValue("bob"));
+        wardrobe.selectCategory(1);wardrobe.selectItem(1);wardrobe.equip();
+        QCOMPARE(trainer.appearance()["top"],QJsonValue("polo-short-sleeve"));
+        wardrobe.selectItem(2);wardrobe.chooseColour(1);
+        QCOMPARE(trainer.appearance()["top"],QJsonValue("polo-short-sleeve"));
+        QCOMPARE(trainer.appearance()["shirtColor"],QJsonValue("#a8c9bc"));
+        const auto pending=QJsonDocument::fromJson(disk).object()["outfitWrites"].toObject()["outfit.slot.1"].toObject();
+        QCOMPARE(pending["recipe"].toObject()["appearance"].toObject(),trainer.appearance());
+        wardrobe.select(0);QCOMPARE(trainer.appearance(),p.avatar);
+        wardrobe.select(1);QCOMPARE(trainer.appearance()["shirtColor"],QJsonValue("#a8c9bc"));
+        const auto before=trainer.appearance();fail=true;wardrobe.chooseColour(2);QCOMPARE(trainer.appearance(),before);fail=false;
+        wardrobe.close();wardrobe.open();QCOMPARE(wardrobe.view()["index"].toInt(),1);
+        QCOMPARE(repo.load()->name,p.name);QCOMPARE(repo.load()->id,p.id);
+        wardrobe.close();
+    }
     void wardrobeCompatibilityAndRig() {
         auto legacy=AvatarAssets::defaults();legacy["schema"]=1;
+        for(const auto& key:{"socksColor","shoesColor","headwearColor"})legacy.remove(key);
         for(const auto& key:{"top","bottom","socks","shoes","headwear"})legacy.remove(key);
         QVERIFY(AvatarAssets::valid(legacy));QCOMPARE(AvatarAssets::normalized(legacy),AvatarAssets::defaults());
         auto invalid=legacy;invalid["top"]="tank";QVERIFY(!AvatarAssets::valid(invalid));

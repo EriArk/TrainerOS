@@ -1950,6 +1950,9 @@ void ShellController::dispatch(Action action) {
         libraryAction(multiverse_.viewStyle()=="wheel"?"view:list":multiverse_.viewStyle()=="list"?"view:shelves":multiverse_.viewStyle()=="shelves"?"view:grid":"view:wheel");return;
     }
     if(action==Action::ScrollUp || action==Action::ScrollDown) {
+        if(service_=="profile"&&profileRoute_=="outfits"&&!menuOpen_&&!homeMenuOpen_&&!keyboard_.isOpen()&&!drawerOpen_&&notice_.isEmpty()){
+            outfits_.dispatch(action);return;
+        }
         if(page_==HomePage && pairedNavigationAvailable() && !navigationLocked()
            && !social_.online()["open"].toBool() && !moduleInvitation()["open"].toBool())
             emit dashboard_.scrollRequested(action==Action::ScrollDown?1:-1);
@@ -2076,7 +2079,8 @@ void ShellController::dispatch(Action action) {
     }
     if (action == Action::PreviousFace || action == Action::NextFace) {
         if(service_=="profile" && !menuOpen_ && !homeMenuOpen_ && !keyboard_.isOpen() && !drawerOpen_ && notice_.isEmpty()) {
-            if(trainer_.avatarEditing())trainer_.dispatch(Action::Back,true);
+            if(profileRoute_=="outfits"&&!trainer_.editing())outfits_.dispatch(action);
+            else if(trainer_.avatarEditing())trainer_.dispatch(Action::Back,true);
             else if(profileRoute_=="summary" && !trainer_.editing())activateProfile(1);
             return;
         }

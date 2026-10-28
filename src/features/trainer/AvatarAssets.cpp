@@ -19,10 +19,11 @@
 
 namespace trainer {
 QJsonObject AvatarAssets::defaults() {
-    return {{"schema",2},{"pack","trainer-avatar-1"},{"hair","swept"},{"eyes","round"},
+    return {{"schema",3},{"pack","trainer-avatar-1"},{"hair","swept"},{"eyes","round"},
+        {"socksColor","#f4f0df"},{"shoesColor","#699598"},{"headwearColor","#234f43"},
         {"hairColor","#62402c"},{"eyeColor","#98602d"},{"skinColor","#f0c4a5"},{"shirtColor","#ec9e8d"},{"shortsColor","#577c87"},{"top","tank"},{"bottom","base-shorts"},{"socks","none"},{"shoes","sandals"},{"headwear","none"}};
 }
-QStringList AvatarAssets::keys(){return {"hair","eyes","top","bottom","socks","shoes","headwear","hairColor","eyeColor","skinColor","shirtColor","shortsColor"};}
+QStringList AvatarAssets::keys(){return {"hair","eyes","top","bottom","socks","shoes","headwear","hairColor","eyeColor","skinColor","shirtColor","shortsColor","socksColor","shoesColor","headwearColor"};}
 QStringList AvatarAssets::choices(const QString& key) {
     if(key=="top")return {"tank","polo-short-sleeve","polo-sleeveless"};
     if(key=="bottom")return {"base-shorts","golf-shorts","pleated-skirt"};
@@ -39,13 +40,17 @@ QStringList AvatarAssets::choices(const QString& key) {
     if(key=="skinColor")return {"#f7d8bf","#f0c4a5","#d9ab86","#ba8764","#8c5e43","#614132"};
     if(key=="shirtColor")return {"#ec9e8d","#a8c9bc","#aabddd","#d4b5d6","#f0d58d","#f4eee6","#f4f0df","#234f43","#efa58b"};
     if(key=="shortsColor")return {"#577c87","#aebdd5","#8d799f","#b98e7c","#536274","#e0cba9","#f4f0df","#234f43","#efa58b"};
+    if(key=="shoesColor"){auto values=choices("shirtColor");values[0]="#699598";return values;}
+    if(key=="socksColor"||key=="headwearColor")return choices("shirtColor");
     return {};
 }
 bool AvatarAssets::valid(const QJsonObject& a) {
     const bool legacy=a["schema"]==1;
-    if((!legacy && a["schema"]!=2) || a["pack"]!="trainer-avatar-1" || a.size()!=(legacy?9:14))return false;
+    const bool current=a["schema"]==3;
+    if((!legacy && a["schema"]!=2 && !current) || a["pack"]!="trainer-avatar-1" || a.size()!=(legacy?9:current?17:14))return false;
     static const QRegularExpression color("^#[0-9a-fA-F]{6}$");
     for(const auto& key:keys()) {
+        if(!current && QStringList{"socksColor","shoesColor","headwearColor"}.contains(key))continue;
         if(legacy && QStringList{"top","bottom","socks","shoes","headwear"}.contains(key))continue;
         if(!a[key].isString())return false;
         if(key.endsWith("Color")){if(!color.match(a[key].toString()).hasMatch())return false;}
@@ -56,7 +61,8 @@ bool AvatarAssets::valid(const QJsonObject& a) {
 QJsonObject AvatarAssets::normalized(const QJsonObject& a) {
     if(!valid(a))return {};
     auto result=defaults();for(auto it=a.begin();it!=a.end();++it)result[it.key()]=it.value();
-    result["schema"]=2;return result;
+    if(!a.contains("shoesColor")&&result["shoes"]!="sandals")result["shoesColor"]="#f4f0df";
+    result["schema"]=3;return result;
 }
 QString AvatarAssets::packRoot(){
     const auto override=qEnvironmentVariable("TRAINEROS_AVATAR_PACK");if(!override.isEmpty())return override;
@@ -91,7 +97,7 @@ QJsonObject AvatarAssets::resolve(const QJsonObject& input,const QString& explic
     const auto manifestBytes=read(root+"/manifest.json",65536);
     auto m=QJsonDocument::fromJson(manifestBytes).object();
     if(m["schema"]!=1 || m["pack"]!=a["pack"])return fail("avatar_pack_unavailable");
-    auto revision=QString::fromLatin1(QCryptographicHash::hash(manifestBytes+QJsonDocument(a).toJson(QJsonDocument::Compact),QCryptographicHash::Sha256).toHex());
+    auto revision=QString::fromLatin1(QCryptographicHash::hash(manifestBytes+"wardrobe-colours-v3"+QJsonDocument(a).toJson(QJsonDocument::Compact),QCryptographicHash::Sha256).toHex());
     const auto cache=explicitCache.isEmpty()?QStandardPaths::writableLocation(QStandardPaths::CacheLocation)+"/avatars":explicitCache;
     if(!QDir().mkpath(cache))return fail("avatar_cache_unavailable");
     const auto path=QDir(cache).absoluteFilePath(revision+".glb"),preview=QDir(cache).absoluteFilePath(revision+"-preview.glb");
@@ -161,7 +167,9 @@ QJsonObject AvatarAssets::resolve(const QJsonObject& input,const QString& explic
                 quint32 result;std::memcpy(&result,&value,4);qToLittleEndian(result,dest);
             }
         }
-        auto materials=g["materials"].toArray();const auto roles=m["materialRoles"].toObject();
+        auto materials=g["materials"].toArray();auto roles=m["materialRoles"].toObject();
+        if(a["shoes"]=="sandals"&&a["shoesColor"]!=defaults()["shoesColor"])
+            for(int i=0;i<materials.size();++i)if(materials[i].toObject()["name"]=="SandalStrap")roles[QString::number(i)]="shoesColor";
         for(auto i=roles.begin();i!=roles.end();++i){const int index=i.key().toInt();auto mat=materials[index].toObject();auto pbr=mat["pbrMetallicRoughness"].toObject();QColor c(a[i.value().toString()].toString());pbr["baseColorFactor"]=QJsonArray{linear(c.redF()),linear(c.greenF()),linear(c.blueF()),1};mat["pbrMetallicRoughness"]=pbr;materials[index]=mat;}g["materials"]=materials;
         auto scenes=g["scenes"].toArray();int scene=g["scene"].toInt();auto sc=scenes[scene].toObject();QJsonArray roots;const auto hairs=m["hairNodes"].toObject();
         auto nodes=g["nodes"].toArray();

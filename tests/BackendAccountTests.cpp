@@ -20,6 +20,8 @@ struct Harness {
     bool shopEnabled=false,failCommerce=false;
     QJsonObject shopValue,purchaseBody;
     BackendAccount::Reply pendingPurchase;
+    BackendAccount::Reply pendingOutfit;
+    QJsonObject outfitBody;
     QHash<QString,QByteArray> commerceDisk;
     bool progressionOk=false,deferProgression=false;
     QJsonObject progress;
@@ -58,6 +60,7 @@ struct Harness {
                 } else if(path=="/v1/me/inventory"||path.startsWith("/v1/me/purchases/")) {done(shopEnabled?200:503,shopValue);}
                 else if(path=="/v1/me/purchases") {purchaseBody=body;pendingPurchase=std::move(done);}
                 else if(path=="/v1/me/inventory/appearance") {shopValue["equipped"]=body["offer_id"];shopValue["revision"]=QString::number(shopValue["revision"].toString().toInt()+1);done(200,shopValue);}
+                else if(path.startsWith("/v1/me/inventory/outfits/")) {outfitBody=body;pendingOutfit=std::move(done);}
                 else if(path=="/v1/play/grants") {playAuth<<auth;playBodies<<body;if(deferGrant)pendingGrant=std::move(done);else done(200,grant());}
                 else if(path=="/v1/play/commands") {playAuth<<auth;playBodies<<body;done(200,{{"state","accepted"}});}
                 else if(path=="/v1/me/profile/avatar") {avatars<<body;Q_ASSERT(auth==QByteArray(43,'a'));if(deferAvatar)pendingAvatar=std::move(done);else done(200,{});}
@@ -95,6 +98,33 @@ class BackendAccountTests:public QObject {
         h.shopValue["receipt"]=receipt;
     }
 private slots:
+    void outfitAutosaveCoalescesAndRecoversLostResponse() {
+        Harness h;h.shopEnabled=true;h.shopValue=inventory();
+        QJsonObject slot{{"id","outfit.slot.1"},{"slot_number",1},{"purpose","outfit_slot"},{"kind","permanent_license"},{"revision","1"},{"price",100},{"title","Set"},{"purchase_id","44444444-4444-4444-8444-444444444444"}};
+        QJsonObject recipe{{"schema",1},{"packRevision",QString(64,'a')},{"appearance",AvatarAssets::defaults()}};
+        QJsonObject saved{{"offer_id",slot["id"]},{"player_id",Player},{"revision","1"},{"name","Weekend"},{"recipe",recipe}};
+        h.shopValue["outfit_catalogue"]=QJsonArray{slot};h.shopValue["outfit_items"]=QJsonArray{slot};h.shopValue["outfits"]=QJsonArray{saved};
+        BackendAccount account;account.setServices(h.services());account.configure("autosave-owner");account.activate();h.callback();
+        auto changed=recipe;auto appearance=changed["appearance"].toObject();appearance["shirtColor"]="#abcdef";changed["appearance"]=appearance;
+        QVERIFY(account.queueOutfit("outfit.slot.1","Weekend",changed,"1"));QVERIFY(h.pendingOutfit);
+        auto newest=changed;appearance["hair"]="bob";newest["appearance"]=appearance;
+        QVERIFY(account.queueOutfit("outfit.slot.1","Weekend",newest,"1"));
+        saved["recipe"]=changed;saved["revision"]="2";h.shopValue["outfits"]=QJsonArray{saved};h.shopValue["revision"]="2";
+        auto first=h.pendingOutfit;h.pendingOutfit={};first(200,h.shopValue);
+        QTRY_VERIFY(bool(h.pendingOutfit));QCOMPARE(h.outfitBody["revision"],QJsonValue("2"));QCOMPARE(h.outfitBody["recipe"],QJsonValue(newest));
+        saved["recipe"]=newest;saved["revision"]="3";h.shopValue["outfits"]=QJsonArray{saved};h.shopValue["revision"]="3";
+        auto second=h.pendingOutfit;h.pendingOutfit={};second(0,{});
+        QVERIFY(account.outfits()["items"].toList()[0].toMap()["local"].toBool());
+        account.refreshShop();QTRY_VERIFY(!account.outfits()["items"].toList()[0].toMap()["local"].toBool());
+        // Another device wins before an offline local edit reconnects.
+        appearance["hair"]="crop";changed["appearance"]=appearance;
+        QVERIFY(account.queueOutfit("outfit.slot.1","Weekend",changed,"3"));
+        auto third=h.pendingOutfit;h.pendingOutfit={};third(0,{});
+        saved["revision"]="4";saved["name"]="Other device";h.shopValue["outfits"]=QJsonArray{saved};h.shopValue["revision"]="4";
+        account.refreshShop();QTRY_VERIFY(account.outfits()["items"].toList()[0].toMap()["conflict"].toBool());
+        QVERIFY(!h.pendingOutfit);account.resolveOutfitConflict("outfit.slot.1",false);
+        QCOMPARE(account.outfits()["items"].toList()[0].toMap()["saved"].toMap()["name"].toString(),"Other device");
+    }
     void outfitPurchaseRecoveryAndCachedOwnerIsolation() {
         Harness h;h.shopEnabled=true;h.shopValue=inventory();
         const QJsonObject slot{{"id","outfit.slot.1"},{"slot_number",1},{"purpose","outfit_slot"},{"title","Look slot 1"},
