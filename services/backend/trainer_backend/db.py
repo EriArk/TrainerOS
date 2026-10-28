@@ -73,6 +73,7 @@ def grant_runtime(database_url, role):
         'progression_accounts': 'SELECT,INSERT,UPDATE',
         'reward_links': 'SELECT,INSERT', 'reward_link_challenges': 'SELECT,INSERT,UPDATE',
         'reward_ledger': 'SELECT,INSERT',
+        'support_receipts': 'SELECT,INSERT', 'support_memberships': 'SELECT,INSERT,UPDATE',
         'shop_offers': 'SELECT', 'purchases': 'SELECT,INSERT', 'owned_items': 'SELECT,INSERT',
         'profile_appearances': 'SELECT,INSERT,UPDATE',
         'login_attempts': 'SELECT,INSERT,UPDATE', 'device_sessions': 'SELECT,INSERT,UPDATE',

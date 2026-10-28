@@ -81,7 +81,9 @@ bool BackendAccount::adoptProgression(const QJsonObject& value) {
     for(const auto item:value["history"].toArray()) {
         const auto row=item.toObject();
         if(!uuid(row["id"].toString()) || !integer(row["xp"],0) || !integer(row["sparks"],row["source"]=="shop.purchase"?-2147483647:0)
-            || row["title"].toString().size()>256 || !QStringList{"ra.achievement","ra.completion","shop.purchase"}.contains(row["source"].toString()))return false;
+            || row["title"].toString().size()>256 || !QStringList{"ra.achievement","ra.completion","shop.purchase","support.topup"}.contains(row["source"].toString()))return false;
+        if(row["source"]=="support.topup" && (row["xp"].toDouble()!=0 || row["sparks"].toDouble()<=0
+            || !integer(row["support_multiplier"],2) || row["support_multiplier"].toInt()>3))return false;
     }
     const bool had=!progression_.isEmpty();
     const auto xpDelta=qint64(mastery["xp"].toDouble()-progression_["mastery"].toObject()["xp"].toDouble());
@@ -107,8 +109,12 @@ bool BackendAccount::adoptProgression(const QJsonObject& value) {
         multipliers.insert(multiplier);
     }
     if(!previewValid)sanitized["support_preview"]=QJsonValue();
+    const auto support=value["support"].toObject();
+    if(!integer(support["multiplier"],1) || support["multiplier"].toInt()>3
+        || (support["multiplier"].toInt()>1 && !QDateTime::fromString(support["verified_until"].toString(),Qt::ISODateWithMs).isValid()))
+        sanitized["support"]=QJsonValue();
     progression_=sanitized;progressionStale_=false;
-    if(had && xpDelta>0 && sparkDelta>0)emit rewardsEarned(xpDelta,sparkDelta);
+    if(had && xpDelta>=0 && sparkDelta>0)emit rewardsEarned(xpDelta,sparkDelta);
     return true;
 }
 void BackendAccount::rewardRequest(QString action,QJsonObject body,bool sync) {

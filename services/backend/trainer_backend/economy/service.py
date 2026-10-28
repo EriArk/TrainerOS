@@ -7,6 +7,7 @@ from ..accounts.provider import AuthError
 from .policy import VERSION, achievement, completion, mastery
 from .provider import RetroAchievements
 from .support import preview as support_preview
+from .membership import status as support_status, grant_topups
 
 
 class Progression:
@@ -24,12 +25,13 @@ class Progression:
             row = conn.execute('SELECT * FROM trainer_backend.progression_accounts WHERE player_id=%s FOR SHARE', (actor.player_id,)).fetchone()
             link = conn.execute('SELECT username,linked_at FROM trainer_backend.reward_links WHERE player_id=%s', (actor.player_id,)).fetchone()
             challenge = conn.execute('SELECT username,challenge,expires_at FROM trainer_backend.reward_link_challenges WHERE player_id=%s AND expires_at>clock_timestamp()', (actor.player_id,)).fetchone()
-            history = conn.execute('''SELECT id,source,title,xp,sparks,policy,earned_at,created_at FROM trainer_backend.reward_ledger
+            history = conn.execute('''SELECT id,source,title,xp,sparks,policy,earned_at,created_at,support_multiplier FROM trainer_backend.reward_ledger
                 WHERE player_id=%s AND (%s::timestamptz IS NULL OR created_at<%s)
                 ORDER BY created_at DESC,id DESC LIMIT 50''', (actor.player_id, before, before)).fetchall()
             return {'player_id': actor.player_id, 'mastery': mastery(row['xp']), 'balance': row['balance'],
                     'revision': row['revision'], 'link': link, 'challenge': challenge, 'history': history,
                     'support_preview': support_preview(conn, actor.player_id, row['balance']),
+                    'support': support_status(conn, actor.player_id),
                     'checked_at': datetime.now(timezone.utc)}
 
     def challenge(self, access, username, key):
@@ -115,3 +117,4 @@ class Progression:
             conn.execute('UPDATE trainer_backend.progression_accounts SET xp=xp+%s,balance=balance+%s,revision=revision+1 WHERE player_id=%s', (xp, sparks, player))
             conn.execute('INSERT INTO trainer_backend.audit_events(id,actor_id,action,resource_id) VALUES(%s,%s,%s,%s)',
                          (uuid4(), player, 'rewards.verified_ra', inserted['id']))
+            grant_topups(conn, player, inserted['id'])

@@ -15,6 +15,7 @@ inline void startOnlineSmoke(QQuickWindow* window,trainer::ShellController& shel
     bool& completed,int& warnings,QStringList& diagnostics) {
     using trainer::Action;
     auto step=std::make_shared<int>(0);auto timer=new QTimer(window);timer->setInterval(700);
+    auto grantSupport=std::make_shared<std::function<void()>>();
     QObject::connect(timer,&QTimer::timeout,window,[=,&shell,&completed,&warnings,&diagnostics] {
         auto check=[&](bool ok,const QString& why){if(!ok)diagnostics.append(why);};
         auto capture=[&](const QString& name){if(!directory.isEmpty())check(window->grabWindow().save(directory+"/"+name+".png"),"Capture "+name);};
@@ -83,17 +84,21 @@ inline void startOnlineSmoke(QQuickWindow* window,trainer::ShellController& shel
             for(const auto name:{"aurora","dusk","orbit"})offers.append(QJsonObject{{"id","profile."+QString(name)},{"appearance",name},{"title",QString(name).left(1).toUpper()+QString(name).mid(1)},
                 {"description","A permanent illustrated world for your character."},{"price",250},{"minimum_level",1},{"revision","1"},{"kind","permanent_license"},{"available",true}});
             (*store)["catalogue"]=offers;auto balance=std::make_shared<int>(1000);
-            account->setServices({[player,date,store,balance](QByteArray,QString path,QJsonObject body,QByteArray,trainer::BackendAccount::Reply done){
+            auto supported=std::make_shared<bool>(false);
+            *grantSupport=[store,balance,supported]{*supported=true;*balance+=2000;(*store)["revision"]="40";};
+            account->setServices({[player,date,store,balance,supported](QByteArray,QString path,QJsonObject body,QByteArray,trainer::BackendAccount::Reply done){
                 if(path=="/v1/auth/refresh")done(200,{{"player_id",player},{"session_id","33333333-3333-4333-8333-333333333333"},{"fluxer_subject","12345"},
                     {"access_token",QString(43,'a')},{"refresh_token",QString(43,'r')},{"expires_at",QDateTime::currentDateTimeUtc().addSecs(900).toString(Qt::ISODateWithMs)}});
                 else if(path=="/v1/me/progression")done(200,{{"player_id",player},{"balance",*balance},{"revision",(*store)["revision"]},{"checked_at",date},
+                    {"support",QJsonObject{{"multiplier",*supported?3:1},{"verified_until",QDateTime::currentDateTimeUtc().addDays(1).toString(Qt::ISODateWithMs)}}},
                     {"support_preview",QJsonObject{{"policy","support-preview-2026-10-v1"},{"state","calculation_only"},{"activation_available",false},
-                        {"eligible_rewards",31},{"base_sparks",1000},{"credited_reward_sparks",1000},{"options",QJsonArray{
-                            QJsonObject{{"id","support-x2"},{"title","Support x2"},{"multiplier",2},{"top_up",1000},{"potential_balance",*balance+1000}},
-                            QJsonObject{{"id","support-x3"},{"title","Support x3"},{"multiplier",3},{"top_up",2000},{"potential_balance",*balance+2000}}}}}},
+                        {"eligible_rewards",31},{"base_sparks",1000},{"credited_reward_sparks",*supported?3000:1000},{"options",QJsonArray{
+                            QJsonObject{{"id","support-x2"},{"title","Support x2"},{"multiplier",2},{"top_up",*supported?0:1000},{"potential_balance",*balance+(*supported?0:1000)}},
+                            QJsonObject{{"id","support-x3"},{"title","Support x3"},{"multiplier",3},{"top_up",*supported?0:2000},{"potential_balance",*balance+(*supported?0:2000)}}}}}},
                     {"mastery",QJsonObject{{"xp",2000},{"level",5},{"level_xp",200},{"next_level_xp",700}}},
                     {"challenge",QJsonObject{{"challenge","TrainerOS-example-link-code"},{"username","Example"}}},
-                    {"history",QJsonArray{QJsonObject{{"id","44444444-4444-4444-8444-444444444444"},{"source","ra.completion"},{"title","Example completed set"},{"xp",1100},{"sparks",550},{"earned_at",date}}}}});
+                    {"history",QJsonArray{QJsonObject{{"id","44444444-4444-4444-8444-444444444444"},{"source",*supported?"support.topup":"ra.completion"},
+                        {"title","Example completed set"},{"xp",*supported?0:1100},{"sparks",*supported?1100:550},{"support_multiplier",3},{"earned_at",date}}}}});
                 else if(path=="/v1/me/inventory")done(200,*store);
                 else if(path=="/v1/me/purchases") {
                     for(const auto row:(*store)["catalogue"].toArray())if(row.toObject()["id"]==body["offer_id"]){auto owned=row.toObject();owned["purchase_id"]="55555555-5555-4555-8555-555555555555";(*store)["items"]=QJsonArray{owned};}
@@ -146,14 +151,23 @@ inline void startOnlineSmoke(QQuickWindow* window,trainer::ShellController& shel
             check(shell.profileAccount()["signedIn"].toBool() && shell.profileAccount()["previewKnown"].toBool(),"Support Refresh preserves login and calculation");
             capture("support-compact");shell.dispatch(Action::Back);
             check(shell.profileRoute()=="summary" && shell.profileFocus()==10,"Support returns to its entry");shell.dispatch(Action::Back);break;
-        case 30: {
+        case 30:
+            (*grantSupport)();shell.backendAccount()->refreshProgression(false);shell.openProfile();shell.activate(10,"profile");window->resize(1280,720);break;
+        case 31:
+            check(shell.profileAccount()["sparksText"]=="2750" && shell.profileAccount()["xp"].toInt()==2000,"Support credit does not multiply XP");
+            check(shell.backendAccount()->progression()["support_preview"].toMap()["options"].toList()[1].toMap()["top_up"].toInt()==0,"Granted support is removed from remaining top-up");
+            capture("support-granted-wide");shell.dispatch(Action::Back);shell.activate(4,"profile");window->resize(960,540);break;
+        case 32:
+            capture("support-history-compact");shell.dispatch(Action::Back);shell.dispatch(Action::Back);break;
+        case 33: break;
+        case 34: {
             auto* account=shell.backendAccount();
             account->setServices({[](QByteArray,QString,QJsonObject,QByteArray,trainer::BackendAccount::Reply done){done(503,{});},
                 [](QString,auto done){done(true,{});},[](QString,QByteArray,auto done){done(true);},[](QUrl){return false;},
                 [](QString){return QByteArray();},[](QString,QByteArray){return true;}});
             account->configure("ui-support-signed-out");shell.openProfile();break;
         }
-        case 31: {
+        case 35: {
             const std::function<QQuickItem*(QQuickItem*)> find=[&](QQuickItem* item)->QQuickItem* {
                 if(item->objectName()=="profile-support" && item->isVisible())return item;
                 for(auto* child:item->childItems())if(auto* result=find(child))return result;
@@ -167,7 +181,7 @@ inline void startOnlineSmoke(QQuickWindow* window,trainer::ShellController& shel
             }
             break;
         }
-        case 32:
+        case 36:
             check(shell.profileRoute()=="support" && !shell.profileAccount()["previewKnown"].toBool(),"Signed-out touch entry has no fake balance");
             capture("support-unavailable-compact");shell.dispatch(Action::Back);shell.dispatch(Action::Confirm);
             check(shell.profileRoute()=="support","Controller reopens focused support entry");

@@ -94,6 +94,25 @@ class BackendAccountTests:public QObject {
         h.shopValue["receipt"]=receipt;
     }
 private slots:
+    void supportCreditsKeepXpAndAcceptOnlyValidBonusHistory() {
+        Harness h;h.progressionOk=true;
+        const auto date=QDateTime::currentDateTimeUtc().toString(Qt::ISODateWithMs);
+        h.progress={{"player_id",Player},{"balance",1000},{"revision","31"},{"history",QJsonArray{}},
+            {"mastery",QJsonObject{{"xp",2000},{"level",5},{"level_xp",200},{"next_level_xp",700}}},{"checked_at",date}};
+        BackendAccount a;a.setServices(h.services());a.configure("support-credit");a.activate();h.callback();
+        QSignalSpy earned(&a,&BackendAccount::rewardsEarned);
+        auto bonus=QJsonObject{{"id","44444444-4444-4444-8444-444444444444"},{"source","support.topup"},
+            {"title","Completed set"},{"xp",0},{"sparks",1100},{"support_multiplier",3},{"earned_at",date}};
+        h.progress["balance"]=2100;h.progress["revision"]="32";h.progress["history"]=QJsonArray{bonus};
+        h.progress["support"]=QJsonObject{{"multiplier",3},{"verified_until",QDateTime::currentDateTimeUtc().addDays(1).toString(Qt::ISODateWithMs)}};
+        a.refreshProgression(false);QCOMPARE(earned.size(),1);QCOMPARE(earned[0][0].toLongLong(),0);QCOMPARE(earned[0][1].toLongLong(),1100);
+        QCOMPARE(a.progression()["mastery"].toMap()["xp"].toInt(),2000);QCOMPARE(a.progression()["support"].toMap()["multiplier"].toInt(),3);
+        a.refreshProgression(false);QCOMPARE(earned.size(),1);
+        bonus["xp"]=1;h.progress["history"]=QJsonArray{bonus};a.refreshProgression(false);QVERIFY(a.progression()["stale"].toBool());
+        bonus["xp"]=0;bonus["support_multiplier"]=4;h.progress["history"]=QJsonArray{bonus};a.refreshProgression(false);QVERIFY(a.progression()["stale"].toBool());
+        bonus["support_multiplier"]=3;h.progress["history"]=QJsonArray{bonus};h.progress["support"]=QJsonObject{{"multiplier",9}};
+        a.refreshProgression(false);QVERIFY(!a.progression()["stale"].toBool());QVERIFY(a.progression()["support"].toMap().isEmpty());
+    }
     void supportPreviewRejectsMalformedStaleAndUnsettledBalances() {
         Harness h;h.progressionOk=true;h.shopEnabled=true;h.shopValue=inventory();
         const QJsonObject preview{{"policy","support-preview-2026-10-v1"},{"state","calculation_only"},{"activation_available",false},

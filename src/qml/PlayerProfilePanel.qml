@@ -100,7 +100,7 @@ Panel {
                         Text { y: root.compact?29:31; width: parent.width; text:rewardFade.running?rewardFlash.text:root.account.stale?"Last confirmed balance · offline":root.account.balanceKnown?"Earned through verified achievements":"Balance unavailable"; color:rewardFade.running?root.accent:Theme.muted;font.pixelSize:10;elide:Text.ElideRight }
                         QtObject { id:rewardFlash;property string text:"" }
                         SequentialAnimation { id:rewardFade;NumberAnimation { target:rewardSpark;property:"scale";to:1.3;duration:180 } NumberAnimation { target:rewardSpark;property:"scale";to:1;duration:250 } PauseAnimation { duration:2500 } }
-                        Connections { target:root.shell.backendAccount;function onRewardsEarned(xp,sparks) {rewardFlash.text="+"+xp+" XP  ·  +"+sparks+" Sparks";rewardFade.restart()} }
+                        Connections { target:root.shell.backendAccount;function onRewardsEarned(xp,sparks) {rewardFlash.text=(xp>0?"+"+xp+" XP  ·  ":"")+"+"+sparks+" Sparks";rewardFade.restart()} }
                         ProfileAction { objectName:"profile-account"; y: root.compact?46:56; width: parent.width; actionIndex:4;label:"TrainerOS account  \u203a"; textSize:10 }
                     }
                 }
@@ -195,7 +195,7 @@ Panel {
                     delegate: Item { required property var modelData;required property int index;width:ListView.view.width;height:55
                         Rectangle { anchors.fill:parent;radius:4;color:Theme.selection;visible:root.shell.profileFocus===index+4 }
                         Text { width:parent.width;text:modelData.title;textFormat:Text.PlainText;font.pixelSize:12;color:Theme.ink;elide:Text.ElideRight }
-                        Text { y:19;width:parent.width;text:modelData.source==="shop.purchase"?modelData.sparks+" Sparks \u00b7 Purchase":(modelData.source==="ra.completion"?"Complete set · ":"")+"+"+modelData.xp+" XP · +"+modelData.sparks+" Sparks";font.pixelSize:11;color:root.accent;elide:Text.ElideRight }
+                        Text { y:19;width:parent.width;text:modelData.source==="support.topup"?"+"+modelData.sparks+" Sparks \u00b7 Support \u00d7"+modelData.support_multiplier:modelData.source==="shop.purchase"?modelData.sparks+" Sparks \u00b7 Purchase":(modelData.source==="ra.completion"?"Complete set · ":"")+"+"+modelData.xp+" XP · +"+modelData.sparks+" Sparks";font.pixelSize:11;color:root.accent;elide:Text.ElideRight }
                         Text { y:35;text:new Date(modelData.earned_at).toLocaleDateString();font.pixelSize:10;color:Theme.muted }
                     }
                     Text { visible:parent.count===0;width:parent.width;text:"No earned rewards yet";font.pixelSize:12;color:Theme.muted }

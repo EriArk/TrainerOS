@@ -1,0 +1,44 @@
+{
+  "date": "2026-10-28",
+  "sourceBase": "f44bdb83",
+  "schema": 9,
+  "membershipVerifier": "isolated test fixture only; production not configured",
+  "publicGrantEndpoint": false,
+  "realProviderMembershipTested": false,
+  "liveOwnerPayout": false,
+  "physicalControlsTested": false,
+  "covered": [
+    "x1-x2-x3 differences per base reward",
+    "cancel retains Sparks and ownership",
+    "rejoin catches only unpaid rewards",
+    "new rewards use current entitlement",
+    "expiry without background job",
+    "highest concurrent provider rate; no stacking",
+    "duplicate and out-of-order events",
+    "identity and session fences",
+    "concurrent purchase",
+    "transaction rollback including outbox"
+  ],
+  "remaining": [
+    "external account ownership binding",
+    "provider membership and tier verification",
+    "prices",
+    "player activation",
+    "live authorized subscription and payout"
+  ],
+  "deviceJourney": [
+    "profile",
+    "support comparison signed out",
+    "Back with restored focus",
+    "reopen",
+    "Home"
+  ],
+  "deviceThemes": {
+    "odin": "light",
+    "flip": "dark"
+  },
+  "deviceInput": "remote X11 navigation; physical buttons not tested",
+  "flipReturnRecheck": "Stable captures confirmed return focus, reopen and Home after an early frame showed the preceding state",
+  "deviceStatePreserved": true,
+  "installedAvatarRevision": 4
+}
