@@ -117,3 +117,11 @@ revision 4 через настоящий `PlatformHostTests::realGodotAvatarCons
 Игры получают изменения моделей без копирования ассетов; исправление
 Compatibility требует обновить клиентский `avatar_presenter.gd` в самой игре.
 Полный матч, физический ввод, звук и разные сети этим прогоном не проверены.
+
+Pocket Golf **0.1.24** (`47dcc38`, SDK `f328d5a3`) затем экспортирован для
+Windows/Linux x86_64/ARM64 и установлен на Odin/Flip через штатный Crates Store.
+В живой игре проверены Connected to TrainerOS, Solo → Ready, вид от плеча,
+сохранённый персонаж и портреты владельца/соперника. Odin использует Mobile,
+Flip — Compatibility. Управляемое завершение прошло, ошибок Godot нет.
+Оболочка и пакет моделей не переустанавливались. Новая версия игры не
+публиковалась в публичном каталоге. [Квитанции, кадры и границы сохранности](https://github.com/EriArk/crates/blob/codex/golf-backend/docs/evidence/avatar-sdk-20261028/README.md).
