@@ -410,6 +410,7 @@ private:
     QString peopleFilter_,communityId_,socialSettingsKey_;
     QStringList pinnedPeople_,pinnedGroups_,pinnedCommunities_;
     QHash<QString,QVariantMap> faceRoutes_;
+    QVariantMap pendingFaceRoute_;
     void saveSocialPreferences();
     void restoreSocialPreferences();
     QVariantList peopleRows() const;

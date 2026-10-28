@@ -5,27 +5,27 @@ Item {
     required property var shell
     objectName: "gamehub"
     function hints(h) {
-        if(shell.hubFace === "lobby") return shell.social.hints
         if(shell.adapterActive) {
-            if(shell.adapterMenuOpen) return [h("↑↓","Screens"),h("A","Open"),h("B","My Story")]
+            if(shell.adapterMenuOpen) return [h("\u2191\u2193","Screens"),h("A","Open"),h("B","Game spaces")]
             return adapterPresenter.hints(h) || [h("A","Open"),h("Select","Actions"),h("B","Screens")]
         }
-        if(shell.hubFace === "ra" && shell.hall.historyOpen) return [h("A","More / Account"),h("Select","Refresh"),h("B","Close")]
-        if(shell.hubFace === "ra") return shell.hall.route === "sets" ? [h("A","Achievements"),h("R3","History"),h("Select","RA account")] : shell.hall.route === "achievement-detail" ? [h("A",shell.hall.detail.capture ? "View moment" : "Close"),h("B","Gallery")] : shell.hall.galleryMenuOpen
-            ? [h("↑↓","Options"),h("A","Choose"),h("B","Gallery")]
-            : [h("A","Open"),h("Select","Options"),h("B","Back")]
-        if(shell.overviewFace === "timeline") return [h("←→","Timeline"),h("B","My Story")]
-        if(shell.overviewFace === "screens") {
-            if(shell.album.filtering) return [h("↑↓","Filters"),h("A","Choose"),h("B","Album")]
-            return [h("←→","Film"),h("L3","Star"),h("R3",shell.album.favoritesView ? "Recent" : "Favorites"),h("Select","Filter"),h("B",shell.achievementPhotoReturn ? "Achievement" : "My Story")]
-        }
-        return [h("A","Open"),h("B","Home")]
+        return [h("A","Choose game"),h("B","Home")]
     }
     readonly property bool available: visible && !shell.serviceOpen && !shell.menuOpen
         && !shell.drawerOpen && !shell.quickAppsOpen && !shell.keyboard.open && !shell.notice.length
-    GameHubOverview { anchors.fill: parent; anchors.margins: 10; shell: root.shell; visible: root.shell.hubFace === "overview" }
-    AchievementGallery { anchors.fill: parent; anchors.margins: 10; shell: root.shell; visible: root.shell.hubFace === "ra" }
-    SocialPage { anchors.fill: parent; shell: root.shell; visible: root.shell.hubFace === "lobby" }
+    Column {
+        anchors.centerIn: parent; width: Math.min(parent.width - 64, 580); spacing: 18
+        visible: root.shell.hubFace === "spaces"
+        Text { width: parent.width; text: "Game spaces"; font.family: Theme.displayFamily; font.pixelSize: 30; color: Theme.ink }
+        Text { width: parent.width; text: root.shell.homeGame.title || "Choose your next game"; font.pixelSize: 20; color: Theme.ink; wrapMode: Text.WordWrap }
+        Text { width: parent.width; text: root.shell.adapterMenu.length ? "Open this game's space using the tabs above." : "Dedicated game spaces appear here when a compatible adapter is available."; font.pixelSize: 14; color: Theme.muted; wrapMode: Text.WordWrap }
+        Item {
+            width: 220; height: 40
+            Text { anchors.verticalCenter: parent.verticalCenter; text: "Choose a game  \u203a"; font.pixelSize: 16; color: Theme.ink }
+            Rectangle { anchors.bottom: parent.bottom; width: parent.width; height: 2; color: Theme.focusGlow }
+            MouseArea { anchors.fill: parent; onClicked: root.shell.goToSection("games") }
+        }
+    }
     Item {
         anchors.fill: parent; visible: root.shell.adapterActive
         ListView {

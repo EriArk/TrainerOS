@@ -1,9 +1,14 @@
 #pragma once
 #include "features/social/SocialController.h"
+#include "integrations/social/FluxerSession.h"
 
 namespace trainer {
 class HomeSocialFixture {
 public:
+    static void isolateProvider(SocialController& social) {
+        QObject::disconnect(&social,nullptr,social.session_,nullptr);
+        QObject::disconnect(social.session_,nullptr,&social,nullptr);
+    }
     static QVariantMap chat(QString channel,QString peer,QString name,qint64 when=1000) {
         return {{"id",channel},{"name",name},{"kind","chats"},{"unread",1},{"lastInteraction",when},
             {"members",QVariantList{QVariantMap{{"id",peer}}}}};

@@ -43,7 +43,7 @@ Window {
     Binding { target: Theme; property: "viewportWidth"; value: window.width / window.uiScale }
     Binding { target: Theme; property: "viewportHeight"; value: window.height / window.uiScale }
     Binding { target: shell.social; property: "surfaceAvailable"; value: !sessionState.blocked && ((window.active && (!adventureLaunch.active || adventureLaunch.minimized) && shell.unobstructed) || (playerOverlay.chatOpen && playerOverlay.conversationReady && adventureExitPresentation.ready)) }
-    Binding { target: shell.social; property: "conversationVisible"; value: playerOverlay.chatOpen && playerOverlay.conversationReady || ((shell.primaryId === "social" || (shell.primaryId === "gamehub" && shell.hubFace === "lobby")) && !shell.serviceOpen
+    Binding { target: shell.social; property: "conversationVisible"; value: playerOverlay.chatOpen && playerOverlay.conversationReady || (shell.socialActive && !shell.serviceOpen
             && (shell.socialSurface === "chats" || shell.socialSurface === "communities" || shell.social.lobbyChatVisible)) }
     Binding { target: shell.social; property: "gameActive"; value: adventureLaunch.active }
     Connections {
@@ -213,7 +213,7 @@ Window {
                     }
                     Rectangle { x: 18; y: parent.height - 8; width: parent.width - 36; height: 3; radius: 1.5; color: Theme.surfaceColor("#7a4a24"); visible: shell.page === index }
                     Rectangle {
-                        visible: modelData === "Social" && (shell.social.account.unreadCount || 0) > 0
+                        visible: modelData === "Online" && (shell.social.account.unreadCount || 0) > 0
                         anchors.right: parent.right; anchors.rightMargin: 6; y: Theme.topRimHeight + 3
                         width: 23; height: 17; radius: 7; color: Theme.yellow; border.color: Theme.surfaceColor("#8e642e")
                         Text { anchors.centerIn: parent; text: Math.min(99, shell.social.account.unreadCount || 0); color: Theme.ink; font.bold: true; font.pixelSize: 11 }
@@ -293,11 +293,11 @@ Window {
                 FilesPane { id: filesPane; anchors.fill: parent; flow: shell.files; applicationStatus: shell.apps.status; visible: !shell.serviceOpen && shell.primaryId === "apps" && shell.appsFace === "files"; takesFocus: visible && !shell.notice.length && !shell.drawerOpen && !shell.quickAppsOpen && !shell.keyboard.open && !shell.menuOpen && !shell.homeMenuOpen && !shell.files.view.menuOpen && !Object.keys(shell.files.dialog).length }
                 CratesPage {
                     anchors.fill: parent
-                    visible: (!shell.serviceOpen || shell.service === "settings" || shell.service === "account-profile") && shell.primaryId === "apps" && shell.appsFace === "crates"
+                    visible: (!shell.serviceOpen || shell.service === "settings" || shell.service === "account-profile") && shell.primaryId === "online" && shell.onlineFace === "crates"
                     flow: shell.crates
                     active: visible && !shell.serviceOpen && !shell.drawerOpen && !shell.quickAppsOpen && !shell.menuOpen && !shell.homeMenuOpen && !shell.keyboard.open && !shell.notice.length
                 }
-                SocialPage { anchors.fill: parent; shell: shellController; visible: (!shell.serviceOpen || shell.service === "settings" || shell.service === "account-profile") && shell.primaryId === "social" }
+                OnlinePage { anchors.fill: parent; shell: shellController; visible: (!shell.serviceOpen || shell.service === "settings" || shell.service === "account-profile") && shell.primaryId === "online" }
                 SeriesPage { anchors.fill: parent; shell: shellController; visible: (!shell.serviceOpen || shell.service === "settings" || shell.service === "account-profile") && shell.page === 1 && shell.collectionsRoot }
                 WorldsPage { anchors.fill: parent; shell: shellController; visible: (!shell.serviceOpen || shell.service === "settings" || shell.service === "account-profile") && shell.page === 1 && !shell.collectionsRoot && !shell.multiverseFace }
                 MultiversePage { anchors.fill: parent; shell: shellController; visible: (!shell.serviceOpen || shell.service === "settings" || shell.service === "account-profile") && shell.page === 1 && !shell.collectionsRoot && shell.multiverseFace }
@@ -466,16 +466,16 @@ Window {
                 if (shell.page === 0) return [h("A",shell.homeGame.id ? (shell.liveGame.id === shell.homeGame.id ? "Return" : shell.home.actionHint) : "Collections"),h("Select","Game actions"),h("B","Back")]
                 if (shell.primaryId === "apps" && shell.appsFace === "files") return shell.files.view.menuOpen || Object.keys(shell.files.dialog).length ? [h("A","Select"),h("B","Close")] : [h("A","Open"),h("Hold A","Actions"),h("Select","Controls"),h("R3","View"),h("B","Back")]
                 if (shell.primaryId === "apps" && shell.appsFace === "browser") return browserPane.popup ? [h("A","Select"),h("B","Close")] : [h("A","Select"),h("Hold A","Actions"),h("Select","Controls"),h("B","Back")]
-                if (shell.primaryId === "apps" && shell.appsFace === "crates") {
+                if (shell.primaryId === "online" && shell.onlineFace === "crates") {
                     if (shell.crates.detailOpen) {
                         if (shell.crates.actionsOpen) return [h("A","Choose"),h("B","Back")]
                         return (shell.crates.primaryEnabled ? [h("A",shell.crates.primaryLabel)] : []).concat([h("B","Close")],shell.crates.canRemove ? [h("Select","Remove")] : [])
                     }
-                    return shell.crates.opened ? (shell.crates.projectCount ? [h("A","Details"),h("B","Crates")] : [h("B","Crates")]) : [h("A",shell.crates.opening ? "Skip" : "Open"),h("B","Apps")]
+                    return shell.crates.opened ? (shell.crates.projectCount ? [h("A","Details"),h("B","Crates")] : [h("B","Crates")]) : [h("A",shell.crates.opening ? "Skip" : "Open"),h("B","Home")]
                 }
                 if (shell.primaryId === "apps") return shell.apps.menu.length ? [h("↑↓","Choose"),h("A","Select"),h("B","Back")] : [h("A","Open"),h("Select","Options"),h("X","Quick Apps"),h("Y","Recent games"),h("B","Home")]
                 if (shell.primaryId === "gamehub") return gameHubPage.hints(h)
-                if (shell.primaryId === "social") return shell.social.hints
+                if (shell.primaryId === "online") return shell.onlineFace === "bazaar" ? [h("B","Home")] : shell.chatNavigationFocused ? [h("\u2190\u2192","Sections"),h("A","Open"),h("B","Home")] : shell.social.hints
                 return [h("A",shell.trainer.editing ? "Select" : "Edit Trainer"),h("B",shell.trainer.editing ? "Cancel" : "Back")]
             }
             readonly property var actions: {
@@ -525,7 +525,7 @@ Window {
         Loader { anchors.fill: screen; active: shell.service === "trainer-setup"; visible: active; sourceComponent: TrainerSetupPanel { shell: shellController } }
         Loader { anchors.fill: screen; active: shell.service === "device"; visible: active; sourceComponent: DevicePanel { shell: shellController } }
         Loader { anchors.fill: screen; active: shell.service === "diagnostics"; visible: active; sourceComponent: DiagnosticsPanel { shell: shellController } }
-        Loader { anchors.fill: screen; z: 2.8; active: shell.primaryId === "apps" && shell.appsFace === "crates" && shell.crates.detailOpen && !shell.serviceOpen && !shell.quickAppsOpen && !shell.drawerOpen; visible: active; sourceComponent: CratesProjectPopup { flow: shell.crates } }
+        Loader { anchors.fill: screen; z: 2.8; active: shell.primaryId === "online" && shell.onlineFace === "crates" && shell.crates.detailOpen && !shell.serviceOpen && !shell.quickAppsOpen && !shell.drawerOpen; visible: active; sourceComponent: CratesProjectPopup { flow: shell.crates } }
         Loader { anchors.fill: screen; z: shell.menuOpen ? 4.2 : 3.1; active: shell.scraper.open && !shell.keyboard.open; visible: active; sourceComponent: ScrapePanel { shell: shellController } }
         Loader { anchors.fill: screen; z: shell.menuOpen ? 4.2 : 3.2; active: shell.downloads.open; visible: active; sourceComponent: DownloadsPanel { flow: shell.downloads } }
         MyLobbiesPopup { anchors.fill: screen; social: shell.social; z: 3.5 }

@@ -1,0 +1,52 @@
+{
+  "interaction": {
+    "passed": 56,
+    "failed": 0,
+    "skipped": 0,
+    "unresolved": []
+  },
+  "experience": {
+    "passed": 27,
+    "failed": 2,
+    "skipped": 0,
+    "unresolved": [
+      "ExperienceTests::dashboardFocusDoesNotRetargetOnUnreadUpdates",
+      "ExperienceTests::homePeopleMergeRecencyAndTriggersSkipEmptyBlocks"
+    ]
+  },
+  "social": {
+    "passed": 204,
+    "failed": 1,
+    "skipped": 1,
+    "unresolved": [
+      "trainer::SocialTests::myLobbiesBrowseIsIndependentAndHomeDisappearsAfterProviderLeave"
+    ]
+  },
+  "crates": {
+    "passed": 21,
+    "failed": 0,
+    "skipped": 6,
+    "unresolved": []
+  },
+  "ui": {
+    "diagnostics": [],
+    "success": true,
+    "warnings": 0,
+    "sizes": [
+      "1280x720",
+      "960x540"
+    ],
+    "coverage": [
+      "four Online tabs",
+      "chat selector: controller and synthetic pointer",
+      "signed-out and connected fixture",
+      "profile return",
+      "Apps and GameHub composition"
+    ]
+  },
+  "limits": [
+    "Linux-only cases skipped on Windows",
+    "Three wider Home/Lobby expectations remain unresolved",
+    "No physical controls, gameplay, voice or separate-network acceptance"
+  ]
+}

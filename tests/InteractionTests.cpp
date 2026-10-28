@@ -204,17 +204,18 @@ private slots:
         const auto pokemon=shell.currentAdventureId();shell.openGameHubFace("adapter");shell.selectAdapterScreen("boxes");
         QCOMPARE(pokemonModule(shell).face(),"boxes");
         auto state=shell.navigationState();state["homeAdventure"]="generic";state["page"]="home";shell.restoreNavigation(state);
-        QCOMPARE(shell.homeView(),"game-home");QCOMPARE(shell.primaryNames()[2],"GameHub");QCOMPARE(shell.primaryNames()[3],"Social");
-        shell.openGameHubFace("overview");QCOMPARE(shell.hubFace(),"overview");QVERIFY(!(shell.page()==2 && shell.experienceModel()==shell.module("pokemon") && pokemonModule(shell).centerFace()));
+        QCOMPARE(shell.homeView(),"game-home");QCOMPARE(shell.primaryNames()[2],"GameHub");QCOMPARE(shell.primaryNames()[3],"Online");
+        shell.openGameHubFace("overview");QCOMPARE(shell.service(),"profile");QCOMPARE(shell.profileRoute(),"story");QVERIFY(!(shell.page()==2 && shell.experienceModel()==shell.module("pokemon") && pokemonModule(shell).centerFace()));
         shell.showOverview("timeline");QCOMPARE(shell.overviewFace(),"timeline");
         shell.setLiveGame({{"id",pokemon},{"title","Running Pokemon"}});
         QSignalSpy returns(&shell,&ShellController::liveGameRequested);
         shell.dispatch(Action::Home);const auto options=shell.homeMenuActions();
         shell.dispatch(Action::SystemMenu);QVERIFY(shell.menuOpen());QVERIFY(!shell.homeMenuOpen());
         shell.dispatch(Action::Back);QVERIFY(!shell.menuOpen());QVERIFY(shell.homeMenuOpen());
-        QCOMPARE(shell.page(),2);QCOMPARE(shell.overviewFace(),"timeline");
+        QCOMPARE(shell.page(),0);QCOMPARE(shell.overviewFace(),"timeline");
         int live=-1;for(int i=0;i<options.size();++i)if(options[i].toMap()["id"]=="live-return")live=i;
         QVERIFY(live>=0);shell.activateHomeMenu(live);QCOMPARE(returns.size(),1);QCOMPARE(shell.currentAdventureId(),pokemon);
+        if(shell.service()=="profile")for(int back=0;back<6 && shell.service()=="profile";++back)shell.dispatch(Action::Back);
         shell.openProfile();QCOMPARE(shell.service(),"profile");shell.dispatch(Action::Confirm);
         QCOMPARE(shell.trainer()->editRows().size(),4);QVERIFY(shell.trainer()->editing());
         for(const auto& row:shell.trainer()->editRows())QVERIFY(row.toMap()["title"]!="Favorite");
@@ -546,9 +547,9 @@ private slots:
         MockLibraryRepository library;MockTrainerRepository profiles;MockAdventureAdapter adapter;
         DevelopmentPlatformService platform;MockPokedexRepository dex;MockHallOfFameRepository archive;MockAchievementProvider achievements;
         ShellController shell(library,profiles,adapter,platform,builtinExperiences(dex,dex),archive,achievements);
-        shell.openGameHubFace("overview");
-        const QStringList peers{"overview","ra","adapter","lobby"};
-        for(int i=0;i<8;++i){QCOMPARE(shell.hubFace(),peers[i%4]);shell.dispatch(Action::NextFace);}
+        shell.openGameHubFace("spaces");
+        const QStringList peers{"spaces","adapter"};
+        for(int i=0;i<8;++i){QCOMPARE(shell.hubFace(),peers[i%2]);shell.dispatch(Action::NextFace);}
         shell.openGameHubFace("adapter");shell.selectAdapterScreen("party");
         pokemonModule(shell).party()->dispatch(Action::Right);QCOMPARE(pokemonModule(shell).party()->focusIndex(),1);
         shell.selectAdapterScreen("boxes");pokemonModule(shell).party()->changeBox(1);pokemonModule(shell).party()->dispatch(Action::Right);
@@ -556,7 +557,7 @@ private slots:
         shell.dispatch(Action::NextPage);shell.dispatch(Action::PreviousPage);QCOMPARE(shell.adapterScreen(),"boxes");QCOMPARE(pokemonModule(shell).party()->box(),1);
         const auto state=shell.navigationState();shell.goToPage(0);shell.restoreNavigation(state);QCOMPARE(shell.adapterScreen(),"boxes");QCOMPARE(pokemonModule(shell).party()->box(),1);
         shell.selectAdapterScreen("party");QCOMPARE(pokemonModule(shell).party()->focusIndex(),1);
-        shell.goToSection("social");for(int i=0;i<9;++i){QCOMPARE(shell.faceIndex(),i%3);shell.dispatch(Action::NextFace);}
+        shell.openOnlineFace("lobby");for(int i=0;i<8;++i){QCOMPARE(shell.faceIndex(),i%4);shell.dispatch(Action::NextFace);}
         shell.openGameHubFace("adapter");shell.selectAdapterScreen("dex");
         pokemonModule(shell).pokedex()->dispatch(Action::Down);const auto zone=pokemonModule(shell).pokedex()->zone();shell.dispatch(Action::Back);QCOMPARE(pokemonModule(shell).pokedex()->zone(),zone);
         QVERIFY(shell.adapterMenuOpen());
@@ -594,47 +595,69 @@ private slots:
                 {"achievements",QJsonObject{{"emerald-sample","first-trail"}}},{"zone","actions"}};
             for(const auto& oldPage:QList<QJsonValue>{QJsonValue("hall"),QJsonValue(4)}) {
                 shell.restoreNavigation({{"version",1},{"page",oldPage},{"hall",history}});
-                QCOMPARE(shell.page(),2);QCOMPARE(shell.trainerFace(),face);
-                const auto state=shell.navigationState();QCOMPARE(state["version"].toInt(),3);
-                QCOMPARE(state["page"].toString(),"gamehub");
+                if(face=="ra"){QCOMPARE(shell.service(),"profile");QCOMPARE(shell.profileRoute(),"ra");QCOMPARE(shell.hall()->route(),route);}
+                else {QCOMPARE(shell.page(),2);QCOMPARE(shell.trainerFace(),face);}
+                const auto state=shell.navigationState();QCOMPARE(state["version"].toInt(),4);
+                QCOMPARE(state["page"].toString(),face=="ra"?"home":"gamehub");
                 QCOMPARE(state["hall"].toObject()["archive"].toString(),"crystal-champion");
                 QCOMPARE(state["hall"].toObject()["set"].toString(),"emerald-sample");
                 shell.goToPage(4);shell.restoreNavigation(state);
-                QCOMPARE(shell.trainerFace(),face);QCOMPARE(shell.navigationState()["hall"],state["hall"]);
+                if(face!="ra")QCOMPARE(shell.trainerFace(),face);
+                QCOMPARE(shell.navigationState()["hall"],state["hall"]);
             }
         }
         shell.restoreNavigation({{"version",1},{"page","trainer"},{"hall",QJsonObject{{"route","sets"}}}});
         QCOMPARE(shell.trainerFace(),"profile");
         shell.restoreNavigation({{"version",1},{"page","pokedex"}});QCOMPARE(shell.page(),2);
     }
-    void trainerAndSocialFacesKeepSeparateContextAndModalPriority() {
+    void onlineFacesKeepSeparateContextAndModalPriority() {
         MockLibraryRepository library;MockTrainerRepository profiles;MockAdventureAdapter adapter;
         DevelopmentPlatformService platform;MockPokedexRepository dex;MockHallOfFameRepository archive;MockAchievementProvider achievements;
         ShellController shell(library,profiles,adapter,platform,builtinExperiences(dex,dex),archive,achievements);
-        QCOMPARE(shell.primaryNames(),QStringList({"Home","Games","GameHub","Social","Apps"}));
-        shell.goToTrainerFace("profile");QCOMPARE(shell.trainerFace(),"profile");
-        shell.dispatch(Action::Confirm);QVERIFY(pokemonModule(shell).persona()->editing());
-        shell.dispatch(Action::NextFace);QCOMPARE(shell.trainerFace(),"profile");
-        shell.dispatch(Action::Back);shell.goToTrainerFace("journey");QCOMPARE(shell.trainerFace(),"journey");
-        shell.goToTrainerFace("hall");shell.dispatch(Action::Confirm);
+        QCOMPARE(shell.primaryNames(),QStringList({"Home","Games","GameHub","Online","Apps"}));
+        shell.goToTrainerFace("profile");shell.dispatch(Action::Confirm);QVERIFY(pokemonModule(shell).persona()->editing());
+        shell.openOnlineFace("chats");QCOMPARE(shell.primaryId(),"gamehub");
+        shell.dispatch(Action::Back);shell.goToTrainerFace("hall");shell.dispatch(Action::Confirm);
         const auto history=shell.hall()->navigationState();QCOMPARE(shell.hall()->route(),"archive-detail");
-        shell.dispatch(Action::NextPage);QCOMPARE(shell.primaryId(),"social");QCOMPARE(shell.socialFace(),"chats");
-        QVERIFY(shell.chooseAdventureAvailable());shell.dispatch(Action::ToggleContinue);QVERIFY(shell.drawerOpen());shell.dispatch(Action::Back);
-        shell.dispatch(Action::NextFace);QCOMPARE(shell.socialFace(),"communities");
-        shell.dispatch(Action::NextFace);QCOMPARE(shell.socialFace(),"friends");
-        const auto discoverNavigation=shell.navigationState();shell.selectFace(0);QCOMPARE(shell.socialFace(),"chats");
-        shell.restoreNavigation(discoverNavigation);QCOMPARE(shell.socialFace(),"friends");
-        shell.keyboard()->begin("Message","",100);shell.selectFace(0);QCOMPARE(shell.socialFace(),"friends");shell.keyboard()->cancel();
-        shell.selectFace(-1);shell.selectFace(5);QCOMPARE(shell.socialFace(),"friends");
-        shell.dispatch(Action::NextFace);QCOMPARE(shell.socialFace(),"chats");
+        shell.goToSection("social");QCOMPARE(shell.primaryId(),"online");QCOMPARE(shell.onlineFace(),"chats");
+        QCOMPARE(shell.faceNames(),QStringList({"Lobby","Bazaar","Crates","Chats"}));
+        shell.selectChatFace("communities");QCOMPARE(shell.socialFace(),"communities");
+        shell.selectChatFace("friends");const auto discover=shell.navigationState();
+        shell.keyboard()->begin("Message","",100);shell.selectChatFace("chats");shell.selectFace(0);
+        QCOMPARE(shell.socialFace(),"friends");QCOMPARE(shell.onlineFace(),"chats");shell.keyboard()->cancel();
+        shell.openOnlineFace("bazaar");QVERIFY(!shell.socialActive());
+        shell.restoreNavigation(discover);QCOMPARE(shell.socialFace(),"friends");QCOMPARE(shell.onlineFace(),"chats");
+        shell.dispatch(Action::Up);QVERIFY(shell.chatNavigationFocused());
+        shell.dispatch(Action::Right);QCOMPARE(shell.socialFace(),"chats");
+        shell.dispatch(Action::Down);QVERIFY(!shell.chatNavigationFocused());
+        shell.dispatch(Action::ToggleContinue);QVERIFY(shell.drawerOpen());shell.dispatch(Action::Back);
         const auto checkpoint=shell.navigationState();
-        shell.dispatch(Action::PreviousPage);QCOMPARE(shell.trainerFace(),"hall");QCOMPARE(shell.hall()->navigationState(),history);
-        shell.goToTrainerFace("ra");QCOMPARE(shell.faceIndex(),1);
-        shell.restoreNavigation(checkpoint);QCOMPARE(shell.primaryId(),"social");QCOMPARE(shell.trainerFace(),"hall");
-        QCOMPARE(shell.hall()->navigationState(),history);QCOMPARE(shell.socialFace(),"chats");
-        shell.restoreNavigation({{"version",99},{"page",4},{"trainerFace","ra"}});
-        QCOMPARE(shell.page(),0);QCOMPARE(shell.hubFace(),"overview");QCOMPARE(shell.socialFace(),"chats");
-        shell.restoreNavigation({{"version",2},{"page","removed"},{"trainerFace","removed"}});QCOMPARE(shell.page(),0);
+        shell.openProfile();shell.activate(3,"profile");QCOMPARE(shell.profileRoute(),"ra");
+        for(int back=0;back<6 && shell.service()=="profile";++back)shell.dispatch(Action::Back);QCOMPARE(shell.navigationState(),checkpoint);QCOMPARE(shell.hall()->navigationState(),history);
+        shell.goToSection("crates");QCOMPARE(shell.onlineFace(),"crates");QCOMPARE(shell.primaryId(),"online");
+        shell.goToPage(4);shell.selectFace(2);QCOMPARE(shell.appsFace(),"files");QCOMPARE(shell.faceNames(),QStringList({"Apps","Browser","Files"}));
+        shell.restoreNavigation({{"version",99},{"page",4}});QCOMPARE(shell.primaryId(),"home");QCOMPARE(shell.hubFace(),"spaces");
+    }
+    void oldShellRoutesMigrateToOnlineAndProfile() {
+        MockLibraryRepository library;MockTrainerRepository profiles;MockAdventureAdapter adapter;
+        DevelopmentPlatformService platform;MockPokedexRepository dex;MockHallOfFameRepository archive;MockAchievementProvider achievements;
+        ShellController shell(library,profiles,adapter,platform,builtinExperiences(dex,dex),archive,achievements);
+        for(const auto& oldPage:QList<QJsonValue>{QJsonValue("social"),QJsonValue(3)}) {
+            shell.restoreNavigation({{"version",3},{"page",oldPage},{"socialFace","communities"}});
+            QCOMPARE(shell.primaryId(),"online");QCOMPARE(shell.onlineFace(),"chats");QCOMPARE(shell.socialFace(),"communities");
+        }
+        shell.restoreNavigation({{"version",3},{"page","apps"},{"appsFace","crates"}});
+        QCOMPARE(shell.primaryId(),"online");QCOMPARE(shell.onlineFace(),"crates");
+        shell.restoreNavigation({{"version",3},{"page","gamehub"},{"hubFace","lobby"}});
+        QCOMPARE(shell.primaryId(),"online");QCOMPARE(shell.onlineFace(),"lobby");
+        shell.restoreNavigation({{"version",3},{"page","gamehub"},{"hubFace","overview"},{"overviewFace","timeline"}});
+        QCOMPARE(shell.service(),"profile");QCOMPARE(shell.profileRoute(),"story");QCOMPARE(shell.overviewFace(),"timeline");
+        for(int back=0;back<6 && shell.service()=="profile";++back)shell.dispatch(Action::Back);QCOMPARE(shell.primaryId(),"home");
+        const QJsonObject hall{{"route","achievement-detail"},{"set","emerald-sample"},{"achievements",QJsonObject{{"emerald-sample","first-trail"}}},{"zone","actions"}};
+        shell.restoreNavigation({{"version",3},{"page","gamehub"},{"hubFace","ra"},{"hall",hall}});
+        QCOMPARE(shell.profileRoute(),"ra");QCOMPARE(shell.hall()->route(),"achievement-detail");
+        QCOMPARE(shell.hall()->navigationState()["set"].toString(),"emerald-sample");
+        for(int back=0;back<6 && shell.service()=="profile";++back)shell.dispatch(Action::Back);shell.openGameHubFace("lobby");QCOMPARE(shell.primaryId(),"online");
     }
     void clinicConfirmationAndStaleCompletionStayWithTheirAdventure() {
         class Library final : public LibraryRepository {

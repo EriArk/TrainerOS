@@ -60,6 +60,9 @@ class ShellController final : public QObject {
     Q_PROPERTY(QString overviewFace READ overviewFace NOTIFY changed)
     Q_PROPERTY(bool achievementPhotoReturn READ achievementPhotoReturn NOTIFY changed)
     Q_PROPERTY(QString appsFace READ appsFace NOTIFY changed)
+    Q_PROPERTY(QString onlineFace READ onlineFace NOTIFY changed)
+    Q_PROPERTY(bool socialActive READ socialActive NOTIFY changed)
+    Q_PROPERTY(bool chatNavigationFocused READ chatNavigationFocused NOTIFY changed)
     Q_PROPERTY(QString socialSurface READ socialSurface NOTIFY changed)
     Q_PROPERTY(bool adapterActive READ adapterActive NOTIFY changed)
     Q_PROPERTY(QVariantList adapterMenu READ adapterMenu NOTIFY changed)
@@ -143,7 +146,7 @@ class ShellController final : public QObject {
     Q_PROPERTY(bool powerMenu READ powerMenu NOTIFY changed)
 public:
     LaunchPreparation& launchPreparation() {return launchPreparation_;}
-    enum Page { HomePage, GamesPage, GameHubPage, SocialPage, AppsPage };
+    enum Page { HomePage, GamesPage, GameHubPage, OnlinePage, AppsPage };
     Q_ENUM(Page)
     ShellController(LibraryRepository&, TrainerRepository&, AdventureAdapter&, PlatformService&,
                     ExperienceFactory, HallOfFameRepository&,
@@ -237,8 +240,12 @@ public:
     QString hubFace() const { return hubFace_; }
     QString overviewFace() const { return overviewFace_; }
     QString appsFace() const { return appsFace_; }
-    QString socialSurface() const { return page_==GameHubPage && hubFace_=="lobby"?QString("lobby"):socialFace_; }
-    bool socialActive() const { return page_==SocialPage || (page_==GameHubPage && hubFace_=="lobby"); }
+    QString onlineFace() const { return onlineFace_; }
+    bool chatNavigationFocused() const { return chatNavigationFocused_; }
+    Q_INVOKABLE void openOnlineFace(const QString& face);
+    Q_INVOKABLE void selectChatFace(const QString& face);
+    QString socialSurface() const { return onlineFace_=="lobby"?QString("lobby"):socialFace_; }
+    bool socialActive() const { return page_==OnlinePage && (onlineFace_=="lobby" || onlineFace_=="chats"); }
     bool adapterActive() const { return page_==GameHubPage && hubFace_=="adapter" && experience_.hasAdapter(); }
     QVariantList adapterMenu() const;
     QString adapterScreen() const { return experience_.screen(); }
@@ -430,7 +437,9 @@ private:
     QString homeAdventureId_, homeResumeId_;
     ResumeSource homeResumeSource_;
     int page_ = 0;
-    QString hubFace_ = "overview", overviewFace_ = "summary", appsFace_ = "apps";
+    QString hubFace_ = "spaces", overviewFace_ = "summary", appsFace_ = "apps";
+    QString onlineFace_ = "lobby";
+    bool chatNavigationFocused_ = false;
     bool adapterMenuOpen_ = true, quickAppsOpen_ = false;
     int adapterMenuFocus_ = 0, overviewFocus_ = 0;
     QString overviewSessionId_;

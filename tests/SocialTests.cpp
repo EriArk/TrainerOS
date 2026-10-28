@@ -69,6 +69,22 @@ class SocialTests : public QObject {
         s.channel_=channel;s.channels_[channel]={{"id",channel},{"type",1}};
     }
 private slots:
+    void onlineTabReturnRestoresConversationFocusWithoutEndingVoiceOrDiscardingDraft() {
+        SocialController c;
+        QVariantMap snapshot{{"state","connected"},{"userId","self"},{"channel","dm"},
+            {"voice",QVariantMap{{"channel","voice"},{"muted",false}}},
+            {"chats",QVariantList{QVariantMap{{"id","dm"},{"kind","chats"},{"name","Friend"},
+                {"members",QVariantList{QVariantMap{{"id","friend"},{"name","Friend"}}}}}}},
+            {"messages",QVariantList{QVariantMap{{"id","m1"},{"text","One"}},QVariantMap{{"id","m2"},{"text","Two"}}}}};
+        c.receive(0,snapshot);c.reading_=true;c.messageFocus_=0;c.conversationControl_=11;
+        c.drafts_["dm"]="Unsent message";QSignalSpy commands(&c,&SocialController::commandRequested);
+        c.setFace("lobby");auto lobby=snapshot;lobby["channel"]="lobby-chat";c.receive(0,lobby);
+        c.setFace("chats");c.receive(0,snapshot);
+        QVERIFY(c.reading());QCOMPARE(c.messageFocus_,0);QCOMPARE(c.conversationControl_,11);
+        QCOMPARE(c.draft(),QString("Unsent message"));QCOMPARE(c.account()["voice"].toMap()["channel"].toString(),"voice");
+        for(const auto& command:commands)QVERIFY(command[0].toString()!="leave-call" && command[0].toString()!="send");
+        c.setFace("lobby");c.setOwner("another");QVERIFY(c.pendingFaceRoute_.isEmpty());
+    }
     void offlineLobbyCreationAndFiltersDoNotRequireProvider() {
         QTemporaryDir dir;SocialController s;
         QObject::disconnect(&s,nullptr,s.session_,nullptr);QObject::disconnect(s.session_,nullptr,&s,nullptr);

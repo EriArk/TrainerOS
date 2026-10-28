@@ -8,7 +8,7 @@ FocusScope {
     readonly property var social: shell.social
     readonly property var account: social.account
     readonly property bool connected: account.state === "connected" || account.state === "connecting"
-    readonly property bool takesFocus: visible && !shell.serviceOpen && !shell.menuOpen && !shell.drawerOpen && !shell.keyboard.open && shell.notice.length === 0
+    readonly property bool takesFocus: visible && !shell.chatNavigationFocused && !shell.serviceOpen && !shell.menuOpen && !shell.drawerOpen && !shell.keyboard.open && shell.notice.length === 0
     property point menuAnchor: Qt.point(width - 310, 44)
     function anchorMenu(item) { menuAnchor = item.mapToItem(root, 0, item.height) }
     objectName: "social-empty"
@@ -64,7 +64,10 @@ FocusScope {
         Rectangle { anchors.fill: parent; color: Theme.surfaceColor("#edf2e4") }
         Rectangle { width: parent.width * 0.36; height: parent.height; color: Theme.surfaceColor("#d3e5dd"); border.color: Theme.surfaceColor("#b0c6b9") }
         Item {
-            x: 34; width: parent.width * 0.36 - 68; height: 194; anchors.verticalCenter: parent.verticalCenter
+            x: 34; width: parent.width * 0.36 - 68; height: 194
+            anchors.verticalCenter: parent.verticalCenter
+            anchors.verticalCenterOffset: -Theme.adventureCutoutHeight / 2
+            scale: Math.min(1, Math.max(0.5, (parent.height - Theme.adventureCutoutHeight - 8) / height))
             Rectangle { x: 4; y: 7; width: parent.width; height: 150; radius: 24; color: Theme.surfaceColor("#6684947b") }
             Rectangle {
                 width: parent.width; height: 150; radius: 24; color: Theme.blue; border.color: Theme.surfaceColor("#668f9f"); border.width: 2

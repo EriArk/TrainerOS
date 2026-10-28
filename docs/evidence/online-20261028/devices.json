@@ -1,0 +1,42 @@
+{
+  "odin": {
+    "sha256": "10f04921fdc4d467ef582bd77d44ee7292bab333c0723921511f8e21f2caec6a",
+    "supervisedRestart": true,
+    "backupRetained": true,
+    "databaseIntegrity": "ok",
+    "protectedTablesUnchanged": true,
+    "settingsPreserved": true,
+    "conversationRouteKeysChanged": 1,
+    "volume": "Volume: 0.00",
+    "remoteUi": [
+      "Lobby",
+      "Bazaar unavailable state",
+      "Crates",
+      "Chats",
+      "3D profile and return",
+      "GameHub",
+      "Apps",
+      "Home"
+    ]
+  },
+  "flip": {
+    "sha256": "10f04921fdc4d467ef582bd77d44ee7292bab333c0723921511f8e21f2caec6a",
+    "supervisedRestart": true,
+    "backupRetained": true,
+    "databaseIntegrity": "ok",
+    "protectedTablesUnchanged": true,
+    "settingsPreserved": true,
+    "conversationRouteKeysChanged": 1,
+    "volume": "Volume: 0.20",
+    "remoteUi": [
+      "Lobby",
+      "Bazaar unavailable state",
+      "Crates",
+      "Chats",
+      "3D profile and return",
+      "GameHub",
+      "Apps",
+      "Home"
+    ]
+  }
+}

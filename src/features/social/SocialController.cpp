@@ -196,7 +196,7 @@ void SocialController::setOwner(QString owner) {
     saveDrafts();draftFile_.clear();
     editDrafts_.clear();pickedPeople_.clear();dismissedNotifications_.clear();activityNotifications_.clear();presentedInvitation_.clear();notificationSettingsKey_.clear();
     toastTimer_.stop();toastTitle_.clear();toastText_.clear();emit presentationChanged();
-    socialSettingsKey_.clear();peopleFilter_.clear();communityId_.clear();faceRoutes_.clear();pinnedPeople_.clear();pinnedGroups_.clear();pinnedCommunities_.clear();
+    socialSettingsKey_.clear();peopleFilter_.clear();communityId_.clear();faceRoutes_.clear();pendingFaceRoute_.clear();pinnedPeople_.clear();pinnedGroups_.clear();pinnedCommunities_.clear();
     discoverPreview_.clear();discoverArea_="search";discoverPage_=0;discoverAll_=false;verificationGuild_.clear();verificationMethod_.clear();
     owner_=std::move(owner);++generation_;snapshot_.clear();drafts_.clear();menu_.clear();toastChannel_.clear();directConversationLease_.clear();
     selection_.stop();contacts_=false;searchStarted_=false;searchFocus_=-1;
@@ -206,10 +206,16 @@ void SocialController::setOwner(QString owner) {
 void SocialController::setFace(QString face) {
     if(face=="groups")face="communities";
     if(face_==face)return;
-    faceRoutes_[face_]={{"channel",snapshot_["channel"]},{"focus",focus_},{"community",communityId_}};
+    faceRoutes_[face_]={{"channel",snapshot_["channel"]},{"focus",focus_},{"community",communityId_},
+        {"reading",reading_},{"message",messages().value(messageFocus_).toMap()["id"]},{"control",conversationControl_}};
     saveSocialPreferences();closeMenu();selection_.stop();
     partyFocus_=false;partyIndex_=0;face_=std::move(face);reading_=false;contacts_=false;conversationControl_=-1;enterConversationPerson_.clear();enterConversationChannel_.clear();
     const auto route=faceRoutes_.value(face_);focus_=route.value("focus",0).toInt();
+    pendingFaceRoute_=route;
+    if(route["channel"]==snapshot_["channel"]) {
+        reading_=route.value("reading",false).toBool();
+        conversationControl_=route.value("control",-1).toInt();
+    }
     if(face_=="communities")communityId_=route["community"].toString();
     if(face_!="lobby"&&face_!="recent")emit commandRequested("face",{{"face",face_},{"channel",route["channel"]},{"guild",communityId_}});
     if(face_=="friends"&&!searchStarted_&&snapshot_["state"]=="connected")runSearch();
@@ -609,6 +615,12 @@ void SocialController::receive(quint64 generation,QVariantMap snapshot) {
         if(!anchor.isEmpty())for(int i=0;i<log.size();++i)if(log[i].toMap()["id"]==anchor){messageFocus_=i;break;}
     }
     messageFocus_=qBound(0,messageFocus_,qMax(0,int(log.size())-1));
+    if(!pendingFaceRoute_["channel"].toString().isEmpty() && pendingFaceRoute_["channel"]==snapshot_["channel"]) {
+        reading_=pendingFaceRoute_.value("reading",false).toBool();
+        conversationControl_=pendingFaceRoute_.value("control",-1).toInt();
+        for(int i=0;i<log.size();++i)if(log[i].toMap()["id"]==pendingFaceRoute_["message"]){messageFocus_=i;break;}
+        pendingFaceRoute_.clear();
+    }
     if(snapshot_["state"]=="signed-out") {dismissedNotifications_.clear();activityNotifications_.clear();presentedInvitation_.clear();notificationSettingsKey_.clear();toastTimer_.stop();toastTitle_.clear();toastText_.clear();emit presentationChanged();draftSave_.stop();if(!draftFile_.isEmpty())QFile::remove(draftFile_);draftFile_.clear();drafts_.clear();editDrafts_.clear();menu_.clear();textPurpose_.clear();textChannel_.clear();searchStarted_=false;}
     if(face_=="friends"&&!searchStarted_&&snapshot_["state"]=="connected")runSearch();
     searchFocus_=qMin(searchFocus_,int(searchResults().size())-1);

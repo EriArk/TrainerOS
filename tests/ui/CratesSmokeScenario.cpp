@@ -30,7 +30,7 @@ void startCratesSmoke(QQuickWindow* window,ShellController& shell,ControllerInpu
             return nullptr;
         };
         switch((*step)++) {
-        case 0:check(c->loadCatalogue(cratesCatalogueFixture()),"Catalogue fixture rejected");shell.goToSection("apps");shell.selectFace(1);c->open(1,true);break;
+        case 0:check(c->loadCatalogue(cratesCatalogueFixture()),"Catalogue fixture rejected");shell.openOnlineFace("crates");c->open(1,true);break;
         case 1:shot("catalogue");check(c->projects().size()==6,"Six cards missing");press(SDL_CONTROLLER_BUTTON_DPAD_RIGHT);break;
         case 2:check(c->projectIndex()==1,"SDL selection failed");press(SDL_CONTROLLER_BUTTON_B);break;
         case 3:check(c->detailOpen(),"SDL confirm failed");shot("project");press(SDL_CONTROLLER_BUTTON_DPAD_RIGHT);break;
@@ -42,7 +42,7 @@ void startCratesSmoke(QQuickWindow* window,ShellController& shell,ControllerInpu
         case 9:check(c->page()==1&&c->projectCount()==8,"Second page failed");shot("last-page");c->openProject(7);break;
         case 10:shot("missing-art");shell.toggleQuickApps();break;
         case 11:check(!c->detailOpen()&&shell.quickAppsOpen(),"Quick Apps did not dismiss details");press(SDL_CONTROLLER_BUTTON_A);break;
-        case 12:check(c->projectIndex()==7&&c->page()==1,"Global drawer lost catalogue focus");shell.selectFace(0);shell.selectFace(1);break;
+        case 12:check(c->projectIndex()==7&&c->page()==1,"Global drawer lost catalogue focus");shell.selectFace(0);shell.selectFace(2);break;
         case 13:check(c->opened()&&c->projectIndex()==7,"Face switch lost route");c->turnPage(-1);window->resize(1280,800);break;
         case 14:shot("catalogue-16x10");c->openProject(6);break;
         case 15:shot("long-title-16x10");c->closeDetail();c->back();c->open(3,true);break;

@@ -131,7 +131,7 @@ ShellController::ShellController(LibraryRepository& repo, TrainerRepository& pro
         if(!album_.showCapture(id))return;
         achievementPhotoNavigation_=hall_.navigationState();
         if(service_=="profile" && profileRoute_=="ra"){profileRoute_="story";overviewFace_="screens";}
-        else {setHubFace("overview");showOverview("screens");}
+        else {openProfile();profileRoute_="story";overviewFace_="screens";}
         achievementPhotoReturn_=true;emit changed();
     });
     connect(&social_,&SocialController::presentationChanged,this,&ShellController::changed,Qt::QueuedConnection);
@@ -151,7 +151,7 @@ ShellController::ShellController(LibraryRepository& repo, TrainerRepository& pro
     connect(&downloads_,&DownloadsController::changed,this,&ShellController::changed);
     connect(settings_.updates(),&SoftwareUpdateController::changed,this,[this]{downloads_.publish("traineros-software",settings_.updates()->tasks());});
     connect(settings_.updates(),&SoftwareUpdateController::downloadsRequested,&downloads_,&DownloadsController::begin);
-    connect(settings_.updates(),&SoftwareUpdateController::cratesRequested,this,[this]{service_.clear();goToPage(AppsPage);selectFace(1);});
+    connect(settings_.updates(),&SoftwareUpdateController::cratesRequested,this,[this]{service_.clear();openOnlineFace("crates");});
     connect(&downloads_,&DownloadsController::commandRequested,this,[this](const QString& provider,const QString&,const QString& command){
         if(provider!="traineros-software")return;
         if(command=="open"){downloads_.close();service_="settings";settings_.openUpdates();emit changed();}
@@ -209,7 +209,7 @@ ShellController::ShellController(LibraryRepository& repo, TrainerRepository& pro
     connect(&settings_, &SettingsController::trashRequested,this,[this]{libraryTools_.beginTrash();});
     connect(&social_,&SocialController::conversationsRequested,this,[this]{
         if(navigationLocked())return;
-        socialFace_="chats";social_.setFace(socialFace_);goToPage(SocialPage);emit changed();
+        socialFace_="chats";openOnlineFace("chats");emit changed();
     });
     connect(&social_,&SocialController::communicationSettingsRequested,this,[this]{
         if(navigationLocked())return;
@@ -273,7 +273,7 @@ ShellController::ShellController(LibraryRepository& repo, TrainerRepository& pro
     connect(&downloads_, &DownloadsController::commandRequested, this, [this](QString provider,QString task,QString command){
         if(provider!="files")return;
         if(command=="cancel"||command=="cancel-all")files_.service()->cancel(task);
-        if(command=="resolve"){downloads_.close();goToPage(AppsPage);selectFace(3);}
+        if(command=="resolve"){downloads_.close();goToPage(AppsPage);selectFace(2);}
     });
     connect(&apps_, &AppsController::changed, this, &ShellController::changed);
     connect(crates_.installer(),&CratesInstaller::changed,this,[this]{downloads_.publish("crates",crates_.downloadTasks());});
@@ -296,13 +296,13 @@ ShellController::ShellController(LibraryRepository& repo, TrainerRepository& pro
     });
     connect(&settings_, &SettingsController::deviceRequested, this, [this](int index) { device_.activate(index + 2); emit changed(); });
     connect(&settings_, &SettingsController::softwareRequested, this, [this](const QString& destination) {
-        service_.clear(); goToPage(AppsPage); selectFace(destination=="crates"?1:0); emit changed();
+        service_.clear(); if(destination=="crates")openOnlineFace("crates");else {goToPage(AppsPage);selectFace(0);} emit changed();
     });
     connect(&settings_, &SettingsController::controllerRequested, this, [this] { service_ = "diagnostics"; diagnostics_.begin(); emit changed(); });
     diagnostics_.configureLibrary(&repo,&adapter);
     diagnostics_.canCheck=[this]{return liveGame_.isEmpty()&&!scraper_.busy()&&!navigationLocked();};
     connect(&settings_,&SettingsController::healthRequested,this,[this]{service_="diagnostics";diagnostics_.beginHealth();emit changed();});
-    connect(&diagnostics_,&DiagnosticsController::reportsRequested,this,[this](const QString& path){service_.clear();goToPage(AppsPage);selectFace(3);files_.navigate(QUrl::fromLocalFile(path).toString());emit changed();});
+    connect(&diagnostics_,&DiagnosticsController::reportsRequested,this,[this](const QString& path){service_.clear();goToPage(AppsPage);selectFace(2);files_.navigate(QUrl::fromLocalFile(path).toString());emit changed();});
     connect(&diagnostics_,&DiagnosticsController::setupRequested,this,[this](const QString& id){service_.clear();libraryTools_.beginGame(id);libraryTools_.activate(3);emit changed();});
     connect(&diagnostics_,&DiagnosticsController::recheckRequested,&settings_,&SettingsController::libraryRefreshRequested);
     connect(&device_, &DeviceController::changed, this, &ShellController::changed);
@@ -483,22 +483,24 @@ ExperienceModule* ShellController::module(const QString& id) const {for(const au
 QVariantMap ShellController::moduleInvitation() const {for(const auto& module:modules_){auto request=module->invitation();if(request["open"].toBool())return request;}return {};}
 
 QString ShellController::primaryId() const {
-    return QStringList{"home","games","gamehub","social","apps"}.value(page_,"home");
+    return QStringList{"home","games","gamehub","online","apps"}.value(page_,"home");
 }
 QStringList ShellController::primaryNames() const {
-    return {"Home","Games","GameHub","Social","Apps"};
+    return {"Home","Games","GameHub","Online","Apps"};
 }
 QStringList ShellController::hubFaceIds() const {
-    QStringList result{"overview","ra"};
+    QStringList result{"spaces"};
     if(experience_.hasAdapter())result.append("adapter");
-    result.append("lobby");return result;
+    return result;
 }
 void ShellController::goToSection(const QString& id) {
-    const auto index=QStringList{"home","games","gamehub","social","apps"}.indexOf(id);
+    if(id=="social"){openOnlineFace("chats");return;}
+    if(id=="lobby" || id=="crates" || id=="bazaar"){openOnlineFace(id);return;}
+    const auto index=QStringList{"home","games","gamehub","online","apps"}.indexOf(id);
     if(index>=0)goToPage(index);
 }
 void ShellController::setHubFace(const QString& requested) {
-    const auto face=hubFaceIds().contains(requested)?requested:QString("overview");
+    const auto face=hubFaceIds().contains(requested)?requested:QString("spaces");
     const bool switching=hubFace_!=face;
     if(switching && adapterActive() && activeModule_)
         experience_.rememberNavigation({{"module",activeModule_->navigation()},{"hall",hall_.navigationState()}});
@@ -508,27 +510,43 @@ void ShellController::setHubFace(const QString& requested) {
         showExperienceScreen(experience_.screen());
         if(switching && activeModule_)activeModule_->restoreNavigation(experience_.navigation()["module"].toObject());
     }
-    else if(face=="ra")hall_.showAchievementLibrary();
-    else if(face=="lobby")social_.setFace("lobby");
     emit changed();
 }
 void ShellController::openGameHubFace(const QString& face) {
     if(navigationLocked() || keyboard_.isOpen() || localModalOpen())return;
+    if(face=="lobby"){openOnlineFace("lobby");return;}
+    if(face=="overview" || face=="ra") {
+        openProfile();activateProfile(face=="ra"?3:2);return;
+    }
     goToPage(GameHubPage);setHubFace(face);
+}
+void ShellController::openOnlineFace(const QString& face) {
+    if(!QStringList{"lobby","bazaar","crates","chats"}.contains(face) || navigationLocked(true) || keyboard_.isOpen() || localModalOpen())return;
+    onlineFace_=face;chatNavigationFocused_=false;
+    goToPage(OnlinePage);
+    if(face=="crates")crates_.enter();
+}
+void ShellController::selectChatFace(const QString& face) {
+    if(page_!=OnlinePage || onlineFace_!="chats" || !pairedNavigationAvailable() || navigationLocked()
+       || !QStringList{"chats","communities","friends"}.contains(face))return;
+    socialFace_=face;social_.setFace(face);chatNavigationFocused_=false;emit changed();
 }
 void ShellController::selectFace(int index) {
     if(index<0 || index>=faceNames().size() || index==faceIndex()
        || !pairedNavigationAvailable() || navigationLocked())return;
     quickAppsOpen_=false;
     if(page_==GameHubPage)setHubFace(hubFaceIds().value(index));
-    else if(page_==SocialPage) {
-        socialFace_=QStringList{"chats","communities","friends"}.value(index,"chats");
-        social_.setFace(socialFace_);
+    else if(page_==OnlinePage) {
+        crates_.leave(true);
+        onlineFace_=QStringList{"lobby","bazaar","crates","chats"}.value(index,"lobby");
+        chatNavigationFocused_=false;
+        if(socialActive())social_.setFace(socialSurface());
+        else if(onlineFace_=="crates")crates_.enter();
     } else if(page_==AppsPage){
-        const auto next=QStringList{"apps","crates","browser","files"}.value(index,"apps");
-        if(next==appsFace_){if(next=="crates")crates_.enter();return;}
-        files_.leave();crates_.leave();appsFace_=next;
-        if(appsFace_=="files")files_.enter();else if(appsFace_=="browser")browser_.enter();else if(appsFace_=="crates")crates_.enter();
+        const auto next=QStringList{"apps","browser","files"}.value(index,"apps");
+        if(next==appsFace_)return;
+        files_.leave();appsFace_=next;
+        if(appsFace_=="files")files_.enter();else if(appsFace_=="browser")browser_.enter();
     }
     else if(page_==GamesPage && !collectionsRoot_) {
         const auto rows=gamesRootZone_=="platforms"?gamesPlatforms():gamesCollections();
@@ -590,11 +608,11 @@ void ShellController::activateDashboard(const QString& key) {
     if(target["type"]=="lobbies"){if(social_.account()["state"]!="connected")social_.openLobby();else if(social_.myLobbies().isEmpty())social_.createAnotherLobby();else social_.showMyLobbies();return;}
     if(target["type"]=="play"){confirm();emit changed();return;}
     if(target["type"]=="screens") {
-        openGameHubFace("overview");showOverview("screens");
+        openProfile();activateProfile(5);
         album_.forGame(currentAdventureId());
         dashboardReturn_=true;
     } else if(target["type"]=="person") {
-        socialFace_="chats";goToPage(SocialPage);
+        socialFace_="chats";openOnlineFace("chats");
         if(!social_.openQuickConversation(target["conversation"].toString()))social_.profile(target["id"].toString());
         dashboardReturn_=true;
     } else if(target["type"]=="event") {
@@ -618,7 +636,11 @@ void ShellController::setLiveGame(const QVariantMap& game) {
 }
 bool ShellController::dispatchGameHub(Action action) {
     if(page_!=GameHubPage)return false;
-    if(hubFace_=="lobby"){social_.dispatch(action);return true;}
+    if(hubFace_=="spaces") {
+        if(action==Action::Back)goToPage(HomePage);
+        else if(action==Action::Confirm)goToPage(GamesPage);
+        return true;
+    }
     if(hubFace_=="ra"){hall_.dispatch(action==Action::LocalAction?Action::ToggleContinue:action);return true;}
     if(adapterActive() && activeModule_) {
         if(adapterMenuOpen_) {
@@ -626,7 +648,7 @@ bool ShellController::dispatchGameHub(Action action) {
             if(action==Action::Up || action==Action::Down)
                 adapterMenuFocus_=std::clamp(adapterMenuFocus_+(action==Action::Down?1:-1),0,qMax(0,int(ids.size())-1));
             else if(action==Action::Confirm || action==Action::Right)selectAdapterScreen(ids.value(adapterMenuFocus_));
-            else if(action==Action::Back)setHubFace("overview");
+            else if(action==Action::Back)setHubFace("spaces");
             emit changed();return true;
         }
         const auto before=activeModule_->navigation();
@@ -682,7 +704,7 @@ void ShellController::syncExperience() {
         if(activeModule_)activeModule_->leave(false);
         if(textModule_){textModule_->cancelText();textModule_=nullptr;keyboard_.cancel();textTarget_=TextTarget::None;}
         hall_.editor()->cancel();activeModule_=next;
-        if(hubFace_=="adapter" && !experience_.hasAdapter())hubFace_="overview";
+        if(hubFace_=="adapter" && !experience_.hasAdapter())hubFace_="spaces";
         adapterMenuFocus_=qMax(0,experience_.index());
         ExperienceContext context{owner,currentAdventureId(),game,trainer_.profile(),repository_.home(),progress_,experience_.generation()};
         for(auto& module:modules_)module->refresh(context);
@@ -722,12 +744,12 @@ QVariantList ShellController::gameHistory() const {
 QStringList ShellController::faceNames() const {
     if(page_==GamesPage && !collectionsRoot_) {QStringList names;for(const auto& row:gamesRootZone_=="platforms"?gamesPlatforms():gamesCollections())names.append(row.toMap()["name"].toString());return names;}
     if(page_==GameHubPage) {
-        QStringList result{"My Story","RetroAchievements"};
+        QStringList result{"Game spaces"};
         if(experience_.hasAdapter())result.append(experience_.descriptor().adapter.label);
-        result.append("Lobby");return result;
+        return result;
     }
-    if(page_==SocialPage)return {"Messages","Communities","Discover"};
-    if(page_==AppsPage)return {"Apps","Crates","Browser","Files"};
+    if(page_==OnlinePage)return {"Lobby","Bazaar","Crates","Chats"};
+    if(page_==AppsPage)return {"Apps","Browser","Files"};
     return {};
 }
 int ShellController::faceIndex() const {
@@ -735,17 +757,18 @@ int ShellController::faceIndex() const {
         return gamesRootZone_=="platforms"?gamesPlatformIndex():gamesCollectionIndex();
     }
     if(page_==GameHubPage)return hubFaceIds().indexOf(hubFace_);
-    if(page_==SocialPage)return socialFace_=="communities"?1:socialFace_=="friends" || socialFace_=="recent"?2:0;
-    if(page_==AppsPage)return QStringList{"apps","crates","browser","files"}.indexOf(appsFace_);
+    if(page_==OnlinePage)return QStringList{"lobby","bazaar","crates","chats"}.indexOf(onlineFace_);
+    if(page_==AppsPage)return QStringList{"apps","browser","files"}.indexOf(appsFace_);
     return 0;
 }
 QString ShellController::trainerFace() const {return hubFace_=="ra"?QString("ra"):experience_.screen();}
 void ShellController::showTrainerFace(const QString& face) {
-    if(face=="ra")setHubFace("ra");else {setHubFace("adapter");selectAdapterScreen(face);}
+    if(face=="ra")openGameHubFace("ra");else {setHubFace("adapter");selectAdapterScreen(face);}
 }
 void ShellController::goToTrainerFace(const QString& face) {
     syncExperience();
     if(navigationLocked() || (face!="ra" && !experience_.screenIds().contains(face)))return;
+    if(face=="ra"){openGameHubFace("ra");return;}
     goToPage(GameHubPage);showTrainerFace(face);
 }
 void ShellController::refreshExperience() {
@@ -829,7 +852,7 @@ int ShellController::focusIndex() const {
     if (drawerOpen_) return drawerSelection();
     if (service_ == "library") return libraryManager_.files()->isOpen() ? libraryManager_.files()->focusIndex() : libraryManager_.focusIndex();
     if (service_ == "trainer-settings") return hall_.account()->isOpen() ? hall_.account()->focusIndex() : trainerSettingsFocus_;
-    if(service_=="profile")return trainer_.editing()?trainer_.focusIndex():profileRoute_=="ra"?hall_.focusIndex():profileRoute_=="story"?overviewFocus_:profileFocus_;
+    if(service_=="profile")return trainer_.editing()?trainer_.focusIndex():profileRoute_=="ra"?hall_.focusIndex():profileRoute_=="story"?(overviewFace_=="screens"?album_.index():overviewFocus_):profileFocus_;
     if (service_ == "trainer-setup") return trainerSetup_.focusIndex();
     if (service_ == "settings") return hall_.account()->isOpen() ? hall_.account()->focusIndex() : trainer_.editing() ? trainer_.focusIndex() : settings_.focusIndex();
     if (service_ == "device") return device_.focusIndex();
@@ -842,12 +865,12 @@ int ShellController::focusIndex() const {
     return drawerOpen_ ? drawerSelection() : 0;
 }
 QJsonObject ShellController::navigationState() const {
-    const QStringList pages{"home","games","gamehub","social","apps"};
+    const QStringList pages{"home","games","gamehub","online","apps"};
     auto experience=experience_;
     if(activeModule_)experience.rememberNavigation({{"module",activeModule_->navigation()},{"hall",hall_.navigationState()}});
     QJsonObject state{{"version", ShellNavigationVersion}, {"experienceVersion",2}, {"experienceNavigation",experience.state()}, {"page", pages[page_]},
             {"hubFace",hubFace_},{"adapterMenuOpen",adapterMenuOpen_},
-            {"overviewFace",overviewFace_},{"appsFace",appsFace_},{"socialFace",socialFace_},
+            {"overviewFace",overviewFace_},{"appsFace",appsFace_},{"socialFace",socialFace_},{"onlineFace",onlineFace_},
             {"homeAdventure", homeAdventureId_}, {"homeResume", homeResumeId_},
             {"homeResumeSource", homeResumeSource_.toJson()},
             {"multiverse",multiverse_.navigationState()},{"homeDomain",multiverseHome_?"multiverse":"pokemon"},
@@ -871,31 +894,42 @@ void ShellController::restoreNavigation(const QJsonObject& state) {
     if(version<1 || version>ShellNavigationVersion) {
         drawerFavorites_=favoriteSelectionLost_=false;drawerFocus_=favoriteFocus_=0;
         drawerScroll_[0]=drawerScroll_[1]=-1;emit drawerSourceChanged();
-        experience_.clear();socialFace_="chats";hubFace_="overview";appsFace_="apps";
+        experience_.clear();socialFace_="chats";hubFace_="spaces";appsFace_="apps";onlineFace_="lobby";
         social_.setFace(socialFace_);refreshExperience();goToPage(HomePage);return;
     }
     if(!state.contains("experienceNavigation"))experience_.clear();
-    const QStringList roots{"home","games","gamehub","social","apps"};
+    const QStringList roots{"home","games","gamehub","online","apps"};
     const QStringList legacyV1{"home","worlds","pokedex","trainer","hall"};
     const QStringList legacyV2{"home","worlds","companions","trainer","social","apps"};
     QString target=state["page"].toString();
     if(state["page"].isDouble())
         target=(version==1?legacyV1:version==2?legacyV2:roots).value(state["page"].toInt(),"home");
     const QString oldTarget=target;
+    onlineFace_=state["onlineFace"].toString("lobby");
+    if(!QStringList{"lobby","bazaar","crates","chats"}.contains(onlineFace_))onlineFace_="lobby";
+    if(target=="social" || (version<4 && target=="online")){target="online";onlineFace_="chats";}
     const bool oldFirst=target=="pokedex" || target=="companions" || target=="first";
     const bool oldSecond=target=="trainer" || target=="hall" || target=="history" || target=="second";
     hubFace_=version>=3?state["hubFace"].toString("overview"):"overview";
     overviewFace_=state["overviewFace"].toString("summary");
     if(!QStringList{"summary","timeline","screens"}.contains(overviewFace_))overviewFace_="summary";
     appsFace_=state["appsFace"].toString("apps");
-    if(!QStringList{"apps","crates","browser","files"}.contains(appsFace_))appsFace_="apps";
+    if(appsFace_=="crates") {
+        if(target=="apps"){target="online";onlineFace_="crates";}
+        appsFace_="apps";
+    }
+    if(!QStringList{"apps","browser","files"}.contains(appsFace_))appsFace_="apps";
     if(target=="worlds" || target=="collections" || target=="multiverse")target="games";
     if(oldFirst || oldSecond){target="gamehub";hubFace_="adapter";}
     socialFace_=state["socialFace"].toString("chats");
     if(!QStringList{"chats","messages","groups","communities","friends","discover","lobby","recent"}.contains(socialFace_))socialFace_="chats";
     if(socialFace_=="messages")socialFace_="chats";
     if(socialFace_=="discover")socialFace_="friends";
-    if(socialFace_=="lobby"){if(target=="social")target="gamehub";hubFace_="lobby";socialFace_="chats";}
+    if(socialFace_=="lobby"){if(target=="online")onlineFace_="lobby";socialFace_="chats";}
+    if(target=="gamehub" && hubFace_=="lobby"){target="online";onlineFace_="lobby";}
+    bool legacyProfile=target=="gamehub" && (hubFace_=="overview" || hubFace_=="ra");
+    QString legacyProfileFace=hubFace_;
+    if(legacyProfile)target="home";
     const bool legacyGroups=socialFace_=="groups";
     // Provider still owns conversation IDs/drafts. Group presentation migration
     // does not create a second message store or discard its selected channel.
@@ -956,15 +990,15 @@ void ShellController::restoreNavigation(const QJsonObject& state) {
         if(oldSecond) {
             if(requested.isEmpty())requested=state["trainerFace"].toString("profile");
             if(oldTarget=="hall")requested=QStringList{"journey","hall","ra"}.value(hall_.faceIndex(),"journey");
-            if(requested=="ra")hubFace_="ra";
-            else if(!experience_.hasAdapter()){hubFace_="overview";overviewFace_="timeline";}
+            if(requested=="ra"){legacyProfile=true;legacyProfileFace="ra";goToPage(HomePage);}
+            else if(!experience_.hasAdapter()){hubFace_="spaces";overviewFace_="timeline";}
         } else if(oldFirst) {
             if(requested.isEmpty())requested=state["pokemonFace"].toString("dex");
-            if(!experience_.hasAdapter())hubFace_="overview";
+            if(!experience_.hasAdapter())hubFace_="spaces";
         }
     }
     if(!requested.isEmpty())experience_.show(requested);
-    if(!hubFaceIds().contains(hubFace_))hubFace_="overview";
+    if(!hubFaceIds().contains(hubFace_))hubFace_="spaces";
     adapterMenuOpen_=version>=3?state["adapterMenuOpen"].toBool(true):false;
     adapterMenuFocus_=qMax(0,experience_.index());
     drawerFocus_=0;
@@ -981,7 +1015,14 @@ void ShellController::restoreNavigation(const QJsonObject& state) {
     emit drawerSourceChanged();
     refreshExperience(); // restore advances the generation; all callbacks bind it again.
     if(page_==GameHubPage)setHubFace(hubFace_);
-    else if(page_==SocialPage)social_.setFace(socialFace_);
+    else if(socialActive())social_.setFace(socialSurface());
+    if(legacyProfile){
+        const auto savedHall=hall_.navigationState();
+        const auto savedOverview=overviewFace_;
+        openProfile();activateProfile(legacyProfileFace=="ra"?3:2);
+        if(legacyProfileFace=="ra")hall_.restoreNavigation(savedHall);
+        else overviewFace_=savedOverview;
+    }
     emit changed();
 }
 std::optional<Adventure> ShellController::homeAdventure() const {
@@ -1158,7 +1199,6 @@ void ShellController::goToPage(int page) {
     if(navigationLocked(true))return;
     device_.closeAudio();
     closeControlsNetwork();
-    const bool enteringApps=page_!=AppsPage;
     // Closing transient controllers emits their local notifications. Publish
     // only the completed shell transition, not every intermediate close, so
     // hidden Home/drawer bindings do not rebuild the library repeatedly.
@@ -1173,7 +1213,7 @@ void ShellController::goToPage(int page) {
     { PerformanceTrace::Scope phase("navigation.keyboard"); if(textTarget_==TextTarget::Social)social_.preserveText(keyboard_.text()); keyboard_.cancel(); }
     if(textModule_){textModule_->cancelText();textModule_=nullptr;}
     textTarget_ = TextTarget::None;
-    apps_.leave(true);files_.leave();crates_.leave();
+    apps_.leave(true);files_.leave();crates_.leave(true);
     social_.closeMenu();
     { PerformanceTrace::Scope phase("navigation.archive"); hall_.editor()->cancel(); }
     { PerformanceTrace::Scope phase("navigation.account"); hall_.account()->close(); }
@@ -1182,8 +1222,9 @@ void ShellController::goToPage(int page) {
     { PerformanceTrace::Scope phase("navigation.manager"); libraryManager_.close(); service_.clear(); }
     page_ = std::clamp(page, 0, int(primaryNames().size())-1); // No wrapping until physical-device testing.
     quickAppsOpen_=false;
-    if(page_==AppsPage){apps_.refresh();if(appsFace_=="files")files_.enter();else if(appsFace_=="browser")browser_.enter();else if(appsFace_=="crates"&&enteringApps&&!restoringNavigation_)crates_.enter();}
-    if(page_==SocialPage)social_.setFace(socialFace_);
+    if(page_==AppsPage){apps_.refresh();if(appsFace_=="files")files_.enter();else if(appsFace_=="browser")browser_.enter();}
+    if(socialActive())social_.setFace(socialSurface());
+    if(page_==OnlinePage && onlineFace_=="crates" && !restoringNavigation_)crates_.enter();
     if(page_==1 && multiverseFace_)multiverse_.setCollection(worldCollection_);
     // Primary tabs resume their existing route and focus. Only explicit Back
     // or a destination action goes to a root; switching tabs is not navigation up.
@@ -1287,8 +1328,8 @@ void ShellController::openContext(const QString& type,const QString& target) {
     // Feature controllers own their captured person/message/entity targets.
     // This is the same dispatcher used by Select, with their existing guards.
     if(page_==AppsPage && appsFace_=="apps")apps_.dispatch(Action::LocalAction);
-    else if(page_==AppsPage && appsFace_=="crates")crates_.dispatch(Action::ContextMenu);
-    else if(page_==SocialPage)social_.dispatch(Action::LocalAction);
+    else if(page_==OnlinePage && onlineFace_=="crates")crates_.dispatch(Action::ContextMenu);
+    else if(socialActive() && !chatNavigationFocused_)social_.dispatch(Action::LocalAction);
     else if(page_==GameHubPage)dispatchGameHub(Action::LocalAction);
 }
 void ShellController::focusLibraryGame(int index) {
@@ -1542,8 +1583,8 @@ void ShellController::confirm() {
     }
     else if (page_==GameHubPage) {
         dispatchGameHub(Action::Confirm);
-    } else if (page_ == SocialPage) {
-        social_.dispatch(Action::Confirm); return;
+    } else if (page_ == OnlinePage) {
+        dispatch(Action::Confirm); return;
     } else {
         notice_ = "This section is not available in the prototype yet.";
     }
@@ -1621,6 +1662,11 @@ void ShellController::activateProfile(int index) {
 }
 void ShellController::dispatchProfile(Action action) {
     if(trainer_.editing()){trainer_.dispatch(action,true);return;}
+    if(dashboardReturn_ && !achievementPhotoReturn_ && action==Action::Back
+       && ((profileRoute_=="ra" && hall_.route()=="achievement-detail" && !hall_.account()->isOpen() && !hall_.historyOpen() && !hall_.galleryMenuOpen())
+           || (profileRoute_=="story" && overviewFace_=="screens" && !album_.filtering()))) {
+        dashboardReturn_=false;closeProfile();return;
+    }
     if(profileRoute_=="ra") {
         if(action==Action::Back && hall_.route()=="sets" && !hall_.account()->isOpen() && !hall_.historyOpen() && !hall_.galleryMenuOpen())profileRoute_="summary";
         else hall_.dispatch(action==Action::LocalAction?Action::ToggleContinue:action);
@@ -1700,7 +1746,7 @@ void ShellController::activateHomeMenu(int index) {
     if(id=="lobby"){if(liveGame_.isEmpty())social_.openLobby();else social_.openLobbyForGame(liveGame_.value("id").toString());return;}
     if(id=="live-return"||id=="live-options"){returnToLiveGame(id=="live-options");return;}
     if(id=="profile"){openProfile();return;}
-    if(id=="game-party"){closeHomeMenu();goToPage(SocialPage);emit social_.runtimeAction("multiplayer-party");return;}
+    if(id=="game-party"){closeHomeMenu();openOnlineFace("lobby");emit social_.runtimeAction("multiplayer-party");return;}
     if(id.startsWith("answer-call:")||id.startsWith("decline-call:")) {
         const bool accept=id.startsWith("answer-call:");
         if(social_.answerCall(id.section(':',1),accept,true)&&accept)closeHomeMenu();
@@ -1712,7 +1758,7 @@ void ShellController::activateHomeMenu(int index) {
     if(id=="chats"&&!social_.notificationFace().isEmpty()){openSocialNotification();return;}
     if (id!="home") socialFace_ = "chats";
     social_.setFace(socialFace_);
-    goToPage(id=="home" ? HomePage : SocialPage);
+    if(id=="home")goToPage(HomePage);else openOnlineFace("chats");
     if(id=="friends")social_.showContacts();
 }
 void ShellController::activateHomeAction(const QString& id) {
@@ -1735,7 +1781,7 @@ void ShellController::activateNotification(int index) {
         return;
     }
     const auto face=social_.notificationFaceAt(index);if(face.isEmpty())return;
-    if(face=="lobby")openGameHubFace("lobby");else {socialFace_=face;goToPage(SocialPage);}
+    if(face=="lobby")openGameHubFace("lobby");else {socialFace_=face;openOnlineFace("chats");}
     social_.openNotificationAt(index);emit changed();
 }
 void ShellController::openNotificationById(const QString& id) {
@@ -1769,7 +1815,7 @@ void ShellController::dismissNotificationById(const QString& id) {
 void ShellController::openSocialNotification() {
     if(navigationLocked()||(!homeMenuOpen_&&!canReceiveNearby()))return;
     const auto face=social_.notificationFace();if(face.isEmpty())return;
-    if(face=="lobby")openGameHubFace("lobby");else {socialFace_=face;goToPage(SocialPage);}
+    if(face=="lobby")openGameHubFace("lobby");else {socialFace_=face;openOnlineFace("chats");}
     social_.openNotification();emit changed();
 }
 void ShellController::dispatch(Action action) {
@@ -1796,12 +1842,20 @@ void ShellController::dispatch(Action action) {
        && action!=Action::Home && action!=Action::SystemMenu){gamePerformance_.dispatch(action);return;}
     if(pcGames_.isOpen() && !keyboard_.isOpen() && !downloads_.isOpen() && !serviceOpen() && !menuOpen_ && !homeMenuOpen_ && notice_.isEmpty()) {pcGames_.dispatch(action);return;}
     if((social_.myLobbiesOpen() || social_.lobbyCreateOpen() || social_.lobbyPicker()["open"].toBool() || social_.lobbyPicker()["voteOpen"].toBool())&&!keyboard_.isOpen()){social_.dispatch(action);return;}
-    if(page_==GameHubPage && hubFace_=="lobby" && (action==Action::ToggleFavorite || action==Action::ChangeView)) {
+    if(page_==OnlinePage && onlineFace_=="lobby" && (action==Action::ToggleFavorite || action==Action::ChangeView)) {
         if(pairedNavigationAvailable() && !navigationLocked() && !localModalOpen())social_.dispatch(action);
         return;
     }
-    if(page_==SocialPage && !keyboard_.isOpen() && (action==Action::ToggleFavorite || action==Action::ChangeView)) {
+    if(page_==OnlinePage && onlineFace_=="chats" && !keyboard_.isOpen() && (action==Action::ToggleFavorite || action==Action::ChangeView)) {
         if(pairedNavigationAvailable() && !navigationLocked() && !localModalOpen())social_.dispatch(action);
+        return;
+    }
+    if(service_=="profile" && (action==Action::ToggleFavorite || action==Action::ChangeView)) {
+        if(profileContentActive() && !navigationLocked()) {
+            if(profileRoute_=="story" && overviewFace_=="screens" && !album_.filtering()) {
+                if(action==Action::ToggleFavorite)album_.toggleFavorite();else album_.switchLibrary();
+            } else if(profileRoute_=="ra")hall_.dispatch(action);
+        }
         return;
     }
     if(action==Action::ToggleFavorite) {
@@ -2052,11 +2106,27 @@ void ShellController::dispatch(Action action) {
         if (page_ == AppsPage) {
             if(appsFace_=="apps")apps_.dispatch(action);
             else if(appsFace_=="files")files_.dispatch(action);
-            else if(appsFace_=="crates") { if(!crates_.dispatch(action)&&action==Action::Back)selectFace(0); }
             else if(action==Action::Back)selectFace(0);
             return;
         }
-        if (page_ == SocialPage) { social_.dispatch(action); return; }
+        if (page_ == OnlinePage) {
+            if(onlineFace_=="crates"){if(!crates_.dispatch(action)&&action==Action::Back)goToPage(HomePage);}
+            else if(onlineFace_=="bazaar"){if(action==Action::Back)goToPage(HomePage);}
+            else if(onlineFace_=="chats" && chatNavigationFocused_) {
+                if(action==Action::Left || action==Action::Right) {
+                    const QStringList faces{"chats","communities","friends"};
+                    selectChatFace(faces[(qMax(0,faces.indexOf(socialFace_))+(action==Action::Right?1:2))%3]);
+                    chatNavigationFocused_=true;
+                } else if(action==Action::Down || action==Action::Confirm)chatNavigationFocused_=false;
+                else if(action==Action::Back)goToPage(HomePage);
+                emit changed();
+            } else if(onlineFace_=="chats" && action==Action::Up && !social_.reading()
+                      && (social_.focusIndex()<0 || social_.account()["state"]!="connected"
+                          || (socialFace_=="friends" && social_.discover()["area"]=="search" && social_.discoverPreview().isEmpty()))) {
+                chatNavigationFocused_=true;emit changed();
+            } else social_.dispatch(action);
+            return;
+        }
     }
     if (menuOpen_ && !powerMenu_ && notice_.isEmpty() && action == Action::Secondary) {
         if (menuFocus_ >= 7) menuFocus_ = menuServiceFocus_;

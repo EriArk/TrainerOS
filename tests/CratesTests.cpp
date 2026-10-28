@@ -16,6 +16,14 @@ private slots:
         QSettings::setDefaultFormat(QSettings::IniFormat);
         QSettings::setPath(QSettings::IniFormat,QSettings::UserScope,settingsDirectory_.path());
     }
+    void switchingShellSectionsKeepsCrateAndProjectButDismissesActions(){
+        CratesController c;QVERIFY(c.loadCatalogue(cratesCatalogueFixture()));
+        c.open(0,false);c.leave(true);QVERIFY(c.opened());
+        c.openProject(0);QVERIFY(c.detailOpen());const auto selected=c.project();
+        c.showActions();c.leave(true);c.enter();QVERIFY(c.detailOpen());QCOMPARE(c.project(),selected);
+        c.dispatch(Action::Back);QVERIFY(!c.detailOpen());QVERIFY(c.opened());
+        c.openProject(0);c.leave();QVERIFY(!c.detailOpen());
+    }
     void enabledUpdatesCheckInBackgroundWithoutOpeningCrates(){
 #ifndef Q_OS_UNIX
         QSKIP("Real catalogue helper uses the Linux Python interpreter");

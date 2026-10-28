@@ -153,10 +153,9 @@ private slots:
         shell.showOverview("timeline");QCOMPARE(shell.focusIndex(),0);
         shell.dispatch(Action::Left);QCOMPARE(shell.focusIndex(),1);
         const auto story=shell.storyHistory();
-        shell.goToSection("apps");shell.selectFace(3);
-        shell.goToSection("gamehub");QCOMPARE(shell.overviewFace(),"timeline");QCOMPARE(shell.focusIndex(),1);
-        shell.goToSection("apps");QCOMPARE(shell.appsFace(),"files");
-        shell.goToSection("gamehub");
+        shell.dispatch(Action::SystemMenu);shell.dispatch(Action::Back);
+        QCOMPARE(shell.service(),"profile");QCOMPARE(shell.overviewFace(),"timeline");QCOMPARE(shell.focusIndex(),1);
+        QCOMPARE(shell.primaryId(),"home");
         shell.setLiveGame({{"id","crystal-demo"}});
         QCOMPARE(shell.focusIndex(),1);QCOMPARE(shell.storyHistory(),story);
         shell.setLiveGame({{"id",originalGame}});shell.setLiveGame({});
@@ -251,7 +250,7 @@ private slots:
         shell.dispatch(Action::Confirm);QCOMPARE(shell.overviewFace(),"screens");
         shell.dispatch(Action::ChangeView);QVERIFY(shell.album()->favoritesView());
         shell.dispatch(Action::ChangeView);QVERIFY(!shell.album()->favoritesView());QCOMPARE(shell.focusIndex(),1);
-        shell.goToSection("apps");shell.goToSection("gamehub");QCOMPARE(shell.overviewFace(),"screens");QCOMPARE(shell.focusIndex(),1);
+        shell.dispatch(Action::SystemMenu);shell.dispatch(Action::Back);QCOMPARE(shell.service(),"profile");QCOMPARE(shell.overviewFace(),"screens");QCOMPARE(shell.focusIndex(),1);
         shell.dispatch(Action::LocalAction);QVERIFY(shell.album()->filtering());
         shell.dispatch(Action::Back);QVERIFY(!shell.album()->filtering());
         shell.dispatch(Action::ToggleFavorite);QVERIFY(!shell.album()->error().isEmpty()); // No storage configured for this fixture; L3 reached album.
@@ -275,7 +274,7 @@ private slots:
         QVariantMap snapshot{{"state","connected"},{"userId","self"},{"chats",QVariantList{chat}}};
         HomeSocialFixture::publish(*shell.social(),snapshot);QCOMPARE(shell.dashboard()->people().size(),1);
         shell.dispatch(Action::Up);QCOMPARE(shell.dashboard()->focus(),"person:peer-one");
-        shell.dispatch(Action::Confirm);QCOMPARE(shell.primaryId(),"social");QVERIFY(launches.isEmpty());
+        shell.dispatch(Action::Confirm);QCOMPARE(shell.primaryId(),"online");QCOMPARE(shell.onlineFace(),"chats");QVERIFY(launches.isEmpty());
         QCOMPARE(commands.last()[0].toString(),"conversation");QCOMPARE(commands.last()[1].toMap()["id"],"one");
         shell.dispatch(Action::Back);QCOMPARE(shell.primaryId(),"home");QCOMPARE(shell.dashboard()->focus(),"person:peer-one");
         chat=HomeSocialFixture::chat("two","peer-two","Second");snapshot["chats"]=QVariantList{chat};HomeSocialFixture::publish(*shell.social(),snapshot);commands.clear();
@@ -325,7 +324,7 @@ private slots:
         QSet<QString> sets;for(const auto& row:rows)sets.insert(row.toMap()["set"].toString());QCOMPARE(sets.size(),2);
         shell.showAchievements("Unrelated toast",{"Not a trophy"});QCOMPARE(shell.dashboard()->achievements(),rows);
         const auto key=rows.first().toMap()["key"].toString();shell.activateDashboard(key);
-        QCOMPARE(shell.hubFace(),"ra");QCOMPARE(shell.hall()->route(),"achievement-detail");
+        QCOMPARE(shell.service(),"profile");QCOMPARE(shell.profileRoute(),"ra");QCOMPARE(shell.hall()->route(),"achievement-detail");
         QCOMPARE(shell.hall()->detail()["title"].toString(),rows.first().toMap()["name"].toString());
         shell.dispatch(Action::Back);QCOMPARE(shell.primaryId(),"home");QCOMPARE(shell.dashboard()->focus(),key);
         achievements.setAccount({});QVERIFY(shell.dashboard()->achievements().isEmpty());
@@ -338,8 +337,8 @@ private slots:
         QSignalSpy launches(&shell,&ShellController::homeLaunchPressed);
         const auto game=shell.currentAdventureId();
         shell.dispatch(Action::Left);QCOMPARE(shell.dashboard()->focus(),"screens");
-        shell.dispatch(Action::Confirm);QCOMPARE(shell.primaryId(),"gamehub");
-        QCOMPARE(shell.hubFace(),"overview");QCOMPARE(shell.overviewFace(),"screens");
+        shell.dispatch(Action::Confirm);QCOMPARE(shell.primaryId(),"home");
+        QCOMPARE(shell.service(),"profile");QCOMPARE(shell.profileRoute(),"story");QCOMPARE(shell.overviewFace(),"screens");
         QCOMPARE(shell.currentAdventureId(),game);QVERIFY(launches.isEmpty());
         shell.dispatch(Action::Back);QCOMPARE(shell.primaryId(),"home");QCOMPARE(shell.dashboard()->focus(),"screens");
         shell.dispatch(Action::Right);QCOMPARE(shell.dashboard()->focus(),"play");
@@ -527,28 +526,28 @@ private slots:
         MockHallOfFameRepository archive;MockAchievementProvider achievements;
         ExperienceFactory factory=[](ExperienceServices services){ExperienceModules result;result.push_back(std::make_unique<GenericExperience>(services));return result;};
         ShellController shell(library,profiles,adapter,platform,factory,archive,achievements);
-        QCOMPARE(shell.primaryNames(),QStringList({"Home","Games","GameHub","Social","Apps"}));
+        QCOMPARE(shell.primaryNames(),QStringList({"Home","Games","GameHub","Online","Apps"}));
         shell.openGameHubFace("lobby");
-        QCOMPARE(shell.primaryId(),"gamehub");QCOMPARE(shell.hubFace(),"lobby");
+        QCOMPARE(shell.primaryId(),"online");QCOMPARE(shell.onlineFace(),"lobby");
         shell.restoreNavigation({{"version",3},{"page","home"},{"socialFace","lobby"}});
-        QCOMPARE(shell.primaryId(),"home");QCOMPARE(shell.hubFace(),"lobby");
+        QCOMPARE(shell.primaryId(),"home");QCOMPARE(shell.hubFace(),"spaces");
         shell.goToSection("social");QCOMPARE(shell.socialSurface(),"chats");
-        QCOMPARE(shell.faceNames(),QStringList({"My Story","RetroAchievements","Lobby"}));
-        shell.dispatch(Action::NextFace);QCOMPARE(shell.hubFace(),"overview");
-        shell.goToSection("apps");QCOMPARE(shell.faceNames(),QStringList({"Apps","Crates","Browser","Files"}));
-        shell.selectFace(3);QCOMPARE(shell.appsFace(),"files");
-        shell.goToSection("social");QCOMPARE(shell.faceNames(),QStringList({"Messages","Communities","Discover"}));
+        QCOMPARE(shell.faceNames(),QStringList({"Lobby","Bazaar","Crates","Chats"}));
+        shell.goToSection("gamehub");QCOMPARE(shell.faceNames(),QStringList({"Game spaces"}));
+        shell.goToSection("apps");QCOMPARE(shell.faceNames(),QStringList({"Apps","Browser","Files"}));
+        shell.selectFace(2);QCOMPARE(shell.appsFace(),"files");
+        shell.goToSection("social");QCOMPARE(shell.onlineFace(),"chats");
     }
     void legacyRoutesMigrateToTheCorrectOwner() {
         MockLibraryRepository library;MockTrainerRepository profiles;MockAdventureAdapter adapter;DevelopmentPlatformService platform;
         MockPokedexRepository dex;MockHallOfFameRepository archive;MockAchievementProvider achievements;
         ShellController shell(library,profiles,adapter,platform,builtinExperiences(dex,dex),archive,achievements);
         shell.restoreNavigation({{"version",2},{"page","trainer"},{"trainerFace","ra"}});
-        QCOMPARE(shell.primaryId(),"gamehub");QCOMPARE(shell.hubFace(),"ra");
+        QCOMPARE(shell.primaryId(),"home");QCOMPARE(shell.service(),"profile");QCOMPARE(shell.profileRoute(),"ra");
         shell.restoreNavigation({{"version",2},{"page","companions"},{"pokemonFace","boxes"}});
         QCOMPARE(shell.primaryId(),"gamehub");QCOMPARE(shell.hubFace(),"adapter");QCOMPARE(shell.adapterScreen(),"boxes");
         shell.restoreNavigation({{"version",2},{"page","social"},{"socialFace","lobby"}});
-        QCOMPARE(shell.primaryId(),"gamehub");QCOMPARE(shell.hubFace(),"lobby");
+        QCOMPARE(shell.primaryId(),"online");QCOMPARE(shell.onlineFace(),"lobby");
         shell.restoreNavigation({{"version",2},{"page",5}});
         QCOMPARE(shell.primaryId(),"apps");
         shell.restoreNavigation({{"version",1},{"page",4},{"hall",QJsonObject{{"route","achievement-sets"}}}});
@@ -560,7 +559,7 @@ private slots:
         MockLibraryRepository library;MockTrainerRepository profiles;MockAdventureAdapter adapter;DevelopmentPlatformService platform;
         MockPokedexRepository dex;MockHallOfFameRepository archive;MockAchievementProvider achievements;
         ShellController shell(library,profiles,adapter,platform,builtinExperiences(dex,dex),archive,achievements);
-        for(const auto& root:{"games","gamehub","social","apps"}) {
+        for(const auto& root:{"games","gamehub","online","apps"}) {
             shell.goToSection(root);shell.dispatch(Action::ToggleContinue);QVERIFY(shell.drawerOpen());
             shell.dispatch(Action::Back);QCOMPARE(shell.primaryId(),root);QVERIFY(!shell.drawerOpen());
             shell.dispatch(Action::Secondary);QVERIFY(shell.quickAppsOpen());
@@ -614,7 +613,7 @@ private slots:
         shell.dispatch(Action::Confirm);QCOMPARE(rpg->count,1);
         shell.activate(7);QCOMPARE(shell.home()["fixtureValue"].toInt(),7);
         shell.selectAdapterScreen("second");QCOMPARE(rpg->lastFace,"second");
-        shell.dispatch(Action::NextFace);QCOMPARE(shell.hubFace(),"lobby");QCOMPARE(rpg->lastFace,"second");
+        shell.dispatch(Action::NextFace);QCOMPARE(shell.hubFace(),"spaces");QCOMPARE(rpg->lastFace,"second");
         shell.openGameHubFace("adapter");
         const auto oldToken=rpg->token();
         auto state=shell.navigationState();state["homeAdventure"]="racing";shell.restoreNavigation(state);
@@ -631,7 +630,7 @@ private slots:
         rpg->requestText();QVERIFY(shell.keyboard()->isOpen());
         rpg->setEnabled(false);QCOMPARE(shell.homeView(),"game-home");QVERIFY(shell.dashboard()->genericLayout());QVERIFY(!shell.keyboard()->isOpen());
         rpg->applyText("late");QVERIFY(rpg->lastText.isEmpty());
-        rpg->setEnabled(true);QCOMPARE(shell.homeView(),"rpg-home");QVERIFY(!shell.dashboard()->genericLayout());QCOMPARE(shell.hubFace(),"overview");
+        rpg->setEnabled(true);QCOMPARE(shell.homeView(),"rpg-home");QVERIFY(!shell.dashboard()->genericLayout());QCOMPARE(shell.hubFace(),"spaces");
         shell.openGameHubFace("adapter");shell.selectAdapterScreen("second");QCOMPARE(shell.focusIndex(),7);
         rpg->version=99;emit rpg->changed();QCOMPARE(shell.homeView(),"game-home");
         QCOMPARE(shell.currentAdventureId(),"rpg");

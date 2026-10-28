@@ -81,7 +81,7 @@ public:
     Q_INVOKABLE void select(int index);
     Q_INVOKABLE void open(int index, bool reducedMotion=false);
     Q_INVOKABLE void back();
-    Q_INVOKABLE void leave();
+    Q_INVOKABLE void leave(bool preserveSelection = false);
     Q_INVOKABLE void selectProject(int index);
     Q_INVOKABLE void openProject(int index);
     Q_INVOKABLE void closeDetail();

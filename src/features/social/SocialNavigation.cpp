@@ -82,7 +82,7 @@ void SocialController::restoreSocialPreferences(){
     if(key==socialSettingsKey_)return;
     socialSettingsKey_=key;const auto saved=QSettings().value(key).toMap();
     pinnedPeople_=saved["people"].toStringList();pinnedGroups_=saved["groups"].toStringList();pinnedCommunities_=saved["communities"].toStringList();
-    faceRoutes_.clear();
+    faceRoutes_.clear();pendingFaceRoute_.clear();
     const auto routes=saved["routes"].toMap();for(auto it=routes.begin();it!=routes.end();++it)faceRoutes_[it.key()]=it.value().toMap();
 }
 void SocialController::saveSocialPreferences(){

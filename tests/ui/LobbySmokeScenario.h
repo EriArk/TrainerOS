@@ -428,7 +428,7 @@ public:
                 for(int i=0;i<6;++i)messages.append(QVariantMap{{"id",QString::number(100+i)},{"author",i%2?"1":"2"},{"name",i%2?"You":"Mika"},{"mine",bool(i%2)},{"text",QStringList{"Hey! Ready for another adventure?","Absolutely. Which game are we playing?","Let's pick something together this evening.","Sounds good! I'll bring the snacks.","Perfect. See you at eight!","See you there!"}[i]},{"timestamp",QString("2026-10-17T18:%1:00Z").arg(i,2,10,QChar('0'))}});
                 social->receive(0,{{"state","connected"},{"userId","1"},{"name","Ren"},{"channel","dm2"},{"friends",people},{"chats",chats},{"messages",messages},
                     {"communities",QVariantList{QVariantMap{{"id","guild"},{"name","TrainerOS Club"},{"kind","community"}}}}});
-                shell.goToPage(ShellController::SocialPage);social->setFace("chats");window->resize(1600,900);break;
+                shell.openOnlineFace("chats");window->resize(1600,900);break;
             }
             case 1:capture("social-messages");social->contextRow(0);break;
             case 2:check(social->menu().size()<=4 && social->menu().contains("Profile"),"Basic person context retains profile and removal");capture("social-person-menu");social->closeMenu();social->reading_=true;social->conversationControl_=11;emit social->changed();break;
@@ -458,7 +458,7 @@ public:
                 for(int i=0;i<3;++i)communities.append(QVariantMap{{"id",QString::number(i+100)},{"name",clubs[i]},{"description",descriptions[i]},{"kind","community"},{"action","Join"},{"members",24+i*37},{"language","English"}});
                 social->receive(0,{{"state","connected"},{"userId","1"},{"name","Ren"},{"friends",people},{"searchResults",communities},{"searchTotal",3}});
                 social->recentTogether_.configure({},"1");social->recentTogether_.observe({{"id","fixture"},{"phase","playing"},{"ticket","co-play-fixture"},{"game",QJsonObject{{"id","kart"},{"title","Mario Kart 64"}}},{"members",members}},1792230000);
-                shell.goToPage(ShellController::SocialPage);social->setFace("chats");shell.dispatch(Action::NextFace);shell.dispatch(Action::NextFace);window->resize(1600,900);break;
+                shell.openOnlineFace("chats");shell.selectChatFace("friends");window->resize(1600,900);break;
             }
             case 1:check(social->face_=="friends","Discover is the third Social face");capture("discover-home");social->dispatch(Action::Down);social->dispatch(Action::Down);social->dispatch(Action::Confirm);break;
             case 2:check(!social->discoverPreview().isEmpty(),"Controller A opens a preview");capture("discover-preview");social->dispatch(Action::Back);social->discoverAction("all");break;

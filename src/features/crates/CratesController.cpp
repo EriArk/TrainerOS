@@ -229,7 +229,13 @@ void CratesController::back(){
     if(detailOpen_){closeDetail();return;}
     opening_.stop();opened_=false;emit changed();
 }
-void CratesController::leave(){catalogueActive_=pendingSync_=false;if(updatePrompt_)confirmUpdates(false);if(opening()||detailOpen_){opening_.stop();closeDetail();}}
+void CratesController::leave(bool preserveSelection){
+    catalogueActive_=pendingSync_=false;
+    if(updatePrompt_)confirmUpdates(false);
+    if(opening()){opening_.stop();if(preserveSelection)opened_=true;}
+    if(!preserveSelection)closeDetail();
+    else {actionsOpen_=confirmRemove_=false;pendingVersion_.clear();}
+}
 bool CratesController::dispatch(Action action) {
     if(updatePrompt_){
         if(action==Action::Back)confirmUpdates(false);
