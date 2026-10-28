@@ -1,0 +1,26 @@
+{
+  "account": {
+    "exit": 0,
+    "summary": [
+      "Totals: 20 passed, 0 failed, 0 skipped, 0 blacklisted, 1508ms"
+    ]
+  },
+  "interaction": {
+    "exit": 0,
+    "summary": [
+      "Totals: 56 passed, 0 failed, 0 skipped, 0 blacklisted, 8079ms"
+    ]
+  },
+  "experience": {
+    "exit": 0,
+    "summary": [
+      "Totals: 29 passed, 0 failed, 0 skipped, 0 blacklisted, 6233ms"
+    ]
+  },
+  "ui": {
+    "exit": 0,
+    "diagnostics": [],
+    "success": true,
+    "warnings": 0
+  }
+}

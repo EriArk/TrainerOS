@@ -1,0 +1,38 @@
+{
+  "sourceBase": "5e8083240c96573ac6a6e06a7fdb39998e9a8f42",
+  "feature": "permanent profile scenes",
+  "offers": [
+    "profile.aurora",
+    "profile.dusk",
+    "profile.orbit"
+  ],
+  "price": 250,
+  "backendTests": 95,
+  "native": {
+    "account": 20,
+    "interaction": 56,
+    "experience": 29,
+    "qmlWarnings": 0
+  },
+  "screenshots": "isolated fixture, test wallet and emblem fallback; not an owner purchase",
+  "realOwnerPurchase": false,
+  "realOwnerReward": false,
+  "pending": [
+    "real RA link/reward/purchase",
+    "support preview and retroactive rewards",
+    "game content consumer",
+    "reversals/refunds",
+    "trading/barter",
+    "physical acceptance"
+  ],
+  "installedSha256": "00110e716ab4aaaffaa579fe59a2de1ca837926b57505cdd157430ac676bbd75",
+  "deviceUi": [
+    "three scenes with actual avatar",
+    "light Odin and dark Flip",
+    "controller Refresh and primary focus",
+    "return to profile and Home"
+  ],
+  "physicalAcceptance": false,
+  "installedAvatarRevision": 4,
+  "excludedOtherChatAvatarRevision6Wip": true
+}

@@ -73,6 +73,8 @@ def grant_runtime(database_url, role):
         'progression_accounts': 'SELECT,INSERT,UPDATE',
         'reward_links': 'SELECT,INSERT', 'reward_link_challenges': 'SELECT,INSERT,UPDATE',
         'reward_ledger': 'SELECT,INSERT',
+        'shop_offers': 'SELECT', 'purchases': 'SELECT,INSERT', 'owned_items': 'SELECT,INSERT',
+        'profile_appearances': 'SELECT,INSERT,UPDATE',
         'login_attempts': 'SELECT,INSERT,UPDATE', 'device_sessions': 'SELECT,INSERT,UPDATE',
         'refresh_credentials': 'SELECT,INSERT,UPDATE',
         'game_rulesets': 'SELECT', 'play_grants': 'SELECT,INSERT,UPDATE',
@@ -87,6 +89,7 @@ def grant_runtime(database_url, role):
                 sql_builder.SQL(privileges), sql_builder.Identifier(table), sql_builder.Identifier(role)))
         conn.execute(sql_builder.SQL('GRANT EXECUTE ON FUNCTION trainer_backend.assert_principal(uuid,text) TO {}').format(sql_builder.Identifier(role)))
         conn.execute(sql_builder.SQL('GRANT EXECUTE ON FUNCTION trainer_backend.resolve_fluxer_player(text,text) TO {}').format(sql_builder.Identifier(role)))
+        conn.execute(sql_builder.SQL('GRANT EXECUTE ON FUNCTION trainer_backend.lock_shop_offer(text) TO {}').format(sql_builder.Identifier(role)))
 
 
 class Database:

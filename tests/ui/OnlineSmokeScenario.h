@@ -78,15 +78,26 @@ inline void startOnlineSmoke(QQuickWindow* window,trainer::ShellController& shel
             auto* account=shell.backendAccount();
             const QString player="11111111-1111-4111-8111-111111111111";
             const auto date=QDateTime::currentDateTimeUtc().toString(Qt::ISODateWithMs);
-            account->setServices({[player,date](QByteArray,QString path,QJsonObject,QByteArray,trainer::BackendAccount::Reply done){
+            auto store=std::make_shared<QJsonObject>(QJsonObject{{"player_id",player},{"revision","31"},{"items",QJsonArray{}},{"equipped",QJsonValue()}});
+            QJsonArray offers;
+            for(const auto name:{"aurora","dusk","orbit"})offers.append(QJsonObject{{"id","profile."+QString(name)},{"appearance",name},{"title",QString(name).left(1).toUpper()+QString(name).mid(1)},
+                {"description","A permanent illustrated world for your character."},{"price",250},{"minimum_level",1},{"revision","1"},{"kind","permanent_license"},{"available",true}});
+            (*store)["catalogue"]=offers;auto balance=std::make_shared<int>(1000);
+            account->setServices({[player,date,store,balance](QByteArray,QString path,QJsonObject body,QByteArray,trainer::BackendAccount::Reply done){
                 if(path=="/v1/auth/refresh")done(200,{{"player_id",player},{"session_id","33333333-3333-4333-8333-333333333333"},{"fluxer_subject","12345"},
                     {"access_token",QString(43,'a')},{"refresh_token",QString(43,'r')},{"expires_at",QDateTime::currentDateTimeUtc().addSecs(900).toString(Qt::ISODateWithMs)}});
-                else if(path=="/v1/me/progression")done(200,{{"player_id",player},{"balance",1000},{"revision","31"},{"checked_at",date},
+                else if(path=="/v1/me/progression")done(200,{{"player_id",player},{"balance",*balance},{"revision",(*store)["revision"]},{"checked_at",date},
                     {"mastery",QJsonObject{{"xp",2000},{"level",5},{"level_xp",200},{"next_level_xp",700}}},
                     {"challenge",QJsonObject{{"challenge","TrainerOS-example-link-code"},{"username","Example"}}},
                     {"history",QJsonArray{QJsonObject{{"id","44444444-4444-4444-8444-444444444444"},{"source","ra.completion"},{"title","Example completed set"},{"xp",1100},{"sparks",550},{"earned_at",date}}}}});
+                else if(path=="/v1/me/inventory")done(200,*store);
+                else if(path=="/v1/me/purchases") {
+                    for(const auto row:(*store)["catalogue"].toArray())if(row.toObject()["id"]==body["offer_id"]){auto owned=row.toObject();owned["purchase_id"]="55555555-5555-4555-8555-555555555555";(*store)["items"]=QJsonArray{owned};}
+                    auto receipt=body;receipt["id"]="55555555-5555-4555-8555-555555555555";receipt["player_id"]=player;receipt["price"]=receipt.take("expected_price");
+                    (*store)["receipt"]=receipt;(*store)["revision"]="32";*balance-=250;done(200,*store);
+                } else if(path=="/v1/me/inventory/appearance") {(*store)["equipped"]=body["offer_id"];(*store)["revision"]=QString::number((*store)["revision"].toString().toInt()+1);done(200,*store);}
                 else done(503,{});
-            },[](QString,auto done){done(true,QJsonDocument(QJsonObject{{"refresh_token",QString(43,'r')}}).toJson());},[](QString,QByteArray,auto done){done(true);},[](QUrl){return false;}});
+            },[](QString,auto done){done(true,QJsonDocument(QJsonObject{{"refresh_token",QString(43,'r')}}).toJson());},[](QString,QByteArray,auto done){done(true);},[](QUrl){return false;},[](QString){return QByteArray();},[](QString,QByteArray){return true;}});
             account->configure("ui-progression-fixture");shell.openProfile();window->resize(1280,720);break;
         }
         case 15:
@@ -99,6 +110,28 @@ inline void startOnlineSmoke(QQuickWindow* window,trainer::ShellController& shel
             capture("progression-account-compact");shell.dispatch(Action::Back);break;
         case 18:
             capture("progression-profile-compact");shell.dispatch(Action::Back);break;
+        case 19:
+            shell.openProfile();shell.activate(9,"profile");shell.backendAccount()->selectShopItem(1);window->resize(1280,720);break;
+        case 20:
+            check(shell.profileRoute()=="shop","Appearance route");
+            shell.dispatch(Action::Left);shell.dispatch(Action::Confirm);
+            check(shell.backendAccount()->shop()["review"].toMap().isEmpty(),"Controller Refresh does not buy");
+            shell.dispatch(Action::Right);capture("shop-aurora-wide");shell.dispatch(Action::Confirm);break;
+        case 21:
+            check(!shell.backendAccount()->shop()["review"].toMap().isEmpty(),"Explicit review");capture("shop-confirm-wide");shell.dispatch(Action::Back);shell.backendAccount()->selectShopItem(2);break;
+        case 22:
+            capture("shop-dusk-wide");window->resize(960,540);shell.backendAccount()->selectShopItem(3);break;
+        case 23:
+            capture("shop-orbit-compact");shell.dispatch(Action::Confirm);break;
+        case 24:
+            capture("shop-confirm-compact");shell.dispatch(Action::Right);shell.dispatch(Action::Confirm);break;
+        case 25:
+            check(shell.profileAccount()["sparksText"]=="750","Purchase updates real projection");
+            check(shell.backendAccount()->shop()["selected"].toMap()["owned"].toBool(),"Purchase delivers ownership");
+            shell.dispatch(Action::Confirm);shell.dispatch(Action::Back);break;
+        case 26:
+            check(shell.backendAccount()->profileAppearance()=="orbit","Purchased appearance applied");capture("shop-applied-compact");
+            shell.activate(9,"profile");shell.backendAccount()->selectShopItem(0);shell.dispatch(Action::Confirm);shell.dispatch(Action::Back);shell.dispatch(Action::Back);break;
         default:
             check(warnings==0,"QML warnings during Online navigation");
             if(!directory.isEmpty()){QFile f(directory+"/online-report.json");if(f.open(QIODevice::WriteOnly))f.write(QJsonDocument(QJsonObject{{"warnings",warnings},{"success",diagnostics.isEmpty()},{"diagnostics",QJsonArray::fromStringList(diagnostics)}}).toJson());}

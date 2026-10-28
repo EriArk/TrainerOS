@@ -42,30 +42,11 @@ Panel {
         }
         Item {
             id: showcase; y: 42; width: parent.width; height: parent.height-y; visible: root.browsing
-            Rectangle {
-                id: portrait; width: parent.width*.37; height: parent.height; radius: 12; clip: true
-                gradient: Gradient { GradientStop {position:0;color:Theme.dark?"#182536":"#bdd9dc"} GradientStop {position:1;color:Theme.dark?"#293f40":"#dce8ce"} }
-                Rectangle { x: parent.width*.60; y: parent.height*.10; width: parent.width*.32; height: width; radius: width/2; color: Theme.dark?"#b8c6ab":"#fff1c9"; opacity:.88 }
-                Canvas {
-                    anchors.fill: parent
-                    property bool night: Theme.dark
-                    onNightChanged: requestPaint()
-                    onWidthChanged: requestPaint()
-                    onHeightChanged: requestPaint()
-                    onPaint: {
-                        let c=getContext("2d");c.reset();const w=width,h=height
-                        c.fillStyle=night?"#293b47":"#96bab3";c.beginPath();c.moveTo(0,h*.47);c.bezierCurveTo(w*.38,h*.12,w*.52,h*.77,w,h*.34);c.lineTo(w,h);c.lineTo(0,h);c.fill()
-                        c.fillStyle=night?"#36504b":"#b9cdb1";c.beginPath();c.moveTo(0,h*.73);c.bezierCurveTo(w*.4,h*.4,w*.6,h*.6,w,h*.68);c.lineTo(w,h);c.lineTo(0,h);c.fill()
-                    }
-                }
-                Text { x: 15; y: 13; text: "T R A I N E R"; font.pixelSize: 10; color: Theme.dark?"#d0dfdc":"#466869" }
-                Loader {
-                    id: avatarView; x: 0; y: 22; width: parent.width; height: parent.height-37
-                    active: root.browsing && !!root.profile.avatarPreview && root.profile.avatarRendererAvailable
-                    source: active ? "AvatarPreview3D.qml" : ""
-                    onLoaded: item.modelSource=Qt.binding(function(){return root.profile.avatarPreview})
-                }
-                TrainerEmblem { anchors.centerIn: avatarView; width: Math.min(120,avatarView.width*.6); height: width; visible: !avatarView.active; emblem: root.profile.profile.emblem || "compass" }
+            ProfileScene {
+                id:portrait;width:parent.width*.37;height:parent.height
+                profile:root.profile;appearance:root.shell.backendAccount.profileAppearance;showAvatar:root.browsing
+                Rectangle { anchors.right:parent.right;anchors.rightMargin:7;y:7;width:105;height:31;radius:6;color:Theme.surface;opacity:.92 }
+                ProfileAction { anchors.right:parent.right;anchors.rightMargin:10;y:8;width:98;actionIndex:9;label:"Appearance \u203a";textSize:11 }
             }
             Flickable {
                 id: factsScroll; x: portrait.width+22; width: parent.width-x; height: parent.height
@@ -74,7 +55,7 @@ Panel {
                 function revealFocus() {
                     if (!root.browsing || !root.shell.profileContentActive) return
                     const focus = root.shell.profileFocus
-                    const section = focus === 4 ? economy : focus === 3 || focus >= 7 ? awards : focus === 2 || focus === 5 || focus === 6 ? journey : null
+                    const section = focus === 4 ? economy : focus === 3 || (focus >= 7 && focus <= 8) ? awards : focus === 2 || focus === 5 || focus === 6 ? journey : null
                     if (!section) { contentY = 0; return }
                     if (section.y < contentY) contentY = section.y
                     else if (section.y+section.height > contentY+height) contentY = Math.max(0, section.y+section.height-height)
@@ -164,6 +145,7 @@ Panel {
                 }
             }
         }
+        ProfileShop { x:0;y:42;width:parent.width;height:parent.height-y;shell:root.shell;visible:root.shell.profileRoute==="shop" }
         GameHubOverview { x:0;y:42;width:parent.width;height:parent.height-y; shell:root.shell; visible:root.shell.profileRoute==="story" }
         AchievementGallery { x:0;y:42;width:parent.width;height:parent.height-y;shell:root.shell;visible:root.shell.profileRoute==="ra" }
         Item {
@@ -199,19 +181,19 @@ Panel {
                             MouseArea { anchors.fill:parent;onClicked:root.shell.activate(index,"profile") }
                         }
                     }
-                    Text { width:parent.width;text:"Support bonuses and purchases are not available yet.";wrapMode:Text.WordWrap;font.pixelSize:10;color:Theme.muted }
+                    Text { width:parent.width;text:"Profile appearances are available from your character card. Support bonuses are not available yet.";wrapMode:Text.WordWrap;font.pixelSize:10;color:Theme.muted }
                 }
             }
             Rectangle { x:parent.width*.51;width:1;height:parent.height;color:Theme.divider }
             Column { x:parent.width*.54;width:parent.width-x;height:parent.height;spacing:10
-                Text { text:"Recent rewards";font.pixelSize:17;color:Theme.ink }
+                Text { text:"Recent activity";font.pixelSize:17;color:Theme.ink }
                 Text { text:root.account.balanceKnown?root.account.sparksText+" Sparks  ·  "+root.account.xp+" XP":"Sign in to view account progress";font.pixelSize:12;color:root.accent }
                 ListView { id:rewardHistory;width:parent.width;height:parent.height-65;clip:true;spacing:6;model:root.shell.backendAccount.progression.history||[]
                     Connections { target:root.shell;function onChanged(){if(root.shell.profileRoute==="account" && root.shell.profileFocus>=4)rewardHistory.positionViewAtIndex(root.shell.profileFocus-4,ListView.Contain)} }
                     delegate: Item { required property var modelData;required property int index;width:ListView.view.width;height:55
                         Rectangle { anchors.fill:parent;radius:4;color:Theme.selection;visible:root.shell.profileFocus===index+4 }
                         Text { width:parent.width;text:modelData.title;textFormat:Text.PlainText;font.pixelSize:12;color:Theme.ink;elide:Text.ElideRight }
-                        Text { y:19;width:parent.width;text:(modelData.source==="ra.completion"?"Complete set · ":"")+"+"+modelData.xp+" XP · +"+modelData.sparks+" Sparks";font.pixelSize:11;color:root.accent;elide:Text.ElideRight }
+                        Text { y:19;width:parent.width;text:modelData.source==="shop.purchase"?modelData.sparks+" Sparks ? Purchase":(modelData.source==="ra.completion"?"Complete set · ":"")+"+"+modelData.xp+" XP · +"+modelData.sparks+" Sparks";font.pixelSize:11;color:root.accent;elide:Text.ElideRight }
                         Text { y:35;text:new Date(modelData.earned_at).toLocaleDateString();font.pixelSize:10;color:Theme.muted }
                     }
                     Text { visible:parent.count===0;width:parent.width;text:"No earned rewards yet";font.pixelSize:12;color:Theme.muted }

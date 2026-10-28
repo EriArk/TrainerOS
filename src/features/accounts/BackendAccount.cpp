@@ -77,8 +77,8 @@ bool BackendAccount::adoptProgression(const QJsonObject& value) {
     if(!revisionOk || (!progression_.isEmpty() && revision<progression_["revision"].toString().toULongLong()))return false;
     for(const auto item:value["history"].toArray()) {
         const auto row=item.toObject();
-        if(!uuid(row["id"].toString()) || !integer(row["xp"],0) || !integer(row["sparks"],0)
-            || row["title"].toString().size()>256 || !QStringList{"ra.achievement","ra.completion"}.contains(row["source"].toString()))return false;
+        if(!uuid(row["id"].toString()) || !integer(row["xp"],0) || !integer(row["sparks"],row["source"]=="shop.purchase"?-2147483647:0)
+            || row["title"].toString().size()>256 || !QStringList{"ra.achievement","ra.completion","shop.purchase"}.contains(row["source"].toString()))return false;
     }
     const bool had=!progression_.isEmpty();
     const auto xpDelta=qint64(mastery["xp"].toDouble()-progression_["mastery"].toObject()["xp"].toDouble());
@@ -153,6 +153,7 @@ QString BackendAccount::actionLabel() const {
     return "Sign in to TrainerOS with Fluxer";
 }
 void BackendAccount::reset() {
+    shopBusy_=false;shopReview_={};shopStale_=true;
     progressionTimer_.stop();progression_={};rewardStatus_.clear();rewardBusy_=false;progressionStale_=false;lastRewardSync_=0;
     avatarRetry_.stop();publicAvatar_={};publishedAvatar_={};avatarBusy_=false;
     const auto channels=playGrants_.keys();for(const auto& channel:channels)closePlay(channel);
@@ -163,7 +164,7 @@ void BackendAccount::reset() {
 }
 void BackendAccount::configure(const QString& owner) {
     if(owner_==owner)return;
-    reset();lock_.reset();owner_=owner;socialSubject_.clear();
+    reset();lock_.reset();shopSnapshot_={};shopPending_={};shopStatus_.clear();shopIndex_=0;owner_=owner;socialSubject_.clear();
     if(owner.isEmpty()){state("disabled","Open your Trainer to sign in");return;}
     key_=QString::fromLatin1(QCryptographicHash::hash(("traineros-backend-v1\n"+Origin+"\n"+owner).toUtf8(),QCryptographicHash::Sha256).toHex());
     const auto directory=QStandardPaths::writableLocation(QStandardPaths::AppLocalDataLocation)+"/credentials";
@@ -171,6 +172,7 @@ void BackendAccount::configure(const QString& owner) {
     QFile::setPermissions(directory,QFile::ReadOwner|QFile::WriteOwner|QFile::ExeOwner);
     lock_=std::make_shared<QLockFile>(directory+"/backend-"+key_+".lock");lock_->setStaleLockTime(0);
     if(!lock_->tryLock()){state("disabled","This Trainer's account is open in another process");return;}
+    loadCommerce();
     encryptedStore_=EncryptedCredentials::available()&&(!vaultRunning()||QFileInfo::exists(EncryptedCredentials::path(key_)));
     state("restoring","Restoring your TrainerOS session…");const auto epoch=epoch_;
     read([this,epoch](bool ok,QByteArray bytes){
@@ -270,10 +272,11 @@ void BackendAccount::tokens(const QJsonObject& result) {
         if(epoch!=epoch_)return;
         if(!ok){request("DELETE","/v1/auth/sessions/"+session_,{},[](int,QJsonObject){},access_);fail("Could not save the session securely. Try again.");return;}
         player_=player;attempt_.clear();verifier_.clear();
+        if(!shopSnapshot_.isEmpty()&&shopSnapshot_["player_id"].toString()!=player_){shopSnapshot_={};shopIndex_=0;saveCommerce();}
         if(logoutPending_){logoutPending_=false;logout();return;}
         state("connected","Connected through Fluxer");
         syncPublicAvatar();
-        progressionTimer_.start();refreshProgression();
+        progressionTimer_.start();refreshProgression();refreshShop();
         refreshTimer_.start(int(qBound(qint64(1000),QDateTime::currentDateTimeUtc().msecsTo(accessExpiry_)-60000,qint64(840000))));
     });
 }
@@ -295,7 +298,7 @@ void BackendAccount::logout() {
     request("DELETE","/v1/auth/sessions/"+session_,{},[this](int status,QJsonObject){
         if(status==401&&!refresh_.isEmpty()){logoutPending_=true;refresh();return;}
         if(status!=204){state("connected","Could not sign out on the server. Try again.");refreshTimer_.start(30000);return;}
-        const auto epoch=epoch_;write("{}",[this,epoch](bool ok){if(epoch!=epoch_)return;reset();state("signed_out",ok?"Signed out. Your local Trainer is unchanged.":"Signed out. Saved credential is no longer valid.");});
+        const auto epoch=epoch_;write("{}",[this,epoch](bool ok){if(epoch!=epoch_)return;shopSnapshot_={};saveCommerce();reset();state("signed_out",ok?"Signed out. Your local Trainer is unchanged.":"Signed out. Saved credential is no longer valid.");});
     },access_);
 }
 void BackendAccount::request(QByteArray method,QString path,QJsonObject body,Reply done,QByteArray access) {

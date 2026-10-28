@@ -16,6 +16,8 @@ from .accounts.service import Accounts
 from .accounts.routes import router
 from .accounts.limits import AuthLimits
 from .economy.service import Progression
+from .economy.shop import Shop
+from .economy.shop_routes import router as shop_router
 from .economy.routes import router as progression_router
 from .play.service import Play
 from .play.routes import router as play_router
@@ -30,6 +32,7 @@ def create_app(settings=None, *, provider=None, reward_provider=None):
         app.state.accounts = Accounts(app.state.database,settings.oauth,provider or FluxerProvider(settings.oauth)) if settings.oauth else None
         app.state.play = Play(app.state.database,app.state.accounts) if settings.oauth else None
         app.state.progression = Progression(app.state.database, app.state.accounts, reward_provider) if settings.oauth else None
+        app.state.shop = Shop(app.state.progression) if app.state.progression else None
         try:
             yield
         finally:
@@ -41,6 +44,7 @@ def create_app(settings=None, *, provider=None, reward_provider=None):
     app.include_router(router)
     app.include_router(play_router)
     app.include_router(progression_router)
+    app.include_router(shop_router)
 
     @app.exception_handler(AuthError)
     async def auth_error(request, error):
@@ -94,9 +98,10 @@ def create_app(settings=None, *, provider=None, reward_provider=None):
         modules[0]['state']='configured' if settings.oauth else 'provider_not_configured'
         for module in modules:
             if module['name'] in ('registry','results','boards') and settings.oauth: module['state']='peer_confirmed_preview'
+            if module['name'] == 'inventory' and settings.oauth: module['state']='permanent_profile_purchases'
             if module['name'] in ('rewards','wallet') and settings.oauth: module['state']='ra_earning_preview'
         return {'version': __version__, 'capabilities': {'accounts.fluxer_login':1,'accounts.sessions':1,'accounts.native_return':1,
-                'play.scorecards':1,'boards.peer_confirmed':1,'account.progression':1} if settings.oauth else {},
+                'play.scorecards':1,'boards.peer_confirmed':1,'account.progression':1,'inventory.profile_purchases':1} if settings.oauth else {},
                 'modules': modules}
 
     # Draft OpenAPI operations are NOT mounted as success-returning placeholders.

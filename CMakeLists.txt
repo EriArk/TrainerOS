@@ -23,7 +23,7 @@ endif()
 
 add_library(trainer_core STATIC
     src/integrations/adventure/CartridgeContent.cpp
-    src/features/accounts/BackendAccount.cpp
+    src/features/accounts/BackendAccount.cpp src/features/accounts/BackendCommerce.cpp
     src/features/trainer/AvatarAssets.cpp
     src/platform/sdk/PlatformHost.cpp
     src/platform/sdk/SdkNetwork.cpp
@@ -495,6 +495,8 @@ qt_add_qml_module(traineros
         src/qml/SparkIcon.qml
         src/qml/WorkspacePlaceholder.qml
         src/qml/PlayerProfilePanel.qml
+        src/qml/ProfileScene.qml
+        src/qml/ProfileShop.qml
         src/qml/AvatarEditor.qml
         src/qml/AvatarPreview3D.qml
         src/qml/ShellOptions.qml
@@ -621,12 +623,12 @@ if(BUILD_TESTING)
     add_test(NAME software_update COMMAND trainer_software_update_tests -o -,txt)
     qt_add_executable(trainer_platform_tests tests/PlatformHostTests.cpp)
     qt_add_executable(trainer_account_tests tests/BackendAccountTests.cpp
-        src/features/accounts/BackendAccount.cpp src/platform/storage/EncryptedCredentials.cpp src/platform/storage/KeychainRequest.cpp)
+        src/features/accounts/BackendAccount.cpp src/features/accounts/BackendCommerce.cpp src/platform/storage/EncryptedCredentials.cpp src/platform/storage/KeychainRequest.cpp)
     target_include_directories(trainer_account_tests PRIVATE src)
     target_link_libraries(trainer_account_tests PRIVATE Qt6::Test Qt6::Gui Qt6::Network Qt6Keychain::Qt6Keychain)
     add_test(NAME backend_account COMMAND trainer_account_tests)
     qt_add_executable(trainer_backend_login_probe tools/BackendLoginProbe.cpp
-        src/features/accounts/BackendAccount.cpp src/platform/storage/EncryptedCredentials.cpp src/platform/storage/KeychainRequest.cpp)
+        src/features/accounts/BackendAccount.cpp src/features/accounts/BackendCommerce.cpp src/platform/storage/EncryptedCredentials.cpp src/platform/storage/KeychainRequest.cpp)
     target_include_directories(trainer_backend_login_probe PRIVATE src)
     target_link_libraries(trainer_backend_login_probe PRIVATE Qt6::Core Qt6::Gui Qt6::Network Qt6Keychain::Qt6Keychain)
     qt_add_executable(trainer_avatar_tests tests/AvatarTests.cpp)
@@ -1036,3 +1038,5 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
     set_property(TARGET traineros APPEND PROPERTY BUILD_RPATH "$ORIGIN/../lib/traineros-files")
     set_property(TARGET traineros APPEND PROPERTY INSTALL_RPATH "$ORIGIN/../lib/traineros-files")
 endif()
+
+qt_add_resources(traineros profile_scenes PREFIX "/profile-scenes" BASE assets/profile-scenes FILES assets/profile-scenes/aurora.png assets/profile-scenes/dusk.png assets/profile-scenes/orbit.png)

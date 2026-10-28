@@ -225,10 +225,10 @@ def test_api_has_only_real_foundation_routes(postgres, db):
         capabilities = client.get('/v1/capabilities').json()
         assert capabilities['capabilities'] == {}
         assert len(capabilities['modules']) == 13
-        assert client.post('/v1/me/purchases', json={}).status_code == 404
+        assert client.get('/v1/me/inventory').status_code == 503
         paths=set(client.get('/openapi.json').json()['paths'])
         assert {'/health/live','/health/ready','/v1/capabilities','/v1/auth/refresh'}<=paths
-        assert '/v1/me/purchases' not in paths
+        assert '/v1/me/purchases' in paths
         assert client.post('/v1/auth/refresh',json={'refresh_token':'x'*43}).status_code==503
         response = client.get('/health/live')
         assert response.headers['cache-control'] == 'no-store'

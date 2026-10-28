@@ -18,6 +18,8 @@ class BackendAccount final : public QObject {
     Q_PROPERTY(QVariantMap progression READ progression NOTIFY changed)
     Q_PROPERTY(QString rewardStatus READ rewardStatus NOTIFY changed)
     Q_PROPERTY(QString rewardActionLabel READ rewardActionLabel NOTIFY changed)
+    Q_PROPERTY(QVariantMap shop READ shop NOTIFY changed)
+    Q_PROPERTY(QString profileAppearance READ profileAppearance NOTIFY changed)
 public:
     using Reply = std::function<void(int,QJsonObject)>;
     struct Services {
@@ -25,6 +27,8 @@ public:
         std::function<void(QString,std::function<void(bool,QByteArray)>)> read;
         std::function<void(QString,QByteArray,std::function<void(bool)>)> write;
         std::function<bool(QUrl)> openBrowser;
+        std::function<QByteArray(QString)> readCommerce;
+        std::function<bool(QString,QByteArray)> writeCommerce;
     };
     explicit BackendAccount(QObject* parent=nullptr);
     ~BackendAccount() override;
@@ -51,6 +55,13 @@ public:
     void refreshProgression(bool sync=true);
     void activateRewards();
     void copyRewardChallenge();
+    QVariantMap shop() const;
+    QString profileAppearance() const;
+    Q_INVOKABLE void refreshShop();
+    Q_INVOKABLE void selectShopItem(int index);
+    Q_INVOKABLE void activateShopItem();
+    Q_INVOKABLE void confirmPurchase();
+    Q_INVOKABLE void cancelPurchaseReview();
 signals:
     void rewardsEarned(qint64 xp,qint64 sparks);
     void changed();
@@ -65,6 +76,13 @@ private:
     void syncPublicAvatar();
     void rewardRequest(QString action,QJsonObject body,bool sync=false);
     bool adoptProgression(const QJsonObject&);
+    QVariantList shopItems() const;
+    bool adoptShop(const QJsonObject&,bool cached=false);
+    void loadCommerce();
+    bool saveCommerce();
+    void recoverPurchase(bool retry=false);
+    void finishPurchase(int,QJsonObject);
+    QString commercePath() const;
     void logout();
     void fail(const QString& message);
     void request(QByteArray method,QString path,QJsonObject body,Reply done,QByteArray access={});
@@ -82,6 +100,10 @@ private:
     QString rewardStatus_;
     bool rewardBusy_=false,progressionStale_=false;
     qint64 lastRewardSync_=0;
+    QJsonObject shopSnapshot_,shopPending_,shopReview_;
+    QString shopStatus_;
+    bool shopBusy_=false,shopStale_=true;
+    int shopIndex_=0;
     QJsonObject publicAvatar_, publishedAvatar_;
     bool avatarBusy_=false;
     std::shared_ptr<QLockFile> lock_;

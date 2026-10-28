@@ -16,6 +16,10 @@ QJsonObject credentials() {
         {"expires_at",QDateTime::currentDateTimeUtc().addSecs(900).toString(Qt::ISODateWithMs)}};
 }
 struct Harness {
+    bool shopEnabled=false,failCommerce=false;
+    QJsonObject shopValue,purchaseBody;
+    BackendAccount::Reply pendingPurchase;
+    QHash<QString,QByteArray> commerceDisk;
     bool progressionOk=false,deferProgression=false;
     QJsonObject progress;
     BackendAccount::Reply pendingProgression;
@@ -50,7 +54,10 @@ struct Harness {
                 } else if(path=="/v1/me/progression" || path.startsWith("/v1/me/progression/ra/")) {
                     Q_ASSERT(auth==QByteArray(43,'a'));
                     if(deferProgression)pendingProgression=std::move(done);else done(progressionOk?200:503,progress);
-                } else if(path=="/v1/play/grants") {playAuth<<auth;playBodies<<body;if(deferGrant)pendingGrant=std::move(done);else done(200,grant());}
+                } else if(path=="/v1/me/inventory"||path.startsWith("/v1/me/purchases/")) {done(shopEnabled?200:503,shopValue);}
+                else if(path=="/v1/me/purchases") {purchaseBody=body;pendingPurchase=std::move(done);}
+                else if(path=="/v1/me/inventory/appearance") {shopValue["equipped"]=body["offer_id"];shopValue["revision"]=QString::number(shopValue["revision"].toString().toInt()+1);done(200,shopValue);}
+                else if(path=="/v1/play/grants") {playAuth<<auth;playBodies<<body;if(deferGrant)pendingGrant=std::move(done);else done(200,grant());}
                 else if(path=="/v1/play/commands") {playAuth<<auth;playBodies<<body;done(200,{{"state","accepted"}});}
                 else if(path=="/v1/me/profile/avatar") {avatars<<body;Q_ASSERT(auth==QByteArray(43,'a'));if(deferAvatar)pendingAvatar=std::move(done);else done(200,{});}
                 else if(method=="DELETE"&&!auth.isEmpty()) {const int status=rejectDeleteOnce?401:204;rejectDeleteOnce=false;done(status,{});}
@@ -58,7 +65,9 @@ struct Harness {
             },
             [this](QString key,auto done){done(true,disk.value(key));},
             [this](QString key,QByteArray bytes,auto done){if(!failStorage)disk[key]=bytes;done(!failStorage);},
-            [this](QUrl url){browser=url;return true;}
+            [this](QUrl url){browser=url;return true;},
+            [this](QString key){return commerceDisk.value(key);},
+            [this](QString key,QByteArray bytes){if(failCommerce)return false;commerceDisk[key]=bytes;return true;}
         };
     }
     QByteArray callback(QString suffix={},QString host={}) {
@@ -75,7 +84,45 @@ struct Harness {
 }
 class BackendAccountTests:public QObject {
     Q_OBJECT
+    static QJsonObject offer() {return {{"id","profile.aurora"},{"title","Aurora"},{"description","Northern forest"},{"appearance","aurora"},
+        {"price",250},{"revision","1"},{"minimum_level",1},{"kind","permanent_license"},{"available",true}};}
+    static QJsonObject inventory() {return {{"player_id",Player},{"revision","1"},{"items",QJsonArray{}},{"catalogue",QJsonArray{offer()}},{"equipped",QJsonValue()}};}
+    static void settle(Harness& h) {
+        auto item=offer();item["purchase_id"]="44444444-4444-4444-8444-444444444444";
+        h.shopValue["items"]=QJsonArray{item};h.shopValue["revision"]="2";
+        auto receipt=h.purchaseBody;receipt["id"]=item["purchase_id"];receipt["player_id"]=Player;receipt["price"]=receipt.take("expected_price");
+        h.shopValue["receipt"]=receipt;
+    }
 private slots:
+    void purchaseNeedsReviewAndDurableIntentThenRestoresLostResponse() {
+        Harness h;h.shopEnabled=true;h.shopValue=inventory();
+        {
+            BackendAccount a;a.setServices(h.services());a.configure("shop-alice");a.activate();h.callback();
+            a.selectShopItem(1);a.activateShopItem();QVERIFY(!a.shop()["review"].toMap().isEmpty());QVERIFY(!h.pendingPurchase);
+            h.failCommerce=true;a.confirmPurchase();QVERIFY(!h.pendingPurchase);QVERIFY(a.shop()["status"].toString().contains("Nothing was sent"));
+            h.failCommerce=false;a.confirmPurchase();QVERIFY(h.pendingPurchase);QVERIFY(a.shop()["pending"].toBool());
+            QVERIFY(QJsonDocument::fromJson(h.commerceDisk.values().first()).object()["pending"].toObject().contains("operation_id"));
+            const auto body=h.purchaseBody;a.confirmPurchase();QCOMPARE(h.purchaseBody,body);
+            settle(h);h.pendingPurchase(0,{});QVERIFY(a.shop()["pending"].toBool());
+        }
+        const auto charged=h.calls.count("/v1/me/purchases");
+        BackendAccount restored;restored.setServices(h.services());restored.configure("shop-alice");
+        QVERIFY(!restored.shop()["pending"].toBool()); // Receipt recovered after verified session restore.
+        QCOMPARE(h.calls.count("/v1/me/purchases"),charged);
+        restored.selectShopItem(1);QVERIFY(restored.shop()["selected"].toMap()["owned"].toBool());
+        restored.activateShopItem();QCOMPARE(restored.profileAppearance(),"aurora");
+        restored.selectShopItem(0);restored.activateShopItem();QVERIFY(restored.profileAppearance().isEmpty());
+    }
+    void purchaseLateOwnerResponseAndOfflineAppearanceAreIsolated() {
+        Harness h;h.shopEnabled=true;h.shopValue=inventory();
+        BackendAccount a;a.setServices(h.services());a.configure("shop-first");a.activate();h.callback();
+        a.selectShopItem(1);a.activateShopItem();a.confirmPurchase();auto late=std::move(h.pendingPurchase);settle(h);
+        a.configure("shop-second");late(200,h.shopValue);QVERIFY(a.profileAppearance().isEmpty());QVERIFY(!a.shop()["pending"].toBool());
+        a.configure("shop-first");a.selectShopItem(1);a.activateShopItem();QCOMPARE(a.profileAppearance(),"aurora");
+        a.configure("shop-third");h.loseRefresh=true;a.configure("shop-first");
+        QCOMPARE(a.profileAppearance(),"aurora");QVERIFY(a.shop()["stale"].toBool());QVERIFY(!a.shop()["connected"].toBool());
+        a.configure("shop-third");QVERIFY(a.profileAppearance().isEmpty());
+    }
     void vaultJobsFromConcurrentShortLivedWorkersReturnOnReceiverThread() {
 #ifndef Q_OS_WIN
         QSKIP("Windows credential-store regression; no desktop vault prompts on Linux CI");

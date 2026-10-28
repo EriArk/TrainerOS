@@ -4,6 +4,13 @@
 
 ## Current working mode — owner correction, 21 October 2026
 
+**Owner profile-purchase decisions, 28 October:** the first three new permanent
+profile scenes cost 250 Sparks each; existing appearances remain free. Make
+distinct game-like scenes, not palette swaps. Keep the full preview / explicit
+purchase / permanent ownership / apply / recovery journey. This authorizes these
+three prices only, not supporter tariffs or declaring the whole economy complete.
+See [purchase scope and remaining work](services/backend/purchases.md).
+
 **Owner functional-completeness correction, 28 October:** the profile/Online
 delivery is partial. The owner explicitly includes experience, account levels,
 earning/storing Sparks and the related economic foundation in the intended

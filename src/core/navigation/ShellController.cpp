@@ -1664,9 +1664,10 @@ void ShellController::activateProfile(int index) {
         emit changed();return;
     }
     if(profileRoute_!="summary")return;
-    if(index<0 || index>8)return;
+    if(index<0 || index>9)return;
     profileFocus_=index;
-    if(index<2)trainer_.activate(index);
+    if(index==9){profileRoute_="shop";profileFocus_=1;backendAccount_.refreshShop();}
+    else if(index<2)trainer_.activate(index);
     else if(index==4){profileRoute_="account";profileFocus_=0;backendAccount_.refreshProgression(false);}
     else if(index==3 || index>=7) {
         hall_.showAchievementLibrary();profileRoute_="ra";
@@ -1692,6 +1693,19 @@ void ShellController::dispatchProfile(Action action) {
        && ((profileRoute_=="ra" && hall_.route()=="achievement-detail" && !hall_.account()->isOpen() && !hall_.historyOpen() && !hall_.galleryMenuOpen())
            || (profileRoute_=="story" && overviewFace_=="screens" && !album_.filtering()))) {
         dashboardReturn_=false;closeProfile();return;
+    }
+    if(profileRoute_=="shop") {
+        const bool reviewing=!backendAccount_.shop()["review"].toMap().isEmpty();
+        if(action==Action::Back){if(reviewing){backendAccount_.cancelPurchaseReview();profileFocus_=1;}else {profileRoute_="summary";profileFocus_=9;}}
+        else if(reviewing) {
+            if(action==Action::Left)profileFocus_=3;
+            else if(action==Action::Right)profileFocus_=4;
+            else if(action==Action::Confirm){if(profileFocus_==4)backendAccount_.confirmPurchase();else backendAccount_.cancelPurchaseReview();profileFocus_=1;}
+        } else if(action==Action::Up || action==Action::Down){backendAccount_.selectShopItem(backendAccount_.shop()["index"].toInt()+(action==Action::Up?-1:1));profileFocus_=1;}
+        else if(action==Action::Left)profileFocus_=0;
+        else if(action==Action::Right)profileFocus_=1;
+        else if(action==Action::Confirm){if(profileFocus_==0)backendAccount_.refreshShop();else backendAccount_.activateShopItem();if(!backendAccount_.shop()["review"].toMap().isEmpty())profileFocus_=3;}
+        emit changed();return;
     }
     if(profileRoute_=="ra") {
         if(profileRaAccountReturn_ && action==Action::Back && hall_.account()->isOpen()) {
@@ -1727,7 +1741,7 @@ void ShellController::dispatchProfile(Action action) {
     } else if(action==Action::Back)closeProfile();
     else if(action==Action::Confirm)activateProfile(profileFocus_);
     else if(action==Action::Up || action==Action::Left || action==Action::Down || action==Action::Right) {
-        QList<int> order{0,1,4,3};
+        QList<int> order{0,1,4,9,3};
         for(int i=0;i<profileSnapshot_["badges"].toList().size();++i)order.append(7+i);
         order.append(2);if(!profileSnapshot_["latestSession"].toMap().isEmpty())order.append(6);order.append(5);
         const int delta=action==Action::Up || action==Action::Left?-1:1;
