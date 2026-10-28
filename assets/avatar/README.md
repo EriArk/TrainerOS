@@ -1,5 +1,12 @@
 # Shared Trainer avatar pack
 
+**28 October: runtime revision 5** adds the shared facial rig: eight mouth poses,
+nine expressions and four transient reactions. The procedural source is
+[`build_expressions.py`](../../tools/avatar/build_expressions.py); the
+[authoring and check record](../../docs/AVATAR_EXPRESSIONS_20261028.md) distinguishes
+this new work from the approved originals below. Those editable originals are
+unchanged. Revision 5 needs the matching updated resolver and SDK presenter.
+
 The corrected **standalone base body**, without wearable clothing, shoes or hair,
 is [`approved/base-body/trainer-body.glb`](approved/base-body/trainer-body.glb).
 Its [Blender source and verification](approved/base-body/README.md) preserve the
@@ -37,6 +44,7 @@ redistribution review, not a final public asset library.
 | Crop / bob | Owner-supplied Hair Anime20.fbx / Hair Anime14.blend from CGTrader | Fitted, simplified, recolorable; redistribution terms not yet independently verified |
 | Historical tank (revision 3 only) | [Tank Top](https://sketchfab.com/3d-models/tank-top-d6b2561de39f423f9c7a2e7944485beb), Shift4cube / Mohan M, CC BY 4.0 | Loose fitting, reduced polygons, skin/corrective binding; source garment openings retained |
 | Current sports tank / modular eyes | Owner-approved original authoring | Separate fitted tank and 12 eye pairs; shared rig and palette |
+| Facial rig / mouths (revision 5) | Original procedural geometry and morph authoring for TrainerOS | Eight mouth poses, eye/brow expressions; visual owner acceptance pending |
 | Flip-flops | [Flip Flops](https://sketchfab.com/3d-models/flip-flops-ac0eaae976a545caa52908e977f59ae0), Remie07, CC BY 4.0 | Simplified soles, fitted and mirrored pair, rebuilt straps, foot binding |
 
 [CC BY 4.0 terms](https://creativecommons.org/licenses/by/4.0/) apply to the

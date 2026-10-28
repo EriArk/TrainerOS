@@ -152,7 +152,9 @@ QJsonObject AvatarAssets::resolve(const QJsonObject& a,const QString& explicitRo
         auto scenes=g["scenes"].toArray();int scene=g["scene"].toInt();auto sc=scenes[scene].toObject();QJsonArray roots;const auto hairs=m["hairNodes"].toObject();
         auto nodes=g["nodes"].toArray();
         if(!eyeNodes.isEmpty()){
-            const int body=m["bodyNode"].toInt(-1),mesh=m[modularEyes?"preparedBodyMesh":"legacyBodyMesh"].toInt(-1);
+            const auto bodyMeshes=m["eyeBodyMeshes"].toObject();
+            const int body=m["bodyNode"].toInt(-1),mesh=bodyMeshes.contains(eyeStyle)
+                ?bodyMeshes[eyeStyle].toInt(-1):m[modularEyes?"preparedBodyMesh":"legacyBodyMesh"].toInt(-1);
             if(body<0||body>=nodes.size()||mesh<0||mesh>=g["meshes"].toArray().size())return fail("invalid_avatar_pack");
             auto node=nodes[body].toObject();node["mesh"]=mesh;nodes[body]=node;
             for(auto it=eyeNodes.begin();it!=eyeNodes.end();++it)if(it.key()!=eyeStyle)

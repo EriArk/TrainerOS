@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "pack": "trainer-avatar-1",
-  "revision": 4,
+  "revision": 5,
   "template": "template.glb",
   "bodyImage": 1,
   "almondPatches": [
@@ -61,7 +61,7 @@
   },
   "atlasVersion": 2,
   "files": {
-    "template.glb": "c688f16d490d93e5b964552a84f77e93e312a627eb8b8033f5ccd063bcb957ea",
+    "template.glb": "650e95b8a9b162b4eebb85bdc636640f0c7657e5a6845aa4b118f6dc388ceca3",
     "face-round.png": "ab8d363c7a0fafe920f38d6636f9e7163dc5b8f27e0990f9a2e9e6fc673abc5e",
     "face-almond.png": "374ff3067e9a7b9622fb80bdcdb39f0b172ab1384b2186dac477f784ff6b0d99",
     "mask-round.png": "c10d8575189afcf21654acddcb97d01b28658e295398bd10cca43c260a71cd00",
@@ -148,6 +148,12 @@
       107,
       108,
       109
+    ],
+    "round": [
+      111
+    ],
+    "almond": [
+      112
     ]
   },
   "bodyNode": 54,
@@ -162,6 +168,15 @@
         0.55201,
         0.37626
       ]
+    },
+    {
+      "accessor": 585,
+      "role": "skinColor",
+      "base": [
+        0.87137,
+        0.55201,
+        0.37626
+      ]
     }
   ],
   "extraPaletteImages": [
@@ -169,6 +184,20 @@
       "image": 2,
       "file": "iris.png",
       "mask": "mask-iris.png"
+    },
+    {
+      "image": 3,
+      "file": "face-almond.png",
+      "mask": "mask-almond.png"
     }
-  ]
+  ],
+  "eyeBodyMeshes": {
+    "round": 0,
+    "almond": 0
+  },
+  "facialRig": {
+    "schema": 1,
+    "metadata": "extras.trainerFace",
+    "speech": false
+  }
 }

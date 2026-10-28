@@ -93,8 +93,9 @@ The existing Pocket Golf `AvatarAnchor.install_visual` is the intended seam.
 Use `eye_height` for a head camera and the presenter's +Z forward convention.
 Visuals do not participate in ball collision or control shot timing. The first
 pack has joint/pose clips, **not** an authored `golf_putt` animation; unsupported
-`play_action` returns false. Facial expressions and cloth physics are not part of
-this minimum. Pocket Golf binds local and remote presenters, positions the
+`play_action` returns false. Pack revision 5 adds [facial expressions and mouths](AVATAR_EXPRESSIONS.md)
+through the shared presenter; cloth physics remains outside this minimum.
+Pocket Golf binds local and remote presenters, positions the
 golfer side-on to the ball, uses model eye height and waits until a shot finishes
 before replacing appearance. Pack revision 4 was installed on Odin/Flip on
 27 October; game/runtime verification is recorded separately.
@@ -106,6 +107,20 @@ helper as a versioned unit instead of adding game-specific material overrides.
 See [Godot's vertex color behavior](https://docs.godotengine.org/en/stable/classes/class_basematerial3d.html#class-basematerial3d-property-vertex-color-is-srgb).
 
 ## Local preparation
+
+### Facial rig, pack revision 5 (28 October 2026)
+
+Revision 5 retains the approved appearance and adds eight mouth poses, nine
+expressions and four transient reactions. The full GLB carries named morphs and
+`extras.trainerFace` metadata. The resolver's optional `eyeBodyMeshes` mapping
+keeps legacy painted eyes attached to their original face surface; the twelve
+modular sets retain the prepared face. Install the updated resolver together
+with this pack. Descriptors, recipes and saved appearance fields do not change.
+Pack hashes still reject peers with a different installed revision.
+
+See the [game API and example](AVATAR_EXPRESSIONS.md) and
+[authoring / verification record](../docs/AVATAR_EXPRESSIONS_20261028.md).
+The revision 4 delivery below is historical, not proof of revision 5 on devices.
 
 ### Approved art, pack revision 4 (27 October 2026)
 

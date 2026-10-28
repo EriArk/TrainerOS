@@ -1,0 +1,18 @@
+Godot 4.7.2 Compatibility CPU facial suite
+round: PASS
+almond: PASS
+rogue-base: PASS
+rogue-feminine: PASS
+innocent-base: PASS
+innocent-feminine: PASS
+sly-base: PASS
+sly-feminine: PASS
+calm-base: PASS
+calm-feminine: PASS
+sleepy-base: PASS
+sleepy-feminine: PASS
+determined-base: PASS
+determined-feminine: PASS
+
+Mobile facial suite (almond): PASS
+Revision 4 neutral fallback: PASS
