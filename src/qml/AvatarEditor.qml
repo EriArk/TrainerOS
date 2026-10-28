@@ -6,7 +6,14 @@ Item {
     required property var shell
     readonly property var rows: profile.avatarRows
     readonly property bool focused: !shell.menuOpen && !shell.keyboard.open
+    readonly property int partCount: 7
+    readonly property int fieldCount: rows.length-2
     function name(value) {
+        const clothes = ({tank: "Sports tank", "base-shorts": "Basic shorts", none: "None", sandals: "Sandals",
+            "polo-short-sleeve": "Polo", "polo-sleeveless": "Sleeveless polo", "golf-shorts": "Golf shorts",
+            "pleated-skirt": "Pleated skirt", "ankle-socks": "Ankle socks", "crew-socks": "Long socks",
+            "golf-shoes-classic": "Classic shoes", "golf-shoes-sport": "Sport shoes", "golf-cap": "Cap", "golf-visor": "Visor"})[value]
+        if (clothes) return clothes
         const legacy = ({swept: "Side swept", ponytail: "Ponytail", crop: "Short crop", bob: "Bob", round: "Round", almond: "Almond"})[value]
         if (legacy) return legacy
         const style = ({rogue: "Rogue", innocent: "Innocent", sly: "Sly", calm: "Calm", sleepy: "Sleepy", determined: "Determined"})[value.split("-")[0]]
@@ -14,15 +21,17 @@ Item {
     }
     function revealSelection() {
         const field = profile.focusIndex
-        const row = field < 2 ? parts.itemAt(field) : field < 7 ? colours.itemAt(field-2) : null
-        const item = field < 2 && row ? row.selectionItem : row
+        const row = field < partCount ? parts.itemAt(field) : field < fieldCount ? colours.itemAt(field-partCount) : null
+        const item = field < partCount && row ? row.selectedItem() : row
         if (!item) return
         const top = item.mapToItem(options, 0, 0).y
         if (top < choicesView.contentY) choicesView.contentY = top
         else if (top+item.height > choicesView.contentY+choicesView.height)
             choicesView.contentY = top+item.height-choicesView.height
     }
-    Connections { target: root.profile; function onChanged() { Qt.callLater(root.revealSelection) } }
+    Timer { id: revealTimer; interval: 0; onTriggered: root.revealSelection() }
+    Connections { target: root.profile; function onChanged() { revealTimer.restart() } }
+    onHeightChanged: revealTimer.restart()
 
     Text { x: 26; y: 17; text: "Appearance"; font.family: Theme.displayFamily; font.pixelSize: 27; color: Theme.ink }
     Text { x: 27; y: 49; text: "A little more you."; font.pixelSize: 12; color: Theme.muted }
@@ -62,13 +71,13 @@ Item {
         width: choicesView.width-6; spacing: 4
         Repeater {
             id: parts
-            model: root.rows.slice(0,2)
+            model: root.partCount
             delegate: Item {
                 id: part
-                required property var modelData
                 required property int index
+                readonly property var modelData: root.rows[index]
                 readonly property int field: index
-                readonly property var selectionItem: partChoices.itemAt(modelData.choices.indexOf(modelData.detail))
+                function selectedItem() { return partChoices.itemAt(modelData.choices.indexOf(modelData.detail)) }
                 width: options.width; height: choiceFlow.y + choiceFlow.implicitHeight + 7
                 objectName: "avatar-field-"+field
                 Text { text: part.modelData.title; font.pixelSize: 12; font.weight: Font.DemiBold; color: Theme.muted }
@@ -77,11 +86,12 @@ Item {
                     y: 18; width: parent.width; spacing: 7
                     Repeater {
                         id: partChoices
-                        model: part.modelData.choices
+                        model: part.modelData.choices.length
                         delegate: Rectangle {
                             id: choice
                             objectName: "avatar-choice-"+modelData
-                            required property string modelData
+                            required property int index
+                            readonly property string modelData: part.modelData.choices[index]
                             readonly property bool chosen: part.modelData.detail===modelData
                             readonly property bool highlighted: chosen && root.focused && root.profile.focusIndex===part.field
                             readonly property int columns: part.field===0 ? 4 : 2
@@ -113,24 +123,25 @@ Item {
         Rectangle { width: parent.width; height: 1; color: Theme.surfaceColor("#e1e4da") }
         Repeater {
             id: colours
-            model: root.rows.slice(2,7)
+            model: root.fieldCount-root.partCount
             delegate: Item {
                 id: colourRow
-                required property var modelData
                 required property int index
-                readonly property int field: index+2
+                readonly property var modelData: root.rows[index+root.partCount]
+                readonly property int field: index+root.partCount
                 width: options.width; height: Math.max(24,Math.min(30,(root.height-278)/5))
                 objectName: "avatar-field-"+field
                 Text { anchors.verticalCenter: parent.verticalCenter; text: colourRow.modelData.title; font.pixelSize: 12; color: Theme.ink }
                 Row {
-                    anchors.right: parent.right; height: parent.height; spacing: 7
+                    anchors.right: parent.right; height: parent.height; spacing: 4
                     Repeater {
-                        model: colourRow.modelData.choices
+                        model: colourRow.modelData.choices.length
                         delegate: Item {
                             id: swatch
-                            required property string modelData
+                            required property int index
+                            readonly property string modelData: colourRow.modelData.choices[index]
                             readonly property bool chosen: colourRow.modelData.colour===modelData
-                            width: 26; height: parent.height
+                            width: 22; height: parent.height
                             Accessible.role: Accessible.RadioButton; Accessible.name: colourRow.modelData.title+" "+modelData; Accessible.checked: chosen
                             Rectangle { anchors.centerIn: parent; width: 25; height: 25; radius: 13; color: "transparent"; border.width: swatch.chosen ? 2 : 0; border.color: root.focused && root.profile.focusIndex===colourRow.field ? Theme.focusGlow : Theme.ink }
                             Rectangle { anchors.centerIn: parent; width: 18; height: 18; radius: 9; color: swatch.modelData; border.width: 1; border.color: Theme.surfaceColor("#30000000") }
@@ -152,7 +163,7 @@ Item {
     }
     Row {
         x: choicesView.x; y: root.height-49; width: choicesView.width; spacing: 10
-        CapButton { objectName: "avatar-field-7"; width: parent.width*.57; height: 30; label: root.profile.saving ? "Saving…" : "Save appearance"; textSize: 13; tint: Theme.green; selected: root.focused && root.profile.focusIndex===7; enabled: !root.profile.saving; onActivated: root.profile.finishAvatar(true) }
-        CapButton { objectName: "avatar-field-8"; width: parent.width*.43-10; height: 30; label: "Cancel"; textSize: 13; tint: "#e6e9df"; selected: root.focused && root.profile.focusIndex===8; enabled: !root.profile.saving; onActivated: root.profile.finishAvatar(false) }
+        CapButton { objectName: "avatar-field-"+root.fieldCount; width: parent.width*.57; height: 30; label: root.profile.saving ? "Saving…" : "Save appearance"; textSize: 13; tint: Theme.green; selected: root.focused && root.profile.focusIndex===root.fieldCount; enabled: !root.profile.saving; onActivated: root.profile.finishAvatar(true) }
+        CapButton { objectName: "avatar-field-"+(root.fieldCount+1); width: parent.width*.43-10; height: 30; label: "Cancel"; textSize: 13; tint: "#e6e9df"; selected: root.focused && root.profile.focusIndex===root.fieldCount+1; enabled: !root.profile.saving; onActivated: root.profile.finishAvatar(false) }
     }
 }

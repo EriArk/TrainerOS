@@ -53,7 +53,7 @@ QVariantMap OutfitController::view() const {
         {"preview",previewUrl_},{"previewBusy",job_.isRunning()},{"previewError",!previewError_.isEmpty()},
         {"busy",trainer_.saving()},{"replace",replace_},{"review",shop["review"]},
         {"status",!status.isEmpty()?status:shop["status"].toString()},{"stale",shop["stale"]},
-        {"wearing",!appearance.isEmpty()&&appearance==trainer_.avatarDescriptor()["appearance"].toObject()}};
+        {"wearing",!appearance.isEmpty()&&AvatarAssets::normalized(appearance)==trainer_.avatarDescriptor()["appearance"].toObject()}};
 }
 void OutfitController::open(){account_.cancelPurchaseReview();open_=true;owner_=trainer_.profile()["id"].toString();index_=focus_=0;status_.clear();replace_=false;pending_={};preview();account_.refreshShop();emit changed();}
 void OutfitController::close(){if(!open_)return;open_=false;++generation_;previewUrl_.clear();previewAppearance_={};pending_={};replace_=false;account_.cancelPurchaseReview();}

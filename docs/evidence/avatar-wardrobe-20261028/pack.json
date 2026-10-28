@@ -1,0 +1,48 @@
+{
+  "revision": 7,
+  "manifestSha256": "57024e4fea6214b370c62d75ac47fd896473952c7802d495e5fdc9e794e5cd48",
+  "files": 39,
+  "combinations": [
+    {
+      "combination": "wear-bob-golf-cap",
+      "bytes": 23924988,
+      "sha256": "1db0678bffd151f7b378f8c5093ae7ed147ae30862523af6280291f2a46d851f"
+    },
+    {
+      "combination": "wear-bob-golf-visor",
+      "bytes": 23508096,
+      "sha256": "a71088d2a27f87146a32499b8a5af391628c1a712af45d782a54e5b7d5f70312"
+    },
+    {
+      "combination": "wear-crop-golf-cap",
+      "bytes": 24210948,
+      "sha256": "fc719127f1f5c72751dd30e6a128c46e255d36995227fdec9a761b3bae28432f"
+    },
+    {
+      "combination": "wear-crop-golf-visor",
+      "bytes": 23794064,
+      "sha256": "dbebb25ef62e9e297b5b267e1a1ddebfbcc005b32f41200e73414cb731efe493"
+    },
+    {
+      "combination": "wear-ponytail-golf-cap",
+      "bytes": 23692692,
+      "sha256": "995a7319914392d78e7a6dea903f014770d4aebfc75251fc85c98653fa38fa5d"
+    },
+    {
+      "combination": "wear-ponytail-golf-visor",
+      "bytes": 23275804,
+      "sha256": "8306707a61263be9f5d794109bac2fa4d43bc78b8a4105c296651c64bf6e4717"
+    },
+    {
+      "combination": "wear-swept-golf-cap",
+      "bytes": 24056496,
+      "sha256": "23a2903b86bf4d08b49dd420875a072f297aefbd520689844bafd70d8edc7680"
+    },
+    {
+      "combination": "wear-swept-golf-visor",
+      "bytes": 23639612,
+      "sha256": "1063ef665d6032c69ee429929cdc2341639374e7a5d4e1e2ce4a93341e6a603a"
+    }
+  ],
+  "manifestEncoding": "UTF-8, LF on all platforms"
+}

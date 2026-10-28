@@ -129,7 +129,7 @@ private slots:
         QObject::connect(&trainer,&TrainerController::changed,&f.host,[&]{auto avatar=trainer.avatarDescriptor();if(!avatar.isEmpty()){avatar["profile"]="alice";f.host.setAvatar(avatar,true);}});
         QTRY_VERIFY_WITH_TIMEOUT(!trainer.avatarDescriptor().isEmpty(),30000);
         QVERIFY(f.start());Client client(f.endpoint);client.hello();client.send("avatar.subscribe");client.receive();
-        auto look=AvatarAssets::defaults();look["hair"]="bob";look["shirtColor"]="#aabddd";
+        auto look=AvatarAssets::defaults();look["hair"]="bob";look["shirtColor"]="#234f43";look["top"]="polo-sleeveless";look["bottom"]="pleated-skirt";look["socks"]="crew-socks";look["shoes"]="golf-shoes-sport";look["headwear"]="golf-visor";
         QVERIFY(trainer.applyAppearance(look));
         QTRY_COMPARE_WITH_TIMEOUT(trainer.avatarDescriptor()["appearance"].toObject(),look,30000);
         const auto event=client.receive();QCOMPARE(event["event"].toString(),"avatar.changed");

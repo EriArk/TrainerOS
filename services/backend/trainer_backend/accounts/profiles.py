@@ -28,8 +28,17 @@ def avatar_recipe(value):
     valid = valid and isinstance(value['packRevision'], str) and re.fullmatch('[a-f0-9]{64}', value['packRevision'])
     a = value.get('appearance') if valid else None
     colors = {'skinColor', 'hairColor', 'eyeColor', 'shirtColor', 'shortsColor'}
-    valid = valid and isinstance(a, dict) and set(a) == colors | {'schema', 'pack', 'hair', 'eyes'}
-    valid = valid and type(a['schema']) is int and a['schema'] == 1 and a['pack'] == 'trainer-avatar-1'
+    wardrobe = {'top': ('tank', 'polo-short-sleeve', 'polo-sleeveless'),
+                'bottom': ('base-shorts', 'golf-shorts', 'pleated-skirt'),
+                'socks': ('none', 'ankle-socks', 'crew-socks'),
+                'shoes': ('sandals', 'golf-shoes-classic', 'golf-shoes-sport'),
+                'headwear': ('none', 'golf-cap', 'golf-visor')}
+    valid = valid and isinstance(a, dict) and type(a.get('schema')) is int and a['schema'] in (1, 2)
+    required = colors | {'schema', 'pack', 'hair', 'eyes'}
+    if valid and a['schema'] == 2:
+        required |= wardrobe.keys()
+    valid = valid and set(a) == required and a['pack'] == 'trainer-avatar-1'
+    valid = valid and (a['schema'] == 1 or all(isinstance(a[k], str) and a[k] in values for k, values in wardrobe.items()))
     eyes = ('round', 'almond') + tuple(f'{style}-{variant}'
         for style in ('rogue', 'innocent', 'sly', 'calm', 'sleepy', 'determined')
         for variant in ('base', 'feminine'))

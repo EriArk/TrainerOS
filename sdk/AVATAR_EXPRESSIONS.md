@@ -1,6 +1,6 @@
 # Эмоции и рты персонажа
 
-Общий пакет `trainer-avatar-1` revision 6 содержит лицевые morph targets.
+Общий пакет `trainer-avatar-1` revision 7 содержит лицевые morph targets.
 Игра загружает персонажа обычным [способом](AVATAR_QUICKSTART.md), затем управляет
 его выражением через `avatar_presenter.gd`. Отдельные модели лиц в игру не нужны.
 Нужны вместе revision 6, resolver TrainerOS с поддержкой `eyeBodyMeshes` и

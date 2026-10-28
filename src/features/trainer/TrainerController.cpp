@@ -112,7 +112,7 @@ void TrainerController::reload() {
 }
 void TrainerController::activate(int index) {
     if(!editing_){if(index==1)beginAvatarEdit();else beginEdit();return;}
-    if(avatarEditing_){if(index<7)cycleAvatar(index);else if(index==7)finishAvatar(true);else finishAvatar(false);return;}
+    if(avatarEditing_){if(index<AvatarAssets::keys().size())cycleAvatar(index);else if(index==AvatarAssets::keys().size())finishAvatar(true);else finishAvatar(false);return;}
     if(activateOverlay(index))return;
     const int saveIndex=2+extraRows();
     if(editing_ && index==saveIndex+1){cancel();return;}
@@ -134,7 +134,7 @@ void TrainerController::dispatch(Action action,bool vertical) {
     if(avatarEditing_){
         if(action==Action::Back){finishAvatar(false);return;}
         if(action==Action::Up)focus_=std::max(0,focus_-1);
-        if(action==Action::Down)focus_=std::min(8,focus_+1);
+        if(action==Action::Down)focus_=std::min(int(AvatarAssets::keys().size())+1,focus_+1);
         if(action==Action::Left||action==Action::Right)cycleAvatar(focus_,action==Action::Right?1:-1);
         if(action==Action::Confirm)activate(focus_);
         emit changed();return;
@@ -166,30 +166,35 @@ QString TrainerController::avatarPreview() const {
 }
 QVariantList TrainerController::avatarRows() const {
     const auto a=draft_.avatar.isEmpty()?AvatarAssets::defaults():draft_.avatar;
-    const QStringList labels{"Hairstyle","Eyes","Hair colour","Eye colour","Skin colour","Shirt colour","Shorts colour"};
+    const QStringList labels{"Hairstyle","Eyes","Top","Bottom","Socks","Shoes","Headwear","Hair colour","Eye colour","Skin colour","Top colour","Bottom colour"};
     QVariantList rows;int i=0;for(const auto& key:AvatarAssets::keys())rows.append(QVariantMap{{"title",labels[i++]},{"detail",a[key].toString()},{"choices",AvatarAssets::choices(key)},{"colour",key.endsWith("Color")?a[key].toString():QString()}});
     rows.append(QVariantMap{{"title",saving_?"Saving…":"Save appearance"}});rows.append(QVariantMap{{"title","Cancel"}});return rows;
 }
 void TrainerController::beginAvatarEdit() {
     if(!exists()||editing_||saving_||!avatarAvailable())return;
-    draft_=*profile_;if(draft_.avatar.isEmpty())draft_.avatar=AvatarAssets::defaults();
+    draft_=*profile_;draft_.avatar=draft_.avatar.isEmpty()?AvatarAssets::defaults():AvatarAssets::normalized(draft_.avatar);
     avatarEditing_=true;editing_=true;focus_=0;error_.clear();previewAvatar_=liveAvatar_;refreshAvatar();emit changed();
 }
 bool TrainerController::applyAppearance(const QJsonObject& appearance) {
     if(!exists()||editing_||saving_||!AvatarAssets::valid(appearance)||!avatarAvailable())return false;
-    draft_=*profile_;draft_.avatar=appearance;error_.clear();save();return true;
+    draft_=*profile_;draft_.avatar=AvatarAssets::normalized(appearance);error_.clear();save();return true;
 }
 void TrainerController::cycleAvatar(int index,int delta) {
-    if(!avatarEditing_||saving_||index<0||index>=7)return;
+    if(!avatarEditing_||saving_||index<0||index>=AvatarAssets::keys().size())return;
     const auto key=AvatarAssets::keys()[index];const auto values=AvatarAssets::choices(key);
     const int old=values.indexOf(draft_.avatar[key].toString());chooseAvatar(index,values[(std::max(0,old)+delta+values.size())%values.size()]);
 }
 void TrainerController::chooseAvatar(int index,const QString& value) {
-    if(!avatarEditing_||saving_||index<0||index>=7)return;
+    if(!avatarEditing_||saving_||index<0||index>=AvatarAssets::keys().size())return;
     const auto key=AvatarAssets::keys()[index];
     if(!AvatarAssets::choices(key).contains(value))return;
     focus_=index;
-    if(draft_.avatar[key]!=value){draft_.avatar[key]=value;refreshAvatar();}
+    if(draft_.avatar[key]!=value){
+        draft_.avatar[key]=value;
+        if(key=="top" && value!="tank")draft_.avatar["shirtColor"]=value=="polo-short-sleeve"?"#f4f0df":"#234f43";
+        if(key=="bottom" && value!="base-shorts")draft_.avatar["shortsColor"]=value=="pleated-skirt"?"#f4f0df":"#234f43";
+        refreshAvatar();
+    }
     emit changed();
 }
 void TrainerController::finishAvatar(bool saveChanges) {

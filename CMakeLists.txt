@@ -24,7 +24,7 @@ endif()
 add_library(trainer_core STATIC
     src/integrations/adventure/CartridgeContent.cpp
     src/features/accounts/BackendAccount.cpp src/features/accounts/BackendCommerce.cpp src/features/accounts/BackendOutfits.cpp
-    src/features/trainer/AvatarAssets.cpp src/features/trainer/OutfitController.cpp
+    src/features/trainer/AvatarAssets.cpp src/features/trainer/AvatarWearables.cpp src/features/trainer/OutfitController.cpp
     src/platform/sdk/PlatformHost.cpp
     src/platform/sdk/SdkNetwork.cpp
     src/features/browser/BrowserController.cpp
@@ -625,12 +625,12 @@ if(BUILD_TESTING)
     add_test(NAME software_update COMMAND trainer_software_update_tests -o -,txt)
     qt_add_executable(trainer_platform_tests tests/PlatformHostTests.cpp)
     qt_add_executable(trainer_account_tests tests/BackendAccountTests.cpp
-        src/features/accounts/BackendAccount.cpp src/features/accounts/BackendCommerce.cpp src/features/accounts/BackendOutfits.cpp src/features/trainer/AvatarAssets.cpp src/platform/storage/EncryptedCredentials.cpp src/platform/storage/KeychainRequest.cpp)
+        src/features/accounts/BackendAccount.cpp src/features/accounts/BackendCommerce.cpp src/features/accounts/BackendOutfits.cpp src/features/trainer/AvatarAssets.cpp src/features/trainer/AvatarWearables.cpp src/platform/storage/EncryptedCredentials.cpp src/platform/storage/KeychainRequest.cpp)
     target_include_directories(trainer_account_tests PRIVATE src)
     target_link_libraries(trainer_account_tests PRIVATE Qt6::Test Qt6::Gui Qt6::Network Qt6Keychain::Qt6Keychain)
     add_test(NAME backend_account COMMAND trainer_account_tests)
     qt_add_executable(trainer_backend_login_probe tools/BackendLoginProbe.cpp
-        src/features/accounts/BackendAccount.cpp src/features/accounts/BackendCommerce.cpp src/features/accounts/BackendOutfits.cpp src/features/trainer/AvatarAssets.cpp src/platform/storage/EncryptedCredentials.cpp src/platform/storage/KeychainRequest.cpp)
+        src/features/accounts/BackendAccount.cpp src/features/accounts/BackendCommerce.cpp src/features/accounts/BackendOutfits.cpp src/features/trainer/AvatarAssets.cpp src/features/trainer/AvatarWearables.cpp src/platform/storage/EncryptedCredentials.cpp src/platform/storage/KeychainRequest.cpp)
     target_include_directories(trainer_backend_login_probe PRIVATE src)
     target_link_libraries(trainer_backend_login_probe PRIVATE Qt6::Core Qt6::Gui Qt6::Network Qt6Keychain::Qt6Keychain)
     qt_add_executable(trainer_avatar_tests tests/AvatarTests.cpp)

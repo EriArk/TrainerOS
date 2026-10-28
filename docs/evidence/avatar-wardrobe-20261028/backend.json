@@ -1,0 +1,12 @@
+{
+  "ready": true,
+  "image": "traineros-backend:wardrobe28",
+  "testsPassed": 109,
+  "appearanceSchemas": [
+    1,
+    2
+  ],
+  "migration": false,
+  "backupRetained": true,
+  "profileSourceSha256": "5341972d5442fd1dc524ac45e24c891d4fcdd85c73a8b3699721ff14b2849fe0"
+}

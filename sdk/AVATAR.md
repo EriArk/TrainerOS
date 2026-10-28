@@ -3,10 +3,11 @@
 New integration? Start with the [step-by-step guide and runnable Godot demo](AVATAR_QUICKSTART.md).
 This page is the protocol/reference companion.
 
-The current source pack is **revision 6**: smaller irises, half lids, closed and
-cartoon eyes, 14 expressions and 9 mouths. See [facial API](AVATAR_EXPRESSIONS.md)
-and [visual review / delivery boundaries](../docs/AVATAR_CARTOON_20261028.md).
-The revision-4/5 descriptions below record earlier deliveries.
+The current source pack is **revision 7**: the revision-6 face/expressions plus
+10 separate golf garments in five wardrobe slots. All four hairstyles have
+reversible cap/visor fits. See [wardrobe integration](../docs/AVATAR_WARDROBE_20261028.md)
+and [facial API](AVATAR_EXPRESSIONS.md). Historical revision-4/5 descriptions below
+remain evidence of earlier deliveries.
 
 TrainerOS owns appearance and the installed asset pack. A game distributes only
 its SDK adapter, never a copy of the character. The interface is engine-neutral:
@@ -19,10 +20,20 @@ Call `avatar.subscribe` (or one-shot `avatar.get`). Result:
 
 ```json
 {"avatar":{"schema":1,"profile":"local-profile-id","pack":"trainer-avatar-1",
-"revision":"content-key","appearance":{"schema":1,"pack":"trainer-avatar-1","hair":"swept","eyes":"round","hairColor":"#62402c","eyeColor":"#98602d","skinColor":"#f0c4a5","shirtColor":"#ec9e8d","shortsColor":"#577c87"},
+"revision":"content-key","appearance":{"schema":2,"pack":"trainer-avatar-1","hair":"swept","eyes":"round","hairColor":"#62402c","eyeColor":"#98602d","skinColor":"#f0c4a5","shirtColor":"#ec9e8d","shortsColor":"#577c87","top":"tank","bottom":"base-shorts","socks":"none","shoes":"sandals","headwear":"none"},
 "glb":"/absolute/console-cache/content-key.glb","preview":"/absolute/console-cache/content-key-preview.glb",
 "sha256":"file-sha256","rig":"trainer-humanoid-54-v1","units":"metres","forward":"+Z","eyeHeight":0.8,"actions":{"wave":"Wave","sit":"Sit","squat":"Squat","step":"Step","raise_arms":"Arms_Up"}}}
 ```
+
+Appearance schema 2 has the original nine fields plus `top`, `bottom`, `socks`,
+`shoes` and `headwear`. Schema-1 stored looks remain accepted and normalize to
+`tank`, `base-shorts`, `none`, `sandals`, `none`. Descriptor/recipe envelopes remain
+schema 1. IDs and colours are validated, and peer pack hashes must still match.
+No purchase is required for these ten garments; paid slots remain separate.
+Garment selection, optional primary fabric colour and headwear fitting belong
+to the console resolver. It preserves one 54-joint rig, garment corrective
+tracks and facial metadata, omitting unused meshes/buffers within the existing
+64 MiB bound. Do not rely on mesh/accessor array indices across resolved looks.
 
 Load `glb` directly at runtime; it contains the chosen face surface, colors,
 garments, skin and corrective animation. Do not copy it into a game package or
@@ -44,7 +55,7 @@ eviction. Peer recipes use the bounded temporary lifetime described below.
 ## Peer recipe, without transferring models
 
 Local descriptors also contain `recipe`: `{schema:1, packRevision:<SHA256 of the
-installed manifest>, appearance:<the nine-field appearance object>}`. Send only
+installed manifest>, appearance:<the canonical appearance object>}`. Send only
 this object through the game's existing admitted reliable channel, wrapped as
 `{"namespace":"traineros.avatar.v1","recipe":{...}}`. An empty recipe withdraws
 the appearance. Current recipes are under 1 KiB. Do not send local profile IDs,

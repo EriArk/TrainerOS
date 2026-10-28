@@ -18,7 +18,7 @@ inline void startAvatarSmoke(QQuickWindow* window,trainer::ShellController& shel
     QObject::connect(timer,&QTimer::timeout,window,[=,&shell,&completed,&warnings,&diagnostics]{
         auto* controller=shell.trainer();
         auto check=[&](bool ok,QString why){if(!ok)diagnostics.append(why);};
-        if(++*ticks>100){diagnostics<<"Avatar editor timed out";*stage=99;}
+        if(++*ticks>240){diagnostics<<"Avatar editor timed out";*stage=99;}
         switch(*stage){
         case 0:
             if(controller->avatarBusy()||controller->avatarDescriptor().isEmpty())break;
@@ -27,7 +27,9 @@ inline void startAvatarSmoke(QQuickWindow* window,trainer::ShellController& shel
             if(controller->avatarBusy())break;
             if(!directory.isEmpty())check(window->grabWindow().save(directory+"/profile-a-live.png"),"Profile screenshot failed");
             *original=controller->avatarDescriptor();shell.dispatch(trainer::Action::Down);shell.dispatch(trainer::Action::Confirm);
-            check(controller->avatarEditing(),"Appearance did not open from controller");++*stage;break;
+            check(shell.profileRoute()=="outfits","Wardrobe did not open from controller");
+            shell.dispatch(trainer::Action::Confirm);
+            check(controller->avatarEditing(),"Appearance did not open from current look");++*stage;break;
         case 2:
             if(controller->avatarBusy())break;
             shell.dispatch(trainer::Action::Right);++*stage;break;
@@ -59,16 +61,34 @@ inline void startAvatarSmoke(QQuickWindow* window,trainer::ShellController& shel
             if(controller->avatarBusy())break;
             check(controller->avatarRows()[1].toMap()["detail"]=="determined-feminine","Controller did not reach the last eye variant");
             if(!directory.isEmpty())check(window->grabWindow().save(directory+"/avatar-new-eyes.png"),"New eyes screenshot failed");
+            for(int i=0;i<5;++i){shell.dispatch(trainer::Action::Down);shell.dispatch(trainer::Action::Right);}
+            *stage=41;break;
+        case 41:
+            if(controller->avatarBusy())break;
+            check(controller->avatarRows()[6].toMap()["detail"]=="golf-cap","Controller did not select headwear");
+            check(controller->avatarDescriptor()==*original,"Wardrobe draft leaked into live avatar");
+            if(!directory.isEmpty())check(window->grabWindow().save(directory+"/avatar-wardrobe.png"),"Wardrobe screenshot failed");
+            window->resize(800,450);*stage=42;break;
+        case 42: {
+            const std::function<QQuickItem*(QQuickItem*,const QString&)> find=[&](QQuickItem* item,const QString& name)->QQuickItem*{
+                if(item->objectName()==name&&item->isVisible())return item;
+                for(auto* c:item->childItems())if(auto* r=find(c,name))return r;return nullptr;};
+            auto* selected=find(window->contentItem(),"avatar-choice-golf-cap");
+            auto* footer=find(window->contentItem(),"avatar-field-12");
+            check(selected&&footer&&selected->mapToScene({0,0}).y()>=70
+                &&selected->mapToScene({0,selected->height()}).y()<=footer->mapToScene({0,0}).y(),"Selected headwear is outside compact viewport");
+            if(!directory.isEmpty())check(window->grabWindow().save(directory+"/avatar-wardrobe-compact.png"),"Compact wardrobe screenshot failed");
             for(int i=0;i<5;++i)shell.dispatch(trainer::Action::Down);
             *stage=5;break;
+        }
         case 5:
         {
             const std::function<QQuickItem*(QQuickItem*,const QString&)> find=[&](QQuickItem* item,const QString& name)->QQuickItem*{
                 if(item->objectName()==name&&item->isVisible())return item;
                 for(auto* c:item->childItems())if(auto* r=find(c,name))return r;return nullptr;};
-            auto* colour=find(window->contentItem(),"avatar-field-6");
-            auto* save=find(window->contentItem(),"avatar-field-7");
-            check(controller->focusIndex()==6,"Controller did not reach shorts palette");
+            auto* colour=find(window->contentItem(),"avatar-field-11");
+            auto* save=find(window->contentItem(),"avatar-field-12");
+            check(controller->focusIndex()==11,"Controller did not reach shorts palette");
             check(colour&&save&&colour->mapToScene({0,colour->height()}).y()<=save->mapToScene({0,0}).y(),"Palette overlaps footer in compact editor");
             shell.dispatch(trainer::Action::Down);shell.dispatch(trainer::Action::Confirm);
             ++*stage;break;
@@ -77,7 +97,7 @@ inline void startAvatarSmoke(QQuickWindow* window,trainer::ShellController& shel
             if(controller->saving()||controller->avatarBusy())break;
             check(controller->avatarDescriptor()["appearance"].toObject()["eyes"]=="determined-feminine","Saved appearance not live");
             if(!directory.isEmpty())check(window->grabWindow().save(directory+"/avatar-profile.png"),"Profile screenshot failed");
-            controller->beginAvatarEdit();shell.dispatch(trainer::Action::Back);check(!controller->avatarEditing(),"Back did not cancel");++*stage;break;
+            controller->beginAvatarEdit();shell.dispatch(trainer::Action::Back);check(!controller->avatarEditing(),"Back did not cancel");shell.dispatch(trainer::Action::Back);++*stage;break;
         case 7:
             shell.activate(3,"profile");check(shell.profileRoute()=="ra","Profile RA did not open");++*stage;break;
         case 8:

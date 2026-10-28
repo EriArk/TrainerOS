@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "pack": "trainer-avatar-1",
-  "revision": 6,
+  "revision": 7,
   "template": "template.glb",
   "bodyImage": 1,
   "almondPatches": [
@@ -69,7 +69,37 @@
     "almond-position.bin": "637954e887c522a9affe438ad5755b1e56d2b2da22ad6028de63f30c2974abe3",
     "almond-normal.bin": "6e77f7fa693fafbc1b6161ed4b7f8beb1d6ab8285e81fabd5ae69fd39d2cf577",
     "iris.png": "39046a7be4fca889957e4916bdc561f6c68794e188e980844183e184c9451557",
-    "mask-iris.png": "446f045d0980ebe6a99e05753b19867d9638e59b12156fff1c6e4013aee0abd4"
+    "mask-iris.png": "446f045d0980ebe6a99e05753b19867d9638e59b12156fff1c6e4013aee0abd4",
+    "wear-polo-short-sleeve.glb": "fe4d6cc503344242edc63e9e68862b77f1a4afad25693d7039a6897a1178f3bb",
+    "wear-polo-sleeveless.glb": "00a91e795187f75d97ddb1e488ed4792ebd7c403eef7bbdeb22ee3a6599b0a9c",
+    "wear-golf-shorts.glb": "1c5c539e68f5a5e2cde9a789b2963837fce888732bc81fe959b96ee3611e5b4e",
+    "wear-pleated-skirt.glb": "81924092b411f5f249aeca805f71f9219f05efddcfe6249dacd8f1a366583c35",
+    "wear-ankle-socks.glb": "acbcafbef2f72503aaf46e2c657941b27f0dd9719ec9d51c99d07c304ec236a3",
+    "wear-crew-socks.glb": "f1d3b017fbfd08119a95c2a28b5b1645179f75c92364ed3874b34ead02cf9707",
+    "wear-golf-shoes-classic.glb": "f2ce958ab792345eed294246b807ca67527396ff5dae4f3dfb5ebad031ea963c",
+    "wear-golf-shoes-sport.glb": "00785a3978d4ebae3a8164b180a036060123ed23ef8e90bbeec2d766ed0b3b02",
+    "wear-golf-cap.glb": "9e592b49dc6ccffe3bac1f63fe0f98dba00bce9f1ea5e5ba912c18075e27af71",
+    "wear-golf-visor.glb": "814f5d8e2fbd8f276673dd55bb2ba80422fc566d8bbcddd7881f1fa583afc110",
+    "fit-golf-cap-swept-0-position.bin": "f81937330e254edbf894546c7a5f876bd2e2558c33dcebe9fab2897c50b2098e",
+    "fit-golf-cap-swept-0-normal.bin": "6d21b5e8a543bef326cf13af6f860ed7728a53754c53435f151d7260248df60a",
+    "fit-golf-cap-ponytail-0-position.bin": "a4ac00dbc7349f44ea59006d6052f1dbd139c17ec802d656be0fca386c02ca47",
+    "fit-golf-cap-ponytail-0-normal.bin": "1dbeff379aba01cc463d850b53f03744e30d620a719a6fecca1880e972ed7e16",
+    "fit-golf-cap-crop-0-position.bin": "8a22da222e33dc6cbac9f9c5bc64de1049fdd1f7d0acc5b356802277c296b010",
+    "fit-golf-cap-crop-0-normal.bin": "b331a1ca14e51002585e6f7c5b3377306ad7fc5b205676ee44b4437ad0ebdf35",
+    "fit-golf-cap-bob-0-position.bin": "f36d0aacf919239fa27db3153b11ca6c8ca6fcff7a7a8c4a3d863d98561ceaaa",
+    "fit-golf-cap-bob-0-normal.bin": "0731f76bb3ae6a2ff6d3b192dacbae7c5d209eed3eb37af0d72e53b2078b2709",
+    "fit-golf-cap-bob-1-position.bin": "c8ca4fec716c49751488b0bcf9b56dd977f7a359f9a39dfae8a15d8f094cfea3",
+    "fit-golf-cap-bob-1-normal.bin": "fdf0faabf33931edbe33e65e6ebc3d7d94a444bb0ca7bc5b5d88b721d454506c",
+    "fit-golf-visor-swept-0-position.bin": "95f5ad0910ce3758f486d98125ab762a9685a03f30bcc304382215d061ea4d04",
+    "fit-golf-visor-swept-0-normal.bin": "65c3e78ce3275d970f04da3a6f7e8a85853847b53b95518845db5a538b411a70",
+    "fit-golf-visor-ponytail-0-position.bin": "29d064e3ef84d522d40cb0216dafe4237addf9fb8e7d93c9a8a3de92b1100b88",
+    "fit-golf-visor-ponytail-0-normal.bin": "62e0752e225dbbc5bbb3aff07877c8b34b8cb6b84e9b9f2264bb661b2161e064",
+    "fit-golf-visor-crop-0-position.bin": "06caabe920d33308d6327d7f72259568df462f8fc5d7b46a452b16c4dc364076",
+    "fit-golf-visor-crop-0-normal.bin": "f098a5ac8269baaa8a279cec940e25577c12a6cb9d7e24319d703057267584e2",
+    "fit-golf-visor-bob-0-position.bin": "a262770a3efc036a19299392fc9bb80938db7124a2f4dc7513e564a966f4e81d",
+    "fit-golf-visor-bob-0-normal.bin": "0c37c169407b697a6a7aea71652c71de8302dd1943d70c5a2a940ad0453cabe9",
+    "fit-golf-visor-bob-1-position.bin": "3281006068055cd74b2ce43d687888bf18bf5b0cad5449caf7a730bbce76e0da",
+    "fit-golf-visor-bob-1-normal.bin": "784c3c5b80ea6f8a958aae5af84e64d64ec43b179bcb90580783f641235f1424"
   },
   "clothing": {
     "deformation": "torso-skin",
@@ -214,5 +244,415 @@
     "schema": 1,
     "metadata": "extras.trainerFace",
     "speech": false
-  }
+  },
+  "wearables": {
+    "polo-short-sleeve": {
+      "slot": "top",
+      "file": "wear-polo-short-sleeve.glb",
+      "sha256": "fe4d6cc503344242edc63e9e68862b77f1a4afad25693d7039a6897a1178f3bb",
+      "tintMaterial": "ivory",
+      "tintRole": "shirtColor",
+      "defaultColor": "#f4f0df"
+    },
+    "polo-sleeveless": {
+      "slot": "top",
+      "file": "wear-polo-sleeveless.glb",
+      "sha256": "00a91e795187f75d97ddb1e488ed4792ebd7c403eef7bbdeb22ee3a6599b0a9c",
+      "tintMaterial": "forest",
+      "tintRole": "shirtColor",
+      "defaultColor": "#234f43"
+    },
+    "golf-shorts": {
+      "slot": "bottom",
+      "file": "wear-golf-shorts.glb",
+      "sha256": "1c5c539e68f5a5e2cde9a789b2963837fce888732bc81fe959b96ee3611e5b4e",
+      "tintMaterial": "forest",
+      "tintRole": "shortsColor",
+      "defaultColor": "#234f43"
+    },
+    "pleated-skirt": {
+      "slot": "bottom",
+      "file": "wear-pleated-skirt.glb",
+      "sha256": "81924092b411f5f249aeca805f71f9219f05efddcfe6249dacd8f1a366583c35",
+      "tintMaterial": "ivory",
+      "tintRole": "shortsColor",
+      "defaultColor": "#f4f0df"
+    },
+    "ankle-socks": {
+      "slot": "socks",
+      "file": "wear-ankle-socks.glb",
+      "sha256": "acbcafbef2f72503aaf46e2c657941b27f0dd9719ec9d51c99d07c304ec236a3"
+    },
+    "crew-socks": {
+      "slot": "socks",
+      "file": "wear-crew-socks.glb",
+      "sha256": "f1d3b017fbfd08119a95c2a28b5b1645179f75c92364ed3874b34ead02cf9707"
+    },
+    "golf-shoes-classic": {
+      "slot": "shoes",
+      "file": "wear-golf-shoes-classic.glb",
+      "sha256": "f2ce958ab792345eed294246b807ca67527396ff5dae4f3dfb5ebad031ea963c"
+    },
+    "golf-shoes-sport": {
+      "slot": "shoes",
+      "file": "wear-golf-shoes-sport.glb",
+      "sha256": "00785a3978d4ebae3a8164b180a036060123ed23ef8e90bbeec2d766ed0b3b02"
+    },
+    "golf-cap": {
+      "slot": "headwear",
+      "file": "wear-golf-cap.glb",
+      "sha256": "9e592b49dc6ccffe3bac1f63fe0f98dba00bce9f1ea5e5ba912c18075e27af71"
+    },
+    "golf-visor": {
+      "slot": "headwear",
+      "file": "wear-golf-visor.glb",
+      "sha256": "814f5d8e2fbd8f276673dd55bb2ba80422fc566d8bbcddd7881f1fa583afc110"
+    }
+  },
+  "headwearFits": {
+    "golf-cap/swept": [
+      {
+        "accessor": 102,
+        "file": "fit-golf-cap-swept-0-position.bin",
+        "sha256": "f81937330e254edbf894546c7a5f876bd2e2558c33dcebe9fab2897c50b2098e",
+        "sourceSha256": "f8f2928c9cd058c0b84d3906cd8817292bc3bf8655b29d23cd4ab038b44c5ca8",
+        "min": [
+          -0.15635152471960476,
+          0.7345969676971436,
+          -0.19344238936901093
+        ],
+        "max": [
+          0.15635152471960476,
+          0.9922393663883209,
+          0.1744144805244016
+        ]
+      },
+      {
+        "accessor": 103,
+        "file": "fit-golf-cap-swept-0-normal.bin",
+        "sha256": "6d21b5e8a543bef326cf13af6f860ed7728a53754c53435f151d7260248df60a",
+        "sourceSha256": "ad28f62a091dcceff41463e7393060e917818c7752f8d6d4795b06e51f96a7fd",
+        "min": [
+          -0.9998396371860344,
+          -0.999783911057367,
+          -0.9994155115952423
+        ],
+        "max": [
+          0.9999000482274247,
+          0.9999480517609667,
+          0.9999117046890743
+        ]
+      }
+    ],
+    "golf-cap/ponytail": [
+      {
+        "accessor": 108,
+        "file": "fit-golf-cap-ponytail-0-position.bin",
+        "sha256": "a4ac00dbc7349f44ea59006d6052f1dbd139c17ec802d656be0fca386c02ca47",
+        "sourceSha256": "8292a346b4fdc6dc7c4ba9907c9f541c92c631f97ee9200030d6377a6c041312",
+        "min": [
+          -0.1576637476682663,
+          0.6887692809104919,
+          -0.3846067190170288
+        ],
+        "max": [
+          0.1576637476682663,
+          1.0426784753799438,
+          0.1766106814469986
+        ]
+      },
+      {
+        "accessor": 109,
+        "file": "fit-golf-cap-ponytail-0-normal.bin",
+        "sha256": "1dbeff379aba01cc463d850b53f03744e30d620a719a6fecca1880e972ed7e16",
+        "sourceSha256": "3d290e2ba76f80828a59e3edabbf934f51b13ae821ed1730b527f6fac26cdef8",
+        "min": [
+          -0.9999342297550038,
+          -0.9999848755507692,
+          -0.9997736301717368
+        ],
+        "max": [
+          0.9999342297550038,
+          0.9995511191774142,
+          0.9991813798921582
+        ]
+      }
+    ],
+    "golf-cap/crop": [
+      {
+        "accessor": 114,
+        "file": "fit-golf-cap-crop-0-position.bin",
+        "sha256": "8a22da222e33dc6cbac9f9c5bc64de1049fdd1f7d0acc5b356802277c296b010",
+        "sourceSha256": "697035ac2f84243885340a9595e8c3a02952c29ba315f3d22f9f802c87415b6a",
+        "min": [
+          -0.16576367616653442,
+          0.7041166424751282,
+          -0.1790418177843094
+        ],
+        "max": [
+          0.16418345831116957,
+          0.9779948856592179,
+          0.1827217935118377
+        ]
+      },
+      {
+        "accessor": 115,
+        "file": "fit-golf-cap-crop-0-normal.bin",
+        "sha256": "b331a1ca14e51002585e6f7c5b3377306ad7fc5b205676ee44b4437ad0ebdf35",
+        "sourceSha256": "121af8d7e422c13b6736a0c5cb464aab6281f9c8ebb6e384022ee66e401f5654",
+        "min": [
+          -0.999997683176658,
+          -0.999988651476866,
+          -0.9999963291496772
+        ],
+        "max": [
+          0.9999000482274247,
+          0.99977289795107,
+          0.999912548682855
+        ]
+      }
+    ],
+    "golf-cap/bob": [
+      {
+        "accessor": 120,
+        "file": "fit-golf-cap-bob-0-position.bin",
+        "sha256": "f36d0aacf919239fa27db3153b11ca6c8ca6fcff7a7a8c4a3d863d98561ceaaa",
+        "sourceSha256": "39f06b4e04eb8fb1029701e3f6830142cc6ad163f5276e45b089ec3305be59bb",
+        "min": [
+          -0.14606484102651324,
+          0.7048211693763733,
+          -0.15507309138774872
+        ],
+        "max": [
+          0.14083527028560638,
+          0.9632092817783355,
+          0.16392555832862854
+        ]
+      },
+      {
+        "accessor": 121,
+        "file": "fit-golf-cap-bob-0-normal.bin",
+        "sha256": "0731f76bb3ae6a2ff6d3b192dacbae7c5d209eed3eb37af0d72e53b2078b2709",
+        "sourceSha256": "050798d8dd77d9ca57425a494ebb744e064c226f5d89396fbd6fb1779683b136",
+        "min": [
+          -0.9998648521746676,
+          -0.9997398483336166,
+          -0.9998423634246654
+        ],
+        "max": [
+          0.9999057904634824,
+          0.9996062485669169,
+          0.9998256773604235
+        ]
+      },
+      {
+        "accessor": 126,
+        "file": "fit-golf-cap-bob-1-position.bin",
+        "sha256": "c8ca4fec716c49751488b0bcf9b56dd977f7a359f9a39dfae8a15d8f094cfea3",
+        "sourceSha256": "e2b8f59f6143277614644e05053d4d083e11c50279f4f50bf5f8651715135f8f",
+        "min": [
+          0.09348863363265991,
+          0.8686479926109314,
+          0.0546380914747715
+        ],
+        "max": [
+          0.13287786172582705,
+          0.9074019618988037,
+          0.12072093784809113
+        ]
+      },
+      {
+        "accessor": 127,
+        "file": "fit-golf-cap-bob-1-normal.bin",
+        "sha256": "fdf0faabf33931edbe33e65e6ebc3d7d94a444bb0ca7bc5b5d88b721d454506c",
+        "sourceSha256": "a5dea59731b79561f5b9f03e925541f34fd4e5ead4e807ba202703f2101454a6",
+        "min": [
+          -0.9440152945429555,
+          -0.9873364376388138,
+          -0.9854420169001238
+        ],
+        "max": [
+          0.9418811701624809,
+          0.9876143273194614,
+          0.8408143367249964
+        ]
+      }
+    ],
+    "golf-visor/swept": [
+      {
+        "accessor": 102,
+        "file": "fit-golf-visor-swept-0-position.bin",
+        "sha256": "95f5ad0910ce3758f486d98125ab762a9685a03f30bcc304382215d061ea4d04",
+        "sourceSha256": "f8f2928c9cd058c0b84d3906cd8817292bc3bf8655b29d23cd4ab038b44c5ca8",
+        "min": [
+          -0.15809786319732666,
+          0.7345969676971436,
+          -0.19344238936901093
+        ],
+        "max": [
+          0.15809786319732666,
+          1.0152281522750854,
+          0.16512505174562225
+        ]
+      },
+      {
+        "accessor": 103,
+        "file": "fit-golf-visor-swept-0-normal.bin",
+        "sha256": "65c3e78ce3275d970f04da3a6f7e8a85853847b53b95518845db5a538b411a70",
+        "sourceSha256": "ad28f62a091dcceff41463e7393060e917818c7752f8d6d4795b06e51f96a7fd",
+        "min": [
+          -0.9999739519953507,
+          -0.9996863734649698,
+          -0.9998079925372858
+        ],
+        "max": [
+          0.9999350791004834,
+          0.9999245951355288,
+          0.9998644195025752
+        ]
+      }
+    ],
+    "golf-visor/ponytail": [
+      {
+        "accessor": 108,
+        "file": "fit-golf-visor-ponytail-0-position.bin",
+        "sha256": "29d064e3ef84d522d40cb0216dafe4237addf9fb8e7d93c9a8a3de92b1100b88",
+        "sourceSha256": "8292a346b4fdc6dc7c4ba9907c9f541c92c631f97ee9200030d6377a6c041312",
+        "min": [
+          -0.1576637476682663,
+          0.6887692809104919,
+          -0.3846067190170288
+        ],
+        "max": [
+          0.1576637476682663,
+          1.0426784753799438,
+          0.17451407917800507
+        ]
+      },
+      {
+        "accessor": 109,
+        "file": "fit-golf-visor-ponytail-0-normal.bin",
+        "sha256": "62e0752e225dbbc5bbb3aff07877c8b34b8cb6b84e9b9f2264bb661b2161e064",
+        "sourceSha256": "3d290e2ba76f80828a59e3edabbf934f51b13ae821ed1730b527f6fac26cdef8",
+        "min": [
+          -0.9999812826727271,
+          -0.9999848755507692,
+          -0.9990194790234131
+        ],
+        "max": [
+          0.9999823173249437,
+          0.9995511191774142,
+          0.9987105790195479
+        ]
+      }
+    ],
+    "golf-visor/crop": [
+      {
+        "accessor": 114,
+        "file": "fit-golf-visor-crop-0-position.bin",
+        "sha256": "06caabe920d33308d6327d7f72259568df462f8fc5d7b46a452b16c4dc364076",
+        "sourceSha256": "697035ac2f84243885340a9595e8c3a02952c29ba315f3d22f9f802c87415b6a",
+        "min": [
+          -0.16576367616653442,
+          0.7041166424751282,
+          -0.1790418177843094
+        ],
+        "max": [
+          0.1668474363349992,
+          0.9980661273002625,
+          0.18317111475671172
+        ]
+      },
+      {
+        "accessor": 115,
+        "file": "fit-golf-visor-crop-0-normal.bin",
+        "sha256": "f098a5ac8269baaa8a279cec940e25577c12a6cb9d7e24319d703057267584e2",
+        "sourceSha256": "121af8d7e422c13b6736a0c5cb464aab6281f9c8ebb6e384022ee66e401f5654",
+        "min": [
+          -0.9999739519953507,
+          -0.9999835267297206,
+          -0.9999719756370471
+        ],
+        "max": [
+          0.9999350791004834,
+          0.9996703917531986,
+          0.999912548682855
+        ]
+      }
+    ],
+    "golf-visor/bob": [
+      {
+        "accessor": 120,
+        "file": "fit-golf-visor-bob-0-position.bin",
+        "sha256": "a262770a3efc036a19299392fc9bb80938db7124a2f4dc7513e564a966f4e81d",
+        "sourceSha256": "39f06b4e04eb8fb1029701e3f6830142cc6ad163f5276e45b089ec3305be59bb",
+        "min": [
+          -0.1463268448804591,
+          0.7048211693763733,
+          -0.15507309138774872
+        ],
+        "max": [
+          0.1387351266510674,
+          0.9802521467208862,
+          0.1562438456750831
+        ]
+      },
+      {
+        "accessor": 121,
+        "file": "fit-golf-visor-bob-0-normal.bin",
+        "sha256": "0c37c169407b697a6a7aea71652c71de8302dd1943d70c5a2a940ad0453cabe9",
+        "sourceSha256": "050798d8dd77d9ca57425a494ebb744e064c226f5d89396fbd6fb1779683b136",
+        "min": [
+          -0.9998648521746676,
+          -0.9996224331039064,
+          -0.9998423634246654
+        ],
+        "max": [
+          0.9999057904634824,
+          0.9994285869412239,
+          0.9998256773604235
+        ]
+      },
+      {
+        "accessor": 126,
+        "file": "fit-golf-visor-bob-1-position.bin",
+        "sha256": "3281006068055cd74b2ce43d687888bf18bf5b0cad5449caf7a730bbce76e0da",
+        "sourceSha256": "e2b8f59f6143277614644e05053d4d083e11c50279f4f50bf5f8651715135f8f",
+        "min": [
+          0.09165695933291931,
+          0.8686479926109314,
+          0.0546380914747715
+        ],
+        "max": [
+          0.12667760193330121,
+          0.9130144119262695,
+          0.1137750848506422
+        ]
+      },
+      {
+        "accessor": 127,
+        "file": "fit-golf-visor-bob-1-normal.bin",
+        "sha256": "784c3c5b80ea6f8a958aae5af84e64d64ec43b179bcb90580783f641235f1424",
+        "sourceSha256": "a5dea59731b79561f5b9f03e925541f34fd4e5ead4e807ba202703f2101454a6",
+        "min": [
+          -0.922619315424719,
+          -0.9521089322351691,
+          -0.9327763563920762
+        ],
+        "max": [
+          0.9839789626863394,
+          0.9822323712203915,
+          0.9471130490853907
+        ]
+      }
+    ]
+  },
+  "wardrobeDefaults": {
+    "top": "tank",
+    "bottom": "base-shorts",
+    "socks": "none",
+    "shoes": "sandals",
+    "headwear": "none"
+  },
+  "resolvedGeometry": "selected-meshes-v1"
 }

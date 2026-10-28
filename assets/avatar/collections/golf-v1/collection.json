@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "collection": "golf-v1",
-  "status": "art-review",
+  "status": "approved",
   "rig": "trainer-humanoid-54-v1",
   "units": "metres",
   "forward": "+Z",
@@ -88,7 +88,14 @@
     "golf-cap": "crop",
     "golf-visor": "bob"
   },
-  "runtimeInstalled": false,
+  "runtimeInstalled": true,
   "artRevision": 3,
-  "headwearHairFitManifest": "hair-fit/manifest.json"
+  "headwearHairFitManifest": "hair-fit/manifest.json",
+  "runtimePackRevision": 7,
+  "runtimeHeadwearHairStyles": [
+    "swept",
+    "ponytail",
+    "crop",
+    "bob"
+  ]
 }

@@ -1,4 +1,5 @@
 #include "AvatarAssets.h"
+#include "AvatarWearables.h"
 #include <QBuffer>
 #include <QCoreApplication>
 #include <QColor>
@@ -18,11 +19,16 @@
 
 namespace trainer {
 QJsonObject AvatarAssets::defaults() {
-    return {{"schema",1},{"pack","trainer-avatar-1"},{"hair","swept"},{"eyes","round"},
-        {"hairColor","#62402c"},{"eyeColor","#98602d"},{"skinColor","#f0c4a5"},{"shirtColor","#ec9e8d"},{"shortsColor","#577c87"}};
+    return {{"schema",2},{"pack","trainer-avatar-1"},{"hair","swept"},{"eyes","round"},
+        {"hairColor","#62402c"},{"eyeColor","#98602d"},{"skinColor","#f0c4a5"},{"shirtColor","#ec9e8d"},{"shortsColor","#577c87"},{"top","tank"},{"bottom","base-shorts"},{"socks","none"},{"shoes","sandals"},{"headwear","none"}};
 }
-QStringList AvatarAssets::keys(){return {"hair","eyes","hairColor","eyeColor","skinColor","shirtColor","shortsColor"};}
+QStringList AvatarAssets::keys(){return {"hair","eyes","top","bottom","socks","shoes","headwear","hairColor","eyeColor","skinColor","shirtColor","shortsColor"};}
 QStringList AvatarAssets::choices(const QString& key) {
+    if(key=="top")return {"tank","polo-short-sleeve","polo-sleeveless"};
+    if(key=="bottom")return {"base-shorts","golf-shorts","pleated-skirt"};
+    if(key=="socks")return {"none","ankle-socks","crew-socks"};
+    if(key=="shoes")return {"sandals","golf-shoes-classic","golf-shoes-sport"};
+    if(key=="headwear")return {"none","golf-cap","golf-visor"};
     if(key=="hair")return {"swept","ponytail","crop","bob"};
     if(key=="eyes")return {"round","almond","rogue-base","rogue-feminine",
         "innocent-base","innocent-feminine","sly-base","sly-feminine",
@@ -31,19 +37,26 @@ QStringList AvatarAssets::choices(const QString& key) {
     if(key=="hairColor")return {"#302a2d","#62402c","#975743","#d1ab68","#e9dcd0","#a35a69","#64888c"};
     if(key=="eyeColor")return {"#98602d","#779486","#547d9a","#9794ae","#bb8b47","#6b6269"};
     if(key=="skinColor")return {"#f7d8bf","#f0c4a5","#d9ab86","#ba8764","#8c5e43","#614132"};
-    if(key=="shirtColor")return {"#ec9e8d","#a8c9bc","#aabddd","#d4b5d6","#f0d58d","#f4eee6"};
-    if(key=="shortsColor")return {"#577c87","#aebdd5","#8d799f","#b98e7c","#536274","#e0cba9"};
+    if(key=="shirtColor")return {"#ec9e8d","#a8c9bc","#aabddd","#d4b5d6","#f0d58d","#f4eee6","#f4f0df","#234f43","#efa58b"};
+    if(key=="shortsColor")return {"#577c87","#aebdd5","#8d799f","#b98e7c","#536274","#e0cba9","#f4f0df","#234f43","#efa58b"};
     return {};
 }
 bool AvatarAssets::valid(const QJsonObject& a) {
-    if(a["schema"]!=1 || a["pack"]!="trainer-avatar-1" || a.size()!=9)return false;
+    const bool legacy=a["schema"]==1;
+    if((!legacy && a["schema"]!=2) || a["pack"]!="trainer-avatar-1" || a.size()!=(legacy?9:14))return false;
     static const QRegularExpression color("^#[0-9a-fA-F]{6}$");
     for(const auto& key:keys()) {
+        if(legacy && QStringList{"top","bottom","socks","shoes","headwear"}.contains(key))continue;
         if(!a[key].isString())return false;
         if(key.endsWith("Color")){if(!color.match(a[key].toString()).hasMatch())return false;}
         else if(!choices(key).contains(a[key].toString()))return false;
     }
     return true;
+}
+QJsonObject AvatarAssets::normalized(const QJsonObject& a) {
+    if(!valid(a))return {};
+    auto result=defaults();for(auto it=a.begin();it!=a.end();++it)result[it.key()]=it.value();
+    result["schema"]=2;return result;
 }
 QString AvatarAssets::packRoot(){
     const auto override=qEnvironmentVariable("TRAINEROS_AVATAR_PACK");if(!override.isEmpty())return override;
@@ -70,9 +83,10 @@ QByteArray glb(QJsonObject g,QByteArray binary){
 float linear(float c){return c<=.04045f?c/12.92f:std::pow((c+.055f)/1.055f,2.4f);}
 int srgb(float c){c=std::clamp(c,0.f,1.f);return qRound(255*(c<=.0031308f?12.92f*c:1.055f*std::pow(c,1.f/2.4f)-.055f));}
 }
-QJsonObject AvatarAssets::resolve(const QJsonObject& a,const QString& explicitRoot,const QString& explicitCache) {
+QJsonObject AvatarAssets::resolve(const QJsonObject& input,const QString& explicitRoot,const QString& explicitCache) {
     auto fail=[](const QString& s){return QJsonObject{{"error",s}};};
-    if(!valid(a))return fail("invalid_appearance");
+    const auto a=normalized(input);
+    if(a.isEmpty())return fail("invalid_appearance");
     const auto root=explicitRoot.isEmpty()?packRoot():explicitRoot;
     const auto manifestBytes=read(root+"/manifest.json",65536);
     auto m=QJsonDocument::fromJson(manifestBytes).object();
@@ -168,7 +182,9 @@ QJsonObject AvatarAssets::resolve(const QJsonObject& a,const QString& explicitRo
         }
         g["nodes"]=nodes;
         for(const auto& n:sc["nodes"].toArray()){bool keep=true;for(auto i=hairs.begin();i!=hairs.end();++i)if(n==i.value()&&i.key()!=a["hair"].toString())keep=false;if(keep)roots.append(n);}sc["nodes"]=roots;scenes[scene]=sc;g["scenes"]=scenes;
-        output=glb(g,binary);if(!write(path,output))return fail("avatar_cache_write_failed");
+        if(!applyAvatarWearables(g,binary,m,a,root))return fail("invalid_avatar_wearable");
+        if(!compactAvatar(g,binary))return fail("invalid_avatar_buffer");
+        output=glb(g,binary);if(output.size()>64*1024*1024)return fail("avatar_too_large");if(!write(path,output))return fail("avatar_cache_write_failed");
         // Qt profile preview needs the neutral surface only; full game GLB retains all clips.
         g.remove("animations");auto meshes=g["meshes"].toArray();for(int i=0;i<meshes.size();++i){auto mesh=meshes[i].toObject();mesh.remove("weights");auto ps=mesh["primitives"].toArray();for(int j=0;j<ps.size();++j){auto p=ps[j].toObject();p.remove("targets");ps[j]=p;}mesh["primitives"]=ps;meshes[i]=mesh;}g["meshes"]=meshes;
         if(!write(preview,glb(g,binary)))return fail("avatar_cache_write_failed");

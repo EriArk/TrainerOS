@@ -7,6 +7,7 @@ namespace trainer {
 class AvatarAssets {
 public:
     static QJsonObject defaults();
+    static QJsonObject normalized(const QJsonObject&);
     static bool valid(const QJsonObject&);
     static QStringList keys();
     static QStringList choices(const QString& key);

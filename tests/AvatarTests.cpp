@@ -11,11 +11,60 @@ using namespace trainer;
 class AvatarTests:public QObject {
     Q_OBJECT
 private slots:
+    void wardrobeCompatibilityAndRig() {
+        auto legacy=AvatarAssets::defaults();legacy["schema"]=1;
+        for(const auto& key:{"top","bottom","socks","shoes","headwear"})legacy.remove(key);
+        QVERIFY(AvatarAssets::valid(legacy));QCOMPARE(AvatarAssets::normalized(legacy),AvatarAssets::defaults());
+        auto invalid=legacy;invalid["top"]="tank";QVERIFY(!AvatarAssets::valid(invalid));
+        if(!AvatarAssets::available())QSKIP("External avatar pack not installed");
+        QTemporaryDir temporary;
+        const auto destination=qEnvironmentVariable("TRAINER_AVATAR_TEST_OUTPUT");
+        const auto cache=destination.isEmpty()?temporary.path():QFileInfo(destination).absolutePath()+"/wardrobe";
+        const auto original=AvatarAssets::resolve(legacy,{},cache);QVERIFY(!original.contains("error"));
+        QCOMPARE(AvatarAssets::resolve(AvatarAssets::defaults(),{},cache)["sha256"],original["sha256"]);
+        int variant=0;
+        for(const auto& hair:AvatarAssets::choices("hair"))for(const auto& hat:{"golf-cap","golf-visor"}) {
+            auto a=AvatarAssets::defaults();const bool female=QString(hat)=="golf-visor";
+            a["hair"]=hair;a["eyes"]="rogue-feminine";a["headwear"]=hat;
+            a["top"]=female?"polo-sleeveless":"polo-short-sleeve";a["bottom"]=female?"pleated-skirt":"golf-shorts";
+            a["socks"]=female?"crew-socks":"ankle-socks";a["shoes"]=female?"golf-shoes-sport":"golf-shoes-classic";
+            a["shirtColor"]=female?"#234f43":"#f4f0df";a["shortsColor"]=female?"#f4f0df":"#234f43";
+            a["skinColor"]=female?"#614132":"#f0c4a5";
+            auto r=AvatarAssets::resolve(a,{},cache);QVERIFY2(!r.contains("error"),qPrintable(r["error"].toString()));
+            QFile file(r["glb"].toString());QVERIFY(file.open(QIODevice::ReadOnly));const auto bytes=file.readAll();
+            QVERIFY(bytes.size()<64*1024*1024);
+            const auto g=QJsonDocument::fromJson(bytes.mid(20,qFromLittleEndian<quint32>(bytes.constData()+12))).object();
+            const auto nodes=g["nodes"].toArray();const auto meshes=g["meshes"].toArray();QSet<int> wardrobeNodes;
+            for(int i=0;i<nodes.size();++i){const auto node=nodes[i].toObject();
+                if(node["name"]=="shirt"||node["name"]=="shoes")QVERIFY(!node.contains("mesh"));
+                for(const auto& slot:{"top","bottom","socks","shoes","headwear"})if(node["name"]==a[slot]){
+                    QVERIFY(node.contains("mesh"));QCOMPARE(node["skin"].toInt(),0);wardrobeNodes.insert(i);
+                    const auto mesh=meshes[node["mesh"].toInt()].toObject();QVERIFY(!mesh["primitives"].toArray().isEmpty());
+                }
+            }
+            QCOMPARE(wardrobeNodes.size(),5);QCOMPARE(g["skins"].toArray().size(),1);QCOMPARE(g["animations"].toArray().size(),8);
+            for(const auto& av:g["animations"].toArray()){
+                QSet<int> animated;for(const auto& cv:av.toObject()["channels"].toArray()){
+                    auto target=cv.toObject()["target"].toObject();if(target["path"]=="weights")animated.insert(target["node"].toInt());
+                }
+                for(int n:wardrobeNodes){auto mesh=meshes[nodes[n].toObject()["mesh"].toInt()].toObject();
+                    if(!mesh["weights"].toArray().isEmpty())QVERIFY(animated.contains(n));
+                }
+            }
+            QCOMPARE(AvatarAssets::resolveRecipe(r["recipe"].toObject(),cache)["sha256"],r["sha256"]);
+            if(!destination.isEmpty()){QFile descriptor(QFileInfo(destination).absolutePath()+"/wear-"+hair+"-"+hat+".json");QVERIFY(descriptor.open(QIODevice::WriteOnly));descriptor.write(QJsonDocument(r).toJson());}
+            ++variant;
+        }
+        QCOMPARE(variant,8);
+        // Unequip regenerates from the original source, never from fitted hair.
+        QCOMPARE(AvatarAssets::resolve(legacy,{},cache)["sha256"],original["sha256"]);
+        auto bad=AvatarAssets::defaults();bad["headwear"]="../../hat";QVERIFY(!AvatarAssets::valid(bad));
+    }
     void savedLookAppliesWholeAppearanceAndPreservesTrainer() {
         if(!AvatarAssets::available())QSKIP("External avatar pack not installed");
         TrainerProfile p;p.id="looks-owner";p.name="Alice";p.createdAt=QDateTime::currentDateTimeUtc();p.avatar=AvatarAssets::defaults();
         MockTrainerRepository repo(p);TrainerController c(repo);
-        auto look=AvatarAssets::defaults();look["hair"]="bob";look["shirtColor"]="#a8c9bc";look["eyes"]="almond";
+        auto look=AvatarAssets::defaults();look["hair"]="bob";look["shirtColor"]="#a8c9bc";look["eyes"]="almond";look["top"]="polo-sleeveless";look["bottom"]="pleated-skirt";look["headwear"]="golf-visor";
         QVERIFY(c.applyAppearance(look));QCOMPARE(repo.load()->avatar,look);QCOMPARE(repo.load()->id,p.id);QCOMPARE(repo.load()->name,p.name);
         QTRY_COMPARE_WITH_TIMEOUT(c.avatarDescriptor()["appearance"].toObject(),look,30000);
         auto bad=look;bad["hair"]="missing";QVERIFY(!c.applyAppearance(bad));QCOMPARE(repo.load()->avatar,look);
@@ -26,7 +75,7 @@ private slots:
         if(!AvatarAssets::available())QSKIP("External avatar pack not installed");
         QTemporaryDir cache;QSet<QString> hashes;int index=0;
         QFile manifest(AvatarAssets::packRoot()+"/manifest.json");QVERIFY(manifest.open(QIODevice::ReadOnly));
-        const auto pack=QJsonDocument::fromJson(manifest.readAll()).object();QCOMPARE(pack["revision"].toInt(),6);
+        const auto pack=QJsonDocument::fromJson(manifest.readAll()).object();QCOMPARE(pack["revision"].toInt(),7);
         QFile templateFile(AvatarAssets::packRoot()+"/template.glb");QVERIFY(templateFile.open(QIODevice::ReadOnly));
         const auto templateBytes=templateFile.readAll();
         const auto templateJson=QJsonDocument::fromJson(templateBytes.mid(20,qFromLittleEndian<quint32>(templateBytes.constData()+12))).object();
@@ -79,8 +128,10 @@ private slots:
             QCOMPARE(visibleHair,1);
             const auto expected=pack["eyeNodes"].toObject()[eyes].toArray();QCOMPARE(visibleEyes,expected.size());
             const auto body=nodes[pack["bodyNode"].toInt()].toObject();
-            QCOMPARE(body["mesh"],pack["eyeBodyMeshes"].toObject().contains(eyes)
-                ?pack["eyeBodyMeshes"].toObject()[eyes]:pack[expected.isEmpty()?"legacyBodyMesh":"preparedBodyMesh"]);
+            const auto expectedMesh=pack["eyeBodyMeshes"].toObject().contains(eyes)
+                ?pack["eyeBodyMeshes"].toObject()[eyes]:pack[expected.isEmpty()?"legacyBodyMesh":"preparedBodyMesh"];
+            QCOMPARE(g["meshes"].toArray()[body["mesh"].toInt()].toObject()["name"],
+                     templateJson["meshes"].toArray()[expectedMesh.toInt()].toObject()["name"]);
             QCOMPARE(g["animations"].toArray().size(),8);
             QCOMPARE(g["extras"].toObject()["trainerFace"],face);
             const auto bodyMesh=g["meshes"].toArray()[body["mesh"].toInt()].toObject();
@@ -108,7 +159,7 @@ private slots:
         QTRY_VERIFY_WITH_TIMEOUT(!c.avatarDescriptor().isEmpty(),30000);
         const auto original=c.avatarDescriptor();c.reload();QCOMPARE(c.avatarDescriptor(),original);
         c.beginAvatarEdit();c.cycleAvatar(0);QCOMPARE(c.avatarDescriptor(),original);
-        c.chooseAvatar(2,"#d1ab68");QCOMPARE(c.avatarRows()[2].toMap()["colour"].toString(),"#d1ab68");
+        c.chooseAvatar(7,"#d1ab68");QCOMPARE(c.avatarRows()[7].toMap()["colour"].toString(),"#d1ab68");
         c.chooseAvatar(0,"missing");QCOMPARE(c.avatarRows()[0].toMap()["detail"].toString(),"ponytail");
         QCOMPARE(c.avatarDescriptor(),original);
         c.finishAvatar(false);QCOMPARE(repo.load()->avatar,p.avatar);

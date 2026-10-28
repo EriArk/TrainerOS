@@ -85,3 +85,20 @@ def test_board_profile_updates_keep_score_revision_and_mask_inactive(play,postgr
     hidden=play.board(RULE,'teams','records',0,5)['profiles'][str(player)]
     assert hidden['display_name']=='Player' and hidden['avatar'] is None
     assert play.board(RULE,'teams','records',0,5)['items']==before['items']
+
+
+def test_wardrobe_recipe_roundtrip_and_legacy_are_bounded(account):
+    value=copy.deepcopy(RECIPE)
+    value['appearance'].update(schema=2,top='polo-short-sleeve',bottom='golf-shorts',
+                               socks='ankle-socks',shoes='golf-shoes-classic',headwear='golf-cap')
+    assert avatar_recipe(value)==value
+    user=login(account);token=user['access_token']
+    assert account.profile(token,avatar=value)['avatar']==value
+    assert account.profile(token,avatar=RECIPE)['avatar']==RECIPE
+    for key in ('top','bottom','socks','shoes','headwear'):
+        bad=copy.deepcopy(value);bad['appearance'][key]='../external.glb'
+        with pytest.raises(AuthError,match='invalid_avatar_recipe'):avatar_recipe(bad)
+        del bad['appearance'][key]
+        with pytest.raises(AuthError,match='invalid_avatar_recipe'):avatar_recipe(bad)
+    bad=copy.deepcopy(value);bad['appearance']['schema']=1
+    with pytest.raises(AuthError,match='invalid_avatar_recipe'):avatar_recipe(bad)

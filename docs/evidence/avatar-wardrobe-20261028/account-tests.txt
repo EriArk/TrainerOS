@@ -1,0 +1,27 @@
+********* Start testing of BackendAccountTests *********
+Config: Using QtTest library 6.11.1, Qt 6.11.1 (x86_64-little_endian-llp64 shared (dynamic) release build; by GCC 16.1.0), windows 10
+PASS   : BackendAccountTests::initTestCase()
+PASS   : BackendAccountTests::outfitPurchaseRecoveryAndCachedOwnerIsolation()
+PASS   : BackendAccountTests::supportCreditsKeepXpAndAcceptOnlyValidBonusHistory()
+PASS   : BackendAccountTests::supportPreviewRejectsMalformedStaleAndUnsettledBalances()
+PASS   : BackendAccountTests::purchaseNeedsReviewAndDurableIntentThenRestoresLostResponse()
+PASS   : BackendAccountTests::purchaseLateOwnerResponseAndOfflineAppearanceAreIsolated()
+PASS   : BackendAccountTests::vaultJobsFromConcurrentShortLivedWorkersReturnOnReceiverThread()
+PASS   : BackendAccountTests::progressionPersistsOnServerAndFencesOwnerAndMalformedReplies()
+PASS   : BackendAccountTests::progressionDoesNotSubmitRaCredentialsWithoutExplicitLink()
+PASS   : BackendAccountTests::publicAvatarCoalescesAndFencesOwnerChanges()
+PASS   : BackendAccountTests::gameFacadeScopesCredentialsAndRejectsArbitraryProxy()
+PASS   : BackendAccountTests::lateGameGrantIsRevokedAfterDisconnectOrOwnerChange()
+PASS   : BackendAccountTests::browserReturnPublishesOnlyIdentityAndLogoutRevokes()
+PASS   : BackendAccountTests::invalidHostAndDuplicateQueryCannotClaim()
+PASS   : BackendAccountTests::cancelledAndOldOwnerCompletionsCannotPublish()
+PASS   : BackendAccountTests::restartRefreshIsDurableAndAmbiguousFailureNeverReplays()
+PASS   : BackendAccountTests::restartRestoresAndSocialChangeInvalidates()
+PASS   : BackendAccountTests::storageFailureNeverPublishesSession()
+PASS   : BackendAccountTests::expiredAccessDoesNotPretendLogoutRevokedSession()
+PASS   : BackendAccountTests::browserCancellationDoesNotClaim()
+PASS   : BackendAccountTests::delayedVaultWriteRetainsOldOwnerLock()
+PASS   : BackendAccountTests::activeGameGuardPreventsBrowserLaunch()
+PASS   : BackendAccountTests::cleanupTestCase()
+Totals: 23 passed, 0 failed, 0 skipped, 0 blacklisted, 1766ms
+********* Finished testing of BackendAccountTests *********
