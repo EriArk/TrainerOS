@@ -8,9 +8,12 @@ Item {
     readonly property var account:shell.backendAccount
     readonly property var view:account.prizes
     readonly property var selected:view.selected||({})
+    readonly property var ceremony:view.ceremony||({})
     readonly property bool active:visible&&shell.profileContentActive
     readonly property bool compact:height<420
     function label(kind){return kind==="clothing"?"Wardrobe reward":kind==="outfit_slot"?"Permanent look slot":kind==="completed"?"All achievements":kind==="hardcore"?"Hardcore distinction":"Game beaten"}
+    function summary(group){return (group.kinds||[]).map(k=>{const n=(group.grants||[]).filter(r=>r.kind===k).length;return (!group.game_id&&n>1?n+" × ":"")+label(k)}).join(" · ")}
+    function ceremonyPinned(){for(const row of view.shelf||[])if(row.game_id===ceremony.game_id)return true;return false}
     function pinned(){for(const row of view.shelf||[])if(row.game_id===selected.game_id)return true;return false}
     component Link:Item {
         required property int actionIndex
@@ -33,7 +36,7 @@ Item {
             Rectangle {anchors.fill:parent;radius:6;color:root.view.index===index?Theme.selection:"transparent";border.color:Theme.focus;border.width:root.shell.profileFocus>=100&&root.view.index===index?2:0}
             PrizeEmblem {x:3;y:3;width:48;height:48;kind:modelData.kind}
             Text {x:60;y:9;width:parent.width-x-8;text:modelData.title;textFormat:Text.PlainText;color:Theme.ink;font.pixelSize:12;elide:Text.ElideRight}
-            Text {x:60;y:31;width:parent.width-x-8;text:root.label(modelData.kind);color:Theme.muted;font.pixelSize:10;elide:Text.ElideRight}
+            Text {x:60;y:31;width:parent.width-x-8;text:root.summary(modelData);color:Theme.muted;font.pixelSize:10;elide:Text.ElideRight}
             MouseArea {anchors.fill:parent;enabled:root.active;onClicked:root.shell.activate(100+index,"profile")}
         }
         Text {anchors.centerIn:parent;width:parent.width-20;visible:!list.count;text:root.view.connected?"Your first level rewards and verified game trophies will appear here.":"Sign in to restore your rewards.";wrapMode:Text.WordWrap;color:Theme.muted;font.pixelSize:13;horizontalAlignment:Text.AlignHCenter}
@@ -43,7 +46,7 @@ Item {
         x:list.width+34;y:61;width:parent.width-x;height:parent.height-y-76
         PrizeEmblem {id:emblem;anchors.horizontalCenter:parent.horizontalCenter;width:Math.min(parent.width*.48,root.compact?130:185);height:width;kind:root.selected.kind||"beaten"}
         Text {id:name;y:emblem.height+4;width:parent.width;text:root.selected.title||"A place for your victories";textFormat:Text.PlainText;color:Theme.ink;font.pixelSize:root.compact?17:21;horizontalAlignment:Text.AlignHCenter;wrapMode:Text.WordWrap;maximumLineCount:2;elide:Text.ElideRight}
-        Text {y:name.y+name.height+9;width:parent.width;text:root.selected.kind==="clothing"?"Earned and kept for you.\nThe prize item is being prepared.":root.selected.kind==="outfit_slot"?"Ready in your wardrobe.\nAdds to your purchased look slots.":root.selected.id?root.label(root.selected.kind)+" · "+String(root.selected.earned_at).slice(0,10):"Level up, finish games and choose\nfive trophies for your profile shelf.";color:Theme.muted;font.pixelSize:12;horizontalAlignment:Text.AlignHCenter;wrapMode:Text.WordWrap}
+        Text {y:name.y+name.height+9;width:parent.width;text:root.selected.id?root.summary(root.selected)+"\n"+(root.selected.slot?"Your permanent look slot is ready.\n":"")+((root.selected.kinds||[]).indexOf("clothing")>=0?"Clothing earned · prize item being prepared":String(root.selected.earned_at).slice(0,10)):"Level up, finish games and choose\nfive trophies for your profile shelf.";color:Theme.muted;font.pixelSize:12;horizontalAlignment:Text.AlignHCenter;wrapMode:Text.WordWrap}
     }
     Row {
         y:parent.height-70;spacing:12
@@ -53,7 +56,7 @@ Item {
         anchors.bottom:parent.bottom;anchors.bottomMargin:22;spacing:6
         Link {actionIndex:0;text:root.view.busy?"Refreshing…":"Refresh"}
         Link {actionIndex:1;text:"Celebrate ("+(root.view.pending||0)+")";allowed:(root.view.pending||0)>0}
-        Link {actionIndex:2;text:root.pinned()?"Remove from shelf":"Place on shelf";allowed:!!root.selected.game_id&&root.selected.kind!=="clothing"}
+        Link {actionIndex:2;text:root.pinned()?"Remove from shelf":"Place on shelf";allowed:!!root.selected.trophy}
         Link {actionIndex:3;text:"Earlier rewards";allowed:!!root.view.next_before}
         Link {actionIndex:4;text:"Wardrobe"}
     }
@@ -61,6 +64,8 @@ Item {
     Item {
         id:celebration;anchors.fill:parent;visible:root.visible&&!!root.view.celebrating;z:10
         property real reveal:0
+        property string currentId:root.ceremony.id||""
+        onCurrentIdChanged:if(visible){reveal=0;entrance.restart()}
         onVisibleChanged:if(visible){
             reveal=0;entrance.restart()
             const state=root.shell.social.account||({})
@@ -83,15 +88,17 @@ Item {
         Column {
             x:parent.width*.28;width:parent.width*.68;y:root.compact?14:25;spacing:root.compact?7:13
             Text {anchors.horizontalCenter:parent.horizontalCenter;text:"A MOMENT TO SHINE";font.pixelSize:10;font.letterSpacing:3;color:"#b2c5c3"}
-            Text {anchors.horizontalCenter:parent.horizontalCenter;text:root.view.celebrationCount+" rewards earned";font.family:Theme.displayFamily;font.pixelSize:root.compact?27:35;color:"#fff2d5"}
-            PrizeEmblem {anchors.horizontalCenter:parent.horizontalCenter;width:root.compact?110:170;height:width;bright:true;scale:.75+.25*celebration.reveal}
-            Text {width:parent.width;text:"Your progress is yours to keep.";color:"#ead7ad";font.pixelSize:15;horizontalAlignment:Text.AlignHCenter}
-            Text {width:parent.width;text:{const counts={};for(const row of root.view.waiting||[])counts[root.label(row.kind)]=(counts[root.label(row.kind)]||0)+1;return Object.keys(counts).map(k=>counts[k]+" "+k).join("  ·  ")} color:"#afc2c2";font.pixelSize:11;wrapMode:Text.WordWrap;horizontalAlignment:Text.AlignHCenter}
+            Text {width:parent.width;text:root.ceremony.title||"Rewards earned";textFormat:Text.PlainText;wrapMode:Text.WordWrap;maximumLineCount:2;elide:Text.ElideRight;horizontalAlignment:Text.AlignHCenter;font.family:Theme.displayFamily;font.pixelSize:root.compact?24:32;color:"#fff2d5"}
+            PrizeEmblem {anchors.horizontalCenter:parent.horizontalCenter;width:root.compact?90:150;height:width;kind:root.ceremony.kind||"beaten";bright:true;scale:.75+.25*celebration.reveal}
+            Text {width:parent.width;text:root.summary(root.ceremony);color:"#ead7ad";font.pixelSize:root.compact?12:15;wrapMode:Text.WordWrap;horizontalAlignment:Text.AlignHCenter}
+            Text {width:parent.width;text:((root.ceremony.kinds||[]).indexOf("clothing")>=0?"Clothing earned and kept · the prize item is being prepared\n":"")+(root.view.ceremonyRemaining>1?(root.view.ceremonyRemaining-1)+" more moments to celebrate":"Your progress is yours to keep.");color:"#afc2c2";font.pixelSize:11;wrapMode:Text.WordWrap;horizontalAlignment:Text.AlignHCenter}
         }
         Row {
-            anchors.bottom:parent.bottom;anchors.bottomMargin:15;anchors.horizontalCenter:parent.horizontalCenter;spacing:30
-            Text {text:"B  Later";color:"#b8c9c8";font.pixelSize:13;MouseArea {anchors.fill:parent;anchors.margins:-8;onClicked:root.account.closeCelebration(false)}}
-            Text {text:"A  Continue";color:"#ffe4a2";font.pixelSize:13;MouseArea {anchors.fill:parent;anchors.margins:-8;onClicked:root.account.closeCelebration(true)}}
+            anchors.bottom:parent.bottom;anchors.bottomMargin:32;anchors.horizontalCenter:parent.horizontalCenter;spacing:30
+            Text {text:"B  Later";color:"#b8c9c8";font.pixelSize:13;MouseArea {anchors.fill:parent;anchors.margins:-8;onClicked:root.shell.activate(6,"profile")}}
+            Text {objectName:"prize-ceremony-action";visible:!!root.ceremony.slot||!!root.ceremony.trophy;text:root.ceremony.slot?"Select  Open wardrobe":root.ceremonyPinned()?"On your shelf":"Select  Place on shelf";color:"#b8dfcd";font.pixelSize:13;opacity:root.view.busy ? .5 : 1;MouseArea {anchors.fill:parent;anchors.margins:-8;enabled:!root.view.busy;onClicked:root.shell.activate(root.ceremony.slot?4:5,"profile")}}
+            Text {text:root.view.busy?"Saving…":root.view.ceremonyRemaining>1?"A  Next reward":"A  Done";color:"#ffe4a2";font.pixelSize:13;MouseArea {anchors.fill:parent;anchors.margins:-8;enabled:!root.view.busy;onClicked:root.shell.activate(1,"profile")}}
         }
+        Text {anchors.bottom:parent.bottom;anchors.bottomMargin:7;width:parent.width;text:root.view.status;color:"#d9c29e";font.pixelSize:10;elide:Text.ElideRight;horizontalAlignment:Text.AlignHCenter}
     }
 }

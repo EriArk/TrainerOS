@@ -19,8 +19,9 @@ class Shelf(StrictBody):
 
 
 @router.get('/v1/me/prizes')
-def prizes(request: Request, before: int | None = Query(default=None, ge=1)):
-    return wire(Prizes(service(request)).snapshot(bearer(request), before))
+def prizes(request: Request, before: int | None = Query(default=None, ge=1),
+           group_before: int | None = Query(default=None, ge=1)):
+    return wire(Prizes(service(request)).snapshot(bearer(request), before, group_before))
 
 
 @router.post('/v1/me/prizes/seen')

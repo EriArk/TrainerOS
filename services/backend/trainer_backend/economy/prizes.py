@@ -53,12 +53,21 @@ class Prizes:
     def __init__(self, progression):
         self.progression, self.db = progression, progression.db
 
-    def snapshot(self, access, before=None):
+    def snapshot(self, access, before=None, group_before=None):
         with self.db.transaction() as conn:
             actor = self.progression.account(conn, access)
             player = actor.player_id
             levels(conn, player)
             account = conn.execute('SELECT xp,revision FROM trainer_backend.progression_accounts WHERE player_id=%s', (player,)).fetchone()
+            # Page by the newest fact of a whole game/level, never through its middle.
+            collection = conn.execute('''WITH grouped AS (
+                SELECT coalesce('game:'||game_id,'level:'||level,'grant:'||id) key,
+                    max(sequence) sequence, jsonb_agg(to_jsonb(p) ORDER BY sequence) grants
+                FROM trainer_backend.prize_grants p WHERE player_id=%s GROUP BY 1)
+                SELECT * FROM grouped WHERE (%s::bigint IS NULL OR sequence<%s)
+                ORDER BY sequence DESC LIMIT 101''', (player, group_before, group_before)).fetchall()
+            collection_before = str(collection[99]['sequence']) if len(collection) > 100 else None
+            collection = collection[:100]
             rows = conn.execute('''SELECT p.*,r.presented_at FROM trainer_backend.prize_grants p
                 LEFT JOIN trainer_backend.prize_receipts r ON r.player_id=p.player_id AND r.grant_id=p.id
                 WHERE p.player_id=%s AND (%s::bigint IS NULL OR p.sequence<%s)
@@ -66,9 +75,15 @@ class Prizes:
             pending = conn.execute('''SELECT count(*) n FROM trainer_backend.prize_grants p WHERE p.player_id=%s
                 AND NOT EXISTS(SELECT 1 FROM trainer_backend.prize_receipts r WHERE r.player_id=p.player_id AND r.grant_id=p.id)''', (player,)).fetchone()['n']
             # Keep the celebration bounded. Acknowledgement names only displayed grants.
-            waiting = conn.execute('''SELECT p.* FROM trainer_backend.prize_grants p WHERE p.player_id=%s
-                AND NOT EXISTS(SELECT 1 FROM trainer_backend.prize_receipts r WHERE r.player_id=p.player_id AND r.grant_id=p.id)
-                ORDER BY sequence LIMIT 100''', (player,)).fetchall()
+            waiting = conn.execute('''WITH pending AS (
+                SELECT p.*,coalesce('game:'||game_id,'level:'||level,'grant:'||id) group_key
+                FROM trainer_backend.prize_grants p WHERE p.player_id=%s
+                AND NOT EXISTS(SELECT 1 FROM trainer_backend.prize_receipts r WHERE r.player_id=p.player_id AND r.grant_id=p.id)),
+                groups AS (SELECT group_key,min(sequence) first_sequence,count(*) n FROM pending GROUP BY group_key),
+                bounded AS (SELECT *,sum(n) OVER(ORDER BY first_sequence) total,
+                    row_number() OVER(ORDER BY first_sequence) position FROM groups)
+                SELECT p.* FROM pending p JOIN bounded b USING(group_key)
+                WHERE b.total<=100 OR b.position=1 ORDER BY b.first_sequence,p.sequence LIMIT 100''', (player,)).fetchall()
             trophies = conn.execute('''SELECT game_id,min(title) title,min(earned_at) earned_at,
                 bool_or(kind='beaten') beaten,bool_or(kind='completed') completed,bool_or(kind='hardcore') hardcore,
                 max(sequence) sequence FROM trainer_backend.prize_grants
@@ -82,6 +97,7 @@ class Prizes:
             n = mastery(account['xp'])['level']
             return {'player_id': player, 'revision': account['revision'], 'items': rows, 'pending': pending,
                     'waiting': waiting, 'trophies': trophies, 'shelf': shelf,
+                    'collection': collection, 'collection_before': collection_before,
                     'next_before': str(rows[-1]['sequence']) if len(rows) == 100 else None,
                     'upcoming': [{'level': i, 'clothing': True, 'slot': i % 3 == 0} for i in range(n + 1, n + 4)],
                     'checked_at': datetime.now(timezone.utc)}

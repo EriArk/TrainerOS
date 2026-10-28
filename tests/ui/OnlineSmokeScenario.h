@@ -19,6 +19,8 @@ inline void startOnlineSmoke(QQuickWindow* window,trainer::ShellController& shel
     auto grantSupport=std::make_shared<std::function<void()>>();
     auto pauseInventory=std::make_shared<bool>(false);
     auto heldInventory=std::make_shared<trainer::BackendAccount::Reply>();
+    auto replayPrizes=std::make_shared<std::function<void()>>();
+    auto prizeWait=std::make_shared<int>(0);
     QObject::connect(timer,&QTimer::timeout,window,[=,&shell,&completed,&warnings,&diagnostics] {
         auto check=[&](bool ok,const QString& why){if(!ok)diagnostics.append(why);};
         auto capture=[&](const QString& name){if(!directory.isEmpty())check(window->grabWindow().save(directory+"/"+name+".png"),"Capture "+name);};
@@ -246,15 +248,16 @@ inline void startOnlineSmoke(QQuickWindow* window,trainer::ShellController& shel
             for(const auto kind:{"beaten","outfit_slot","clothing"}) {
                 ++sequence;rows.append(QJsonObject{{"id",QUuid::createUuid().toString(QUuid::WithoutBraces)},{"player_id",player},
                     {"kind",kind},{"title",sequence==1?"A completed adventure":sequence==2?"Level 3 look slot":"Level 3 wardrobe reward"},
-                    {"game_id",sequence==1?QJsonValue(7):QJsonValue()},{"earned_at",now},{"sequence",sequence}});
+                    {"game_id",sequence==1?QJsonValue(7):QJsonValue()},{"level",sequence==1?QJsonValue():QJsonValue(3)},{"earned_at",now},{"sequence",sequence}});
             }
             auto prizes=std::make_shared<QJsonObject>(QJsonObject{{"player_id",player},{"revision","50"},{"pending",3},{"items",rows},{"waiting",rows},
                 {"shelf",QJsonArray{}},{"upcoming",QJsonArray{QJsonObject{{"level",4},{"slot",false}},QJsonObject{{"level",5},{"slot",false}},QJsonObject{{"level",6},{"slot",true}}}}});
+            *replayPrizes=[prizes,rows]{(*prizes)["waiting"]=rows;(*prizes)["pending"]=rows.size();};
             shell.backendAccount()->setServices({[player,prizes](QByteArray,QString path,QJsonObject body,QByteArray,trainer::BackendAccount::Reply done){
                 if(path=="/v1/auth/refresh")done(200,{{"player_id",player},{"session_id","33333333-3333-4333-8333-333333333333"},{"fluxer_subject","12345"},
                     {"access_token",QString(43,'a')},{"refresh_token",QString(43,'r')},{"expires_at",QDateTime::currentDateTimeUtc().addSecs(900).toString(Qt::ISODateWithMs)}});
                 else if(path.startsWith("/v1/me/prizes")) {
-                    if(path.endsWith("/seen")){(*prizes)["pending"]=0;(*prizes)["waiting"]=QJsonArray{};}
+                    if(path.endsWith("/seen")){QJsonArray left;for(const auto v:(*prizes)["waiting"].toArray())if(!body["ids"].toArray().contains(v.toObject()["id"]))left.append(v);(*prizes)["pending"]=left.size();(*prizes)["waiting"]=left;}
                     if(path.endsWith("/shelf"))(*prizes)["shelf"]=body["games"].toArray().isEmpty()?QJsonArray{}:QJsonArray{QJsonObject{{"game_id",7},{"title","A completed adventure"},{"beaten",true},{"completed",false}}};
                     done(200,*prizes);
                 } else done(503,{});
@@ -268,15 +271,45 @@ inline void startOnlineSmoke(QQuickWindow* window,trainer::ShellController& shel
         case 45:
             check(shell.backendAccount()->prizes()["celebrating"].toBool(),"Explicit grouped celebration");capture("prizes-celebration-wide");
             shell.dispatch(Action::Back);check(shell.backendAccount()->prizes()["pending"].toInt()==3,"Later keeps unpresented grants");
-            window->resize(960,540);shell.activate(102,"profile");break;
+            window->resize(960,540);shell.activate(101,"profile");break;
         case 46:
             capture("prizes-pending-item-compact");shell.activate(1,"profile");break;
-        case 47:
+        case 47: {
             capture("prizes-celebration-compact");shell.dispatch(Action::Confirm);
+            check(shell.backendAccount()->prizes()["pending"].toInt()==2,"Only this game's moment acknowledged");
+            check(shell.backendAccount()->prizes()["ceremony"].toMap()["slot"].toBool(),"Level groups clothing with slot");
+            const std::function<QQuickItem*(QQuickItem*)> find=[&](QQuickItem* item)->QQuickItem* {
+                if(item->objectName()=="prize-ceremony-action"&&item->isVisible())return item;
+                for(auto* child:item->childItems())if(auto* result=find(child))return result;return nullptr;
+            };
+            auto* action=find(window->contentItem());check(action!=nullptr,"Ceremony touch action exists");
+            if(action){const auto point=action->mapToScene({action->width()/2,action->height()/2});const auto global=QPointF(window->mapToGlobal(point.toPoint()));
+                QMouseEvent down(QEvent::MouseButtonPress,point,global,Qt::LeftButton,Qt::LeftButton,Qt::NoModifier),up(QEvent::MouseButtonRelease,point,global,Qt::LeftButton,Qt::NoButton,Qt::NoModifier);
+                QCoreApplication::sendEvent(window,&down);QCoreApplication::sendEvent(window,&up);
+            }
+            check(shell.profileRoute()=="outfits","Ceremony touch opens wardrobe");break;
+        }
+        case 48:
+            shell.dispatch(Action::Back);check(shell.profileRoute()=="prizes"&&shell.backendAccount()->prizes()["celebrating"].toBool(),"Wardrobe returns to frozen ceremony");
+            capture("prizes-level-compact");shell.dispatch(Action::Confirm);
             check(shell.backendAccount()->prizes()["pending"].toInt()==0,"Presentation acknowledges only shown rewards");
             shell.dispatch(Action::Back);check(shell.profileFocus()==11,"Collection returns to shelf entry");break;
-        case 48:
-            capture("prizes-profile-shelf");shell.dispatch(Action::Back);break;
+        case 49:
+            capture("prizes-profile-shelf");shell.dispatch(Action::Back);
+            (*replayPrizes)();shell.backendAccount()->refreshPrizes();
+            shell.setLiveGame({{"id","test-game"},{"title","Test game"}});shell.presentPostGamePrizes();*prizeWait=0;break;
+        case 50:
+            if(++*prizeWait<5){--*step;break;}
+            check(!shell.serviceOpen(),"No ceremony over an active or minimized game");
+            shell.setLiveGame({});shell.keyboard()->begin("Finishing a message","Draft",80,false,"Send");shell.presentPostGamePrizes();*prizeWait=0;break;
+        case 51:
+            if(++*prizeWait<5){--*step;break;}
+            check(!shell.serviceOpen(),"Post-game ceremony waits for text input");shell.keyboard()->cancel();*prizeWait=0;break;
+        case 52:
+            if(!shell.serviceOpen()&&++*prizeWait<10){--*step;break;}
+            check(shell.profileRoute()=="prizes"&&shell.backendAccount()->prizes()["celebrating"].toBool(),"Post-game pending awards open on safe shell");
+            shell.dispatch(Action::LocalAction);check(shell.backendAccount()->prizes()["shelf"].toList().size()==1,"Ceremony pin is idempotent");
+            capture("prizes-postgame");shell.dispatch(Action::Back);shell.dispatch(Action::Back);shell.dispatch(Action::Back);break;
         default:
             check(warnings==0,"QML warnings during Online navigation");
             if(!directory.isEmpty()){QFile f(directory+"/online-report.json");if(f.open(QIODevice::WriteOnly))f.write(QJsonDocument(QJsonObject{{"warnings",warnings},{"success",diagnostics.isEmpty()},{"diagnostics",QJsonArray::fromStringList(diagnostics)}}).toJson());}

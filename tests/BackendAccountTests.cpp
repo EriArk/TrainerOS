@@ -100,6 +100,34 @@ class BackendAccountTests:public QObject {
         h.shopValue["receipt"]=receipt;
     }
 private slots:
+    void groupedCeremonyFreezesAndAcknowledgesOneMoment() {
+        Harness h;h.shopEnabled=true;h.shopValue=inventory();
+        auto row=[](QString id,QString kind,int game,int level){return QJsonObject{{"id",id},{"player_id",Player},{"title","An adventure"},{"kind",kind},{"game_id",game},{"level",level},{"earned_at",QDateTime::currentDateTimeUtc().toString(Qt::ISODateWithMs)}};};
+        auto beaten=row("44444444-4444-4444-8444-444444444441","beaten",7,0);
+        auto complete=row("44444444-4444-4444-8444-444444444442","completed",7,0);
+        auto slot=row("44444444-4444-4444-8444-444444444443","outfit_slot",0,3);
+        auto clothing=row("44444444-4444-4444-8444-444444444445","clothing",0,4);
+        QJsonArray rows{beaten,slot,complete,clothing};
+        h.prizeValue={{"player_id",Player},{"revision","1"},{"pending",4},{"items",rows},{"waiting",rows},{"shelf",QJsonArray{}},{"upcoming",QJsonArray{}}};
+        h.prizeValue["collection"]=QJsonArray{QJsonObject{{"key","game:7"},{"grants",QJsonArray{beaten,complete}}},QJsonObject{{"key","level:3"},{"grants",QJsonArray{slot}}},QJsonObject{{"key","level:4"},{"grants",QJsonArray{clothing}}}};
+        BackendAccount a;a.setServices(h.services());a.configure("grouped-prizes");a.activate();h.callback();a.refreshPrizes();
+        QCOMPARE(a.prizes()["items"].toList().size(),3);
+        a.celebratePrizes();QCOMPARE(a.prizes()["ceremony"].toMap()["grants"].toList().size(),2);
+        auto extra=row("44444444-4444-4444-8444-444444444444","hardcore",7,0);
+        rows.append(extra);h.prizeValue["waiting"]=rows;h.prizeValue["items"]=rows;h.prizeValue["pending"]=5;
+        a.refreshPrizes();QCOMPARE(a.prizes()["ceremony"].toMap()["grants"].toList().size(),2);
+        h.deferPrizes=true;a.closeCelebration(true);auto failed=h.pendingPrizes;failed(503,{});
+        QVERIFY(a.prizes()["celebrating"].toBool());QCOMPARE(a.prizes()["ceremonyRemaining"].toInt(),2);
+        a.closeCelebration(true);QCOMPARE(h.prizeBody["ids"].toArray(),QJsonArray({beaten["id"],complete["id"]}));
+        auto saved=h.pendingPrizes;saved(200,h.prizeValue);
+        QCOMPARE(a.prizes()["ceremony"].toMap()["level"].toInt(),3);
+        QCOMPARE(a.prizes()["ceremony"].toMap()["grants"].toList().size(),2);
+        QCOMPARE(a.prizes()["ceremony"].toMap()["title"].toString(),QString("Levels 3–4"));
+        a.closeCelebration(false);QVERIFY(!a.prizes()["celebrating"].toBool());
+        a.celebratePrizes();QCOMPARE(a.prizes()["ceremony"].toMap()["grants"].toList().size(),3);
+        a.configure("other-grouped-owner");QVERIFY(!a.prizes()["celebrating"].toBool());
+    }
+
     void earnedSlotsAndPrizeOwnerRecovery() {
         Harness h;h.shopEnabled=true;h.shopValue=inventory();
         const QString id="44444444-4444-4444-8444-444444444444";

@@ -77,7 +77,7 @@ public:
     Q_INVOKABLE void selectPrize(int index);
     Q_INVOKABLE void celebratePrizes();
     Q_INVOKABLE void closeCelebration(bool acknowledge=false);
-    Q_INVOKABLE void togglePrizeShelf();
+    Q_INVOKABLE void togglePrizeShelf(bool celebration=false);
 signals:
     void rewardsEarned(qint64 xp,qint64 sparks);
     void changed();
@@ -123,6 +123,7 @@ private:
     QJsonObject wardrobeState_,outfitWrites_;
     QJsonObject prizeSnapshot_;
     QJsonArray celebrationIds_;
+    QJsonArray celebrationGroups_;
     bool prizeBusy_=false,prizeStale_=true;
     int prizeIndex_=0;
     QString prizeStatus_;

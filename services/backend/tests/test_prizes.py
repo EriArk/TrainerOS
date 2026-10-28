@@ -8,13 +8,36 @@ from fastapi.testclient import TestClient
 from trainer_backend.app import create_app
 from trainer_backend.config import Settings
 from trainer_backend.accounts.provider import AuthError
-from trainer_backend.economy.prizes import Prizes
+from trainer_backend.economy.prizes import Prizes, grant
 from trainer_backend.economy.provider import RetroAchievements
 from trainer_backend.economy.shop import Shop
 from trainer_backend.economy import outfits
 from test_accounts import account, login, CONFIG, Provider
 from test_progression import linked, release, RA, Evidence
 from test_profiles import RECIPE
+
+
+def test_collection_pages_whole_games_and_levels(account):
+    service, user, proof = linked(account); token = user['access_token']
+    prizes = Prizes(service); now = datetime.now(timezone.utc)
+    with account.db.transaction() as conn:
+        player = service.account(conn, token).player_id
+        for game in range(1, 104):
+            grant(conn, player, f'test:{game}:beaten', 'beaten', f'Game {game}', now, game=game)
+        # A later mastery upgrades the old game's single collection card.
+        grant(conn, player, 'test:1:completed', 'completed', 'Game 1', now, game=1)
+        grant(conn, player, 'test:1:hardcore', 'hardcore', 'Game 1', now, game=1)
+    first = prizes.snapshot(token)
+    assert len(first['collection']) == 100
+    assert first['collection'][0]['key'] == 'game:1'
+    assert [g['kind'] for g in first['collection'][0]['grants']] == ['beaten', 'completed', 'hardcore']
+    assert len([g for g in first['waiting'] if g['game_id'] == 1]) == 3
+    assert len(first['waiting']) == 100
+    second = prizes.snapshot(token, group_before=int(first['collection_before']))
+    assert len(second['collection']) == 3 and second['collection_before'] is None
+    assert len({g['key'] for page in (first, second) for g in page['collection']}) == 103
+    account.provider.subject = '99999'; other = login(account)['access_token']
+    assert prizes.snapshot(other)['collection'] == []
 
 
 def test_levels_restore_free_slots_and_do_not_replace_purchases(account):

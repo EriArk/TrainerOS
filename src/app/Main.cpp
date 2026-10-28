@@ -1400,7 +1400,8 @@ int main(int argc, char* argv[]) {
                     const auto error=pcRuntime.verifyInstallation(*r);if(!error.isEmpty())return error;
                     const auto result=pcRuntime.launch(r->adventure);return result.success?QString():result.message;
                 };
-                QObject::connect(&adventureLaunch,&AdventureLaunchController::adventureFinished,&shell,[&](bool failed){shell.pcGames()->steam.finished(failed);});
+                auto prizesAfterGame=std::make_shared<bool>(false);
+                QObject::connect(&adventureLaunch,&AdventureLaunchController::adventureFinished,&shell,[&,prizesAfterGame](bool failed){*prizesAfterGame=true;shell.pcGames()->steam.finished(failed);});
                 cratesRuntime.ownerId=[&]{return store->ownerId();};
                 auto* packages=shell.crates()->installer();
                 packages->replacementGuard=[&]{return adventureLaunch.active()||session.blocked()?QString("Waiting for your game or save operation to finish"):QString();};
@@ -1470,7 +1471,7 @@ int main(int argc, char* argv[]) {
                     });
                 }
                 QObject::connect(&adventureLaunch, &AdventureLaunchController::restoreRequested, window,
-                                 [&, window, returnFullscreen, returnedAdventure](const QJsonObject& state) {
+                                 [&, window, returnFullscreen, returnedAdventure,prizesAfterGame](const QJsonObject& state) {
                     shell.restoreNavigation(state);
                     if (!adventureLaunch.error().isEmpty()) shell.showNotice(adventureLaunch.error());
                     else if (playHistory && !playHistory->error().isEmpty()) shell.showNotice(playHistory->error());
@@ -1478,6 +1479,7 @@ int main(int argc, char* argv[]) {
                     window->requestActivate();
                     input.setEnabled(app.applicationState() == Qt::ApplicationActive);
                     realAchievements->refreshAdventure(*returnedAdventure,true);
+                    if(std::exchange(*prizesAfterGame,false))shell.presentPostGamePrizes();
                     if(gameProgress&&adventureLaunch.error().isEmpty())if(const auto record=activeLibrary.registration(*returnedAdventure)) {
                         const auto owner=store->ownerId();
                         gameProgress->inspectCompletion(*record,&shell,[&,owner](AdventureCompletion result){

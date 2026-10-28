@@ -406,7 +406,7 @@ ShellController::ShellController(LibraryRepository& repo, TrainerRepository& pro
         keyboard_.begin("Trainer name", initial, TrainerController::NameLimit);
     });
     connect(&outfits_,&OutfitController::changed,this,&ShellController::changed);
-    connect(&outfits_,&OutfitController::backRequested,this,[this]{profileRoute_="summary";profileFocus_=1;emit changed();});
+    connect(&outfits_,&OutfitController::backRequested,this,[this]{profileRoute_=prizeWardrobeReturn_?"prizes":"summary";profileFocus_=prizeWardrobeReturn_?4:1;prizeWardrobeReturn_=false;emit changed();});
     connect(&outfits_,&OutfitController::editRequested,this,[this]{trainer_.beginAvatarEdit();});
     connect(&outfits_,&OutfitController::nameRequested,this,[this](const QString& initial){textTarget_=TextTarget::OutfitName;keyboard_.begin("Name this look",initial,32,false,"Save");});
     connect(this,&ShellController::changed,this,[this]{if(service_!="profile")outfits_.close();});
@@ -652,11 +652,34 @@ void ShellController::activateDashboard(const QString& key) {
 }
 void ShellController::setLiveGame(const QVariantMap& game) {
     if(liveGame_==game)return;
+    if(!game.isEmpty())++postGamePrizesGeneration_;
     const auto previous=currentAdventureId();
     liveGame_=game;
     if(!game["id"].toString().isEmpty())homeAdventureId_=game["id"].toString();
     if(previous!=currentAdventureId())refreshExperience();
     emit changed();
+}
+void ShellController::presentPostGamePrizes() {
+    const auto generation=++postGamePrizesGeneration_;
+    const auto owner=trainer_.profile()["id"].toString();
+    const auto player=backendAccount_.snapshot()["player_id"].toString();
+    auto* timer=new QTimer(this);timer->setInterval(1000);
+    connect(timer,&QTimer::timeout,this,[this,timer,generation,owner,player,ticks=0]() mutable {
+        const auto cancel=[timer]{timer->stop();timer->deleteLater();};
+        if(generation!=postGamePrizesGeneration_||!liveGame_.isEmpty()||trainer_.profile()["id"]!=owner
+            ||backendAccount_.snapshot()["player_id"].toString()!=player||++ticks>120){cancel();return;}
+        if(ticks==1||ticks%30==0)backendAccount_.refreshProgression();
+        const auto prizes=backendAccount_.prizes();
+        if(ticks<3||prizes["busy"].toBool()||prizes["stale"].toBool()||backendAccount_.progression()["busy"].toBool()
+            ||prizes["pending"].toInt()==0)return;
+        // Wait for a safe shell surface. Never interrupt input, calls, recovery or another modal.
+        if(!service_.isEmpty()||homeMenuOpen_||menuOpen_||drawerOpen_||keyboard_.isOpen()||localModalOpen()
+            ||!notice_.isEmpty()||navigationLocked()||moduleWriting()||trainer_.saving()
+            ||social_.account()["doNotDisturb"].toBool()||!social_.incomingCall().isEmpty())return;
+        cancel();openProfile();
+        if(service_=="profile"){profileRoute_="prizes";profileFocus_=0;backendAccount_.celebratePrizes();emit changed();}
+    });
+    timer->start();
 }
 bool ShellController::dispatchGameHub(Action action) {
     if(page_!=GameHubPage)return false;
@@ -713,7 +736,7 @@ void ShellController::syncExperience() {
     const auto record=game?repository_.registration(game->id):std::nullopt;
     const auto owner=trainer_.profile()["id"].toString();
     const bool profileOwnerChanged=experience_.owner()!=owner;
-    if(profileOwnerChanged){overviewFocus_=0;overviewSessionId_.clear();overviewFace_="summary";profileSnapshot_.clear();profileReturnNavigation_={};profileRoute_="summary";achievementPhotoReturn_=false;}
+    if(profileOwnerChanged){++postGamePrizesGeneration_;prizeWardrobeReturn_=false;overviewFocus_=0;overviewSessionId_.clear();overviewFace_="summary";profileSnapshot_.clear();profileReturnNavigation_={};profileRoute_="summary";achievementPhotoReturn_=false;}
     if(!experience_.owner().isEmpty() && experience_.owner()!=owner){dashboard_.reset();achievementNotifications_.clear();achievementToast_.clear();++achievementToastGeneration_;}
     album_.setOwner(owner);
     album_.setMedia(storyMedia());
@@ -1638,6 +1661,7 @@ QVariantMap ShellController::profileAccount() const {
 }
 void ShellController::openProfile() {
     if(navigationLocked() || moduleWriting() || keyboard_.isOpen() || trainer_.saving() || trainer_.editing())return;
+    ++postGamePrizesGeneration_; // An explicit visit/Later choice supersedes a queued automatic presentation.
     if(service_=="profile")return;
     profileReturnNavigation_={{"hall",hall_.navigationState()},{"overviewFace",overviewFace_},
         {"overviewFocus",overviewFocus_},{"overviewSession",overviewSessionId_},
@@ -1646,6 +1670,7 @@ void ShellController::openProfile() {
     profileRoute_="summary";profileRaAccountReturn_=false;profileSnapshot_=story_.profile();backendAccount_.refreshProgression();backendAccount_.refreshPrizes();emit changed();
 }
 void ShellController::closeProfile() {
+    prizeWardrobeReturn_=false;
     backendAccount_.closeCelebration(false);
     outfits_.close();
     hall_.closeHistory();hall_.closeGalleryMenu();album_.close();
@@ -1665,14 +1690,21 @@ void ShellController::closeProfile() {
 void ShellController::activateProfile(int index) {
     if(!profileContentActive())return;
     if(profileRoute_=="prizes") {
-        if(backendAccount_.prizes()["celebrating"].toBool()){backendAccount_.closeCelebration(true);return;}
+        if(backendAccount_.prizes()["celebrating"].toBool()){
+            if(index==5)backendAccount_.togglePrizeShelf(true);
+            else if(index==4&&backendAccount_.prizes()["ceremony"].toMap()["slot"].toBool()){
+                prizeWardrobeReturn_=true;profileRoute_="outfits";outfits_.open();
+            }else if(index==6)backendAccount_.closeCelebration(false);
+            else if(index==1)backendAccount_.closeCelebration(true);
+            emit changed();return;
+        }
         if(index>=100){profileFocus_=index;backendAccount_.selectPrize(index-100);}
         else {profileFocus_=index;
             if(index==0){if(backendAccount_.snapshot()["state"]!="signed_in")backendAccount_.activate();else backendAccount_.refreshPrizes();}
             else if(index==1)backendAccount_.celebratePrizes();
             else if(index==2)backendAccount_.togglePrizeShelf();
             else if(index==3)backendAccount_.refreshPrizes(true);
-            else if(index==4){profileRoute_="outfits";outfits_.open();}
+            else if(index==4){prizeWardrobeReturn_=true;profileRoute_="outfits";outfits_.open();}
         }
         emit changed();return;
     }
@@ -1720,6 +1752,7 @@ void ShellController::dispatchProfile(Action action) {
     if(profileRoute_=="prizes") {
         if(backendAccount_.prizes()["celebrating"].toBool()) {
             if(action==Action::Back||action==Action::Confirm)backendAccount_.closeCelebration(action==Action::Confirm);
+            else if(action==Action::LocalAction)activateProfile(backendAccount_.prizes()["ceremony"].toMap()["slot"].toBool()?4:5);
         }else if(action==Action::Back){profileRoute_="summary";profileFocus_=11;}
         else if(action==Action::Confirm)activateProfile(profileFocus_>=100?2:profileFocus_);
         else if(action==Action::Up||action==Action::Down) {

@@ -282,6 +282,7 @@ public:
     HomeDashboardController* dashboard(){return &dashboard_;}
     Q_INVOKABLE void activateDashboard(const QString& key);
     void setLiveGame(const QVariantMap& game);
+    void presentPostGamePrizes();
     Q_INVOKABLE void returnToLiveGame(bool options=false) { if(!liveGame_.isEmpty())emit liveGameRequested(options); }
     Q_INVOKABLE void openContext(const QString& type={}, const QString& id={});
     Q_INVOKABLE void pressButton(const QString& button);
@@ -351,6 +352,8 @@ private:
     bool moduleWriting() const;
     bool moduleActivityBusy(bool recovery=false) const;
     QVariantMap liveGame_;
+    quint64 postGamePrizesGeneration_=0;
+    bool prizeWardrobeReturn_=false;
     QVariantList achievementNotifications_;
     void syncExperience();
     ExperienceModule* resolveExperience(const std::optional<Adventure>&) const;

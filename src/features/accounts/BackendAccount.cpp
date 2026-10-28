@@ -184,7 +184,7 @@ QString BackendAccount::actionLabel() const {
     return "Sign in to TrainerOS with Fluxer";
 }
 void BackendAccount::reset() {
-    prizeBusy_=false;prizeStale_=true;celebrationIds_={};
+    prizeBusy_=false;prizeStale_=true;celebrationIds_={};celebrationGroups_={};
     shopBusy_=false;shopReview_={};shopStale_=true;outfitFlushing_=false;
     progressionTimer_.stop();progression_={};rewardStatus_.clear();rewardBusy_=false;progressionStale_=false;lastRewardSync_=0;
     avatarRetry_.stop();publicAvatar_={};publishedAvatar_={};avatarBusy_=false;
