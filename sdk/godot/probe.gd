@@ -28,10 +28,13 @@ func run() -> void:
 	for action in ["neutral","raise_arms","squat","step"]:
 		if action!="neutral":
 			if not avatar.play_action(action): failed=true
+			# Disable crossfade only for deterministic inspection of each pose.
+			avatar.animation_player.play(avatar.actions[action],0.0)
 			avatar.animation_player.advance(0)
 			var animation=avatar.animation_player.get_animation(avatar.actions[action])
 			avatar.animation_player.seek(animation.length*0.5,true)
 			avatar.animation_player.pause()
+		await process_frame
 		await process_frame
 		if not output.is_empty():
 			await RenderingServer.frame_post_draw

@@ -1,5 +1,8 @@
 # Shared avatar v1: local model and peer recipes
 
+New integration? Start with the [step-by-step guide and runnable Godot demo](AVATAR_QUICKSTART.md).
+This page is the protocol/reference companion.
+
 TrainerOS owns appearance and the installed asset pack. A game distributes only
 its SDK adapter, never a copy of the character. The interface is engine-neutral:
 ordinary glTF 2.0 / GLB, metres, +Y up, +Z forward, floor at Y=0.
@@ -65,8 +68,8 @@ session. Set `can_resolve` when the game needs to defer loading during an action
 
 Identity comes from the admitted session member, **not the recipe**. This is not
 a server-account lookup or proof of paid cosmetic ownership. The accepted
-[TrainerOS ID / Fluxer binding](../docs/TRAINEROS_ACCOUNT_ECONOMY_RU.md) remains a
-separate target: TrainerOS ID must not become the Fluxer ID or a local profile ID.
+[TrainerOS identity API](PROTOCOL.md#backend-identity-preview) is separate: an avatar recipe does not
+authenticate a Player UUID, a Fluxer account or a local profile.
 
 ## Godot / Pocket Golf
 
@@ -91,9 +94,16 @@ Use `eye_height` for a head camera and the presenter's +Z forward convention.
 Visuals do not participate in ball collision or control shot timing. The first
 pack has joint/pose clips, **not** an authored `golf_putt` animation; unsupported
 `play_action` returns false. Facial expressions and cloth physics are not part of
-this minimum. Pocket Golf source now binds local and remote presenters, converts
-+Z to its -Z forward, uses the model eye height and waits until a shot finishes
-before replacing appearance. No handheld delivery is implied.
+this minimum. Pocket Golf binds local and remote presenters, positions the
+golfer side-on to the ball, uses model eye height and waits until a shot finishes
+before replacing appearance. Pack revision 4 was installed on Odin/Flip on
+27 October; game/runtime verification is recorded separately.
+
+The Godot presenter adapts linear glTF vertex colors for Compatibility rendering.
+It updates only the imported color attribute, preserving UVs, skin, corrective
+buffers and the hashed source file. Mobile/Forward+ keep linear colors. Use the
+helper as a versioned unit instead of adding game-specific material overrides.
+See [Godot's vertex color behavior](https://docs.godotengine.org/en/stable/classes/class_basematerial3d.html#class-basematerial3d-property-vertex-color-is-srgb).
 
 ## Local preparation
 

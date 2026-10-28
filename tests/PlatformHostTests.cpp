@@ -155,6 +155,7 @@ private slots:
         const auto godot=qEnvironmentVariable("TRAINER_AVATAR_GODOT");
         if(godot.isEmpty()||!AvatarAssets::available())QSKIP("External Godot and local pack required");
         Fixture f;auto appearance=AvatarAssets::defaults();
+        appearance["eyes"]="rogue-feminine";
         auto avatar=AvatarAssets::resolve(appearance,{},f.dir.filePath("cache"));
         QVERIFY(!avatar.contains("error"));avatar["profile"]="alice";
         f.host.setAvatar(avatar,true);QVERIFY(f.start());
@@ -171,7 +172,9 @@ private slots:
         child.start(godot,args);
         QVERIFY(child.waitForStarted());QByteArray output;
         QTRY_VERIFY_WITH_TIMEOUT((output+=child.readAllStandardOutput()).contains("AVATAR_RECEIVED 1"),consumerTimeout);
-        appearance["hair"]="bob";avatar=AvatarAssets::resolve(appearance,{},f.dir.filePath("cache"));avatar["profile"]="alice";f.host.setAvatar(avatar,true);
+        appearance["hair"]="bob";appearance["eyes"]="innocent-base";
+        appearance["skinColor"]="#614132";appearance["eyeColor"]="#547d9a";
+        avatar=AvatarAssets::resolve(appearance,{},f.dir.filePath("cache"));avatar["profile"]="alice";f.host.setAvatar(avatar,true);
         QTRY_VERIFY_WITH_TIMEOUT((output+=child.readAllStandardOutput()).contains("AVATAR_RECEIVED 2"),consumerTimeout);
         f.host.setContext(context("bob"));QTRY_COMPARE_WITH_TIMEOUT(child.state(),QProcess::NotRunning,10000);
         output+=child.readAllStandardOutput();const auto errors=child.readAllStandardError();
