@@ -1,0 +1,472 @@
+{
+  "prepared-face.glb": {
+    "sourceSha256": "f3f4af2d7c0c5ac181949a814c241d2fbdfe99880ff4742ae20c16af55f9fcda",
+    "outputSha256": "42609384df88ad8e1c10e29f172459f7a0e06cb2d3289de39b110c192709a535",
+    "surfaces": [
+      {
+        "mesh": 0,
+        "positionAccessor": 457,
+        "sourceVertices": 58514,
+        "exportVertices": 58514,
+        "changedVertices": 789,
+        "maxDepthChange": 0.014101088047027588
+      }
+    ]
+  },
+  "eyes-calm-base.glb": {
+    "sourceSha256": "0fd44342083fc8c75197633eedaf74b1ab8c6b9d801854b1bfe770f36bb14528",
+    "outputSha256": "12a0656b689894febd5998b68350beab0a7500746656973c56153aa3293eecb9",
+    "surfaces": [
+      {
+        "mesh": 0,
+        "positionAccessor": 1,
+        "sourceVertices": 5312,
+        "exportVertices": 6080,
+        "changedVertices": 4993,
+        "maxDepthChange": 0.013707831501960754
+      },
+      {
+        "mesh": 1,
+        "positionAccessor": 6,
+        "sourceVertices": 2656,
+        "exportVertices": 3508,
+        "changedVertices": 2767,
+        "maxDepthChange": 0.01382233202457428
+      },
+      {
+        "mesh": 2,
+        "positionAccessor": 12,
+        "sourceVertices": 648,
+        "exportVertices": 866,
+        "changedVertices": 770,
+        "maxDepthChange": 0.013707831501960754
+      },
+      {
+        "mesh": 3,
+        "positionAccessor": 17,
+        "sourceVertices": 196,
+        "exportVertices": 578,
+        "changedVertices": 578,
+        "maxDepthChange": 0.0018334612250328064
+      }
+    ]
+  },
+  "eyes-calm-feminine.glb": {
+    "sourceSha256": "39b325b9b855c51b36c5bcc3b1c681e137b8ee5d3a13a9c3c14746cf4e57a28d",
+    "outputSha256": "a8c4eb201477631df5b0354a9cf417375f23d9713594e92582cf88c48c4f43c0",
+    "surfaces": [
+      {
+        "mesh": 0,
+        "positionAccessor": 1,
+        "sourceVertices": 5312,
+        "exportVertices": 6158,
+        "changedVertices": 4944,
+        "maxDepthChange": 0.013682417571544647
+      },
+      {
+        "mesh": 1,
+        "positionAccessor": 6,
+        "sourceVertices": 2656,
+        "exportVertices": 2986,
+        "changedVertices": 2673,
+        "maxDepthChange": 0.013852573931217194
+      },
+      {
+        "mesh": 2,
+        "positionAccessor": 12,
+        "sourceVertices": 660,
+        "exportVertices": 1044,
+        "changedVertices": 912,
+        "maxDepthChange": 0.013525322079658508
+      },
+      {
+        "mesh": 3,
+        "positionAccessor": 17,
+        "sourceVertices": 196,
+        "exportVertices": 346,
+        "changedVertices": 346,
+        "maxDepthChange": 0.0017850026488304138
+      }
+    ]
+  },
+  "eyes-determined-base.glb": {
+    "sourceSha256": "f07b9249792241152bd850b1b9a4d61732c2ed059facb90852e892946b3c2db7",
+    "outputSha256": "2f752835c5178480e430ae2f3830f3196160e5b3ff748eee873db8a1cf34d894",
+    "surfaces": [
+      {
+        "mesh": 0,
+        "positionAccessor": 1,
+        "sourceVertices": 5312,
+        "exportVertices": 6214,
+        "changedVertices": 5494,
+        "maxDepthChange": 0.013725444674491882
+      },
+      {
+        "mesh": 1,
+        "positionAccessor": 6,
+        "sourceVertices": 2656,
+        "exportVertices": 3518,
+        "changedVertices": 3050,
+        "maxDepthChange": 0.013904087245464325
+      },
+      {
+        "mesh": 2,
+        "positionAccessor": 12,
+        "sourceVertices": 648,
+        "exportVertices": 872,
+        "changedVertices": 798,
+        "maxDepthChange": 0.012996912002563477
+      },
+      {
+        "mesh": 3,
+        "positionAccessor": 17,
+        "sourceVertices": 196,
+        "exportVertices": 572,
+        "changedVertices": 572,
+        "maxDepthChange": 0.0031694918870925903
+      }
+    ]
+  },
+  "eyes-determined-feminine.glb": {
+    "sourceSha256": "a9f945c909b784b83d91da3fce46924a814f5fbef2df9d3fd0670e4444e55c52",
+    "outputSha256": "f52979bb1a5c0759765425a10e5e420fa974dc48a16720de1ad160cb6f5cba0e",
+    "surfaces": [
+      {
+        "mesh": 0,
+        "positionAccessor": 1,
+        "sourceVertices": 5312,
+        "exportVertices": 6260,
+        "changedVertices": 5506,
+        "maxDepthChange": 0.013736739754676819
+      },
+      {
+        "mesh": 1,
+        "positionAccessor": 6,
+        "sourceVertices": 2656,
+        "exportVertices": 3608,
+        "changedVertices": 3142,
+        "maxDepthChange": 0.013897061347961426
+      },
+      {
+        "mesh": 2,
+        "positionAccessor": 12,
+        "sourceVertices": 660,
+        "exportVertices": 976,
+        "changedVertices": 872,
+        "maxDepthChange": 0.013019487261772156
+      },
+      {
+        "mesh": 3,
+        "positionAccessor": 17,
+        "sourceVertices": 196,
+        "exportVertices": 344,
+        "changedVertices": 344,
+        "maxDepthChange": 0.0030928105115890503
+      }
+    ]
+  },
+  "eyes-innocent-base.glb": {
+    "sourceSha256": "d97caba7eba06a8a2d596e978b1bfe28d7023d0798b420775b3809da4fdcb178",
+    "outputSha256": "f1f13d84baedfbe568640c3f104d1f3bd832cb4c7979846af7e99ebc2cb97b09",
+    "surfaces": [
+      {
+        "mesh": 0,
+        "positionAccessor": 1,
+        "sourceVertices": 5312,
+        "exportVertices": 6080,
+        "changedVertices": 5026,
+        "maxDepthChange": 0.013441003859043121
+      },
+      {
+        "mesh": 1,
+        "positionAccessor": 6,
+        "sourceVertices": 2656,
+        "exportVertices": 5260,
+        "changedVertices": 4565,
+        "maxDepthChange": 0.013898886740207672
+      },
+      {
+        "mesh": 2,
+        "positionAccessor": 12,
+        "sourceVertices": 648,
+        "exportVertices": 870,
+        "changedVertices": 778,
+        "maxDepthChange": 0.01328536868095398
+      },
+      {
+        "mesh": 3,
+        "positionAccessor": 17,
+        "sourceVertices": 196,
+        "exportVertices": 574,
+        "changedVertices": 574,
+        "maxDepthChange": 0.0015396252274513245
+      }
+    ]
+  },
+  "eyes-innocent-feminine.glb": {
+    "sourceSha256": "77c9df5835037878e63f251483960a1df72ca9eaf520bf654fbb3d4887abc82f",
+    "outputSha256": "f0421e5ab1e415564f0d41b35bd373de263b953cc68c19ff91b14fc565474fad",
+    "surfaces": [
+      {
+        "mesh": 0,
+        "positionAccessor": 1,
+        "sourceVertices": 5312,
+        "exportVertices": 6102,
+        "changedVertices": 5019,
+        "maxDepthChange": 0.013401471078395844
+      },
+      {
+        "mesh": 1,
+        "positionAccessor": 6,
+        "sourceVertices": 2656,
+        "exportVertices": 5256,
+        "changedVertices": 4536,
+        "maxDepthChange": 0.013922639191150665
+      },
+      {
+        "mesh": 2,
+        "positionAccessor": 12,
+        "sourceVertices": 660,
+        "exportVertices": 1158,
+        "changedVertices": 1034,
+        "maxDepthChange": 0.013288125395774841
+      },
+      {
+        "mesh": 3,
+        "positionAccessor": 17,
+        "sourceVertices": 196,
+        "exportVertices": 346,
+        "changedVertices": 346,
+        "maxDepthChange": 0.0015018656849861145
+      }
+    ]
+  },
+  "eyes-rogue-base.glb": {
+    "sourceSha256": "4fa390957fd84203008ffa1981d177c8b0a2167cc25098b1ee0d86112894c504",
+    "outputSha256": "aa92addbea14d46537fd2c445ef1fb155ff71091d32f2d42f297a589a247504a",
+    "surfaces": [
+      {
+        "mesh": 0,
+        "positionAccessor": 1,
+        "sourceVertices": 5312,
+        "exportVertices": 6219,
+        "changedVertices": 5447,
+        "maxDepthChange": 0.013716466724872589
+      },
+      {
+        "mesh": 1,
+        "positionAccessor": 6,
+        "sourceVertices": 2656,
+        "exportVertices": 3562,
+        "changedVertices": 3056,
+        "maxDepthChange": 0.01390308141708374
+      },
+      {
+        "mesh": 2,
+        "positionAccessor": 12,
+        "sourceVertices": 648,
+        "exportVertices": 873,
+        "changedVertices": 799,
+        "maxDepthChange": 0.013042256236076355
+      },
+      {
+        "mesh": 3,
+        "positionAccessor": 17,
+        "sourceVertices": 196,
+        "exportVertices": 574,
+        "changedVertices": 574,
+        "maxDepthChange": 0.0026127323508262634
+      }
+    ]
+  },
+  "eyes-rogue-feminine.glb": {
+    "sourceSha256": "23237a1d4c9d579d0d7788ce1acf8d8e8fd23df73c56807d299e3ee5c55f8f78",
+    "outputSha256": "9aee500ca5b3b8b4e18f5cccd5a481fadcf9825a3f36560d68a3b2f477d7f9ce",
+    "surfaces": [
+      {
+        "mesh": 0,
+        "positionAccessor": 1,
+        "sourceVertices": 5312,
+        "exportVertices": 6253,
+        "changedVertices": 5405,
+        "maxDepthChange": 0.013689383864402771
+      },
+      {
+        "mesh": 1,
+        "positionAccessor": 6,
+        "sourceVertices": 2656,
+        "exportVertices": 3577,
+        "changedVertices": 3090,
+        "maxDepthChange": 0.013896137475967407
+      },
+      {
+        "mesh": 2,
+        "positionAccessor": 12,
+        "sourceVertices": 660,
+        "exportVertices": 980,
+        "changedVertices": 868,
+        "maxDepthChange": 0.01303303986787796
+      },
+      {
+        "mesh": 3,
+        "positionAccessor": 17,
+        "sourceVertices": 196,
+        "exportVertices": 344,
+        "changedVertices": 344,
+        "maxDepthChange": 0.0025293752551078796
+      }
+    ]
+  },
+  "eyes-sleepy-base.glb": {
+    "sourceSha256": "13e9a74f7533b3597c494b68d0bc4fe339ce0431a662c1cceb02837d5aeaae25",
+    "outputSha256": "cc63bb5ccd2fb0f98a936339caf8698d7baeca94379719790d6453aa0f609400",
+    "surfaces": [
+      {
+        "mesh": 0,
+        "positionAccessor": 1,
+        "sourceVertices": 5312,
+        "exportVertices": 6050,
+        "changedVertices": 4897,
+        "maxDepthChange": 0.013606145977973938
+      },
+      {
+        "mesh": 1,
+        "positionAccessor": 6,
+        "sourceVertices": 2656,
+        "exportVertices": 3450,
+        "changedVertices": 2718,
+        "maxDepthChange": 0.013905517756938934
+      },
+      {
+        "mesh": 2,
+        "positionAccessor": 12,
+        "sourceVertices": 648,
+        "exportVertices": 862,
+        "changedVertices": 766,
+        "maxDepthChange": 0.013423018157482147
+      },
+      {
+        "mesh": 3,
+        "positionAccessor": 17,
+        "sourceVertices": 196,
+        "exportVertices": 576,
+        "changedVertices": 576,
+        "maxDepthChange": 0.0020454153418540955
+      }
+    ]
+  },
+  "eyes-sleepy-feminine.glb": {
+    "sourceSha256": "4b1bd43ab11a953051c391e06d47ddaeb23299a8f801acdc610ae7a57f668c1e",
+    "outputSha256": "9916db21f6a2e278b77a0d91e0044d8a3cc295531ded2e42c76c1660d8d4ee70",
+    "surfaces": [
+      {
+        "mesh": 0,
+        "positionAccessor": 1,
+        "sourceVertices": 5312,
+        "exportVertices": 6046,
+        "changedVertices": 4971,
+        "maxDepthChange": 0.013587668538093567
+      },
+      {
+        "mesh": 1,
+        "positionAccessor": 6,
+        "sourceVertices": 2656,
+        "exportVertices": 3478,
+        "changedVertices": 2814,
+        "maxDepthChange": 0.01384524255990982
+      },
+      {
+        "mesh": 2,
+        "positionAccessor": 12,
+        "sourceVertices": 660,
+        "exportVertices": 978,
+        "changedVertices": 840,
+        "maxDepthChange": 0.013269022107124329
+      },
+      {
+        "mesh": 3,
+        "positionAccessor": 17,
+        "sourceVertices": 196,
+        "exportVertices": 346,
+        "changedVertices": 346,
+        "maxDepthChange": 0.00199282169342041
+      }
+    ]
+  },
+  "eyes-sly-base.glb": {
+    "sourceSha256": "070b5aa55e68aaca4269a2fca7d993c3ec214a70867593e9df84de5710e41317",
+    "outputSha256": "3fba56fd1d3d9d6c60d9ba09bc3cff45c92e8becabc84a154f82c1100c3252bf",
+    "surfaces": [
+      {
+        "mesh": 0,
+        "positionAccessor": 1,
+        "sourceVertices": 5312,
+        "exportVertices": 6113,
+        "changedVertices": 5212,
+        "maxDepthChange": 0.01371067762374878
+      },
+      {
+        "mesh": 1,
+        "positionAccessor": 6,
+        "sourceVertices": 2656,
+        "exportVertices": 3132,
+        "changedVertices": 2804,
+        "maxDepthChange": 0.013905934989452362
+      },
+      {
+        "mesh": 2,
+        "positionAccessor": 12,
+        "sourceVertices": 648,
+        "exportVertices": 865,
+        "changedVertices": 786,
+        "maxDepthChange": 0.013239584863185883
+      },
+      {
+        "mesh": 3,
+        "positionAccessor": 17,
+        "sourceVertices": 196,
+        "exportVertices": 576,
+        "changedVertices": 576,
+        "maxDepthChange": 0.0019804611802101135
+      }
+    ]
+  },
+  "eyes-sly-feminine.glb": {
+    "sourceSha256": "95eb58e728966485fbaf7a1197cff8f3571f020ef80282e4b4e39cb1062f2754",
+    "outputSha256": "b37c412570ac30ca614ef3f8b1cb3dcd108825d97d0cc30f4357a7a03dfdddd8",
+    "surfaces": [
+      {
+        "mesh": 0,
+        "positionAccessor": 1,
+        "sourceVertices": 5312,
+        "exportVertices": 6159,
+        "changedVertices": 5282,
+        "maxDepthChange": 0.013681352138519287
+      },
+      {
+        "mesh": 1,
+        "positionAccessor": 6,
+        "sourceVertices": 2656,
+        "exportVertices": 3516,
+        "changedVertices": 2980,
+        "maxDepthChange": 0.013845540583133698
+      },
+      {
+        "mesh": 2,
+        "positionAccessor": 12,
+        "sourceVertices": 660,
+        "exportVertices": 970,
+        "changedVertices": 855,
+        "maxDepthChange": 0.013061478734016418
+      },
+      {
+        "mesh": 3,
+        "positionAccessor": 17,
+        "sourceVertices": 196,
+        "exportVertices": 346,
+        "changedVertices": 346,
+        "maxDepthChange": 0.0019245147705078125
+      }
+    ]
+  }
+}

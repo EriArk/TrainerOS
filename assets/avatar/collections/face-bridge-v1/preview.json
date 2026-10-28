@@ -1,0 +1,15 @@
+{
+  "beforeResolvedSha256": "b68699d4fc8351ead0490854a1fb3790e6f13fe4bae05d5a436a38f26005d257",
+  "afterResolvedSha256": "00850e461704da86f0934e42ed4799cf1465d0a1cab337fa21e266339ec84829",
+  "previewImages": {
+    "after-front-eyes_closed.png": "f1eb9035a46a2e0735b028a792dc9bf8680cc4d65dcb7eb187219c746255e68c",
+    "after-front-eyes_wide.png": "f4f6cc90c602fbf7ee4bc4f30254911c4cc5659c0fdaf6205eb0fc9ca707ddd6",
+    "after-front.png": "d6be59b51cdb8f4dfb0986eb88e913f9f73660f34cfcd0302da024265fa588eb",
+    "after-three-quarter-eyes_closed.png": "ec8849a3857e12c6f58c0332c41ad493877c17246e33bb21f048da7f8e655879",
+    "after-three-quarter-eyes_wide.png": "7e7686549f878a28506639d4803224e3308cf7ac9c832453f4957fdb3c9cf3d0",
+    "after-three-quarter.png": "d2fe42f0f540c1dcd5a326e99eb088c5b2ec246f43fe0a17ad5061ddab594b52",
+    "before-front.png": "b74d174846b7dcdb9f0c51e4578cf7a33c6c02609b98a0239442303593dad8dc",
+    "before-three-quarter.png": "8aeb1288233361aa1c91a325c4e2506ee688626977102b7b9804d8c859137a10"
+  },
+  "repairToolSha256": "d7fe7fbc692248dc8422b199c8ba57ea23a239f6c258c8f61d94b7e4ff7e895d"
+}
