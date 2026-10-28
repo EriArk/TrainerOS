@@ -20,9 +20,7 @@ def save(shop, access, offer_id, name, recipe, expected_revision):
         actor = shop.progression.account(conn, access)
         player = actor.player_id
         conn.execute('SELECT revision FROM trainer_backend.progression_accounts WHERE player_id=%s FOR UPDATE', (player,))
-        owned = conn.execute('''SELECT 1 FROM trainer_backend.owned_items i
-            JOIN trainer_backend.shop_offers s ON s.id=i.offer_id
-            WHERE i.player_id=%s AND i.offer_id=%s AND s.purpose='outfit_slot' ''', (player, offer_id)).fetchone()
+        owned = conn.execute('SELECT 1 FROM trainer_backend.outfit_slots WHERE player_id=%s AND slot_id=%s', (player, offer_id)).fetchone()
         if not owned:
             raise AuthError('outfit_slot_not_owned', 403)
         prior = conn.execute('SELECT * FROM trainer_backend.outfits WHERE player_id=%s AND offer_id=%s', (player, offer_id)).fetchone()

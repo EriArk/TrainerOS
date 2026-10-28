@@ -26,7 +26,7 @@ void ShellController::showAchievements(const QString& title,const QStringList& n
     const auto generation=++achievementToastGeneration_;emit changed();
     QTimer::singleShot(7000,this,[this,generation]{if(generation==achievementToastGeneration_){achievementToast_.clear();emit changed();}});
 }
-QVariantList ShellController::notifications() const {auto rows=social_.notifications();rows.append(achievementNotifications_);const auto update=settings_.updates()->notification();if(!update.isEmpty())rows.append(update);return rows;}
+QVariantList ShellController::notifications() const {auto rows=social_.notifications();rows.append(achievementNotifications_);const auto rewards=backendAccount_.prizes();if(rewards["pending"].toInt()>0)rows.append(QVariantMap{{"id","traineros-prizes"},{"provider","traineros-prizes"},{"name","Rewards earned"},{"detail",QString::number(rewards["pending"].toInt())+" prizes waiting in your profile"},{"unread",true}});const auto update=settings_.updates()->notification();if(!update.isEmpty())rows.append(update);return rows;}
 QVariantMap ShellController::passiveNotice() const {
     if(social_.account()["doNotDisturb"].toBool())return {};
     if(!social_.toastTitle().isEmpty())return {{"title",social_.toastTitle()},{"detail",social_.toastText()},{"kind","social"}};
@@ -1643,9 +1643,10 @@ void ShellController::openProfile() {
         {"overviewFocus",overviewFocus_},{"overviewSession",overviewSessionId_},
         {"album",QJsonObject::fromVariantMap(album_.navigationState())}};
     homeMenuOpen_=false;quickAppsOpen_=drawerOpen_=false;service_="profile";trainer_.reload();profileFocus_=0;
-    profileRoute_="summary";profileRaAccountReturn_=false;profileSnapshot_=story_.profile();backendAccount_.refreshProgression();emit changed();
+    profileRoute_="summary";profileRaAccountReturn_=false;profileSnapshot_=story_.profile();backendAccount_.refreshProgression();backendAccount_.refreshPrizes();emit changed();
 }
 void ShellController::closeProfile() {
+    backendAccount_.closeCelebration(false);
     outfits_.close();
     hall_.closeHistory();hall_.closeGalleryMenu();album_.close();
     achievementPhotoReturn_=false;service_.clear();
@@ -1663,6 +1664,18 @@ void ShellController::closeProfile() {
 }
 void ShellController::activateProfile(int index) {
     if(!profileContentActive())return;
+    if(profileRoute_=="prizes") {
+        if(backendAccount_.prizes()["celebrating"].toBool()){backendAccount_.closeCelebration(true);return;}
+        if(index>=100){profileFocus_=index;backendAccount_.selectPrize(index-100);}
+        else {profileFocus_=index;
+            if(index==0){if(backendAccount_.snapshot()["state"]!="signed_in")backendAccount_.activate();else backendAccount_.refreshPrizes();}
+            else if(index==1)backendAccount_.celebratePrizes();
+            else if(index==2)backendAccount_.togglePrizeShelf();
+            else if(index==3)backendAccount_.refreshPrizes(true);
+            else if(index==4){profileRoute_="outfits";outfits_.open();}
+        }
+        emit changed();return;
+    }
     if(profileRoute_=="support") {
         if(backendAccount_.snapshot()["state"]!="signed_in")backendAccount_.activate();
         else backendAccount_.refreshProgression(false);
@@ -1676,9 +1689,10 @@ void ShellController::activateProfile(int index) {
         emit changed();return;
     }
     if(profileRoute_!="summary")return;
-    if(index<0 || index>10)return;
+    if(index<0 || index>11)return;
     profileFocus_=index;
-    if(index==10){profileRoute_="support";profileFocus_=0;backendAccount_.refreshProgression(false);}
+    if(index==11){profileRoute_="prizes";profileFocus_=0;backendAccount_.refreshPrizes();}
+    else if(index==10){profileRoute_="support";profileFocus_=0;backendAccount_.refreshProgression(false);}
     else if(index==9){profileRoute_="shop";profileFocus_=1;backendAccount_.refreshShop();}
     else if(index==1){profileRoute_="outfits";outfits_.open();}
     else if(index==0)trainer_.activate(index);
@@ -1703,6 +1717,17 @@ void ShellController::activateProfile(int index) {
 }
 void ShellController::dispatchProfile(Action action) {
     if(trainer_.editing()){trainer_.dispatch(action,true);return;}
+    if(profileRoute_=="prizes") {
+        if(backendAccount_.prizes()["celebrating"].toBool()) {
+            if(action==Action::Back||action==Action::Confirm)backendAccount_.closeCelebration(action==Action::Confirm);
+        }else if(action==Action::Back){profileRoute_="summary";profileFocus_=11;}
+        else if(action==Action::Confirm)activateProfile(profileFocus_>=100?2:profileFocus_);
+        else if(action==Action::Up||action==Action::Down) {
+            const auto count=backendAccount_.prizes()["items"].toList().size();
+            if(count){backendAccount_.selectPrize(backendAccount_.prizes()["index"].toInt()+(action==Action::Up?-1:1));profileFocus_=100+backendAccount_.prizes()["index"].toInt();}
+        }else if(action==Action::Left||action==Action::Right)profileFocus_=qBound(0,(profileFocus_>=100?0:profileFocus_)+(action==Action::Left?-1:1),4);
+        emit changed();return;
+    }
     if(profileRoute_=="outfits"){outfits_.dispatch(action);return;}
     if(profileRoute_=="support") {
         if(action==Action::Back){profileRoute_="summary";profileFocus_=10;}
@@ -1761,7 +1786,7 @@ void ShellController::dispatchProfile(Action action) {
     } else if(action==Action::Back)closeProfile();
     else if(action==Action::Confirm)activateProfile(profileFocus_);
     else if(action==Action::Up || action==Action::Left || action==Action::Down || action==Action::Right) {
-        QList<int> order{0,1,4,9,10,3};
+        QList<int> order{0,1,4,9,10,11,3};
         for(int i=0;i<profileSnapshot_["badges"].toList().size();++i)order.append(7+i);
         order.append(2);if(!profileSnapshot_["latestSession"].toMap().isEmpty())order.append(6);order.append(5);
         const int delta=action==Action::Up || action==Action::Left?-1:1;
@@ -1848,6 +1873,7 @@ void ShellController::activateNotification(int index) {
     if(!notificationsOpen()||navigationLocked())return;
     if(index<0 || index>=notifications().size())return;
     const auto row=notifications().value(index).toMap();
+    if(row["provider"]=="traineros-prizes"){closeHomeMenu();openProfile();activateProfile(11);backendAccount_.celebratePrizes();return;}
     if(row["provider"]=="traineros-software"){settings_.updates()->dismissNotification();closeHomeMenu();service_="settings";settings_.openUpdates();emit changed();return;}
     if(row["provider"]=="achievements"){dismissNotificationById(row["id"].toString());showNotice(row["name"].toString()+"\n"+row["detail"].toString());closeHomeMenu();return;}
     if(row["answerable"].toBool()) {

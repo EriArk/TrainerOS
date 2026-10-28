@@ -20,6 +20,30 @@ def timestamp(value):
 
 
 class RetroAchievements:
+    def awards(self, key, user):
+        value = self.request('API_GetUserAwards', key, u=user)
+        rows = value.get('VisibleUserAwards')
+        if not isinstance(rows, list) or len(rows) > 16384:
+            raise AuthError('ra_invalid_awards', 503)
+        result = []
+        for row in rows:
+            if not isinstance(row, dict):
+                raise AuthError('ra_invalid_awards', 503)
+            kind = {'Game Beaten': 'beaten', 'Mastery/Completion': 'completed'}.get(row.get('AwardType'))
+            if not kind:
+                continue
+            game, mode, date = row.get('AwardData'), row.get('AwardDataExtra'), timestamp(row.get('AwardedAt'))
+            if type(game) is not int or not 0 < game <= 2147483647 or type(mode) is not int or mode not in (0, 1) or date is None:
+                raise AuthError('ra_invalid_awards', 503)
+            if row.get('ConsoleID') in (100, 101):
+                continue
+            title = str(row.get('Title', 'Game'))[:256]
+            result.append({'game': game, 'kind': kind, 'earned': date, 'title': title})
+            if mode == 1:
+                result.append({'game': game, 'kind': 'hardcore', 'earned': date, 'title': title})
+        # Hidden/absent awards never revoke an already verified trophy.
+        return result
+
     def request(self, endpoint, key, **params):
         try:
             class NoRedirect(HTTPRedirectHandler):
@@ -77,4 +101,24 @@ class RetroAchievements:
             raise AuthError('ra_incomplete_game', 503)
         if value.get('NumAwardedToUser') != sum(r['earned'] is not None for r in result):
             raise AuthError('ra_incomplete_progress', 503)
-        return {'id': game, 'title': str(value.get('Title', 'Game'))[:256], 'achievements': result}
+        title = str(value.get('Title', 'Game'))[:256]
+        awards = []
+        # Typed core achievements also cover awards hidden from the public list.
+        if value.get('ParentGameID') is None:
+            progression = [r for r in rows.values() if r.get('type') == 'progression']
+            wins = [r for r in rows.values() if r.get('type') == 'win_condition']
+            for field, mode in [('DateEarned', False), ('DateEarnedHardcore', True)]:
+                earned = lambda r: timestamp(r.get(field))
+                if (progression or wins) and all(earned(r) for r in progression) and (not wins or any(earned(r) for r in wins)):
+                    dates = [earned(r) for r in progression]
+                    if wins:
+                        dates.append(min(earned(r) for r in wins if earned(r)))
+                    awards.append({'game': game, 'kind': 'beaten', 'title': title, 'earned': max(dates)})
+                    if mode:
+                        awards.append({'game': game, 'kind': 'hardcore', 'title': title, 'earned': max(dates)})
+        if result and all(r['earned'] for r in result):
+            awards.append({'game': game, 'kind': 'completed', 'title': title, 'earned': max(r['earned'] for r in result)})
+            hardcore = [timestamp(r.get('DateEarnedHardcore')) for r in rows.values()]
+            if all(hardcore):
+                awards.append({'game': game, 'kind': 'hardcore', 'title': title, 'earned': max(hardcore)})
+        return {'id': game, 'title': title, 'achievements': result, 'awards': awards}

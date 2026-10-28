@@ -12,12 +12,19 @@ bool BackendAccount::validOutfits(const QJsonObject& value) const {
     static const QRegularExpression idPattern("^outfit\\.slot\\.([1-9][0-9]?)$");
     for(const auto key:{"outfit_catalogue","outfit_items"}) {
         if(!value.contains(key))continue; // Older servers have no slots.
-        if(!value[key].isArray()||value[key].toArray().size()>64)return false;
+        if(!value[key].isArray()||value[key].toArray().size()>4096)return false;
         QSet<QString> ids;
         for(const auto entry:value[key].toArray()) {
             const auto row=entry.toObject();const auto id=row["id"].toString();const auto match=idPattern.match(id);
             bool revisionOk=false;const auto revision=row["revision"].toString().toInt(&revisionOk);
             const int slot=row["slot_number"].toInt();const auto price=row["price"].toDouble();
+            if(id.startsWith("outfit.level.")) {
+                bool levelOk=false;const int level=id.mid(13).toInt(&levelOk);
+                if(QString(key)!="outfit_items"||!levelOk||level<3||level%3||slot!=64+level||ids.contains(id)
+                    ||row["purpose"]!="outfit_slot"||row["kind"]!="permanent_license"||price!=0||!revisionOk||revision<1
+                    ||QUuid(row["grant_id"].toString()).isNull()||row["title"].toString().isEmpty()||row["title"].toString().size()>128)return false;
+                owned.insert(id);ids.insert(id);continue;
+            }
             if(!match.hasMatch()||slot<1||slot>64||slot!=match.captured(1).toInt()||ids.contains(id)
                 ||row["purpose"]!="outfit_slot"||row["kind"]!="permanent_license"||!revisionOk||revision<1
                 ||price<1||price>2147483647||price!=qint64(price)||row["title"].toString().isEmpty()||row["title"].toString().size()>128)return false;
@@ -28,7 +35,7 @@ bool BackendAccount::validOutfits(const QJsonObject& value) const {
             ids.insert(id);
         }
     }
-    if(value.contains("outfits")&&(!value["outfits"].isArray()||value["outfits"].toArray().size()>64))return false;
+    if(value.contains("outfits")&&(!value["outfits"].isArray()||value["outfits"].toArray().size()>4096))return false;
     QSet<QString> saved;
     for(const auto entry:value["outfits"].toArray()) {
         const auto row=entry.toObject();const auto id=row["offer_id"].toString();bool ok=false;

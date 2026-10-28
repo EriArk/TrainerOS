@@ -4,6 +4,7 @@ from datetime import datetime, timezone
 from ..accounts.provider import AuthError
 from ..events import EventSpec, publish
 from .policy import mastery
+from . import prizes
 
 
 def validate_purchase_event(value):
@@ -27,6 +28,7 @@ class Shop:
     def snapshot(self, access, operation=None):
         with self.db.transaction() as conn:
             actor = self.progression.account(conn, access)
+            prizes.levels(conn, actor.player_id)
             account = conn.execute('SELECT revision FROM trainer_backend.progression_accounts WHERE player_id=%s FOR SHARE', (actor.player_id,)).fetchone()
             items = conn.execute('''SELECT s.*,p.id AS purchase_id,p.created_at AS acquired_at FROM trainer_backend.owned_items i
                 JOIN trainer_backend.shop_offers s ON s.id=i.offer_id JOIN trainer_backend.purchases p ON p.id=i.purchase_id
@@ -41,7 +43,11 @@ class Shop:
                     'catalogue': conn.execute("SELECT * FROM trainer_backend.shop_offers WHERE available AND purpose='profile_scene' ORDER BY id LIMIT 100").fetchall(),
                     'items': [i for i in items if i['purpose'] == 'profile_scene'],
                     'outfit_catalogue': conn.execute("SELECT * FROM trainer_backend.shop_offers WHERE available AND purpose='outfit_slot' ORDER BY slot_number LIMIT 64").fetchall(),
-                    'outfit_items': [i for i in items if i['purpose'] == 'outfit_slot'],
+                    'outfit_items': [i for i in items if i['purpose'] == 'outfit_slot'] + conn.execute('''SELECT
+                        s.slot_id id,p.id grant_id,p.title,p.created_at acquired_at,1 revision,0 price,
+                        'outfit_slot' purpose,'permanent_license' kind,64+p.level slot_number,p.level
+                        FROM trainer_backend.outfit_slots s JOIN trainer_backend.prize_grants p ON p.id=s.grant_id
+                        WHERE s.player_id=%s ORDER BY p.level''', (actor.player_id,)).fetchall(),
                     'outfits': conn.execute('SELECT * FROM trainer_backend.outfits WHERE player_id=%s ORDER BY offer_id', (actor.player_id,)).fetchall(),
                     'equipped': appearance['offer_id'] if appearance else None, 'receipt': receipt}
 
@@ -69,6 +75,8 @@ class Shop:
                 conn.execute('''INSERT INTO trainer_backend.purchases(id,player_id,operation_id,offer_id,offer_revision,price,title)
                     VALUES(%s,%s,%s,%s,%s,%s,%s)''', (purchase, actor.player_id, operation, offer_id, revision, offer['price'], offer['title']))
                 conn.execute('INSERT INTO trainer_backend.owned_items(player_id,offer_id,purchase_id) VALUES(%s,%s,%s)', (actor.player_id, offer_id, purchase))
+                if offer['purpose'] == 'outfit_slot':
+                    conn.execute('INSERT INTO trainer_backend.outfit_slots(player_id,slot_id,purchase_id) VALUES(%s,%s,%s)', (actor.player_id, offer_id, purchase))
                 conn.execute('''INSERT INTO trainer_backend.reward_ledger(id,player_id,source,event_id,title,xp,sparks,base_sparks,policy,earned_at,purchase_id)
                     VALUES(%s,%s,'shop.purchase',%s,%s,0,%s,0,'shop-v1',clock_timestamp(),%s)''',
                     (uuid4(), actor.player_id, str(purchase), offer['title'], -offer['price'], purchase))

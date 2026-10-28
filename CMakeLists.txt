@@ -23,7 +23,7 @@ endif()
 
 add_library(trainer_core STATIC
     src/integrations/adventure/CartridgeContent.cpp
-    src/features/accounts/BackendAccount.cpp src/features/accounts/BackendCommerce.cpp src/features/accounts/BackendOutfits.cpp
+    src/features/accounts/BackendAccount.cpp src/features/accounts/BackendCommerce.cpp src/features/accounts/BackendOutfits.cpp src/features/accounts/BackendPrizes.cpp
     src/features/trainer/AvatarAssets.cpp src/features/trainer/AvatarWearables.cpp src/features/trainer/OutfitController.cpp
     src/platform/sdk/PlatformHost.cpp
     src/platform/sdk/SdkNetwork.cpp
@@ -415,6 +415,7 @@ set_source_files_properties(src/qml/Theme.qml PROPERTIES QT_QML_SINGLETON_TYPE T
 file(GLOB profile_avatars CONFIGURE_DEPENDS assets/avatars/*.png)
 file(GLOB wardrobe_icons CONFIGURE_DEPENDS assets/avatar/wardrobe-icons/*.png)
 qt_add_resources(traineros wardrobe_icons PREFIX "/wardrobe" BASE assets/avatar/wardrobe-icons FILES ${wardrobe_icons})
+qt_add_resources(traineros prize_audio PREFIX "/audio" BASE assets/audio FILES assets/audio/prize-chime.wav)
 qt_add_resources(traineros profile_avatars PREFIX "/avatars" BASE assets/avatars FILES ${profile_avatars})
 install(FILES ${profile_avatars} assets/avatars/README.md DESTINATION ${CMAKE_INSTALL_DATADIR}/traineros/avatars)
 
@@ -500,6 +501,8 @@ qt_add_qml_module(traineros
         src/qml/ProfileScene.qml
         src/qml/ProfileShop.qml
         src/qml/ProfileSupport.qml
+        src/qml/ProfilePrizes.qml
+        src/qml/PrizeEmblem.qml
         src/qml/ProfileOutfits.qml
         src/qml/AvatarEditor.qml
         src/qml/AvatarPreview3D.qml
@@ -627,12 +630,12 @@ if(BUILD_TESTING)
     add_test(NAME software_update COMMAND trainer_software_update_tests -o -,txt)
     qt_add_executable(trainer_platform_tests tests/PlatformHostTests.cpp)
     qt_add_executable(trainer_account_tests tests/BackendAccountTests.cpp
-        src/features/accounts/BackendAccount.cpp src/features/accounts/BackendCommerce.cpp src/features/accounts/BackendOutfits.cpp src/features/trainer/AvatarAssets.cpp src/features/trainer/AvatarWearables.cpp src/platform/storage/EncryptedCredentials.cpp src/platform/storage/KeychainRequest.cpp)
+        src/features/accounts/BackendAccount.cpp src/features/accounts/BackendCommerce.cpp src/features/accounts/BackendOutfits.cpp src/features/accounts/BackendPrizes.cpp src/features/trainer/AvatarAssets.cpp src/features/trainer/AvatarWearables.cpp src/platform/storage/EncryptedCredentials.cpp src/platform/storage/KeychainRequest.cpp)
     target_include_directories(trainer_account_tests PRIVATE src)
     target_link_libraries(trainer_account_tests PRIVATE Qt6::Test Qt6::Gui Qt6::Network Qt6Keychain::Qt6Keychain)
     add_test(NAME backend_account COMMAND trainer_account_tests)
     qt_add_executable(trainer_backend_login_probe tools/BackendLoginProbe.cpp
-        src/features/accounts/BackendAccount.cpp src/features/accounts/BackendCommerce.cpp src/features/accounts/BackendOutfits.cpp src/features/trainer/AvatarAssets.cpp src/features/trainer/AvatarWearables.cpp src/platform/storage/EncryptedCredentials.cpp src/platform/storage/KeychainRequest.cpp)
+        src/features/accounts/BackendAccount.cpp src/features/accounts/BackendCommerce.cpp src/features/accounts/BackendOutfits.cpp src/features/accounts/BackendPrizes.cpp src/features/trainer/AvatarAssets.cpp src/features/trainer/AvatarWearables.cpp src/platform/storage/EncryptedCredentials.cpp src/platform/storage/KeychainRequest.cpp)
     target_include_directories(trainer_backend_login_probe PRIVATE src)
     target_link_libraries(trainer_backend_login_probe PRIVATE Qt6::Core Qt6::Gui Qt6::Network Qt6Keychain::Qt6Keychain)
     qt_add_executable(trainer_avatar_tests tests/AvatarTests.cpp)

@@ -17,7 +17,7 @@ from test_profiles import RECIPE
 def test_slots_purchase_save_restart_restore_and_scene_separation(account):
     shop,user=funded(account);access=user['access_token'];op=uuid4()
     bought=shop.purchase(access,op,'outfit.slot.1',1,100)
-    assert bought['items']==[] and len(bought['outfit_items'])==1 and bought['outfits']==[]
+    assert bought['items']==[] and len(bought['outfit_items'])==2 and bought['outfits']==[]
     assert shop.progression.snapshot(access)['balance']==900
     saved=outfits.save(shop,access,'outfit.slot.1','Golf',RECIPE,0)
     assert saved['outfits'][0]['revision']==1 and saved['outfits'][0]['recipe']==RECIPE
@@ -30,7 +30,7 @@ def test_slots_purchase_save_restart_restore_and_scene_separation(account):
     assert shop.progression.snapshot(access)['balance']==900
     with pytest.raises(AuthError,match='purpose'):shop.equip(access,'outfit.slot.1',restored['revision'])
     scene=shop.purchase(access,uuid4(),'profile.aurora',1,250)
-    assert len(scene['items'])==1 and len(scene['outfit_items'])==1
+    assert len(scene['items'])==1 and len(scene['outfit_items'])==2
     with pytest.raises(AuthError,match='not_owned'):outfits.save(shop,access,'profile.aurora','Bad',RECIPE,0)
     assert shop.equip(access,'profile.aurora',scene['revision'])['equipped']=='profile.aurora'
 

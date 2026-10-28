@@ -1,6 +1,7 @@
 #pragma once
 #include "platform/storage/EncryptedCredentials.h"
 #include <QJsonObject>
+#include <QJsonArray>
 #include <QDateTime>
 #include <QNetworkAccessManager>
 #include <QTcpServer>
@@ -20,6 +21,7 @@ class BackendAccount final : public QObject {
     Q_PROPERTY(QString rewardActionLabel READ rewardActionLabel NOTIFY changed)
     Q_PROPERTY(QVariantMap shop READ shop NOTIFY changed)
     Q_PROPERTY(QVariantMap outfits READ outfits NOTIFY changed)
+    Q_PROPERTY(QVariantMap prizes READ prizes NOTIFY changed)
     Q_PROPERTY(QString profileAppearance READ profileAppearance NOTIFY changed)
 public:
     using Reply = std::function<void(int,QJsonObject)>;
@@ -70,6 +72,12 @@ public:
     QJsonObject wardrobeState() const { return wardrobeState_; }
     bool storeWardrobeState(const QJsonObject&);
     void resolveOutfitConflict(const QString& id,bool keepLocal);
+    QVariantMap prizes() const;
+    Q_INVOKABLE void refreshPrizes(bool earlier=false);
+    Q_INVOKABLE void selectPrize(int index);
+    Q_INVOKABLE void celebratePrizes();
+    Q_INVOKABLE void closeCelebration(bool acknowledge=false);
+    Q_INVOKABLE void togglePrizeShelf();
 signals:
     void rewardsEarned(qint64 xp,qint64 sparks);
     void changed();
@@ -87,6 +95,7 @@ private:
     QVariantList shopItems() const;
     bool adoptShop(const QJsonObject&,bool cached=false);
     bool validOutfits(const QJsonObject&) const;
+    bool adoptPrizes(const QJsonObject&,bool cached=false);
     void loadCommerce();
     void flushOutfits();
     bool saveCommerce();
@@ -112,6 +121,11 @@ private:
     qint64 lastRewardSync_=0;
     QJsonObject shopSnapshot_,shopPending_,shopReview_;
     QJsonObject wardrobeState_,outfitWrites_;
+    QJsonObject prizeSnapshot_;
+    QJsonArray celebrationIds_;
+    bool prizeBusy_=false,prizeStale_=true;
+    int prizeIndex_=0;
+    QString prizeStatus_;
     bool outfitFlushing_=false;
     QString shopStatus_;
     bool shopBusy_=false,shopStale_=true;

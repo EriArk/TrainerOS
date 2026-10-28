@@ -125,6 +125,7 @@ void BackendAccount::rewardRequest(QString action,QJsonObject body,bool sync) {
     request(action.isEmpty()?"GET":"POST",path,body,[this,action,sync](int status,QJsonObject result){
         rewardBusy_=false;
         if(status==200 && adoptProgression(result)) {
+            refreshPrizes(); if(action=="sync")refreshShop();
             rewardStatus_=action=="verify"?"RA linked. New verified achievements now earn XP and Sparks. You can remove the code from your RA motto.":"Account progress is up to date";
             emit changed();
             if(sync && !progression_["link"].toObject().isEmpty()) {
@@ -133,7 +134,7 @@ void BackendAccount::rewardRequest(QString action,QJsonObject body,bool sync) {
                 auto source=rewardSource?rewardSource():QJsonObject{};
                 if(source["username"].toString().compare(progression_["link"].toObject()["username"].toString(),Qt::CaseInsensitive)!=0)return;
                 source.remove("username");
-                if(source["web_key"].toString().isEmpty() || source["games"].toArray().isEmpty())return;
+                if(source["web_key"].toString().isEmpty())return;
                 lastRewardSync_=now;rewardRequest("sync",source);
             }
             return;
@@ -161,7 +162,6 @@ void BackendAccount::activateRewards() {
     if(!progression_["link"].toObject().isEmpty()) {
         if(source["username"].toString().compare(progression_["link"].toObject()["username"].toString(),Qt::CaseInsensitive)!=0){rewardStatus_="The current RA account differs from the linked rewards profile. Select the linked RA account first.";emit changed();return;}
         source.remove("username");
-        if(source["games"].toArray().isEmpty()){rewardStatus_="Open a linked RA game or load your RA game history, then check again.";emit changed();return;}
         lastRewardSync_=QDateTime::currentMSecsSinceEpoch();rewardRequest("sync",source);
     } else {
         source.remove("games");
@@ -184,6 +184,7 @@ QString BackendAccount::actionLabel() const {
     return "Sign in to TrainerOS with Fluxer";
 }
 void BackendAccount::reset() {
+    prizeBusy_=false;prizeStale_=true;celebrationIds_={};
     shopBusy_=false;shopReview_={};shopStale_=true;outfitFlushing_=false;
     progressionTimer_.stop();progression_={};rewardStatus_.clear();rewardBusy_=false;progressionStale_=false;lastRewardSync_=0;
     avatarRetry_.stop();publicAvatar_={};publishedAvatar_={};avatarBusy_=false;
@@ -195,7 +196,7 @@ void BackendAccount::reset() {
 }
 void BackendAccount::configure(const QString& owner) {
     if(owner_==owner)return;
-    reset();lock_.reset();shopSnapshot_={};shopPending_={};wardrobeState_={};outfitWrites_={};outfitFlushing_=false;shopStatus_.clear();shopIndex_=0;owner_=owner;socialSubject_.clear();
+    reset();lock_.reset();shopSnapshot_={};shopPending_={};prizeSnapshot_={};celebrationIds_={};prizeIndex_=0;wardrobeState_={};outfitWrites_={};outfitFlushing_=false;shopStatus_.clear();shopIndex_=0;owner_=owner;socialSubject_.clear();
     if(owner.isEmpty()){state("disabled","Open your Trainer to sign in");return;}
     key_=QString::fromLatin1(QCryptographicHash::hash(("traineros-backend-v1\n"+Origin+"\n"+owner).toUtf8(),QCryptographicHash::Sha256).toHex());
     const auto directory=QStandardPaths::writableLocation(QStandardPaths::AppLocalDataLocation)+"/credentials";
@@ -303,6 +304,7 @@ void BackendAccount::tokens(const QJsonObject& result) {
         if(epoch!=epoch_)return;
         if(!ok){request("DELETE","/v1/auth/sessions/"+session_,{},[](int,QJsonObject){},access_);fail("Could not save the session securely. Try again.");return;}
         player_=player;attempt_.clear();verifier_.clear();
+        if(!prizeSnapshot_.isEmpty()&&prizeSnapshot_["player_id"].toString()!=player_){prizeSnapshot_={};saveCommerce();}
         if(!shopSnapshot_.isEmpty()&&shopSnapshot_["player_id"].toString()!=player_){shopSnapshot_={};shopIndex_=0;saveCommerce();}
         if(logoutPending_){logoutPending_=false;logout();return;}
         state("connected","Connected through Fluxer");
@@ -348,10 +350,10 @@ void BackendAccount::request(QByteArray method,QString path,QJsonObject body,Rep
     if(path=="/v1/auth/login-attempts")request.setRawHeader("Idempotency-Key",QUuid::createUuid().toString(QUuid::WithoutBraces).toLatin1());
     auto* reply=network_.sendCustomRequest(request,method,body.isEmpty()?QByteArray():QJsonDocument(body).toJson(QJsonDocument::Compact));
     reply->setReadBufferSize(65537);auto bytes=std::make_shared<QByteArray>();
-    connect(reply,&QNetworkReply::readyRead,this,[reply,bytes]{bytes->append(reply->readAll());if(bytes->size()>65536)reply->abort();});
+    connect(reply,&QNetworkReply::readyRead,this,[reply,bytes]{bytes->append(reply->readAll());if(bytes->size()>2097152)reply->abort();});
     connect(reply,&QNetworkReply::finished,this,[reply,bytes,finish=std::move(finish)]{
         bytes->append(reply->readAll());const int status=reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
-        const bool ok=bytes->size()<=65536&&(reply->error()==QNetworkReply::NoError||(status>=400&&status<500));
+        const bool ok=bytes->size()<=2097152&&(reply->error()==QNetworkReply::NoError||(status>=400&&status<500));
         finish(ok?status:0,ok?QJsonDocument::fromJson(*bytes).object():QJsonObject());reply->deleteLater();
     });
 }

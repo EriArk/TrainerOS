@@ -8,6 +8,7 @@ from .policy import VERSION, achievement, completion, mastery
 from .provider import RetroAchievements
 from .support import preview as support_preview
 from .membership import status as support_status, grant_topups
+from . import prizes
 
 
 class Progression:
@@ -22,6 +23,7 @@ class Progression:
     def snapshot(self, access, before=None):
         with self.db.transaction() as conn:
             actor = self.account(conn, access)
+            prizes.levels(conn, actor.player_id)
             row = conn.execute('SELECT * FROM trainer_backend.progression_accounts WHERE player_id=%s FOR SHARE', (actor.player_id,)).fetchone()
             link = conn.execute('SELECT username,linked_at FROM trainer_backend.reward_links WHERE player_id=%s', (actor.player_id,)).fetchone()
             challenge = conn.execute('SELECT username,challenge,expires_at FROM trainer_backend.reward_link_challenges WHERE player_id=%s AND expires_at>clock_timestamp()', (actor.player_id,)).fetchone()
@@ -91,6 +93,9 @@ class Progression:
         # Network work never holds a database lock. Caller supplies only locators,
         # not awards, points, dates, amounts or proof. All game data comes from RA.
         verified = [self.provider.game(key, link['ra_id'], game) for game in sorted(set(games))]
+        awards = self.provider.awards(key, link['ra_id'])
+        for game in verified:
+            awards.extend(game.get('awards', []))
         now = datetime.now(timezone.utc)
         with self.db.transaction() as conn:
             actor = self.account(conn, access)  # logout/revocation during provider I/O
@@ -104,6 +109,8 @@ class Progression:
                     finished = max(r['earned'] for r in rows)
                     if finished >= link['linked_at']:
                         self.grant(conn, actor.player_id, link['ra_id'], game['id'], 'ra.completion', str(game['id']), game['title'], finished, completion(sum(r['points'] for r in rows)))
+            prizes.games(conn, actor.player_id, link['ra_id'], awards)
+            prizes.levels(conn, actor.player_id)
         return self.snapshot(access)
 
     @staticmethod

@@ -18,7 +18,8 @@ QJsonObject credentials() {
 }
 struct Harness {
     bool shopEnabled=false,failCommerce=false;
-    QJsonObject shopValue,purchaseBody;
+    QJsonObject shopValue,purchaseBody,prizeValue,prizeBody;
+    bool deferPrizes=false;BackendAccount::Reply pendingPrizes;
     BackendAccount::Reply pendingPurchase;
     BackendAccount::Reply pendingOutfit;
     QJsonObject outfitBody;
@@ -57,6 +58,7 @@ struct Harness {
                 } else if(path=="/v1/me/progression" || path.startsWith("/v1/me/progression/ra/")) {
                     Q_ASSERT(auth==QByteArray(43,'a'));
                     if(deferProgression)pendingProgression=std::move(done);else done(progressionOk?200:503,progress);
+                } else if(path.startsWith("/v1/me/prizes")) {prizeBody=body;if(deferPrizes)pendingPrizes=done;else done(prizeValue.isEmpty()?503:200,prizeValue);
                 } else if(path=="/v1/me/inventory"||path.startsWith("/v1/me/purchases/")) {done(shopEnabled?200:503,shopValue);}
                 else if(path=="/v1/me/purchases") {purchaseBody=body;pendingPurchase=std::move(done);}
                 else if(path=="/v1/me/inventory/appearance") {shopValue["equipped"]=body["offer_id"];shopValue["revision"]=QString::number(shopValue["revision"].toString().toInt()+1);done(200,shopValue);}
@@ -98,6 +100,32 @@ class BackendAccountTests:public QObject {
         h.shopValue["receipt"]=receipt;
     }
 private slots:
+    void earnedSlotsAndPrizeOwnerRecovery() {
+        Harness h;h.shopEnabled=true;h.shopValue=inventory();
+        const QString id="44444444-4444-4444-8444-444444444444";
+        QJsonObject slot{{"id","outfit.level.3"},{"slot_number",67},{"purpose","outfit_slot"},{"kind","permanent_license"},{"revision","1"},{"price",0},{"title","Level 3 look slot"},{"grant_id",id}};
+        h.shopValue["outfit_items"]=QJsonArray{slot};h.shopValue["outfit_catalogue"]=QJsonArray{};h.shopValue["outfits"]=QJsonArray{};
+        const auto now=QDateTime::currentDateTimeUtc().toString(Qt::ISODateWithMs);
+        QJsonObject prize{{"id",id},{"player_id",Player},{"title","Level 3 look slot"},{"kind","outfit_slot"},{"earned_at",now}};
+        h.prizeValue={{"player_id",Player},{"revision","1"},{"pending",1},{"items",QJsonArray{prize}},{"waiting",QJsonArray{prize}},{"shelf",QJsonArray{}},{"upcoming",QJsonArray{}}};
+        BackendAccount a;a.setServices(h.services());a.configure("prize-owner");a.activate();h.callback();a.refreshPrizes();
+        QCOMPARE(a.outfits()["items"].toList().size(),1);QCOMPARE(a.prizes()["pending"].toInt(),1);
+        a.celebratePrizes();QVERIFY(a.prizes()["celebrating"].toBool());a.closeCelebration(false);
+        QVERIFY(!a.prizes()["celebrating"].toBool());QCOMPARE(a.prizes()["pending"].toInt(),1);
+        a.celebratePrizes();a.closeCelebration(true);QCOMPARE(h.prizeBody["ids"].toArray(),QJsonArray{id});
+        h.deferPrizes=true;a.refreshPrizes();auto reply=h.pendingPrizes;
+        a.configure("prize-other");reply(200,h.prizeValue);QVERIFY(a.prizes()["items"].toList().isEmpty());
+        h.loseRefresh=true;a.configure("prize-owner");QCOMPARE(a.prizes()["pending"].toInt(),1);QVERIFY(a.prizes()["stale"].toBool());
+        Harness replacement;auto old=h.prizeValue;const QString oldPlayer="99999999-9999-4999-8999-999999999999";
+        old["player_id"]=oldPlayer;
+        for(const auto key:{"items","waiting"}){QJsonArray rows;for(const auto v:old[key].toArray()){auto row=v.toObject();row["player_id"]=oldPlayer;rows.append(row);}old[key]=rows;}
+        auto services=replacement.services();services.readCommerce=[old](QString){return QJsonDocument(QJsonObject{{"prizes",old}}).toJson();};
+        BackendAccount switched;switched.setServices(services);switched.configure("changed-backend-account");
+        QCOMPARE(switched.prizes()["pending"].toInt(),1);switched.activate();replacement.callback();
+        QVERIFY(switched.prizes()["items"].toList().isEmpty());QVERIFY(!replacement.commerceDisk.isEmpty());
+        QVERIFY(QJsonDocument::fromJson(replacement.commerceDisk.cbegin().value()).object()["prizes"].toObject().isEmpty());
+    }
+
     void outfitAutosaveCoalescesAndRecoversLostResponse() {
         Harness h;h.shopEnabled=true;h.shopValue=inventory();
         QJsonObject slot{{"id","outfit.slot.1"},{"slot_number",1},{"purpose","outfit_slot"},{"kind","permanent_license"},{"revision","1"},{"price",100},{"title","Set"},{"purchase_id","44444444-4444-4444-8444-444444444444"}};

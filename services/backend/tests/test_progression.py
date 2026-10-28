@@ -19,6 +19,8 @@ class Evidence:
     motto = ''
     eligible = True
     when = datetime.now(timezone.utc)
+    def awards(self, key, user):
+        return []
     def profile(self, key, user):
         return {'id': RA, 'name': 'Tester', 'motto': self.motto, 'eligible': self.eligible}
     def game(self, key, user, game):

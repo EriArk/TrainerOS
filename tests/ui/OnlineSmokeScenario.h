@@ -238,6 +238,45 @@ inline void startOnlineSmoke(QQuickWindow* window,trainer::ShellController& shel
         case 42:
             capture("outfits-purchase");check(!shell.backendAccount()->shop()["review"].toMap().isEmpty(),"Slot has explicit purchase review");
             shell.dispatch(Action::Back);shell.dispatch(Action::Back);check(shell.profileRoute()=="summary"&&shell.profileFocus()==1,"Wardrobe returns to focused entry");shell.dispatch(Action::Back);break;
+        case 43: {
+            const QString player="11111111-1111-4111-8111-111111111111";
+            const auto now=QDateTime::currentDateTimeUtc().toString(Qt::ISODateWithMs);
+            QJsonArray rows;
+            int sequence=0;
+            for(const auto kind:{"beaten","outfit_slot","clothing"}) {
+                ++sequence;rows.append(QJsonObject{{"id",QUuid::createUuid().toString(QUuid::WithoutBraces)},{"player_id",player},
+                    {"kind",kind},{"title",sequence==1?"A completed adventure":sequence==2?"Level 3 look slot":"Level 3 wardrobe reward"},
+                    {"game_id",sequence==1?QJsonValue(7):QJsonValue()},{"earned_at",now},{"sequence",sequence}});
+            }
+            auto prizes=std::make_shared<QJsonObject>(QJsonObject{{"player_id",player},{"revision","50"},{"pending",3},{"items",rows},{"waiting",rows},
+                {"shelf",QJsonArray{}},{"upcoming",QJsonArray{QJsonObject{{"level",4},{"slot",false}},QJsonObject{{"level",5},{"slot",false}},QJsonObject{{"level",6},{"slot",true}}}}});
+            shell.backendAccount()->setServices({[player,prizes](QByteArray,QString path,QJsonObject body,QByteArray,trainer::BackendAccount::Reply done){
+                if(path=="/v1/auth/refresh")done(200,{{"player_id",player},{"session_id","33333333-3333-4333-8333-333333333333"},{"fluxer_subject","12345"},
+                    {"access_token",QString(43,'a')},{"refresh_token",QString(43,'r')},{"expires_at",QDateTime::currentDateTimeUtc().addSecs(900).toString(Qt::ISODateWithMs)}});
+                else if(path.startsWith("/v1/me/prizes")) {
+                    if(path.endsWith("/seen")){(*prizes)["pending"]=0;(*prizes)["waiting"]=QJsonArray{};}
+                    if(path.endsWith("/shelf"))(*prizes)["shelf"]=body["games"].toArray().isEmpty()?QJsonArray{}:QJsonArray{QJsonObject{{"game_id",7},{"title","A completed adventure"},{"beaten",true},{"completed",false}}};
+                    done(200,*prizes);
+                } else done(503,{});
+            },[](QString,auto done){done(true,QJsonDocument(QJsonObject{{"refresh_token",QString(43,'r')}}).toJson());},[](QString,QByteArray,auto done){done(true);},[](QUrl){return false;},[](QString){return QByteArray();},[](QString,QByteArray){return true;}});
+            shell.backendAccount()->configure("ui-prizes-fixture");shell.openProfile();shell.activate(11,"profile");window->resize(1280,720);break;
+        }
+        case 44:
+            check(shell.profileRoute()=="prizes","Reward collection route");capture("prizes-wide");
+            shell.activate(100,"profile");shell.activate(2,"profile");check(shell.backendAccount()->prizes()["shelf"].toList().size()==1,"Trophy added to shelf");
+            shell.activate(1,"profile");break;
+        case 45:
+            check(shell.backendAccount()->prizes()["celebrating"].toBool(),"Explicit grouped celebration");capture("prizes-celebration-wide");
+            shell.dispatch(Action::Back);check(shell.backendAccount()->prizes()["pending"].toInt()==3,"Later keeps unpresented grants");
+            window->resize(960,540);shell.activate(102,"profile");break;
+        case 46:
+            capture("prizes-pending-item-compact");shell.activate(1,"profile");break;
+        case 47:
+            capture("prizes-celebration-compact");shell.dispatch(Action::Confirm);
+            check(shell.backendAccount()->prizes()["pending"].toInt()==0,"Presentation acknowledges only shown rewards");
+            shell.dispatch(Action::Back);check(shell.profileFocus()==11,"Collection returns to shelf entry");break;
+        case 48:
+            capture("prizes-profile-shelf");shell.dispatch(Action::Back);break;
         default:
             check(warnings==0,"QML warnings during Online navigation");
             if(!directory.isEmpty()){QFile f(directory+"/online-report.json");if(f.open(QIODevice::WriteOnly))f.write(QJsonDocument(QJsonObject{{"warnings",warnings},{"success",diagnostics.isEmpty()},{"diagnostics",QJsonArray::fromStringList(diagnostics)}}).toJson());}

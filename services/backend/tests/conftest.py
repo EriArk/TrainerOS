@@ -84,6 +84,7 @@ def db(postgres):
             trainer_backend.game_rulesets,trainer_backend.play_grants,trainer_backend.matches,trainer_backend.match_participants,
             trainer_backend.result_submissions,trainer_backend.result_decisions,trainer_backend.result_outcomes,trainer_backend.board_revisions,
             trainer_backend.reward_ledger,trainer_backend.support_memberships,trainer_backend.support_receipts,trainer_backend.reward_links,trainer_backend.reward_link_challenges,trainer_backend.outfits,trainer_backend.profile_appearances,trainer_backend.owned_items,trainer_backend.purchases,trainer_backend.progression_accounts,
+            trainer_backend.prize_grants,trainer_backend.prize_receipts,trainer_backend.prize_shelf,trainer_backend.outfit_slots,
             public.fixture_effects''')
     database = Database(runtime_url, 8)
     yield database

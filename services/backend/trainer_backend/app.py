@@ -19,6 +19,7 @@ from .economy.service import Progression
 from .economy.shop import Shop
 from .economy.shop_routes import router as shop_router
 from .economy.routes import router as progression_router
+from .economy.prize_routes import router as prize_router
 from .play.service import Play
 from .play.routes import router as play_router
 
@@ -45,6 +46,7 @@ def create_app(settings=None, *, provider=None, reward_provider=None):
     app.include_router(play_router)
     app.include_router(progression_router)
     app.include_router(shop_router)
+    app.include_router(prize_router)
 
     @app.exception_handler(AuthError)
     async def auth_error(request, error):

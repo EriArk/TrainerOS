@@ -7,9 +7,9 @@
 **Owner rewards/profile discussion, 28 October (latest):** before Patreon/Ko-fi,
 the owner accepted level clothing rewards, an additional permanent outfit slot
 every three levels, first-completion trophies and selected game wearables,
-grouped celebrations, a five-item showcase and friend-profile viewing. This is
-an agreed design, not implemented rewards or permission inferred from a scope
-discussion to start runtime work. No new prize models yet. Preserve purchased
+grouped celebrations, a five-item showcase and friend-profile viewing. The subsequent owner continuation authorizes implementation of the shared
+awarding mechanism, free slots, collection and presentation. The previous
+discussion-only boundary is superseded; friend-profile completion remains open. No new prize models yet. Preserve purchased
 slots and current shared wardrobe; distinguish ordinary verified completion from
 the existing full-RA-set reward. See [contract and entry/return map](docs/PLAYER_PROFILE.md#согласованный-следующий-блок--награды-и-профиль-друга-28-октября).
 The reminder below now follows this block, not the wardrobe delivery immediately.

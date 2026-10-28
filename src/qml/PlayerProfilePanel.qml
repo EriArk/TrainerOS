@@ -55,7 +55,7 @@ Panel {
                 function revealFocus() {
                     if (!root.browsing || !root.shell.profileContentActive) return
                     const focus = root.shell.profileFocus
-                    const section = focus === 4 ? economy : focus === 10 ? supportEntry : focus === 3 || (focus >= 7 && focus <= 8) ? awards : focus === 2 || focus === 5 || focus === 6 ? journey : null
+                    const section = focus === 4 ? economy : focus === 10 ? supportEntry : focus === 11 ? trophyShelf : focus === 3 || (focus >= 7 && focus <= 8) ? awards : focus === 2 || focus === 5 || focus === 6 ? journey : null
                     if (!section) { contentY = 0; return }
                     if (section.y < contentY) contentY = section.y
                     else if (section.y+section.height > contentY+height) contentY = Math.max(0, section.y+section.height-height)
@@ -104,6 +104,22 @@ Panel {
                         ProfileAction { objectName:"profile-account"; y: root.compact?46:56; width: parent.width; actionIndex:4;label:"TrainerOS account  \u203a"; textSize:10 }
                     }
                 }
+                Item {
+                    id:trophyShelf;width:parent.width;height:96
+                    Text {text:"Trophy shelf";font.pixelSize:14;color:Theme.ink}
+                    ProfileAction {anchors.right:parent.right;y:-7;width:135;actionIndex:11;label:(root.shell.backendAccount.prizes.pending||0)>0?"Rewards ("+root.shell.backendAccount.prizes.pending+")  \u203a":"Hall of fame  \u203a";textSize:11}
+                    Row {y:23;width:parent.width;spacing:10
+                        Repeater {model:5;delegate:Item {
+                            required property int index
+                            readonly property var trophy:(root.shell.backendAccount.prizes.shelf||[])[index]||({})
+                            width:(trophyShelf.width-40)/5;height:66
+                            PrizeEmblem {anchors.horizontalCenter:parent.horizontalCenter;width:45;height:45;visible:!!parent.trophy.game_id;kind:parent.trophy.completed?"completed":"beaten"}
+                            Rectangle {x:6;y:44;width:parent.width-12;height:2;color:Theme.divider}
+                            Text {y:50;width:parent.width;text:parent.trophy.title||"\u2014";textFormat:Text.PlainText;color:Theme.muted;font.pixelSize:9;elide:Text.ElideRight;horizontalAlignment:Text.AlignHCenter}
+                            MouseArea {anchors.fill:parent;enabled:root.shell.profileContentActive;onClicked:root.shell.activate(11,"profile")}
+                        }}
+                    }
+                }
                 ProfileAction { id:supportEntry;objectName:"profile-support";width:parent.width;actionIndex:10;label:"Support \u00d72 / \u00d73  \u00b7  Compare Sparks \u203a";textSize:11 }
                 Rectangle { width: parent.width; height:1;color:Theme.divider }
                 Item {
@@ -147,6 +163,7 @@ Panel {
             }
         }
         ProfileShop { x:0;y:42;width:parent.width;height:parent.height-y;shell:root.shell;visible:root.shell.profileRoute==="shop" }
+        ProfilePrizes { x:0;y:42;width:parent.width;height:parent.height-y;shell:root.shell;visible:root.shell.profileRoute==="prizes" }
         ProfileSupport { x:0;y:42;width:parent.width;height:parent.height-y;shell:root.shell;visible:root.shell.profileRoute==="support" }
         GameHubOverview { x:0;y:42;width:parent.width;height:parent.height-y; shell:root.shell; visible:root.shell.profileRoute==="story" }
         AchievementGallery { x:0;y:42;width:parent.width;height:parent.height-y;shell:root.shell;visible:root.shell.profileRoute==="ra" }

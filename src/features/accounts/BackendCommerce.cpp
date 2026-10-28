@@ -20,7 +20,7 @@ QString BackendAccount::commercePath() const {
 }
 bool BackendAccount::saveCommerce() {
     if(key_.isEmpty())return false;
-    const auto data=QJsonDocument(QJsonObject{{"snapshot",shopSnapshot_},{"pending",shopPending_},{"wardrobe",wardrobeState_},{"outfitWrites",outfitWrites_}}).toJson(QJsonDocument::Compact);
+    const auto data=QJsonDocument(QJsonObject{{"prizes",prizeSnapshot_},{"snapshot",shopSnapshot_},{"pending",shopPending_},{"wardrobe",wardrobeState_},{"outfitWrites",outfitWrites_}}).toJson(QJsonDocument::Compact);
     if(services_.writeCommerce)return services_.writeCommerce(key_,data);
     const auto path=commercePath(),directory=QFileInfo(path).absolutePath();
     if(QFileInfo(directory).isSymLink()||QFileInfo(path).isSymLink()||!QDir().mkpath(directory))return false;
@@ -32,10 +32,11 @@ bool BackendAccount::saveCommerce() {
 void BackendAccount::loadCommerce() {
     QByteArray bytes;
     if(services_.readCommerce)bytes=services_.readCommerce(key_);
-    else {QFile file(commercePath());if(!QFileInfo(file).isSymLink()&&file.size()<=262144&&file.open(QIODevice::ReadOnly))bytes=file.readAll();}
-    if(bytes.size()>262144)return;
+    else {QFile file(commercePath());if(!QFileInfo(file).isSymLink()&&file.size()<=2097152&&file.open(QIODevice::ReadOnly))bytes=file.readAll();}
+    if(bytes.size()>2097152)return;
     const auto data=QJsonDocument::fromJson(bytes).object();
     adoptShop(data["snapshot"].toObject(),true);
+    adoptPrizes(data["prizes"].toObject(),true);
     wardrobeState_=data["wardrobe"].toObject();
     outfitWrites_=data["outfitWrites"].toObject();
     const auto pending=data["pending"].toObject();
