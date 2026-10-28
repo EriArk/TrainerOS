@@ -5,6 +5,9 @@ import bpy,sys,argparse,math,json
 from pathlib import Path
 from mathutils import Vector
 ROOT=Path(__file__).resolve().parents[2]
+sys.path.insert(0,str(ROOT/'tools/avatar'))
+from golf_hair_fit import fit_positions
+import numpy as np
 parser=argparse.ArgumentParser();parser.add_argument('--male',type=Path,required=True);parser.add_argument('--female',type=Path,required=True);parser.add_argument('--out',type=Path,required=True);parser.add_argument('--quick',action='store_true');parser.add_argument('--duo-only',action='store_true');parser.add_argument('--sex',default='both');parser.add_argument('--poses',default='');args=parser.parse_args(sys.argv[sys.argv.index('--')+1:]);args.out=(ROOT/args.out).resolve();args.out.mkdir(parents=True,exist_ok=True)
 collection=ROOT/'assets/avatar/collections/golf-v1'
 
@@ -13,6 +16,21 @@ def clean():
     for action in bpy.data.actions:bpy.data.actions.remove(action)
 def import_glb(path):
     before=set(bpy.data.objects);bpy.ops.import_scene.gltf(filepath=str(path));return list(set(bpy.data.objects)-before)
+def fit_hair(objects,headwear,restore=False):
+    for o in objects:
+        if o.type!='MESH' or not o.name.startswith('hair'):continue
+        if restore:
+            if 'golf_original_positions' in o:
+                for vertex,co in zip(o.data.vertices,np.array(o['golf_original_positions']).reshape(-1,3)):vertex.co=co
+            continue
+        points=np.array([v.co[:] for v in o.data.vertices]);o['golf_original_positions']=points.ravel().tolist()
+        # Blender imports glTF (x,y,z) as (x,-z,y).
+        fitted=fit_positions(points[:,[0,2,1]]*np.array([1,1,-1]),headwear)
+        for vertex,co in zip(o.data.vertices,fitted[:,[0,2,1]]*np.array([1,-1,1])):vertex.co=co
+        # Imported split normals belong to the uncompressed surface.
+        if o.data.has_custom_normals:
+            with bpy.context.temp_override(object=o,active_object=o):bpy.ops.mesh.customdata_custom_splitnormals_clear()
+        o.data.update()
 def light(name,loc,power,size,target=(0,0,.5)):
     data=bpy.data.lights.new(name,'AREA');data.energy=power;data.shape='DISK';data.size=size;o=bpy.data.objects.new(name,data);bpy.context.collection.objects.link(o);o.location=loc;o.rotation_euler=(Vector(target)-o.location).to_track_quat('-Z','Y').to_euler()
 def stage():
@@ -71,7 +89,7 @@ if not args.quick and not args.duo_only:
 for sex,base in [('mens',args.male),('womens',args.female)]:
     if args.duo_only:break
     if args.sex!='both' and args.sex!=sex:continue
-    clean();body=import_glb(base)
+    clean();body=import_glb(base);fit_hair(body,'golf-cap' if sex=='mens' else 'golf-visor')
     for o in body:
         if o.name in ['shirt','shoes']:o.hide_render=True;o.hide_set(True)
     garments=import_glb(collection/(sex+'-outfit.glb'));stage();pose(body+garments,'Rest')
@@ -85,13 +103,14 @@ for sex,base in [('mens',args.male),('womens',args.female)]:
     for action in ['Wave','Arms_Up','Squat','Step','Sit']:
         pose(body+garments,action);capture(sex+'-'+action.lower(),22)
     pose(body+garments,'Rest')
+    fit_hair(body,'',restore=True)
     for o in garments:
         if o.type=='MESH' and o.name.startswith(('golf-cap','golf-visor')):o.hide_render=True
     capture(sex+'-without-hat',15)
 if args.duo_only:
     clean()
     for sex,base,offset in [('mens',args.male,-.31),('womens',args.female,.31)]:
-        body=import_glb(base)
+        body=import_glb(base);fit_hair(body,'golf-cap' if sex=='mens' else 'golf-visor')
         for o in body:
             if o.type=='MESH' and (o.name.split('.')[0] in ['shirt','shoes']):o.hide_render=True
         garments=import_glb(collection/(sex+'-outfit.glb'));objects=body+garments;pose(objects,'Rest')

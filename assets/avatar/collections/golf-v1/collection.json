@@ -35,32 +35,32 @@
     "polo-short-sleeve": {
       "file": "polo-short-sleeve.glb",
       "node": "polo-short-sleeve",
-      "sha256": "4033d34908995afb5a051fcd0f59dfbbda24753c6fc2df9c2def291fb8083282"
+      "sha256": "fe4d6cc503344242edc63e9e68862b77f1a4afad25693d7039a6897a1178f3bb"
     },
     "polo-sleeveless": {
       "file": "polo-sleeveless.glb",
       "node": "polo-sleeveless",
-      "sha256": "c8e3a20d87e8e9717ecbab69e413dba6da8da4e28a0d9d45dc7b3595de9ee816"
+      "sha256": "00a91e795187f75d97ddb1e488ed4792ebd7c403eef7bbdeb22ee3a6599b0a9c"
     },
     "golf-shorts": {
       "file": "golf-shorts.glb",
       "node": "golf-shorts",
-      "sha256": "1e47e8f4fe6b32317a111347c64a34daeeb02e2c4779ab140ce2c2d1c6e7959d"
+      "sha256": "1c5c539e68f5a5e2cde9a789b2963837fce888732bc81fe959b96ee3611e5b4e"
     },
     "pleated-skirt": {
       "file": "pleated-skirt.glb",
       "node": "pleated-skirt",
-      "sha256": "52476ef2ad81a5e9ba7265a3f5e0c49b54009dcf8d3c12fb20bcd1635a163a12"
+      "sha256": "81924092b411f5f249aeca805f71f9219f05efddcfe6249dacd8f1a366583c35"
     },
     "ankle-socks": {
       "file": "ankle-socks.glb",
       "node": "ankle-socks",
-      "sha256": "206b9ca2de04e4fa68265d6ca9bc79a94bd6b529a1cc16ce26def650f5429d7e"
+      "sha256": "acbcafbef2f72503aaf46e2c657941b27f0dd9719ec9d51c99d07c304ec236a3"
     },
     "crew-socks": {
       "file": "crew-socks.glb",
       "node": "crew-socks",
-      "sha256": "3a23e99b5ec8c3f15348601c8c443707c2560a53231871f7efcb270c81f2c877"
+      "sha256": "f1d3b017fbfd08119a95c2a28b5b1645179f75c92364ed3874b34ead02cf9707"
     },
     "golf-shoes-classic": {
       "file": "golf-shoes-classic.glb",
@@ -75,12 +75,12 @@
     "golf-cap": {
       "file": "golf-cap.glb",
       "node": "golf-cap",
-      "sha256": "a0c6f6abee8a9d0c3194663edf70c32c45616b3ec4f5cfbf04006fa59ed2e3b6"
+      "sha256": "9e592b49dc6ccffe3bac1f63fe0f98dba00bce9f1ea5e5ba912c18075e27af71"
     },
     "golf-visor": {
       "file": "golf-visor.glb",
       "node": "golf-visor",
-      "sha256": "6338e5aad9ace8f98fa8fae01584c46c8be240b3122403022c98589eea97eab1"
+      "sha256": "814f5d8e2fbd8f276673dd55bb2ba80422fc566d8bbcddd7881f1fa583afc110"
     }
   },
   "skirtUnderlayer": "existing body shorts; no added shorts mesh",
@@ -88,5 +88,7 @@
     "golf-cap": "crop",
     "golf-visor": "bob"
   },
-  "runtimeInstalled": false
+  "runtimeInstalled": false,
+  "artRevision": 3,
+  "headwearHairFitManifest": "hair-fit/manifest.json"
 }

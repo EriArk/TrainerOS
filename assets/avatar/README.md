@@ -1,5 +1,18 @@
 # Shared Trainer avatar pack
 
+## Garment fitting rule
+
+The approved body contains a baked shorts underlayer. Its hems, seams and other
+small clothing details must not be copied into longer outer garments. Keep the
+approved mesh as the skin/corrective donor; build a separate fitting guide for
+the affected band with [`fitting_surface.py`](../../tools/avatar/fitting_surface.py).
+Recompute guide normals before the fabric offset and do not project that offset
+back onto the original hem. Paired smoothing preserves volume; ordinary repeated
+Laplacian smoothing can shrink the garment into the body. Check the exported
+contour, body clearance and animated poses, including front and side views.
+The golf collection's [`validation.json`](collections/golf-v1/validation.json)
+records bounded section checks; this does not imply universal collision handling.
+
 **28 October: golf collection prepared for art review.** Ten separate wearables,
 including socks, shoes and headwear, share the existing rig. The skirt uses the
 body's existing shorts. [Models, Blender source and review](collections/golf-v1/README.md)

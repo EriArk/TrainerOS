@@ -1,0 +1,63 @@
+{
+  "schema": 1,
+  "space": "Y-up shared bind pose, metres",
+  "encoding": "little-endian float32 VEC3",
+  "operation": "original + delta; restore original on unequip; do not accumulate",
+  "fits": [
+    {
+      "headwear": "golf-cap",
+      "hairMesh": "hair-crop",
+      "primitives": [
+        {
+          "primitive": 0,
+          "vertices": 13699,
+          "positionSha256": "697035ac2f84243885340a9595e8c3a02952c29ba315f3d22f9f802c87415b6a",
+          "positionDelta": {
+            "file": "golf-cap-hair-crop-0-positionDelta.bin",
+            "sha256": "a61461fe0335a506ec4df3ef88108c5ee6bddde3231f92839816a0dd081b765a"
+          },
+          "normalDelta": {
+            "file": "golf-cap-hair-crop-0-normalDelta.bin",
+            "sha256": "f265897d9a0504c9562a5e80711b8794e81de19ddcf3b0aaf77ff7420e99ddfa"
+          },
+          "movedVertices": 8278
+        }
+      ]
+    },
+    {
+      "headwear": "golf-visor",
+      "hairMesh": "hair-bob",
+      "primitives": [
+        {
+          "primitive": 0,
+          "vertices": 9997,
+          "positionSha256": "39f06b4e04eb8fb1029701e3f6830142cc6ad163f5276e45b089ec3305be59bb",
+          "positionDelta": {
+            "file": "golf-visor-hair-bob-0-positionDelta.bin",
+            "sha256": "8b15fd1298803adbfb10d5fef3e83df155c20bcc9e2214e772a8d92a05435c76"
+          },
+          "normalDelta": {
+            "file": "golf-visor-hair-bob-0-normalDelta.bin",
+            "sha256": "141d113ce164c2d91178b89a652414a2959f41378d75d0615cd7539a5f840712"
+          },
+          "movedVertices": 794
+        },
+        {
+          "primitive": 1,
+          "vertices": 147,
+          "positionSha256": "e2b8f59f6143277614644e05053d4d083e11c50279f4f50bf5f8651715135f8f",
+          "positionDelta": {
+            "file": "golf-visor-hair-bob-1-positionDelta.bin",
+            "sha256": "8a790a38b515e1dfc36f14991082b90781ebaaf1b3f21277378ecbdee83fcc9a"
+          },
+          "normalDelta": {
+            "file": "golf-visor-hair-bob-1-normalDelta.bin",
+            "sha256": "664c0e60e29033bede602fc10f4f2a0aa320d3df219f5da8887b9c362cfd8e8f"
+          },
+          "movedVertices": 131
+        }
+      ]
+    }
+  ],
+  "runtimeInstalled": false
+}

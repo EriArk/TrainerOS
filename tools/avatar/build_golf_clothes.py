@@ -8,7 +8,9 @@ from pathlib import Path
 import numpy as np
 from scipy.spatial import cKDTree
 from scipy.sparse import coo_matrix
+from scipy.ndimage import gaussian_filter1d
 from build_pack import GLB,Builder
+from fitting_surface import fitting_guide
 
 ROOT=Path(__file__).resolve().parents[2]
 COLORS={'ivory':'f4f0df','forest':'234f43','peach':'efa58b','sole':'dedccf','dark':'213b34','metal':'d8b679'}
@@ -63,14 +65,17 @@ class Author:
                 a=i*nx+j;b=i*nx+(j+1)%nx;c=(i+1)*nx+j;d=(i+1)*nx+(j+1)%nx
                 f.extend([[a,b,c],[b,d,c]])
         self.add(item,name,rows.reshape(-1,3),f,color,rig,correct)
-    def surface(self,item,name,conditions,color,offset=.006,smooth=14,edge=True):
+    def surface(self,item,name,conditions,color,offset=.006,smooth=14,edge=True,fit_bands=()):
         # Clip body triangles with interpolated boundary points, then weld and
         # relax the derived garment. The underlying body remains untouched.
-        values=np.array([fn(self.p) for fn in conditions]).T
+        guide,guide_normals=(fitting_guide(self.p,self.f,fit_bands)
+                             if fit_bands else (self.p,self.n))
+        guide_tree=cKDTree(guide) if fit_bands else self.tree
+        values=np.array([fn(guide) for fn in conditions]).T
         candidates=self.f[np.all(values[self.f].max(1)>=0,axis=1)]
         vv=[];ff=[];donor_ids=[];donor_factors=[]
         for face in candidates:
-            poly=[np.r_[self.p[i]+self.n[i]*offset,values[i],np.eye(3)[k]] for k,i in enumerate(face)]
+            poly=[np.r_[guide[i]+guide_normals[i]*offset,values[i],np.eye(3)[k]] for k,i in enumerate(face)]
             for c in range(len(conditions)):
                 out=[]
                 for i,a in enumerate(poly):
@@ -87,14 +92,39 @@ class Author:
         edges=np.concatenate([f[:,[0,1]],f[:,[1,2]],f[:,[2,0]]]);edges,count=np.unique(np.sort(edges,axis=1),axis=0,return_counts=True)
         boundary=np.unique(edges[count==1]);interior=np.ones(len(v),bool);interior[boundary]=False
         e=np.r_[edges,edges[:,::-1]];adj=coo_matrix((np.ones(len(e)),(e[:,0],e[:,1])),shape=(len(v),len(v))).tocsr();deg=np.maximum(np.asarray(adj.sum(1)).ravel(),1)
+        transfer=None
+        if item=='polo-sleeveless':
+            donor=np.array(donor_ids)[first];factor=np.array(donor_factors)[first]
+            transfer=coo_matrix((factor.ravel(),(np.repeat(np.arange(len(v)),3),donor.ravel())),shape=(len(v),len(self.p))).tocsr()
         for _ in range(smooth):
             avg=(adj@v)/deg[:,None];v[interior]=v[interior]*.7+avg[interior]*.3
+            if transfer is not None:
+                mix=np.where(interior,.3,0.)
+                transfer=transfer.multiply((1-mix)[:,None])+(adj@transfer).multiply((mix/deg)[:,None])
+                transfer=transfer.tocsr()
+        if item=='polo-sleeveless':
+            # Smooth the cut seam AND its skin/corrective interpolation together.
+            # Smoothing only positions leaves a serrated rim in animated poses.
+            rim=edges[count==1];e=np.r_[rim,rim[:,::-1]]
+            rim_degree=np.bincount(e[:,0],minlength=len(v));diagonal=np.ones(len(v));diagonal[boundary]=.5
+            rr=np.r_[np.arange(len(v)),e[:,0]];cc=np.r_[np.arange(len(v)),e[:,1]]
+            data=np.r_[diagonal,.5/np.maximum(rim_degree[e[:,0]],1)]
+            relax=coo_matrix((data,(rr,cc)),shape=(len(v),len(v))).tocsr()
+            for _ in range(18):v=relax@v;transfer=relax@transfer
         # Relaxation must not erase the clearance at shoulder convexities.
-        _,near=self.tree.query(v);signed=((v-self.p[near])*self.n[near]).sum(1)
-        v+=self.n[near]*np.maximum(offset*.8-signed,0)[:,None]
+        if item=='polo-sleeveless':
+            reference=transfer@self.p
+            direction=transfer@self.n
+            direction/=np.maximum(np.linalg.norm(direction,axis=1)[:,None],1e-9)
+            signed=((v-reference)*direction).sum(1)
+            v+=direction*np.maximum(offset*.8-signed,0)[:,None]
+        else:
+            _,near=guide_tree.query(v);signed=((v-guide[near])*guide_normals[near]).sum(1)
+            v+=guide_normals[near]*np.maximum(offset*.8-signed,0)[:,None]
         self.add(item,name,v,f,color)
         self.parts[item][-1]['donor_ids']=np.array(donor_ids)[first]
         self.parts[item][-1]['donor_factors']=np.array(donor_factors)[first]
+        if transfer is not None:self.parts[item][-1]['transfer']=transfer
         # Rounded fabric edge on every opening (neck / arms / hem).
         links={}
         for a,b in edges[count==1]:links.setdefault(a,[]).append(b);links.setdefault(b,[]).append(a)
@@ -113,25 +143,46 @@ class Author:
                 q=v[loop]
                 if np.linalg.norm(np.roll(q,-1,axis=0)-q,axis=1).sum()<.06:continue
                 self.tube(item,name+' edge '+str(loop_id),q,.0013,'forest' if color=='ivory' else 'ivory',closed=True);loop_id+=1
+                # Every ring follows its exact fabric vertex. Nearest-neighbour
+                # binding can choose different donors around a tiny tube and
+                # split the trim into spikes when the shoulder bends.
+                seam=self.parts[item][-1];source=np.repeat(loop,8)
+                seam['donor_ids']=np.array(donor_ids)[first][source]
+                seam['donor_factors']=np.array(donor_factors)[first][source]
+                if transfer is not None:seam['transfer']=transfer[source]
         return v,f
     def neck(self,item,main):
-        # Open-front, folded polo collar with two pointed front leaves.
-        self.surface(item,'rear folded collar',[lambda p:p[:,1]-.653,lambda p:.678-p[:,1],lambda p:.004-p[:,2],lambda p:.062-abs(p[:,0])],main,.018,8,False)
-        for side in [-1,1]:
-            inner_front=np.array([side*.018,.680,.050]);inner_side=np.array([side*.052,.680,.004])
-            outer_front=np.array([side*.030,.626,.080]);outer_side=np.array([side*.069,.653,.020])
-            wing=[]
-            for t in np.linspace(0,1,8):
-                a=inner_front*(1-t)+outer_front*t;b=inner_side*(1-t)+outer_side*t
-                wing.append([a*(1-u)+b*u for u in np.linspace(0,1,12)])
-            wing=np.array(wing)
-            fabric=self.parts[item][0]['v']
-            front=fabric[(fabric[:,2]>0)&(fabric[:,1]>.60)&(fabric[:,1]<.71)]
-            distance,near=cKDTree(front[:,:2]).query(wing[:,:,:2].reshape(-1,2),k=16)
-            depth=front[near,2].max(1)
-            wing[:,:,2]=np.maximum(wing[:,:,2],depth.reshape(wing.shape[:2])+.004)
-            self.grid(item,'pointed collar leaf',wing if side<0 else wing[::-1],main,closed=False)
-            self.tube(item,'collar leaf edge',wing[-1],.0013,'peach')
+        # One open, continuous collar: stand, rounded roll and falling leaf.
+        # The outer front ends taper down to points; the back is part of the
+        # same pattern, rather than a band plus two disconnected rectangles.
+        theta=np.linspace(.30,2*np.pi-.30,100)
+        fold=np.stack([.047*np.sin(theta),np.full(len(theta),.681),.004+.041*np.cos(theta)],1)
+        stand=fold.copy();stand[:,1]-=.022
+        outer=np.stack([.061*np.sin(theta),.670-.010*abs(np.cos(theta))-.024*np.maximum(np.cos(theta),0)**8,.004+.066*np.cos(theta)],1)
+        rows=[]
+        fabric=self.parts[item][0]['v']
+        polar=fabric[:,[0,2]]-np.array([0,.004]);r=np.linalg.norm(polar,axis=1)
+        direction=polar/np.maximum(r[:,None],1e-9)
+        tree=cKDTree(np.c_[fabric[:,1]*2,direction*.07])
+        # The stand flares into the shirt neckline underneath the folded leaf.
+        radial=stand[:,[0,2]]-np.array([0,.004]);unit=radial/np.linalg.norm(radial,axis=1)[:,None]
+        _,near=tree.query(np.c_[stand[:,1]*2,unit*.07],k=8)
+        stand_radius=gaussian_filter1d(r[near].max(1),3,mode='nearest')+.006
+        stand[:,0]=unit[:,0]*stand_radius
+        stand[:,2]=.004+unit[:,1]*stand_radius
+        self.grid(item,'collar stand',[stand,fold],main,closed=False)
+        for t in np.linspace(0,1,14):
+            row=fold*(1-t)+outer*t;row[:,1]+=.003*np.sin(np.pi*t)
+            # Fit around the whole neckline, including the shoulder sides.
+            radial=row[:,[0,2]]-np.array([0,.004]);length=np.linalg.norm(radial,axis=1)
+            unit=radial/length[:,None]
+            dist,near=tree.query(np.c_[row[:,1]*2,unit*.07],k=8)
+            clearance=np.maximum(gaussian_filter1d(r[near].max(1),3,mode='nearest')+.006-length,0)
+            length+=clearance*np.clip((.681-row[:,1])/.009,0,1)
+            row[:,0]=unit[:,0]*length;row[:,2]=.004+unit[:,1]*length
+            rows.append(row)
+        self.grid(item,'continuous folded collar',rows,main,closed=False)
+        self.tube(item,'collar folded rim',rows[-1],.00065,main)
         # A narrow placket follows the actual torso depth instead of floating.
         y=np.linspace(.601,.662,14);rows=[]
         for yy in y:
@@ -152,18 +203,30 @@ class Author:
         p=self.p
         for female in [False,True]:
             item='polo-sleeveless' if female else 'polo-short-sleeve';color='forest' if female else 'ivory'
-            conditions=[lambda p:p[:,1]-.478,lambda p:.672-p[:,1]]
+            conditions=[lambda p:p[:,1]-.478,lambda p:.662-p[:,1]]
             if female:
-                conditions.append(lambda p:.087+.020*np.clip((p[:,1]-.602)/.057,0,1)-abs(p[:,0]))
+                # Cut at the torso/arm seam, not a vertical X plane which
+                # accidentally retained a long ribbon from the inner arm.
+                torso=(np.isin(self.j,[1,2,3,4,24])*self.w).sum(1)
+                conditions.append(lambda p:np.maximum(torso-.50,np.minimum(.060-abs(p[:,0]),p[:,1]-.640)))
             else:conditions.append(lambda p:np.maximum(.092-abs(p[:,0]),p[:,1]-.574))
-            self.surface(item,'polo fabric',conditions,color,.011,16)
+            self.surface(item,'polo fabric',conditions,color,.007 if female else .011,16)
             self.neck(item,'ivory' if female else 'forest')
             # Small stitched golf flag, intentionally readable at chibi scale.
             x=.045;y=.603
             donor=p[(abs(p[:,0]-x)<.006)&(abs(p[:,1]-y)<.006)&(p[:,2]>0)];z=float(donor[:,2].max())+.016
             self.tube(item,'flag stem',[[x,y-.008,z],[x,y+.009,z]],.001,'peach')
             self.add(item,'flag pennant',[[x,y+.009,z],[x+.012,y+.004,z],[x,y,z]],[[0,1,2]],'peach')
-        self.surface('golf-shorts','tailored shorts',[lambda p:p[:,1]-.307,lambda p:.485-p[:,1],lambda p:.111-abs(p[:,0])],'forest',.009,28)
+        # The approved body's short underlayer ends around Y=.355. Its baked
+        # hem and sharp normals are not seams of these longer outer shorts.
+        # Keep the original as skin/corrective donor, fit to a separate guide.
+        self.surface('golf-shorts','tailored shorts',[lambda p:p[:,1]-.307,lambda p:.485-p[:,1],lambda p:.111-abs(p[:,0])],'forest',.009,28,fit_bands=[(.300,.405)])
+        # Keep the accepted waist/seat; open the lower leg into a straight cut.
+        for part in self.parts['golf-shorts']:
+            v=part['v'];blend=np.clip((.405-v[:,1])/.098,0,1)
+            center=np.sign(v[:,0])*.061
+            v[:,0]=center+(v[:,0]-center)*(1+.22*blend)
+            v[:,2]=.009+(v[:,2]-.009)*(1+.16*blend)
         self.surface('golf-shorts','waistband',[lambda p:p[:,1]-.465,lambda p:.485-p[:,1],lambda p:.112-abs(p[:,0])],'forest',.011,10)
         for side in [-1,1]:
             points=[]
@@ -176,9 +239,14 @@ class Author:
         for panel in range(10):
             rows=[];theta=np.linspace(panel,panel+1,17)*2*np.pi/10;q=np.linspace(0,1,17)
             for t in np.linspace(0,1,18):
-                pleat=np.where(q<.1875,(1-q/.1875),(q-.1875)/.8125)*.013*t**.65
-                rx=.104+.025*t+pleat;rz=.087+.026*t+pleat
-                rows.append(np.stack([rx*np.sin(theta),np.full(len(theta),.486-.181*t),.008+rz*np.cos(theta)],1))
+                y=.486-.181*t
+                levels=[.305,.390,.420,.445,.466,.486]
+                rx=np.interp(y,levels,[.132,.116,.112,.106,.100,.090])
+                front=np.interp(y,levels,[.120,.094,.090,.094,.096,.099])
+                back=np.interp(y,levels,[-.111,-.083,-.079,-.075,-.063,-.052])
+                pleat=np.where(q<.1875,(1-q/.1875),(q-.1875)/.8125)*.010*np.clip((.450-y)/.145,0,1)**1.1
+                rz=(front-back)/2;cz=(front+back)/2
+                rows.append(np.stack([(rx+pleat)*np.sin(theta),np.full(len(theta),y),cz+(rz+pleat)*np.cos(theta)],1))
             self.grid('pleated-skirt','pleat '+str(panel),rows[2:][::-1],'ivory','skirt',False,False)
             self.grid('pleated-skirt','waist band '+str(panel),rows[:3][::-1],'forest','skirt',False,False)
             trim=np.array(rows[-2:]);trim[:,:,0]*=1.008;trim[:,:,2]=.008+(trim[:,:,2]-.008)*1.008
@@ -208,7 +276,7 @@ class Author:
                 self.grid(item,'heel tab '+suffix,[[[cx-.012,.026,-.068],[cx+.012,.026,-.068]],[[cx-.009,.074,-.052],[cx+.009,.074,-.052]]],accent,rig,False,False)
         self.hat('golf-cap',False);self.hat('golf-visor',True)
     def hat(self,item,visor):
-        rx,rz=(.153,.173) if visor else (.176,.203);y=.884;th=np.arange(96)*2*np.pi/96
+        rx,rz=(.138,.157) if visor else (.147,.174);y=.884;th=np.arange(96)*2*np.pi/96
         band=[]
         for h in [0,.017]:band.append(np.stack([rx*np.sin(th),np.full(len(th),y+h),rz*np.cos(th)],1))
         self.grid(item,'head band',band,'ivory' if visor else 'forest','head',correct=False)
@@ -216,18 +284,18 @@ class Author:
         if not visor:
             rows=[]
             for t in np.linspace(0,np.pi/2,22):
-                rows.append(np.stack([rx*np.cos(t)**.55*np.sin(th),np.full(len(th),y+.017+.115*np.sin(t)),rz*np.cos(t)**.55*np.cos(th)],1))
+                rows.append(np.stack([rx*np.cos(t)**.75*np.sin(th),np.full(len(th),y+.017+.099*np.sin(t)),rz*np.cos(t)**.75*np.cos(th)],1))
             self.grid(item,'six panel crown',rows,'forest','head',correct=False)
             for a in np.arange(6)*np.pi/3:
-                points=[[rx*np.cos(t)**.55*np.sin(a),y+.018+.115*np.sin(t),rz*np.cos(t)**.55*np.cos(a)] for t in np.linspace(0,np.pi/2,40)]
+                points=[[rx*np.cos(t)**.75*np.sin(a),y+.018+.099*np.sin(t),rz*np.cos(t)**.75*np.cos(a)] for t in np.linspace(0,np.pi/2,40)]
                 self.tube(item,'crown seam',points,.0008,'ivory','head')
             self.disc(item,'front club mark',[0,y+.067,rz*.94],.008,'peach','head')
-            badge=self.parts[item][-1]['v'];t=np.arcsin(np.clip((badge[:,1]-y-.017)/.115,0,1))
-            badge[:,2]=rz*np.cos(t)**.55+.0015
+            badge=self.parts[item][-1]['v'];t=np.arcsin(np.clip((badge[:,1]-y-.017)/.099,0,1))
+            badge[:,2]=rz*np.cos(t)**.75+.0015
         rows=[]
         a=np.linspace(-1.16,1.16,56)
         for t in np.linspace(0,1,9):
-            reach=.078*np.cos(a)**1.5*t
+            reach=.058*np.cos(a)**1.5*t
             rows.append(np.stack([(rx+reach*.38)*np.sin(a),y-.006- .012*t+ .008*np.sin(a)**2,(rz+reach)*np.cos(a)],1))
         self.grid(item,'curved brim',rows[::-1],'forest','head',False,False)
         self.tube(item,'brim binding',rows[-1],.002,'peach','head')
@@ -273,12 +341,22 @@ class Author:
                 vv=[];ff=[];jj=[];ww=[];dd=[[] for _ in self.delta];offset=0
                 for part in parts:
                     v=part['v'];f=part['f'];ids=part.get('donor_ids');factor=part.get('donor_factors')
+                    transfer=part.get('transfer')
                     if ids is None and item.startswith('polo') and part['rig']=='body':
                         fabric=self.parts[item][0];_,near=cKDTree(fabric['v']).query(v)
                         ids=fabric['donor_ids'][near];factor=fabric['donor_factors'][near]
+                        if 'transfer' in fabric:transfer=fabric['transfer'][near]
                     j,w,ids,factor=self.binding(v,part['rig'],ids,factor)
+                    if transfer is not None:
+                        body_weights=np.zeros((len(self.p),54))
+                        for column in range(4):np.add.at(body_weights,(np.arange(len(self.p)),self.j[:,column]),self.w[:,column])
+                        weights=transfer@body_weights
+                        j=np.argsort(weights,axis=1)[:,-4:].astype('<u2');w=np.take_along_axis(weights,j,axis=1);w=(w/w.sum(1)[:,None]).astype('<f4')
                     vv.append(v);ff.append(f+offset);offset+=len(v);jj.append(j);ww.append(w)
-                    for k,d in enumerate(self.delta):dd[k].append((d[ids]*factor[:,:,None]).sum(1) if part['correct'] and part['rig']=='body' else np.zeros_like(v))
+                    for k,d in enumerate(self.delta):
+                        delta=(d[ids]*factor[:,:,None]).sum(1) if part['correct'] and part['rig']=='body' else np.zeros_like(v)
+                        if transfer is not None:delta=transfer@d
+                        dd[k].append(delta)
                 v=np.concatenate(vv);f=np.concatenate(ff);uv=np.stack([v[:,0]*4+.5,v[:,1]*4],1)
                 att={'POSITION':b.acc(v.astype('<f4')),'NORMAL':b.acc(normals(v,f).astype('<f4')),'TEXCOORD_0':b.acc(uv.astype('<f4')),'JOINTS_0':b.acc(np.concatenate(jj)),'WEIGHTS_0':b.acc(np.concatenate(ww))}
                 primitive={'attributes':att,'indices':b.acc(f.astype('<u4').ravel()),'material':materials[color]}
@@ -301,6 +379,8 @@ def main():
     for key,items in sets.items():author.export(items,out/(key+'-outfit.glb'))
     author.export(list(author.parts),out/'golf-wardrobe.glb')
     manifest={'schema':1,'collection':'golf-v1','status':'art-review','rig':'trainer-humanoid-54-v1','units':'metres','forward':'+Z','simulation':False,'baseBodySha256':hashlib.sha256((ROOT/'assets/avatar/approved/base-body/trainer-body.glb').read_bytes()).hexdigest(),'sets':sets,'palette':COLORS,'items':{item:{'file':item+'.glb','node':item,'sha256':hashlib.sha256((out/(item+'.glb')).read_bytes()).hexdigest()} for item in author.parts},'skirtUnderlayer':'existing body shorts; no added shorts mesh','headwearReviewFits':{'golf-cap':'crop','golf-visor':'bob'},'runtimeInstalled':False}
+    manifest['artRevision']=3
+    manifest['headwearHairFitManifest']='hair-fit/manifest.json'
     (out/'collection.json').write_text(json.dumps(manifest,indent=2)+'\n')
     print('Separate skinned garments exported:',out)
 
