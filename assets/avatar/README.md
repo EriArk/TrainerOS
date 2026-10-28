@@ -1,5 +1,11 @@
 # Shared Trainer avatar pack
 
+**28 October: golf collection prepared for art review.** Ten separate wearables,
+including socks, shoes and headwear, share the existing rig. The skirt uses the
+body's existing shorts. [Models, Blender source and review](collections/golf-v1/README.md)
+are kept outside the live revision-6 pack; wardrobe/SDK slot integration and
+device installation are not part of this authoring delivery.
+
 **28 October follow-up: runtime revision 6** reduces irises to 78%, adds a
 cat smile and half-lidded expression, closed arcs and cartoon squint/heart/shock
 eyes. All 14 IDs remain; round/almond now use separate modular eye surfaces.

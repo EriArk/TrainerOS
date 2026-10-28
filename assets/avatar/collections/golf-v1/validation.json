@@ -1,0 +1,101 @@
+{
+  "passed": true,
+  "sourceBodyUnchanged": true,
+  "separateItems": 10,
+  "outfits": 2,
+  "noAdditionalShortsUnderSkirt": true,
+  "rig": "trainer-humanoid-54-v1",
+  "checks": {
+    "polo-short-sleeve": {
+      "vertices": 9879,
+      "triangles": 18850,
+      "joints": 54,
+      "correctives": 46,
+      "animationClips": 8,
+      "maxWeightSumError": 5.960464477539063e-08,
+      "sha256": "4033d34908995afb5a051fcd0f59dfbbda24753c6fc2df9c2def291fb8083282"
+    },
+    "polo-sleeveless": {
+      "vertices": 10040,
+      "triangles": 19100,
+      "joints": 54,
+      "correctives": 46,
+      "animationClips": 8,
+      "maxWeightSumError": 5.960464477539063e-08,
+      "sha256": "c8e3a20d87e8e9717ecbab69e413dba6da8da4e28a0d9d45dc7b3595de9ee816"
+    },
+    "golf-shorts": {
+      "vertices": 10478,
+      "triangles": 20148,
+      "joints": 54,
+      "correctives": 46,
+      "animationClips": 8,
+      "maxWeightSumError": 5.960464477539063e-08,
+      "sha256": "1e47e8f4fe6b32317a111347c64a34daeeb02e2c4779ab140ce2c2d1c6e7959d"
+    },
+    "pleated-skirt": {
+      "vertices": 4930,
+      "triangles": 8320,
+      "joints": 54,
+      "correctives": 46,
+      "animationClips": 8,
+      "maxWeightSumError": 0.0,
+      "sha256": "52476ef2ad81a5e9ba7265a3f5e0c49b54009dcf8d3c12fb20bcd1635a163a12"
+    },
+    "ankle-socks": {
+      "vertices": 22386,
+      "triangles": 44104,
+      "joints": 54,
+      "correctives": 46,
+      "animationClips": 8,
+      "maxWeightSumError": 0.0,
+      "sha256": "206b9ca2de04e4fa68265d6ca9bc79a94bd6b529a1cc16ce26def650f5429d7e"
+    },
+    "crew-socks": {
+      "vertices": 23069,
+      "triangles": 45442,
+      "joints": 54,
+      "correctives": 46,
+      "animationClips": 8,
+      "maxWeightSumError": 0.0,
+      "sha256": "3a23e99b5ec8c3f15348601c8c443707c2560a53231871f7efcb270c81f2c877"
+    },
+    "golf-shoes-classic": {
+      "vertices": 3402,
+      "triangles": 6020,
+      "joints": 54,
+      "correctives": 46,
+      "animationClips": 8,
+      "maxWeightSumError": 0.0,
+      "sha256": "f2ce958ab792345eed294246b807ca67527396ff5dae4f3dfb5ebad031ea963c"
+    },
+    "golf-shoes-sport": {
+      "vertices": 3402,
+      "triangles": 6020,
+      "joints": 54,
+      "correctives": 46,
+      "animationClips": 8,
+      "maxWeightSumError": 0.0,
+      "sha256": "00785a3978d4ebae3a8164b180a036060123ed23ef8e90bbeec2d766ed0b3b02"
+    },
+    "golf-cap": {
+      "vertices": 5961,
+      "triangles": 11184,
+      "joints": 54,
+      "correctives": 46,
+      "animationClips": 8,
+      "maxWeightSumError": 0.0,
+      "sha256": "a0c6f6abee8a9d0c3194663edf70c32c45616b3ec4f5cfbf04006fa59ed2e3b6"
+    },
+    "golf-visor": {
+      "vertices": 1912,
+      "triangles": 3488,
+      "joints": 54,
+      "correctives": 46,
+      "animationClips": 8,
+      "maxWeightSumError": 0.0,
+      "sha256": "6338e5aad9ace8f98fa8fae01584c46c8be240b3122403022c98589eea97eab1"
+    }
+  },
+  "limits": "Structural export checks; render/pose review is recorded separately. No cloth simulation or live wardrobe installation."
+}

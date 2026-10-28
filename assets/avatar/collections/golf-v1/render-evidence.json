@@ -1,0 +1,33 @@
+{
+  "renderer": "Blender 5.2.3 / Cycles",
+  "date": "2026-10-28",
+  "collectionSha256": "b63bc6591414c42f165ef57b5fccd0060eda82379711bfd46aeb9dd95ac5dc41",
+  "outfitSha256": {
+    "mens": "017775fa38db9f22046acfce0fc5ca0328647e02d1218d27e7c693aa8e179357",
+    "womens": "b70cc05c6f7f52abaf186d065553959241eef25434663a2cab7392922130d5ba"
+  },
+  "shots": {
+    "mens-front": "3489d52a528aff9197e1307983d213e6f31c26cb0d17842f218640344ea19e62",
+    "mens-three-quarter": "a68bb807efd729fe57bf1f54c914dce54c0082cba8c0c912548ad2f95418b933",
+    "mens-back": "09533750275bf83e2c3bcb99233ccf09862017a3ba2cbf8cca93b843e0fea932",
+    "mens-side": "6d9756e2d7ae937a64a427f2736760e94199709280110f2062d6b9f1ba864a57",
+    "mens-without-hat": "0c6260b5da546ef22bbc06aa8b5faeceb4a15a1595acdac888fa7548d6fc68b5",
+    "mens-wave": "d498173cb3a28858a3d2201fe57ea9fd071b99cc26abf09120c98a034fe6ea0a",
+    "mens-arms_up": "f4df2fdbde23016c22b582c01efc97915c90b808f3d717111873f0a9179cc0d4",
+    "mens-step": "df7fa496a79ae134bd17ac70aa08c110bfb852aebe25d919b3043e6daf3a5b4c",
+    "mens-squat": "7920b3f12cb57ae5188c4200873461fd3763d1c9129b557e49a84fbe2025675e",
+    "mens-sit": "66ee62398467b73be4645f88b1258364d3dae55ed7dae6b935baa1a7d6183b4a",
+    "womens-front": "88c381e1b9009c7d63a6e5149bf68c2d697291f18959c52926a1cdebdf5105b2",
+    "womens-three-quarter": "9f987b7f40abed5ffd9887bff6fa9a94906f6b2079f163be1cbef3358dc0fff2",
+    "womens-back": "ceaabe837028175b4cf08e51bbbbc480af899f371fa21958589fb072fa362190",
+    "womens-side": "b617d69fe75e483023e128ccd8817ba9a1fc6ef2fd4cd29a3fda4f041286fc21",
+    "womens-without-hat": "c3ce7ca895cc195d5ac0478bef7216b44aad3c8a60e9bf4bf4525a8424b921a9",
+    "womens-wave": "1d6cad587e717271d6c5ed1a6e423f2f4c9120da4d8d5529515b371181b3956f",
+    "womens-arms_up": "ff0b54d0fdd975512e42903e753ac160d8134307d23bb633ed9066970e3f6a5a",
+    "womens-step": "b1f4be2f34e00c8c6328f570257bdc88258573d0977473cd904653266a040ac2",
+    "womens-squat": "a1f1d6d53433d107b3e72ab4ed89a75814e3eb9d7d629fe29be80be4f1645147",
+    "womens-sit": "b4cda6c6d8e836891c76c3f8acca971754a7d8757ae9391c27d04a32d3f20913",
+    "golf-collection": "5441727c5d022f9f200f2e0f58141a47f335eec3234a1d61b888cba2e5a307a5"
+  },
+  "scope": "Art review on retained character; five sampled existing animation poses, not a golf swing or collision certification."
+}

@@ -1,0 +1,17 @@
+{
+  "engine": "4.7.2-stable (official)",
+  "passed": true,
+  "scope": "Headless GLB/skin/corrective/animation import; no gameplay or device installation.",
+  "wearables": [
+    "polo-short-sleeve",
+    "polo-sleeveless",
+    "golf-shorts",
+    "pleated-skirt",
+    "ankle-socks",
+    "crew-socks",
+    "golf-shoes-classic",
+    "golf-shoes-sport",
+    "golf-cap",
+    "golf-visor"
+  ]
+}

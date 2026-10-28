@@ -1,0 +1,92 @@
+{
+  "schema": 1,
+  "collection": "golf-v1",
+  "status": "art-review",
+  "rig": "trainer-humanoid-54-v1",
+  "units": "metres",
+  "forward": "+Z",
+  "simulation": false,
+  "baseBodySha256": "ed818b016430665e7eaef50fdfd8188b894cf9607d6a4f1bc3ae9a7b4c55a333",
+  "sets": {
+    "mens": [
+      "polo-short-sleeve",
+      "golf-shorts",
+      "ankle-socks",
+      "golf-shoes-classic",
+      "golf-cap"
+    ],
+    "womens": [
+      "polo-sleeveless",
+      "pleated-skirt",
+      "crew-socks",
+      "golf-shoes-sport",
+      "golf-visor"
+    ]
+  },
+  "palette": {
+    "ivory": "f4f0df",
+    "forest": "234f43",
+    "peach": "efa58b",
+    "sole": "dedccf",
+    "dark": "213b34",
+    "metal": "d8b679"
+  },
+  "items": {
+    "polo-short-sleeve": {
+      "file": "polo-short-sleeve.glb",
+      "node": "polo-short-sleeve",
+      "sha256": "4033d34908995afb5a051fcd0f59dfbbda24753c6fc2df9c2def291fb8083282"
+    },
+    "polo-sleeveless": {
+      "file": "polo-sleeveless.glb",
+      "node": "polo-sleeveless",
+      "sha256": "c8e3a20d87e8e9717ecbab69e413dba6da8da4e28a0d9d45dc7b3595de9ee816"
+    },
+    "golf-shorts": {
+      "file": "golf-shorts.glb",
+      "node": "golf-shorts",
+      "sha256": "1e47e8f4fe6b32317a111347c64a34daeeb02e2c4779ab140ce2c2d1c6e7959d"
+    },
+    "pleated-skirt": {
+      "file": "pleated-skirt.glb",
+      "node": "pleated-skirt",
+      "sha256": "52476ef2ad81a5e9ba7265a3f5e0c49b54009dcf8d3c12fb20bcd1635a163a12"
+    },
+    "ankle-socks": {
+      "file": "ankle-socks.glb",
+      "node": "ankle-socks",
+      "sha256": "206b9ca2de04e4fa68265d6ca9bc79a94bd6b529a1cc16ce26def650f5429d7e"
+    },
+    "crew-socks": {
+      "file": "crew-socks.glb",
+      "node": "crew-socks",
+      "sha256": "3a23e99b5ec8c3f15348601c8c443707c2560a53231871f7efcb270c81f2c877"
+    },
+    "golf-shoes-classic": {
+      "file": "golf-shoes-classic.glb",
+      "node": "golf-shoes-classic",
+      "sha256": "f2ce958ab792345eed294246b807ca67527396ff5dae4f3dfb5ebad031ea963c"
+    },
+    "golf-shoes-sport": {
+      "file": "golf-shoes-sport.glb",
+      "node": "golf-shoes-sport",
+      "sha256": "00785a3978d4ebae3a8164b180a036060123ed23ef8e90bbeec2d766ed0b3b02"
+    },
+    "golf-cap": {
+      "file": "golf-cap.glb",
+      "node": "golf-cap",
+      "sha256": "a0c6f6abee8a9d0c3194663edf70c32c45616b3ec4f5cfbf04006fa59ed2e3b6"
+    },
+    "golf-visor": {
+      "file": "golf-visor.glb",
+      "node": "golf-visor",
+      "sha256": "6338e5aad9ace8f98fa8fae01584c46c8be240b3122403022c98589eea97eab1"
+    }
+  },
+  "skirtUnderlayer": "existing body shorts; no added shorts mesh",
+  "headwearReviewFits": {
+    "golf-cap": "crop",
+    "golf-visor": "bob"
+  },
+  "runtimeInstalled": false
+}
