@@ -1,0 +1,14 @@
+{
+  "ready": true,
+  "migration": 10,
+  "slots": 16,
+  "price": 100,
+  "minimumLevel": 1,
+  "unauthenticatedRead": 401,
+  "image": "traineros-backend:outfits28",
+  "liveOwnerPurchase": false,
+  "tests": [
+    "108 passed, 1 warning in 16.92s"
+  ],
+  "publicCatalogueChecked": true
+}

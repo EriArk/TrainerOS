@@ -405,6 +405,11 @@ ShellController::ShellController(LibraryRepository& repo, TrainerRepository& pro
         textTarget_ = TextTarget::TrainerName;
         keyboard_.begin("Trainer name", initial, TrainerController::NameLimit);
     });
+    connect(&outfits_,&OutfitController::changed,this,&ShellController::changed);
+    connect(&outfits_,&OutfitController::backRequested,this,[this]{profileRoute_="summary";profileFocus_=1;emit changed();});
+    connect(&outfits_,&OutfitController::editRequested,this,[this]{trainer_.beginAvatarEdit();});
+    connect(&outfits_,&OutfitController::nameRequested,this,[this](const QString& initial){textTarget_=TextTarget::OutfitName;keyboard_.begin("Name this look",initial,32,false,"Save");});
+    connect(this,&ShellController::changed,this,[this]{if(service_!="profile")outfits_.close();});
     connect(&social_, &SocialController::changed, this, [this]{
         if(homeMenuOpen_)homeMenuSelection_=homeMenuActions().value(homeMenuFocus()).toMap()["id"].toString();
         if(socialActive()||homeMenuOpen_)emit changed();
@@ -418,6 +423,7 @@ ShellController::ShellController(LibraryRepository& repo, TrainerRepository& pro
         if(target==TextTarget::GameInput)settings_.gameInput()->applyText(text);
         else if (target == TextTarget::SetupName) trainerSetup_.applyName(text);
         else if (target == TextTarget::TrainerName) trainer_.setDraftName(text);
+        else if (target == TextTarget::OutfitName) outfits_.acceptName(text);
         else if (target == TextTarget::WorldsSearch) worlds_.applySearch(text);
         else if (target == TextTarget::MultiverseSearch) multiverse_.applySearch(text);
         else if (target == TextTarget::Library) libraryManager_.applyText(text);
@@ -1640,6 +1646,7 @@ void ShellController::openProfile() {
     profileRoute_="summary";profileRaAccountReturn_=false;profileSnapshot_=story_.profile();backendAccount_.refreshProgression();emit changed();
 }
 void ShellController::closeProfile() {
+    outfits_.close();
     hall_.closeHistory();hall_.closeGalleryMenu();album_.close();
     achievementPhotoReturn_=false;service_.clear();
     const auto previous=profileReturnNavigation_;profileReturnNavigation_={};
@@ -1673,7 +1680,8 @@ void ShellController::activateProfile(int index) {
     profileFocus_=index;
     if(index==10){profileRoute_="support";profileFocus_=0;backendAccount_.refreshProgression(false);}
     else if(index==9){profileRoute_="shop";profileFocus_=1;backendAccount_.refreshShop();}
-    else if(index<2)trainer_.activate(index);
+    else if(index==1){profileRoute_="outfits";outfits_.open();}
+    else if(index==0)trainer_.activate(index);
     else if(index==4){profileRoute_="account";profileFocus_=0;backendAccount_.refreshProgression(false);}
     else if(index==3 || index>=7) {
         hall_.showAchievementLibrary();profileRoute_="ra";
@@ -1695,6 +1703,7 @@ void ShellController::activateProfile(int index) {
 }
 void ShellController::dispatchProfile(Action action) {
     if(trainer_.editing()){trainer_.dispatch(action,true);return;}
+    if(profileRoute_=="outfits"){outfits_.dispatch(action);return;}
     if(profileRoute_=="support") {
         if(action==Action::Back){profileRoute_="summary";profileFocus_=10;}
         else if(action==Action::Confirm)activateProfile(0);
@@ -1777,6 +1786,7 @@ QVariantList ShellController::homeMenuActions() const {
     }
     QVariantList rows;
     if(!social_.homeLobby()["id"].toString().isEmpty())rows.append(QVariantMap{{"id","lobby"},{"label","My lobby"}});
+    if(trainer_.exists()&&trainer_.avatarAvailable())rows.append(QVariantMap{{"id","outfits"},{"label","Looks"},{"detail","Quick wardrobe"}});
     if(liveGame_.isEmpty())if(const auto r=repository_.registration(currentAdventureId());r)rows.append(QVariantMap{{"id","pc-settings"},{"label","Game settings"},{"detail",r->adventure.title}});
     if(!liveGame_.isEmpty()) {
         rows.prepend(QVariantMap{{"id","live-options"},{"label","Game Options"},{"detail",liveGame_.value("title")}});
@@ -1809,6 +1819,7 @@ void ShellController::activateHomeMenu(int index) {
     if(id=="lobby"){if(liveGame_.isEmpty())social_.openLobby();else social_.openLobbyForGame(liveGame_.value("id").toString());return;}
     if(id=="live-return"||id=="live-options"){returnToLiveGame(id=="live-options");return;}
     if(id=="profile"){openProfile();return;}
+    if(id=="outfits"){if(trainer_.editing()||trainer_.saving())return;closeHomeMenu();openProfile();if(service_=="profile"){profileRoute_="outfits";outfits_.open();emit changed();}return;}
     if(id=="game-party"){closeHomeMenu();openOnlineFace("lobby");emit social_.runtimeAction("multiplayer-party");return;}
     if(id.startsWith("answer-call:")||id.startsWith("decline-call:")) {
         const bool accept=id.startsWith("answer-call:");

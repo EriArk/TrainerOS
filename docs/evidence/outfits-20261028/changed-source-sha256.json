@@ -1,0 +1,20 @@
+{
+  "CMakeLists.txt": "d426c7ac017a60a7643281805152cb3f39bc65e96346f5cc6c0d6c87c7280b1d",
+  "src/app/Main.cpp": "2d97181e158222f51dede644f11ce6c975d60c3dcfdaa25fe0d085c939b50041",
+  "src/core/navigation/ShellController.cpp": "c71f2dffbd544e0201757935440e462547ff807b79662dbe99d75b42da58dd78",
+  "src/core/navigation/ShellController.h": "edfabcd9525796eaf5d7c68cecd914f87c7b5f59b6547183f6dc132f3d349b7b",
+  "src/features/accounts/BackendAccount.h": "e30c2c13068afc43dfbc2e0b3b047474333d753dc678d74a9864c8f86efba221",
+  "src/features/accounts/BackendCommerce.cpp": "6efdcf023f7d9e4e2eda486546ab5f44a4ad55f476c0989a61baf5ae4b7a3fcc",
+  "src/features/accounts/BackendOutfits.cpp": "70b66a2925680570d74a4805cc0b81291185d5ea3c08d0c0bee79210c0958dbe",
+  "src/features/trainer/OutfitController.cpp": "9e97600aac7db50497306d7ec9c3d074862d7b9edfd2cfdbf69f61b7cb4b375e",
+  "src/features/trainer/OutfitController.h": "b22a29bdd94527cf5f0ebfa1056f3421aa9b8d9006430fdd2ad10a02a0bbceaa",
+  "src/features/trainer/TrainerController.cpp": "6ec244a9f3ead90fb63a6ea62d10d622375f1bfe05f1391dc3c8ee69f4d1c4bb",
+  "src/features/trainer/TrainerController.h": "ccf53a49823e401b9c0d03f9a3f7ba25f5b6288a8096e74aedf33e8435ede593",
+  "src/qml/PlayerProfilePanel.qml": "d682452de8d5a568cf13789ba3b351c3bfce08afdb8772420a54598e7a1c41f0",
+  "src/qml/ProfileOutfits.qml": "b7b3bfbe36bbaa8cd57d59201cc3ab2eca0b3b5a5d6664b5cfd11c89bf86ccc6",
+  "tests/AvatarTests.cpp": "bd96d2e942698984b56a176c8f2741a64f258a6c919d3d5f2821511c707efeef",
+  "tests/BackendAccountTests.cpp": "3e3955bdcd1fb9e3d94e1a9b0fef125fa2f6d46ead95150a76b6cc7c68e56cfd",
+  "tests/InteractionTests.cpp": "80b2ac553162ebf5e80c00b7999ac0b26c76012218e9c02de036613c325cbb58",
+  "tests/PlatformHostTests.cpp": "42e035a3655e1ed9c772cf184f0a8745cbabfa116989fdb09558f482593f5660",
+  "tests/ui/OnlineSmokeScenario.h": "a75a39f4dc3e3dfc7a1bba24d476e5d6a2e0510b477555bfbf2bd607195ba8ed"
+}

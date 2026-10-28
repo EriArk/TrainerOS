@@ -175,6 +175,10 @@ void TrainerController::beginAvatarEdit() {
     draft_=*profile_;if(draft_.avatar.isEmpty())draft_.avatar=AvatarAssets::defaults();
     avatarEditing_=true;editing_=true;focus_=0;error_.clear();previewAvatar_=liveAvatar_;refreshAvatar();emit changed();
 }
+bool TrainerController::applyAppearance(const QJsonObject& appearance) {
+    if(!exists()||editing_||saving_||!AvatarAssets::valid(appearance)||!avatarAvailable())return false;
+    draft_=*profile_;draft_.avatar=appearance;error_.clear();save();return true;
+}
 void TrainerController::cycleAvatar(int index,int delta) {
     if(!avatarEditing_||saving_||index<0||index>=7)return;
     const auto key=AvatarAssets::keys()[index];const auto values=AvatarAssets::choices(key);

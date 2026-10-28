@@ -4,6 +4,7 @@ from fastapi import APIRouter, Request
 from pydantic import Field
 from ..accounts.routes import StrictBody, bearer, wire
 from ..accounts.provider import AuthError
+from . import outfits
 
 router = APIRouter()
 
@@ -25,6 +26,17 @@ class Purchase(StrictBody):
 class Appearance(StrictBody):
     offer_id: str | None = Field(default=None, max_length=64)
     revision: str = Field(pattern=r'^[0-9]{1,18}$')
+
+
+class Outfit(StrictBody):
+    name: str = Field(min_length=1, max_length=32)
+    recipe: dict
+    revision: str = Field(pattern=r'^[0-9]{1,18}$')
+
+
+@router.put('/v1/me/inventory/outfits/{offer_id}')
+def save_outfit(offer_id: str, body: Outfit, request: Request):
+    return wire(outfits.save(service(request), bearer(request), offer_id, body.name, body.recipe, int(body.revision)))
 
 
 @router.get('/v1/shop/items')

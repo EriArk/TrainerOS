@@ -9,6 +9,7 @@
 #include "platform/sdk/PlatformHost.h"
 #include "features/device/ControlsDashboard.h"
 #include "features/trainer/AvatarAssets.h"
+#include "features/trainer/TrainerController.h"
 #include "features/accounts/BackendAccount.h"
 using namespace trainer;
 namespace {
@@ -120,6 +121,21 @@ private slots:
         f.host.setContext(context("bob"));QCOMPARE(c.receive()["event"].toString(),"context.revoked");
         Client b(f.endpoint);b.hello("org.test.bob");b.send("avatar.get");QCOMPARE(b.receive()["error"].toObject()["code"].toString(),"avatar_not_ready");
         f.host.setAvatar({},false);b.send("avatar.get");QCOMPARE(b.receive()["error"].toObject()["code"].toString(),"unsupported_method");
+    }
+    void savedLookReachesSubscribedGameWithoutIdentityChange(){
+        if(!AvatarAssets::available())QSKIP("Local pack required");
+        TrainerProfile profile;profile.id="alice";profile.name="Alice";profile.avatar=AvatarAssets::defaults();profile.createdAt=QDateTime::currentDateTimeUtc();
+        MockTrainerRepository repository(profile);TrainerController trainer(repository);Fixture f;
+        QObject::connect(&trainer,&TrainerController::changed,&f.host,[&]{auto avatar=trainer.avatarDescriptor();if(!avatar.isEmpty()){avatar["profile"]="alice";f.host.setAvatar(avatar,true);}});
+        QTRY_VERIFY_WITH_TIMEOUT(!trainer.avatarDescriptor().isEmpty(),30000);
+        QVERIFY(f.start());Client client(f.endpoint);client.hello();client.send("avatar.subscribe");client.receive();
+        auto look=AvatarAssets::defaults();look["hair"]="bob";look["shirtColor"]="#aabddd";
+        QVERIFY(trainer.applyAppearance(look));
+        QTRY_COMPARE_WITH_TIMEOUT(trainer.avatarDescriptor()["appearance"].toObject(),look,30000);
+        const auto event=client.receive();QCOMPARE(event["event"].toString(),"avatar.changed");
+        QCOMPARE(event["avatar"].toObject()["appearance"].toObject(),look);
+        QCOMPARE(event["avatar"].toObject()["profile"].toString(),"alice");
+        client.send("context.get");QVERIFY(!client.receive().contains("error"));
     }
     void accountIdentityChangeRevokesOldClient(){
         Fixture f;auto initial=context();initial["account"]=QJsonObject{{"state","signed_out"},{"player_id",""}};f.host.setContext(initial);

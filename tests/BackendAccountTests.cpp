@@ -6,6 +6,7 @@
 #include <QUuid>
 #include "features/accounts/BackendAccount.h"
 #include "platform/storage/KeychainRequest.h"
+#include "features/trainer/AvatarAssets.h"
 #include <QThread>
 using namespace trainer;
 namespace {
@@ -94,6 +95,32 @@ class BackendAccountTests:public QObject {
         h.shopValue["receipt"]=receipt;
     }
 private slots:
+    void outfitPurchaseRecoveryAndCachedOwnerIsolation() {
+        Harness h;h.shopEnabled=true;h.shopValue=inventory();
+        const QJsonObject slot{{"id","outfit.slot.1"},{"slot_number",1},{"purpose","outfit_slot"},{"title","Look slot 1"},
+            {"revision","1"},{"price",250},{"kind","permanent_license"}};
+        h.shopValue["outfit_catalogue"]=QJsonArray{slot};
+        {
+            BackendAccount a;a.setServices(h.services());a.configure("outfit-owner");a.activate();h.callback();
+            a.reviewOutfitSlot();QCOMPARE(a.shop()["review"].toMap()["id"].toString(),"outfit.slot.1");
+            QVERIFY(h.purchaseBody.isEmpty());a.confirmPurchase();
+            auto owned=slot;owned["purchase_id"]="44444444-4444-4444-8444-444444444444";
+            h.shopValue["outfit_items"]=QJsonArray{owned};h.shopValue["revision"]="2";
+            const QJsonObject recipe{{"schema",1},{"packRevision",QString(64,'a')},{"appearance",AvatarAssets::defaults()}};
+            h.shopValue["outfits"]=QJsonArray{QJsonObject{{"player_id",Player},{"offer_id","outfit.slot.1"},{"revision","1"},{"name","Everyday"},{"recipe",recipe}}};
+            auto receipt=h.purchaseBody;receipt["id"]=owned["purchase_id"];receipt["player_id"]=Player;receipt["price"]=receipt.take("expected_price");h.shopValue["receipt"]=receipt;
+            h.pendingPurchase(0,{}); // Server succeeded, client lost the response.
+        }
+        const int charges=h.calls.count("/v1/me/purchases");
+        BackendAccount restored;restored.setServices(h.services());restored.configure("outfit-owner");
+        QCOMPARE(h.calls.count("/v1/me/purchases"),charges);QVERIFY(!restored.shop()["pending"].toBool());
+        QCOMPARE(restored.outfits()["items"].toList().size(),1);
+        QCOMPARE(restored.outfits()["items"].toList()[0].toMap()["saved"].toMap()["name"].toString(),"Everyday");
+        QCOMPARE(restored.shop()["items"].toList().size(),2); // Classic and scene; no slots in scene picker.
+        restored.configure("other-local-owner");QVERIFY(restored.outfits()["items"].toList().isEmpty());
+        h.loseRefresh=true;restored.configure("outfit-owner");
+        QCOMPARE(restored.outfits()["items"].toList().size(),1);QVERIFY(restored.outfits()["stale"].toBool());
+    }
     void supportCreditsKeepXpAndAcceptOnlyValidBonusHistory() {
         Harness h;h.progressionOk=true;
         const auto date=QDateTime::currentDateTimeUtc().toString(Qt::ISODateWithMs);

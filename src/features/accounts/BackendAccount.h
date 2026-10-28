@@ -19,6 +19,7 @@ class BackendAccount final : public QObject {
     Q_PROPERTY(QString rewardStatus READ rewardStatus NOTIFY changed)
     Q_PROPERTY(QString rewardActionLabel READ rewardActionLabel NOTIFY changed)
     Q_PROPERTY(QVariantMap shop READ shop NOTIFY changed)
+    Q_PROPERTY(QVariantMap outfits READ outfits NOTIFY changed)
     Q_PROPERTY(QString profileAppearance READ profileAppearance NOTIFY changed)
 public:
     using Reply = std::function<void(int,QJsonObject)>;
@@ -62,6 +63,9 @@ public:
     Q_INVOKABLE void activateShopItem();
     Q_INVOKABLE void confirmPurchase();
     Q_INVOKABLE void cancelPurchaseReview();
+    QVariantMap outfits() const;
+    void reviewOutfitSlot();
+    void saveOutfit(const QString& id,const QString& name,const QJsonObject& recipe,const QString& revision);
 signals:
     void rewardsEarned(qint64 xp,qint64 sparks);
     void changed();
@@ -78,6 +82,7 @@ private:
     bool adoptProgression(const QJsonObject&);
     QVariantList shopItems() const;
     bool adoptShop(const QJsonObject&,bool cached=false);
+    bool validOutfits(const QJsonObject&) const;
     void loadCommerce();
     bool saveCommerce();
     void recoverPurchase(bool retry=false);

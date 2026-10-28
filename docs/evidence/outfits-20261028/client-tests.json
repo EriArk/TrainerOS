@@ -1,0 +1,27 @@
+{
+  "account": {
+    "exit": 0,
+    "summary": [
+      "SKIP   : BackendAccountTests::vaultJobsFromConcurrentShortLivedWorkersReturnOnReceiverThread() Windows credential-store regression; no desktop vault prompts on Linux CI",
+      "Totals: 22 passed, 0 failed, 1 skipped, 0 blacklisted, 2007ms"
+    ]
+  },
+  "interaction": {
+    "exit": 0,
+    "summary": [
+      "Totals: 57 passed, 0 failed, 0 skipped, 0 blacklisted, 17184ms"
+    ]
+  },
+  "avatar": {
+    "exit": 0,
+    "summary": [
+      "Totals: 4 passed, 0 failed, 0 skipped, 0 blacklisted, 24363ms"
+    ]
+  },
+  "platform": {
+    "exit": 0,
+    "summary": [
+      "Totals: 4 passed, 0 failed, 0 skipped, 0 blacklisted, 12837ms"
+    ]
+  }
+}

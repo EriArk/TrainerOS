@@ -54,6 +54,7 @@ public:
     QString avatarError() const { return avatarError_; }
     QVariantList avatarRows() const;
     QJsonObject avatarDescriptor() const { return liveAvatar_; }
+    bool applyAppearance(const QJsonObject& appearance);
     Q_INVOKABLE void beginAvatarEdit();
     Q_INVOKABLE void cycleAvatar(int index, int delta = 1);
     Q_INVOKABLE void chooseAvatar(int index, const QString& value);

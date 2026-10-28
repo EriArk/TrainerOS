@@ -221,6 +221,7 @@ Panel {
             }
         }
     }
+    Loader { x:18;y:60;width:parent.width-36;height:parent.height-78;active:root.shell.profileRoute==="outfits"&&!root.profile.editing;sourceComponent:Component { ProfileOutfits { shell:root.shell } } }
     Text { x: 28; anchors.bottom: parent.bottom; anchors.bottomMargin: 17; width: parent.width-140; text: root.profile.error; visible: text.length>0 && !root.profile.avatarEditing; wrapMode: Text.WordWrap; font.pixelSize: 12; color: Theme.textColor("#853b24") }
     Loader { anchors.fill: parent; active: root.profile.avatarEditing; sourceComponent: Component { AvatarEditor { profile: root.profile; shell: root.shell } } }
 }

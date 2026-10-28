@@ -4,6 +4,15 @@
 
 ## Current working mode — owner correction, 21 October 2026
 
+**Owner saved-look decision, 28 October:** add permanent paid wardrobe slots for
+quick switching before or during a game. Each slot stores the **complete look,
+including hairstyle**, not clothes alone. Reuse the existing purchase ledger,
+Trainer avatar persistence and `avatar.changed`; preserve the free current look
+and parallel clothing-model work. The owner chose **100 Sparks per permanent
+slot**, without a level requirement; saving and switching are free. After this
+block, remind the owner to finish real Patreon/Ko-fi binding.
+See [saved looks](docs/PLAYER_PROFILE.md) and [purchases](services/backend/purchases.md).
+
 **Owner support-level decision, 28 October:** support has two levels, ×2 and ×3,
 with free base earning ×1. This selects multipliers only, not prices or payment
 activation. Keep the read-only balance preview distinct from verified membership

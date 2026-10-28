@@ -8,6 +8,7 @@
 #include <QJsonDocument>
 #include <QJsonArray>
 #include <QMouseEvent>
+#include <QUuid>
 #include "../fixtures/HomeSocialFixture.h"
 #include <memory>
 
@@ -16,6 +17,8 @@ inline void startOnlineSmoke(QQuickWindow* window,trainer::ShellController& shel
     using trainer::Action;
     auto step=std::make_shared<int>(0);auto timer=new QTimer(window);timer->setInterval(700);
     auto grantSupport=std::make_shared<std::function<void()>>();
+    auto pauseInventory=std::make_shared<bool>(false);
+    auto heldInventory=std::make_shared<trainer::BackendAccount::Reply>();
     QObject::connect(timer,&QTimer::timeout,window,[=,&shell,&completed,&warnings,&diagnostics] {
         auto check=[&](bool ok,const QString& why){if(!ok)diagnostics.append(why);};
         auto capture=[&](const QString& name){if(!directory.isEmpty())check(window->grabWindow().save(directory+"/"+name+".png"),"Capture "+name);};
@@ -186,6 +189,54 @@ inline void startOnlineSmoke(QQuickWindow* window,trainer::ShellController& shel
             capture("support-unavailable-compact");shell.dispatch(Action::Back);shell.dispatch(Action::Confirm);
             check(shell.profileRoute()=="support","Controller reopens focused support entry");
             shell.dispatch(Action::Back);shell.dispatch(Action::Back);break;
+        case 37: {
+            if(shell.trainer()->avatarDescriptor().isEmpty()){--*step;break;}
+            const QString player="11111111-1111-4111-8111-111111111111";
+            auto store=std::make_shared<QJsonObject>(QJsonObject{{"player_id",player},{"revision","1"},{"items",QJsonArray{}},{"catalogue",QJsonArray{}},{"equipped",QJsonValue()}});
+            QJsonArray offers,items,looks;
+            for(int i=1;i<=3;++i){
+                QJsonObject slot{{"id","outfit.slot."+QString::number(i)},{"slot_number",i},{"purpose","outfit_slot"},{"title","Look slot "+QString::number(i)},
+                    {"revision","1"},{"price",100},{"kind","permanent_license"}};
+                offers.append(slot);if(i==3)continue;
+                slot["purchase_id"]=QUuid::createUuid().toString(QUuid::WithoutBraces);items.append(slot);
+                auto recipe=shell.trainer()->avatarDescriptor()["recipe"].toObject();auto a=recipe["appearance"].toObject();
+                a["hair"]=i==1?"bob":"crop";a["shirtColor"]=i==1?"#aabddd":"#a8c9bc";a["shortsColor"]=i==1?"#536274":"#b98e7c";recipe["appearance"]=a;
+                looks.append(QJsonObject{{"player_id",player},{"offer_id",slot["id"]},{"name",i==1?"Evening arcade":"Weekend games"},{"recipe",recipe},{"revision","1"}});
+            }
+            (*store)["outfit_catalogue"]=offers;(*store)["outfit_items"]=items;(*store)["outfits"]=looks;
+            shell.backendAccount()->setServices({[store,player,pauseInventory,heldInventory](QByteArray,QString path,QJsonObject body,QByteArray,trainer::BackendAccount::Reply done){
+                if(path=="/v1/auth/refresh")done(200,{{"player_id",player},{"session_id","33333333-3333-4333-8333-333333333333"},{"fluxer_subject","12345"},
+                    {"access_token",QString(43,'a')},{"refresh_token",QString(43,'r')},{"expires_at",QDateTime::currentDateTimeUtc().addSecs(900).toString(Qt::ISODateWithMs)}});
+                else if(path=="/v1/me/inventory"){if(*pauseInventory)*heldInventory=done;else done(200,*store);}
+                else if(path.startsWith("/v1/me/inventory/outfits/")){
+                    auto values=(*store)["outfits"].toArray();for(int i=0;i<values.size();++i){auto row=values[i].toObject();if(row["offer_id"]==path.section('/',-1)){row["name"]=body["name"];row["recipe"]=body["recipe"];row["revision"]="2";values[i]=row;}}
+                    (*store)["outfits"]=values;(*store)["revision"]="2";done(200,*store);
+                }else done(503,{});
+            },[](QString,auto done){done(true,QJsonDocument(QJsonObject{{"refresh_token",QString(43,'r')}}).toJson());},[](QString,QByteArray,auto done){done(true);},[](QUrl){return false;},[](QString){return QByteArray();},[](QString,QByteArray){return true;}});
+            shell.backendAccount()->configure("ui-outfits-fixture");shell.openProfile();shell.activate(1,"profile");shell.outfits()->select(1);window->resize(1280,720);break;
+        }
+        case 38:
+            if(shell.outfits()->view()["previewBusy"].toBool()){--*step;break;}
+            check(shell.profileRoute()=="outfits","Wardrobe opens saved looks");
+            check(shell.outfits()->view()["rows"].toList().size()==4,"Owned slots plus one purchase entry");capture("outfits-wide");
+            *pauseInventory=true;shell.backendAccount()->refreshShop();
+            check(shell.backendAccount()->outfits()["busy"].toBool()&&!shell.outfits()->view()["busy"].toBool(),"Slow inventory refresh does not block cached looks");
+            shell.outfits()->activate(0);break;
+        case 39:
+            if(shell.trainer()->saving()||shell.trainer()->avatarBusy()){--*step;break;}
+            check(shell.trainer()->avatarDescriptor()["appearance"].toObject()["hair"]=="bob","Wear applies complete saved look");
+            check(shell.outfits()->view()["wearing"].toBool(),"Saved look is marked as worn");
+            if(*heldInventory){(*heldInventory)(503,{});*heldInventory={};}*pauseInventory=false;shell.backendAccount()->refreshShop();
+            shell.outfits()->activate(2);shell.keyboard()->cancel();shell.outfits()->acceptName("Arcade night");window->resize(960,540);break;
+        case 40:
+            check(shell.outfits()->view()["selected"].toMap()["name"]=="Arcade night","Slot rename reaches inventory");capture("outfits-compact");
+            shell.outfits()->activate(1);break;
+        case 41:
+            capture("outfits-replace");shell.dispatch(Action::Back);check(!shell.outfits()->view()["replace"].toBool(),"Cancel replace preserves saved look");
+            shell.outfits()->select(3);shell.outfits()->activate(0);break;
+        case 42:
+            capture("outfits-purchase");check(!shell.backendAccount()->shop()["review"].toMap().isEmpty(),"Slot has explicit purchase review");
+            shell.dispatch(Action::Back);shell.dispatch(Action::Back);check(shell.profileRoute()=="summary"&&shell.profileFocus()==1,"Wardrobe returns to focused entry");shell.dispatch(Action::Back);break;
         default:
             check(warnings==0,"QML warnings during Online navigation");
             if(!directory.isEmpty()){QFile f(directory+"/online-report.json");if(f.open(QIODevice::WriteOnly))f.write(QJsonDocument(QJsonObject{{"warnings",warnings},{"success",diagnostics.isEmpty()},{"diagnostics",QJsonArray::fromStringList(diagnostics)}}).toJson());}

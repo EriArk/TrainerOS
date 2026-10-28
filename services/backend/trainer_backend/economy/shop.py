@@ -21,7 +21,8 @@ class Shop:
 
     def catalogue(self):
         with self.db.transaction() as conn:
-            return {'catalogue': conn.execute('SELECT * FROM trainer_backend.shop_offers WHERE available ORDER BY id LIMIT 100').fetchall()}
+            return {'catalogue': conn.execute("SELECT * FROM trainer_backend.shop_offers WHERE available AND purpose='profile_scene' ORDER BY id LIMIT 100").fetchall(),
+                    'outfit_catalogue': conn.execute("SELECT * FROM trainer_backend.shop_offers WHERE available AND purpose='outfit_slot' ORDER BY slot_number LIMIT 64").fetchall()}
 
     def snapshot(self, access, operation=None):
         with self.db.transaction() as conn:
@@ -37,8 +38,12 @@ class Shop:
                 if not receipt:
                     raise AuthError('purchase_not_found', 404)
             return {'player_id': actor.player_id, 'revision': account['revision'], 'checked_at': datetime.now(timezone.utc),
-                    'catalogue': conn.execute('SELECT * FROM trainer_backend.shop_offers WHERE available ORDER BY id LIMIT 100').fetchall(),
-                    'items': items, 'equipped': appearance['offer_id'] if appearance else None, 'receipt': receipt}
+                    'catalogue': conn.execute("SELECT * FROM trainer_backend.shop_offers WHERE available AND purpose='profile_scene' ORDER BY id LIMIT 100").fetchall(),
+                    'items': [i for i in items if i['purpose'] == 'profile_scene'],
+                    'outfit_catalogue': conn.execute("SELECT * FROM trainer_backend.shop_offers WHERE available AND purpose='outfit_slot' ORDER BY slot_number LIMIT 64").fetchall(),
+                    'outfit_items': [i for i in items if i['purpose'] == 'outfit_slot'],
+                    'outfits': conn.execute('SELECT * FROM trainer_backend.outfits WHERE player_id=%s ORDER BY offer_id', (actor.player_id,)).fetchall(),
+                    'equipped': appearance['offer_id'] if appearance else None, 'receipt': receipt}
 
     def purchase(self, access, operation, offer_id, revision, price):
         with self.db.transaction() as conn:
@@ -81,6 +86,8 @@ class Shop:
                 raise AuthError('inventory_changed', 409)
             if offer_id is not None and not conn.execute('SELECT 1 FROM trainer_backend.owned_items WHERE player_id=%s AND offer_id=%s', (actor.player_id, offer_id)).fetchone():
                 raise AuthError('item_not_owned', 409)
+            if offer_id is not None and not conn.execute("SELECT 1 FROM trainer_backend.shop_offers WHERE id=%s AND purpose='profile_scene'", (offer_id,)).fetchone():
+                raise AuthError('invalid_item_purpose', 409)
             conn.execute('''INSERT INTO trainer_backend.profile_appearances(player_id,offer_id) VALUES(%s,%s)
                 ON CONFLICT(player_id) DO UPDATE SET offer_id=EXCLUDED.offer_id''', (actor.player_id, offer_id))
             conn.execute('UPDATE trainer_backend.progression_accounts SET revision=revision+1 WHERE player_id=%s', (actor.player_id,))

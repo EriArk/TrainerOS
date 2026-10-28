@@ -1,0 +1,54 @@
+{
+  "odin": {
+    "sha256": "3eebb319367e353876dc10f49fb4bbdb9326b81b8ea2686b5188fd3521a982d7",
+    "settingsChangedKeys": [],
+    "protectedDatabaseTablesUnchanged": 3,
+    "integrity": "ok",
+    "volume": "Volume: 0.00",
+    "installation": {
+      "sha256": "3eebb319367e353876dc10f49fb4bbdb9326b81b8ea2686b5188fd3521a982d7",
+      "previous_sha256": "1a802dc4a750f8b8293a3558b9217ac20ac9b3de433a218f9a312a815a044983",
+      "supervised_restart": true,
+      "capabilities": {
+        "account.identity": 1,
+        "avatar.local": 1,
+        "avatar.recipe": 1,
+        "context": 1,
+        "lifecycle": 1,
+        "lobby.activity": 1,
+        "network.group": 1,
+        "network.records": 1,
+        "play.scorecards": 1,
+        "ui.start.widget": 1
+      },
+      "backup_retained": true
+    },
+    "installedAvatarRevision": 4
+  },
+  "flip": {
+    "sha256": "3eebb319367e353876dc10f49fb4bbdb9326b81b8ea2686b5188fd3521a982d7",
+    "settingsChangedKeys": [],
+    "protectedDatabaseTablesUnchanged": 3,
+    "integrity": "ok",
+    "volume": "Volume: 0.20",
+    "installation": {
+      "sha256": "3eebb319367e353876dc10f49fb4bbdb9326b81b8ea2686b5188fd3521a982d7",
+      "previous_sha256": "1a802dc4a750f8b8293a3558b9217ac20ac9b3de433a218f9a312a815a044983",
+      "supervised_restart": true,
+      "capabilities": {
+        "account.identity": 1,
+        "avatar.local": 1,
+        "avatar.recipe": 1,
+        "context": 1,
+        "lifecycle": 1,
+        "lobby.activity": 1,
+        "network.group": 1,
+        "network.records": 1,
+        "play.scorecards": 1,
+        "ui.start.widget": 1
+      },
+      "backup_retained": true
+    },
+    "installedAvatarRevision": 4
+  }
+}

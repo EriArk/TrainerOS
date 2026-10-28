@@ -319,7 +319,7 @@ int main(int argc, char* argv[]) {
         MockLibraryRepository repository;
         MockTrainerRepository profiles;
 #ifdef TRAINEROS_UI_TESTS
-        if (platformSmoke || avatarSmoke) profiles.save({"sdk-demo", "Developer"});
+        if (platformSmoke || avatarSmoke || onlineSmoke) profiles.save({"sdk-demo", "Developer"});
 #endif
         MockAdventureAdapter adapter;
         UnconfiguredAdventureAdapter unconfiguredAdapter;

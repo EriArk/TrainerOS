@@ -237,6 +237,20 @@ private slots:
             QCOMPARE(shell.navigationState(),origin);
         }
     }
+    void quickLooksDuringLiveGamePreserveSessionAndReturn() {
+        TrainerProfile profile;profile.id="looks-owner";profile.name="Alice";profile.createdAt=QDateTime::currentDateTimeUtc();
+        MockLibraryRepository library;MockTrainerRepository profiles(profile);MockAdventureAdapter adapter;
+        DevelopmentPlatformService platform;MockPokedexRepository dex;MockHallOfFameRepository archive;MockAchievementProvider achievements;
+        ShellController shell(library,profiles,adapter,platform,builtinExperiences(dex,dex),archive,achievements);
+        if(!shell.trainer()->avatarAvailable())QSKIP("Avatar pack required");
+        shell.setLiveGame({{"id","live-game"},{"title","Running game"}});QSignalSpy returns(&shell,&ShellController::liveGameRequested);
+        shell.dispatch(Action::Home);shell.activateHomeAction("outfits");
+        QCOMPARE(shell.profileRoute(),"outfits");QVERIFY(!shell.homeMenuOpen());
+        QCOMPARE(shell.liveGame()["id"].toString(),"live-game");QCOMPARE(returns.size(),0);
+        shell.dispatch(Action::Back);QCOMPARE(shell.profileRoute(),"summary");QCOMPARE(shell.profileFocus(),1);
+        shell.dispatch(Action::Back);shell.dispatch(Action::Home);shell.activateHomeAction("live-return");
+        QCOMPARE(returns.size(),1);QCOMPARE(shell.liveGame()["id"].toString(),"live-game");
+    }
     void playerProfileOwnsHistoryAchievementsAndAccountReturn() {
         MockLibraryRepository library;MockTrainerRepository profiles;MockAdventureAdapter adapter;
         DevelopmentPlatformService platform;MockPokedexRepository dex;MockHallOfFameRepository archive;MockAchievementProvider achievements;
@@ -280,7 +294,8 @@ private slots:
         QCOMPARE(shell.hall()->detail()["title"].toString(),first["title"].toString());
         shell.dispatch(Action::Back);shell.dispatch(Action::Back);shell.dispatch(Action::Back);
         QCOMPARE(shell.profileRoute(),"summary");QCOMPARE(shell.profileFocus(),7);
-        shell.dispatch(Action::NextFace);QVERIFY(shell.trainer()->avatarEditing() || !shell.trainer()->avatarAvailable());
+        shell.dispatch(Action::NextFace);QCOMPARE(shell.profileRoute(),"outfits");
+        shell.dispatch(Action::Back);QCOMPARE(shell.profileRoute(),"summary");QCOMPARE(shell.profileFocus(),1);
         if(shell.trainer()->editing())shell.dispatch(Action::Back);
         shell.dispatch(Action::Back);QVERIFY(!shell.serviceOpen());
     }

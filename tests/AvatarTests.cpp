@@ -11,6 +11,16 @@ using namespace trainer;
 class AvatarTests:public QObject {
     Q_OBJECT
 private slots:
+    void savedLookAppliesWholeAppearanceAndPreservesTrainer() {
+        if(!AvatarAssets::available())QSKIP("External avatar pack not installed");
+        TrainerProfile p;p.id="looks-owner";p.name="Alice";p.createdAt=QDateTime::currentDateTimeUtc();p.avatar=AvatarAssets::defaults();
+        MockTrainerRepository repo(p);TrainerController c(repo);
+        auto look=AvatarAssets::defaults();look["hair"]="bob";look["shirtColor"]="#a8c9bc";look["eyes"]="almond";
+        QVERIFY(c.applyAppearance(look));QCOMPARE(repo.load()->avatar,look);QCOMPARE(repo.load()->id,p.id);QCOMPARE(repo.load()->name,p.name);
+        QTRY_COMPARE_WITH_TIMEOUT(c.avatarDescriptor()["appearance"].toObject(),look,30000);
+        auto bad=look;bad["hair"]="missing";QVERIFY(!c.applyAppearance(bad));QCOMPARE(repo.load()->avatar,look);
+        c.beginAvatarEdit();QVERIFY(!c.applyAppearance(p.avatar));c.finishAvatar(false);QCOMPARE(repo.load()->avatar,look);
+    }
     void schema(){auto a=AvatarAssets::defaults();QVERIFY(AvatarAssets::valid(a));a["eyes"]="unknown";QVERIFY(!AvatarAssets::valid(a));a=AvatarAssets::defaults();a["skinColor"]="../../secret";QVERIFY(!AvatarAssets::valid(a));}
     void approvedVariants(){
         if(!AvatarAssets::available())QSKIP("External avatar pack not installed");

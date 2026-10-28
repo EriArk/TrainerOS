@@ -1,0 +1,63 @@
+{
+  "date": "2026-10-28",
+  "feature": "Permanent complete-look slots",
+  "priceSparks": 100,
+  "additionalSlots": 16,
+  "serverTests": 108,
+  "windowsAccountTests": 23,
+  "armChecks": {
+    "interaction": 57,
+    "avatarSelectedTestsIncludingSetupCleanup": 4,
+    "platformSelectedTestsIncludingSetupCleanup": 4,
+    "account": 22,
+    "accountPlatformSkip": "Windows vault regression passed separately in the Windows suite"
+  },
+  "ui": {
+    "resolutions": [
+      [
+        1280,
+        720
+      ],
+      [
+        960,
+        540
+      ]
+    ],
+    "success": true,
+    "qmlWarnings": 0,
+    "softwareRendererCannotDisplayQuick3D": true,
+    "checks": [
+      "wear complete appearance",
+      "cached wear during stalled inventory request",
+      "rename",
+      "cancel overwrite",
+      "review purchase price",
+      "back to focused wardrobe entry"
+    ]
+  },
+  "handheldChecks": [
+    "production launch",
+    "profile wardrobe and Home Looks entry",
+    "current 3D avatar preview",
+    "public price 100",
+    "Back and reopen",
+    "settings and protected database rows unchanged"
+  ],
+  "gameIntegration": "Trainer save emits avatar.changed to an authenticated SDK subscriber; live-game navigation uses a retained session fixture",
+  "pending": [
+    "Owner purchase on the live account",
+    "Physical controller acceptance",
+    "Appearance consumption by each individual game",
+    "Real Patreon/Ko-fi account binding and paid-tier verification"
+  ],
+  "buildNotes": [
+    "Windows full UI link stopped under heavy local disk I/O; ARM checks used instead",
+    "Initial container TMPDIR referenced a missing historical path; corrected to an isolated microSD directory and failed suites passed on rerun",
+    "Instrumented standalone host UI could not load its extra libfm-qt6.so.17 dependency; production handheld rendering checked separately"
+  ],
+  "parallelWork": "Golf clothing WIP excluded; shared avatar packs on both devices remain revision 4",
+  "avatarPacks": {
+    "automatedAssetFixture": 6,
+    "installedHandhelds": 4
+  }
+}

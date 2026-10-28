@@ -38,7 +38,7 @@ void BackendAccount::loadCommerce() {
     adoptShop(data["snapshot"].toObject(),true);
     const auto pending=data["pending"].toObject();
     if(identity(pending["player_id"].toString())&&identity(pending["operation_id"].toString())
-        &&pending["offer_id"].toString().startsWith("profile.")&&pending["offer_id"].toString().size()<=64
+        &&(pending["offer_id"].toString().startsWith("profile.")||pending["offer_id"].toString().startsWith("outfit.slot."))&&pending["offer_id"].toString().size()<=64
         &&whole(pending["offer_revision"],1)&&whole(pending["expected_price"],1))shopPending_=pending;
 }
 bool BackendAccount::adoptShop(const QJsonObject& value,bool cached) {
@@ -59,7 +59,7 @@ bool BackendAccount::adoptShop(const QJsonObject& value,bool cached) {
     }
     const auto equipped=value["equipped"].toString();bool owned=equipped.isEmpty();
     for(const auto row:value["items"].toArray())owned|=row.toObject()["id"]==equipped;
-    if(!owned)return false;
+    if(!owned||!validOutfits(value))return false;
     shopSnapshot_=value;shopSnapshot_.remove("receipt");shopStale_=cached;
     shopIndex_=qBound(0,shopIndex_,qMax(0,int(shopItems().size())-1));return true;
 }
@@ -100,6 +100,8 @@ void BackendAccount::refreshShop() {
                         &&whole(item["price"],1)&&item["kind"]=="permanent_license")safe.append(row);
                 }
                 shopSnapshot_["catalogue"]=safe;
+                QJsonObject catalogue{{"outfit_catalogue",value["outfit_catalogue"]}};
+                if(value.contains("outfit_catalogue")&&validOutfits(catalogue))shopSnapshot_["outfit_catalogue"]=value["outfit_catalogue"];
             }
             shopStatus_="Browse freely. Sign in to buy and restore your permanent items.";emit changed();
         });return;
@@ -156,7 +158,7 @@ void BackendAccount::finishPurchase(int status,QJsonObject result) {
     if(status==200&&exact&&adoptShop(result)) {
         const auto pending=shopPending_;shopPending_={};
         if(!saveCommerce())shopPending_=pending;
-        shopStatus_="Purchased permanently. Select Apply to use this appearance.";
+        shopStatus_=receipt["offer_id"].toString().startsWith("outfit.slot.")?"Slot unlocked permanently. Save your current look into it.":"Purchased permanently. Select Apply to use this appearance.";
         refreshProgression(false);
     } else if(status==409&&QStringList{"offer_changed","offer_unavailable","already_owned","insufficient_sparks","level_required"}.contains(result["code"].toString())) {
         const auto code=result["code"].toString();const auto pending=shopPending_;shopPending_={};

@@ -12,6 +12,7 @@
 #include "core/experience/ExperienceModule.h"
 #include <QPointer>
 #include "features/trainer/TrainerController.h"
+#include "features/trainer/OutfitController.h"
 #include "features/trainer/TrainerSetupPresentation.h"
 #include "features/worlds/WorldsController.h"
 #include "features/worlds/MultiversePresentation.h"
@@ -127,6 +128,7 @@ class ShellController final : public QObject {
     Q_PROPERTY(QVariantMap home READ home NOTIFY changed)
     Q_PROPERTY(trainer::TextEntryController* keyboard READ keyboard CONSTANT)
     Q_PROPERTY(trainer::TrainerController* trainer READ trainer CONSTANT)
+    Q_PROPERTY(trainer::OutfitController* outfits READ outfits CONSTANT)
     Q_PROPERTY(trainer::WorldsController* worlds READ worlds CONSTANT)
     Q_PROPERTY(trainer::HallOfFameController* hall READ hall CONSTANT)
     Q_PROPERTY(trainer::LibraryManagementController* libraryManager READ libraryManager CONSTANT)
@@ -176,6 +178,7 @@ public:
         && (!localModalOpen() || (socialActive() && !social_.menu().isEmpty()))
         && !keyboard_.isOpen() && !moduleActivityBusy(true); }
     TrainerController* trainer() { return &trainer_; }
+    OutfitController* outfits() { return &outfits_; }
     WorldsController* worlds() { return &worlds_; }
     MultiversePresentation* multiverse() { return &multiverse_; }
     bool collectionsRoot() const { return collectionsRoot_; }
@@ -412,6 +415,7 @@ private:
     DiagnosticsController diagnostics_;
     SocialController social_;
     BackendAccount backendAccount_;
+    OutfitController outfits_{backendAccount_,trainer_,this};
     HomeDashboardController dashboard_;
     PlayerStory story_;
     QVariantMap profileSnapshot_;
@@ -427,7 +431,7 @@ private:
     bool achievementPhotoReturn_=false;
     QJsonObject achievementPhotoNavigation_;
     QString service_;
-    enum class TextTarget { GameInput, None, TrainerName, WorldsSearch, MultiverseSearch, Library, LibraryTools, Collections, Archive, Module, AchievementAccount, SetupName, Network, Social, Communication, Scraper, Files, Browser, PcGame };
+    enum class TextTarget { OutfitName, GameInput, None, TrainerName, WorldsSearch, MultiverseSearch, Library, LibraryTools, Collections, Archive, Module, AchievementAccount, SetupName, Network, Social, Communication, Scraper, Files, Browser, PcGame };
     TextTarget textTarget_ = TextTarget::None;
     QList<ContinueEntry> points_;
     QList<ContinueEntry> favorites_;
