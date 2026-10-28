@@ -1,6 +1,6 @@
 name: traineros-backend
 x-app: &app
-  image: traineros-backend:shop28
+  image: traineros-backend:support28
   build:
     context: ..
     target: runtime

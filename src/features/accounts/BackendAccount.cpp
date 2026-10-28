@@ -57,6 +57,9 @@ BackendAccount::~BackendAccount(){reset();}
 QVariantMap BackendAccount::progression() const {
     auto result=progression_.toVariantMap();
     result["known"]=!progression_.isEmpty();result["stale"]=progressionStale_;result["busy"]=rewardBusy_;
+    // A pending debit can already have settled on the server. Do not advertise
+    // a prospective balance until its receipt and the wallet are reconciled.
+    if(progressionStale_ || rewardBusy_ || !shopPending_.isEmpty())result["support_preview"]=QVariantMap{};
     return result;
 }
 QString BackendAccount::rewardActionLabel() const {
@@ -83,7 +86,28 @@ bool BackendAccount::adoptProgression(const QJsonObject& value) {
     const bool had=!progression_.isEmpty();
     const auto xpDelta=qint64(mastery["xp"].toDouble()-progression_["mastery"].toObject()["xp"].toDouble());
     const auto sparkDelta=qint64(value["balance"].toDouble()-progression_["balance"].toDouble());
-    progression_=value;progressionStale_=false;
+    auto sanitized=value;
+    const auto preview=value["support_preview"].toObject();
+    bool previewValid=preview["policy"]=="support-preview-2026-10-v1" && preview["state"]=="calculation_only"
+        && preview["activation_available"].isBool() && !preview["activation_available"].toBool()
+        && integer(preview["eligible_rewards"],0) && integer(preview["base_sparks"],0)
+        && integer(preview["credited_reward_sparks"],0) && preview["options"].isArray()
+        && preview["options"].toArray().size()==2;
+    QSet<int> multipliers;
+    for(const auto option:preview["options"].toArray()) {
+        const auto row=option.toObject();const int multiplier=row["multiplier"].toInt();
+        const auto credited=preview["credited_reward_sparks"].toDouble(),base=preview["base_sparks"].toDouble();
+        previewValid &= integer(row["multiplier"],2) && multiplier<=3 && !multipliers.contains(multiplier)
+            && row["id"]=="support-x"+QString::number(multiplier)
+            && !row["title"].toString().isEmpty() && row["title"].toString().size()<=64
+            && credited>=base && credited<=3*base
+            && integer(row["top_up"],0) && row["top_up"].toDouble()<=base*(multiplier-1)
+            && integer(row["potential_balance"],0)
+            && row["potential_balance"].toDouble()==value["balance"].toDouble()+row["top_up"].toDouble();
+        multipliers.insert(multiplier);
+    }
+    if(!previewValid)sanitized["support_preview"]=QJsonValue();
+    progression_=sanitized;progressionStale_=false;
     if(had && xpDelta>0 && sparkDelta>0)emit rewardsEarned(xpDelta,sparkDelta);
     return true;
 }

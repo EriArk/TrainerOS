@@ -1,5 +1,12 @@
 # Структура TrainerOS: владельцы, контракты и связи
 
+**28 октября, S11 → S04 / F06:** [preview поддержки](../services/backend/progression.md)
+рассчитывает два выбранных уровня ×2/×3 по всему доверенному журналу, в одном
+снимке с кошельком. Профиль показывает текущий баланс, доплату и возможный итог;
+невалидный/устаревший ответ и pending debit скрывают расчёт. Это чтение, без
+активации или выдачи денег. E13 (проверка провайдера) и настоящие ретродоплаты
+остаются открытыми. Владелец денег и прав по-прежнему S11; локального расчёта нет.
+
 **28 октября — S11 → S01/S04, постоянная покупка сцены:** тот же account lock и
 ledger фиксируют расход Искр, ownership, квитанцию, аудит и outbox атомарно.
 BackendAccount владеет durable pending/recovery и кэшем представления; ProfileShop
@@ -313,7 +320,7 @@ Built-in Experience реализован; внешние SPI/SDK-вклады т
 | S08 | [RuntimeSaveStorage](../src/platform/storage/RuntimeSaveStorage.h), [SaveBackupStorage](../src/platform/storage/SaveBackupStorage.h), [SaveLineage](../src/platform/storage/SaveLineage.h), [реестр адаптеров](adapters/README.md) | Все форматы/миграции, MP-02 и portable Trainer backup не приняты. |
 | S09 | [SqlitePlayHistory](../src/core/storage/SqlitePlayHistory.cpp), [achievement integrations](../src/integrations/achievements), [RA](RA73_GAME_SELECTION.md) | Полный live unlock/history/media цикл не закрыт; общей экономической верификации здесь нет. |
 | S10 | [Target соревнований](TRAINEROS_BACKEND_PLAN_RU.md), [правила доверия](TRAINEROS_ACCOUNT_ECONOMY_RU.md) | Готового общего сервиса матчей/турниров/наград не заявлено; правила и API открыты. |
-| S11 | [Согласованная экономика](TRAINEROS_ACCOUNT_ECONOMY_RU.md) | Кошелёк, подписочные права и магазин — target, не установленный backend. |
+| S11 | [Согласованная экономика](TRAINEROS_ACCOUNT_ECONOMY_RU.md) | Начисления RA, кошелёк, покупки сцен и read-only preview реализованы; подписочные права/доплаты остаются target. См. [механизм](../services/backend/progression.md). |
 | S12 | [CratesCatalogue](../src/features/crates/CratesCatalogue.h), [CratesController](../src/features/crates/CratesController.h), [FluxerReviews](../src/integrations/social/FluxerReviews.cpp), [поставка](CRATES77_CATALOGUE.md) | Полные reviews/Top Rated, публикации и donation UX не закрыты. |
 | S13 | [CratesInstaller](../src/features/crates/CratesInstaller.h), [DownloadsController](../src/features/downloads/DownloadsController.h), [FilesService](../src/platform/files/FilesService.h), [PC](../packaging/pc/README.md) | Разные исполнители корректно публикуют свои задания через общий интерфейс. Полный набор команд/providers, software updater и installer/recovery не завершены; централизация всех очередей не требуется. |
 | S14 | [ExperienceModule](../src/core/experience/ExperienceModule.h), [manifest](../src/core/experience/ExperienceManifest.h), [composition](../src/adapters/BuiltinExperiences.cpp), [правила](../src/adapters/AGENTS.md), [PlatformHost](../src/platform/sdk/PlatformHost.cpp) | Trusted built-ins, local SDK context/widget и app Lobby/records существуют; #92, SPI и остальные service facades #235–244 остаются незавершёнными контрактами. |

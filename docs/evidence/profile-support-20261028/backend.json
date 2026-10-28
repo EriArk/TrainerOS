@@ -1,0 +1,13 @@
+{
+  "ready": true,
+  "supportPreviewCapability": 1,
+  "unauthenticatedRead": 401,
+  "migration": 8,
+  "membershipActivation": false,
+  "liveOwnerPreview": false,
+  "tests": [
+    "98 passed, 1 warning in 14.01s"
+  ],
+  "publicPreviewCapability": 1,
+  "image": "traineros-backend:support28"
+}

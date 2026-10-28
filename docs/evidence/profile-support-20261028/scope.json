@@ -1,0 +1,32 @@
+{
+  "date": "2026-10-28",
+  "sourceBase": "36605919",
+  "supportMultipliers": [
+    2,
+    3
+  ],
+  "supportPricesSelected": false,
+  "supportActivationImplemented": false,
+  "actualSupportPayoutImplemented": false,
+  "ownerLiveAuthenticatedPreview": false,
+  "deviceJourney": [
+    "header profile",
+    "support entry controller focus",
+    "compare unavailable balances",
+    "Back restores entry focus",
+    "reopen",
+    "Back to Home"
+  ],
+  "deviceStates": {
+    "odin": "light / backend signed out",
+    "flip": "dark / backend signed out"
+  },
+  "physicalControllerAcceptance": false,
+  "statePreservation": [
+    "settings unchanged",
+    "three protected database tables unchanged",
+    "SQLite quick_check ok",
+    "existing avatar pack revision 4 retained"
+  ],
+  "buildStorage": "microSD"
+}

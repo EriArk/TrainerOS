@@ -101,7 +101,8 @@ def create_app(settings=None, *, provider=None, reward_provider=None):
             if module['name'] == 'inventory' and settings.oauth: module['state']='permanent_profile_purchases'
             if module['name'] in ('rewards','wallet') and settings.oauth: module['state']='ra_earning_preview'
         return {'version': __version__, 'capabilities': {'accounts.fluxer_login':1,'accounts.sessions':1,'accounts.native_return':1,
-                'play.scorecards':1,'boards.peer_confirmed':1,'account.progression':1,'inventory.profile_purchases':1} if settings.oauth else {},
+                'play.scorecards':1,'boards.peer_confirmed':1,'account.progression':1,'inventory.profile_purchases':1,
+                'support.balance_preview':1} if settings.oauth else {},
                 'modules': modules}
 
     # Draft OpenAPI operations are NOT mounted as success-returning placeholders.

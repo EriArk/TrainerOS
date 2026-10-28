@@ -4,6 +4,11 @@
 
 ## Current working mode — owner correction, 21 October 2026
 
+**Owner support-level decision, 28 October:** support has two levels, ×2 and ×3,
+with free base earning ×1. This selects multipliers only, not prices or payment
+activation. Keep the read-only balance preview distinct from verified membership
+and actual retrospective grants; see [progression](services/backend/progression.md).
+
 **Owner profile-purchase decisions, 28 October:** the first three new permanent
 profile scenes cost 250 Sparks each; existing appearances remain free. Make
 distinct game-like scenes, not palette swaps. Keep the full preview / explicit

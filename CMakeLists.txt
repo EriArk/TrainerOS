@@ -497,6 +497,7 @@ qt_add_qml_module(traineros
         src/qml/PlayerProfilePanel.qml
         src/qml/ProfileScene.qml
         src/qml/ProfileShop.qml
+        src/qml/ProfileSupport.qml
         src/qml/AvatarEditor.qml
         src/qml/AvatarPreview3D.qml
         src/qml/ShellOptions.qml

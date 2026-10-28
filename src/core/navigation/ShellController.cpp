@@ -1625,7 +1625,7 @@ QVariantMap ShellController::profileAccount() const {
     const auto progress=backendAccount_.progression(),mastery=progress["mastery"].toMap();
     const bool known=progress["known"].toBool();
     return {{"signedIn",identity["state"].toString()=="signed_in"},
-        {"levelKnown",known},{"balanceKnown",known},{"previewKnown",false},
+        {"levelKnown",known},{"balanceKnown",known},{"previewKnown",!progress["support_preview"].toMap().isEmpty()},
         {"stale",progress["stale"]},{"xp",mastery["xp"]},{"levelXp",mastery["level_xp"]},{"nextLevelXp",mastery["next_level_xp"]},
         {"levelText",known?QString::number(mastery["level"].toLongLong()):QString::fromUtf8("\xe2\x80\x94")},
         {"sparksText",known?QString::number(progress["balance"].toLongLong()):QString::fromUtf8("\xe2\x80\x94")}};
@@ -1656,6 +1656,11 @@ void ShellController::closeProfile() {
 }
 void ShellController::activateProfile(int index) {
     if(!profileContentActive())return;
+    if(profileRoute_=="support") {
+        if(backendAccount_.snapshot()["state"]!="signed_in")backendAccount_.activate();
+        else backendAccount_.refreshProgression(false);
+        return;
+    }
     if(profileRoute_=="account") {
         if(index==0)backendAccount_.activate();
         else if(index==1)backendAccount_.activateRewards();
@@ -1664,9 +1669,10 @@ void ShellController::activateProfile(int index) {
         emit changed();return;
     }
     if(profileRoute_!="summary")return;
-    if(index<0 || index>9)return;
+    if(index<0 || index>10)return;
     profileFocus_=index;
-    if(index==9){profileRoute_="shop";profileFocus_=1;backendAccount_.refreshShop();}
+    if(index==10){profileRoute_="support";profileFocus_=0;backendAccount_.refreshProgression(false);}
+    else if(index==9){profileRoute_="shop";profileFocus_=1;backendAccount_.refreshShop();}
     else if(index<2)trainer_.activate(index);
     else if(index==4){profileRoute_="account";profileFocus_=0;backendAccount_.refreshProgression(false);}
     else if(index==3 || index>=7) {
@@ -1689,6 +1695,11 @@ void ShellController::activateProfile(int index) {
 }
 void ShellController::dispatchProfile(Action action) {
     if(trainer_.editing()){trainer_.dispatch(action,true);return;}
+    if(profileRoute_=="support") {
+        if(action==Action::Back){profileRoute_="summary";profileFocus_=10;}
+        else if(action==Action::Confirm)activateProfile(0);
+        emit changed();return;
+    }
     if(dashboardReturn_ && !achievementPhotoReturn_ && action==Action::Back
        && ((profileRoute_=="ra" && hall_.route()=="achievement-detail" && !hall_.account()->isOpen() && !hall_.historyOpen() && !hall_.galleryMenuOpen())
            || (profileRoute_=="story" && overviewFace_=="screens" && !album_.filtering()))) {
@@ -1741,7 +1752,7 @@ void ShellController::dispatchProfile(Action action) {
     } else if(action==Action::Back)closeProfile();
     else if(action==Action::Confirm)activateProfile(profileFocus_);
     else if(action==Action::Up || action==Action::Left || action==Action::Down || action==Action::Right) {
-        QList<int> order{0,1,4,9,3};
+        QList<int> order{0,1,4,9,10,3};
         for(int i=0;i<profileSnapshot_["badges"].toList().size();++i)order.append(7+i);
         order.append(2);if(!profileSnapshot_["latestSession"].toMap().isEmpty())order.append(6);order.append(5);
         const int delta=action==Action::Up || action==Action::Left?-1:1;

@@ -6,6 +6,7 @@ from psycopg.errors import UniqueViolation
 from ..accounts.provider import AuthError
 from .policy import VERSION, achievement, completion, mastery
 from .provider import RetroAchievements
+from .support import preview as support_preview
 
 
 class Progression:
@@ -28,7 +29,8 @@ class Progression:
                 ORDER BY created_at DESC,id DESC LIMIT 50''', (actor.player_id, before, before)).fetchall()
             return {'player_id': actor.player_id, 'mastery': mastery(row['xp']), 'balance': row['balance'],
                     'revision': row['revision'], 'link': link, 'challenge': challenge, 'history': history,
-                    'support_preview': None, 'checked_at': datetime.now(timezone.utc)}
+                    'support_preview': support_preview(conn, actor.player_id, row['balance']),
+                    'checked_at': datetime.now(timezone.utc)}
 
     def challenge(self, access, username, key):
         self.reserve_check(access)

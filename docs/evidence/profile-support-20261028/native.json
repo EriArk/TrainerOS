@@ -1,0 +1,29 @@
+{
+  "interaction": {
+    "exit": 0,
+    "summary": [
+      "Totals: 56 passed, 0 failed, 0 skipped, 0 blacklisted, 5571ms"
+    ]
+  },
+  "experience": {
+    "exit": 0,
+    "summary": [
+      "Totals: 29 passed, 0 failed, 0 skipped, 0 blacklisted, 1414ms"
+    ]
+  },
+  "ui": {
+    "exit": 0
+  },
+  "account": {
+    "exit": 0,
+    "summary": [
+      "Totals: 21 passed, 0 failed, 0 skipped, 0 blacklisted, 1610ms"
+    ],
+    "reuse": "Account code unchanged since focused run in this delivery"
+  },
+  "qml": {
+    "diagnostics": [],
+    "success": true,
+    "warnings": 0
+  }
+}

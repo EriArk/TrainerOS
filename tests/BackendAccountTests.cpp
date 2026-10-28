@@ -94,6 +94,38 @@ class BackendAccountTests:public QObject {
         h.shopValue["receipt"]=receipt;
     }
 private slots:
+    void supportPreviewRejectsMalformedStaleAndUnsettledBalances() {
+        Harness h;h.progressionOk=true;h.shopEnabled=true;h.shopValue=inventory();
+        const QJsonObject preview{{"policy","support-preview-2026-10-v1"},{"state","calculation_only"},{"activation_available",false},
+            {"eligible_rewards",31},{"base_sparks",1000},{"credited_reward_sparks",1000},{"options",QJsonArray{
+                QJsonObject{{"id","support-x2"},{"title","Support x2"},{"multiplier",2},{"top_up",1000},{"potential_balance",1750}},
+                QJsonObject{{"id","support-x3"},{"title","Support x3"},{"multiplier",3},{"top_up",2000},{"potential_balance",2750}}}}};
+        h.progress={{"player_id",Player},{"balance",750},{"revision","32"},{"history",QJsonArray{}},{"support_preview",preview},
+            {"mastery",QJsonObject{{"xp",2000},{"level",5},{"level_xp",200},{"next_level_xp",700}}},
+            {"checked_at",QDateTime::currentDateTimeUtc().toString(Qt::ISODateWithMs)}};
+        BackendAccount a;a.setServices(h.services());a.configure("support-alice");a.activate();h.callback();
+        auto known=[&]{return !a.progression()["support_preview"].toMap().isEmpty();};
+        QVERIFY(known());
+        for(int bad=0;bad<5;++bad) {
+            auto invalid=preview;auto options=preview["options"].toArray();auto row=options[1].toObject();
+            if(bad==0)row["potential_balance"]=3000;
+            else if(bad==1)row["top_up"]=-1;
+            else if(bad==2)row["multiplier"]=2;
+            else if(bad==3)invalid["activation_available"]=true;
+            else invalid["policy"]="unknown";
+            options[1]=row;invalid["options"]=options;h.progress["support_preview"]=invalid;a.refreshProgression(false);
+            QVERIFY(!known());QCOMPARE(a.progression()["balance"].toInt(),750);QVERIFY(!a.progression()["stale"].toBool());
+        }
+        h.progress["support_preview"]=preview;a.refreshProgression(false);QVERIFY(known());
+        h.deferProgression=true;a.refreshProgression(false);QVERIFY(!known());
+        auto reply=std::move(h.pendingProgression);reply(503,{});QVERIFY(!known());QVERIFY(a.progression()["stale"].toBool());
+        h.deferProgression=false;a.refreshProgression(false);QVERIFY(known());
+        a.selectShopItem(1);a.activateShopItem();a.confirmPurchase();QVERIFY(h.pendingPurchase);QVERIFY(!known());
+        settle(h);h.deferProgression=true;h.pendingPurchase(200,h.shopValue);QVERIFY(!known());
+        reply=std::move(h.pendingProgression);QVERIFY(reply);reply(200,h.progress);QVERIFY(known());
+        h.deferProgression=true;a.refreshProgression(false);reply=std::move(h.pendingProgression);
+        a.configure("support-bob");reply(200,h.progress);QVERIFY(!known());QVERIFY(!a.progression()["known"].toBool());
+    }
     void purchaseNeedsReviewAndDurableIntentThenRestoresLostResponse() {
         Harness h;h.shopEnabled=true;h.shopValue=inventory();
         {

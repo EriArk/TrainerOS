@@ -55,7 +55,7 @@ Panel {
                 function revealFocus() {
                     if (!root.browsing || !root.shell.profileContentActive) return
                     const focus = root.shell.profileFocus
-                    const section = focus === 4 ? economy : focus === 3 || (focus >= 7 && focus <= 8) ? awards : focus === 2 || focus === 5 || focus === 6 ? journey : null
+                    const section = focus === 4 ? economy : focus === 10 ? supportEntry : focus === 3 || (focus >= 7 && focus <= 8) ? awards : focus === 2 || focus === 5 || focus === 6 ? journey : null
                     if (!section) { contentY = 0; return }
                     if (section.y < contentY) contentY = section.y
                     else if (section.y+section.height > contentY+height) contentY = Math.max(0, section.y+section.height-height)
@@ -104,6 +104,7 @@ Panel {
                         ProfileAction { objectName:"profile-account"; y: root.compact?46:56; width: parent.width; actionIndex:4;label:"TrainerOS account  \u203a"; textSize:10 }
                     }
                 }
+                ProfileAction { id:supportEntry;objectName:"profile-support";width:parent.width;actionIndex:10;label:"Support \u00d72 / \u00d73  \u00b7  Compare Sparks \u203a";textSize:11 }
                 Rectangle { width: parent.width; height:1;color:Theme.divider }
                 Item {
                     id: awards; width: parent.width; height: root.compact?69:82
@@ -146,6 +147,7 @@ Panel {
             }
         }
         ProfileShop { x:0;y:42;width:parent.width;height:parent.height-y;shell:root.shell;visible:root.shell.profileRoute==="shop" }
+        ProfileSupport { x:0;y:42;width:parent.width;height:parent.height-y;shell:root.shell;visible:root.shell.profileRoute==="support" }
         GameHubOverview { x:0;y:42;width:parent.width;height:parent.height-y; shell:root.shell; visible:root.shell.profileRoute==="story" }
         AchievementGallery { x:0;y:42;width:parent.width;height:parent.height-y;shell:root.shell;visible:root.shell.profileRoute==="ra" }
         Item {
@@ -193,7 +195,7 @@ Panel {
                     delegate: Item { required property var modelData;required property int index;width:ListView.view.width;height:55
                         Rectangle { anchors.fill:parent;radius:4;color:Theme.selection;visible:root.shell.profileFocus===index+4 }
                         Text { width:parent.width;text:modelData.title;textFormat:Text.PlainText;font.pixelSize:12;color:Theme.ink;elide:Text.ElideRight }
-                        Text { y:19;width:parent.width;text:modelData.source==="shop.purchase"?modelData.sparks+" Sparks ? Purchase":(modelData.source==="ra.completion"?"Complete set · ":"")+"+"+modelData.xp+" XP · +"+modelData.sparks+" Sparks";font.pixelSize:11;color:root.accent;elide:Text.ElideRight }
+                        Text { y:19;width:parent.width;text:modelData.source==="shop.purchase"?modelData.sparks+" Sparks \u00b7 Purchase":(modelData.source==="ra.completion"?"Complete set · ":"")+"+"+modelData.xp+" XP · +"+modelData.sparks+" Sparks";font.pixelSize:11;color:root.accent;elide:Text.ElideRight }
                         Text { y:35;text:new Date(modelData.earned_at).toLocaleDateString();font.pixelSize:10;color:Theme.muted }
                     }
                     Text { visible:parent.count===0;width:parent.width;text:"No earned rewards yet";font.pixelSize:12;color:Theme.muted }
