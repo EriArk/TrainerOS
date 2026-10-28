@@ -1,0 +1,14 @@
+{
+  "passed": true,
+  "revision": 9,
+  "templateBytes": 55841904,
+  "maxBridgePlaneErrorMetres": 3.3564692144355535e-05,
+  "files": 51,
+  "wearables": 22,
+  "eyeSets": 14,
+  "paletteAccessors": 2,
+  "hairFitSourcesPreserved": true,
+  "rigBones": 54,
+  "clips": 8,
+  "manifestSha256": "3e250ec77fa884820143e54c2eccca440d8f8e58a0423d04ca5d145f755af7d1"
+}

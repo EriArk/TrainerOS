@@ -7994,14 +7994,19 @@
             "enum": [
               "tank",
               "polo-short-sleeve",
-              "polo-sleeveless"
+              "polo-sleeveless",
+              "everyday-tee",
+              "sundress",
+              "racing-suit",
+              "rose-racing-suit"
             ]
           },
           "bottom": {
             "enum": [
               "base-shorts",
               "golf-shorts",
-              "pleated-skirt"
+              "pleated-skirt",
+              "denim-breeches"
             ]
           },
           "socks": {
@@ -8015,14 +8020,19 @@
             "enum": [
               "sandals",
               "golf-shoes-classic",
-              "golf-shoes-sport"
+              "golf-shoes-sport",
+              "canvas-shoes",
+              "racing-boots",
+              "rose-racing-boots"
             ]
           },
           "headwear": {
             "enum": [
               "none",
               "golf-cap",
-              "golf-visor"
+              "golf-visor",
+              "racing-helmet",
+              "rose-racing-helmet"
             ]
           }
         },
@@ -8093,14 +8103,19 @@
             "enum": [
               "tank",
               "polo-short-sleeve",
-              "polo-sleeveless"
+              "polo-sleeveless",
+              "everyday-tee",
+              "sundress",
+              "racing-suit",
+              "rose-racing-suit"
             ]
           },
           "bottom": {
             "enum": [
               "base-shorts",
               "golf-shorts",
-              "pleated-skirt"
+              "pleated-skirt",
+              "denim-breeches"
             ]
           },
           "socks": {
@@ -8114,14 +8129,19 @@
             "enum": [
               "sandals",
               "golf-shoes-classic",
-              "golf-shoes-sport"
+              "golf-shoes-sport",
+              "canvas-shoes",
+              "racing-boots",
+              "rose-racing-boots"
             ]
           },
           "headwear": {
             "enum": [
               "none",
               "golf-cap",
-              "golf-visor"
+              "golf-visor",
+              "racing-helmet",
+              "rose-racing-helmet"
             ]
           },
           "socksColor": {

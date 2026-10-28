@@ -13,6 +13,53 @@ using namespace trainer;
 class AvatarTests:public QObject {
     Q_OBJECT
 private slots:
+    void starterCollectionsAndReversibleCoverage() {
+        if(!AvatarAssets::available())QSKIP("Avatar pack unavailable");
+        QTemporaryDir cache;const auto destination=qEnvironmentVariable("TRAINER_AVATAR_TEST_OUTPUT");
+        const auto cachePath=destination.isEmpty()?cache.path():QFileInfo(destination).absolutePath()+"/collection";
+        auto original=AvatarAssets::defaults();original["hair"]="bob";original["bottom"]="golf-shorts";
+        auto dress=AvatarAssets::equipped(original,"top","sundress");
+        QCOMPARE(dress["bottom"],original["bottom"]);QCOMPARE(dress["shirtColor"],QJsonValue("#eab2a1"));
+        QCOMPARE(AvatarAssets::equipped(dress,"bottom","denim-breeches")["top"],QJsonValue("tank"));
+        auto inspect=[&](const QJsonObject& a,const QString& name) {
+            const auto r=AvatarAssets::resolve(a,{},cachePath);
+            if(r.contains("error"))qWarning()<<r;
+            QFile f(r["glb"].toString());if(!f.open(QIODevice::ReadOnly))return QJsonObject();
+            auto bytes=f.readAll();if(bytes.size()>=64*1024*1024)return QJsonObject();
+            if(!destination.isEmpty()){QFile d(QFileInfo(destination).absolutePath()+"/"+name+".json");if(d.open(QIODevice::WriteOnly))d.write(QJsonDocument(r).toJson());}
+            return QJsonDocument::fromJson(bytes.mid(20,qFromLittleEndian<quint32>(bytes.constData()+12))).object();
+        };
+        auto visible=[](const QJsonObject& g){QStringList names;for(const auto& n:g["nodes"].toArray())if(n.toObject().contains("mesh"))names.append(n.toObject()["name"].toString());return names;};
+        auto g=inspect(dress,"sundress");QVERIFY(!g.isEmpty());auto names=visible(g);
+        QVERIFY(names.contains("sundress"));QVERIFY(!names.contains("golf-shorts"));QVERIFY(!names.contains("shirt"));
+        auto denim=AvatarAssets::equipped(original,"top","everyday-tee");denim=AvatarAssets::equipped(denim,"bottom","denim-breeches");denim=AvatarAssets::equipped(denim,"shoes","canvas-shoes");
+        g=inspect(denim,"denim");QVERIFY(!g.isEmpty());names=visible(g);
+        for(const auto& name:{"everyday-tee","denim-breeches","canvas-shoes"})QVERIFY(names.contains(name));
+        for(const auto& prefix:{QString(),QString("rose-")})for(const auto& hair:AvatarAssets::choices("hair")) {
+            auto a=original;a["hair"]=hair;
+            for(const auto& item:QList<QPair<QString,QString>>{{"top","suit"},{"shoes","boots"},{"headwear","helmet"}})
+                a=AvatarAssets::equipped(a,item.first,prefix+"racing-"+item.second);
+            g=inspect(a,prefix+"race-"+hair);QVERIFY(!g.isEmpty());names=visible(g);
+            for(const auto& part:{"suit","gloves","boots","helmet"})QVERIFY(names.contains(prefix+"racing-"+part));
+            QVERIFY(!names.contains("golf-shorts"));for(const auto& name:names)QVERIFY(!name.startsWith("hair-"));
+            QCOMPARE(g["skins"].toArray().size(),1);QCOMPARE(g["animations"].toArray().size(),8);
+            const auto bare=AvatarAssets::equipped(a,"headwear","none");QCOMPARE(bare["hair"],a["hair"]);
+            g=inspect(bare,prefix+"bare-"+hair);QVERIFY(!g.isEmpty());QVERIFY(visible(g).contains("hair-"+hair));
+        }
+        // A new offline character has both starter sets without a purchase/level.
+        TrainerProfile p;p.id="starter-owner";p.name="New player";p.avatar=AvatarAssets::defaults();
+        MockTrainerRepository repo(p);TrainerController trainer(repo);BackendAccount account;
+        BackendAccount::Services services;services.read=[](QString,auto done){done(true,QByteArray());};
+        services.readCommerce=[](QString){return QByteArray();};services.writeCommerce=[](QString,QByteArray){return true;};
+        services.request=[](QByteArray,QString,QJsonObject,QByteArray,auto done){done(0,{});};
+        account.setServices(services);account.configure(p.id);
+        OutfitController wardrobe(account,trainer);wardrobe.open();wardrobe.selectCategory(8);
+        QCOMPARE(wardrobe.view()["items"].toList().size(),3);wardrobe.selectItem(0);wardrobe.equip();
+        QCOMPARE(trainer.appearance()["top"],QJsonValue("sundress"));
+        wardrobe.selectCategory(2);QVERIFY(wardrobe.view()["colours"].toStringList().isEmpty());
+        wardrobe.selectItem(3);wardrobe.equip();QCOMPARE(trainer.appearance()["top"],QJsonValue("tank"));
+        QCOMPARE(trainer.appearance()["bottom"],QJsonValue("denim-breeches"));wardrobe.close();
+    }
     void shoePalettePreservesLegacyAndAppliesIvory() {
         auto legacy=AvatarAssets::defaults();legacy["schema"]=2;
         for(const auto& key:{"socksColor","shoesColor","headwearColor"})legacy.remove(key);
@@ -127,7 +174,7 @@ private slots:
         if(!AvatarAssets::available())QSKIP("External avatar pack not installed");
         QTemporaryDir cache;QSet<QString> hashes;int index=0;
         QFile manifest(AvatarAssets::packRoot()+"/manifest.json");QVERIFY(manifest.open(QIODevice::ReadOnly));
-        const auto pack=QJsonDocument::fromJson(manifest.readAll()).object();QCOMPARE(pack["revision"].toInt(),7);
+        const auto pack=QJsonDocument::fromJson(manifest.readAll()).object();QCOMPARE(pack["revision"].toInt(),9);
         QFile templateFile(AvatarAssets::packRoot()+"/template.glb");QVERIFY(templateFile.open(QIODevice::ReadOnly));
         const auto templateBytes=templateFile.readAll();
         const auto templateJson=QJsonDocument::fromJson(templateBytes.mid(20,qFromLittleEndian<quint32>(templateBytes.constData()+12))).object();

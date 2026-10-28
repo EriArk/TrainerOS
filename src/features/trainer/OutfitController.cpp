@@ -17,13 +17,16 @@
 #include <cstring>
 namespace trainer {
 namespace {
-const QStringList fields{"headwear","top","bottom","socks","shoes","hair","eyes","skinColor"};
-const QStringList labels{"Headwear","Tops","Bottoms","Socks","Shoes","Hair","Eyes","Skin"};
+const QStringList fields{"headwear","top","bottom","socks","shoes","hair","eyes","skinColor","top"};
+const QStringList labels{"Headwear","Tops","Bottoms","Socks","Shoes","Hair","Eyes","Skin","Outfits"};
 QString title(const QString& id) {
     static const QMap<QString,QString> names{{"tank","Sports tank"},{"base-shorts","Basic shorts"},{"none","None"},{"sandals","Sandals"},
         {"polo-short-sleeve","Polo"},{"polo-sleeveless","Sleeveless polo"},{"golf-shorts","Golf shorts"},{"pleated-skirt","Pleated skirt"},
         {"ankle-socks","Ankle socks"},{"crew-socks","Long socks"},{"golf-shoes-classic","Classic shoes"},{"golf-shoes-sport","Sport shoes"},
-        {"golf-cap","Cap"},{"golf-visor","Visor"},{"swept","Side swept"},{"ponytail","Ponytail"},{"crop","Short crop"},{"bob","Bob"}};
+        {"golf-cap","Cap"},{"golf-visor","Visor"},{"swept","Side swept"},{"ponytail","Ponytail"},{"crop","Short crop"},{"bob","Bob"},
+        {"sundress","Pleated sundress"},{"everyday-tee","Everyday T-shirt"},{"denim-breeches","Denim breeches"},{"canvas-shoes","Canvas shoes"},
+        {"racing-suit","Racing suit"},{"rose-racing-suit","Rose racing suit"},{"racing-helmet","Racing helmet"},{"rose-racing-helmet","Rose helmet"},
+        {"racing-boots","Racing boots"},{"rose-racing-boots","Rose racing boots"}};
     if(names.contains(id))return names[id];
     auto text=id;text.replace("-feminine"," - lashes");text.replace("-base","");if(!text.isEmpty())text[0]=text[0].toUpper();return text;
 }
@@ -119,23 +122,31 @@ QVariantMap OutfitController::selected() const {return rows().value(index_).toMa
 QVariantList OutfitController::items() const {
     QVariantList result;for(const auto& id:AvatarAssets::choices(fields[category_])) {
         if(id=="none")continue;
-        result.append(QVariantMap{{"id",id},{"name",title(id)},{"equipped",appearance_[fields[category_]]==id},{"thumbnail",QString("qrc:/wardrobe/%1.png").arg(id)}});
+        if(fields[category_]=="top"&&(AvatarAssets::onePiece(id)!=(category_==8)))continue;
+        const bool covered=category_==2&&AvatarAssets::onePiece(appearance_["top"].toString());
+        result.append(QVariantMap{{"id",id},{"name",title(id)},{"equipped",!covered&&appearance_[fields[category_]]==id},{"thumbnail",QString("qrc:/wardrobe/%1.png").arg(id)}});
     }return result;
 }
-QString OutfitController::colourKey() const {return QStringList{"headwearColor","shirtColor","shortsColor","socksColor","shoesColor","hairColor","eyeColor","skinColor"}[category_];}
+QString OutfitController::colourKey() const {return QStringList{"headwearColor","shirtColor","shortsColor","socksColor","shoesColor","hairColor","eyeColor","skinColor","shirtColor"}[category_];}
+QStringList OutfitController::colours() const {
+    auto values=AvatarAssets::choices(colourKey());const auto current=appearance_[colourKey()].toString();
+    if(!current.isEmpty()&&!values.contains(current))values.append(current);return values;
+}
 QJsonObject OutfitController::recipe() const {
     QFile manifest(AvatarAssets::packRoot()+"/manifest.json");if(!manifest.open(QIODevice::ReadOnly))return {};
     return {{"schema",1},{"appearance",appearance_},{"packRevision",QString::fromLatin1(QCryptographicHash::hash(manifest.readAll(),QCryptographicHash::Sha256).toHex())}};
 }
 QVariantMap OutfitController::view() const {
-    QVariantList categories;for(int i=0;i<fields.size();++i)categories.append(QVariantMap{{"id",fields[i]},{"name",labels[i]}});
+    QVariantList categories;for(int i=0;i<fields.size();++i)categories.append(QVariantMap{{"id",i==8?"outfit":fields[i]},{"name",labels[i]}});
     const auto row=selected(),chosen=items().value(item_).toMap();const auto key=fields[category_];
-    const bool canRemove=category_<5&&appearance_[key]!=AvatarAssets::defaults()[key];
-    const bool hasColour=appearance_[key]!="none";
+    const bool full=AvatarAssets::onePiece(appearance_["top"].toString());
+    const bool visible=!(category_==2&&full)&&!(category_==1&&full)&&!(category_==8&&!full);
+    const bool canRemove=visible&&(category_<5||category_==8)&&appearance_[key]!=AvatarAssets::defaults()[key];
+    const bool hasColour=visible&&appearance_[key]!="none";
     return {{"rows",rows()},{"selected",row},{"index",index_},{"focus",focus_},{"command",command_},
         {"categories",categories},{"category",category_},{"items",items()},{"item",item_},{"chosen",chosen},
-        {"colours",hasColour?AvatarAssets::choices(colourKey()):QStringList()},{"colour",appearance_[colourKey()].toString()},
-        {"colourIndex",colour_},{"equippedName",title(appearance_[key].toString())},{"canRemove",canRemove},
+        {"colours",hasColour?colours():QStringList()},{"colour",appearance_[colourKey()].toString()},
+        {"colourIndex",colour_},{"equippedName",visible?title(appearance_[key].toString()):QString("None")},{"canRemove",canRemove},
         {"appearance",appearance_.toVariantMap()},{"preview",previewUrl_},{"previewBusy",job_.isRunning()},
         {"previewError",previewError_},{"busy",false},{"review",account_.outfits()["review"]},
         {"conflict",row["conflict"].toBool()},{"status",!status_.isEmpty()?status_:account_.outfits()["status"].toString()},
@@ -179,16 +190,14 @@ void OutfitController::saveLive(){
 void OutfitController::selectCategory(int category){
     if(!open_)return;category_=qBound(0,category,int(fields.size())-1);item_=0;
     const auto list=items();for(int i=0;i<list.size();++i)if(list[i].toMap()["equipped"].toBool())item_=i;
-    colour_=qMax(0,AvatarAssets::choices(colourKey()).indexOf(appearance_[colourKey()].toString()));focus_=1;emit changed();
+    colour_=qMax(0,colours().indexOf(appearance_[colourKey()].toString()));focus_=1;emit changed();
 }
 void OutfitController::selectItem(int index){if(!open_)return;item_=qBound(0,index,int(items().size())-1);focus_=2;emit changed();}
 void OutfitController::equip(){
     if(!open_)return;const auto chosen=items().value(item_).toMap();if(chosen.isEmpty())return;
     const auto key=fields[category_];auto a=appearance_;
-    a[key]=chosen["equipped"].toBool()&&category_<5?AvatarAssets::defaults()[key]:QJsonValue(chosen["id"].toString());if(a==appearance_)return;
-    if(key=="top"&&a[key]!="tank")a["shirtColor"]=a[key]=="polo-short-sleeve"?"#f4f0df":"#234f43";
-    if(key=="bottom"&&a[key]!="base-shorts")a["shortsColor"]=a[key]=="pleated-skirt"?"#f4f0df":"#234f43";
-    if(key=="shoes")a["shoesColor"]=a[key]=="sandals"?"#699598":"#f4f0df";
+    const auto value=chosen["equipped"].toBool()&&(category_<5||category_==8)?AvatarAssets::defaults()[key].toString():chosen["id"].toString();
+    a=AvatarAssets::equipped(a,key,value);if(a==appearance_)return;
     if(commit(a))emit admired();
 }
 void OutfitController::chooseColour(int index){

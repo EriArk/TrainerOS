@@ -1,0 +1,31 @@
+{
+  "shell": "e71233d4e936dedc713c48e11c2e8b4f68138a4fb41747abf94d18b3b389e049",
+  "liveShell": "e71233d4e936dedc713c48e11c2e8b4f68138a4fb41747abf94d18b3b389e049",
+  "protectedFiles": 0,
+  "missing": [],
+  "changed": [],
+  "database": {
+    "worlds": {
+      "before": 37,
+      "after": 37,
+      "same": true
+    },
+    "play_sessions": {
+      "before": 258,
+      "after": 258,
+      "same": true
+    },
+    "trainer_profile": {
+      "before": 1,
+      "after": 1,
+      "same": true
+    },
+    "adventures": {
+      "before": 446,
+      "after": 446,
+      "same": true
+    }
+  },
+  "integrity": "ok",
+  "volume": "Volume: 0.00"
+}

@@ -11,6 +11,8 @@ public:
     static bool valid(const QJsonObject&);
     static QStringList keys();
     static QStringList choices(const QString& key);
+    static bool onePiece(const QString& id);
+    static QJsonObject equipped(const QJsonObject&, const QString& key, const QString& value);
     static QString packRoot();
     static bool available();
     // Worker-thread operation: resolve a content-addressed standard GLB, never game files.

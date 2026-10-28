@@ -1,0 +1,31 @@
+********* Start testing of BackendAccountTests *********
+Config: Using QtTest library 6.11.2, Qt 6.11.2 (arm64-little_endian-lp64 shared (dynamic) release build; by GCC 16.2.1 20260819 (Red Hat 16.2.1-2)), fedora 44
+PASS   : BackendAccountTests::initTestCase()
+PASS   : BackendAccountTests::groupedCeremonyFreezesAndAcknowledgesOneMoment()
+PASS   : BackendAccountTests::earnedSlotsAndPrizeOwnerRecovery()
+PASS   : BackendAccountTests::outfitAutosaveCoalescesAndRecoversLostResponse()
+PASS   : BackendAccountTests::outfitPurchaseRecoveryAndCachedOwnerIsolation()
+PASS   : BackendAccountTests::supportCreditsKeepXpAndAcceptOnlyValidBonusHistory()
+PASS   : BackendAccountTests::supportPreviewRejectsMalformedStaleAndUnsettledBalances()
+PASS   : BackendAccountTests::purchaseNeedsReviewAndDurableIntentThenRestoresLostResponse()
+PASS   : BackendAccountTests::purchaseLateOwnerResponseAndOfflineAppearanceAreIsolated()
+SKIP   : BackendAccountTests::vaultJobsFromConcurrentShortLivedWorkersReturnOnReceiverThread() Windows credential-store regression; no desktop vault prompts on Linux CI
+   Loc: [/work/combined26/source/tests/BackendAccountTests.cpp(292)]
+PASS   : BackendAccountTests::progressionPersistsOnServerAndFencesOwnerAndMalformedReplies()
+PASS   : BackendAccountTests::progressionDoesNotSubmitRaCredentialsWithoutExplicitLink()
+PASS   : BackendAccountTests::publicAvatarCoalescesAndFencesOwnerChanges()
+PASS   : BackendAccountTests::gameFacadeScopesCredentialsAndRejectsArbitraryProxy()
+PASS   : BackendAccountTests::lateGameGrantIsRevokedAfterDisconnectOrOwnerChange()
+PASS   : BackendAccountTests::browserReturnPublishesOnlyIdentityAndLogoutRevokes()
+PASS   : BackendAccountTests::invalidHostAndDuplicateQueryCannotClaim()
+PASS   : BackendAccountTests::cancelledAndOldOwnerCompletionsCannotPublish()
+PASS   : BackendAccountTests::restartRefreshIsDurableAndAmbiguousFailureNeverReplays()
+PASS   : BackendAccountTests::restartRestoresAndSocialChangeInvalidates()
+PASS   : BackendAccountTests::storageFailureNeverPublishesSession()
+PASS   : BackendAccountTests::expiredAccessDoesNotPretendLogoutRevokedSession()
+PASS   : BackendAccountTests::browserCancellationDoesNotClaim()
+PASS   : BackendAccountTests::delayedVaultWriteRetainsOldOwnerLock()
+PASS   : BackendAccountTests::activeGameGuardPreventsBrowserLaunch()
+PASS   : BackendAccountTests::cleanupTestCase()
+Totals: 25 passed, 0 failed, 1 skipped, 0 blacklisted, 293ms
+********* Finished testing of BackendAccountTests *********

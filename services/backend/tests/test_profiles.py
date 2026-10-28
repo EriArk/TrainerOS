@@ -17,6 +17,22 @@ RECIPE={'schema':1,'packRevision':'a'*64,'appearance':{
     'shirtColor':'#ec9e8d','shortsColor':'#577c87'}}
 
 
+@pytest.mark.parametrize('top,bottom,shoes,hat',[
+    ('sundress','base-shorts','sandals','none'),
+    ('everyday-tee','denim-breeches','canvas-shoes','none'),
+    ('racing-suit','base-shorts','racing-boots','racing-helmet'),
+    ('rose-racing-suit','base-shorts','rose-racing-boots','rose-racing-helmet'),
+])
+def test_starter_and_racing_recipe_preserves_complete_look(account,top,bottom,shoes,hat):
+    value=copy.deepcopy(RECIPE)
+    value['appearance'].update(schema=3,top=top,bottom=bottom,shoes=shoes,headwear=hat,
+                              socks='none',socksColor='#f4f0df',shoesColor='#3d6d7e',headwearColor='#f4f0df')
+    user=login(account);token=user['access_token']
+    assert avatar_recipe(value)==value
+    assert account.profile(token,avatar=value)['avatar']==value
+    assert account.profile(token)['avatar']==value
+
+
 def test_names_are_normalized_bounded_and_never_identity_keys():
     assert display_name({'global_name':' A\n\u202eB\0  C '})=='AB C'
     assert display_name({'global_name':None,'username':'Alice'})=='Alice'

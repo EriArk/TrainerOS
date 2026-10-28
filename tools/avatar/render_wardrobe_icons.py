@@ -5,6 +5,8 @@ No geometry or material changes are written back to the avatar pack.
 """
 import bpy
 import math
+import argparse
+import sys
 from pathlib import Path
 from mathutils import Vector
 
@@ -12,6 +14,8 @@ ROOT = Path(__file__).resolve().parents[2]
 PACK = ROOT / 'assets/avatar/packs/trainer-avatar-1'
 OUT = ROOT / 'assets/avatar/wardrobe-icons'
 OUT.mkdir(parents=True, exist_ok=True)
+parser=argparse.ArgumentParser();parser.add_argument('--collection-only',action='store_true')
+args=parser.parse_args(sys.argv[sys.argv.index('--')+1:] if '--' in sys.argv else [])
 bpy.ops.object.select_all(action='SELECT')
 bpy.ops.object.delete(use_global=False)
 scene = bpy.context.scene
@@ -67,6 +71,15 @@ def render(name, objects, angle=25, target=None, size=None):
     bpy.ops.render.render(write_still=True)
     for obj in objects:obj.hide_render=True
 
+if args.collection_only:
+    import json
+    collection=ROOT/'assets/avatar/collections/starter-racing-v1'
+    for i,(name,entry) in enumerate(json.loads((collection/'collection.json').read_text())['items'].items()):
+        objects=imported(collection/entry['file'])
+        render(name,[o for o in objects if o.type=='MESH' and o.name==name],[-22,25,18][i%3])
+        for obj in objects:bpy.data.objects.remove(obj,do_unlink=True)
+        bpy.data.orphans_purge(do_recursive=True)
+    print('COLLECTION_ICONS_READY');sys.exit(0)
 base=imported(PACK/'template.glb')
 for name,node in [('tank','shirt'),('sandals','shoes')]:
     render(name,[o for o in base if o.type=='MESH' and o.name==node],-25 if name=='sandals' else 18)

@@ -191,9 +191,7 @@ void TrainerController::chooseAvatar(int index,const QString& value) {
     if(!AvatarAssets::choices(key).contains(value))return;
     focus_=index;
     if(draft_.avatar[key]!=value){
-        draft_.avatar[key]=value;
-        if(key=="top" && value!="tank")draft_.avatar["shirtColor"]=value=="polo-short-sleeve"?"#f4f0df":"#234f43";
-        if(key=="bottom" && value!="base-shorts")draft_.avatar["shortsColor"]=value=="pleated-skirt"?"#f4f0df":"#234f43";
+        draft_.avatar=AvatarAssets::equipped(draft_.avatar,key,value);
         refreshAvatar();
     }
     emit changed();

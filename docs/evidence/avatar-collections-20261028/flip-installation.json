@@ -1,0 +1,20 @@
+{
+  "sha256": "e71233d4e936dedc713c48e11c2e8b4f68138a4fb41747abf94d18b3b389e049",
+  "previous_sha256": "f95e50ca0b4fcef4cfb1b53588eaf19c9d7ae1a4b144252c49fff07010104e53",
+  "supervised_restart": true,
+  "capabilities": {
+    "account.identity": 1,
+    "avatar.local": 1,
+    "avatar.recipe": 1,
+    "context": 1,
+    "lifecycle": 1,
+    "lobby.activity": 1,
+    "network.group": 1,
+    "network.records": 1,
+    "play.scorecards": 1,
+    "ui.start.widget": 1
+  },
+  "backup_retained": true,
+  "packRevision": 9,
+  "packManifestSha256": "3e250ec77fa884820143e54c2eccca440d8f8e58a0423d04ca5d145f755af7d1"
+}

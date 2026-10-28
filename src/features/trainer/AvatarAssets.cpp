@@ -25,11 +25,11 @@ QJsonObject AvatarAssets::defaults() {
 }
 QStringList AvatarAssets::keys(){return {"hair","eyes","top","bottom","socks","shoes","headwear","hairColor","eyeColor","skinColor","shirtColor","shortsColor","socksColor","shoesColor","headwearColor"};}
 QStringList AvatarAssets::choices(const QString& key) {
-    if(key=="top")return {"tank","polo-short-sleeve","polo-sleeveless"};
-    if(key=="bottom")return {"base-shorts","golf-shorts","pleated-skirt"};
+    if(key=="top")return {"tank","polo-short-sleeve","polo-sleeveless","everyday-tee","sundress","racing-suit","rose-racing-suit"};
+    if(key=="bottom")return {"base-shorts","golf-shorts","pleated-skirt","denim-breeches"};
     if(key=="socks")return {"none","ankle-socks","crew-socks"};
-    if(key=="shoes")return {"sandals","golf-shoes-classic","golf-shoes-sport"};
-    if(key=="headwear")return {"none","golf-cap","golf-visor"};
+    if(key=="shoes")return {"sandals","golf-shoes-classic","golf-shoes-sport","canvas-shoes","racing-boots","rose-racing-boots"};
+    if(key=="headwear")return {"none","golf-cap","golf-visor","racing-helmet","rose-racing-helmet"};
     if(key=="hair")return {"swept","ponytail","crop","bob"};
     if(key=="eyes")return {"round","almond","rogue-base","rogue-feminine",
         "innocent-base","innocent-feminine","sly-base","sly-feminine",
@@ -43,6 +43,26 @@ QStringList AvatarAssets::choices(const QString& key) {
     if(key=="shoesColor"){auto values=choices("shirtColor");values[0]="#699598";return values;}
     if(key=="socksColor"||key=="headwearColor")return choices("shirtColor");
     return {};
+}
+bool AvatarAssets::onePiece(const QString& id) {
+    return id=="sundress"||id=="racing-suit"||id=="rose-racing-suit";
+}
+QJsonObject AvatarAssets::equipped(const QJsonObject& input,const QString& key,const QString& value) {
+    auto a=normalized(input);if(a.isEmpty()||!choices(key).contains(value))return {};
+    a[key]=value;
+    // A full garment covers the stored bottom; selecting a bottom replaces it.
+    if(key=="bottom"&&onePiece(a["top"].toString()))a["top"]="tank";
+    const QMap<QString,QString> roles{{"top","shirtColor"},{"bottom","shortsColor"},{"shoes","shoesColor"},{"headwear","headwearColor"}};
+    const auto role=roles.value(key);
+    if(!role.isEmpty()) {
+        QFile file(packRoot()+"/manifest.json");
+        if(file.open(QIODevice::ReadOnly)) {
+            const auto entry=QJsonDocument::fromJson(file.readAll()).object()["wearables"].toObject()[value].toObject();
+            if(entry["defaultColor"].isString())a[role]=entry["defaultColor"];
+            else if(value==defaults()[key])a[role]=defaults()[role];
+        }
+    }
+    return a;
 }
 bool AvatarAssets::valid(const QJsonObject& a) {
     const bool legacy=a["schema"]==1;
@@ -97,7 +117,7 @@ QJsonObject AvatarAssets::resolve(const QJsonObject& input,const QString& explic
     const auto manifestBytes=read(root+"/manifest.json",65536);
     auto m=QJsonDocument::fromJson(manifestBytes).object();
     if(m["schema"]!=1 || m["pack"]!=a["pack"])return fail("avatar_pack_unavailable");
-    auto revision=QString::fromLatin1(QCryptographicHash::hash(manifestBytes+"wardrobe-colours-v3"+QJsonDocument(a).toJson(QJsonDocument::Compact),QCryptographicHash::Sha256).toHex());
+    auto revision=QString::fromLatin1(QCryptographicHash::hash(manifestBytes+"wardrobe-collections-v4"+QJsonDocument(a).toJson(QJsonDocument::Compact),QCryptographicHash::Sha256).toHex());
     const auto cache=explicitCache.isEmpty()?QStandardPaths::writableLocation(QStandardPaths::CacheLocation)+"/avatars":explicitCache;
     if(!QDir().mkpath(cache))return fail("avatar_cache_unavailable");
     const auto path=QDir(cache).absoluteFilePath(revision+".glb"),preview=QDir(cache).absoluteFilePath(revision+"-preview.glb");

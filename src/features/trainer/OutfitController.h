@@ -32,6 +32,7 @@ signals:
 private:
     QVariantList rows() const; QVariantMap selected() const; QVariantList items() const;
     QString colourKey() const; QJsonObject recipe() const;
+    QStringList colours() const;
     bool commit(const QJsonObject&); void saveLive(); void preview(); void startPreview();
     BackendAccount& account_; TrainerController& trainer_;
     bool open_=false,liveFailed_=false,livePending_=false;

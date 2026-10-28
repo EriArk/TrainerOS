@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "pack": "trainer-avatar-1",
-  "revision": 7,
+  "revision": 9,
   "template": "template.glb",
   "bodyImage": 1,
   "almondPatches": [
@@ -61,7 +61,7 @@
   },
   "atlasVersion": 2,
   "files": {
-    "template.glb": "7cd68bd1894a680830c312f2f11137fc35d8c2516f67bee60ddadcee39c6ec46",
+    "template.glb": "37eb6fa6d238da37b93e3b6700888c3358eec600b251428df69ed4dbdaaee98c",
     "face-round.png": "ab8d363c7a0fafe920f38d6636f9e7163dc5b8f27e0990f9a2e9e6fc673abc5e",
     "face-almond.png": "374ff3067e9a7b9622fb80bdcdb39f0b172ab1384b2186dac477f784ff6b0d99",
     "mask-round.png": "c10d8575189afcf21654acddcb97d01b28658e295398bd10cca43c260a71cd00",
@@ -99,7 +99,19 @@
     "fit-golf-visor-bob-0-position.bin": "a262770a3efc036a19299392fc9bb80938db7124a2f4dc7513e564a966f4e81d",
     "fit-golf-visor-bob-0-normal.bin": "0c37c169407b697a6a7aea71652c71de8302dd1943d70c5a2a940ad0453cabe9",
     "fit-golf-visor-bob-1-position.bin": "3281006068055cd74b2ce43d687888bf18bf5b0cad5449caf7a730bbce76e0da",
-    "fit-golf-visor-bob-1-normal.bin": "784c3c5b80ea6f8a958aae5af84e64d64ec43b179bcb90580783f641235f1424"
+    "fit-golf-visor-bob-1-normal.bin": "784c3c5b80ea6f8a958aae5af84e64d64ec43b179bcb90580783f641235f1424",
+    "wear-sundress.glb": "8f152af9348f7f12f7303b732c5e87529353dff8d930caade294e3063e51939d",
+    "wear-everyday-tee.glb": "a1ad0bfceb618b140023067e34a176a9984d63adf09cf30e34947165030b5bb4",
+    "wear-denim-breeches.glb": "3a8c62f362b43ac7c9813090c88fd3a593ac63f49d2021a1c0025b2a7d47baf5",
+    "wear-canvas-shoes.glb": "7763270a407223e7faf2d2c7093ee2905451babe13f6ac827a4d29230bbcdec0",
+    "wear-racing-suit.glb": "32683bf294048446f302cf2425b1ef32ad0123f14f861b863742dec7aab82b0e",
+    "wear-racing-helmet.glb": "173ce203edbd92325465334efd81418fb3a25fe722405e530b89f3ce2a026598",
+    "wear-racing-boots.glb": "d72edbdb95f2e23eed4c2f71153e453bd63ab66a1569f84d980d00654d0be729",
+    "wear-racing-gloves.glb": "6d8711e8fa90e0824beca18332e70d558ecae8285561dff6d22ec4d7fa8bb3d3",
+    "wear-rose-racing-suit.glb": "af7c7fa4686fcfc5d82f030ff298bcd37ff33ae71f9e9570f7a09ad4c0552772",
+    "wear-rose-racing-helmet.glb": "817fd4d700a871bd6b986b71c9d49eea6f990fe656eb9e40f07afe17952851c8",
+    "wear-rose-racing-boots.glb": "842c0289f8fd3129dc821cb990b2ba99b6c344fa947cff59827a082b595a68a3",
+    "wear-rose-racing-gloves.glb": "3a50a25c27a920fd8d44b73ef375fee9037138e617cf84887bfdad265c9071dd"
   },
   "clothing": {
     "deformation": "torso-skin",
@@ -211,7 +223,7 @@
   "preparedBodyMesh": 7,
   "vertexPalette": [
     {
-      "accessor": 439,
+      "accessor": 436,
       "role": "skinColor",
       "base": [
         0.87137,
@@ -220,7 +232,7 @@
       ]
     },
     {
-      "accessor": 585,
+      "accessor": 440,
       "role": "skinColor",
       "base": [
         0.87137,
@@ -307,6 +319,115 @@
       "slot": "headwear",
       "file": "wear-golf-visor.glb",
       "sha256": "814f5d8e2fbd8f276673dd55bb2ba80422fc566d8bbcddd7881f1fa583afc110"
+    },
+    "sundress": {
+      "slot": "top",
+      "file": "wear-sundress.glb",
+      "sha256": "8f152af9348f7f12f7303b732c5e87529353dff8d930caade294e3063e51939d",
+      "tintMaterial": "dress",
+      "tintRole": "shirtColor",
+      "defaultColor": "#eab2a1",
+      "covers": [
+        "bottom"
+      ]
+    },
+    "everyday-tee": {
+      "slot": "top",
+      "file": "wear-everyday-tee.glb",
+      "sha256": "a1ad0bfceb618b140023067e34a176a9984d63adf09cf30e34947165030b5bb4",
+      "tintMaterial": "ivory",
+      "tintRole": "shirtColor",
+      "defaultColor": "#f4f0df"
+    },
+    "denim-breeches": {
+      "slot": "bottom",
+      "file": "wear-denim-breeches.glb",
+      "sha256": "3a8c62f362b43ac7c9813090c88fd3a593ac63f49d2021a1c0025b2a7d47baf5",
+      "tintMaterial": "denim",
+      "tintRole": "shortsColor",
+      "defaultColor": "#527899"
+    },
+    "canvas-shoes": {
+      "slot": "shoes",
+      "file": "wear-canvas-shoes.glb",
+      "sha256": "7763270a407223e7faf2d2c7093ee2905451babe13f6ac827a4d29230bbcdec0",
+      "tintMaterial": "ivory",
+      "tintRole": "shoesColor",
+      "defaultColor": "#f4f0df"
+    },
+    "racing-suit": {
+      "slot": "top",
+      "file": "wear-racing-suit.glb",
+      "sha256": "32683bf294048446f302cf2425b1ef32ad0123f14f861b863742dec7aab82b0e",
+      "tintMaterial": "race",
+      "tintRole": "shirtColor",
+      "defaultColor": "#3d6d7e",
+      "covers": [
+        "bottom"
+      ],
+      "companions": [
+        "racing-gloves"
+      ]
+    },
+    "racing-helmet": {
+      "slot": "headwear",
+      "file": "wear-racing-helmet.glb",
+      "sha256": "173ce203edbd92325465334efd81418fb3a25fe722405e530b89f3ce2a026598",
+      "tintMaterial": "race",
+      "tintRole": "headwearColor",
+      "defaultColor": "#3d6d7e",
+      "hidesHair": true
+    },
+    "racing-boots": {
+      "slot": "shoes",
+      "file": "wear-racing-boots.glb",
+      "sha256": "d72edbdb95f2e23eed4c2f71153e453bd63ab66a1569f84d980d00654d0be729",
+      "tintMaterial": "race",
+      "tintRole": "shoesColor",
+      "defaultColor": "#3d6d7e"
+    },
+    "racing-gloves": {
+      "slot": "gloves",
+      "file": "wear-racing-gloves.glb",
+      "sha256": "6d8711e8fa90e0824beca18332e70d558ecae8285561dff6d22ec4d7fa8bb3d3",
+      "defaultColor": "#293c4c"
+    },
+    "rose-racing-suit": {
+      "slot": "top",
+      "file": "wear-rose-racing-suit.glb",
+      "sha256": "af7c7fa4686fcfc5d82f030ff298bcd37ff33ae71f9e9570f7a09ad4c0552772",
+      "tintMaterial": "rose",
+      "tintRole": "shirtColor",
+      "defaultColor": "#d891ab",
+      "covers": [
+        "bottom"
+      ],
+      "companions": [
+        "rose-racing-gloves"
+      ]
+    },
+    "rose-racing-helmet": {
+      "slot": "headwear",
+      "file": "wear-rose-racing-helmet.glb",
+      "sha256": "817fd4d700a871bd6b986b71c9d49eea6f990fe656eb9e40f07afe17952851c8",
+      "tintMaterial": "ivory",
+      "tintRole": "headwearColor",
+      "defaultColor": "#f4f0df",
+      "hidesHair": true
+    },
+    "rose-racing-boots": {
+      "slot": "shoes",
+      "file": "wear-rose-racing-boots.glb",
+      "sha256": "842c0289f8fd3129dc821cb990b2ba99b6c344fa947cff59827a082b595a68a3",
+      "tintMaterial": "rose",
+      "tintRole": "shoesColor",
+      "defaultColor": "#d891ab"
+    },
+    "rose-racing-gloves": {
+      "slot": "gloves",
+      "file": "wear-rose-racing-gloves.glb",
+      "sha256": "3a50a25c27a920fd8d44b73ef375fee9037138e617cf84887bfdad265c9071dd",
+      "defaultColor": "#70546f"
     }
   },
   "headwearFits": {
@@ -654,5 +775,39 @@
     "shoes": "sandals",
     "headwear": "none"
   },
-  "resolvedGeometry": "selected-meshes-v1"
+  "resolvedGeometry": "selected-meshes-v1",
+  "faceBridge": {
+    "version": 1,
+    "sourceTemplateSha256": "7cd68bd1894a680830c312f2f11137fc35d8c2516f67bee60ddadcee39c6ec46",
+    "review": "face-bridge-v1",
+    "eyeTriangleLimitMetres": 0.003,
+    "runtimeExtraEyeClearanceMetres": 0.00025
+  },
+  "starterSets": [
+    "starter-sundress",
+    "starter-denim"
+  ],
+  "outfitSets": {
+    "starter-sundress": [
+      "sundress"
+    ],
+    "starter-denim": [
+      "everyday-tee",
+      "denim-breeches",
+      "canvas-shoes"
+    ],
+    "racing-classic": [
+      "racing-suit",
+      "racing-helmet",
+      "racing-boots",
+      "racing-gloves"
+    ],
+    "racing-rose": [
+      "rose-racing-suit",
+      "rose-racing-helmet",
+      "rose-racing-boots",
+      "rose-racing-gloves"
+    ]
+  },
+  "starterAvailability": "included-with-every-character"
 }

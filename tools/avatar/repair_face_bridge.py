@@ -1,6 +1,7 @@
 """Level the shared bridge and move its eye layers with the same depth field.
 
-Separate review exports only; approved inputs and the installed pack stay intact.
+Writes a separate output; approved inputs and installed packs stay intact.
+package_face_bridge applies the same repair to a staged shared runtime pack.
 """
 import argparse
 import copy
@@ -211,7 +212,7 @@ def repair(source, output, mesh_index=None, eyes_only=False):
     eye_materials = {'Eye white', 'Original painted iris', 'Soft warm eyelid', 'Warm brown eyebrow', 'Reaction hearts'}
     referenced = {n['mesh'] for n in g['nodes'] if 'mesh' in n}
     for mi, mesh in enumerate(g['meshes']):
-        if mi not in referenced: continue
+        if mi not in referenced and mi != mesh_index: continue
         is_body = mi == mesh_index
         is_eye = any(g['materials'][p['material']].get('name') in eye_materials for p in mesh['primitives'])
         if not (is_body or is_eye): continue

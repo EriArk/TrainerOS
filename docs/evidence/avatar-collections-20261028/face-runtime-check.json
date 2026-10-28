@@ -1,0 +1,134 @@
+{
+  "passed": true,
+  "changedVertices": 789,
+  "originalAccessorsPreserved": 462,
+  "rigAnimationMaterialsUVUnchanged": true,
+  "eyeSilhouettesPreserved": true,
+  "oldBridgeHollow": 0.011476206851809653,
+  "newBridgeHollow": 0.0014708699308055156,
+  "maxCorePlaneError": 2.7666941539480905e-05,
+  "eyePairs": {
+    "eyes-calm-base": {
+      "maxEyeClearanceLoss": 0.0004019966810817205,
+      "minimumEyeClearanceWhereSkinRaised": 0.00109800211700474,
+      "sha256": "12a0656b689894febd5998b68350beab0a7500746656973c56153aa3293eecb9"
+    },
+    "eyes-calm-feminine": {
+      "maxEyeClearanceLoss": 0.00046870404629899276,
+      "minimumEyeClearanceWhereSkinRaised": 0.0010313203096960905,
+      "sha256": "a8c4eb201477631df5b0354a9cf417375f23d9713594e92582cf88c48c4f43c0"
+    },
+    "eyes-determined-base": {
+      "maxEyeClearanceLoss": 0.00028464810548159414,
+      "minimumEyeClearanceWhereSkinRaised": 0.0012305160061140824,
+      "sha256": "2f752835c5178480e430ae2f3830f3196160e5b3ff748eee873db8a1cf34d894"
+    },
+    "eyes-determined-feminine": {
+      "maxEyeClearanceLoss": 0.0003140279138767188,
+      "minimumEyeClearanceWhereSkinRaised": 0.0011860036928892925,
+      "sha256": "f52979bb1a5c0759765425a10e5e420fa974dc48a16720de1ad160cb6f5cba0e"
+    },
+    "eyes-innocent-base": {
+      "maxEyeClearanceLoss": 0.0003971327399450719,
+      "minimumEyeClearanceWhereSkinRaised": 0.0011028719234236622,
+      "sha256": "f1f13d84baedfbe568640c3f104d1f3bd832cb4c7979846af7e99ebc2cb97b09"
+    },
+    "eyes-innocent-feminine": {
+      "maxEyeClearanceLoss": 0.00034411066482534225,
+      "minimumEyeClearanceWhereSkinRaised": 0.0011558858637233521,
+      "sha256": "f0421e5ab1e415564f0d41b35bd373de263b953cc68c19ff91b14fc565474fad"
+    },
+    "eyes-rogue-base": {
+      "maxEyeClearanceLoss": 0.00030627103505635744,
+      "minimumEyeClearanceWhereSkinRaised": 0.0012262460430637195,
+      "sha256": "aa92addbea14d46537fd2c445ef1fb155ff71091d32f2d42f297a589a247504a"
+    },
+    "eyes-rogue-feminine": {
+      "maxEyeClearanceLoss": 0.00031083748362972785,
+      "minimumEyeClearanceWhereSkinRaised": 0.001189163208748456,
+      "sha256": "9aee500ca5b3b8b4e18f5cccd5a481fadcf9825a3f36560d68a3b2f477d7f9ce"
+    },
+    "eyes-sleepy-base": {
+      "maxEyeClearanceLoss": 0.0003778372639258454,
+      "minimumEyeClearanceWhereSkinRaised": 0.001122131876957727,
+      "sha256": "cc63bb5ccd2fb0f98a936339caf8698d7baeca94379719790d6453aa0f609400"
+    },
+    "eyes-sleepy-feminine": {
+      "maxEyeClearanceLoss": 0.00031621468038081635,
+      "minimumEyeClearanceWhereSkinRaised": 0.0011837631519351355,
+      "sha256": "9916db21f6a2e278b77a0d91e0044d8a3cc295531ded2e42c76c1660d8d4ee70"
+    },
+    "eyes-sly-base": {
+      "maxEyeClearanceLoss": 0.00028668355159602865,
+      "minimumEyeClearanceWhereSkinRaised": 0.0012299412625293021,
+      "sha256": "3fba56fd1d3d9d6c60d9ba09bc3cff45c92e8becabc84a154f82c1100c3252bf"
+    },
+    "eyes-sly-feminine": {
+      "maxEyeClearanceLoss": 0.0002915830131515057,
+      "minimumEyeClearanceWhereSkinRaised": 0.0012390144580197854,
+      "sha256": "b37c412570ac30ca614ef3f8b1cb3dcd108825d97d0cc30f4357a7a03dfdddd8"
+    }
+  },
+  "maxSidePlaneError": 3.3564692144355535e-05,
+  "resolvedExpressionChecks": {},
+  "runtimeWhiteClearanceChecks": {
+    "rogue-base/rest": 0.00047357218720224525,
+    "rogue-base/eyes_soft": 0.0005386334727366937,
+    "rogue-base/eyes_wide": 0.00034616763023691266,
+    "rogue-base/eyes_half": 0.000478415165559104,
+    "rogue-feminine/rest": 0.00048105581626695093,
+    "rogue-feminine/eyes_soft": 0.0005906473341828061,
+    "rogue-feminine/eyes_wide": 0.0004066764891074992,
+    "rogue-feminine/eyes_half": 0.000475928684107646,
+    "innocent-base/rest": 0.00036085429403956426,
+    "innocent-base/eyes_soft": 0.0004795716036262998,
+    "innocent-base/eyes_wide": 0.00033019962395867963,
+    "innocent-base/eyes_half": 0.00033809386202827973,
+    "innocent-feminine/rest": 0.00036767266950162025,
+    "innocent-feminine/eyes_soft": 0.0005277305494654355,
+    "innocent-feminine/eyes_wide": 0.00037396393587875443,
+    "innocent-feminine/eyes_half": 0.00036767266950162025,
+    "sly-base/rest": 0.0004955071538091799,
+    "sly-base/eyes_soft": 0.000522915875302829,
+    "sly-base/eyes_wide": 0.0003405773650474314,
+    "sly-base/eyes_half": 0.0004955071538091799,
+    "sly-feminine/rest": 0.0005298358964200833,
+    "sly-feminine/eyes_soft": 0.0004644411483323563,
+    "sly-feminine/eyes_wide": 0.0004010847650065541,
+    "sly-feminine/eyes_half": 0.0004679165648743544,
+    "calm-base/rest": 0.00032918020521433,
+    "calm-base/eyes_soft": 0.0004551171340120008,
+    "calm-base/eyes_wide": 0.0003671638636828234,
+    "calm-base/eyes_half": 0.0003289707859071844,
+    "calm-feminine/rest": 0.00031067377401465535,
+    "calm-feminine/eyes_soft": 0.0004889450743209289,
+    "calm-feminine/eyes_wide": 0.00040622144189088327,
+    "calm-feminine/eyes_half": 0.000317066067171648,
+    "sleepy-base/rest": 0.000329431419016174,
+    "sleepy-base/eyes_soft": 0.0004600568357655821,
+    "sleepy-base/eyes_wide": 0.0003304698885407964,
+    "sleepy-base/eyes_half": 0.0003293424334971651,
+    "sleepy-feminine/rest": 0.000317714017704987,
+    "sleepy-feminine/eyes_soft": 0.0005376693047253328,
+    "sleepy-feminine/eyes_wide": 0.00037499780417457607,
+    "sleepy-feminine/eyes_half": 0.00032505548887934443,
+    "determined-base/rest": 0.0005086511665931964,
+    "determined-base/eyes_soft": 0.0005736636365120812,
+    "determined-base/eyes_wide": 0.00037830243353766113,
+    "determined-base/eyes_half": 0.0005190617792213276,
+    "determined-feminine/rest": 0.0004962234004743798,
+    "determined-feminine/eyes_soft": 0.0006256849485387767,
+    "determined-feminine/eyes_wide": 0.0004388098334967838,
+    "determined-feminine/eyes_half": 0.0005139861095553033,
+    "round/rest": 0.0003616096999251167,
+    "round/eyes_soft": 0.0004594167440700181,
+    "round/eyes_wide": 0.0003295747671629018,
+    "round/eyes_half": 0.0003319268771979772,
+    "almond/rest": 0.0005457313203002107,
+    "almond/eyes_soft": 0.0004728529390935349,
+    "almond/eyes_wide": 0.0003986775934523151,
+    "almond/eyes_half": 0.0004120829861567754
+  },
+  "runtimeClearanceFailures": [],
+  "scope": "Shared prepared face and rest-pose eye clearance; no new runtime/device or full-expression acceptance."
+}

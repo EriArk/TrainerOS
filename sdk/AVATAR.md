@@ -3,10 +3,12 @@
 New integration? Start with the [step-by-step guide and runnable Godot demo](AVATAR_QUICKSTART.md).
 This page is the protocol/reference companion.
 
-The current source pack is **revision 7**: the revision-6 face/expressions plus
-10 separate golf garments in five wardrobe slots. All four hairstyles have
-reversible cap/visor fits. See [wardrobe integration](../docs/AVATAR_WARDROBE_20261028.md)
-and [facial API](AVATAR_EXPRESSIONS.md). Historical revision-4/5 descriptions below
+The current source pack is **revision 9**: the corrected face bridge, 14 eye
+styles and 22 separate garments, including golf, two starter looks and two
+racing looks. All four hairstyles retain reversible cap/visor fits; racing
+helmets hide hair until removed. See [collection integration](../docs/AVATAR_COLLECTION_DELIVERY_20261028.md),
+[wardrobe integration](../docs/AVATAR_WARDROBE_20261028.md) and
+[facial API](AVATAR_EXPRESSIONS.md). Historical revision descriptions below
 remain evidence of earlier deliveries.
 
 TrainerOS owns appearance and the installed asset pack. A game distributes only
@@ -29,7 +31,12 @@ Appearance schema 2 has the original nine fields plus `top`, `bottom`, `socks`,
 `shoes` and `headwear`. Schema-1 stored looks remain accepted and normalize to
 `tank`, `base-shorts`, `none`, `sandals`, `none`. Descriptor/recipe envelopes remain
 schema 1. IDs and colours are validated, and peer pack hashes must still match.
-No purchase is required for these ten garments; paid slots remain separate.
+No purchase is required for these garments; paid saved-look slots remain separate.
+The sundress and both racing suits occupy `top` and cover the stored `bottom`.
+Removing a whole outfit restores that bottom; equipping a separate bottom replaces
+the whole outfit with the default tank. Racing suits include their matching gloves.
+These rules belong to the host resolver: games consume the resulting GLB and need
+no clothing-specific branches. Appearance schema 3 is unchanged.
 Current appearance schema 3 additionally carries `socksColor`, `shoesColor`,
 and `headwearColor` as `#RRGGBB`. Schema 1/2 inputs remain accepted; normalization
 adds ivory socks/golf shoes, the original blue-grey sandals and forest headwear.
@@ -127,6 +134,15 @@ It updates only the imported color attribute, preserving UVs, skin, corrective
 buffers and the hashed source file. Mobile/Forward+ keep linear colors. Use the
 helper as a versioned unit instead of adding game-specific material overrides.
 See [Godot's vertex color behavior](https://docs.godotengine.org/en/stable/classes/class_basematerial3d.html#class-basematerial3d-property-vertex-color-is-srgb).
+
+The 28 October presenter also evaluates body/garment corrective morphs on the
+CPU in Compatibility, where GPU morph playback corrupted otherwise unchanged
+head vertices. Original clips drive per-instance weights; skeleton skinning
+stays on GPU. Dirty surfaces update before rendering and revocation disconnects
+the updater. Other renderers retain GPU morphs. Run `tests/correctives.gd` with a
+resolved descriptor to check all eight clips, unchanged head/skin and instance
+isolation. Update the SDK code in consumers; an asset-pack update cannot replace
+a presenter's code already embedded in a game package.
 
 ## Local preparation
 

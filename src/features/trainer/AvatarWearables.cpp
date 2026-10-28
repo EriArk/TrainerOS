@@ -37,8 +37,17 @@ float linear(float c){return c<=.04045f?c/12.92f:std::pow((c+.055f)/1.055f,2.4f)
 bool applyAvatarWearables(QJsonObject& g,QByteArray& binary,const QJsonObject& m,const QJsonObject& a,const QString& root) {
     const auto catalogue=m["wearables"].toObject();
     auto nodes=g["nodes"].toArray();
+    QList<QPair<QString,QString>> garments;
+    const auto top=catalogue[a["top"].toString()].toObject();
     for(const auto& slot:{"top","bottom","socks","shoes","headwear"}) {
-        const auto id=a[slot].toString();
+        if(top["covers"].toArray().contains(QString(slot)))continue;
+        garments.append({slot,a[slot].toString()});
+    }
+    for(const auto& companion:top["companions"].toArray()) {
+        const auto id=companion.toString();garments.append({catalogue[id].toObject()["slot"].toString(),id});
+    }
+    for(const auto& garment:garments) {
+        const auto slot=garment.first,id=garment.second;
         if(id=="none"||id=="tank"||id=="base-shorts"||id=="sandals")continue;
         const auto entry=catalogue[id].toObject();
         if(entry["slot"]!=slot)return false;
@@ -74,8 +83,8 @@ bool applyAvatarWearables(QJsonObject& g,QByteArray& binary,const QJsonObject& m
         }
         for(const auto& value:w["materials"].toArray()){
             auto mat=value.toObject();
-            const QString role=QString(slot)=="socks"?"socksColor":QString(slot)=="shoes"?"shoesColor":QString(slot)=="headwear"?"headwearColor":entry["tintRole"].toString();
-            const QString material=QString(slot)=="socks"||QString(slot)=="shoes"?"ivory":QString(slot)=="headwear"?"forest":entry["tintMaterial"].toString();
+            const QString role=entry["tintRole"].toString(slot=="socks"?"socksColor":slot=="shoes"?"shoesColor":slot=="headwear"?"headwearColor":QString());
+            const QString material=entry["tintMaterial"].toString(slot=="socks"||slot=="shoes"?"ivory":slot=="headwear"?"forest":QString());
             if(mat["name"]==material&&!role.isEmpty()){
                 QColor c(a[role].toString());auto pbr=mat["pbrMetallicRoughness"].toObject();
                 pbr["baseColorFactor"]=QJsonArray{linear(c.redF()),linear(c.greenF()),linear(c.blueF()),1};mat["pbrMetallicRoughness"]=pbr;
@@ -119,8 +128,12 @@ bool applyAvatarWearables(QJsonObject& g,QByteArray& binary,const QJsonObject& m
         auto scenes=g["scenes"].toArray();const int si=g["scene"].toInt();auto scene=scenes[si].toObject();auto roots=scene["nodes"].toArray();roots.append(nodeIndex);scene["nodes"]=roots;scenes[si]=scene;
         binary+=wb;g["bufferViews"]=views;g["accessors"]=accessors;g["materials"]=materials;g["meshes"]=meshes;g["animations"]=animations;g["scenes"]=scenes;
     }
+    const bool hidesHair=catalogue[a["headwear"].toString()].toObject()["hidesHair"].toBool();
+    if(hidesHair)for(const auto& index:m["hairNodes"].toObject()) {
+        auto node=nodes[index.toInt()].toObject();node.remove("mesh");node.remove("skin");nodes[index.toInt()]=node;
+    }
     g["nodes"]=nodes;
-    if(a["headwear"]!="none"){
+    if(a["headwear"]!="none"&&!hidesHair){
         const auto patches=m["headwearFits"].toObject()[a["headwear"].toString()+"/"+a["hair"].toString()].toArray();
         if(patches.isEmpty())return false;
         auto accessors=g["accessors"].toArray();const auto views=g["bufferViews"].toArray();

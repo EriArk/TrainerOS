@@ -10,6 +10,8 @@ from check_garment_fit import depth_profile
 ROOT=Path(__file__).resolve().parents[2]
 parser=argparse.ArgumentParser(description=__doc__)
 parser.add_argument('--resolved-before',type=Path);parser.add_argument('--resolved-after',type=Path)
+parser.add_argument('--runtime-before',type=Path);parser.add_argument('--runtime-after',type=Path)
+parser.add_argument('--output',type=Path)
 args=parser.parse_args()
 source=ROOT/'assets/avatar/approved/2026-10-26/chibi-eyes/avatar-prepared-face.glb'
 folder=ROOT/'assets/avatar/collections/face-bridge-v1'
@@ -159,11 +161,45 @@ if args.resolved_before or args.resolved_after:
                 minimum=min(minimum,float(ng.min()));loss=max(loss,float((og-ng).max()))
                 assert (ng[og>.00035]>.00015).all(),('Expression clearance below margin',control,float(ng.min()))
             expression_checks[control]={'minimumEyeClearance':minimum,'maximumClearanceLoss':loss}
-result={'passed':True,'changedVertices':int(changed.sum()),'originalAccessorsPreserved':len(before.g['accessors']),
+runtime_checks={};runtime_failures=[]
+if args.runtime_before or args.runtime_after:
+    assert args.runtime_before and args.runtime_after
+    old=GLB(args.runtime_before/'template.glb');new=GLB(args.runtime_after/'template.glb')
+    om=json.loads((args.runtime_before/'manifest.json').read_text());nm=json.loads((args.runtime_after/'manifest.json').read_text())
+    op=old.acc(old.g['meshes'][om['preparedBodyMesh']]['primitives'][0]['attributes']['POSITION'])
+    np_=new.acc(new.g['meshes'][nm['preparedBodyMesh']]['primitives'][0]['attributes']['POSITION'])
+    assert np.array_equal(op,p) and np.array_equal(np_,q),'Runtime body differs from reviewed geometry'
+    for style,ids in nm['eyeNodes'].items():
+        nodes=[i for i in ids if new.g['nodes'][i].get('name','').endswith('-white')]
+        assert len(nodes)==1
+        node=nodes[0];old_mesh=old.g['meshes'][old.g['nodes'][node]['mesh']];new_mesh=new.g['meshes'][new.g['nodes'][node]['mesh']]
+        names=new_mesh['extras']['targetNames']
+        for control in ['rest','eyes_soft','eyes_wide','eyes_half']:
+            minimum=np.inf
+            for old_prim,new_prim in zip(old_mesh['primitives'],new_mesh['primitives']):
+                ov=old.acc(old_prim['attributes']['POSITION']);nv=new.acc(new_prim['attributes']['POSITION'])
+                if control!='rest':
+                    index=names.index(control);ov=ov+old.acc(old_prim['targets'][index]['POSITION']);nv=nv+new.acc(new_prim['targets'][index]['POSITION'])
+                assert np.max(abs(ov[:,:2]-nv[:len(ov),:2]))<1e-7
+                f=old.acc(old_prim['indices']).reshape(-1,3);nf=new.acc(new_prim['indices']).reshape(-1,3)
+                samples=eye_samples(nv,nf);old_eye_depth=surface_depth(ov,samples,f)
+                assert np.isfinite(old_eye_depth).all(),'Runtime eye footprint changed'
+                oz=surface_depth(p,samples);nz=surface_depth(q,samples)
+                valid=np.isfinite(oz)&np.isfinite(nz)
+                valid[valid]&=(nz[valid]-oz[valid]>1e-6)&(old_eye_depth[valid]-oz[valid]>.00035)
+                gap=samples[valid,2]-nz[valid]
+                assert len(gap),(style,control,'No raised skin samples')
+                if gap.min()<=.00015:runtime_failures.append((style,control,float(gap.min())))
+                minimum=min(minimum,float(gap.min()))
+            runtime_checks[style+'/'+control]=minimum
+result={'passed':not runtime_failures,'changedVertices':int(changed.sum()),'originalAccessorsPreserved':len(before.g['accessors']),
         'rigAnimationMaterialsUVUnchanged':True,'eyeSilhouettesPreserved':True,'oldBridgeHollow':old_depth,
         'newBridgeHollow':new_depth,'maxCorePlaneError':plane_error,'eyePairs':eye_checks,
         'maxSidePlaneError':max(side_errors),
         'resolvedExpressionChecks':expression_checks,
+        'runtimeWhiteClearanceChecks':runtime_checks,
+        'runtimeClearanceFailures':runtime_failures,
         'scope':'Shared prepared face and rest-pose eye clearance; no new runtime/device or full-expression acceptance.'}
-(folder/'validation.json').write_text(json.dumps(result,indent=2)+'\n')
+(args.output or folder/'validation.json').write_text(json.dumps(result,indent=2)+'\n')
+assert not runtime_failures,runtime_failures
 print(json.dumps({'passed':True,'changedVertices':int(changed.sum()),'eyePairs':12,'oldHollow':old_depth,'newHollow':new_depth}))

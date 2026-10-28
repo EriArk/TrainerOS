@@ -91,6 +91,25 @@ inline void startAvatarSmoke(QQuickWindow* window,trainer::ShellController& shel
         case 9:
             if(trainer->saving()||trainer->avatarBusy()||wardrobe->view()["previewBusy"].toBool())break;
             check(trainer->appearance()["eyes"]=="determined-feminine","All eye variants remain reachable");capture("wardrobe-dark-eyes");
+            wardrobe->selectCategory(8);wardrobe->selectItem(0);wardrobe->equip();++*stage;break;
+        case 10:
+            if(trainer->saving()||trainer->avatarBusy()||wardrobe->view()["previewBusy"].toBool())break;
+            check(trainer->appearance()["top"]=="sundress","Sundress equips as one garment");capture("wardrobe-sundress");
+            wardrobe->selectItem(2);wardrobe->equip();wardrobe->selectCategory(0);wardrobe->selectItem(3);wardrobe->equip();
+            wardrobe->selectCategory(4);wardrobe->selectItem(5);wardrobe->equip();++*stage;break;
+        case 11:
+            if(trainer->saving()||trainer->avatarBusy()||wardrobe->view()["previewBusy"].toBool())break;
+            check(trainer->appearance()["top"]=="rose-racing-suit"&&trainer->appearance()["headwear"]=="rose-racing-helmet","Rose racing outfit with helmet");capture("wardrobe-racing-helmet");
+            wardrobe->selectCategory(0);wardrobe->selectItem(3);wardrobe->equip();++*stage;break;
+        case 12:
+            if(trainer->saving()||trainer->avatarBusy()||wardrobe->view()["previewBusy"].toBool())break;
+            check(trainer->appearance()["headwear"]=="none","Helmet removal restores chosen hair");capture("wardrobe-racing-hair");
+            wardrobe->selectCategory(2);wardrobe->selectItem(3);wardrobe->equip();
+            wardrobe->selectCategory(1);wardrobe->selectItem(3);wardrobe->equip();
+            wardrobe->selectCategory(4);wardrobe->selectItem(3);wardrobe->equip();++*stage;break;
+        case 13:
+            if(trainer->saving()||trainer->avatarBusy()||wardrobe->view()["previewBusy"].toBool())break;
+            check(trainer->appearance()["top"]=="everyday-tee"&&trainer->appearance()["bottom"]=="denim-breeches","Separate starter garments replace full outfit");capture("wardrobe-denim");
             shell.dispatch(trainer::Action::Back);shell.dispatch(trainer::Action::Back);check(!shell.serviceOpen(),"Profile dismissal returns to shell");++*stage;break;
         default:
             check(warnings==0,"QML warnings during wardrobe");

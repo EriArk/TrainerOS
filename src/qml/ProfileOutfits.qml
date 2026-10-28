@@ -56,7 +56,7 @@ Item {
                 onLoaded: {
                     item.modelSource=Qt.binding(function(){return root.view.preview})
                     item.poseHost=root.controller
-                    item.closeup=Qt.binding(function(){return root.view.category>=5})
+                    item.closeup=Qt.binding(function(){return root.view.category>=5&&root.view.category<=7})
                 }
             }
             Text { anchors.centerIn: parent; width: parent.width-30; visible: !portrait.active || !!root.view.previewError; text:root.view.previewError?"Preview unavailable": "Preparing your look...";wrapMode:Text.WordWrap;horizontalAlignment:Text.AlignHCenter;font.pixelSize:12;color:Theme.muted }
@@ -113,7 +113,7 @@ Item {
                     delegate:Item {
                         required property int index;readonly property string tone:root.view.colours[index]
                         objectName:"wardrobe-colour-"+index
-                        width:Math.min(30,(wardrobePalette.width-16)/9);height:32
+                        width:Math.min(30,(wardrobePalette.width-2*(root.view.colours.length-1))/Math.max(1,root.view.colours.length));height:32
                         Rectangle {anchors.centerIn:parent;width:parent.width-2;height:width;radius:width/2;color:"transparent";border.width:root.view.colour===parent.tone||root.view.focus===3&&root.view.colourIndex===parent.index?2:0;border.color:root.focused&&root.view.focus===3&&root.view.colourIndex===parent.index?Theme.focus:root.accent}
                         Rectangle {anchors.centerIn:parent;width:parent.width-8;height:width;radius:width/2;color:parent.tone;border.width:1;border.color:Theme.divider}
                         MouseArea {anchors.fill:parent;onClicked:root.controller.chooseColour(index)}
@@ -138,9 +138,9 @@ Item {
             delegate:Rectangle {
                 required property int index;readonly property var record:root.view.categories[index]
                 objectName:"wardrobe-category-"+record.id
-                width:52;height:Math.min(46,(root.height-50)/8-2);radius:12;color:root.view.category===index?Theme.selection:"transparent"
+                width:52;height:Math.min(46,(root.height-50)/root.view.categories.length-2);radius:12;color:root.view.category===index?Theme.selection:"transparent"
                 border.width:root.focused&&root.view.focus===1&&root.view.category===index?2:0;border.color:Theme.focus
-                Image {anchors.horizontalCenter:parent.horizontalCenter;y:1;width:28;height:Math.max(18,parent.height-15);source:"qrc:/wardrobe/"+(["golf-cap","polo-short-sleeve","golf-shorts","crew-socks","golf-shoes-classic","swept","round","skin"])[parent.index]+".png";fillMode:Image.PreserveAspectFit}
+                Image {anchors.horizontalCenter:parent.horizontalCenter;y:1;width:28;height:Math.max(18,parent.height-15);source:"qrc:/wardrobe/"+(["golf-cap","polo-short-sleeve","golf-shorts","crew-socks","golf-shoes-classic","swept","round","skin","sundress"])[parent.index]+".png";fillMode:Image.PreserveAspectFit}
                 Text {anchors.bottom:parent.bottom;anchors.bottomMargin:2;anchors.horizontalCenter:parent.horizontalCenter;text:parent.record.name;font.pixelSize:8;color:Theme.ink}
                 MouseArea {anchors.fill:parent;onClicked:root.controller.selectCategory(index)}
                 Accessible.role:Accessible.PageTab;Accessible.name:record.name;Accessible.selected:root.view.category===index

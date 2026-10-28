@@ -28,11 +28,11 @@ def avatar_recipe(value):
     valid = valid and isinstance(value['packRevision'], str) and re.fullmatch('[a-f0-9]{64}', value['packRevision'])
     a = value.get('appearance') if valid else None
     colors = {'skinColor', 'hairColor', 'eyeColor', 'shirtColor', 'shortsColor'}
-    wardrobe = {'top': ('tank', 'polo-short-sleeve', 'polo-sleeveless'),
-                'bottom': ('base-shorts', 'golf-shorts', 'pleated-skirt'),
+    wardrobe = {'top': ('tank', 'polo-short-sleeve', 'polo-sleeveless', 'everyday-tee', 'sundress', 'racing-suit', 'rose-racing-suit'),
+                'bottom': ('base-shorts', 'golf-shorts', 'pleated-skirt', 'denim-breeches'),
                 'socks': ('none', 'ankle-socks', 'crew-socks'),
-                'shoes': ('sandals', 'golf-shoes-classic', 'golf-shoes-sport'),
-                'headwear': ('none', 'golf-cap', 'golf-visor')}
+                'shoes': ('sandals', 'golf-shoes-classic', 'golf-shoes-sport', 'canvas-shoes', 'racing-boots', 'rose-racing-boots'),
+                'headwear': ('none', 'golf-cap', 'golf-visor', 'racing-helmet', 'rose-racing-helmet')}
     valid = valid and isinstance(a, dict) and type(a.get('schema')) is int and a['schema'] in (1, 2, 3)
     if valid and a['schema'] == 3:
         colors |= {'socksColor', 'shoesColor', 'headwearColor'}

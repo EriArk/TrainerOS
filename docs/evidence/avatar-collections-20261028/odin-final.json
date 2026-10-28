@@ -1,0 +1,22 @@
+{
+  "liveHostSha256": "e71233d4e936dedc713c48e11c2e8b4f68138a4fb41747abf94d18b3b389e049",
+  "packRevision": 9,
+  "packManifestSha256": "3e250ec77fa884820143e54c2eccca440d8f8e58a0423d04ca5d145f755af7d1",
+  "packFilesVerified": 51,
+  "sdkCheckerPckSha256": "47422eacd97cb965cc45bb1bec11ef384ebbc9927e89be55e5972ae033ba5150",
+  "sdkPresenterSha256": "d4bd41f4686ca78ca88af49b6c1d9d4139b83b8bc36ced680e9f829686939603",
+  "sdkRenderer": {
+    "success": true,
+    "renders": 21,
+    "hostUnchanged": true,
+    "profilesUnchanged": true,
+    "installedPackRevision": 9,
+    "glbSha256": "530eac04b5f215e29354d5320cc43b6f2cbecafaf9c53a25ffb789349557c4ef"
+  },
+  "wardrobe": {
+    "diagnostics": [],
+    "success": true,
+    "warnings": 0
+  },
+  "volume": "Volume: 0.00"
+}
