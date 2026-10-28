@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "pack": "trainer-avatar-1",
-  "revision": 9,
+  "revision": 10,
   "template": "template.glb",
   "bodyImage": 1,
   "almondPatches": [
@@ -61,7 +61,7 @@
   },
   "atlasVersion": 2,
   "files": {
-    "template.glb": "37eb6fa6d238da37b93e3b6700888c3358eec600b251428df69ed4dbdaaee98c",
+    "template.glb": "cdc990f8f1aa3db51b5ad153cd9c8b1b0a09860d29dd6c28fc7444e5aefffe09",
     "face-round.png": "ab8d363c7a0fafe920f38d6636f9e7163dc5b8f27e0990f9a2e9e6fc673abc5e",
     "face-almond.png": "374ff3067e9a7b9622fb80bdcdb39f0b172ab1384b2186dac477f784ff6b0d99",
     "mask-round.png": "c10d8575189afcf21654acddcb97d01b28658e295398bd10cca43c260a71cd00",
@@ -776,13 +776,6 @@
     "headwear": "none"
   },
   "resolvedGeometry": "selected-meshes-v1",
-  "faceBridge": {
-    "version": 1,
-    "sourceTemplateSha256": "7cd68bd1894a680830c312f2f11137fc35d8c2516f67bee60ddadcee39c6ec46",
-    "review": "face-bridge-v1",
-    "eyeTriangleLimitMetres": 0.003,
-    "runtimeExtraEyeClearanceMetres": 0.00025
-  },
   "starterSets": [
     "starter-sundress",
     "starter-denim"
@@ -809,5 +802,28 @@
       "rose-racing-gloves"
     ]
   },
-  "starterAvailability": "included-with-every-character"
+  "starterAvailability": "included-with-every-character",
+  "faceSurface": {
+    "version": 2,
+    "sourceSha256": "cbd88a5d387c5f74ed0d0657f23dc989aceb993c71da8cc0d4a15b30e7942354",
+    "referenceId": "painted-face-2026-10-29",
+    "headScale": 0.92,
+    "headPivot": [
+      0,
+      0.716,
+      0
+    ],
+    "method": "restore-source-and-project-eye-layers"
+  },
+  "faceContrast": {
+    "version": 1,
+    "skinReference": "#f7d8bf",
+    "curve": "sqrt-linear-luminance-ratio",
+    "minimumFactor": 0.12,
+    "materials": [
+      "Warm brown eyebrow",
+      "Soft warm eyelid",
+      "Mouth Contour"
+    ]
+  }
 }

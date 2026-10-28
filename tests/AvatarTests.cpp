@@ -13,6 +13,51 @@ using namespace trainer;
 class AvatarTests:public QObject {
     Q_OBJECT
 private slots:
+    void facialLinesDarkenWithSkinWithoutChangingOtherMaterialsOrGeometry() {
+        if(!AvatarAssets::available())QSKIP("Avatar pack unavailable");
+        QTemporaryDir cache;
+        QMap<QString,QJsonObject> baseline;
+        QMap<QString,double> previous;
+        QMap<QString,QByteArray> geometry;
+        auto tones=AvatarAssets::choices("skinColor");tones.insert(5,"#76503b");
+        for(const auto& tone:tones){
+            auto appearance=AvatarAssets::defaults();appearance["skinColor"]=tone;
+            appearance["hairColor"]="#e9dcd0";appearance["eyes"]="rogue-feminine";
+            const auto result=AvatarAssets::resolve(appearance,{},cache.path());
+            QVERIFY2(!result.contains("error"),qPrintable(result["error"].toString()));
+            QFile file(result["glb"].toString());QVERIFY(file.open(QIODevice::ReadOnly));
+            const auto bytes=file.readAll();const int jsonSize=qFromLittleEndian<quint32>(bytes.constData()+12);
+            const auto g=QJsonDocument::fromJson(bytes.mid(20,jsonSize)).object();
+            const auto accessors=g["accessors"].toArray(),views=g["bufferViews"].toArray();
+            for(const auto& entry:g["materials"].toArray()){
+                const auto material=entry.toObject();const auto name=material["name"].toString();
+                const bool line=name=="Warm brown eyebrow"||name=="Soft warm eyelid"||name=="Mouth Contour";
+                if(!line){if(baseline.contains(name))QCOMPARE(material,baseline[name]);else baseline[name]=material;continue;}
+                const auto colour=material["pbrMetallicRoughness"].toObject()["baseColorFactor"].toArray();
+                const double light=colour[0].toDouble()+colour[1].toDouble()+colour[2].toDouble();
+                QVERIFY(light>0);QCOMPARE(colour[3].toDouble(),1.0);
+                if(previous.contains(name))QVERIFY2(light<previous[name],qPrintable(name+" did not darken for "+tone));
+                previous[name]=light;
+            }
+            QCOMPARE(previous.size(),3);
+            int meshId=0;
+            for(const auto& mesh:g["meshes"].toArray()){
+                int primitive=0;
+                for(const auto& p:mesh.toObject()["primitives"].toArray()){
+                    for(const auto& semantic:{"POSITION","NORMAL"}){
+                        const auto acc=accessors[p.toObject()["attributes"].toObject()[semantic].toInt()].toObject();
+                        const auto view=views[acc["bufferView"].toInt()].toObject();
+                        const auto data=bytes.mid(28+jsonSize+view["byteOffset"].toInt()+acc["byteOffset"].toInt(),acc["count"].toInt()*12);
+                        const auto key=QString::number(meshId)+"/"+QString::number(primitive)+"/"+semantic;
+                        if(geometry.contains(key))QCOMPARE(data,geometry[key]);else geometry[key]=data;
+                    }
+                    ++primitive;
+                }
+                ++meshId;
+            }
+            QCOMPARE(AvatarAssets::resolve(appearance,{},cache.path())["sha256"],result["sha256"]);
+        }
+    }
     void starterCollectionsAndReversibleCoverage() {
         if(!AvatarAssets::available())QSKIP("Avatar pack unavailable");
         QTemporaryDir cache;const auto destination=qEnvironmentVariable("TRAINER_AVATAR_TEST_OUTPUT");
@@ -174,7 +219,7 @@ private slots:
         if(!AvatarAssets::available())QSKIP("External avatar pack not installed");
         QTemporaryDir cache;QSet<QString> hashes;int index=0;
         QFile manifest(AvatarAssets::packRoot()+"/manifest.json");QVERIFY(manifest.open(QIODevice::ReadOnly));
-        const auto pack=QJsonDocument::fromJson(manifest.readAll()).object();QCOMPARE(pack["revision"].toInt(),9);
+        const auto pack=QJsonDocument::fromJson(manifest.readAll()).object();QCOMPARE(pack["revision"].toInt(),10);
         QFile templateFile(AvatarAssets::packRoot()+"/template.glb");QVERIFY(templateFile.open(QIODevice::ReadOnly));
         const auto templateBytes=templateFile.readAll();
         const auto templateJson=QJsonDocument::fromJson(templateBytes.mid(20,qFromLittleEndian<quint32>(templateBytes.constData()+12))).object();

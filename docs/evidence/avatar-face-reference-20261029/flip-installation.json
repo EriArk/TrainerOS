@@ -1,0 +1,19 @@
+{
+  "installed": true,
+  "revision": 10,
+  "filesVerified": 51,
+  "manifestSha256": "fc9a09f698ee973b6e661beaff85247830113678c0495dcf9f59efd2f1cb1b9a",
+  "hostSha256": "c1649d223fa934f7bfa2577a0ec3c90c7d2db858f9d377962e91938316e7989f",
+  "previousHostSha256": "2efe427aeda2bbb58584ac665f2215376a029798a8d07eb518a01a33c2501acc",
+  "newerHostFeaturesPreserved": true,
+  "supervisedRestart": true,
+  "settingsUnchanged": true,
+  "databaseTablesUnchanged": {
+    "worlds": true,
+    "trainer_profile": true,
+    "adventures": true
+  },
+  "databaseIntegrity": "ok",
+  "backupRetained": true,
+  "volume": "Volume: 0.20"
+}

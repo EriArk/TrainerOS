@@ -1,0 +1,21 @@
+{
+  "passed": true,
+  "revision": 10,
+  "templateBytes": 55753292,
+  "files": 51,
+  "wearables": 22,
+  "eyeSets": 14,
+  "paletteAccessors": 2,
+  "hairFitSourcesPreserved": true,
+  "rigBones": 54,
+  "clips": 8,
+  "manifestSha256": "fc9a09f698ee973b6e661beaff85247830113678c0495dcf9f59efd2f1cb1b9a",
+  "approvedFace": {
+    "passed": true,
+    "reference": "painted-face-2026-10-29",
+    "headVertices": 8222,
+    "positionsExact": true,
+    "normalsExact": true,
+    "bodyCorrectivesPreserveHead": true
+  }
+}

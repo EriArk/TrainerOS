@@ -4,6 +4,17 @@
 
 ## Current working mode — owner correction, 21 October 2026
 
+**Owner avatar reference, 29 October (latest):** the restored face from the
+owner-supplied `painted-face.glb` is now the approved
+[canonical reference](assets/avatar/approved/face-2026-10-29/README.md).
+Preserve its exact head geometry, normals, UVs and skinning at the approved 0.92
+scale. Revision 9 bridge sculpt and `before-front` are rejected references.
+Fit clothing and eye layers around the approved head; never sculpt the head to
+hide a collision. Run `check_face_reference.py`, `check_eye_layers.py` and
+`check_pack_collection.py` before every avatar pack delivery. The owner also
+requires lips, brows and lashes to darken continuously as skin gets darker;
+this is a material rule, not permission to change the approved face shape.
+
 **Owner rewards/profile discussion, 28 October (latest):** before Patreon/Ko-fi,
 the owner accepted level clothing rewards, an additional permanent outfit slot
 every three levels, first-completion trophies and selected game wearables,

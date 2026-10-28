@@ -117,7 +117,7 @@ QJsonObject AvatarAssets::resolve(const QJsonObject& input,const QString& explic
     const auto manifestBytes=read(root+"/manifest.json",65536);
     auto m=QJsonDocument::fromJson(manifestBytes).object();
     if(m["schema"]!=1 || m["pack"]!=a["pack"])return fail("avatar_pack_unavailable");
-    auto revision=QString::fromLatin1(QCryptographicHash::hash(manifestBytes+"wardrobe-collections-v4"+QJsonDocument(a).toJson(QJsonDocument::Compact),QCryptographicHash::Sha256).toHex());
+    auto revision=QString::fromLatin1(QCryptographicHash::hash(manifestBytes+"wardrobe-face-contrast-v5"+QJsonDocument(a).toJson(QJsonDocument::Compact),QCryptographicHash::Sha256).toHex());
     const auto cache=explicitCache.isEmpty()?QStandardPaths::writableLocation(QStandardPaths::CacheLocation)+"/avatars":explicitCache;
     if(!QDir().mkpath(cache))return fail("avatar_cache_unavailable");
     const auto path=QDir(cache).absoluteFilePath(revision+".glb"),preview=QDir(cache).absoluteFilePath(revision+"-preview.glb");
@@ -190,7 +190,20 @@ QJsonObject AvatarAssets::resolve(const QJsonObject& input,const QString& explic
         auto materials=g["materials"].toArray();auto roles=m["materialRoles"].toObject();
         if(a["shoes"]=="sandals"&&a["shoesColor"]!=defaults()["shoesColor"])
             for(int i=0;i<materials.size();++i)if(materials[i].toObject()["name"]=="SandalStrap")roles[QString::number(i)]="shoesColor";
-        for(auto i=roles.begin();i!=roles.end();++i){const int index=i.key().toInt();auto mat=materials[index].toObject();auto pbr=mat["pbrMetallicRoughness"].toObject();QColor c(a[i.value().toString()].toString());pbr["baseColorFactor"]=QJsonArray{linear(c.redF()),linear(c.greenF()),linear(c.blueF()),1};mat["pbrMetallicRoughness"]=pbr;materials[index]=mat;}g["materials"]=materials;
+        for(auto i=roles.begin();i!=roles.end();++i){const int index=i.key().toInt();auto mat=materials[index].toObject();auto pbr=mat["pbrMetallicRoughness"].toObject();QColor c(a[i.value().toString()].toString());pbr["baseColorFactor"]=QJsonArray{linear(c.redF()),linear(c.greenF()),linear(c.blueF()),1};mat["pbrMetallicRoughness"]=pbr;materials[index]=mat;}
+        // Keep facial lines readable on darker skin, including light-haired looks.
+        // Scale in linear colour space; hue, alpha and the approved geometry stay intact.
+        auto luminance=[](const QColor& c){return .2126f*linear(c.redF())+.7152f*linear(c.greenF())+.0722f*linear(c.blueF());};
+        const float faceContrast=std::clamp(std::sqrt(luminance(QColor(a["skinColor"].toString()))/luminance(QColor("#f7d8bf"))),.12f,1.f);
+        for(int i=0;i<materials.size();++i){
+            auto mat=materials[i].toObject();const auto name=mat["name"].toString();
+            if(name!="Warm brown eyebrow"&&name!="Soft warm eyelid"&&name!="Mouth Contour")continue;
+            auto pbr=mat["pbrMetallicRoughness"].toObject();auto colour=pbr["baseColorFactor"].toArray();
+            if(colour.size()!=4)return fail("invalid_avatar_face_material");
+            for(int ch=0;ch<3;++ch)colour[ch]=colour[ch].toDouble()*faceContrast;
+            pbr["baseColorFactor"]=colour;mat["pbrMetallicRoughness"]=pbr;materials[i]=mat;
+        }
+        g["materials"]=materials;
         auto scenes=g["scenes"].toArray();int scene=g["scene"].toInt();auto sc=scenes[scene].toObject();QJsonArray roots;const auto hairs=m["hairNodes"].toObject();
         auto nodes=g["nodes"].toArray();
         if(!eyeNodes.isEmpty()){

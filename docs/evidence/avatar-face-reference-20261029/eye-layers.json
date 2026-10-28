@@ -1,0 +1,12 @@
+{
+  "passed": true,
+  "eyeStyles": 14,
+  "posesAndWeights": 336,
+  "minimumIrisWhiteClearanceMetres": 0.0003965795040130615,
+  "worstCase": {
+    "style": "almond",
+    "control": "eyes_half",
+    "weight": 0.5,
+    "clearance": 0.0003965795040130615
+  }
+}

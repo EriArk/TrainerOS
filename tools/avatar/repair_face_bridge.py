@@ -200,6 +200,7 @@ def subdivide_eye(model, prim):
 def repair(source, output, mesh_index=None, eyes_only=False):
     assert source.resolve() != output.resolve()
     model = GLB(source); g = copy.deepcopy(model.g)
+    assert 'trainerApprovedFace' not in g.get('extras', {}), 'Owner-approved face is locked; do not apply the rejected bridge sculpt'
     b = Builder.__new__(Builder); b.g = g; b.b = bytearray(model.b)
     field = BridgeField()
     if mesh_index is None and not eyes_only:

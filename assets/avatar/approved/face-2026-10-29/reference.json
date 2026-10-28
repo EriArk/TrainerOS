@@ -1,0 +1,19 @@
+{
+  "id": "painted-face-2026-10-29",
+  "ownerApproved": true,
+  "sourceFile": "painted-face.glb",
+  "sourceSha256": "cbd88a5d387c5f74ed0d0657f23dc989aceb993c71da8cc0d4a15b30e7942354",
+  "referenceFile": "source-surface.npz",
+  "referenceSha256": "ecb699e3b9e221814ba4a1e05dfdfa7ac2aa6ce8b77c4881bb1b40f2ba0f6205",
+  "headScale": 0.92,
+  "headPivot": [
+    0,
+    0.716,
+    0
+  ],
+  "sourceHeadMinY": 0.75,
+  "headVertices": 8222,
+  "headPositionSha256": "a519635390322262bd128daeea646191224e06f793532ae2e2aadc09f42271d5",
+  "headNormalSha256": "eedb326c80bfca848ef9a0fb9606a06b8891131f47890f6e2b7afe8727556d5f",
+  "approval": "Owner approved the restored facial shape and requested canonical protection and installation. Eye-layer collision repair is authorized; it must not change the approved head surface."
+}

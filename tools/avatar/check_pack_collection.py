@@ -9,7 +9,7 @@ from check_garment_fit import depth_profile
 
 
 def check(pack, output):
-    m=json.loads((pack/'manifest.json').read_text());assert m['revision']==9
+    m=json.loads((pack/'manifest.json').read_text());assert m['revision']>=9
     for name, digest in m['files'].items():
         assert Path(name).name==name
         assert hashlib.sha256((pack/name).read_bytes()).hexdigest()==digest,name
@@ -17,12 +17,18 @@ def check(pack, output):
     body=g['meshes'][m['preparedBodyMesh']]
     p=model.acc(body['primitives'][0]['attributes']['POSITION'])
     faces=np.concatenate([model.acc(t['indices']).reshape(-1,3) for t in body['primitives']])
-    ys=np.linspace(.778,.835,65);errors=[]
-    for x in [-.03,-.02,0,.02,.03]:
-        z=depth_profile(p,faces,x,ys)[:,1]
-        target=.11913+(ys-.770)*((.12426-.11913)/(.840-.770))-4*x*x
-        errors.append(float(abs(z-target).max()))
-    assert max(errors)<.00025,errors
+    errors=[];reference=None
+    if m['revision'] >= 10:
+        from check_face_reference import check as check_reference
+        reference=check_reference(pack)
+    else:
+        # Historical revision 9 validation, superseded by the owner reference.
+        ys=np.linspace(.778,.835,65)
+        for x in [-.03,-.02,0,.02,.03]:
+            z=depth_profile(p,faces,x,ys)[:,1]
+            target=.11913+(ys-.770)*((.12426-.11913)/(.840-.770))-4*x*x
+            errors.append(float(abs(z-target).max()))
+        assert max(errors)<.00025,errors
     palette={p['accessor'] for p in m['vertexPalette']}
     colours={p['attributes']['COLOR_0'] for mesh in g['meshes'] for p in mesh['primitives'] if 'COLOR_0' in p['attributes']}
     assert palette<=colours,'Palette refers to obsolete pre-subdivision colours'
@@ -44,9 +50,11 @@ def check(pack, output):
         assert m['wearables'][prefix+'racing-suit']['companions']==[prefix+'racing-gloves']
         assert m['wearables'][prefix+'racing-helmet']['hidesHair']
     report=dict(passed=True,revision=m['revision'],templateBytes=(pack/'template.glb').stat().st_size,
-                maxBridgePlaneErrorMetres=max(errors),files=len(m['files']),wearables=22,eyeSets=14,
+                files=len(m['files']),wearables=22,eyeSets=14,
                 paletteAccessors=len(palette),hairFitSourcesPreserved=True,rigBones=54,clips=8,
                 manifestSha256=hashlib.sha256((pack/'manifest.json').read_bytes()).hexdigest())
+    if reference:report['approvedFace']=reference
+    else:report['maxBridgePlaneErrorMetres']=max(errors)
     output.write_text(json.dumps(report,indent=2)+'\n');print(json.dumps(report))
 
 

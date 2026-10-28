@@ -3,13 +3,18 @@
 New integration? Start with the [step-by-step guide and runnable Godot demo](AVATAR_QUICKSTART.md).
 This page is the protocol/reference companion.
 
-The current source pack is **revision 9**: the corrected face bridge, 14 eye
+The current source pack is **revision 10**: the owner-approved original face, 14 eye
 styles and 22 separate garments, including golf, two starter looks and two
 racing looks. All four hairstyles retain reversible cap/visor fits; racing
 helmets hide hair until removed. See [collection integration](../docs/AVATAR_COLLECTION_DELIVERY_20261028.md),
 [wardrobe integration](../docs/AVATAR_WARDROBE_20261028.md) and
 [facial API](AVATAR_EXPRESSIONS.md). Historical revision descriptions below
 remain evidence of earlier deliveries.
+
+The [locked head reference](../assets/avatar/approved/face-2026-10-29/README.md)
+supersedes the rejected revision 9 bridge sculpt. The shared resolver darkens
+lips, brows and lashes continuously with skin tone, preserving geometry and
+the selected hair/iris colours. Recipes and the appearance schema are unchanged.
 
 TrainerOS owns appearance and the installed asset pack. A game distributes only
 its SDK adapter, never a copy of the character. The interface is engine-neutral:

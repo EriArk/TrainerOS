@@ -1,0 +1,8 @@
+{
+  "packRevision": 9,
+  "manifestSha256": "3e250ec77fa884820143e54c2eccca440d8f8e58a0423d04ca5d145f755af7d1",
+  "hostSha256": "2efe427aeda2bbb58584ac665f2215376a029798a8d07eb518a01a33c2501acc",
+  "singleHostRunning": true,
+  "microRallyRunning": true,
+  "volume": "Volume: 0.10"
+}

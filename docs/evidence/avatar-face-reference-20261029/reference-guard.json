@@ -1,0 +1,12 @@
+{
+  "approved": {
+    "passed": true,
+    "reference": "painted-face-2026-10-29",
+    "headVertices": 8222,
+    "positionsExact": true,
+    "normalsExact": true,
+    "bodyCorrectivesPreserveHead": true
+  },
+  "oneMillimetreRegressionRejected": "Approved head POSITION changed",
+  "oldSculptRejected": "Owner-approved face is locked; do not apply the rejected bridge sculpt"
+}
