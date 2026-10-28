@@ -4,6 +4,16 @@
 
 ## Current working mode — owner correction, 21 October 2026
 
+**Owner functional-completeness correction, 28 October:** the profile/Online
+delivery is partial. The owner explicitly includes experience, account levels,
+earning/storing Sparks and the related economic foundation in the intended
+functional result. Do not narrow this correction to failing tests, label UI or
+one implemented layer complete, or move on while required behavior is missing.
+Accounts/Play and unavailable-value profile fields do not implement progression
+or a wallet. See [the factual audit and open criteria](docs/PLAYER_PROFILE.md#функциональная-незавершённость--коррекция-28-октября).
+Retain #262 constraints and unresolved policy decisions; do not invent reward
+amounts or duplicate the Backend-owned economy in the shell.
+
 **Owner Backend correction, 25 October 2026:** prepare the complete shared
 server architecture before implementing/polishing individual working scenarios.
 Use [Backend architecture v1](docs/TRAINEROS_BACKEND_PLAN_RU.md#architecture-v1):
