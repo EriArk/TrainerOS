@@ -1,0 +1,132 @@
+{
+  "passed": true,
+  "beforeDressSha256": "c3ec67c79b0586b99398224d428c575772218abeb6d5c5ec38fde35b996a86cc",
+  "beforeHeelSha256": "3a4fe94ee99e17559157181440cd2330472a456dc7339325df373b6276d0ccd0",
+  "beforeHeelRejected": "('Boot heel pinches inward below shaft', -0.078, 0.0008673588903811147)",
+  "beforeDressRejected": "('Dress side turns into an unwanted waist bump', 0.0002836518106218988)",
+  "beforeBootSha256": "ef3fa7f3269eb48e951a1c153b4c0fbb530aa96a6d9011d39d67848a54acf45a",
+  "beforeBootClearance": -0.019232291286206744,
+  "correctedDress": {
+    "passed": true,
+    "heightRange": [
+      0.488,
+      0.598
+    ],
+    "chordLength": 0.02,
+    "maxChordDeviation": 0.0003922669987175831,
+    "maxUpwardWidthIncrease": 0.0
+  },
+  "correctedBoots": {
+    "racing-boots": {
+      "passed": true,
+      "heights": [
+        0.122,
+        0.129,
+        0.136
+      ],
+      "smoothHeel": {
+        "passed": true,
+        "heightRange": [
+          0.025,
+          0.14
+        ],
+        "samples": [
+          {
+            "x": -0.078,
+            "maxInwardStep": -0.0002462717328619579,
+            "max20mmChordDeviation": 0.00010718250800716145
+          },
+          {
+            "x": 0.078,
+            "maxInwardStep": -0.0002462717302404993,
+            "max20mmChordDeviation": 0.00010755640642377828
+          }
+        ]
+      },
+      "minimumClearance": 0.001,
+      "samples": [
+        {
+          "x": -0.09,
+          "minFrontBackClearance": 0.01256874694096903
+        },
+        {
+          "x": -0.07,
+          "minFrontBackClearance": 0.01409212391209859
+        },
+        {
+          "x": -0.05,
+          "minFrontBackClearance": 0.018471914070859283
+        },
+        {
+          "x": 0.05,
+          "minFrontBackClearance": 0.011797247617338455
+        },
+        {
+          "x": 0.07,
+          "minFrontBackClearance": 0.010712678769890308
+        },
+        {
+          "x": 0.09,
+          "minFrontBackClearance": 0.009836509081808026
+        }
+      ]
+    },
+    "rose-racing-boots": {
+      "passed": true,
+      "heights": [
+        0.122,
+        0.129,
+        0.136
+      ],
+      "smoothHeel": {
+        "passed": true,
+        "heightRange": [
+          0.025,
+          0.14
+        ],
+        "samples": [
+          {
+            "x": -0.078,
+            "maxInwardStep": -0.0002462717328619579,
+            "max20mmChordDeviation": 0.00010718250800716145
+          },
+          {
+            "x": 0.078,
+            "maxInwardStep": -0.0002462717302404993,
+            "max20mmChordDeviation": 0.00010755640642377828
+          }
+        ]
+      },
+      "minimumClearance": 0.001,
+      "samples": [
+        {
+          "x": -0.09,
+          "minFrontBackClearance": 0.015509208391977919
+        },
+        {
+          "x": -0.07,
+          "minFrontBackClearance": 0.01706466853737941
+        },
+        {
+          "x": -0.05,
+          "minFrontBackClearance": 0.022553190779583315
+        },
+        {
+          "x": 0.05,
+          "minFrontBackClearance": 0.016034520414489335
+        },
+        {
+          "x": 0.07,
+          "minFrontBackClearance": 0.013912082967907496
+        },
+        {
+          "x": 0.09,
+          "minFrontBackClearance": 0.013069648763972819
+        }
+      ]
+    }
+  },
+  "legacyGolfDefaultExportSha256": "86aac94771c6b4f79425b44ff36c4abf24cda64f499402c4e8b4428c7306c9f9",
+  "legacyGolfDefaultExportIdentical": true,
+  "scope": "Reported rest-pose geometry regressions and unchanged default surface export; not all animation collisions."
+}

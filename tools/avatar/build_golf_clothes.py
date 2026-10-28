@@ -65,7 +65,7 @@ class Author:
                 a=i*nx+j;b=i*nx+(j+1)%nx;c=(i+1)*nx+j;d=(i+1)*nx+(j+1)%nx
                 f.extend([[a,b,c],[b,d,c]])
         self.add(item,name,rows.reshape(-1,3),f,color,rig,correct)
-    def surface(self,item,name,conditions,color,offset=.006,smooth=14,edge=True,fit_bands=()):
+    def surface(self,item,name,conditions,color,offset=.006,smooth=14,edge=True,fit_bands=(),coherent=False):
         # Clip body triangles with interpolated boundary points, then weld and
         # relax the derived garment. The underlying body remains untouched.
         guide,guide_normals=(fitting_guide(self.p,self.f,fit_bands)
@@ -93,7 +93,8 @@ class Author:
         boundary=np.unique(edges[count==1]);interior=np.ones(len(v),bool);interior[boundary]=False
         e=np.r_[edges,edges[:,::-1]];adj=coo_matrix((np.ones(len(e)),(e[:,0],e[:,1])),shape=(len(v),len(v))).tocsr();deg=np.maximum(np.asarray(adj.sum(1)).ravel(),1)
         transfer=None
-        if item=='polo-sleeveless':
+        precise_binding=coherent or item=='polo-sleeveless'
+        if precise_binding:
             donor=np.array(donor_ids)[first];factor=np.array(donor_factors)[first]
             transfer=coo_matrix((factor.ravel(),(np.repeat(np.arange(len(v)),3),donor.ravel())),shape=(len(v),len(self.p))).tocsr()
         for _ in range(smooth):
@@ -102,7 +103,7 @@ class Author:
                 mix=np.where(interior,.3,0.)
                 transfer=transfer.multiply((1-mix)[:,None])+(adj@transfer).multiply((mix/deg)[:,None])
                 transfer=transfer.tocsr()
-        if item=='polo-sleeveless':
+        if precise_binding:
             # Smooth the cut seam AND its skin/corrective interpolation together.
             # Smoothing only positions leaves a serrated rim in animated poses.
             rim=edges[count==1];e=np.r_[rim,rim[:,::-1]]
@@ -112,9 +113,9 @@ class Author:
             relax=coo_matrix((data,(rr,cc)),shape=(len(v),len(v))).tocsr()
             for _ in range(18):v=relax@v;transfer=relax@transfer
         # Relaxation must not erase the clearance at shoulder convexities.
-        if item=='polo-sleeveless':
-            reference=transfer@self.p
-            direction=transfer@self.n
+        if precise_binding:
+            reference=transfer@guide
+            direction=transfer@guide_normals
             direction/=np.maximum(np.linalg.norm(direction,axis=1)[:,None],1e-9)
             signed=((v-reference)*direction).sum(1)
             v+=direction*np.maximum(offset*.8-signed,0)[:,None]
@@ -342,7 +343,7 @@ class Author:
                 for part in parts:
                     v=part['v'];f=part['f'];ids=part.get('donor_ids');factor=part.get('donor_factors')
                     transfer=part.get('transfer')
-                    if ids is None and item.startswith('polo') and part['rig']=='body':
+                    if ids is None and (item.startswith('polo') or part.get('follow_fabric')) and part['rig']=='body':
                         fabric=self.parts[item][0];_,near=cKDTree(fabric['v']).query(v)
                         ids=fabric['donor_ids'][near];factor=fabric['donor_factors'][near]
                         if 'transfer' in fabric:transfer=fabric['transfer'][near]
@@ -352,10 +353,13 @@ class Author:
                         for column in range(4):np.add.at(body_weights,(np.arange(len(self.p)),self.j[:,column]),self.w[:,column])
                         weights=transfer@body_weights
                         j=np.argsort(weights,axis=1)[:,-4:].astype('<u2');w=np.take_along_axis(weights,j,axis=1);w=(w/w.sum(1)[:,None]).astype('<f4')
+                    if 'skin_joints' in part:
+                        j=part['skin_joints'];w=part['skin_weights']
                     vv.append(v);ff.append(f+offset);offset+=len(v);jj.append(j);ww.append(w)
                     for k,d in enumerate(self.delta):
                         delta=(d[ids]*factor[:,:,None]).sum(1) if part['correct'] and part['rig']=='body' else np.zeros_like(v)
                         if transfer is not None:delta=transfer@d
+                        if 'corrective_deltas' in part:delta=part['corrective_deltas'][k]
                         dd[k].append(delta)
                 v=np.concatenate(vv);f=np.concatenate(ff);uv=np.stack([v[:,0]*4+.5,v[:,1]*4],1)
                 att={'POSITION':b.acc(v.astype('<f4')),'NORMAL':b.acc(normals(v,f).astype('<f4')),'TEXCOORD_0':b.acc(uv.astype('<f4')),'JOINTS_0':b.acc(np.concatenate(jj)),'WEIGHTS_0':b.acc(np.concatenate(ww))}

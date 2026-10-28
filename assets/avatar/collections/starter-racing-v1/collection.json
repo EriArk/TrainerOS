@@ -1,0 +1,126 @@
+{
+  "schema": 1,
+  "collection": "starter-racing-v1",
+  "artRevision": 1,
+  "status": "art-review",
+  "rig": "trainer-humanoid-54-v1",
+  "units": "metres",
+  "forward": "+Z",
+  "simulation": false,
+  "baseBodySha256": "ed818b016430665e7eaef50fdfd8188b894cf9607d6a4f1bc3ae9a7b4c55a333",
+  "sets": {
+    "starter-sundress": [
+      "sundress"
+    ],
+    "starter-denim": [
+      "everyday-tee",
+      "denim-breeches",
+      "canvas-shoes"
+    ],
+    "racing-classic": [
+      "racing-suit",
+      "racing-helmet",
+      "racing-boots",
+      "racing-gloves"
+    ],
+    "racing-rose": [
+      "rose-racing-suit",
+      "rose-racing-helmet",
+      "rose-racing-boots",
+      "rose-racing-gloves"
+    ]
+  },
+  "palette": {
+    "ivory": "f4f0df",
+    "forest": "467e7b",
+    "peach": "edb595",
+    "sole": "e0d9cb",
+    "dark": "293c4c",
+    "metal": "d7b975",
+    "dress": "eab2a1",
+    "dress-light": "f7d9c6",
+    "denim": "527899",
+    "denim-light": "88a3b8",
+    "stitch": "ddc69b",
+    "race": "3d6d7e",
+    "orange": "f1a36d",
+    "rose": "d891ab",
+    "plum": "70546f",
+    "visor": "8bbfc6"
+  },
+  "items": {
+    "sundress": {
+      "file": "sundress.glb",
+      "node": "sundress",
+      "sha256": "8f152af9348f7f12f7303b732c5e87529353dff8d930caade294e3063e51939d"
+    },
+    "everyday-tee": {
+      "file": "everyday-tee.glb",
+      "node": "everyday-tee",
+      "sha256": "a1ad0bfceb618b140023067e34a176a9984d63adf09cf30e34947165030b5bb4"
+    },
+    "denim-breeches": {
+      "file": "denim-breeches.glb",
+      "node": "denim-breeches",
+      "sha256": "3a8c62f362b43ac7c9813090c88fd3a593ac63f49d2021a1c0025b2a7d47baf5"
+    },
+    "canvas-shoes": {
+      "file": "canvas-shoes.glb",
+      "node": "canvas-shoes",
+      "sha256": "7763270a407223e7faf2d2c7093ee2905451babe13f6ac827a4d29230bbcdec0"
+    },
+    "racing-suit": {
+      "file": "racing-suit.glb",
+      "node": "racing-suit",
+      "sha256": "32683bf294048446f302cf2425b1ef32ad0123f14f861b863742dec7aab82b0e"
+    },
+    "racing-helmet": {
+      "file": "racing-helmet.glb",
+      "node": "racing-helmet",
+      "sha256": "173ce203edbd92325465334efd81418fb3a25fe722405e530b89f3ce2a026598"
+    },
+    "racing-boots": {
+      "file": "racing-boots.glb",
+      "node": "racing-boots",
+      "sha256": "d72edbdb95f2e23eed4c2f71153e453bd63ab66a1569f84d980d00654d0be729"
+    },
+    "racing-gloves": {
+      "file": "racing-gloves.glb",
+      "node": "racing-gloves",
+      "sha256": "6d8711e8fa90e0824beca18332e70d558ecae8285561dff6d22ec4d7fa8bb3d3"
+    },
+    "rose-racing-suit": {
+      "file": "rose-racing-suit.glb",
+      "node": "rose-racing-suit",
+      "sha256": "af7c7fa4686fcfc5d82f030ff298bcd37ff33ae71f9e9570f7a09ad4c0552772"
+    },
+    "rose-racing-helmet": {
+      "file": "rose-racing-helmet.glb",
+      "node": "rose-racing-helmet",
+      "sha256": "817fd4d700a871bd6b986b71c9d49eea6f990fe656eb9e40f07afe17952851c8"
+    },
+    "rose-racing-boots": {
+      "file": "rose-racing-boots.glb",
+      "node": "rose-racing-boots",
+      "sha256": "842c0289f8fd3129dc821cb990b2ba99b6c344fa947cff59827a082b595a68a3"
+    },
+    "rose-racing-gloves": {
+      "file": "rose-racing-gloves.glb",
+      "node": "rose-racing-gloves",
+      "sha256": "3a50a25c27a920fd8d44b73ef375fee9037138e617cf84887bfdad265c9071dd"
+    }
+  },
+  "starterSets": [
+    "starter-sundress",
+    "starter-denim"
+  ],
+  "starterIntent": "Both free after character creation; no automatic grant implemented in this authoring collection.",
+  "existingAccessories": {
+    "starter-sundress": [
+      "sandals"
+    ]
+  },
+  "helmetHairPolicy": "Hide hair only while equipped; restore selected hairstyle on removal. Review renderer exercises this; runtime integration pending.",
+  "dressSlotPolicy": "Full outfit covers top and bottom; selection/coverage contract pending runtime integration.",
+  "runtimeInstalled": false
+}

@@ -1,0 +1,361 @@
+{
+  "passed": true,
+  "items": 12,
+  "outfits": 4,
+  "sourceBodyUnchanged": true,
+  "assemblyMeshesMatchSeparateItems": true,
+  "checks": {
+    "sundress": {
+      "vertices": 14413,
+      "triangles": 27800,
+      "joints": 54,
+      "correctives": 46,
+      "animationClips": 8,
+      "maxWeightSumError": 5.960464477539063e-08
+    },
+    "everyday-tee": {
+      "vertices": 6965,
+      "triangles": 13329,
+      "joints": 54,
+      "correctives": 46,
+      "animationClips": 8,
+      "maxWeightSumError": 5.960464477539063e-08
+    },
+    "denim-breeches": {
+      "vertices": 6693,
+      "triangles": 12281,
+      "joints": 54,
+      "correctives": 46,
+      "animationClips": 8,
+      "maxWeightSumError": 5.960464477539063e-08
+    },
+    "canvas-shoes": {
+      "vertices": 3266,
+      "triangles": 5760,
+      "joints": 54,
+      "correctives": 46,
+      "animationClips": 8,
+      "maxWeightSumError": 0.0
+    },
+    "racing-suit": {
+      "vertices": 19459,
+      "triangles": 36037,
+      "joints": 54,
+      "correctives": 46,
+      "animationClips": 8,
+      "maxWeightSumError": 5.960464477539063e-08
+    },
+    "racing-helmet": {
+      "vertices": 32922,
+      "triangles": 23098,
+      "joints": 54,
+      "correctives": 46,
+      "animationClips": 8,
+      "maxWeightSumError": 0.0
+    },
+    "racing-boots": {
+      "vertices": 9042,
+      "triangles": 17344,
+      "joints": 54,
+      "correctives": 46,
+      "animationClips": 8,
+      "maxWeightSumError": 0.0
+    },
+    "racing-gloves": {
+      "vertices": 10762,
+      "triangles": 21120,
+      "joints": 54,
+      "correctives": 46,
+      "animationClips": 8,
+      "maxWeightSumError": 5.960464477539063e-08
+    },
+    "rose-racing-suit": {
+      "vertices": 19459,
+      "triangles": 36037,
+      "joints": 54,
+      "correctives": 46,
+      "animationClips": 8,
+      "maxWeightSumError": 5.960464477539063e-08
+    },
+    "rose-racing-helmet": {
+      "vertices": 32922,
+      "triangles": 23098,
+      "joints": 54,
+      "correctives": 46,
+      "animationClips": 8,
+      "maxWeightSumError": 0.0
+    },
+    "rose-racing-boots": {
+      "vertices": 9042,
+      "triangles": 17344,
+      "joints": 54,
+      "correctives": 46,
+      "animationClips": 8,
+      "maxWeightSumError": 0.0
+    },
+    "rose-racing-gloves": {
+      "vertices": 10762,
+      "triangles": 21120,
+      "joints": 54,
+      "correctives": 46,
+      "animationClips": 8,
+      "maxWeightSumError": 5.960464477539063e-08
+    }
+  },
+  "underlayerHemChecks": {
+    "denim-breeches": {
+      "passed": true,
+      "units": "metres",
+      "heightRange": [
+        0.33,
+        0.39
+      ],
+      "chordLength": 0.02,
+      "maxAllowedDeviation": 0.0013,
+      "minimumClearance": 0.004,
+      "samples": [
+        {
+          "x": -0.07,
+          "maxFrontChordDeviation": 0.00043232373266112456,
+          "minFrontBackClearance": 0.008632733705898857
+        },
+        {
+          "x": -0.06,
+          "maxFrontChordDeviation": 0.000706545264038419,
+          "minFrontBackClearance": 0.008104185279834974
+        },
+        {
+          "x": -0.05,
+          "maxFrontChordDeviation": 0.0007445848444516123,
+          "minFrontBackClearance": 0.007898473948253638
+        },
+        {
+          "x": 0.05,
+          "maxFrontChordDeviation": 0.0005960953406056874,
+          "minFrontBackClearance": 0.007314709432009736
+        },
+        {
+          "x": 0.06,
+          "maxFrontChordDeviation": 0.00037970119896423016,
+          "minFrontBackClearance": 0.0076577545479812464
+        },
+        {
+          "x": 0.07,
+          "maxFrontChordDeviation": 0.0006415103687631568,
+          "minFrontBackClearance": 0.008328433606362609
+        }
+      ],
+      "scope": "Rest-pose sections across both thighs; not full collision coverage."
+    },
+    "racing-suit": {
+      "passed": true,
+      "units": "metres",
+      "heightRange": [
+        0.33,
+        0.39
+      ],
+      "chordLength": 0.02,
+      "maxAllowedDeviation": 0.0013,
+      "minimumClearance": 0.004,
+      "samples": [
+        {
+          "x": -0.07,
+          "maxFrontChordDeviation": 0.00042601155507962507,
+          "minFrontBackClearance": 0.010610046076813942
+        },
+        {
+          "x": -0.06,
+          "maxFrontChordDeviation": 0.0007250561638163372,
+          "minFrontBackClearance": 0.010103205760021397
+        },
+        {
+          "x": -0.05,
+          "maxFrontChordDeviation": 0.0007452962713251354,
+          "minFrontBackClearance": 0.009821630170797499
+        },
+        {
+          "x": 0.05,
+          "maxFrontChordDeviation": 0.0005948354651036936,
+          "minFrontBackClearance": 0.009203003022083225
+        },
+        {
+          "x": 0.06,
+          "maxFrontChordDeviation": 0.0004081655254603994,
+          "minFrontBackClearance": 0.009520778661129936
+        },
+        {
+          "x": 0.07,
+          "maxFrontChordDeviation": 0.0007233244743589107,
+          "minFrontBackClearance": 0.01026105960023073
+        }
+      ],
+      "scope": "Rest-pose sections across both thighs; not full collision coverage."
+    },
+    "rose-racing-suit": {
+      "passed": true,
+      "units": "metres",
+      "heightRange": [
+        0.33,
+        0.39
+      ],
+      "chordLength": 0.02,
+      "maxAllowedDeviation": 0.0013,
+      "minimumClearance": 0.004,
+      "samples": [
+        {
+          "x": -0.07,
+          "maxFrontChordDeviation": 0.0004354039720094599,
+          "minFrontBackClearance": 0.007642915434997344
+        },
+        {
+          "x": -0.06,
+          "maxFrontChordDeviation": 0.0006972871266233,
+          "minFrontBackClearance": 0.007104561035795376
+        },
+        {
+          "x": -0.05,
+          "maxFrontChordDeviation": 0.0007522508661054195,
+          "minFrontBackClearance": 0.006936279898409642
+        },
+        {
+          "x": 0.05,
+          "maxFrontChordDeviation": 0.000578392535152919,
+          "minFrontBackClearance": 0.006369883666945131
+        },
+        {
+          "x": 0.06,
+          "maxFrontChordDeviation": 0.00036574632586439115,
+          "minFrontBackClearance": 0.00670013857617531
+        },
+        {
+          "x": 0.07,
+          "maxFrontChordDeviation": 0.0005995061437347043,
+          "minFrontBackClearance": 0.007355455280044193
+        }
+      ],
+      "scope": "Rest-pose sections across both thighs; not full collision coverage."
+    }
+  },
+  "continuousDressBodiceAndSkirt": true,
+  "trouserInsideBootChecks": {
+    "racing-boots": {
+      "passed": true,
+      "heights": [
+        0.122,
+        0.129,
+        0.136
+      ],
+      "smoothHeel": {
+        "passed": true,
+        "heightRange": [
+          0.025,
+          0.14
+        ],
+        "samples": [
+          {
+            "x": -0.078,
+            "maxInwardStep": -0.0002462717328619579,
+            "max20mmChordDeviation": 0.00010718250800716145
+          },
+          {
+            "x": 0.078,
+            "maxInwardStep": -0.0002462717302404993,
+            "max20mmChordDeviation": 0.00010755640642377828
+          }
+        ]
+      },
+      "minimumClearance": 0.001,
+      "samples": [
+        {
+          "x": -0.09,
+          "minFrontBackClearance": 0.01256874694096903
+        },
+        {
+          "x": -0.07,
+          "minFrontBackClearance": 0.01409212391209859
+        },
+        {
+          "x": -0.05,
+          "minFrontBackClearance": 0.018471914070859283
+        },
+        {
+          "x": 0.05,
+          "minFrontBackClearance": 0.011797247617338455
+        },
+        {
+          "x": 0.07,
+          "minFrontBackClearance": 0.010712678769890308
+        },
+        {
+          "x": 0.09,
+          "minFrontBackClearance": 0.009836509081808026
+        }
+      ]
+    },
+    "rose-racing-boots": {
+      "passed": true,
+      "heights": [
+        0.122,
+        0.129,
+        0.136
+      ],
+      "smoothHeel": {
+        "passed": true,
+        "heightRange": [
+          0.025,
+          0.14
+        ],
+        "samples": [
+          {
+            "x": -0.078,
+            "maxInwardStep": -0.0002462717328619579,
+            "max20mmChordDeviation": 0.00010718250800716145
+          },
+          {
+            "x": 0.078,
+            "maxInwardStep": -0.0002462717302404993,
+            "max20mmChordDeviation": 0.00010755640642377828
+          }
+        ]
+      },
+      "minimumClearance": 0.001,
+      "samples": [
+        {
+          "x": -0.09,
+          "minFrontBackClearance": 0.015509208391977919
+        },
+        {
+          "x": -0.07,
+          "minFrontBackClearance": 0.01706466853737941
+        },
+        {
+          "x": -0.05,
+          "minFrontBackClearance": 0.022553190779583315
+        },
+        {
+          "x": 0.05,
+          "minFrontBackClearance": 0.016034520414489335
+        },
+        {
+          "x": 0.07,
+          "minFrontBackClearance": 0.013912082967907496
+        },
+        {
+          "x": 0.09,
+          "minFrontBackClearance": 0.013069648763972819
+        }
+      ]
+    }
+  },
+  "smoothDressSideContour": {
+    "passed": true,
+    "heightRange": [
+      0.488,
+      0.598
+    ],
+    "chordLength": 0.02,
+    "maxChordDeviation": 0.0003922669987175831,
+    "maxUpwardWidthIncrease": 0.0
+  },
+  "limits": "Structural and rest-pose cross-sections; sampled render poses are separate. No runtime grant, wardrobe/device or gameplay acceptance."
+}
