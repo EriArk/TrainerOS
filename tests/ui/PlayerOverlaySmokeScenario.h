@@ -60,9 +60,12 @@ public:
                     const auto pointer=[badge](QEvent::Type type,QPointF point,Qt::MouseButton button,Qt::MouseButtons buttons){
                         QMouseEvent event(type,point,badge->mapToGlobal(point.toPoint()),button,buttons,Qt::NoModifier);QCoreApplication::sendEvent(badge,&event);
                     };
-                    pointer(QEvent::MouseButtonPress,{24,40},Qt::LeftButton,Qt::LeftButton);
-                    pointer(QEvent::MouseMove,{460,410},Qt::NoButton,Qt::LeftButton);
-                    pointer(QEvent::MouseButtonRelease,{460,410},Qt::LeftButton,Qt::NoButton);
+                    const auto unit=bubbles->property("unit").toReal();
+                    const QPointF start(bubbles->property("bubbleLeft").toReal()+8*unit,bubbles->property("bubbleTop").toReal()+20*unit);
+                    const auto end=start+QPointF(bubbles->property("travelX").toReal()*.6,bubbles->property("travelY").toReal()*.8);
+                    pointer(QEvent::MouseButtonPress,start,Qt::LeftButton,Qt::LeftButton);
+                    pointer(QEvent::MouseMove,end,Qt::NoButton,Qt::LeftButton);
+                    pointer(QEvent::MouseButtonRelease,end,Qt::LeftButton,Qt::NoButton);
                 }
                 check(hud.position().x()>0.4&&hud.position().y()>0.7,"Dragging persists a normalized safe-area position");capture(badge,"players-four");hud.openPlayer("2");break;
             }
@@ -97,8 +100,25 @@ public:
                 auto* bubbles=find(badge->contentItem(),"player-bubbles");const auto regionValue=bubbles?bubbles->property("regions"):QVariant();const auto regions=regionValue.metaType()==QMetaType::fromType<QJSValue>()?regionValue.value<QJSValue>().toVariant().toList():regionValue.toList();
                 check(!regions.isEmpty(),"Resized HUD retains explicit input regions");
                 for(const auto& v:regions) {const auto rect=v.toMap()["rect"].toRectF();check(rect.left()>=0&&rect.top()>=0&&rect.right()<=badge->width()&&rect.bottom()<=badge->height(),"Bubble stays within resized display");}
-                capture(badge,"players-square");hud.setGame(0);break;
+                capture(badge,"players-square");
+                QVariantList players;for(int seat=1;seat<=16;++seat)players.append(QVariantMap{{"peer",seat==1?QString():"online:"+QString::number(seat)},{"slot",seat},{"name","Player "+QString::number(seat)},{"ready",true}});
+                social->setGameParty({{"party","fixture"},{"running",true},{"host",true},{"members",players}});
+                auto snapshot=social->snapshot_;snapshot["voice"]=QVariantMap{{"state","connected"},{"channel","51"},{"speakers",QStringList{"16","9"}}};social->receive(0,snapshot);break;
             }
+            case 12: {
+                auto* bubbles=find(badge->contentItem(),"player-bubbles");check(hud.players().size()==16,"Sixteen players retained by overlay controller");
+                check(bubbles&&bubbles->property("count").toInt()==3,"Large group uses two speakers and remaining count");
+                if(bubbles){check(bubbles->property("panelHeight").toReal()<=44*bubbles->property("unit").toReal(),"Large group has a compact height at the display scale");
+                    const auto shown=bubbles->property("shown").value<QJSValue>().toVariant().toList();
+                    check(shown.size()==2&&shown[0].toMap()["speaking"].toBool()&&shown[1].toMap()["speaking"].toBool(),"Actual speakers take the two visible places");
+                }
+                capture(badge,"players-sixteen");hud.requestPlayers();break;
+            }
+            case 13: neutral();break;
+            case 14:
+                check(view.menuOpen(),"Collapsed count opens the full player list");capture(overlay,"players-sixteen-list");
+                hud.menuAction("player:16");check(view.panel()=="player-options","Last player has compact individual actions");hud.menuAction("players");
+                check(view.menuActions().value(view.menuFocus()).toMap()["id"]=="player:16","Individual actions return to the same player");hud.setGame(0);break;
             default:
                 check(hud.players().isEmpty()&&!hud.chatOpen(),"Ending the owned game clears player HUD");timer->stop();completed=true;
                 QFile report(directory+"/player-overlay-check.txt");if(report.open(QIODevice::WriteOnly))report.write((diagnostics.join('\n')+QString("\nqmlWarnings=%1\n").arg(warnings)).toUtf8());

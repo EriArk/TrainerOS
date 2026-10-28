@@ -41,6 +41,19 @@ def catalogue(Gio):
     return result
 
 
+def browser_identity(app_id, record):
+    desktop_id=app_id.removesuffix('.desktop')
+    if desktop_id.casefold() in [value.casefold() for value in record['classes']]:return True
+    # Flatpak Firefox may expose Navigator/firefox instead of its desktop ID.
+    # Its sandbox records the actual application ID independently of window titles.
+    try:
+        import configparser
+        info=configparser.ConfigParser()
+        info.read_string((Path('/proc')/str(record['pid'])/'root/.flatpak-info').read_text()[:16384])
+        return info.get('Application','name',fallback='')==desktop_id
+    except (OSError,ValueError,configparser.Error):return False
+
+
 class Windows:
     def __init__(self):
         self.x = X11()
@@ -200,13 +213,17 @@ class Service:
                 if self.current == app_id:
                     self.current = ''; self.release(); emit('shell')
         if self.pending:
-            app_id, before, pids, deadline = self.pending
+            app_id, before, pids, deadline, reuse_browser = self.pending
             app, row = self.apps[app_id]
             candidates = {}
             for w, r in windows.items():
-                if w in before or not r['mapped']: continue
+                if not r['mapped']: continue
                 owned = any(self.windows.x.owns(w, pid, start) for pid, start in pids)
-                if owned or (row['startupClass'] and row['startupClass'] in r['classes']):
+                matches = (row['startupClass'] and row['startupClass'] in r['classes']) or (reuse_browser and browser_identity(app_id,r))
+                # An explicit URL launch may reuse the default browser's window.
+                # Keep its observed process identity; never adopt it on idle scans.
+                reused = reuse_browser and matches and w in before and before[w]['pid']==r['pid'] and before[w]['start']==r['start']
+                if (w not in before and (owned or matches)) or reused:
                     candidates[w] = r
             if candidates:
                 owners = {(r['pid'], r['start']) for r in candidates.values()}
@@ -295,18 +312,23 @@ class Service:
             self.heartbeat = time.monotonic()
             if self.lease: self.lease.ping()
         elif op == 'refresh': self.apps = catalogue(self.Gio); self.publish()
-        elif op in ('launch', 'open-file') and not self.pending:
+        elif op in ('launch', 'open-file', 'open-url') and not self.pending:
             uris = []
-            if op == 'open-file':
+            if op in ('open-file', 'open-url'):
                 from urllib.parse import urlsplit
                 uri = message.get('url', '')
                 parsed = urlsplit(uri)
-                if parsed.scheme not in ('file', 'smb', 'sftp', 'ftp', 'dav', 'davs') or parsed.password:
-                    raise ValueError('Unsupported file location.')
-                content_type, uncertain = self.Gio.content_type_guess(parsed.path, None)
-                # A desktop entry is a document here, never an instruction to execute.
-                if content_type == 'application/x-desktop': content_type = 'text/plain'
-                handler = self.Gio.AppInfo.get_default_for_type(content_type, parsed.scheme != 'file')
+                if op == 'open-url':
+                    if parsed.scheme != 'https' or not parsed.hostname or parsed.username is not None or parsed.password is not None:
+                        raise ValueError('Unsupported browser address.')
+                    handler = self.Gio.AppInfo.get_default_for_uri_scheme('https')
+                else:
+                    if parsed.scheme not in ('file', 'smb', 'sftp', 'ftp', 'dav', 'davs') or parsed.password:
+                        raise ValueError('Unsupported file location.')
+                    content_type, uncertain = self.Gio.content_type_guess(parsed.path, None)
+                    # A desktop entry is a document here, never an instruction to execute.
+                    if content_type == 'application/x-desktop': content_type = 'text/plain'
+                    handler = self.Gio.AppInfo.get_default_for_type(content_type, parsed.scheme != 'file')
                 if handler is None: raise ValueError('No installed application can open this file type.')
                 app_id = handler.get_id()
                 if app_id not in self.apps: self.apps = catalogue(self.Gio)
@@ -331,7 +353,10 @@ class Service:
                                            None, None, started, None)
             except Exception:
                 self.release(); raise
-            self.pending = (app_id, before, pids, time.monotonic() + 20)
+            if op == 'open-url' and app_id in self.sessions and self.sessions[app_id]['windows']:
+                self.activate(app_id)
+            else:
+                self.pending = (app_id, before, pids, time.monotonic() + 20, op == 'open-url')
         elif op == 'controls' and self.current and self.lease:
             self.lease.open(); emit('controls')
         elif op == 'resume' and self.lease: self.lease.resume()

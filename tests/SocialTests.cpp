@@ -644,6 +644,32 @@ private slots:
         QCOMPARE(s.lobbyState()["access"].toString(),QString("approval"));QCOMPARE(s.viewedLobby().publicationTopic(),QString("party-games"));
         s.createAnotherLobby();s.lobbyChoices_={QVariantMap{{"key","removed"},{"title","Gone"}}};s.submitLobbyDraft();QCOMPARE(s.myLobbies().size(),1);QVERIFY(s.lobbyCreateOpen());
     }
+    void sixteenSeatRosterUsesTwoColumnsAndReturnsFromChat() {
+        SocialController s;QObject::disconnect(&s,nullptr,s.session_,nullptr);QObject::disconnect(s.session_,nullptr,&s,nullptr);
+        s.receive(0,{{"state","connected"},{"userId","1"},{"name","Mika"}});
+        s.openLobbyForPeople();if(s.lobbyCreateOpen())s.submitLobbyDraft();
+        QVERIFY(s.lobby_.selectGame({"game","Party game","crates","netplay",16,{}}));
+        QCOMPARE(s.lobbyPlayers().size(),16);s.lobbyRoomFocus_="person:1";
+        s.dispatch(Action::Right);QCOMPARE(s.lobbyRoomFocus(),QString("seat:2"));
+        for(int i=0;i<7;++i)s.dispatch(Action::Down);
+        QCOMPARE(s.lobbyRoomFocus(),QString("seat:16"));
+        s.dispatch(Action::Left);QCOMPARE(s.lobbyRoomFocus(),QString("seat:15"));
+        s.dispatch(Action::Up);QCOMPARE(s.lobbyRoomFocus(),QString("seat:13"));
+        s.dispatch(Action::Right);QCOMPARE(s.lobbyRoomFocus(),QString("seat:14"));
+        s.lobbyChatChannel_="300";s.snapshot_["channel"]="300";s.drafts_["300"]="Unsent";
+        s.dispatch(Action::Right);QVERIFY(s.lobbyChatFocused());s.dispatch(Action::Back);
+        QCOMPARE(s.lobbyRoomFocus(),QString("seat:14"));QCOMPARE(s.draft(),QString("Unsent"));
+        s.dispatch(Action::Down);s.dispatch(Action::Down);QVERIFY(s.lobbyRoomFocus().startsWith("action:"));
+        s.dispatch(Action::Up);QVERIFY(s.lobbyRoomFocus()=="seat:15"||s.lobbyRoomFocus()=="seat:16");
+    }
+    void profileEntryDelegatesWithoutChangingConversationAndKeepsProviderOptions() {
+        SocialController s;QObject::disconnect(&s,nullptr,s.session_,nullptr);QObject::disconnect(s.session_,nullptr,&s,nullptr);
+        s.receive(0,{{"state","connected"},{"userId","1"},{"channel","300"}});
+        s.drafts_["300"]="Keep this";QString opened;
+        s.openPlayerProfile=[&](QString id){opened=id;return true;};
+        s.profile("2");QCOMPARE(opened,QString("2"));QVERIFY(!s.profileVisible());QCOMPARE(s.draft(),QString("Keep this"));
+        s.profile("2",true);QVERIFY(s.profileVisible());QVERIFY(s.menu_.contains("Message"));
+    }
     void lobbyRoomUsesIdentitySeatsAndVerifiedVoice() {
         SocialController s;QObject::disconnect(&s,nullptr,s.session_,nullptr);QObject::disconnect(s.session_,nullptr,&s,nullptr);
         s.receive(0,{{"state","connected"},{"userId","1"},{"name","Mika"},{"profile",QVariantMap{{"avatar","self.png"}}},

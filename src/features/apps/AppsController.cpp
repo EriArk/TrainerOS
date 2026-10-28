@@ -7,10 +7,16 @@
 #include <QJsonArray>
 #include <QJsonObject>
 #include <QCryptographicHash>
+#include <QUrl>
 #include <algorithm>
 
 namespace trainer {
 AppsController::AppsController(QObject* parent):QObject(parent) {
+    webStartTimeout_.setSingleShot(true);webStartTimeout_.setInterval(15000);
+    connect(&webStartTimeout_,&QTimer::timeout,this,[this]{
+        if(!webPending_)return;webPending_=false;queuedWebUrl_=QUrl{};
+        status_="Application connection did not become ready. Try again.";emit webOpenFailed(status_);emit changed();
+    });
     heartbeat_.setInterval(500);
     connect(&heartbeat_,&QTimer::timeout,this,[this]{send({{"command","ping"}});});
     connect(this,&AppsController::commandRequested,this,&AppsController::send);
@@ -28,6 +34,7 @@ AppsController::AppsController(QObject* parent):QObject(parent) {
         const bool foreground=!current_.isEmpty();
         heartbeat_.stop();ready_=false;controls_=false;current_.clear();processId_=0;launching_.clear();running_.clear();
         status_="Application connection stopped. Open Apps again to reconnect.";
+        if(webPending_){webPending_=false;queuedWebUrl_=QUrl{};webStartTimeout_.stop();emit webOpenFailed(status_);}
         if(foreground)emit shellRequested();
         emit changed();
     };
@@ -81,12 +88,20 @@ void AppsController::accept(const QJsonObject& packet) {
         }
         std::sort(catalogue_.begin(),catalogue_.end(),[](const QVariant& a,const QVariant& b){return QString::localeAwareCompare(a.toMap()["name"].toString(),b.toMap()["name"].toString())<0;});
     } else if(event.startsWith("keyboard")) {controls_=false;emit keyboardEvent(packet);}
-    else if(event=="ready") {ready_=true;status_.clear();}
+    else if(event=="ready") {
+        ready_=true;status_.clear();
+        if(!queuedWebUrl_.isEmpty()){
+            const auto url=queuedWebUrl_;queuedWebUrl_=QUrl{};webStartTimeout_.stop();
+            const auto error=launchGuard?launchGuard():QString{};
+            if(!error.isEmpty()){webPending_=false;status_=error;emit webOpenFailed(error);}
+            else emit commandRequested({{"command","open-url"},{"url",url.toString(QUrl::FullyEncoded)}});
+        }
+    }
     else if(event=="state") {
         running_.clear();for(const auto& value:packet["running"].toArray())running_.insert(value.toString());
         current_=packet["current"].toString();launching_=packet["launching"].toString();
         if(current_.isEmpty())controls_=false;
-    } else if(event=="foreground") {current_=packet["id"].toString();processId_=packet["pid"].toVariant().toLongLong();controls_=false;emit foregroundRequested();}
+    } else if(event=="foreground") {webPending_=false;current_=packet["id"].toString();processId_=packet["pid"].toVariant().toLongLong();controls_=false;emit foregroundRequested();}
     else if(event=="shell") {current_.clear();processId_=0;controls_=false;emit shellRequested();}
     else if(event=="controls") {controls_=true;controlFocus_=0;emit keyboardEvent({{"event","keyboard-closed"}});}
     else if(event=="action") {
@@ -95,7 +110,7 @@ void AppsController::accept(const QJsonObject& packet) {
         else if(name=="back"||name=="home")control(0);
         else if(name=="left"||name=="up")controlFocus_=std::max(0,controlFocus_-1);
         else if(name=="right"||name=="down")controlFocus_=std::min(2,controlFocus_+1);
-    } else if(event=="error")status_=packet["message"].toString();
+    } else if(event=="error"){status_=packet["message"].toString();if(webPending_){webPending_=false;queuedWebUrl_=QUrl{};webStartTimeout_.stop();emit webOpenFailed(status_);}}
     normalize(previous);emit changed();
 }
 QVariantMap AppsController::decorated(const QVariantMap& source) const {
@@ -144,6 +159,15 @@ void AppsController::openFile(const QString& url) {
     if(!ready_ || !launching_.isEmpty())return;
     if(launchGuard){const auto error=launchGuard();if(!error.isEmpty()){status_=error;emit changed();return;}}
     status_.clear();emit commandRequested({{"command","open-file"},{"url",url}});emit changed();
+}
+bool AppsController::openWebUrl(const QUrl& url) {
+    if(webPending_||!launching_.isEmpty()||!url.isValid()||url.scheme()!="https"||url.host().isEmpty()||!url.userInfo().isEmpty())return false;
+    if(launchGuard){const auto error=launchGuard();if(!error.isEmpty()){status_=error;emit changed();return false;}}
+    if(!ready_){
+        if(python_.isEmpty()||helper_.isEmpty())return false;
+        webPending_=true;queuedWebUrl_=url;webStartTimeout_.start();refresh();return true;
+    }
+    webPending_=true;status_.clear();emit commandRequested({{"command","open-url"},{"url",url.toString(QUrl::FullyEncoded)}});emit changed();return true;
 }
 void AppsController::watchInstaller(qint64 pid,const QString& title) {
     if(ready_&&pid>1)emit commandRequested({{"command","watch-installer"},{"pid",QString::number(pid)},{"title",title.left(96)}});

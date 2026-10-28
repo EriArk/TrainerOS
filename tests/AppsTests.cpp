@@ -15,6 +15,33 @@ class AppsTests:public QObject {
         apps.accept({{"event","ready"}});
     }
 private slots:
+    void browserUsesManagedLaunchAndReportsFailure() {
+        QTemporaryDir dir;AppsController apps;apps.configure(dir.path(),"alice");
+        QSignalSpy commands(&apps,&AppsController::commandRequested),errors(&apps,&AppsController::webOpenFailed);
+        QVERIFY(!apps.openWebUrl(QUrl("https://example.com/login")));seed(apps);commands.clear();
+        for(const auto& url:{"file:///tmp/test","http://example.com/login","https://user:secret@example.com/"})QVERIFY(!apps.openWebUrl(QUrl(url)));
+        apps.launchGuard=[]{return QString("Game owns input");};QVERIFY(!apps.openWebUrl(QUrl("https://example.com/login")));
+        apps.launchGuard={};QVERIFY(apps.openWebUrl(QUrl("https://example.com/login?a=1")));
+        QCOMPARE(commands.size(),1);QCOMPARE(commands[0][0].toJsonObject()["command"].toString(),"open-url");
+        QVERIFY(!apps.openWebUrl(QUrl("https://example.com/duplicate")));
+        apps.accept({{"event","error"},{"message","Browser unavailable"}});QCOMPARE(errors.size(),1);
+        QVERIFY(apps.openWebUrl(QUrl("https://example.com/retry")));
+        apps.accept({{"event","foreground"},{"id","browser.desktop"},{"pid","123"}});
+        apps.control(1);QCOMPARE(commands.last()[0].toJsonObject()["command"].toString(),"minimize");
+        apps.accept({{"event","shell"}});QVERIFY(apps.current().isEmpty());
+        apps.accept({{"event","error"},{"message","Unrelated error"}});QCOMPARE(errors.size(),1);
+    }
+    void browserRestartsStoppedHelperAndWaitsForReadiness() {
+        AppsController apps;QSignalSpy commands(&apps,&AppsController::commandRequested),errors(&apps,&AppsController::webOpenFailed);
+        apps.start("traineros-missing-test-executable","fixture");QTRY_VERIFY(apps.status().contains("stopped"));
+        QVERIFY(apps.openWebUrl(QUrl("https://example.com/recovery")));QVERIFY(commands.isEmpty());
+        apps.accept({{"event","ready"}});QCOMPARE(commands.size(),1);
+        QCOMPARE(commands.last()[0].toJsonObject()["url"],"https://example.com/recovery");
+        QTRY_COMPARE(errors.size(),1);
+        QVERIFY(apps.openWebUrl(QUrl("https://example.com/retry")));
+        apps.launchGuard=[]{return QString("Game started while connecting");};apps.accept({{"event","ready"}});
+        QCOMPARE(commands.size(),1);QCOMPARE(errors.size(),2);
+    }
     void leavingForAnotherPrimaryPreservesBrowsingModeAndFocus() {
         QTemporaryDir dir;AppsController apps;apps.configure(dir.path(),"alice");seed(apps);
         apps.select(1);apps.leave(true);QCOMPARE(apps.focusIndex(),1);

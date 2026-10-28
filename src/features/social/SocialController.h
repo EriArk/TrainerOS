@@ -301,7 +301,9 @@ public:
     Q_INVOKABLE void contextRow(int index = -1);
     Q_INVOKABLE void collectionOptions();
     Q_INVOKABLE void emoji();
-    Q_INVOKABLE void profile(QString id = {});
+    std::function<bool(QString)> openPlayerProfile;
+    Q_INVOKABLE void profile(QString id = {},bool communication=false);
+    void messagePlayer(QString id);
     Q_INVOKABLE void conversationProfile();
     QVariantMap person() const;
     bool profileVisible() const { return menuMode_=="profile"; }

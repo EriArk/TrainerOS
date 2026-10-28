@@ -1046,7 +1046,7 @@ QVariantMap SocialController::menuChat() const {
 }
 QVariantMap SocialController::person() const {
     const auto p=snapshot_["person"].toMap();
-    return profileVisible()&&p["id"]==profileTarget_&&p["request"]==profileRequest_?p:QVariantMap{{"status","Loading profile..."}};
+    return p["id"]==profileTarget_&&p["request"]==profileRequest_?p:QVariantMap{{"status","Loading profile..."}};
 }
 void SocialController::conversationProfile() {
     const auto chat=currentChat();
@@ -1055,9 +1055,18 @@ void SocialController::conversationProfile() {
     if(members.size()==1)profile(members.first().toMap()["id"].toString());
     else if(!chat["guild"].toString().isEmpty())communityInfo();
 }
-void SocialController::profile(QString id) {
+void SocialController::messagePlayer(QString id) {
+    if(id.isEmpty()||snapshot_["state"]!="connected")return;
+    closeMenu();contacts_=false;emit conversationsRequested();setFace("chats");
+    emit commandRequested("dm",{{"id",id}});emit changed();
+}
+void SocialController::profile(QString id,bool communication) {
     if(id.isEmpty())id=snapshot_["userId"].toString();
     if(id.isEmpty())return;
+    if(!communication && openPlayerProfile && openPlayerProfile(id)){
+        selection_.stop();profileTarget_=id;profileRequest_=QUuid::createUuid().toString();
+        emit commandRequested("profile-read",{{"id",id},{"request",profileRequest_}});closeMenu();return;
+    }
     selection_.stop();profileTarget_=id;profileRequest_=QUuid::createUuid().toString();menuSubject_=id;menuMode_="profile";
     menuTitle_="Profile";menuDetail_.clear();menuFocus_=0;menu_.clear();menuCommands_.clear();
     auto add=[&](QString text,QString action){menu_.append(text);menuCommands_.append(action);};

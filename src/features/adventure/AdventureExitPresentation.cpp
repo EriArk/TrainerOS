@@ -34,12 +34,12 @@ QVariantList AdventureExitPresentation::menuActions() const {
     result.append(extras_);
     result.append(QVariantMap{{"id","exit"},{"label","Exit game"}});return result;
 }
-void AdventureExitPresentation::setPanel(QString panel,QString caption,QVariantList actions,QString backAction) {
-    const auto selected=menuActions().value(menuFocus_).toMap().value("id");
+void AdventureExitPresentation::setPanel(QString panel,QString caption,QVariantList actions,QString backAction,QString restoreAction) {
+    const auto selected=restoreAction.isEmpty()?menuActions().value(menuFocus_).toMap().value("id"):QVariant(restoreAction);
     const bool same=panel==panel_;panel_=std::move(panel);caption_=std::move(caption);panelActions_=std::move(actions);
     backAction_=std::move(backAction);
     bool selectionLost=false;
-    if(!same)menuFocus_=0;
+    if(!same&&restoreAction.isEmpty())menuFocus_=0;
     else {
         selectionLost=selected.isValid();
         for(int i=0;i<panelActions_.size();++i)if(panelActions_[i].toMap().value("id")==selected){menuFocus_=i;selectionLost=false;break;}

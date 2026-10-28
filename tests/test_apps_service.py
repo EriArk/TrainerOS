@@ -34,6 +34,27 @@ def window(pid=90,start='100',transient=0,mapped=True):
 
 
 class Lifecycle(unittest.TestCase):
+    @patch.object(apps,'emit')
+    def test_explicit_url_reuses_only_observed_browser_identity(self,emit):
+        for reuse,changed,expected in [(True,False,True),(False,False,False),(True,True,False)]:
+            s=self.service();s.sessions={};s.current='';s.apps={'browser':(None,{'id':'browser','startupClass':'test'})}
+            s.windows.live={11:window(start='200' if changed else '100')}
+            s.pending=('browser',{11:window()},[],apps.time.monotonic()+20,reuse)
+            s.scan();self.assertEqual('browser' in s.sessions,expected)
+            if expected:
+                self.assertEqual(s.current,'browser');s.command({'command':'minimize'})
+                self.assertEqual(s.current,'');self.assertEqual(s.windows.mapped[-1],([11],False))
+    def test_browser_identity_uses_desktop_class_or_flatpak_application_id(self):
+        self.assertTrue(apps.browser_identity('org.mozilla.firefox.desktop',dict(pid=90,classes=['Navigator','Org.mozilla.firefox'])))
+        with patch.object(apps.Path,'read_text',return_value='[Application]\nname=org.mozilla.firefox\n'):
+            self.assertTrue(apps.browser_identity('org.mozilla.firefox.desktop',dict(pid=90,classes=['Navigator','firefox'])))
+            self.assertFalse(apps.browser_identity('another.desktop',dict(pid=90,classes=['Navigator','firefox'])))
+        with patch.object(apps.Path,'read_text',side_effect=OSError):
+            self.assertFalse(apps.browser_identity('org.mozilla.firefox.desktop',dict(pid=90,classes=['Other'])))
+    def test_browser_url_rejects_file_plain_http_and_credentials(self):
+        s=self.service()
+        for uri in ['file:///tmp/app.desktop','http://example.com','https://user:secret@example.com','https:///missing']:
+            with self.assertRaises(ValueError):s.command({'command':'open-url','url':uri})
     def test_native_home_chord_opens_keyboard_without_controls_or_first_key(self):
         import apps_input
         from keyboard_input import HomeChord,KeyboardNavigation

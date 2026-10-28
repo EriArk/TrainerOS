@@ -13,6 +13,7 @@
 #include <QPointer>
 #include "features/trainer/TrainerController.h"
 #include "features/trainer/OutfitController.h"
+#include "features/trainer/VisitorProfile.h"
 #include "features/trainer/TrainerSetupPresentation.h"
 #include "features/worlds/WorldsController.h"
 #include "features/worlds/MultiversePresentation.h"
@@ -129,6 +130,7 @@ class ShellController final : public QObject {
     Q_PROPERTY(trainer::TextEntryController* keyboard READ keyboard CONSTANT)
     Q_PROPERTY(trainer::TrainerController* trainer READ trainer CONSTANT)
     Q_PROPERTY(trainer::OutfitController* outfits READ outfits CONSTANT)
+    Q_PROPERTY(trainer::VisitorProfile* visitorProfile READ visitorProfile CONSTANT)
     Q_PROPERTY(trainer::WorldsController* worlds READ worlds CONSTANT)
     Q_PROPERTY(trainer::HallOfFameController* hall READ hall CONSTANT)
     Q_PROPERTY(trainer::LibraryManagementController* libraryManager READ libraryManager CONSTANT)
@@ -179,6 +181,9 @@ public:
         && !keyboard_.isOpen() && !moduleActivityBusy(true); }
     TrainerController* trainer() { return &trainer_; }
     OutfitController* outfits() { return &outfits_; }
+    VisitorProfile* visitorProfile() { return &visitorProfile_; }
+    Q_INVOKABLE void openVisitorProfile(QString player);
+    Q_INVOKABLE QStringList profileFavoriteTitles() const;
     WorldsController* worlds() { return &worlds_; }
     MultiversePresentation* multiverse() { return &multiverse_; }
     bool collectionsRoot() const { return collectionsRoot_; }
@@ -311,7 +316,7 @@ public:
     Q_INVOKABLE void activateHomeMenu(int index);
     Q_INVOKABLE void openSocialNotification();
     Q_INVOKABLE void closeHomeMenu();
-    Q_INVOKABLE void openProfile();
+    Q_INVOKABLE void openProfile(bool loadOwn=true);
     Q_INVOKABLE void openAccountProfile();
     bool powerMenu() const { return powerMenu_; }
     QString notice() const { return notice_; }
@@ -419,6 +424,7 @@ private:
     SocialController social_;
     BackendAccount backendAccount_;
     OutfitController outfits_{backendAccount_,trainer_,this};
+    VisitorProfile visitorProfile_{backendAccount_,this};
     HomeDashboardController dashboard_;
     PlayerStory story_;
     QVariantMap profileSnapshot_;

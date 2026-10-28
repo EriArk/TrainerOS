@@ -1,0 +1,36 @@
+{
+  "backend": {
+    "passed": 123,
+    "warnings": 1,
+    "schema": 12,
+    "image": "traineros-backend:friendprofile28v2"
+  },
+  "arm": {
+    "accounts": {
+      "passed": 26,
+      "skipped": 1,
+      "skip": "Windows-only credential worker regression"
+    },
+    "social": {
+      "passed": 208
+    },
+    "apps": {
+      "passed": 12
+    },
+    "apps_helper": {
+      "passed": 11
+    }
+  },
+  "build": {
+    "success": true,
+    "sha256": "2efe427aeda2bbb58584ac665f2215376a029798a8d07eb518a01a33c2501acc",
+    "files": 1374,
+    "sourceBase": "1e33a5d1"
+  },
+  "visuals": {
+    "success": true,
+    "qmlWarnings": 0,
+    "testedSha256": "3be372209eee1170a15fe90deb2de294141c7baca0ed1bbe793aaf9bb62bf97e",
+    "finalDelta": "AppsController helper recovery and regression test only; UI unchanged"
+  }
+}

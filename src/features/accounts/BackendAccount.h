@@ -37,6 +37,8 @@ public:
     ~BackendAccount() override;
     // Test seams set before configure; production origin is fixed, never SDK-supplied.
     void setServices(Services value) { services_=std::move(value); }
+    void setBrowserOpener(std::function<bool(QUrl)> open) { services_.openBrowser=std::move(open); }
+    void browserFailed(const QString& message) { if(state_=="waiting")fail(message); }
     std::function<QString()> loginGuard;
     void configure(const QString& owner);
     void setSocialSubject(const QString& subject);
@@ -50,6 +52,10 @@ public:
     void closePlay(const QString& channel);
     // Composition supplies the current owner's saved SDK recipe; games cannot write it.
     void setPublicAvatar(const QString& owner,const QJsonObject& recipe);
+    // Shell-only public projection. Never gives a credential or arbitrary URL to QML/SDK.
+    void viewProfile(QString player,QString subject,QString before,Reply done);
+    void profileSharing(QJsonObject update,Reply done);
+    void publishProfileFavorites(QJsonArray games,QString revision,Reply done);
     QVariantMap progression() const;
     QString rewardStatus() const { return rewardStatus_; }
     QString rewardActionLabel() const;

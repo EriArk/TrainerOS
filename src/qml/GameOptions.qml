@@ -42,12 +42,12 @@ Panel {
                 }
             }
             ListView {
-                id: actions; anchors.fill: parent; visible: !root.settingsRoot; clip: true; spacing: 10
+                id: actions; anchors.fill: parent; visible: !root.settingsRoot; clip: true; spacing: root.presentation.panel==="players"?2:10
                 model: root.settingsRoot ? [] : root.presentation.menuActions; currentIndex: root.presentation.menuFocus
                 onCurrentIndexChanged: if(currentIndex>=0)positionViewAtIndex(currentIndex,ListView.Contain)
                 delegate: ActivityRow {
                     required property var modelData; required property int index
-                    width: actions.width; height: modelData.icon ? 77 : modelData.detail ? 63 : 49
+                    width: actions.width; height: root.presentation.panel==="players"?40:modelData.icon ? 77 : modelData.detail ? 63 : 49
                     label: modelData.label; detail: modelData.detail || ""; glyph: modelData.glyph || (root.presentation.panel==="achievements"?"trophy":"pictures")
                     artwork: modelData.icon || ""; accent: index%3===0?Theme.blue:index%3===1?Theme.green:Theme.yellow
                     selected: root.selection===modelData.id; enabled: root.presentation.ready && (modelData.readOnly!==true || root.presentation.panel==="achievements")

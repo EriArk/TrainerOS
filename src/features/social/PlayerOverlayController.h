@@ -63,6 +63,7 @@ private:
     qint64 game_=0,chatGame_=0;
     quint64 accountGeneration_=0;
     QString account_,peer_,settingsKey_,room_,channel_,observedRoom_,display_;
+    QString rosterSelection_;
     QVariantList balloons_;
     QTimer balloonTimer_;
     bool spectators_=true;

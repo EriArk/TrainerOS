@@ -1274,8 +1274,11 @@ int main(int argc, char* argv[]) {
         else {
             auto* window = qobject_cast<QQuickWindow*>(engine.rootObjects().first());
             if (!window) {qCritical()<<"Shell root is not a window:"<<engine.rootObjects().first()->metaObject()->className();return 2;}
-            QObject::connect(shell.backendAccount(),&BackendAccount::returnRequested,window,[&,window]{
+            auto accountBrowser=std::make_shared<bool>(false);
+            QObject::connect(shell.backendAccount(),&BackendAccount::returnRequested,window,[&,window,accountBrowser]{
                 if(adventureLaunch.active())return;
+                if(*accountBrowser&&!shell.apps()->current().isEmpty()){shell.apps()->control(1);return;}
+                *accountBrowser=false;
                 if(parser.isSet("windowed"))window->show();else window->showFullScreen();window->requestActivate();
             });
             shell.apps()->launchGuard=[&]{
@@ -1293,14 +1296,21 @@ int main(int argc, char* argv[]) {
             };
             QObject::connect(shell.apps(),&AppsController::foregroundRequested,window,[window]{window->hide();});
             shell.backendAccount()->loginGuard=shell.apps()->launchGuard;
-            QObject::connect(shell.apps(),&AppsController::shellRequested,window,[&,window]{
+            QObject::connect(shell.apps(),&AppsController::shellRequested,window,[&,window,accountBrowser]{
                 if(adventureLaunch.active())return;
-                shell.goToSection("apps");if(parser.isSet("windowed"))window->show();else window->showFullScreen();window->requestActivate();
+                if(!*accountBrowser)shell.goToSection("apps");*accountBrowser=false;
+                if(parser.isSet("windowed"))window->show();else window->showFullScreen();window->requestActivate();
                   if(pendingSystemAction=="power"){pendingSystemAction.clear();shell.systemAction("power");}
             });
             if(personalLibrary&&!smoke&&platform.dedicatedSession()) {
                 const QString helper="/var/opt/traineros/integrations/apps-service.py";
                 if(QFileInfo::exists(helper))shell.apps()->start("/usr/bin/python3",helper);
+                shell.backendAccount()->setBrowserOpener([&,accountBrowser](QUrl url){
+                    *accountBrowser=shell.apps()->openWebUrl(url);return *accountBrowser;
+                });
+                QObject::connect(shell.apps(),&AppsController::webOpenFailed,window,[&,accountBrowser](QString message){
+                    *accountBrowser=false;shell.backendAccount()->browserFailed(message);
+                });
             }
             auto* pointerVisibility = new PointerVisibility(*window, platform.dedicatedSession());
             if (auto* exitWindow = window->findChild<QQuickWindow*>("adventure-exit-window"))

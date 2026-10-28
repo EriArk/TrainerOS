@@ -183,6 +183,23 @@ QString BackendAccount::actionLabel() const {
     if(state_=="restoring"||state_=="refreshing"||state_=="claiming"||state_=="signing_out")return "TrainerOS account — please wait";
     return "Sign in to TrainerOS with Fluxer";
 }
+void BackendAccount::viewProfile(QString player,QString subject,QString before,Reply done) {
+    if(state_!="connected"||player_.isEmpty()){done(401,{});return;}
+    QString path;
+    if(!subject.isEmpty() && QRegularExpression("^[0-9]{1,32}$").match(subject).hasMatch())path="/v1/profiles/fluxer/"+subject;
+    else if(subject.isEmpty() && !QUuid(player).isNull())path="/v1/profiles/"+QUuid(player).toString(QUuid::WithoutBraces);
+    else {done(422,{});return;}
+    if(!before.isEmpty()) {if(!QRegularExpression("^[1-9][0-9]{0,18}$").match(before).hasMatch()){done(422,{});return;}path+="?before="+before;}
+    request("GET",path,{},std::move(done),access_);
+}
+void BackendAccount::profileSharing(QJsonObject update,Reply done) {
+    if(state_!="connected"||player_.isEmpty()){done(401,{});return;}
+    request(update.isEmpty()?"GET":"PUT","/v1/me/profile/sharing",update,std::move(done),access_);
+}
+void BackendAccount::publishProfileFavorites(QJsonArray games,QString revision,Reply done) {
+    if(state_!="connected"||player_.isEmpty()){done(401,{});return;}
+    request("PUT","/v1/me/profile/favorites",{{"games",games},{"revision",revision}},std::move(done),access_);
+}
 void BackendAccount::reset() {
     prizeBusy_=false;prizeStale_=true;celebrationIds_={};celebrationGroups_={};
     shopBusy_=false;shopReview_={};shopStale_=true;outfitFlushing_=false;

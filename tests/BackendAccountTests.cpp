@@ -100,6 +100,22 @@ class BackendAccountTests:public QObject {
         h.shopValue["receipt"]=receipt;
     }
 private slots:
+    void profileReadRequiresAccountAndBoundsIdentityAndCursor() {
+        BackendAccount account;Harness h;auto services=h.services();auto base=services.request;
+        BackendAccount::Reply pending;int publicCalls=0;
+        services.request=[&](QByteArray method,QString path,QJsonObject body,QByteArray auth,BackendAccount::Reply done){
+            if(path.startsWith("/v1/profiles/")){++publicCalls;QCOMPARE(auth,QByteArray(43,'a'));pending=done;}
+            else base(method,path,body,auth,done);
+        };
+        account.setServices(services);int code=0;
+        account.viewProfile(Player,{},{},[&](int c,QJsonObject){code=c;});QCOMPARE(code,401);QCOMPARE(publicCalls,0);
+        account.configure("profile-test");account.activate();h.callback();
+        QCOMPARE(account.snapshot()["state"].toString(),QString("signed_in"));
+        account.viewProfile({},"../../me",{},[&](int c,QJsonObject){code=c;});QCOMPARE(code,422);
+        account.viewProfile(Player,{},"1&private=true",[&](int c,QJsonObject){code=c;});QCOMPARE(code,422);QCOMPARE(publicCalls,0);
+        account.viewProfile({},"12345","10",[&](int c,QJsonObject){code=c;});QCOMPARE(publicCalls,1);QVERIFY(pending);
+        code=0;account.configure("different-owner");pending(200,{{"player_id",Player}});QCOMPARE(code,0);
+    }
     void groupedCeremonyFreezesAndAcknowledgesOneMoment() {
         Harness h;h.shopEnabled=true;h.shopValue=inventory();
         auto row=[](QString id,QString kind,int game,int level){return QJsonObject{{"id",id},{"player_id",Player},{"title","An adventure"},{"kind",kind},{"game_id",game},{"level",level},{"earned_at",QDateTime::currentDateTimeUtc().toString(Qt::ISODateWithMs)}};};

@@ -32,7 +32,7 @@ PlayerOverlayController::PlayerOverlayController(SocialController& social,TextEn
     sync();
 }
 QVariantList PlayerOverlayController::players() const {return game_&&partyGame_?social_.activePlayers():QVariantList();}
-void PlayerOverlayController::setGame(qint64 pid,bool party) {if(game_==pid&&partyGame_==party)return;clear();balloons_.clear();game_=pid;partyGame_=pid&&party;emit changed();}
+void PlayerOverlayController::setGame(qint64 pid,bool party) {if(game_==pid&&partyGame_==party)return;clear();balloons_.clear();rosterSelection_.clear();game_=pid;partyGame_=pid&&party;emit changed();}
 bool PlayerOverlayController::validPeer() const {
     if(notification_)return game_&&game_==chatGame_&&social_.accountGeneration()==accountGeneration_&&social_.account()["userId"]==account_&&social_.notificationChatValid(channel_);
     const auto context=social_.gameChat();
@@ -138,18 +138,30 @@ void PlayerOverlayController::requestPlayers() {
 }
 void PlayerOverlayController::showPlayers() {
     QVariantList actions;
+    const bool large=players().size()>4;
     for(const auto& v:players()) {const auto p=v.toMap();actions.append(QVariantMap{{"id","player:"+p["id"].toString()},
-        {"label","P"+p["seat"].toString()+" · "+p["name"].toString()},{"readOnly",!p["canMessage"].toBool()}});}
+        {"label","P"+p["seat"].toString()+" · "+p["name"].toString()},{"readOnly",large?p["id"].toString().isEmpty():!p["canMessage"].toBool()}});}
     actions.append(QVariantMap{{"id","player-mic"},{"label",voice()["muted"].toBool()?"Unmute microphone":"Mute microphone"},{"readOnly",voice().isEmpty()}});
     actions.append(QVariantMap{{"id","player-deaf"},{"label",voice()["deaf"].toBool()?"Hear conversation":"Deafen"},{"readOnly",voice().isEmpty()}});
     actions.append(QVariantMap{{"id","player-spectators"},{"label",spectators_?"Spectator comments: On":"Spectator comments: Off"}});
-    for(const auto& v:players()){const auto p=v.toMap();if(!p["self"].toBool()&&!p["id"].toString().isEmpty())actions.append(QVariantMap{{"id","player-mute:"+p["id"].toString()},{"label",(p["localMuted"].toBool()?"Hear ":"Mute ")+p["name"].toString()},{"readOnly",voice().isEmpty()}});}
+    if(!large)for(const auto& v:players()){const auto p=v.toMap();if(!p["self"].toBool()&&!p["id"].toString().isEmpty())actions.append(QVariantMap{{"id","player-mute:"+p["id"].toString()},{"label",(p["localMuted"].toBool()?"Hear ":"Mute ")+p["name"].toString()},{"readOnly",voice().isEmpty()}});}
     actions.append(QVariantMap{{"id","back"},{"label","Back"}});
-    view_.setPanel("players","Playing together",actions);
+    view_.setPanel("players","Playing together",actions,{},rosterSelection_);
 }
 bool PlayerOverlayController::menuAction(const QString& action) {
     if(action=="players")showPlayers();
-    else if(action.startsWith("player:"))openPlayer(action.mid(7));
+    else if(action.startsWith("player:")) {
+        const auto id=action.mid(7);
+        if(players().size()<=4)openPlayer(id);
+        else for(const auto& v:players()) {const auto p=v.toMap();if(p["id"]!=id)continue;
+            rosterSelection_=action;
+            QVariantList actions{QVariantMap{{"id","player-message:"+id},{"label","Message"},{"readOnly",!p["canMessage"].toBool()}}};
+            if(!p["self"].toBool())actions.append(QVariantMap{{"id","player-mute:"+id},{"label",p["localMuted"].toBool()?"Hear this player":"Mute this player"},{"readOnly",voice().isEmpty()}});
+            actions.append(QVariantMap{{"id","players"},{"label","Back to players"}});
+            view_.setPanel("player-options",p["name"].toString(),actions,"players");break;
+        }
+    }
+    else if(action.startsWith("player-message:"))openPlayer(action.mid(15));
     else if(action=="player-mic"){voiceAction("mute");showPlayers();}
     else if(action=="player-deaf"){voiceAction("output");showPlayers();}
     else if(action=="player-spectators"){toggleSpectators();showPlayers();}

@@ -37,6 +37,8 @@ Panel {
                 MouseArea { anchors.fill: parent; anchors.margins: -4; onClicked: root.shell.pressButton("B") }
             }
             ProfileAction { anchors.right: close.left; width: 88; y: -6; actionIndex: 1; label: "Wardrobe"; visible: root.browsing; available: root.profile.exists && root.profile.avatarAvailable }
+            ProfileAction { anchors.right: close.left; anchors.rightMargin: 88; width: 86; y: -6; actionIndex: 13; label: "Sharing"; visible: root.browsing }
+            ProfileAction { anchors.right: close.left; anchors.rightMargin: 174; width: 126; y: -6; actionIndex: 12; label: "View as player"; visible: root.browsing }
             SocialIconButton { id: close; anchors.right: parent.right; y: -6; icon: "x"; label: "Back"; onClicked: root.shell.pressButton("B") }
             Rectangle { y: 30; width: parent.width; height: 1; color: Theme.divider }
         }
@@ -238,7 +240,8 @@ Panel {
             }
         }
     }
+    Loader { x:18;y:60;width:parent.width-36;height:parent.height-78;active:(root.shell.profileRoute==="visitor"||root.shell.profileRoute==="privacy")&&!root.profile.editing;sourceComponent:Component { ProfileVisitor { shell:root.shell } } }
     Loader { x:18;y:60;width:parent.width-36;height:parent.height-78;active:root.shell.profileRoute==="outfits"&&!root.profile.editing;sourceComponent:Component { ProfileOutfits { shell:root.shell } } }
-    Text { x: 28; anchors.bottom: parent.bottom; anchors.bottomMargin: 17; width: parent.width-140; text: root.profile.error; visible: text.length>0 && !root.profile.avatarEditing; wrapMode: Text.WordWrap; font.pixelSize: 12; color: Theme.textColor("#853b24") }
+    Text { x: 28; anchors.bottom: parent.bottom; anchors.bottomMargin: 17; width: parent.width-140; text: root.profile.error; visible: text.length>0 && !root.profile.avatarEditing && root.shell.profileRoute!=="visitor" && root.shell.profileRoute!=="privacy"; wrapMode: Text.WordWrap; font.pixelSize: 12; color: Theme.textColor("#853b24") }
     Loader { anchors.fill: parent; active: root.profile.avatarEditing; sourceComponent: Component { AvatarEditor { profile: root.profile; shell: root.shell } } }
 }

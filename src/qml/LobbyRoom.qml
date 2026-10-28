@@ -64,7 +64,31 @@ Item {
             font.pixelSize: root.compact ? 9 : 11; color: Theme.muted; elide: Text.ElideRight; textFormat: Text.PlainText }
         Item { id: stage; objectName: "lobby-player-stage"; x: 0; y: time.y+time.height+5; width: parent.width
             height: Math.max(80,(disclosure.visible ? disclosure.y : actions.y)-y-9)
-            ListView { id: seats; anchors.centerIn: parent; width: parent.width-16; height: Math.min(parent.height,170); orientation: ListView.Horizontal; spacing: 8; clip: true
+            GridView {
+                id: roster; objectName: "lobby-roster"; anchors.fill: parent; anchors.margins: 4
+                visible: root.players.length>5; clip: true; model: visible ? root.players : []
+                cellWidth: width/2; cellHeight: Math.max(40,Math.min(58,height/8))
+                currentIndex: root.indexOf(root.players,root.social.lobbyRoomFocus)
+                onCurrentIndexChanged: if(currentIndex>=0)positionViewAtIndex(currentIndex,GridView.Contain)
+                onModelChanged: Qt.callLater(function(){if(roster.currentIndex>=0)roster.positionViewAtIndex(roster.currentIndex,GridView.Contain)})
+                delegate: Item {
+                    required property var modelData; required property int index
+                    objectName: "lobby-roster-player-"+index; width: roster.cellWidth; height: roster.cellHeight
+                    Rectangle { x: 2; y: 2; width: parent.width-6; height: parent.height-4; radius: 6
+                        color: root.selected(modelData.key)?Theme.selection:"transparent"
+                        border.width: root.selected(modelData.key)?2:0; border.color: Theme.focus }
+                    Rectangle { x: 7; anchors.verticalCenter: parent.verticalCenter; width: 30; height: 30; radius: 15
+                        color: Theme.surface; border.width: modelData.speaking?2:0; border.color: Theme.green
+                        Text { anchors.centerIn: parent; text: modelData.seat>0?"P"+modelData.seat:"·"; color: Theme.ink; font.pixelSize: 11 }
+                    }
+                    Text { x: 44; y: (parent.height-30)/2; width: parent.width-x-8; text: modelData.name||"Free controller"; textFormat: Text.PlainText; font.pixelSize: 12; color: Theme.ink; elide: Text.ElideRight }
+                    Text { x: 44; y: (parent.height-30)/2+17; width: parent.width-x-8; text: (modelData.speaking?"Speaking · ":"")+(modelData.status|| (modelData.empty?"Available":"")); textFormat: Text.PlainText; font.pixelSize: 10; color: Theme.muted; elide: Text.ElideRight }
+                    MouseArea { anchors.fill: parent; onClicked: root.social.activateLobbyRoom(modelData.key) }
+                    Accessible.role: Accessible.Button; Accessible.name: (modelData.name||"Free controller")+" · "+(modelData.status||"")
+                    Accessible.onPressAction: root.social.activateLobbyRoom(modelData.key)
+                }
+            }
+            ListView { id: seats; visible: root.players.length<=5; anchors.centerIn: parent; width: parent.width-16; height: Math.min(parent.height,170); orientation: ListView.Horizontal; spacing: 8; clip: true
                 model: root.players; currentIndex: root.indexOf(root.players,root.social.lobbyRoomFocus)
                 readonly property real cellWidth: Math.min(130,(width-24)/Math.min(4,Math.max(2,count)))
                 readonly property real sideSpace: Math.max(0,(width-count*cellWidth-Math.max(0,count-1)*spacing)/2)
@@ -77,8 +101,9 @@ Item {
                     accent: [Theme.blue,Theme.pink,Theme.green,Theme.yellow][index%4]; selected: root.selected(modelData.key)
                     onActivated: root.social.activateLobbyRoom(modelData.key) }
             }
-            Text { anchors.left: parent.left; anchors.verticalCenter: parent.verticalCenter; text: "‹"; color: Theme.muted; visible: !seats.atXBeginning; font.pixelSize: 22 }
-            Text { anchors.right: parent.right; anchors.verticalCenter: parent.verticalCenter; text: "›"; color: Theme.muted; visible: !seats.atXEnd; font.pixelSize: 22 }
+            Text { anchors.left: parent.left; anchors.verticalCenter: parent.verticalCenter; text: "‹"; color: Theme.muted; visible: seats.visible&&!seats.atXBeginning; font.pixelSize: 22 }
+            Text { anchors.right: parent.right; anchors.verticalCenter: parent.verticalCenter; text: "›"; color: Theme.muted; visible: seats.visible&&!seats.atXEnd; font.pixelSize: 22 }
+            Text { anchors.right: parent.right; anchors.bottom: parent.bottom; text: "⌄"; color: Theme.muted; visible: roster.visible&&!roster.atYEnd; font.pixelSize: 16 }
         }
         Text { id: disclosure; objectName: "lobby-progress-notice"; width: parent.width; anchors.bottom: actions.top; anchors.bottomMargin: 8; height: visible ? implicitHeight : 0
             readonly property var profile: root.game.runtime || ({})

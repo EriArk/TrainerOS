@@ -1,0 +1,90 @@
+{
+  "sourceBase": "1e33a5d1",
+  "devices": {
+    "odin": {
+      "installation": {
+        "sha256": "2efe427aeda2bbb58584ac665f2215376a029798a8d07eb518a01a33c2501acc",
+        "previous_sha256": "3be372209eee1170a15fe90deb2de294141c7baca0ed1bbe793aaf9bb62bf97e",
+        "supervised_restart": true,
+        "capabilities": {
+          "account.identity": 1,
+          "avatar.local": 1,
+          "avatar.recipe": 1,
+          "context": 1,
+          "lifecycle": 1,
+          "lobby.activity": 1,
+          "network.group": 1,
+          "network.records": 1,
+          "play.scorecards": 1,
+          "ui.start.widget": 1
+        },
+        "backup_retained": true,
+        "helper_sha256": "a978253560b8c9ef11091f9c2dbd0276c454e60de386783a1e6003b59438230b"
+      },
+      "preservation": {
+        "settingsUnchanged": true,
+        "databaseTablesUnchanged": 4,
+        "integrity": "ok",
+        "volume": "Volume: 0.00",
+        "liveShell": "2efe427aeda2bbb58584ac665f2215376a029798a8d07eb518a01a33c2501acc"
+      },
+      "sharedPack": {
+        "files": 52,
+        "revision": 9,
+        "matching": true
+      },
+      "ordinaryBrowserLogin": true,
+      "managedBrowserForeground": true,
+      "automaticNativeReturn": true,
+      "accountRetainedAfterUpdate": true,
+      "otherRealProfileViewed": true,
+      "syntheticRewardsGranted": false
+    },
+    "flip": {
+      "installation": {
+        "sha256": "2efe427aeda2bbb58584ac665f2215376a029798a8d07eb518a01a33c2501acc",
+        "previous_sha256": "3be372209eee1170a15fe90deb2de294141c7baca0ed1bbe793aaf9bb62bf97e",
+        "supervised_restart": true,
+        "capabilities": {
+          "account.identity": 1,
+          "avatar.local": 1,
+          "avatar.recipe": 1,
+          "context": 1,
+          "lifecycle": 1,
+          "lobby.activity": 1,
+          "network.group": 1,
+          "network.records": 1,
+          "play.scorecards": 1,
+          "ui.start.widget": 1
+        },
+        "backup_retained": true,
+        "helper_sha256": "a978253560b8c9ef11091f9c2dbd0276c454e60de386783a1e6003b59438230b"
+      },
+      "preservation": {
+        "settingsUnchanged": true,
+        "databaseTablesUnchanged": 4,
+        "integrity": "ok",
+        "volume": "Volume: 0.20",
+        "liveShell": "2efe427aeda2bbb58584ac665f2215376a029798a8d07eb518a01a33c2501acc"
+      },
+      "sharedPack": {
+        "files": 52,
+        "revision": 9,
+        "matching": true
+      },
+      "ordinaryBrowserLogin": true,
+      "managedBrowserForeground": true,
+      "automaticNativeReturn": true,
+      "accountRetainedAfterUpdate": true,
+      "otherRealProfileViewed": true,
+      "syntheticRewardsGranted": false
+    }
+  },
+  "pending": [
+    "Physical controls and owner visual acceptance",
+    "More than four real speakers",
+    "Sixteen real players",
+    "Real supporter binding",
+    "Specific clothing prize assignments"
+  ]
+}

@@ -310,6 +310,77 @@ inline void startOnlineSmoke(QQuickWindow* window,trainer::ShellController& shel
             check(shell.profileRoute()=="prizes"&&shell.backendAccount()->prizes()["celebrating"].toBool(),"Post-game pending awards open on safe shell");
             shell.dispatch(Action::LocalAction);check(shell.backendAccount()->prizes()["shelf"].toList().size()==1,"Ceremony pin is idempotent");
             capture("prizes-postgame");shell.dispatch(Action::Back);shell.dispatch(Action::Back);shell.dispatch(Action::Back);break;
+        case 53: {
+            const QString player="11111111-1111-4111-8111-111111111111";
+            auto privacy=std::make_shared<QJsonObject>(QJsonObject{{"revision","0"},{"level",true},{"shelf",true},{"history",true},{"activity",false}});
+            const auto recipe=shell.trainer()->avatarDescriptor()["recipe"].toObject();
+            shell.backendAccount()->setServices({[player,privacy,recipe](QByteArray method,QString path,QJsonObject body,QByteArray,trainer::BackendAccount::Reply done){
+                if(path=="/v1/auth/refresh")done(200,{{"player_id",player},{"session_id","33333333-3333-4333-8333-333333333333"},{"fluxer_subject","12345"},
+                    {"access_token",QString(43,'a')},{"refresh_token",QString(43,'r')},{"expires_at",QDateTime::currentDateTimeUtc().addSecs(900).toString(Qt::ISODateWithMs)}});
+                else if(path=="/v1/me/profile/sharing") {if(method=="PUT"){*privacy=body;(*privacy)["revision"]="1";}done(200,*privacy);}
+                else if(path.startsWith("/v1/profiles/")) {
+                    QJsonObject value{{"player_id",player},{"display_name","Luna · Collector of worlds"},{"subject","2"},{"avatar",recipe},{"appearance","aurora"},{"visibility",*privacy}};
+                    QJsonArray trophies;for(int i=0;i<5;++i)trophies.append(QJsonObject{{"game_id",i+1},{"title",QStringList{"Crystal adventure","Night racers","Starbound stories","Dream island","The final quest"}[i]},{"completed",i%2==0},{"earned_at","2026-10-28T12:00:00Z"}});
+                    if((*privacy)["level"].toBool())value["level"]=18;
+                    if((*privacy)["shelf"].toBool())value["shelf"]=trophies;
+                    if((*privacy)["history"].toBool())value["history"]=trophies;
+                    done(200,value);
+                }else done(503,{});
+            },[](QString,auto done){done(true,QJsonDocument(QJsonObject{{"refresh_token",QString(43,'r')}}).toJson());},[](QString,QByteArray,auto done){done(true);},[](QUrl){return false;},[](QString){return QByteArray();},[](QString,QByteArray){return true;}});
+            shell.backendAccount()->configure("ui-visitor-fixture");window->resize(1280,720);shell.openProfile();shell.activate(12,"profile");*prizeWait=0;break;
+        }
+        case 54:
+            if(shell.visitorProfile()->avatarPreview().isEmpty()&&++*prizeWait<30){--*step;break;}
+            check(shell.profileRoute()=="visitor"&&shell.visitorProfile()->preview(),"Own profile uses visitor projection");
+            check(shell.visitorProfile()->data()["shelf"].toList().size()==5,"Visitor shelf is server-backed");capture("visitor-wide");window->resize(960,540);break;
+        case 55:
+            capture("visitor-compact");shell.dispatch(Action::Back);check(shell.profileRoute()=="summary"&&shell.profileFocus()==12,"Preview returns to its own entry");
+            shell.activate(13,"profile");shell.activate(2,"profile");break;
+        case 56:
+            check(!shell.visitorProfile()->sharing()["history"].toBool(),"Sharing writes the server choice");capture("visitor-sharing-compact");
+            shell.dispatch(Action::Back);shell.activate(12,"profile");break;
+        case 57:
+            check(!shell.visitorProfile()->data().contains("history"),"Self preview respects private history");capture("visitor-private-compact");
+            shell.dispatch(Action::Back);shell.dispatch(Action::Back);shell.openOnlineFace("chats");shell.social()->profile("2");break;
+        case 58:
+            check(shell.profileRoute()=="visitor"&&!shell.visitorProfile()->preview(),"Social person opens full profile");
+            capture("visitor-friend-compact");shell.dispatch(Action::Back);check(!shell.serviceOpen()&&shell.onlineFace()=="chats","Friend profile returns to original Online face");
+            shell.openVisitorProfile("11111111-1111-4111-8111-111111111111");check(shell.profileRoute()=="visitor","Stable player ID opens the same profile");shell.dispatch(Action::Back);break;
+        case 59: {
+            auto* social=shell.social();trainer::HomeSocialFixture::publish(*social,{{"state","connected"},{"userId","1"},{"name","Mika"}});
+            shell.openOnlineFace("lobby");social->openLobbyForPeople();if(social->lobbyCreateOpen())social->submitLobbyDraft();
+            auto* host=social->lobbyCoordinator();host->selectGame({"fixture16","A party for everyone","crates","netplay",16,{}});
+            for(int i=2;i<=16;++i){
+                auto* guest=new trainer::LobbyCoordinator(window);const auto id=QString::number(i),name="Player "+id;guest->configure(id,name,true);
+                QObject::connect(host,&trainer::LobbyCoordinator::outgoing,guest,[guest,id](QString peer,QJsonObject packet){if(peer==id)guest->receive("1","Mika",packet);});
+                QObject::connect(guest,&trainer::LobbyCoordinator::outgoing,window,[host,id,name](QString,QJsonObject packet){host->receive(id,name,packet);});
+                host->invite(id);guest->answer(true);
+            }
+            social->chooseMyLobby(host->state()["id"].toString());window->resize(1280,720);break;
+        }
+        case 60:
+            check(shell.social()->lobbyPlayers().size()==16,"Sixteen seats remain available");
+            check(!shell.social()->myLobbiesOpen(),"Roster is visible without the lobby picker");capture("lobby-sixteen-wide");window->resize(960,540);break;
+        case 61:
+            capture("lobby-sixteen-compact");shell.social()->activateLobbyRoom("person:16");break;
+        case 62:
+            shell.social()->profile("16");check(shell.profileRoute()=="visitor","Last lobby player opens full profile");shell.dispatch(Action::Back);
+            check(shell.onlineFace()=="lobby"&&shell.social()->lobbyRoomFocus()=="person:16","Profile returns to sixteenth roster player");break;
+        case 63:
+            shell.social()->profile("2");shell.backendAccount()->configure("ui-visitor-new-owner");
+            check(shell.visitorProfile()->data().isEmpty(),"Account change clears the visible foreign profile");
+            shell.activate(3,"profile");check(!shell.visitorProfile()->data().isEmpty(),"Profile refresh remains usable after account change");shell.dispatch(Action::Back);break;
+        case 64:
+            // Leaving a primary page restores the real local trainer owner.
+            // Authenticate the isolated visitor fixture after that transition.
+            shell.goToPage(0);shell.backendAccount()->configure("ui-visitor-home-options");break;
+        case 65:
+            shell.openVisitorProfile("11111111-1111-4111-8111-111111111111");shell.activate(2,"profile");
+            check(!shell.serviceOpen()&&shell.primaryId()=="online"&&shell.onlineFace()=="chats"&&shell.social()->profileVisible(),"Social options are visible from a profile opened outside Online");
+            shell.social()->closeMenu();shell.goToPage(0);shell.backendAccount()->configure("ui-visitor-home-message");break;
+        case 66:
+            shell.openVisitorProfile("11111111-1111-4111-8111-111111111111");shell.activate(0,"profile");
+            check(shell.primaryId()=="online"&&shell.onlineFace()=="chats","Message from a UUID profile enters the existing conversation route");break;
         default:
             check(warnings==0,"QML warnings during Online navigation");
             if(!directory.isEmpty()){QFile f(directory+"/online-report.json");if(f.open(QIODevice::WriteOnly))f.write(QJsonDocument(QJsonObject{{"warnings",warnings},{"success",diagnostics.isEmpty()},{"diagnostics",QJsonArray::fromStringList(diagnostics)}}).toJson());}

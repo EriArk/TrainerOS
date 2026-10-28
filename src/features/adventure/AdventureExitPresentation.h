@@ -57,7 +57,7 @@ public:
     QString panel() const{return panel_;}
     bool menuCanSelect() const{return !menuActions().value(menuFocus_).toMap().value("readOnly").toBool();}
     void setExtraActions(QVariantList actions);
-    void setPanel(QString panel,QString caption,QVariantList actions,QString backAction = {});
+    void setPanel(QString panel,QString caption,QVariantList actions,QString backAction = {},QString restoreAction = {});
     void setGameTitle(const QString& title) { gameTitle_ = title; emit changed(); }
     bool requestMenu();
     // Returning to play releases the lease; accepted restart retains it until exit.

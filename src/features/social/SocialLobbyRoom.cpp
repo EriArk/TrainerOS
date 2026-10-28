@@ -180,6 +180,24 @@ void SocialController::dispatchLobbyRoom(Action action) {
     groups.append(gameKeys);
     for(const auto& rows:{lobbyPlayers(),lobbyRoomActions()}) {QStringList keys;for(const auto& v:rows)keys.append(v.toMap()["key"].toString());if(!keys.isEmpty())groups.append(keys);}
     int group=0,index=0;for(int i=0;i<groups.size();++i)if(groups[i].contains(lobbyRoomFocus())){group=i;index=groups[i].indexOf(lobbyRoomFocus());break;}
+    // Match the row-major two-column roster, including its last odd row.
+    if(lobbyPlayers().size()>5 && group==1) {
+        const int count=groups[group].size();
+        if(action==Action::Up && index>=2)lobbyRoomFocus_=groups[group][index-2];
+        else if(action==Action::Down && index+2<count)lobbyRoomFocus_=groups[group][index+2];
+        else if(action==Action::Down && index%2==1 && index+1<count)lobbyRoomFocus_=groups[group][index+1];
+        else if(action==Action::Left && index%2==1)lobbyRoomFocus_=groups[group][index-1];
+        else if(action==Action::Right) {if(index%2==0 && index+1<count)lobbyRoomFocus_=groups[group][index+1];else focusLobbyChat();}
+        else if(action==Action::Up)lobbyRoomFocus_=groups[0][qMin(index,int(groups[0].size())-1)];
+        else if(action==Action::Down && groups.size()>2)lobbyRoomFocus_=groups[2][qMin(index%2,int(groups[2].size())-1)];
+        emit changed();return;
+    }
+    if(lobbyPlayers().size()>5 && group==2 && action==Action::Up) {
+        const int count=groups[1].size();lobbyRoomFocus_=groups[1][qMin(((count-1)/2)*2+index%2,count-1)];emit changed();return;
+    }
+    if(lobbyPlayers().size()>5 && group==0 && action==Action::Down) {
+        lobbyRoomFocus_=groups[1][index%2];emit changed();return;
+    }
     if(action==Action::Up||action==Action::Down){group=qBound(0,group+(action==Action::Down?1:-1),int(groups.size())-1);lobbyRoomFocus_=groups[group][qMin(index,int(groups[group].size())-1)];}
     else if(action==Action::Right){if(index+1<groups[group].size())lobbyRoomFocus_=groups[group][index+1];else focusLobbyChat();}
     else if(action==Action::Left&&index>0)lobbyRoomFocus_=groups[group][index-1];

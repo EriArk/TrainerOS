@@ -70,6 +70,7 @@ def grant_runtime(database_url, role):
         'audit_events': 'SELECT,INSERT',
         'players': 'SELECT,UPDATE', 'external_identities': 'SELECT',
         'public_profiles': 'SELECT,INSERT,UPDATE',
+        'profile_sharing': 'SELECT,INSERT,UPDATE',
         'progression_accounts': 'SELECT,INSERT,UPDATE',
         'reward_links': 'SELECT,INSERT', 'reward_link_challenges': 'SELECT,INSERT,UPDATE',
         'reward_ledger': 'SELECT,INSERT',

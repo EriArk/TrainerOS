@@ -1,0 +1,39 @@
+PASS Shared passive and active windows exist
+PASS Create isolated avatar image fixture
+PASS Passive player bubbles appear during the fixture game
+PASS Passive window cannot take keyboard focus
+PASS Four controller seats and provider unread are projected
+PASS Provider avatar image is loaded for the matching player
+PASS Player component exists
+PASS Dragging persists a normalized safe-area position
+PASS Capture players-four
+PASS Passive HUD is excluded while the game overlay is open
+PASS Mini chat waits for the selected room instead of revealing the previous chat
+PASS Correct provider conversation becomes visible
+PASS Capture player-mini-chat
+PASS Controller opens the existing keyboard inside the game overlay
+PASS Capture player-keyboard
+PASS Back preserves the shared room draft
+PASS Back restores the passive surface without ending the game session
+PASS Send keeps the room Quick Chat open
+PASS Resized HUD retains explicit input regions
+PASS Bubble stays within resized display
+PASS Bubble stays within resized display
+PASS Bubble stays within resized display
+PASS Bubble stays within resized display
+PASS Bubble stays within resized display
+PASS Bubble stays within resized display
+PASS Bubble stays within resized display
+PASS Bubble stays within resized display
+PASS Capture players-square
+PASS Sixteen players retained by overlay controller
+PASS Large group uses two speakers and remaining count
+PASS Large group has a compact height at the display scale
+PASS Actual speakers take the two visible places
+PASS Capture players-sixteen
+PASS Collapsed count opens the full player list
+PASS Capture players-sixteen-list
+PASS Last player has compact individual actions
+PASS Individual actions return to the same player
+PASS Ending the owned game clears player HUD
+qmlWarnings=0

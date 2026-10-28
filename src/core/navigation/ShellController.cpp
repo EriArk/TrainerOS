@@ -1,3 +1,4 @@
+#include <QUuid>
 #include <QDesktopServices>
 #include <cmath>
 #include "core/model/GameFavorite.h"
@@ -135,6 +136,12 @@ ShellController::ShellController(LibraryRepository& repo, TrainerRepository& pro
         achievementPhotoReturn_=true;emit changed();
     });
     connect(&social_,&SocialController::presentationChanged,this,&ShellController::changed,Qt::QueuedConnection);
+    connect(&visitorProfile_,&VisitorProfile::changed,this,&ShellController::changed);
+    social_.openPlayerProfile=[this](QString subject){
+        openProfile(subject==social_.account()["userId"].toString());if(service_!="profile")return false;
+        if(subject==social_.account()["userId"].toString())return true;
+        profileRoute_="visitor";profileFocus_=0;visitorProfile_.open(subject);emit changed();return true;
+    };
     settings_.setScraper(&scraper_);
     settings_.setCrates(&crates_);
     connect(&libraryTools_,&LibraryToolsController::browserActionRequested,this,&ShellController::libraryAction);
@@ -1659,17 +1666,33 @@ QVariantMap ShellController::profileAccount() const {
         {"levelText",known?QString::number(mastery["level"].toLongLong()):QString::fromUtf8("\xe2\x80\x94")},
         {"sparksText",known?QString::number(progress["balance"].toLongLong()):QString::fromUtf8("\xe2\x80\x94")}};
 }
-void ShellController::openProfile() {
+void ShellController::openVisitorProfile(QString player) {
+    if(QUuid(player).isNull())return;
+    openProfile(false);if(service_!="profile")return;
+    profileRoute_="visitor";profileFocus_=0;visitorProfile_.open({},player);emit changed();
+}
+QStringList ShellController::profileFavoriteTitles() const {
+    auto games=repository_.adventures();std::sort(games.begin(),games.end(),[](const auto& a,const auto& b){return a.title.compare(b.title,Qt::CaseInsensitive)<0;});
+    QStringList titles;for(const auto& game:games){
+        const auto registration=repository_.registration(game.id);const auto title=game.title.left(128);
+        if(!game.collectionOnly&&registration&&!registration->removed&&gameFavorite(repository_.artwork(game.id))&&!titles.contains(title))titles.append(title);
+        if(titles.size()==5)break;
+    }return titles;
+}
+void ShellController::openProfile(bool loadOwn) {
     if(navigationLocked() || moduleWriting() || keyboard_.isOpen() || trainer_.saving() || trainer_.editing())return;
     ++postGamePrizesGeneration_; // An explicit visit/Later choice supersedes a queued automatic presentation.
     if(service_=="profile")return;
     profileReturnNavigation_={{"hall",hall_.navigationState()},{"overviewFace",overviewFace_},
         {"overviewFocus",overviewFocus_},{"overviewSession",overviewSessionId_},
         {"album",QJsonObject::fromVariantMap(album_.navigationState())}};
-    homeMenuOpen_=false;quickAppsOpen_=drawerOpen_=false;service_="profile";trainer_.reload();profileFocus_=0;
-    profileRoute_="summary";profileRaAccountReturn_=false;profileSnapshot_=story_.profile();backendAccount_.refreshProgression();backendAccount_.refreshPrizes();emit changed();
+    homeMenuOpen_=false;quickAppsOpen_=drawerOpen_=false;service_="profile";profileFocus_=0;
+    profileRoute_="summary";profileRaAccountReturn_=false;
+    if(loadOwn){trainer_.reload();profileSnapshot_=story_.profile();backendAccount_.refreshProgression();backendAccount_.refreshPrizes();}
+    emit changed();
 }
 void ShellController::closeProfile() {
+    visitorProfile_.close();
     prizeWardrobeReturn_=false;
     backendAccount_.closeCelebration(false);
     outfits_.close();
@@ -1689,6 +1712,25 @@ void ShellController::closeProfile() {
 }
 void ShellController::activateProfile(int index) {
     if(!profileContentActive())return;
+    if(profileRoute_=="privacy") {
+        profileFocus_=index;if(index<4)visitorProfile_.toggleSharing(index);else if(index==4)visitorProfile_.loadSharing();
+        else if(index==5&&backendAccount_.snapshot()["state"]!="signed_in")backendAccount_.activate();
+        else if(index==7)visitorProfile_.toggleSharing(4);
+        else if(index==6)visitorProfile_.publishFavorites(QJsonArray::fromStringList(profileFavoriteTitles()));
+        emit changed();return;
+    }
+    if(profileRoute_=="visitor") {
+        profileFocus_=index;const auto subject=visitorProfile_.subject();
+        if(index==3)visitorProfile_.refresh();
+        else if(index==4)visitorProfile_.refresh(true);
+        else if(index==5&&backendAccount_.snapshot()["state"]!="signed_in")backendAccount_.activate();
+        else if(!visitorProfile_.preview()&&!subject.isEmpty()) {
+            if(index==0){closeProfile();social_.messagePlayer(subject);}
+            else if(index==1){closeProfile();social_.openLobbyForPeople(subject);}
+            else if(index==2){closeProfile();openOnlineFace("chats");social_.profile(subject,true);}
+        }
+        emit changed();return;
+    }
     if(profileRoute_=="prizes") {
         if(backendAccount_.prizes()["celebrating"].toBool()){
             if(index==5)backendAccount_.togglePrizeShelf(true);
@@ -1721,9 +1763,11 @@ void ShellController::activateProfile(int index) {
         emit changed();return;
     }
     if(profileRoute_!="summary")return;
-    if(index<0 || index>11)return;
+    if(index<0 || index>13)return;
     profileFocus_=index;
-    if(index==11){profileRoute_="prizes";profileFocus_=0;backendAccount_.refreshPrizes();}
+    if(index==12){profileRoute_="visitor";profileFocus_=3;visitorProfile_.open({},backendAccount_.snapshot()["player_id"].toString(),true);}
+    else if(index==13){profileRoute_="privacy";profileFocus_=0;visitorProfile_.loadSharing();}
+    else if(index==11){profileRoute_="prizes";profileFocus_=0;backendAccount_.refreshPrizes();}
     else if(index==10){profileRoute_="support";profileFocus_=0;backendAccount_.refreshProgression(false);}
     else if(index==9){profileRoute_="shop";profileFocus_=1;backendAccount_.refreshShop();}
     else if(index==1){profileRoute_="outfits";outfits_.open();}
@@ -1749,6 +1793,20 @@ void ShellController::activateProfile(int index) {
 }
 void ShellController::dispatchProfile(Action action) {
     if(trainer_.editing()){trainer_.dispatch(action,true);return;}
+    if(profileRoute_=="visitor"||profileRoute_=="privacy") {
+        if(action==Action::Back) {
+            if(profileRoute_=="privacy"||visitorProfile_.preview()){profileFocus_=profileRoute_=="privacy"?13:12;profileRoute_="summary";visitorProfile_.close();}
+            else closeProfile();
+        }else if(action==Action::Confirm)activateProfile(profileFocus_);
+        else if(action==Action::Up||action==Action::Down||action==Action::Left||action==Action::Right) {
+            QList<int> order=profileRoute_=="privacy"?QList<int>{0,1,2,3,7,6,4}:visitorProfile_.preview()?QList<int>{3}:QList<int>{0,1,2,3};
+            if(profileRoute_=="visitor"&&!visitorProfile_.data()["next"].toString().isEmpty())order.append(4);
+            if(backendAccount_.snapshot()["state"]!="signed_in")order.append(5);
+            if(profileRoute_=="visitor")for(int i=0;i<visitorProfile_.data()["history"].toList().size();++i)order.append(100+i);
+            profileFocus_=order[qBound(0,int(order.indexOf(profileFocus_))+(action==Action::Up||action==Action::Left?-1:1),int(order.size())-1)];
+        }
+        emit changed();return;
+    }
     if(profileRoute_=="prizes") {
         if(backendAccount_.prizes()["celebrating"].toBool()) {
             if(action==Action::Back||action==Action::Confirm)backendAccount_.closeCelebration(action==Action::Confirm);
@@ -1819,7 +1877,7 @@ void ShellController::dispatchProfile(Action action) {
     } else if(action==Action::Back)closeProfile();
     else if(action==Action::Confirm)activateProfile(profileFocus_);
     else if(action==Action::Up || action==Action::Left || action==Action::Down || action==Action::Right) {
-        QList<int> order{0,1,4,9,10,11,3};
+        QList<int> order{0,1,12,13,4,9,10,11,3};
         for(int i=0;i<profileSnapshot_["badges"].toList().size();++i)order.append(7+i);
         order.append(2);if(!profileSnapshot_["latestSession"].toMap().isEmpty())order.append(6);order.append(5);
         const int delta=action==Action::Up || action==Action::Left?-1:1;

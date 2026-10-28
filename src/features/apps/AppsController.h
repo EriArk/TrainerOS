@@ -5,6 +5,7 @@
 #include <QTimer>
 #include <QVariantList>
 #include <QSet>
+#include <QUrl>
 #include <functional>
 
 namespace trainer {
@@ -49,6 +50,7 @@ public:
     bool controlsOpen() const{return controls_;}
     int controlIndex() const{return controlFocus_;}
     void openFile(const QString& url);
+    bool openWebUrl(const QUrl& url);
     void openDesktopId(const QString& id);
     void watchInstaller(qint64 pid,const QString& title);
     void finishInstaller();
@@ -69,6 +71,7 @@ signals:
     void changed();
     void commandRequested(QJsonObject);
     void foregroundRequested();
+    void webOpenFailed(QString message);
     void shellRequested();
     void homeRequested();
 private:
@@ -79,7 +82,8 @@ private:
     QVariantMap decorated(const QVariantMap&) const;
     QString selected() const;
     QProcess process_;
-    QTimer heartbeat_;
+    QTimer heartbeat_,webStartTimeout_;
+    QUrl queuedWebUrl_;
     QByteArray buffer_;
     QVariantList catalogue_;
     QSet<QString> favorites_,hiddenIds_,running_;
@@ -88,5 +92,6 @@ private:
     int favoriteCapacity_=10;
     qint64 processId_=0;
     bool railFocused_=false,hidden_=false,ready_=false,controls_=false;
+    bool webPending_=false;
 };
 }
