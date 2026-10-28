@@ -3,6 +3,11 @@
 New integration? Start with the [step-by-step guide and runnable Godot demo](AVATAR_QUICKSTART.md).
 This page is the protocol/reference companion.
 
+The current source pack is **revision 6**: smaller irises, half lids, closed and
+cartoon eyes, 14 expressions and 9 mouths. See [facial API](AVATAR_EXPRESSIONS.md)
+and [visual review / delivery boundaries](../docs/AVATAR_CARTOON_20261028.md).
+The revision-4/5 descriptions below record earlier deliveries.
+
 TrainerOS owns appearance and the installed asset pack. A game distributes only
 its SDK adapter, never a copy of the character. The interface is engine-neutral:
 ordinary glTF 2.0 / GLB, metres, +Y up, +Z forward, floor at Y=0.

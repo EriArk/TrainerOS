@@ -1,0 +1,10 @@
+********* Start testing of AvatarTests *********
+Config: Using QtTest library 6.11.1, Qt 6.11.1 (x86_64-little_endian-llp64 shared (dynamic) release build; by GCC 16.1.0), windows 10
+PASS   : AvatarTests::initTestCase()
+PASS   : AvatarTests::schema()
+PASS   : AvatarTests::approvedVariants()
+PASS   : AvatarTests::editingIsolation()
+PASS   : AvatarTests::externalPackAndResolvedGlb()
+PASS   : AvatarTests::cleanupTestCase()
+Totals: 6 passed, 0 failed, 0 skipped, 0 blacklisted, 119791ms
+********* Finished testing of AvatarTests *********

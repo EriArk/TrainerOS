@@ -16,14 +16,18 @@ private slots:
         if(!AvatarAssets::available())QSKIP("External avatar pack not installed");
         QTemporaryDir cache;QSet<QString> hashes;int index=0;
         QFile manifest(AvatarAssets::packRoot()+"/manifest.json");QVERIFY(manifest.open(QIODevice::ReadOnly));
-        const auto pack=QJsonDocument::fromJson(manifest.readAll()).object();QCOMPARE(pack["revision"].toInt(),5);
+        const auto pack=QJsonDocument::fromJson(manifest.readAll()).object();QCOMPARE(pack["revision"].toInt(),6);
         QFile templateFile(AvatarAssets::packRoot()+"/template.glb");QVERIFY(templateFile.open(QIODevice::ReadOnly));
         const auto templateBytes=templateFile.readAll();
         const auto templateJson=QJsonDocument::fromJson(templateBytes.mid(20,qFromLittleEndian<quint32>(templateBytes.constData()+12))).object();
         const auto face=templateJson["extras"].toObject()["trainerFace"].toObject();
         QCOMPARE(face["schema"].toInt(),1);
-        QCOMPARE(face["mouths"].toArray().size(),8);
-        QCOMPARE(face["expressions"].toObject().size(),9);
+        QCOMPARE(face["mouths"].toArray().size(),9);
+        QCOMPARE(face["expressions"].toObject().size(),14);
+        for(const auto& name:{"cat_smug","content","squeezed","love","shocked"})
+            QVERIFY(face["expressions"].toObject().contains(name));
+        QCOMPARE(pack["eyeBodyMeshes"].toObject()["round"],pack["preparedBodyMesh"]);
+        QCOMPARE(pack["eyeBodyMeshes"].toObject()["almond"],pack["preparedBodyMesh"]);
         QCOMPARE(face["speech"].toBool(),false);
         QCOMPARE(pack["eyeNodes"].toObject().size(),14);
         const auto bodyPrimitive=templateJson["meshes"].toArray()[pack["legacyBodyMesh"].toInt()].toObject()["primitives"].toArray()[0].toObject();
@@ -77,7 +81,7 @@ private slots:
             int mouths=0;
             for(const auto& item:nodes)if(item.toObject()["name"]=="Face_Mouth"){
                 ++mouths;const auto mouth=g["meshes"].toArray()[item.toObject()["mesh"].toInt()].toObject();
-                QCOMPARE(mouth["extras"].toObject()["targetNames"].toArray().size(),7);
+                QCOMPARE(mouth["extras"].toObject()["targetNames"].toArray().size(),8);
                 for(const auto& weight:mouth["weights"].toArray())QCOMPARE(weight.toDouble(),0.0);
             }
             QCOMPARE(mouths,1);

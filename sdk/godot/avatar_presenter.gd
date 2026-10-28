@@ -197,7 +197,7 @@ static func _prepare_vertex_colors(scene: Node3D) -> bool:
 	# glTF COLOR_0 is linear. Compatibility multiplies vertex colors in sRGB
 	# space and ignores BaseMaterial3D.vertex_color_is_srgb. Convert only the
 	# imported GPU color attribute; retain geometry, UVs, skin and morph buffers.
-	if DisplayServer.get_name()=="headless" or RenderingServer.get_current_rendering_method()!="gl_compatibility": return true
+	var compatibility := DisplayServer.get_name()!="headless" and RenderingServer.get_current_rendering_method()=="gl_compatibility"
 	var visited: Dictionary = {}
 	for node in scene.find_children("*","MeshInstance3D",true,false):
 		var mesh := (node as MeshInstance3D).mesh as ArrayMesh
@@ -205,9 +205,13 @@ static func _prepare_vertex_colors(scene: Node3D) -> bool:
 		visited[mesh.get_instance_id()]=true
 		for surface in mesh.get_surface_count():
 			var material := mesh.surface_get_material(surface) as BaseMaterial3D
-			if material==null or not material.vertex_color_use_as_albedo or material.vertex_color_is_srgb: continue
+			if material==null: continue
 			var format := mesh.surface_get_format(surface)
 			if not (format & Mesh.ARRAY_FORMAT_COLOR): continue
+			# glTF COLOR_0 multiplies the material. Godot can leave the flag off
+			# for a material that previously had no colored primitives (brows).
+			material.vertex_color_use_as_albedo=true
+			if not compatibility or material.vertex_color_is_srgb: continue
 			var count := mesh.surface_get_array_len(surface)
 			var stride := RenderingServer.mesh_surface_get_format_attribute_stride(format,count)
 			var offset := RenderingServer.mesh_surface_get_format_offset(format,count,Mesh.ARRAY_COLOR)

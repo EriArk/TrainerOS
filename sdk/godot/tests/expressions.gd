@@ -37,7 +37,27 @@ func run() -> void:
 		avatar.clear_identity();print("LEGACY_FACE success=",not failed);quit(1 if failed else 0);return
 	for name in avatar.facial_rig.expressions:
 		check(avatar.set_expression(name,1,0), "expression "+name)
+		var brows := 0
+		for node in avatar.find_children("*", "MeshInstance3D", true, false):
+			if "-brow" in str(node.name):
+				brows+=1
+				check(node.visible and node.mesh.get_aabb().size.x>0.08, "brows retained during "+name)
+				check(node.mesh.surface_get_material(0).vertex_color_use_as_albedo, "brow contrast tint applied during "+name)
+		check(brows==1, "selected eyebrow pair present during "+name)
 		await capture(name)
+	for name in ["cat_smug","content","love","shocked","squeezed"]:
+		check(avatar.supports_expression(name), "cartoon pose available "+name)
+		avatar.rotation_degrees.y=35
+		avatar.set_expression(name,1,0)
+		await capture(name+"-three-quarter")
+	avatar.rotation_degrees.y=0
+	avatar.set_expression("cat_smug",0.5,0)
+	await capture("cat_smug-half")
+	avatar.set_expression("love",1,0)
+	avatar.set_expression("neutral",1,0.18)
+	avatar._process(0.2)
+	for control in ["eyes_closed","eyes_hearts","eyes_shocked","eyes_squeezed"]:
+		check(avatar._face_values.get(control,0)==0, "cartoon geometry cleared by neutral "+control)
 	check(not avatar.set_expression("unknown"), "unknown expression rejected")
 	check(not avatar.set_expression("happy",NAN), "non-finite strength rejected")
 	check(not avatar.react("unknown"), "unknown reaction rejected")

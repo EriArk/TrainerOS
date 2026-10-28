@@ -1,5 +1,12 @@
 # Shared Trainer avatar pack
 
+**28 October follow-up: runtime revision 6** reduces irises to 78%, adds a
+cat smile and half-lidded expression, closed arcs and cartoon squint/heart/shock
+eyes. All 14 IDs remain; round/almond now use separate modular eye surfaces.
+Open mouths include teeth. There are 9 mouth poses and 14 expressions; the
+[new review and evidence](../../docs/AVATAR_CARTOON_20261028.md) supersede the
+revision-5 appearance below. Retained approved source files are unchanged.
+
 **28 October: runtime revision 5** adds the shared facial rig: eight mouth poses,
 nine expressions and four transient reactions. The procedural source is
 [`build_expressions.py`](../../tools/avatar/build_expressions.py); the

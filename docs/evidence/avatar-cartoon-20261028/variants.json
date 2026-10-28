@@ -1,0 +1,37 @@
+{
+  "renderer": "gl_compatibility",
+  "passed": [
+    "round",
+    "almond",
+    "rogue-base",
+    "rogue-feminine",
+    "innocent-base",
+    "innocent-feminine",
+    "sly-base",
+    "sly-feminine",
+    "calm-base",
+    "calm-feminine",
+    "sleepy-base",
+    "sleepy-feminine",
+    "determined-base",
+    "determined-feminine"
+  ],
+  "packManifestSha256": "62e640875da6dc01adaa6116d296dd6e7d468b73ed07f8aad62b8ce2bff66019",
+  "templateSha256": "7cd68bd1894a680830c312f2f11137fc35d8c2516f67bee60ddadcee39c6ec46",
+  "resolvedGlbSha256": {
+    "round": "fc64c7f837b3d141c44d99839a85ef85f5e22a5f413f0ef37e677d0b33d48cfb",
+    "almond": "00f1944d875a6ff8102f4a87dd0c7c441546d76d551d01e28f7dd7b30c4b556c",
+    "rogue-base": "8ea6cd88c4d1331d9422299fce894ef977123dc8e21e1a7d1c04f9d11596f31c",
+    "rogue-feminine": "4b59c84011597ac86ef6af2670309ab4b5d476b09153fc2908cd388fa385f0e1",
+    "innocent-base": "04baeb3d930fb3ac81d93287bf8b49461df8fb9dda57ec578e5b75aae0936ead",
+    "innocent-feminine": "e2e5fa4ce0d6f3b3377b1f3fb98a64b838e0d471bdea62247cd155b12445b397",
+    "sly-base": "45a019f761fcd75cbcd169dd650f0eee58613d5e3336e475908200ec22de8c52",
+    "sly-feminine": "4066bfe51a90f897bf3b90f8ae1d59fb9be3ca3649b0a5b00e040c184dbecacb",
+    "calm-base": "6f3e19f996b1f9fd3787e24e5011577c219ae39fc2561b51c827a44203d6f822",
+    "calm-feminine": "1d8b3cc815ce1544d81b7ade2881baec3a42bee802fd1579fbeb15df621e4c4a",
+    "sleepy-base": "cb6a9fd8bb4569ab5877aec4cdd6fd7f980f460f5aa75f3be95812fe6cc9f87b",
+    "sleepy-feminine": "fb2d541cdc987f768155df66db52dade7e80c6164b02b448dba1b87d859bd8eb",
+    "determined-base": "f85f22aa7035341b2ea19cac44a8531e6bd9b39bd397df84316119d61a39f54d",
+    "determined-feminine": "6efa7fd4306aaab1b7f7b1be2f871ffafb8c24c2ff9e2db17cec111257443851"
+  }
+}
