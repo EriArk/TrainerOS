@@ -1,9 +1,9 @@
 {
+  "checkedUtc": "2026-10-29T00:35:54.561896+00:00",
   "packRevision": 10,
   "manifestSha256": "fc9a09f698ee973b6e661beaff85247830113678c0495dcf9f59efd2f1cb1b9a",
-  "hostSha256": "c1649d223fa934f7bfa2577a0ec3c90c7d2db858f9d377962e91938316e7989f",
+  "hostSha256": "2fcb1d2d4baa5dd89c56709d282285fb58c71f08fb3b9800ce24b28e63fc0047",
   "singleHostRunning": true,
-  "microRallyRunning": false,
-  "volume": "Volume: 0.20",
-  "filesVerified": 51
+  "filesVerified": 51,
+  "volume": "Volume: 0.20"
 }

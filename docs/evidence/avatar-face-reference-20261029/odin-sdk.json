@@ -1,0 +1,32 @@
+{
+  "ready": true,
+  "darkSkinMaterials": {
+    "Soft warm eyelid": [
+      0.004504813849925995,
+      0.0024025673866271973,
+      0.0015016046166419982,
+      1
+    ],
+    "Warm brown eyebrow": [
+      0.09294000224747911,
+      0.028622831675815696,
+      0.016856561275707005,
+      1
+    ],
+    "Mouth Contour": [
+      0.02853048771619797,
+      0.00840898585319519,
+      0.006607060313224792,
+      1
+    ]
+  },
+  "darkSkinGlbSha256": "546c1e656a885943fa73e19109ad19da975cd6b877caad235a71b884dc65fd3f",
+  "packManifestSha256": "fc9a09f698ee973b6e661beaff85247830113678c0495dcf9f59efd2f1cb1b9a",
+  "packRevision": 10,
+  "localAppearanceSchema": 3,
+  "recipeSchema": 1,
+  "resolvedBytes": 26470608,
+  "peerHasNoProfile": true,
+  "currentLookUnchanged": true,
+  "sha256": "c2dcac6e0634b154c5d79536de7ba03bfea670348ed05b07f9498f9fd69153a2"
+}
