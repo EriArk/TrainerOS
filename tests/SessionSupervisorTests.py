@@ -7,7 +7,7 @@ import subprocess
 import sys
 import tempfile
 import unittest
-from unittest.mock import patch
+from unittest.mock import call, patch
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -63,6 +63,41 @@ else:
 
 
 class TransitionTests(unittest.TestCase):
+    def test_session_teardown_removes_display_environment_after_service_stop(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            folder = Path(temporary)
+            log = folder / "calls"
+            for command in ("systemctl", "dbus-update-activation-environment", "sudo", "logger"):
+                stub = folder / command
+                stub.write_text('#!/bin/bash\nprintf "%s %s\\n" "${0##*/}" "$*" >> "$CALL_LOG"\n')
+                stub.chmod(0o755)
+            result = subprocess.run(["/bin/bash", str(ROOT / "packaging/session/start-session.sh")],
+                                    env=dict(os.environ, PATH=str(folder), CALL_LOG=str(log)),
+                                    capture_output=True, timeout=5)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(log.read_text().splitlines()[-3:], [
+                "systemctl --user stop traineros-session.service",
+                "dbus-update-activation-environment --systemd DISPLAY= WAYLAND_DISPLAY= GAMESCOPE_WAYLAND_DISPLAY= XAUTHORITY=",
+                "systemctl --user unset-environment DISPLAY WAYLAND_DISPLAY GAMESCOPE_WAYLAND_DISPLAY XAUTHORITY"])
+
+    def test_destination_selection_requires_real_session_restart(self):
+        spec = importlib.util.spec_from_file_location("control", ROOT / "packaging/session/control.py")
+        control = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(control)
+        for action, destination in (("steam", "default-gamemode"), ("desktop", "default-desktop")):
+            for results in ([0, 0], [7], [0, 9]):
+                with self.subTest(action=action, results=results), tempfile.TemporaryDirectory() as temporary:
+                    control.MARKER = Path(temporary) / "transition"
+                    with patch.object(control.os, "geteuid", return_value=0), patch.object(control.sys, "argv", ["control.py", action]), patch.dict(os.environ), patch.object(control, "session_pids", return_value=[42]), patch.object(control.subprocess, "call", side_effect=results) as execute:
+                        self.assertEqual(control.main(), results[-1])
+                        expected = [call([control.ARMADA, destination])]
+                        if results[0] == 0:
+                            expected.append(call(["/usr/bin/systemctl", "--no-block", "restart", "sddm"]))
+                        self.assertEqual(execute.call_args_list, expected)
+                    self.assertEqual(control.MARKER.exists(), results[-1] == 0)
+                    if control.MARKER.exists():
+                        self.assertTrue(control.consume_transition(42))
+
     def test_boot_default_does_not_restart_display_manager(self):
         spec = importlib.util.spec_from_file_location("control", ROOT / "packaging/session/control.py")
         control = importlib.util.module_from_spec(spec)

@@ -82,7 +82,13 @@ def main():
             return 0
     atomic_write(MARKER, json.dumps({"pids": session_pids(), "time": time.monotonic()}))
     if action in {"desktop", "steam"}:
-        result = subprocess.call([ARMADA, "switch-desktop" if action == "desktop" else "switch-gamemode"])
+        # Armada's switch-gamemode tries KDE logout first. D-Bus can activate
+        # org.kde.Shutdown even in TrainerOS and report success without ending
+        # this session. Let Armada choose the destination, then end the actual
+        # SDDM session explicitly; never depend on a different desktop's logout.
+        result = subprocess.call([ARMADA, "default-desktop" if action == "desktop" else "default-gamemode"])
+        if result == 0:
+            result = subprocess.call(["/usr/bin/systemctl", "--no-block", "restart", "sddm"])
     else:
         result = subprocess.call(["/usr/bin/systemctl", "--no-block", "restart", "sddm"] if action == "traineros"
                                  else ["/usr/bin/systemctl", "--no-block", action])

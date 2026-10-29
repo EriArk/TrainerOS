@@ -11,7 +11,15 @@ export XDG_CURRENT_DESKTOP=TrainerOS
 export XDG_SESSION_DESKTOP=traineros
 systemctl --user import-environment XDG_SESSION_TYPE XDG_CURRENT_DESKTOP XDG_SESSION_DESKTOP
 dbus-update-activation-environment --systemd XDG_SESSION_TYPE XDG_CURRENT_DESKTOP XDG_SESSION_DESKTOP
-trap 'systemctl --user stop traineros-session.service' EXIT
+finish_session() {
+    systemctl --user stop traineros-session.service
+    # The user manager survives SDDM logout. Empty WAYLAND_DISPLAY still makes
+    # Gamescope choose its nested backend, so clear D-Bus activation values and
+    # then REMOVE the display variables from systemd for the next session.
+    dbus-update-activation-environment --systemd DISPLAY= WAYLAND_DISPLAY= GAMESCOPE_WAYLAND_DISPLAY= XAUTHORITY=
+    systemctl --user unset-environment DISPLAY WAYLAND_DISPLAY GAMESCOPE_WAYLAND_DISPLAY XAUTHORITY
+}
+trap finish_session EXIT
 trap 'exit 0' TERM INT HUP
 systemctl --user --wait start traineros-session.service &
 wait $!
