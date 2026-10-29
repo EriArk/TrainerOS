@@ -312,6 +312,22 @@ private slots:
         bonus["support_multiplier"]=3;h.progress["history"]=QJsonArray{bonus};h.progress["support"]=QJsonObject{{"multiplier",9}};
         a.refreshProgression(false);QVERIFY(!a.progression()["stale"].toBool());QVERIFY(a.progression()["support"].toMap().isEmpty());
     }
+    void operatorFundingIsAcceptedWithoutXpAndRejectsMalformedHistory() {
+        Harness h;h.progressionOk=true;
+        const auto date=QDateTime::currentDateTimeUtc().toString(Qt::ISODateWithMs);
+        auto grant=QJsonObject{{"id","44444444-4444-4444-8444-444444444444"},{"source","operator.test_grant"},
+            {"title","Test funding"},{"xp",0},{"sparks",100000},{"earned_at",date}};
+        h.progress={{"player_id",Player},{"balance",100000},{"revision","1"},{"history",QJsonArray{grant}},
+            {"mastery",QJsonObject{{"xp",0},{"level",1},{"level_xp",0},{"next_level_xp",300}}},{"checked_at",date}};
+        BackendAccount a;a.setServices(h.services());a.configure("test-funding");a.activate();h.callback();
+        QCOMPARE(a.progression()["balance"].toInt(),100000);QVERIFY(!a.progression()["stale"].toBool());
+        QCOMPARE(a.progression()["mastery"].toMap()["xp"].toInt(),0);
+        for(const auto bad:QJsonArray{0,-1,1000001}) {
+            auto invalid=grant;invalid["sparks"]=bad;h.progress["history"]=QJsonArray{invalid};
+            a.refreshProgression(false);QVERIFY(a.progression()["stale"].toBool());
+        }
+        grant["xp"]=1;h.progress["history"]=QJsonArray{grant};a.refreshProgression(false);QVERIFY(a.progression()["stale"].toBool());
+    }
     void supportPreviewRejectsMalformedStaleAndUnsettledBalances() {
         Harness h;h.progressionOk=true;h.shopEnabled=true;h.shopValue=inventory();
         const QJsonObject preview{{"policy","support-preview-2026-10-v1"},{"state","calculation_only"},{"activation_available",false},

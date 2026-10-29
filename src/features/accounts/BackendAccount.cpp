@@ -83,7 +83,8 @@ bool BackendAccount::adoptProgression(const QJsonObject& value) {
     for(const auto item:value["history"].toArray()) {
         const auto row=item.toObject();
         if(!uuid(row["id"].toString()) || !integer(row["xp"],0) || !integer(row["sparks"],row["source"]=="shop.purchase"?-2147483647:0)
-            || row["title"].toString().size()>256 || !QStringList{"ra.achievement","ra.completion","shop.purchase","support.topup"}.contains(row["source"].toString()))return false;
+            || row["title"].toString().size()>256 || !QStringList{"ra.achievement","ra.completion","shop.purchase","support.topup","operator.test_grant"}.contains(row["source"].toString()))return false;
+        if(row["source"]=="operator.test_grant" && (row["xp"].toDouble()!=0 || row["sparks"].toDouble()<=0 || row["sparks"].toDouble()>1000000))return false;
         if(row["source"]=="support.topup" && (row["xp"].toDouble()!=0 || row["sparks"].toDouble()<=0
             || !integer(row["support_multiplier"],2) || row["support_multiplier"].toInt()>3))return false;
     }

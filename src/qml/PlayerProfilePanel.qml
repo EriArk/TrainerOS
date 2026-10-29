@@ -99,7 +99,7 @@ Panel {
                         SparkIcon { id:rewardSpark;width: 29; height: 29; y: 0 }
                         Text { x: 36; y: -3; text: root.account.sparksText; font.family:Theme.displayFamily; font.pixelSize:28; color:Theme.ink }
                         Text { anchors.right:parent.right;y:6;text:"Sparks";color:Theme.muted;font.pixelSize:12 }
-                        Text { y: root.compact?29:31; width: parent.width; text:rewardFade.running?rewardFlash.text:root.account.stale?"Last confirmed balance · offline":root.account.balanceKnown?"Earned through verified achievements":"Balance unavailable"; color:rewardFade.running?root.accent:Theme.muted;font.pixelSize:10;elide:Text.ElideRight }
+                        Text { y: root.compact?29:31; width: parent.width; text:rewardFade.running?rewardFlash.text:root.account.stale?"Last confirmed balance · offline":root.account.balanceKnown?"Available balance":"Balance unavailable"; color:rewardFade.running?root.accent:Theme.muted;font.pixelSize:10;elide:Text.ElideRight }
                         QtObject { id:rewardFlash;property string text:"" }
                         SequentialAnimation { id:rewardFade;NumberAnimation { target:rewardSpark;property:"scale";to:1.3;duration:180 } NumberAnimation { target:rewardSpark;property:"scale";to:1;duration:250 } PauseAnimation { duration:2500 } }
                         Connections { target:root.shell.backendAccount;function onRewardsEarned(xp,sparks) {rewardFlash.text=(xp>0?"+"+xp+" XP  ·  ":"")+"+"+sparks+" Sparks";rewardFade.restart()} }
@@ -202,7 +202,7 @@ Panel {
                             MouseArea { anchors.fill:parent;onClicked:root.shell.activate(index,"profile") }
                         }
                     }
-                    Text { width:parent.width;text:"Profile appearances are available from your character card. Support bonuses are not available yet.";wrapMode:Text.WordWrap;font.pixelSize:10;color:Theme.muted }
+                    Text { width:parent.width;text:"Profile appearances and Patreon support are available from your character card.";wrapMode:Text.WordWrap;font.pixelSize:10;color:Theme.muted }
                 }
             }
             Rectangle { x:parent.width*.51;width:1;height:parent.height;color:Theme.divider }
@@ -214,7 +214,7 @@ Panel {
                     delegate: Item { required property var modelData;required property int index;width:ListView.view.width;height:55
                         Rectangle { anchors.fill:parent;radius:4;color:Theme.selection;visible:root.shell.profileFocus===index+4 }
                         Text { width:parent.width;text:modelData.title;textFormat:Text.PlainText;font.pixelSize:12;color:Theme.ink;elide:Text.ElideRight }
-                        Text { y:19;width:parent.width;text:modelData.source==="support.topup"?"+"+modelData.sparks+" Sparks \u00b7 Support \u00d7"+modelData.support_multiplier:modelData.source==="shop.purchase"?modelData.sparks+" Sparks \u00b7 Purchase":(modelData.source==="ra.completion"?"Complete set · ":"")+"+"+modelData.xp+" XP · +"+modelData.sparks+" Sparks";font.pixelSize:11;color:root.accent;elide:Text.ElideRight }
+                        Text { y:19;width:parent.width;text:modelData.source==="support.topup"?"+"+modelData.sparks+" Sparks \u00b7 Support \u00d7"+modelData.support_multiplier:modelData.source==="operator.test_grant"?"+"+modelData.sparks+" Sparks · Test funding":modelData.source==="shop.purchase"?modelData.sparks+" Sparks \u00b7 Purchase":(modelData.source==="ra.completion"?"Complete set · ":"")+"+"+modelData.xp+" XP · +"+modelData.sparks+" Sparks";font.pixelSize:11;color:root.accent;elide:Text.ElideRight }
                         Text { y:35;text:new Date(modelData.earned_at).toLocaleDateString();font.pixelSize:10;color:Theme.muted }
                     }
                     Text { visible:parent.count===0;width:parent.width;text:"No earned rewards yet";font.pixelSize:12;color:Theme.muted }

@@ -15,6 +15,9 @@ at **$3/month, ×2 Sparks**, and Supernova / Сверхновая at **$5/month,
 No XP multiplier or monthly currency allowance; preserve earned rewards and
 purchases on cancellation. This supersedes the earlier unselected Patreon prices.
 Do not silently bind the owner's personal Patreon to handheld test users Ren/Mika.
+The owner subsequently chose to leave Patreon unbound for now; do not resume
+personal OAuth or a paid-cycle check until requested. Server-side test Sparks
+for Ren/Mika are separately authorized and do not activate Patreon support.
 See [binding, deployment and remaining acceptance](services/backend/support-binding.md).
 
 **Owner avatar reference, 29 October (latest):** the restored face from the
