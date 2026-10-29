@@ -1,0 +1,47 @@
+{
+  "date": "2026-10-29",
+  "sourceBase": "f1b9df86",
+  "hostSha256": "2fcb1d2d4baa5dd89c56709d282285fb58c71f08fb3b9800ce24b28e63fc0047",
+  "tests": {
+    "backend": 141,
+    "accounts": 29,
+    "accountsWindowsOnlySkipped": 1,
+    "social": 208,
+    "apps": 12,
+    "appsService": 11
+  },
+  "ui": {
+    "diagnostics": [],
+    "success": true,
+    "warnings": 0
+  },
+  "devices": {
+    "odin": {
+      "installed": true,
+      "packRevision": 10,
+      "settingsUnchanged": true,
+      "databaseTablesUnchanged": 4,
+      "integrity": "ok",
+      "volume": "Volume: 0.00",
+      "liveShell": "2fcb1d2d4baa5dd89c56709d282285fb58c71f08fb3b9800ce24b28e63fc0047",
+      "ordinarySupportScreenViewed": true,
+      "backupRetained": true,
+      "sessionRecoveredWithoutReboot": true
+    },
+    "flip": {
+      "installed": true,
+      "packRevision": 10,
+      "settingsUnchanged": true,
+      "databaseTablesUnchanged": 4,
+      "integrity": "ok",
+      "volume": "Volume: 0.20",
+      "liveShell": "2fcb1d2d4baa5dd89c56709d282285fb58c71f08fb3b9800ce24b28e63fc0047",
+      "ordinarySupportScreenViewed": true,
+      "backupRetained": true,
+      "realPatreonLoginPageOpened": true,
+      "browserCloseReturnedToProfile": true,
+      "nativeCancelKeptTrainerSession": true
+    }
+  },
+  "livePaidMembershipVerified": false
+}

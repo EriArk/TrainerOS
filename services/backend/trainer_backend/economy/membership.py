@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 """Trusted provider boundary and atomic support grants. No public writer is mounted.
 
-Production has no membership verifier yet. Only a provider-specific server adapter
+Only a provider-specific server adapter
 may return a bound, authenticated snapshot; a client body is never such evidence.
 Revision must order authoritative state, not webhook arrival time.
 """
@@ -99,50 +99,56 @@ class Support:
             player = self.progression.accounts.authenticate(conn, access).player_id
         provider = self.verifier.provider
         fact = self.verifier.membership(player)
-        now = datetime.now(timezone.utc)
-        if not isinstance(provider, str) or not re.fullmatch(r'[a-z][a-z0-9_.-]{0,31}', provider) or not isinstance(fact, Membership):
-            raise AuthError('invalid_support_proof', 502)
-        if (fact.player_id != player or type(fact.revision) is not int or not 0 < fact.revision <= 9223372036854775807
-                or type(fact.multiplier) is not int or fact.multiplier not in (1, 2, 3)
-                or any(not isinstance(v, str) or not 1 <= len(v) <= 128 or any(ord(c)<32 for c in v) for v in (fact.subject, fact.event_id))
-                or any(not isinstance(t, datetime) or t.tzinfo is None or t.utcoffset() is None for t in (fact.observed_at, fact.valid_until))
-                or fact.observed_at > now or not isinstance(fact.evidence_hash, str) or not re.fullmatch(r'[0-9a-f]{64}', fact.evidence_hash)):
-            raise AuthError('invalid_support_proof', 502)
-        payload = {'player_id': str(player), 'subject': fact.subject, 'revision': fact.revision, 'multiplier': fact.multiplier,
-                   'observed_at': fact.observed_at.astimezone(timezone.utc).isoformat(),
-                   'valid_until': fact.valid_until.astimezone(timezone.utc).isoformat(), 'evidence_hash': fact.evidence_hash}
-        digest = hashlib.sha256(canonical(payload)).hexdigest()
         try:
             with self.progression.db.transaction() as conn:
-                actor = self.progression.account(conn, access)  # recheck revocation after provider I/O
-                conn.execute('SELECT player_id FROM trainer_backend.progression_accounts WHERE player_id=%s FOR UPDATE', (actor.player_id,))
-                prior = conn.execute('SELECT * FROM trainer_backend.support_receipts WHERE provider=%s AND event_id=%s', (provider, fact.event_id)).fetchone()
-                if prior:
-                    if prior['player_id'] != player or prior['payload_hash'] != digest:
-                        raise AuthError('support_event_conflict', 409)
-                else:
-                    previous = conn.execute('''SELECT m.player_id,r.* FROM trainer_backend.support_memberships m
-                        JOIN trainer_backend.support_receipts r ON r.id=m.receipt_id
-                        WHERE m.provider=%s AND (m.subject=%s OR m.player_id=%s)''', (provider, fact.subject, player)).fetchone()
-                    if previous and (previous['player_id'] != player or previous['subject'] != fact.subject):
-                        raise AuthError('support_identity_conflict', 409)
-                    if previous and (fact.revision == previous['revision'] and digest != previous['payload_hash']
-                                     or fact.revision > previous['revision'] and fact.observed_at < previous['observed_at']):
-                        raise AuthError('support_version_conflict', 409)
-                    receipt = uuid4()
-                    conn.execute('''INSERT INTO trainer_backend.support_receipts
-                        (id,player_id,provider,subject,event_id,revision,multiplier,observed_at,valid_until,evidence_hash,payload_hash)
-                        VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)''',
-                        (receipt, player, provider, fact.subject, fact.event_id, fact.revision, fact.multiplier,
-                         fact.observed_at, fact.valid_until, fact.evidence_hash, digest))
-                    if not previous or fact.revision > previous['revision']:
-                        conn.execute('''INSERT INTO trainer_backend.support_memberships(provider,subject,player_id,receipt_id)
-                            VALUES(%s,%s,%s,%s) ON CONFLICT(provider,subject) DO UPDATE SET receipt_id=EXCLUDED.receipt_id''',
-                            (provider, fact.subject, player, receipt))
-                        conn.execute('UPDATE trainer_backend.progression_accounts SET revision=revision+1 WHERE player_id=%s', (player,))
-                        conn.execute('INSERT INTO trainer_backend.audit_events(id,actor_id,action,resource_id) VALUES(%s,%s,%s,%s)',
-                                     (uuid4(), player, 'support.membership_changed', receipt))
-                        grant_topups(conn, player)
+                actor = self.progression.account(conn, access)
+                record_verified(conn, provider, fact, actor.player_id)
         except UniqueViolation:
             raise AuthError('support_identity_conflict', 409) from None
         return self.progression.snapshot(access)
+
+
+def record_verified(conn, provider, fact, player):
+    """Internal adapter boundary. Caller owns link/session validation and transaction."""
+    now = datetime.now(timezone.utc)
+    if not isinstance(provider, str) or not re.fullmatch(r'[a-z][a-z0-9_.-]{0,31}', provider) or not isinstance(fact, Membership):
+        raise AuthError('invalid_support_proof', 502)
+    if (fact.player_id != player or type(fact.revision) is not int or not 0 < fact.revision <= 9223372036854775807
+            or type(fact.multiplier) is not int or fact.multiplier not in (1, 2, 3)
+            or any(not isinstance(v, str) or not 1 <= len(v) <= 128 or any(ord(c)<32 for c in v) for v in (fact.subject, fact.event_id))
+            or any(not isinstance(t, datetime) or t.tzinfo is None or t.utcoffset() is None for t in (fact.observed_at, fact.valid_until))
+            or fact.observed_at > now or not isinstance(fact.evidence_hash, str) or not re.fullmatch(r'[0-9a-f]{64}', fact.evidence_hash)):
+        raise AuthError('invalid_support_proof', 502)
+    payload = {'player_id': str(player), 'subject': fact.subject, 'revision': fact.revision, 'multiplier': fact.multiplier,
+               'observed_at': fact.observed_at.astimezone(timezone.utc).isoformat(),
+               'valid_until': fact.valid_until.astimezone(timezone.utc).isoformat(), 'evidence_hash': fact.evidence_hash}
+    digest = hashlib.sha256(canonical(payload)).hexdigest()
+    conn.execute('INSERT INTO trainer_backend.progression_accounts(player_id) VALUES(%s) ON CONFLICT DO NOTHING', (player,))
+    conn.execute('SELECT player_id FROM trainer_backend.progression_accounts WHERE player_id=%s FOR UPDATE', (player,))
+    prior = conn.execute('SELECT * FROM trainer_backend.support_receipts WHERE provider=%s AND event_id=%s', (provider, fact.event_id)).fetchone()
+    if prior:
+        if prior['player_id'] != player or prior['payload_hash'] != digest:
+            raise AuthError('support_event_conflict', 409)
+    else:
+        previous = conn.execute('''SELECT m.player_id,r.* FROM trainer_backend.support_memberships m
+            JOIN trainer_backend.support_receipts r ON r.id=m.receipt_id
+            WHERE m.provider=%s AND (m.subject=%s OR m.player_id=%s)''', (provider, fact.subject, player)).fetchone()
+        if previous and (previous['player_id'] != player or previous['subject'] != fact.subject):
+            raise AuthError('support_identity_conflict', 409)
+        if previous and (fact.revision == previous['revision'] and digest != previous['payload_hash']
+                         or fact.revision > previous['revision'] and fact.observed_at < previous['observed_at']):
+            raise AuthError('support_version_conflict', 409)
+        receipt = uuid4()
+        conn.execute('''INSERT INTO trainer_backend.support_receipts
+            (id,player_id,provider,subject,event_id,revision,multiplier,observed_at,valid_until,evidence_hash,payload_hash)
+            VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)''',
+            (receipt, player, provider, fact.subject, fact.event_id, fact.revision, fact.multiplier,
+             fact.observed_at, fact.valid_until, fact.evidence_hash, digest))
+        if not previous or fact.revision > previous['revision']:
+            conn.execute('''INSERT INTO trainer_backend.support_memberships(provider,subject,player_id,receipt_id)
+                VALUES(%s,%s,%s,%s) ON CONFLICT(provider,subject) DO UPDATE SET receipt_id=EXCLUDED.receipt_id''',
+                (provider, fact.subject, player, receipt))
+            conn.execute('UPDATE trainer_backend.progression_accounts SET revision=revision+1 WHERE player_id=%s', (player,))
+            conn.execute('INSERT INTO trainer_backend.audit_events(id,actor_id,action,resource_id) VALUES(%s,%s,%s,%s)',
+                         (uuid4(), player, 'support.membership_changed', receipt))
+            grant_topups(conn, player)

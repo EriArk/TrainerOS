@@ -145,6 +145,6 @@ def test_unconfigured_forged_revoked_and_immutable_boundaries(account,postgres):
     verifier.membership=revoked
     with pytest.raises(AuthError):support.reconcile(access)
     with TestClient(create_app(Settings(postgres[1],'test',oauth=CONFIG),provider=Provider())) as client:
-        assert client.post('/v1/me/support',json={'multiplier':3}).status_code==404
+        assert client.post('/v1/me/support',json={'multiplier':3}).status_code==405
         assert client.post('/v1/me/progression/ra/sync',headers={'Authorization':'Bearer '+access},
             json={'web_key':'k'*32,'games':[1],'multiplier':3}).status_code==422

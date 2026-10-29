@@ -1,0 +1,16 @@
+# Optional Patreon binding. Both API and verifier worker use confidential server configuration.
+# Start with compose.yaml + compose.oauth.yaml + this file after configuring real tier IDs.
+services:
+  api:
+    environment:
+      TRAINEROS_BACKEND_PATREON_CONFIG_FILE: /run/secrets/patreon-oauth
+    secrets: [runtime-dsn, fluxer-oauth, patreon-oauth]
+  worker:
+    networks: [backend, ingress]
+    environment:
+      TRAINEROS_BACKEND_OAUTH_CONFIG_FILE: /run/secrets/fluxer-oauth
+      TRAINEROS_BACKEND_PATREON_CONFIG_FILE: /run/secrets/patreon-oauth
+    secrets: [runtime-dsn, fluxer-oauth, patreon-oauth]
+secrets:
+  patreon-oauth:
+    file: ./secrets/patreon-oauth.json

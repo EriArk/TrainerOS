@@ -23,6 +23,7 @@ class BackendAccount final : public QObject {
     Q_PROPERTY(QVariantMap outfits READ outfits NOTIFY changed)
     Q_PROPERTY(QVariantMap prizes READ prizes NOTIFY changed)
     Q_PROPERTY(QString profileAppearance READ profileAppearance NOTIFY changed)
+    Q_PROPERTY(QVariantMap support READ support NOTIFY changed)
 public:
     using Reply = std::function<void(int,QJsonObject)>;
     struct Services {
@@ -38,7 +39,7 @@ public:
     // Test seams set before configure; production origin is fixed, never SDK-supplied.
     void setServices(Services value) { services_=std::move(value); }
     void setBrowserOpener(std::function<bool(QUrl)> open) { services_.openBrowser=std::move(open); }
-    void browserFailed(const QString& message) { if(state_=="waiting")fail(message); }
+    void browserFailed(const QString& message) { if(supportPending_)finishSupport(message);else if(state_=="waiting")fail(message); }
     std::function<QString()> loginGuard;
     void configure(const QString& owner);
     void setSocialSubject(const QString& subject);
@@ -84,6 +85,9 @@ public:
     Q_INVOKABLE void celebratePrizes();
     Q_INVOKABLE void closeCelebration(bool acknowledge=false);
     Q_INVOKABLE void togglePrizeShelf(bool celebration=false);
+    QVariantMap support() const;
+    void refreshSupport();
+    void activateSupport(int action);
 signals:
     void rewardsEarned(qint64 xp,qint64 sparks);
     void changed();
@@ -92,6 +96,9 @@ private:
     void state(QString value,QString detail);
     void reset();
     void begin();
+    void beginSupport();
+    void finishSupport(QString message);
+    void supportRequest(QByteArray method,QString path,QJsonObject body={});
     void accept();
     void tokens(const QJsonObject& result);
     void refresh();
@@ -147,6 +154,10 @@ private:
     quint64 epoch_=0;
     bool encryptedStore_=false;
     bool logoutPending_=false;
+    QJsonObject support_,supportClaim_;
+    QString supportMessage_;
+    bool supportBusy_=false,supportPending_=false,supportReview_=false;
+    quint64 supportGeneration_=0;
     struct PlayGrant { QByteArray token; QString ruleset; QDateTime expires; };
     QHash<QString,PlayGrant> playGrants_;
 };

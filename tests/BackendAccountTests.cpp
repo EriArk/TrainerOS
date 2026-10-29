@@ -100,6 +100,76 @@ class BackendAccountTests:public QObject {
         h.shopValue["receipt"]=receipt;
     }
 private slots:
+    void patreonReturnWaitsForSessionRefresh() {
+        BackendAccount account;Harness h;auto services=h.services();auto base=services.request;
+        BackendAccount::Reply refresh;int claims=0;
+        QJsonObject support{{"provider","patreon"},{"available",true},{"state","unlinked"},{"multiplier",1}};
+        services.request=[&](QByteArray method,QString path,QJsonObject body,QByteArray auth,BackendAccount::Reply done){
+            if(path=="/v1/auth/login-attempts/claim") {
+                auto value=credentials();value["expires_at"]=QDateTime::currentDateTimeUtc().addSecs(61).toString(Qt::ISODateWithMs);done(200,value);
+            }else if(path=="/v1/auth/refresh")refresh=std::move(done);
+            else if(path=="/v1/me/support")done(200,support);
+            else if(path.endsWith("/support/patreon/attempts")) {
+                h.returnUri=QUrl(body["return_uri"].toString());
+                done(201,{{"attempt_id",Attempt},{"authorization_url","https://traineros-api.abysstail.art/v1/support/patreon/start?attempt_id="+Attempt}});
+            }else if(path.endsWith("/support/patreon/claim")) {
+                ++claims;QCOMPARE(auth,QByteArray(43,'b'));QCOMPARE(body["claim_verifier"].toString().size(),43);
+                support["state"]="connected";done(200,support);
+            }else if(auth==QByteArray(43,'b'))done(503,{});
+            else base(method,path,body,auth,done);
+        };
+        account.setServices(services);account.configure("patreon-refresh");account.activate();h.callback();
+        account.refreshSupport();account.activateSupport(0);
+        QTRY_VERIFY_WITH_TIMEOUT(bool(refresh),3000);
+        QVERIFY(!h.callback().isEmpty());QCOMPARE(claims,0);QVERIFY(account.support()["busy"].toBool());
+        auto value=credentials();value["access_token"]=QString(43,'b');refresh(200,value);
+        QCOMPARE(claims,1);QVERIFY(!account.support()["busy"].toBool());
+        QCOMPARE(account.support()["state"].toString(),QString("connected"));
+    }
+    void patreonUsesCurrentAccountAndNativeReturnWithoutSigningOut() {
+        BackendAccount account;Harness h;auto services=h.services();auto base=services.request;
+        QJsonObject support{{"provider","patreon"},{"available",true},{"state","unlinked"},{"multiplier",1}};
+        QJsonObject claim;int disconnected=0;
+        services.request=[&](QByteArray method,QString path,QJsonObject body,QByteArray auth,BackendAccount::Reply done){
+            if(path.startsWith("/v1/me/support")) {
+                QCOMPARE(auth,QByteArray(43,'a'));
+                if(path.endsWith("/attempts")) {
+                    h.returnUri=QUrl(body["return_uri"].toString());
+                    QCOMPARE(body["claim_challenge"].toString().size(),43);
+                    done(201,{{"attempt_id",Attempt},{"authorization_url","https://traineros-api.abysstail.art/v1/support/patreon/start?attempt_id="+Attempt}});
+                }else {if(path.endsWith("/claim")){claim=body;support["state"]="connected";support["multiplier"]=2;}
+                    if(method=="DELETE"){++disconnected;support["state"]="disconnected";support["multiplier"]=1;}
+                    done(200,support);}
+            }else base(method,path,body,auth,done);
+        };
+        account.setServices(services);account.configure("patreon-native");account.activate();h.callback();
+        account.refreshSupport();account.activateSupport(0);
+        QVERIFY(account.support()["pending"].toBool());QCOMPARE(account.snapshot()["state"].toString(),QString("signed_in"));
+        QCOMPARE(h.browser.path(),QString("/v1/support/patreon/start"));
+        QVERIFY(!h.callback().isEmpty());QCOMPARE(claim["claim_verifier"].toString().size(),43);
+        QVERIFY(!account.support()["pending"].toBool());QCOMPARE(account.support()["multiplier"].toInt(),2);
+        account.activateSupport(2);QVERIFY(account.support()["review"].toBool());QCOMPARE(disconnected,0);
+        account.activateSupport(3);QVERIFY(!account.support()["review"].toBool());
+        account.activateSupport(2);account.activateSupport(2);QCOMPARE(disconnected,1);
+        account.activateSupport(0);QVERIFY(account.support()["pending"].toBool());
+        account.browserFailed("Browser failed");QVERIFY(!account.support()["pending"].toBool());
+        QCOMPARE(account.snapshot()["state"].toString(),QString("signed_in"));
+    }
+    void patreonCancelledOrOldOwnerResponseCannotOpenBrowser() {
+        BackendAccount account;Harness h;auto services=h.services();auto base=services.request;BackendAccount::Reply pending;
+        services.request=[&](QByteArray method,QString path,QJsonObject body,QByteArray auth,BackendAccount::Reply done){
+            if(path=="/v1/me/support")done(200,{{"provider","patreon"},{"available",true},{"state","unlinked"},{"multiplier",1}});
+            else if(path.endsWith("/support/patreon/attempts"))pending=done;
+            else base(method,path,body,auth,done);
+        };
+        account.setServices(services);account.configure("patreon-cancel");account.activate();h.callback();account.refreshSupport();
+        account.activateSupport(0);QVERIFY(pending);account.activateSupport(0);h.browser=QUrl();
+        pending(201,{{"attempt_id",Attempt},{"authorization_url","https://traineros-api.abysstail.art/v1/support/patreon/start"}});
+        QVERIFY(h.browser.isEmpty());QCOMPARE(account.snapshot()["state"].toString(),QString("signed_in"));
+        account.activateSupport(0);account.configure("patreon-new-owner");
+        pending(201,{{"attempt_id",Attempt},{"authorization_url","https://traineros-api.abysstail.art/v1/support/patreon/start"}});
+        QVERIFY(h.browser.isEmpty());QVERIFY(account.support()["state"].toString().isEmpty());
+    }
     void profileReadRequiresAccountAndBoundsIdentityAndCursor() {
         BackendAccount account;Harness h;auto services=h.services();auto base=services.request;
         BackendAccount::Reply pending;int publicCalls=0;

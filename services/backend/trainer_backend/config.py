@@ -4,6 +4,7 @@ import os
 import json
 from pathlib import Path
 from .accounts.provider import OAuthConfig
+from .economy.patreon import PatreonConfig
 
 
 @dataclass(frozen=True)
@@ -14,10 +15,13 @@ class Settings:
     port: int = 19120
     host: str = '127.0.0.1'
     oauth: OAuthConfig | None = field(default=None,repr=False)
+    patreon: PatreonConfig | None = field(default=None,repr=False)
 
     def __post_init__(self):
         if not self.database_url:
             raise ValueError('database_url_required')
+        if self.patreon and (not self.oauth or self.patreon.public_base != self.oauth.public_base):
+            raise ValueError('support_accounts_configuration_required')
         if self.environment not in ('local', 'test', 'server'):
             raise ValueError('foundation_not_approved_for_deployment')
         if self.host not in ('127.0.0.1', '0.0.0.0'):
@@ -31,8 +35,10 @@ class Settings:
         url = Path(url_file).read_text().strip() if url_file else os.environ.get('TRAINEROS_BACKEND_DATABASE_URL', '')
         oauth_file = os.environ.get('TRAINEROS_BACKEND_OAUTH_CONFIG_FILE')
         oauth = OAuthConfig(**json.loads(Path(oauth_file).read_text())) if oauth_file else None
+        support_file = os.environ.get('TRAINEROS_BACKEND_PATREON_CONFIG_FILE')
+        patreon = PatreonConfig(**json.loads(Path(support_file).read_text())) if support_file else None
         return cls(url,
                    os.environ.get('TRAINEROS_BACKEND_ENV', 'local'),
                    int(os.environ.get('TRAINEROS_BACKEND_POOL_SIZE', '4')),
                    int(os.environ.get('TRAINEROS_BACKEND_PORT', '19120')),
-                   os.environ.get('TRAINEROS_BACKEND_HOST', '127.0.0.1'), oauth)
+                   os.environ.get('TRAINEROS_BACKEND_HOST', '127.0.0.1'), oauth, patreon)

@@ -1752,7 +1752,7 @@ void ShellController::activateProfile(int index) {
     }
     if(profileRoute_=="support") {
         if(backendAccount_.snapshot()["state"]!="signed_in")backendAccount_.activate();
-        else backendAccount_.refreshProgression(false);
+        else backendAccount_.activateSupport(index);
         return;
     }
     if(profileRoute_=="account") {
@@ -1768,7 +1768,7 @@ void ShellController::activateProfile(int index) {
     if(index==12){profileRoute_="visitor";profileFocus_=3;visitorProfile_.open({},backendAccount_.snapshot()["player_id"].toString(),true);}
     else if(index==13){profileRoute_="privacy";profileFocus_=0;visitorProfile_.loadSharing();}
     else if(index==11){profileRoute_="prizes";profileFocus_=0;backendAccount_.refreshPrizes();}
-    else if(index==10){profileRoute_="support";profileFocus_=0;backendAccount_.refreshProgression(false);}
+    else if(index==10){profileRoute_="support";profileFocus_=0;backendAccount_.refreshProgression(false);backendAccount_.refreshSupport();}
     else if(index==9){profileRoute_="shop";profileFocus_=1;backendAccount_.refreshShop();}
     else if(index==1){profileRoute_="outfits";outfits_.open();}
     else if(index==0)trainer_.activate(index);
@@ -1821,8 +1821,12 @@ void ShellController::dispatchProfile(Action action) {
     }
     if(profileRoute_=="outfits"){outfits_.dispatch(action);return;}
     if(profileRoute_=="support") {
-        if(action==Action::Back){profileRoute_="summary";profileFocus_=10;}
-        else if(action==Action::Confirm)activateProfile(0);
+        if(action==Action::Back){if(backendAccount_.support()["review"].toBool())backendAccount_.activateSupport(3);else {profileRoute_="summary";profileFocus_=10;}}
+        else if(action==Action::Confirm)activateProfile(profileFocus_);
+        else if(action==Action::Left||action==Action::Right) {
+            const auto state=backendAccount_.support()["state"].toString();
+            profileFocus_=qBound(0,profileFocus_+(action==Action::Left?-1:1),state=="connected"||state=="needs_relink"?2:1);
+        }
         emit changed();return;
     }
     if(dashboardReturn_ && !achievementPhotoReturn_ && action==Action::Back

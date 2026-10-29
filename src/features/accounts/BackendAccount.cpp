@@ -18,6 +18,7 @@
 #include <QClipboard>
 #include <QJsonArray>
 #include <cmath>
+#include <utility>
 #include <qt6keychain/keychain.h>
 #ifdef Q_OS_LINUX
 #include <QDBusConnection>
@@ -49,7 +50,7 @@ BackendAccount::BackendAccount(QObject* parent):QObject(parent) {
     connect(&progressionTimer_,&QTimer::timeout,this,[this]{refreshProgression();});
     connect(&listener_,&QTcpServer::newConnection,this,&BackendAccount::accept);
     expiry_.setSingleShot(true);refreshTimer_.setSingleShot(true);
-    connect(&expiry_,&QTimer::timeout,this,[this]{fail("Sign-in expired. Try again.");});
+    connect(&expiry_,&QTimer::timeout,this,[this]{if(supportPending_)finishSupport("Patreon connection expired. Try again.");else fail("Sign-in expired. Try again.");});
     connect(&refreshTimer_,&QTimer::timeout,this,&BackendAccount::refresh);
     avatarRetry_.setSingleShot(true);
     connect(&avatarRetry_,&QTimer::timeout,this,&BackendAccount::syncPublicAvatar);
@@ -201,6 +202,7 @@ void BackendAccount::publishProfileFavorites(QJsonArray games,QString revision,R
     request("PUT","/v1/me/profile/favorites",{{"games",games},{"revision",revision}},std::move(done),access_);
 }
 void BackendAccount::reset() {
+    ++supportGeneration_;support_={};supportClaim_={};supportMessage_.clear();supportBusy_=false;supportPending_=false;supportReview_=false;
     prizeBusy_=false;prizeStale_=true;celebrationIds_={};celebrationGroups_={};
     shopBusy_=false;shopReview_={};shopStale_=true;outfitFlushing_=false;
     progressionTimer_.stop();progression_={};rewardStatus_.clear();rewardBusy_=false;progressionStale_=false;lastRewardSync_=0;
@@ -269,6 +271,82 @@ void BackendAccount::begin() {
         if(!opened)fail("Could not open the browser. Try again.");
     });
 }
+QVariantMap BackendAccount::support() const {
+    auto value=support_.toVariantMap();value["busy"]=supportBusy_;value["pending"]=supportPending_;
+    value["review"]=supportReview_;value["message"]=supportMessage_;return value;
+}
+void BackendAccount::finishSupport(QString message) {
+    ++supportGeneration_;supportClaim_={};supportBusy_=false;supportPending_=false;supportReview_=false;
+    listener_.close();expiry_.stop();attempt_.clear();verifier_.clear();callbackPath_.clear();
+    supportMessage_=std::move(message);emit changed();
+}
+void BackendAccount::supportRequest(QByteArray method,QString path,QJsonObject body) {
+    if(state_!="connected"||supportBusy_)return;
+    supportBusy_=true;supportReview_=false;supportMessage_="Checking Patreon…";emit changed();
+    const auto generation=supportGeneration_;
+    request(method,path,body,[this,generation](int status,QJsonObject value){
+        if(generation!=supportGeneration_)return;
+        supportBusy_=false;
+        const auto linked=value["state"].toString();
+        if(status==200 && value["provider"]=="patreon" && value["available"].isBool()
+            && QStringList{"unlinked","connected","disconnected","needs_relink"}.contains(linked)
+            && value["multiplier"].isDouble() && value["multiplier"].toDouble()==value["multiplier"].toInt()
+            && value["multiplier"].toInt()>=1 && value["multiplier"].toInt()<=3) {
+            support_=value;
+            supportMessage_=!value["available"].toBool()?"Patreon activation is being prepared."
+                :linked=="connected"?"Patreon connected · current rate ×"+QString::number(value["multiplier"].toInt())
+                :linked=="needs_relink"?"Reconnect Patreon to refresh your membership."
+                :"Connect Patreon to verify your supporter level.";
+            refreshProgression(false);
+        }else {
+            const auto code=value["code"].toString();
+            supportMessage_=code=="support_identity_conflict"?"This Patreon account is linked to another Trainer, or differs from your previous link."
+                :code=="support_check_pending"?"A membership check is already in progress. Try again shortly."
+                :"Could not verify Patreon. Try again when connected.";
+        }
+        emit changed();
+    },access_);
+}
+void BackendAccount::refreshSupport() {supportRequest("GET","/v1/me/support");}
+void BackendAccount::activateSupport(int action) {
+    if(state_!="connected")return;
+    if(action==0) {
+        if(supportPending_){finishSupport("Patreon connection cancelled.");return;}
+        if(supportBusy_)return;
+        if(support_["state"]=="connected")supportRequest("POST","/v1/me/support/patreon/check");
+        else if(support_["available"].toBool())beginSupport();
+        else refreshSupport();
+    }else if(action==1 && !supportBusy_) {
+        if(loginGuard && !loginGuard().isEmpty()){supportMessage_=loginGuard();emit changed();return;}
+        const QUrl url("https://www.patreon.com/AbyssTail/membership");
+        if(!(services_.openBrowser?services_.openBrowser(url):QDesktopServices::openUrl(url))) {
+            supportMessage_="Could not open Patreon.";emit changed();
+        }
+    }else if(action==2 && !supportBusy_ && (support_["state"]=="connected"||support_["state"]=="needs_relink")) {
+        if(supportReview_)supportRequest("DELETE","/v1/me/support/patreon");
+        else {supportReview_=true;supportMessage_="Disconnect TrainerOS? This does not cancel billing on Patreon. Earned Sparks and purchases stay yours.";emit changed();}
+    }else if(action==3){supportReview_=false;emit changed();}
+}
+void BackendAccount::beginSupport() {
+    if(loginGuard){const auto error=loginGuard();if(!error.isEmpty()){supportMessage_=error;emit changed();return;}}
+    ++supportGeneration_;const auto generation=supportGeneration_;
+    verifier_=randomSecret();callbackPath_="/traineros/auth/"+randomSecret();
+    if(!listener_.listen(QHostAddress::LocalHost,0)){finishSupport("Could not prepare browser return.");return;}
+    listener_.setMaxPendingConnections(4);supportBusy_=true;supportPending_=true;supportReview_=false;
+    supportMessage_="Opening Patreon…";expiry_.start(600000);emit changed();
+    QJsonObject body{{"claim_challenge",QString::fromLatin1(QCryptographicHash::hash(verifier_.toLatin1(),QCryptographicHash::Sha256).toBase64(QByteArray::Base64UrlEncoding|QByteArray::OmitTrailingEquals))},
+        {"return_uri",QString("http://127.0.0.1:%1%2").arg(listener_.serverPort()).arg(callbackPath_)}};
+    request("POST","/v1/me/support/patreon/attempts",body,[this,generation](int status,QJsonObject result){
+        if(generation!=supportGeneration_)return;
+        const QUrl url(result["authorization_url"].toString());
+        if(status!=201||!uuid(result["attempt_id"].toString())||url.scheme()!="https"||url.host()!="traineros-api.abysstail.art"||url.port(-1)!=-1||!url.userInfo().isEmpty()||url.hasFragment()||url.path()!="/v1/support/patreon/start") {
+            finishSupport("Could not start Patreon connection. Try again.");return;
+        }
+        if(loginGuard){const auto error=loginGuard();if(!error.isEmpty()){finishSupport(error);return;}}
+        attempt_=result["attempt_id"].toString();supportMessage_="Confirm in Patreon. You will return here automatically.";emit changed();
+        if(!(services_.openBrowser?services_.openBrowser(url):QDesktopServices::openUrl(url)))finishSupport("Could not open Patreon.");
+    },access_);
+}
 void BackendAccount::accept() {
     while(listener_.hasPendingConnections()) {
         auto* socket=listener_.nextPendingConnection();socket->setParent(this);socket->setReadBufferSize(8193);
@@ -290,7 +368,7 @@ void BackendAccount::accept() {
             for(const auto& item:items)names.insert(item.first);
             const bool hasError=names.contains("error");
             valid=url.isRelative()&&url.path()==callbackPath_&&!url.hasFragment()&&items.size()==2&&names.size()==2&&names.contains("attempt_id")
-                &&(names.contains("handoff_token")||hasError)&&query.queryItemValue("attempt_id")==attempt_&&!attempt_.isEmpty()&&state_=="waiting";
+                &&(names.contains("handoff_token")||hasError)&&query.queryItemValue("attempt_id")==attempt_&&!attempt_.isEmpty()&&(state_=="waiting"||supportPending_);
             const auto proof=query.queryItemValue("handoff_token");
             valid&=hasError||token(proof);
             if(!valid){socket->abort();return;}
@@ -298,6 +376,15 @@ void BackendAccount::accept() {
             const QByteArray page="<!doctype html><meta charset=utf-8><title>TrainerOS</title><h1>Return to TrainerOS</h1><p>You can close this window.</p>";
             socket->write("HTTP/1.1 200 OK\r\nContent-Type: text/html; charset=utf-8\r\nCache-Control: no-store\r\nReferrer-Policy: no-referrer\r\nContent-Security-Policy: default-src 'none'; frame-ancestors 'none'\r\nConnection: close\r\nContent-Length: "+QByteArray::number(page.size())+"\r\n\r\n"+page);
             socket->disconnectFromHost();listener_.close();expiry_.stop();emit returnRequested();
+            if(supportPending_) {
+                if(hasError){finishSupport("Patreon connection was cancelled or could not be completed.");return;}
+                const QJsonObject body{{"attempt_id",attempt_},{"claim_verifier",verifier_},{"handoff_token",proof}};
+                supportPending_=false;supportBusy_=false;attempt_.clear();verifier_.clear();
+                if(state_=="refreshing") {
+                    supportClaim_=body;supportBusy_=true;supportMessage_="Finishing your connection…";emit changed();
+                }else supportRequest("POST","/v1/me/support/patreon/claim",body);
+                return;
+            }
             if(hasError){fail("Sign-in was cancelled or could not be completed. Try again.");return;}
             state("claiming","Finishing sign-in…");
             request("POST","/v1/auth/login-attempts/claim",{{"attempt_id",attempt_},{"claim_verifier",verifier_},{"handoff_token",proof}},[this](int status,QJsonObject result){
@@ -320,11 +407,15 @@ void BackendAccount::tokens(const QJsonObject& result) {
     write(saved(),[this,epoch,player](bool ok){
         if(epoch!=epoch_)return;
         if(!ok){request("DELETE","/v1/auth/sessions/"+session_,{},[](int,QJsonObject){},access_);fail("Could not save the session securely. Try again.");return;}
-        player_=player;attempt_.clear();verifier_.clear();
+        player_=player;if(!supportPending_){attempt_.clear();verifier_.clear();}
         if(!prizeSnapshot_.isEmpty()&&prizeSnapshot_["player_id"].toString()!=player_){prizeSnapshot_={};saveCommerce();}
         if(!shopSnapshot_.isEmpty()&&shopSnapshot_["player_id"].toString()!=player_){shopSnapshot_={};shopIndex_=0;saveCommerce();}
         if(logoutPending_){logoutPending_=false;logout();return;}
         state("connected","Connected through Fluxer");
+        if(!supportClaim_.isEmpty()) {
+            const auto body=std::exchange(supportClaim_,QJsonObject{});supportBusy_=false;
+            supportRequest("POST","/v1/me/support/patreon/claim",body);
+        }
         syncPublicAvatar();
         progressionTimer_.start();refreshProgression();refreshShop();
         refreshTimer_.start(int(qBound(qint64(1000),QDateTime::currentDateTimeUtc().msecsTo(accessExpiry_)-60000,qint64(840000))));

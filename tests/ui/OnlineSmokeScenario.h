@@ -94,6 +94,7 @@ inline void startOnlineSmoke(QQuickWindow* window,trainer::ShellController& shel
             account->setServices({[player,date,store,balance,supported](QByteArray,QString path,QJsonObject body,QByteArray,trainer::BackendAccount::Reply done){
                 if(path=="/v1/auth/refresh")done(200,{{"player_id",player},{"session_id","33333333-3333-4333-8333-333333333333"},{"fluxer_subject","12345"},
                     {"access_token",QString(43,'a')},{"refresh_token",QString(43,'r')},{"expires_at",QDateTime::currentDateTimeUtc().addSecs(900).toString(Qt::ISODateWithMs)}});
+                else if(path=="/v1/me/support")done(200,{{"provider","patreon"},{"available",true},{"state",*supported?"connected":"unlinked"},{"multiplier",*supported?3:1}});
                 else if(path=="/v1/me/progression")done(200,{{"player_id",player},{"balance",*balance},{"revision",(*store)["revision"]},{"checked_at",date},
                     {"support",QJsonObject{{"multiplier",*supported?3:1},{"verified_until",QDateTime::currentDateTimeUtc().addDays(1).toString(Qt::ISODateWithMs)}}},
                     {"support_preview",QJsonObject{{"policy","support-preview-2026-10-v1"},{"state","calculation_only"},{"activation_available",false},
@@ -151,7 +152,7 @@ inline void startOnlineSmoke(QQuickWindow* window,trainer::ShellController& shel
         case 28:
             check(shell.profileRoute()=="support" && shell.profileAccount()["previewKnown"].toBool(),"Server support preview route");
             check(shell.backendAccount()->progression()["support_preview"].toMap()["options"].toList()[1].toMap()["potential_balance"].toInt()==2750,"Support preview includes spent rewards");
-            capture("support-wide");shell.dispatch(Action::Confirm);window->resize(960,540);break;
+            capture("support-wide");shell.backendAccount()->refreshSupport();window->resize(960,540);break;
         case 29:
             check(shell.profileAccount()["signedIn"].toBool() && shell.profileAccount()["previewKnown"].toBool(),"Support Refresh preserves login and calculation");
             capture("support-compact");shell.dispatch(Action::Back);

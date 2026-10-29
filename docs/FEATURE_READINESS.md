@@ -1,5 +1,12 @@
 # Карта готовности функций TrainerOS
 
+**29 октября — R110, Patreon.** Созданы утверждённые уровни $3/×2 и $5/×3;
+реализованы браузерная привязка, свежая проверка членства, фоновое обновление,
+подписанный webhook и отключение без потери заработанного. Backend обновлён,
+141 серверный тест прошёл. [Контракт](../services/backend/support-binding.md),
+[поставка и проверки оболочки](evidence/support-20261029/README.md).
+R110 остаётся частичным: оплаченный цикл, перенос привязки и Ko-fi ещё открыты.
+
 **29 октября — утверждённый эталон лица и контраст деталей.** Восстановлена
 исходная форма из переданного владельцем `painted-face.glb`; отвергнутая
 переносица revision 9 заменена revision 10. Геометрия головы закреплена
@@ -460,7 +467,7 @@ R-ID не перенумеровывать; новая функция получ
 | ☐ | <a id="r107"></a>**R107** Backend: проверка результатов матчей и статистика | **[S10]**; [S01], [S03], [S09], [S14] | Частично: установлен scorecard preview | [SDK/контракт](../sdk/PLAY.md): host grants, матчи 2–16, команды 2/3, receipts/jobs, peer-confirmed результаты, records/wins/stats, ничьи/уникальные побеждённые, dispute/void/revision pages. [Приёмка](evidence/backend-play-20261025/README.md): 57 backend tests, 5 native hosts → SDK → HTTP/DB/worker, публичные маршруты и restore. [Golf integration](evidence/backend-golf-20261025/README.md): rules зарегистрированы, SDK/Golf source и пакеты подготовлены, реальные Godot/HTTP/DB/worker 2/4/5/8 пройдены. Публичные имена/аватары реализованы; SDK и Golf установлены на Odin/Flip ([доставка](evidence/crates-devices-20261026/README.md)). Physics validators, trusted admission, Elo/статус, турниры, эксплуатационные условия и полный матч на портативках не закрыты. [F05](STRUCTURE_MAP_RU.md#f05). |
 | ☐ | <a id="r108"></a>**R108** Экономика: журнал начислений/трат и награды | **[S11]**; [S10], [S01] | Частично | [Начисление](../services/backend/progression.md): RA increment + completion, append-only ledger, дедупликация и атомарные траты на сцены. Crates не создают Sparks. Живая награда/покупка, reversal и non-RA completion остаются открыты. [F05](STRUCTURE_MAP_RU.md#f05). |
 | ☐ | <a id="r109"></a>**R109** Магазин: косметика, игровой контент и постоянные права | **[S11]**; [S01], [S04], [S14] | Частично | [Покупки](../services/backend/purchases.md): три постоянные сцены по 250 Искр и слоты полных образов по 100 Искр, atomic debit/grant/receipt/audit/outbox, recovery, restore. Версии содержимого, гардероб 3 × 3 с автосохранением и прежнее avatar.changed; 109 server tests. Backend и Odin/Flip обновлены; [точные проверки и ограничения](PLAYER_PROFILE.md). Поддержка не требуется. Живая покупка владельцем, игровой контент/SDK consumer, transferable/consumable/temporary, остальные цены и refunds открыты. [F06](STRUCTURE_MAP_RU.md#f06). |
-| ☐ | <a id="r110"></a>**R110** Patreon/Ko-fi: подтверждённая поддержка и права | **[S11]**; [S01], [S13], [S04] | Частично | [Механизм ×2/×3](../services/backend/progression.md): per-reward top-up/highest multiplier, atomic ledger/balance/audit/outbox, upgrade/cancel/rejoin/expiry/out-of-order guards и preview после выплат. 104 server tests с тестовым verifier. Реальная привязка/проверка Patreon/Ko-fi, активация, цены и живая выплата остаются открытыми; публичного writer нет. [Проверки](PLAYER_PROFILE.md), [F06](STRUCTURE_MAP_RU.md#f06). |
+| ☐ | <a id="r110"></a>**R110** Patreon/Ko-fi: подтверждённая поддержка и права | **[S11]**; [S01], [S13], [S04] | Частично | [Механизм ×2/×3](../services/backend/progression.md): доплата за каждую награду, атомарный журнал, защита upgrade/cancel/rejoin/expiry. [Patreon](../services/backend/support-binding.md): утверждены и созданы $3/×2 и $5/×3, реализованы привязка, проверка API, webhook/worker и отключение; Backend установлен, 141 серверный тест прошёл. [Проверки и поставка](evidence/support-20261029/README.md). Оплаченный цикл/живая доплата, перенос привязки и Ko-fi открыты. [F06](STRUCTURE_MAP_RU.md#f06). |
 | ☐ | <a id="r111"></a>**R111** Arcade Today: событие дня, зачёт и архив | **[S10]**; [S06], [S09], [S11] | Не сделано | Правила допуска/результата/призов ещё открыты; использовать единый verified result. [Backend](TRAINEROS_BACKEND_PLAN_RU.md), [F05](STRUCTURE_MAP_RU.md#f05). |
 | ☐ | <a id="r112"></a>**R112** Турниры: участие, сетка, результаты и споры | **[S10]**; [S06], [S01] | Не сделано | Отдельная незавершённая функция; формат и disputed/cancel outcomes не выбраны. [Backend](TRAINEROS_BACKEND_PLAN_RU.md), [F05](STRUCTURE_MAP_RU.md#f05). |
 | ☐ | <a id="r113"></a>**R113** Кланы: соревнования сообществ | **[S10]**; [S05], [S01] | Не сделано | Членство/полномочия и межсообщественный зачёт открыты; Fluxer community не доказывает готовую клановую систему. [Backend](TRAINEROS_BACKEND_PLAN_RU.md), [F05](STRUCTURE_MAP_RU.md#f05). |
@@ -542,8 +549,8 @@ issues массово по карте и не создавать новую гл
 заменена сборкой с обязательными Quick3D/AssetUtils/QuickTimeline.
 Статус на 26 октября был неполным. К 28 октября общая Online перенесена,
 уровень/Искры подключены к серверному начислению; R108/R146 остаются частичными,
-R110 частичен: preview и механизм доплат реализованы; подключение реального
-провайдера и живая выплата остаются открыты.
+R110 частичен: preview, механизм доплат и привязка Patreon реализованы;
+оплаченный цикл/живая выплата, перенос привязки и Ko-fi остаются открыты.
 Актуальные границы — в записи выше.
 
 Accounts/S01 owns verified display names and the shared avatar recipe. Boards/S10 project page-member profiles; SDK resolves installed models. Profile revisions are independent of score revisions. Source and server checks: [contract](../services/backend/profiles.md). Full account erasure and provider deletion detection remain open; R089/R107 remain partial. The owner now authorizes handheld installation/checks in this chat; delivery evidence follows separately.

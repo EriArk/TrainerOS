@@ -49,8 +49,18 @@ def main():
                 db.ready()
                 # Register real feature handlers at composition, never from a request/job payload.
                 worker = Worker(db, {'results.verify':verify_result})
+                support = None
+                if settings.patreon:
+                    from .accounts.service import Accounts
+                    from .accounts.provider import FluxerProvider
+                    from .economy.service import Progression
+                    from .economy.patreon import PatreonProvider
+                    from .economy.support_links import SupportLinks
+                    support = SupportLinks(Progression(db, Accounts(db, settings.oauth, FluxerProvider(settings.oauth))), PatreonProvider(settings.patreon))
                 while True:
                     state = worker.once()
+                    if support:
+                        support.once()
                     if args.once:
                         print(state)
                         break

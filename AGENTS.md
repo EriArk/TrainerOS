@@ -4,6 +4,14 @@
 
 ## Current working mode — owner correction, 21 October 2026
 
+**Owner Patreon setup, 29 October:** prepare real account binding and the creator
+tiers in the already signed-in Patreon account. The owner approved Spark / Искра
+at **$3/month, ×2 Sparks**, and Supernova / Сверхновая at **$5/month, ×3 Sparks**.
+No XP multiplier or monthly currency allowance; preserve earned rewards and
+purchases on cancellation. This supersedes the earlier unselected Patreon prices.
+Do not silently bind the owner's personal Patreon to handheld test users Ren/Mika.
+See [binding, deployment and remaining acceptance](services/backend/support-binding.md).
+
 **Owner avatar reference, 29 October (latest):** the restored face from the
 owner-supplied `painted-face.glb` is now the approved
 [canonical reference](assets/avatar/approved/face-2026-10-29/README.md).

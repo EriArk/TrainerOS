@@ -21,11 +21,14 @@ from .economy.shop import Shop
 from .economy.shop_routes import router as shop_router
 from .economy.routes import router as progression_router
 from .economy.prize_routes import router as prize_router
+from .economy.support_routes import router as support_router
+from .economy.support_links import SupportLinks
+from .economy.patreon import PatreonProvider
 from .play.service import Play
 from .play.routes import router as play_router
 
 
-def create_app(settings=None, *, provider=None, reward_provider=None):
+def create_app(settings=None, *, provider=None, reward_provider=None, support_provider=None):
     settings = settings or Settings.from_env()
 
     @asynccontextmanager
@@ -35,6 +38,8 @@ def create_app(settings=None, *, provider=None, reward_provider=None):
         app.state.play = Play(app.state.database,app.state.accounts) if settings.oauth else None
         app.state.progression = Progression(app.state.database, app.state.accounts, reward_provider) if settings.oauth else None
         app.state.shop = Shop(app.state.progression) if app.state.progression else None
+        app.state.support_links = SupportLinks(app.state.progression,
+            support_provider or (PatreonProvider(settings.patreon) if settings.patreon else None)) if app.state.progression else None
         try:
             yield
         finally:
@@ -49,6 +54,7 @@ def create_app(settings=None, *, provider=None, reward_provider=None):
     app.include_router(progression_router)
     app.include_router(shop_router)
     app.include_router(prize_router)
+    app.include_router(support_router)
 
     @app.exception_handler(AuthError)
     async def auth_error(request, error):
