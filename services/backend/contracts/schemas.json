@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "title": "TrainerOS Backend contract definitions â€” unimplemented draft",
+  "title": "TrainerOS Backend contract definitions — unimplemented draft",
   "$defs": {
     "Id": {
       "type": "string",
@@ -2224,8 +2224,7 @@
         "provider": {
           "type": "string",
           "enum": [
-            "patreon",
-            "kofi"
+            "patreon"
           ]
         },
         "expected_revision": {
@@ -2246,8 +2245,7 @@
           "enum": [
             "fluxer",
             "retroachievements",
-            "patreon",
-            "kofi"
+            "patreon"
           ]
         },
         "instance": {
@@ -2325,8 +2323,7 @@
               "provider": {
                 "type": "string",
                 "enum": [
-                  "patreon",
-                  "kofi"
+                  "patreon"
                 ]
               }
             }
@@ -2348,8 +2345,7 @@
               "provider": {
                 "type": "string",
                 "enum": [
-                  "patreon",
-                  "kofi"
+                  "patreon"
                 ]
               }
             }

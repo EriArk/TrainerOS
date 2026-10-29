@@ -88,7 +88,7 @@
     {
       "id": "support.provider_contract",
       "owner": "support",
-      "decision": "Actual Patreon/Ko-fi verification and reconciliation mechanisms per adapter.",
+      "decision": "Patreon verification and reconciliation; no other support provider is planned.",
       "blocks": [
         "support-entitlements"
       ],

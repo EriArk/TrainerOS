@@ -4,6 +4,11 @@
 
 ## Current working mode — owner correction, 21 October 2026
 
+**Owner support-provider decision, 29 October (latest):** Patreon is the only
+support provider. Remove Ko-fi from active requirements and draft contracts;
+it is cancelled scope, not unfinished work. Keep historical delivery records
+as history. Preserve the approved Patreon tiers and remaining paid-cycle acceptance.
+
 **Owner Patreon setup, 29 October:** prepare real account binding and the creator
 tiers in the already signed-in Patreon account. The owner approved Spark / Искра
 at **$3/month, ×2 Sparks**, and Supernova / Сверхновая at **$5/month, ×3 Sparks**.
@@ -23,7 +28,7 @@ hide a collision. Run `check_face_reference.py`, `check_eye_layers.py` and
 requires lips, brows and lashes to darken continuously as skin gets darker;
 this is a material rule, not permission to change the approved face shape.
 
-**Owner rewards/profile discussion, 28 October (latest):** before Patreon/Ko-fi,
+**Owner rewards/profile discussion, 28 October (latest):** before Patreon,
 the owner accepted level clothing rewards, an additional permanent outfit slot
 every three levels, first-completion trophies and selected game wearables,
 grouped celebrations, a five-item showcase and friend-profile viewing. The subsequent owner continuation authorizes implementation of the shared
@@ -39,7 +44,7 @@ including hairstyle**, not clothes alone. Reuse the existing purchase ledger,
 Trainer avatar persistence and `avatar.changed`; preserve the free current look
 and parallel clothing-model work. The owner chose **100 Sparks per permanent
 slot**, without a level requirement; saving and switching are free. After this
-block, remind the owner to finish real Patreon/Ko-fi binding.
+block, remind the owner to finish real Patreon binding.
 See [saved looks](docs/PLAYER_PROFILE.md) and [purchases](services/backend/purchases.md).
 
 **Owner support-level decision, 28 October:** support has two levels, ×2 and ×3,

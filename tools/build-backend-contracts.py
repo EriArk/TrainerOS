@@ -242,9 +242,9 @@ define('Entitlement', {'entitlement_id': ref('Id'), 'kind': ref('Code'),
     'valid_from': ref('Time'), 'valid_until': ref('Time'), 'verified_until': ref('Time'),
     'state': enum('active', 'expired', 'revoked', 'unconfirmed')})
 page('Entitlements', 'Entitlement')
-define('SupportLinkBegin', {'provider': enum('patreon', 'kofi'),
+define('SupportLinkBegin', {'provider': enum('patreon'),
     'expected_revision': ref('Revision')})
-define('ProviderEvent', {'provider': enum('fluxer', 'retroachievements', 'patreon', 'kofi'),
+define('ProviderEvent', {'provider': enum('fluxer', 'retroachievements', 'patreon'),
     'instance': string(256, format='uri', pattern=r'^https://'),
     'provider_event_id': string(256), 'identity_link_id': ref('Id'),
     'kind': enum('achievement_verified', 'membership_verified', 'support_period_verified',
@@ -256,10 +256,10 @@ define('ProviderEvent', {'provider': enum('fluxer', 'retroachievements', 'patreo
     allOf=[
         {'if': {'properties': {'kind': {'const': 'support_period_verified'}}},
          'then': {'required': ['provider_product_ref', 'effective_until'],
-                  'properties': {'provider': enum('patreon', 'kofi')}}},
+                  'properties': {'provider': enum('patreon')}}},
         {'if': {'properties': {'kind': {'const': 'support_period_revoked'}}},
          'then': {'required': ['provider_product_ref'],
-                  'properties': {'provider': enum('patreon', 'kofi')}}},
+                  'properties': {'provider': enum('patreon')}}},
         {'if': {'properties': {'kind': {'const': 'membership_verified'}}},
          'then': {'required': ['community_ref', 'effective_until'],
                   'properties': {'provider': {'const': 'fluxer'}}}},
@@ -720,8 +720,31 @@ def data_model():
         ]}
 
 
+# Keep the already published wardrobe recipes in generated contracts as well.
+define('AvatarAppearanceV2', {
+    **DEFS['AvatarAppearanceV1']['properties'], 'schema': {'const': 2},
+    'top': {'enum': ['tank', 'polo-short-sleeve', 'polo-sleeveless', 'everyday-tee',
+                     'sundress', 'racing-suit', 'rose-racing-suit']},
+    'bottom': {'enum': ['base-shorts', 'golf-shorts', 'pleated-skirt', 'denim-breeches']},
+    'socks': {'enum': ['none', 'ankle-socks', 'crew-socks']},
+    'shoes': {'enum': ['sandals', 'golf-shoes-classic', 'golf-shoes-sport',
+                       'canvas-shoes', 'racing-boots', 'rose-racing-boots']},
+    'headwear': {'enum': ['none', 'golf-cap', 'golf-visor', 'racing-helmet', 'rose-racing-helmet']},
+})
+define('AvatarAppearanceV3', {
+    **DEFS['AvatarAppearanceV2']['properties'], 'schema': {'const': 3},
+    **{name: string(7, 7, pattern=r'^#[0-9a-fA-F]{6}$')
+       for name in ('socksColor', 'shoesColor', 'headwearColor')},
+})
+DEFS['AvatarPeerRecipeV1']['properties']['appearance'] = {
+    'oneOf': [ref(f'AvatarAppearanceV{version}') for version in (1, 2, 3)]}
+
+
 def documents():
     sdk = sdk_contract()
+    # Preserve the published definition order after SDK adds its schemas.
+    for name in ('AvatarAppearanceV2', 'AvatarAppearanceV3'):
+        DEFS[name] = DEFS.pop(name)
     schemas = {'$schema': 'https://json-schema.org/draft/2020-12/schema',
         'title': 'TrainerOS Backend contract definitions — unimplemented draft', '$defs': DEFS}
     return {'schemas.json': schemas, 'openapi.json': openapi(), 'sdk.json': sdk,
@@ -741,7 +764,7 @@ def documents():
                     ('rewards.rates', 'rewards', 'Reward sources, rates, repeat limits, offline timing and subscription multiplier applicability.', ['reward-issuance']),
                     ('wallet.reversal', 'wallet', 'Resolution of revoked rewards already spent; no invented automatic debt/asset seizure.', ['economic-awards']),
                     ('inventory.catalogue', 'inventory', 'Item prices, asset rights, compatibility and exact SDK recipe/inventory mapping.', ['shop-publication']),
-                    ('support.provider_contract', 'support', 'Actual Patreon/Ko-fi verification and reconciliation mechanisms per adapter.', ['support-entitlements']),
+                    ('support.provider_contract', 'support', 'Patreon verification and reconciliation; no other support provider is planned.', ['support-entitlements']),
                     ('support.closed_artifacts', 'support', 'Protected artifact source and per-release access grant, separate from public Releases.', ['private-release-channel']),
                     ('operations.retention', 'operations', 'Retention per data class, deletion/export and backup deletion reconciliation.', ['public-account-service']),
                     ('operations.recovery', 'operations', 'Deployment topology, backup destination and measured RPO/RTO.', ['production-deployment']),
