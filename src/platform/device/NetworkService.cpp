@@ -24,7 +24,16 @@ NetworkService::NetworkService(QObject* parent):QObject(parent) {
         if(error==QProcess::FailedToStart){timeout_.stop();emit finished("Connection service unavailable.");}
     });
 }
-NetworkService::~NetworkService(){process_.closeWriteChannel();if(process_.state()!=QProcess::NotRunning){process_.terminate();if(!process_.waitForFinished(500))process_.kill();}}
+NetworkService::~NetworkService(){
+    timeout_.stop();
+    // A synchronous process wait must not call back into a dismantling owner.
+    disconnect(&process_,nullptr,this,nullptr);
+    process_.closeWriteChannel();
+    if(process_.state()!=QProcess::NotRunning){
+        process_.terminate();
+        if(!process_.waitForFinished(500)){process_.kill();process_.waitForFinished(500);}
+    }
+}
 void NetworkService::request(const QJsonObject& request) {
     if(process_.state()!=QProcess::NotRunning)return;
     buffer_.clear();result_=false;error_.clear();

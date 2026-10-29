@@ -1,5 +1,6 @@
 #include "adapters/pokemon/PokemonExperience.h"
 #include "PlatformBinding.h"
+#include "SessionConnections.h"
 #include "integrations/adventure/CratesAdventureAdapter.h"
 #include "integrations/adventure/PcAdventureAdapter.h"
 #include "features/crates/CratesLibrary.h"
@@ -315,6 +316,7 @@ int main(int argc, char* argv[]) {
     int result = 0;
     bool smokeCompleted = false;
     do {
+        SessionConnections bindings;
         restartTrainer = false;
         MockLibraryRepository repository;
         MockTrainerRepository profiles;
@@ -365,7 +367,7 @@ int main(int argc, char* argv[]) {
         if(personalLibrary && !smoke) {
             retroarchInstallation.saves=std::make_shared<RetroArchSaveSession>();
             retroarchInstallation.lineageRoot=QDir(stateDirectory).filePath("backups");
-            QObject::connect(store.get(), &LocalStateStore::opened, store.get(),
+            bindings.connect(store.get(), &LocalStateStore::opened, store.get(),
                 [&, saves=retroarchInstallation.saves](bool success) {
                     if(success)saves->bind({store->ownerId(),stateDirectory,store->usesLegacyStorage()});
                 });
@@ -425,11 +427,11 @@ int main(int argc, char* argv[]) {
         if(personalLibrary && !smoke) {
             shell.scraper()->configure(stateDirectory);
             folders.setDisplayPreferences(shell.scraper()->displayPreferences());
-            QObject::connect(shell.scraper(),&ScrapeController::displayChanged,&shell,[&]{folders.setDisplayPreferences(shell.scraper()->displayPreferences());shell.refreshLibrary();});
-            QObject::connect(shell.scraper(),&ScrapeController::saved,&folders,&BatoceraLibrary::rescan);
+            bindings.connect(shell.scraper(),&ScrapeController::displayChanged,&shell,[&]{folders.setDisplayPreferences(shell.scraper()->displayPreferences());shell.refreshLibrary();});
+            bindings.connect(shell.scraper(),&ScrapeController::saved,&folders,&BatoceraLibrary::rescan);
         }
         if(personalLibrary && !smoke && store) {
-            QObject::connect(store.get(), &LocalStateStore::opened, &shell, [&](bool ready) {
+            bindings.connect(store.get(), &LocalStateStore::opened, &shell, [&](bool ready) {
                 shell.social()->setOwner(ready ? store->ownerId() : QString());
                 if(ready)shell.social()->configureLocalLobby(stateDirectory,shell.trainer()->profile()["name"].toString());
                 shell.backendAccount()->configure(ready ? store->ownerId() : QString());
@@ -444,7 +446,7 @@ int main(int argc, char* argv[]) {
                 shell.browser()->configure(stateDirectory,ready?store->ownerId():QString());
                 shell.album()->configure(stateDirectory,ready?store->ownerId():QString());
             });
-            QObject::connect(store.get(), &LocalStateStore::accessNeeded, &shell, [&] {
+            bindings.connect(store.get(), &LocalStateStore::accessNeeded, &shell, [&] {
                 shell.social()->setOwner({});
                 shell.settings()->setMediaOwner({});
                 shell.backendAccount()->configure({});
@@ -463,12 +465,12 @@ int main(int argc, char* argv[]) {
             folders.prepareFileMove = [saveRuntimes](const AdventureRegistration& record,LibraryEdit& edit)->QString {
                 return retroarch::prepareFileMove(record,edit,saveRuntimes->load()->retroarch);
             };
-            QObject::connect(store.get(), &LocalStateStore::opened, &folders, [&](bool ready) { if(ready)folders.refreshContentAvailability(); });
+            bindings.connect(store.get(), &LocalStateStore::opened, &folders, [&](bool ready) { if(ready)folders.refreshContentAvailability(); });
             shell.settings()->setLibraryScanState(true,false);
-            QObject::connect(&folders, &BatoceraLibrary::busyChanged, &shell, [&] {
+            bindings.connect(&folders, &BatoceraLibrary::busyChanged, &shell, [&] {
                 shell.settings()->setLibraryScanState(true,folders.busy());
             });
-            QObject::connect(&folders, &BatoceraLibrary::scanFinished, &shell, [&](int added,const QStringList& warnings) {
+            bindings.connect(&folders, &BatoceraLibrary::scanFinished, &shell, [&](int added,const QStringList& warnings) {
                 shell.refreshLibrary();
                 qInfo() << "Library discovery:" << added << "updated;" << warnings;
                 const QString result=warnings.isEmpty()
@@ -479,13 +481,13 @@ int main(int argc, char* argv[]) {
             shell.libraryManager()->prepareInstallation = [&adapters](AdventureRegistration& record) { adapters.prepareInstallation(record); };
             shell.libraryManager()->setInitialFolder(QDir::home().filePath("Emulation/roms"));
         }
-        if (store) QObject::connect(store.get(), &LocalStateStore::libraryChanged, &shell, [&] {
+        if (store) bindings.connect(store.get(), &LocalStateStore::libraryChanged, &shell, [&] {
             // A folder import can bind dozens of games. Rebuild pages once when
             // that batch finishes instead of after every individual SQLite write.
             if(!folders.busy())shell.refreshLibrary();
         });
-        if(realAchievements)QObject::connect(realAchievements.get(),&AchievementProvider::achievementsEarned,&shell,&ShellController::showAchievements);
-        if (realAchievements) QObject::connect(store.get(), &LocalStateStore::opened, realAchievements.get(), [&](bool success) {
+        if(realAchievements)bindings.connect(realAchievements.get(),&AchievementProvider::achievementsEarned,&shell,&ShellController::showAchievements);
+        if (realAchievements) bindings.connect(store.get(), &LocalStateStore::opened, realAchievements.get(), [&](bool success) {
             if (success) realAchievements->bind(store->accountDirectory());
         });
         SessionState session(shell, store.get());
@@ -518,7 +520,7 @@ int main(int argc, char* argv[]) {
             if(!realAchievements)return {};
             return realAchievements->disconnectForRemoval()?QString():"Could not remove the saved sign-in. Try again.";
         });
-        QObject::connect(&session,&SessionState::trainerRestartReady,&app,[&]{trainerGrant=session.restartGrant();chooseTrainer=trainerGrant.isEmpty();restartTrainer=true;app.exit();});
+        bindings.connect(&session,&SessionState::trainerRestartReady,&app,[&]{trainerGrant=session.restartGrant();chooseTrainer=trainerGrant.isEmpty();restartTrainer=true;app.exit();});
         DeviceSnapshot deviceFixture;
         deviceFixture.volume = 35; deviceFixture.brightness = 60; deviceFixture.network = "Connected";
         deviceFixture.internalFree = 32LL << 30; deviceFixture.internalTotal = 100LL << 30;
@@ -535,7 +537,7 @@ int main(int argc, char* argv[]) {
         NetworkService networkService;
         if(!smoke && !parser.isSet("ephemeral")) shell.network()->configure(&networkService);
         VolumeKeys volumeKeys(!smoke && !parser.isSet("ephemeral") && platform.dedicatedSession());
-        QObject::connect(&volumeKeys, &VolumeKeys::adjustmentRequested, &deviceService,
+        bindings.connect(&volumeKeys, &VolumeKeys::adjustmentRequested, &deviceService,
             [&deviceService](int delta) { deviceService.hardwareVolume(delta); });
 
         std::unique_ptr<LocalSaveBackupService> saveBackups;
@@ -569,24 +571,24 @@ int main(int argc, char* argv[]) {
             pokemonModule(shell).center()->configure(saveBackups.get());
             pokemonModule(shell).party()->configureMovement(saveBackups.get(),&activeLibrary);
             shell.settings()->configureSavePolicy(saveBackups.get());
-            QObject::connect(saveBackups.get(),&SaveBackupService::operationFailed,&session,&SessionState::cancelPendingExit);
+            bindings.connect(saveBackups.get(),&SaveBackupService::operationFailed,&session,&SessionState::cancelPendingExit);
         }
         const auto updateServiceActivity = [&] {
             session.setServiceActive(shell.pcGames()->busy() || shell.moduleServiceBusy() || folders.writing() || shell.settings()->storage()->busy() || deviceService.busy() || shell.network()->busy() || (saveBackups && saveBackups->busy()));
         };
-        QObject::connect(&folders, &BatoceraLibrary::writingChanged, &session, updateServiceActivity);
-        QObject::connect(&deviceService, &DeviceService::changed, &session, updateServiceActivity);
-        QObject::connect(shell.network(), &NetworkController::changed, &session, updateServiceActivity);
-        QObject::connect(shell.settings()->storage(), &LibraryStorageController::changed, &session, updateServiceActivity);
-        if (saveBackups) QObject::connect(saveBackups.get(), &SaveBackupService::busyChanged, &session, updateServiceActivity);
-        QObject::connect(&shell,&ShellController::changed,&session,updateServiceActivity);
+        bindings.connect(&folders, &BatoceraLibrary::writingChanged, &session, updateServiceActivity);
+        bindings.connect(&deviceService, &DeviceService::changed, &session, updateServiceActivity);
+        bindings.connect(shell.network(), &NetworkController::changed, &session, updateServiceActivity);
+        bindings.connect(shell.settings()->storage(), &LibraryStorageController::changed, &session, updateServiceActivity);
+        if (saveBackups) bindings.connect(saveBackups.get(), &SaveBackupService::busyChanged, &session, updateServiceActivity);
+        bindings.connect(&shell,&ShellController::changed,&session,updateServiceActivity);
         ProcessService adventureProcess;
         quint64 experienceSession=0;
-        QObject::connect(&adventureProcess,&ProcessService::started,&shell,[&]{++experienceSession;});
+        bindings.connect(&adventureProcess,&ProcessService::started,&shell,[&]{++experienceSession;});
         const auto liveExperienceSession=[&]{return adventureProcess.active()?QString::number(adventureProcess.processId())+":"+QString::number(experienceSession):QString();};
         AdventureLaunchController adventureLaunch(adventureProcess);
         adventureLaunch.configureGame=[&](ProcessCommand command,const QString& game){return shell.gamePerformance()->prepare(std::move(command),game);};
-        QObject::connect(&adventureLaunch,&AdventureLaunchController::changed,&shell,[&]{
+        bindings.connect(&adventureLaunch,&AdventureLaunchController::changed,&shell,[&]{
             shell.gamePerformance()->setLiveAvailable(adventureLaunch.state()=="running" && adventureProcess.supportsRuntimeSettings());
         });
         shell.gamePerformance()->applyLive=[&](const QString& game,const QJsonObject& settings,std::function<void(QJsonObject)> done){
@@ -605,29 +607,29 @@ int main(int argc, char* argv[]) {
         };
         AdventureExitPresentation exitPresentation(adventureLaunch.exitController());
         InvitationOverlayService appsOverlay(platform.dedicatedSession(),"/var/opt/traineros/integrations/invitation-overlay.py");
-        QObject::connect(shell.apps(),&AppsController::changed,&appsOverlay,[&]{appsOverlay.setGame(shell.apps()->processId());});
+        bindings.connect(shell.apps(),&AppsController::changed,&appsOverlay,[&]{appsOverlay.setGame(shell.apps()->processId());});
         InvitationOverlayService invitationOverlay(platform.dedicatedSession(),"/var/opt/traineros/integrations/invitation-overlay.py");
         InvitationOverlayService radialOverlay(platform.dedicatedSession(),"/var/opt/traineros/integrations/invitation-overlay.py");
-        QObject::connect(&adventureProcess,&ProcessService::started,&radialOverlay,[&]{radialOverlay.setGame(adventureProcess.processId());});
-        QObject::connect(&adventureProcess,&ProcessService::finished,&radialOverlay,[&]{radialOverlay.setGame(0);shell.settings()->gameInput()->setRadial({});});
+        bindings.connect(&adventureProcess,&ProcessService::started,&radialOverlay,[&]{radialOverlay.setGame(adventureProcess.processId());});
+        bindings.connect(&adventureProcess,&ProcessService::finished,&radialOverlay,[&]{radialOverlay.setGame(0);shell.settings()->gameInput()->setRadial({});});
         InvitationOverlayService achievementOverlay(platform.dedicatedSession(),"/var/opt/traineros/integrations/invitation-overlay.py");
         AchievementCelebration achievementCelebration(store.get(),realAchievements?static_cast<AchievementProvider&>(*realAchievements):shellAchievements);
-        QObject::connect(&achievementCelebration,&AchievementCelebration::notice,&shell,&ShellController::showNotice);
-        QObject::connect(&adventureProcess,&ProcessService::runtimeOutput,&achievementCelebration,&AchievementCelebration::feed);
-        QObject::connect(&adventureProcess,&ProcessService::started,&achievementCelebration,[&]{
+        bindings.connect(&achievementCelebration,&AchievementCelebration::notice,&shell,&ShellController::showNotice);
+        bindings.connect(&adventureProcess,&ProcessService::runtimeOutput,&achievementCelebration,&AchievementCelebration::feed);
+        bindings.connect(&adventureProcess,&ProcessService::started,&achievementCelebration,[&]{
             achievementOverlay.setGame(adventureProcess.processId());
             achievementCelebration.begin(adventureLaunch.adventureId(),adventureProcess.processId(),adventureProcess.runtimeControls()["achievements"].toMap());
         });
-        QObject::connect(&adventureProcess,&ProcessService::finished,&achievementCelebration,[&]{achievementCelebration.finish();achievementOverlay.setGame(0);});
+        bindings.connect(&adventureProcess,&ProcessService::finished,&achievementCelebration,[&]{achievementCelebration.finish();achievementOverlay.setGame(0);});
         if(store) {
             const auto updateMoments=[&]{shell.hall()->setMoments(store->achievementMoments());};
-            QObject::connect(store.get(),&LocalStateStore::opened,&achievementCelebration,[updateMoments](bool){updateMoments();});
-            QObject::connect(store.get(),&LocalStateStore::libraryChanged,&achievementCelebration,updateMoments);
+            bindings.connect(store.get(),&LocalStateStore::opened,&achievementCelebration,[updateMoments](bool){updateMoments();});
+            bindings.connect(store.get(),&LocalStateStore::libraryChanged,&achievementCelebration,updateMoments);
         }
-        QObject::connect(&adventureProcess,&ProcessService::started,&invitationOverlay,[&]{invitationOverlay.setGame(adventureProcess.processId());});
-        QObject::connect(&adventureProcess,&ProcessService::finished,&invitationOverlay,[&]{invitationOverlay.setGame(0);});
-        QObject::connect(&adventureProcess,&ProcessService::started,shell.social(),[&]{shell.social()->setGameProcess(adventureProcess.processId());});
-        QObject::connect(&adventureProcess,&ProcessService::finished,shell.social(),[&]{shell.social()->setGameProcess(0);});
+        bindings.connect(&adventureProcess,&ProcessService::started,&invitationOverlay,[&]{invitationOverlay.setGame(adventureProcess.processId());});
+        bindings.connect(&adventureProcess,&ProcessService::finished,&invitationOverlay,[&]{invitationOverlay.setGame(0);});
+        bindings.connect(&adventureProcess,&ProcessService::started,shell.social(),[&]{shell.social()->setGameProcess(adventureProcess.processId());});
+        bindings.connect(&adventureProcess,&ProcessService::finished,shell.social(),[&]{shell.social()->setGameProcess(0);});
         std::unique_ptr<AdventureOverlayService> adventureOverlay;
         TextEntryController externalKeyboard;
         InvitationOverlayService keyboardOverlay(platform.dedicatedSession(),"/var/opt/traineros/integrations/invitation-overlay.py");
@@ -650,14 +652,14 @@ int main(int argc, char* argv[]) {
                 const auto name=packet["action"].toString();if(actions.contains(name))externalKeyboard.dispatch(actions[name]);
             }
         };
-        QObject::connect(shell.apps(),&AppsController::keyboardEvent,&externalKeyboard,[&](const QJsonObject& packet){keyboardEvent(1,packet);});
-        QObject::connect(shell.apps(),&AppsController::changed,&externalKeyboard,[&]{if(keyboardOwner==1&&(!shell.apps()->ready()||shell.apps()->current().isEmpty()))externalKeyboard.cancel();});
-        QObject::connect(&keyboardOverlay,&InvitationOverlayService::changed,&externalKeyboard,[&]{if(!keyboardOverlay.ready())externalKeyboard.cancel();});
-        QObject::connect(&session,&SessionState::changed,&externalKeyboard,[&]{if(session.blocked())externalKeyboard.cancel();});
-        QObject::connect(&externalKeyboard,&TextEntryController::changed,&shell,[&]{if(!externalKeyboard.isOpen()&&keyboardOwner){keyboardSend({{"command","keyboard-close"}});keyboardOwner=0;}});
-        QObject::connect(&externalKeyboard,&TextEntryController::textCommitted,&shell,[&](QString text){keyboardSend({{"command","keyboard-input"},{"text",text}});});
-        QObject::connect(&externalKeyboard,&TextEntryController::keyRequested,&shell,[&](QString action){keyboardSend({{"command","keyboard-input"},{"action",action}});});
-        QObject::connect(&externalKeyboard,&TextEntryController::keyStroke,&shell,[&](int key,int modifiers,QString text){keyboardSend({{"command","keyboard-input"},{"key",key},{"modifiers",modifiers},{"text",text}});});
+        bindings.connect(shell.apps(),&AppsController::keyboardEvent,&externalKeyboard,[&](const QJsonObject& packet){keyboardEvent(1,packet);});
+        bindings.connect(shell.apps(),&AppsController::changed,&externalKeyboard,[&]{if(keyboardOwner==1&&(!shell.apps()->ready()||shell.apps()->current().isEmpty()))externalKeyboard.cancel();});
+        bindings.connect(&keyboardOverlay,&InvitationOverlayService::changed,&externalKeyboard,[&]{if(!keyboardOverlay.ready())externalKeyboard.cancel();});
+        bindings.connect(&session,&SessionState::changed,&externalKeyboard,[&]{if(session.blocked())externalKeyboard.cancel();});
+        bindings.connect(&externalKeyboard,&TextEntryController::changed,&shell,[&]{if(!externalKeyboard.isOpen()&&keyboardOwner){keyboardSend({{"command","keyboard-close"}});keyboardOwner=0;}});
+        bindings.connect(&externalKeyboard,&TextEntryController::textCommitted,&shell,[&](QString text){keyboardSend({{"command","keyboard-input"},{"text",text}});});
+        bindings.connect(&externalKeyboard,&TextEntryController::keyRequested,&shell,[&](QString action){keyboardSend({{"command","keyboard-input"},{"action",action}});});
+        bindings.connect(&externalKeyboard,&TextEntryController::keyStroke,&shell,[&](int key,int modifiers,QString text){keyboardSend({{"command","keyboard-input"},{"key",key},{"modifiers",modifiers},{"text",text}});});
         PlayerOverlayController playerOverlay(*shell.social(),*shell.keyboard(),exitPresentation);
         // Incoming calls reuse the game's captured-frame/input lease. They never
         // create a second input owner or change the game's save/exit lifecycle.
@@ -687,21 +689,21 @@ int main(int argc, char* argv[]) {
                 if(callOwnsGameMenu){callOwnsGameMenu=false;exitPresentation.dismissMenu();}
             }
         };
-        QObject::connect(shell.social(),&SocialController::changed,&exitPresentation,syncIncomingCall,Qt::QueuedConnection);
-        QObject::connect(&exitPresentation,&AdventureExitPresentation::changed,&exitPresentation,syncIncomingCall,Qt::QueuedConnection);
-        QObject::connect(&adventureProcess,&ProcessService::started,&playerOverlay,[&]{
+        bindings.connect(shell.social(),&SocialController::changed,&exitPresentation,syncIncomingCall,Qt::QueuedConnection);
+        bindings.connect(&exitPresentation,&AdventureExitPresentation::changed,&exitPresentation,syncIncomingCall,Qt::QueuedConnection);
+        bindings.connect(&adventureProcess,&ProcessService::started,&playerOverlay,[&]{
             // Replies bind to every owned game; a gathering lobby must not
             // expose its roster over an unrelated solo game.
             playerOverlay.setGame(adventureProcess.processId(),shell.social()->gameParty()["running"].toBool());
         });
-        QObject::connect(&adventureProcess,&ProcessService::finished,&playerOverlay,[&]{playerOverlay.setGame(0);});
-        QObject::connect(&playerOverlay,&PlayerOverlayController::optionsRequested,&shell,[&]{if(adventureOverlay)adventureOverlay->openOptions();});
-        QObject::connect(shell.social(),&SocialController::lobbyRequested,&shell,[&]{
+        bindings.connect(&adventureProcess,&ProcessService::finished,&playerOverlay,[&]{playerOverlay.setGame(0);});
+        bindings.connect(&playerOverlay,&PlayerOverlayController::optionsRequested,&shell,[&]{if(adventureOverlay)adventureOverlay->openOptions();});
+        bindings.connect(shell.social(),&SocialController::lobbyRequested,&shell,[&]{
             if(adventureLaunch.active()&&!adventureLaunch.minimized()) {
                 if(!adventureOverlay||!adventureOverlay->requestShell())shell.showNotice("Open Home to enter the lobby safely.");
             }
         });
-        QObject::connect(shell.social(),&SocialController::lobbyDeferred,&shell,[&]{
+        bindings.connect(shell.social(),&SocialController::lobbyDeferred,&shell,[&]{
             if(adventureLaunch.active()&&adventureOverlay)adventureOverlay->returnToGame();
             else shell.goToPage(0);
         });
@@ -716,7 +718,7 @@ int main(int argc, char* argv[]) {
             session.flushForSleep();
             auto* wait=new QTimer(&session);wait->setInterval(50);
             auto ticks=std::make_shared<int>(0);
-            QObject::connect(wait,&QTimer::timeout,&session,[&,wait,ticks,done]{
+            bindings.connect(wait,&QTimer::timeout,&session,[&,wait,ticks,done]{
                   bool guarded=shell.pcGames()->busy()||adventureLaunch.active()||session.blocked()||shell.moduleServiceBusy()||folders.writing()
                     ||shell.settings()->storage()->busy()||(saveBackups&&saveBackups->busy());
                   for(const auto& task:shell.files()->service()->tasks())guarded|=!task.toMap()["terminal"].toBool();
@@ -724,7 +726,7 @@ int main(int argc, char* argv[]) {
                 else if(++*ticks>=80){wait->stop();wait->deleteLater();done("A write is still pending. Try Sleep again after it finishes.");}
             });wait->start();
         };
-        QObject::connect(shell.powerControl(),&PowerControl::menuRequested,&shell,[&]{
+        bindings.connect(shell.powerControl(),&PowerControl::menuRequested,&shell,[&]{
             if(adventureLaunch.active()&&!adventureLaunch.minimized()){
                 pendingSystemAction="power";
                 if(adventureOverlay)adventureOverlay->requestShell();
@@ -732,12 +734,12 @@ int main(int argc, char* argv[]) {
                   pendingSystemAction="power";shell.apps()->control(1);
               }else shell.systemAction("power");
         });
-        QObject::connect(&adventureProcess,&ProcessService::finished,&shell,[&]{pendingSystemAction.clear();});
-        QObject::connect(&shell,&ShellController::gameControlsClosed,&exitPresentation,[&](bool resume){
+        bindings.connect(&adventureProcess,&ProcessService::finished,&shell,[&]{pendingSystemAction.clear();});
+        bindings.connect(&shell,&ShellController::gameControlsClosed,&exitPresentation,[&](bool resume){
             exitPresentation.setContentInput(false);if(resume)exitPresentation.dismissMenu();
         });
-        QObject::connect(&exitPresentation,&AdventureExitPresentation::menuDismissed,&shell,[&]{shell.setGameControlsOpen(false);});
-        QObject::connect(&shell,&ShellController::gameSystemRequested,&exitPresentation,[&](QString id){
+        bindings.connect(&exitPresentation,&AdventureExitPresentation::menuDismissed,&shell,[&]{shell.setGameControlsOpen(false);});
+        bindings.connect(&shell,&ShellController::gameSystemRequested,&exitPresentation,[&](QString id){
             pendingSystemAction=id;
             exitPresentation.setContentInput(false);
             if(adventureOverlay)adventureOverlay->minimize();
@@ -746,7 +748,7 @@ int main(int argc, char* argv[]) {
         RuntimeMultiplayer multiplayer(activeLibrary,retroarch,ppsspp,dolphin,*shell.social(),adventureProcess,adventureLaunch,exitPresentation);
         LaunchPresentation launchPresentation(activeLibrary,shell.launchPreparation(),adventureLaunch,multiplayer,*shell.social(),exitPresentation);
         LobbyImportController lobbyImport(activeLibrary,*selectedAdapter,&files,*shell.social(),multiplayer);
-        QObject::connect(&lobbyImport,&LobbyImportController::imported,&shell,[&]{shell.refreshLibrary();});
+        bindings.connect(&lobbyImport,&LobbyImportController::imported,&shell,[&]{shell.refreshLibrary();});
         RemotePlayRuntime remotePlay(activeLibrary,retroarch,*shell.social(),adventureProcess,adventureLaunch,multiplayer.gamePreparation());
         remotePlay.allowed=[&]{return personalLibrary&&!smoke&&!session.blocked()&&!(saveBackups&&saveBackups->busy())&&!pokemonModule(shell).party()->activities()->link()->active();};
         remotePlay.hostSupported=[&](const QJsonObject& profile){return multiplayer.supportsLive(profile);};
@@ -754,7 +756,7 @@ int main(int argc, char* argv[]) {
             shell.social()->lobbyRuntime()->registerService("remoteplay.v1",&remotePlay);
             multiplayer.additionalLobbyGames=[&](const QMap<QString,QJsonObject>& profiles){return remotePlay.choices(profiles);};
         }
-        QObject::connect(&remotePlay,&RemotePlayRuntime::notice,&shell,&ShellController::showNotice);
+        bindings.connect(&remotePlay,&RemotePlayRuntime::notice,&shell,&ShellController::showNotice);
         if(personalLibrary&&!smoke) {
             multiplayer.saveBackupRoot=QDir(stateDirectory).filePath("backups");
             multiplayer.resolveSaveTarget=[saveRuntimes](const AdventureRegistration& record) {
@@ -762,7 +764,7 @@ int main(int argc, char* argv[]) {
                 return record.adventure.adapterId=="melonds"?resolveMelonDsSave(record,snapshot->melonds):resolveRetroArchSave(record,snapshot->retroarch);
             };
         }
-        QObject::connect(&multiplayer,&RuntimeMultiplayer::invitationSurfaceRequested,&shell,[&]{shell.openGameHubFace("lobby");});
+        bindings.connect(&multiplayer,&RuntimeMultiplayer::invitationSurfaceRequested,&shell,[&]{shell.openGameHubFace("lobby");});
         shell.libraryTools()->multiplayerAvailable=[&](const QString& id){return multiplayer.multiplayerGames().contains(id);};
         shell.libraryTools()->contentPackage=azahar::package;
         shell.libraryTools()->installPackage=azahar::installContent;
@@ -770,9 +772,9 @@ int main(int argc, char* argv[]) {
             if(adventureLaunch.active()||session.blocked()||shell.moduleServiceBusy())return QString("Finish the current game or operation before installing content.");
             return shell.libraryTools()->editGuard?shell.libraryTools()->editGuard():QString();
         };
-        QObject::connect(&shell,&ShellController::togetherRequested,&multiplayer,[&](const QString& game){shell.openGameHubFace("lobby");multiplayer.beginTogether(game);});
-        QObject::connect(shell.social(),&SocialController::runtimeAction,&multiplayer,[&](const QString& action){multiplayer.contextAction(action);});
-        QObject::connect(&multiplayer,&RuntimeMultiplayer::notice,&shell,[&](QString text){
+        bindings.connect(&shell,&ShellController::togetherRequested,&multiplayer,[&](const QString& game){shell.openGameHubFace("lobby");multiplayer.beginTogether(game);});
+        bindings.connect(shell.social(),&SocialController::runtimeAction,&multiplayer,[&](const QString& action){multiplayer.contextAction(action);});
+        bindings.connect(&multiplayer,&RuntimeMultiplayer::notice,&shell,[&](QString text){
             shell.showNotice(text);
         });
         // Supported profiles must be usable in normal sessions, including owner testing.
@@ -798,11 +800,11 @@ int main(int argc, char* argv[]) {
             const auto revision=activeLibrary.libraryRevision();
             if(!revision || revision!=lastMultiplayerRevision || multiplayerState()!=lastMultiplayerState)refreshMultiplayer();
         };
-        QObject::connect(&folders,&BatoceraLibrary::scanFinished,&multiplayer,refreshMultiplayer);
-        QObject::connect(&session,&SessionState::changed,&multiplayer,refreshMultiplayerState);
-        QObject::connect(shell.trainer(),&TrainerController::changed,&multiplayer,refreshMultiplayerState);
-        QObject::connect(&shell,&ShellController::changed,&multiplayer,refreshMultiplayerState);
-        if(store)QObject::connect(store.get(),&LocalStateStore::libraryChanged,&multiplayer,refreshMultiplayer);
+        bindings.connect(&folders,&BatoceraLibrary::scanFinished,&multiplayer,refreshMultiplayer);
+        bindings.connect(&session,&SessionState::changed,&multiplayer,refreshMultiplayerState);
+        bindings.connect(shell.trainer(),&TrainerController::changed,&multiplayer,refreshMultiplayerState);
+        bindings.connect(&shell,&ShellController::changed,&multiplayer,refreshMultiplayerState);
+        if(store)bindings.connect(store.get(),&LocalStateStore::libraryChanged,&multiplayer,refreshMultiplayer);
         refreshMultiplayer();
         auto gameNotifications=[&]{
             QVariantList rows;
@@ -869,16 +871,16 @@ int main(int argc, char* argv[]) {
                 rows.append(QVariantMap{{"id","back"},{"label","Back"}});exitPresentation.setPanel("call",voice["summary"].toString(),rows);
             }
         };
-        QObject::connect(shell.social(),&SocialController::changed,&exitPresentation,gameMenuActions);
-        QObject::connect(&shell,&ShellController::changed,&exitPresentation,gameMenuActions);
-        QObject::connect(&multiplayer,&RuntimeMultiplayer::changed,&exitPresentation,gameMenuActions);
-        QObject::connect(&adventureLaunch,&AdventureLaunchController::adventureStarted,&exitPresentation,gameMenuActions);
-        QObject::connect(&adventureProcess,&ProcessService::started,&exitPresentation,gameMenuActions);
-        QObject::connect(&exitPresentation,&AdventureExitPresentation::changed,&exitPresentation,[&]{if(exitPresentation.menuOpen()&&exitPresentation.panel().isEmpty())gameMenuActions();});
-        QObject::connect(&exitPresentation,&AdventureExitPresentation::changed,&multiplayer,&RuntimeMultiplayer::resumeLiveInvocation);
+        bindings.connect(shell.social(),&SocialController::changed,&exitPresentation,gameMenuActions);
+        bindings.connect(&shell,&ShellController::changed,&exitPresentation,gameMenuActions);
+        bindings.connect(&multiplayer,&RuntimeMultiplayer::changed,&exitPresentation,gameMenuActions);
+        bindings.connect(&adventureLaunch,&AdventureLaunchController::adventureStarted,&exitPresentation,gameMenuActions);
+        bindings.connect(&adventureProcess,&ProcessService::started,&exitPresentation,gameMenuActions);
+        bindings.connect(&exitPresentation,&AdventureExitPresentation::changed,&exitPresentation,[&]{if(exitPresentation.menuOpen()&&exitPresentation.panel().isEmpty())gameMenuActions();});
+        bindings.connect(&exitPresentation,&AdventureExitPresentation::changed,&multiplayer,&RuntimeMultiplayer::resumeLiveInvocation);
         // Other notifications retain the inbox route. The invitation badge is
         // hidden during both preview and explicit-exit capture barriers.
-        QObject::connect(&exitPresentation,&AdventureExitPresentation::menuActionRequested,&exitPresentation,[&](const QString& action){
+        bindings.connect(&exitPresentation,&AdventureExitPresentation::menuActionRequested,&exitPresentation,[&](const QString& action){
             if(action=="achievements"){auto rows=gameAchievementRows();rows.append(QVariantMap{{"id","back"},{"label","Back"}});exitPresentation.setPanel("achievements","Achievements",rows);return;}
             if(action=="controls"){exitPresentation.setContentInput(true);shell.setGameControlsOpen(true);return;}
             if(action=="pc-settings"){pendingSystemAction="pc-settings";if(adventureOverlay)adventureOverlay->minimize();return;}
@@ -936,7 +938,7 @@ int main(int argc, char* argv[]) {
             } else exitPresentation.setPanel(category.isEmpty()?"display":"display-"+category,caption,
                 retroarch::appearanceMenu(game,category),category.isEmpty()?QString():QString("display"));
         });
-        QObject::connect(&adventureLaunch, &AdventureLaunchController::adventureStarted, &exitPresentation,
+        bindings.connect(&adventureLaunch, &AdventureLaunchController::adventureStarted, &exitPresentation,
             [&](const QString& id) {
                 QString title = "Adventure";
                 for (const auto& adventure : activeLibrary.adventures())
@@ -961,9 +963,9 @@ int main(int argc, char* argv[]) {
                     exitPresentation, overlayHelper);
             if(adventureOverlay) {
                 adventureOverlay->inputProfile=[&](const QString& id){return shell.pcGames()->steam.active()?QJsonObject{}:shell.settings()->gameInput()->snapshot(id);};
-                QObject::connect(adventureOverlay.get(),&AdventureOverlayService::radialChanged,shell.settings()->gameInput(),&GameInputProfiles::setRadial);
-                QObject::connect(shell.settings()->gameInput(),&GameInputProfiles::radialSlotRequested,adventureOverlay.get(),&AdventureOverlayService::selectRadialSlot);
-                QObject::connect(adventureOverlay.get(),&AdventureOverlayService::inputMappingFailed,&shell,&ShellController::showNotice);
+                bindings.connect(adventureOverlay.get(),&AdventureOverlayService::radialChanged,shell.settings()->gameInput(),&GameInputProfiles::setRadial);
+                bindings.connect(shell.settings()->gameInput(),&GameInputProfiles::radialSlotRequested,adventureOverlay.get(),&AdventureOverlayService::selectRadialSlot);
+                bindings.connect(adventureOverlay.get(),&AdventureOverlayService::inputMappingFailed,&shell,&ShellController::showNotice);
             }
         }
 #endif
@@ -995,7 +997,7 @@ int main(int argc, char* argv[]) {
                     if(!file.open(QIODevice::WriteOnly) || file.write(deviceId.toUtf8())<0 || !file.commit())deviceId.clear();
                 }
                 auto* link=pokemonModule(shell).party()->activities()->link();
-                QObject::connect(link,&LinkController::connectionFailed,&shell,&ShellController::showNotice);
+                bindings.connect(link,&LinkController::connectionFailed,&shell,&ShellController::showNotice);
                 const QString linkName=shell.trainer()->profile().value("name").toString();
                 link->configure(QStandardPaths::writableLocation(QStandardPaths::AppLocalDataLocation)+"/practice/emerald-v1",
                     deviceId,linkName,[&,service=saveBackups.get()](const QString& op,const QJsonObject& args,QObject* receiver,std::function<void(QJsonObject)> done){
@@ -1012,12 +1014,12 @@ int main(int argc, char* argv[]) {
                         && shell.canReceiveOnline(),
                         !shell.settings()->readOnlySaves());
                 };
-                QObject::connect(&adventureLaunch,&AdventureLaunchController::changed,link,nearbyGate);
-                QObject::connect(&session,&SessionState::changed,link,nearbyGate);
-                QObject::connect(&shell,&ShellController::changed,link,nearbyGate);
-                QObject::connect(link,&LinkController::changed,link,nearbyGate);
+                bindings.connect(&adventureLaunch,&AdventureLaunchController::changed,link,nearbyGate);
+                bindings.connect(&session,&SessionState::changed,link,nearbyGate);
+                bindings.connect(&shell,&ShellController::changed,link,nearbyGate);
+                bindings.connect(link,&LinkController::changed,link,nearbyGate);
                 nearbyGate();
-                QObject::connect(link,&LinkController::saveChanged,gameProgress.get(),[&,provider=gameProgress.get()]{
+                bindings.connect(link,&LinkController::saveChanged,gameProgress.get(),[&,provider=gameProgress.get()]{
                     if(const auto r=activeLibrary.registration(shell.currentAdventureId()))provider->refresh(*r);
                 });
             }
@@ -1036,22 +1038,22 @@ int main(int argc, char* argv[]) {
                 progressSelection = key;
                 provider->refresh(*record, sameContext);
             };
-            QObject::connect(&shell, &ShellController::changed, gameProgress.get(), [&, refreshProgress] {
+            bindings.connect(&shell, &ShellController::changed, gameProgress.get(), [&, refreshProgress] {
                 const bool homeVisible = shell.page() == 0 || shell.page() == 2;
                 const bool enteredHome = homeVisible && !progressHomeVisible;
                 progressHomeVisible = homeVisible;
                 refreshProgress(enteredHome);
             });
-            QObject::connect(store.get(), &LocalStateStore::opened, gameProgress.get(), [refreshProgress](bool success) {
+            bindings.connect(store.get(), &LocalStateStore::opened, gameProgress.get(), [refreshProgress](bool success) {
                 if (success) refreshProgress(true);
             });
-            QObject::connect(store.get(), &LocalStateStore::libraryChanged, gameProgress.get(), [&,refreshProgress] { if(!folders.busy())refreshProgress(true); });
-            QObject::connect(&folders, &BatoceraLibrary::scanFinished, gameProgress.get(), [refreshProgress] { refreshProgress(true); });
-            QObject::connect(&adventureLaunch, &AdventureLaunchController::changed, gameProgress.get(), [&, refreshProgress] {
+            bindings.connect(store.get(), &LocalStateStore::libraryChanged, gameProgress.get(), [&,refreshProgress] { if(!folders.busy())refreshProgress(true); });
+            bindings.connect(&folders, &BatoceraLibrary::scanFinished, gameProgress.get(), [refreshProgress] { refreshProgress(true); });
+            bindings.connect(&adventureLaunch, &AdventureLaunchController::changed, gameProgress.get(), [&, refreshProgress] {
                 if (adventureLaunch.active()) { progressSelection.clear(); gameProgress->invalidate(); }
                 else refreshProgress(true);
             });
-            if (saveBackups) QObject::connect(saveBackups.get(), &SaveBackupService::busyChanged, gameProgress.get(), [&, refreshProgress] {
+            if (saveBackups) bindings.connect(saveBackups.get(), &SaveBackupService::busyChanged, gameProgress.get(), [&, refreshProgress] {
                 if (saveBackups->busy()) { progressSelection.clear(); gameProgress->invalidate(); }
                 else refreshProgress(true);
             });
@@ -1115,18 +1117,18 @@ int main(int argc, char* argv[]) {
                 if (scanLibrary || changed) folders.refreshContentAvailability();
             };
             const auto refreshEmulators = [&] { emulatorRefresh->request(folders.root(), true); };
-            QObject::connect(shell.settings(), &SettingsController::libraryRefreshRequested, emulatorRefresh.get(), refreshEmulators);
-            QObject::connect(&app, &QGuiApplication::applicationStateChanged, emulatorRefresh.get(), [&](Qt::ApplicationState state) {
+            bindings.connect(shell.settings(), &SettingsController::libraryRefreshRequested, emulatorRefresh.get(), refreshEmulators);
+            bindings.connect(&app, &QGuiApplication::applicationStateChanged, emulatorRefresh.get(), [&](Qt::ApplicationState state) {
                 if (state == Qt::ApplicationActive) emulatorRefresh->request(folders.root());
             });
             auto previousPage = std::make_shared<int>(shell.page());
-            QObject::connect(&shell, &ShellController::changed, emulatorRefresh.get(), [&, previousPage, refreshEmulators] {
+            bindings.connect(&shell, &ShellController::changed, emulatorRefresh.get(), [&, previousPage, refreshEmulators] {
                 const auto previous = *previousPage; *previousPage = shell.page();
                 if (shell.page() == 1 && previous != 1) refreshEmulators();
             });
             emulatorPoll.setInterval(60000);
-            QObject::connect(&emulatorPoll, &QTimer::timeout, emulatorRefresh.get(), [&] { emulatorRefresh->request(folders.root()); });
-            QObject::connect(&emulatorPoll, &QTimer::timeout, &multiplayer, refreshMultiplayer);
+            bindings.connect(&emulatorPoll, &QTimer::timeout, emulatorRefresh.get(), [&] { emulatorRefresh->request(folders.root()); });
+            bindings.connect(&emulatorPoll, &QTimer::timeout, &multiplayer, refreshMultiplayer);
             emulatorPoll.start();
         }
         shell.scraper()->canStart = [&] {
@@ -1152,28 +1154,28 @@ int main(int argc, char* argv[]) {
         shell.settings()->setController(&input);
         remotePlay.ownerDevice=[&]{return input.kernelDeviceName();};
         const auto updateTextInput=[&]{input.setTextEntryEnabled(shell.social()->incomingCall().isEmpty()&&shell.keyboard()->isOpen()&&(playerOverlay.chatOpen()?exitPresentation.ready():!shell.menuOpen()&&shell.notice().isEmpty()&&!shell.homeMenuOpen()));};
-        QObject::connect(&shell,&ShellController::changed,&input,updateTextInput);
-        QObject::connect(shell.keyboard(),&TextEntryController::changed,&input,updateTextInput);
-        QObject::connect(&exitPresentation,&AdventureExitPresentation::changed,&input,updateTextInput);
+        bindings.connect(&shell,&ShellController::changed,&input,updateTextInput);
+        bindings.connect(shell.keyboard(),&TextEntryController::changed,&input,updateTextInput);
+        bindings.connect(&exitPresentation,&AdventureExitPresentation::changed,&input,updateTextInput);
         QString inputCall;
-        QObject::connect(shell.social(),&SocialController::changed,&input,[&]{
+        bindings.connect(shell.social(),&SocialController::changed,&input,[&]{
             const auto id=shell.social()->incomingCall()["id"].toString();
             if(id!=inputCall){inputCall=id;input.requireNeutral();updateTextInput();}
         });
-        QObject::connect(&input,&ControllerInput::textEntered,shell.keyboard(),&TextEntryController::insertText);
-        QObject::connect(&input,&ControllerInput::textBackspace,shell.keyboard(),&TextEntryController::backspace);
-        QObject::connect(&input,&ControllerInput::textCommand,&shell,[&](const QString& command){
+        bindings.connect(&input,&ControllerInput::textEntered,shell.keyboard(),&TextEntryController::insertText);
+        bindings.connect(&input,&ControllerInput::textBackspace,shell.keyboard(),&TextEntryController::backspace);
+        bindings.connect(&input,&ControllerInput::textCommand,&shell,[&](const QString& command){
             auto* keyboard=shell.keyboard();
             if(command=="left"||command=="right")keyboard->moveCursor(command=="left"?-1:1);
             else keyboard->shortcut(command);
         });
-        QObject::connect(&input,&ControllerInput::textSubmitted,&shell,[&]{shell.keyboard()->dispatch(Action::LocalAction);});
+        bindings.connect(&input,&ControllerInput::textSubmitted,&shell,[&]{shell.keyboard()->dispatch(Action::LocalAction);});
         bool homeMenuWasOpen = false;
-        QObject::connect(&shell, &ShellController::changed, &input, [&] {
+        bindings.connect(&shell, &ShellController::changed, &input, [&] {
             if (homeMenuWasOpen == shell.homeMenuOpen()) return;
             homeMenuWasOpen = shell.homeMenuOpen(); input.requireNeutral();
         });
-        QObject::connect(&shell,&ShellController::changed,&input,[&]{input.setHoldConfirmEnabled(shell.canHoldConfirm());});
+        bindings.connect(&shell,&ShellController::changed,&input,[&]{input.setHoldConfirmEnabled(shell.canHoldConfirm());});
         input.setHoldConfirmEnabled(shell.canHoldConfirm());
         const auto reportBase = parser.isSet("data-dir") ? QDir(parser.value("data-dir")).absolutePath()
             : QStandardPaths::writableLocation(QStandardPaths::AppLocalDataLocation);
@@ -1185,7 +1187,7 @@ int main(int argc, char* argv[]) {
         DiagnosticsService deviceReports(diagnosticsSmoke ? QDir(parser.value("screenshot-dir")).absoluteFilePath("reports")
                                                          : QDir(reportBase).filePath("diagnostics"));
         shell.diagnostics()->configure(&input, &deviceReports);
-        QObject::connect(&input, &ControllerInput::action, &session, [&](Action action) {
+        bindings.connect(&input, &ControllerInput::action, &session, [&](Action action) {
             // An exit prompt must never navigate the hidden shell. The platform
             // input provider feeds its own isolated snapshots to the presenter.
             if (adventureLaunch.exitController().phase() != AdventureExitController::Phase::Idle) return;
@@ -1203,23 +1205,23 @@ int main(int argc, char* argv[]) {
         QString pendingMode;
         bool transitionStarted = false;
         bool softwareRestart=false;
-        if(!smoke)QObject::connect(softwareUpdates,&SoftwareUpdateController::restartRequested,&session,[&]{softwareRestart=true;session.requestExit();});
-        QObject::connect(&shell, &ShellController::modeRequested, &session, [&](const QString& mode) {
+        if(!smoke)bindings.connect(softwareUpdates,&SoftwareUpdateController::restartRequested,&session,[&]{softwareRestart=true;session.requestExit();});
+        bindings.connect(&shell, &ShellController::modeRequested, &session, [&](const QString& mode) {
             if (adventureLaunch.active()) return;
             pendingMode = mode; session.requestExit();
         });
-        QObject::connect(&session, &SessionState::changed, &session, [&] {
+        bindings.connect(&session, &SessionState::changed, &session, [&] {
             if (!session.blocked() && !transitionStarted) pendingMode.clear();
             if(!session.blocked() && softwareRestart){softwareRestart=false;softwareUpdates->cancelRestart();}
         });
-        QObject::connect(&session, &SessionState::exitReady, &app, [&] {
+        bindings.connect(&session, &SessionState::exitReady, &app, [&] {
             if(softwareRestart){app.exit(75);return;}
             if (pendingMode.isEmpty()) { app.exit(); return; }
             if (transitionStarted) return;
             transitionStarted = true;
             platform.switchMode(pendingMode);
         });
-        QObject::connect(&platform, &ArmadaPlatformService::transitionFinished, &session, [&](bool success) {
+        bindings.connect(&platform, &ArmadaPlatformService::transitionFinished, &session, [&](bool success) {
             if (success) { app.exit(); return; }
             transitionStarted = false; pendingMode.clear(); session.cancelPendingExit();
             shell.showNotice("The mode could not be changed. Your journal is saved; TrainerOS remains open.");
@@ -1227,7 +1229,7 @@ int main(int argc, char* argv[]) {
         app.installEventFilter(&input);
         if (!smoke) {
             input.setEnabled(app.applicationState() == Qt::ApplicationActive);
-            QObject::connect(&app, &QGuiApplication::applicationStateChanged, &input,
+            bindings.connect(&app, &QGuiApplication::applicationStateChanged, &input,
                              [&input, &adventureLaunch](Qt::ApplicationState state) {
                 input.setEnabled(state == Qt::ApplicationActive && (!adventureLaunch.active() || adventureLaunch.preparing()));
             });
@@ -1246,7 +1248,7 @@ int main(int argc, char* argv[]) {
         engine.addImageProvider("screens",new SavedScreenImages(store.get()));
         int qmlWarnings = 0;
         QStringList diagnostics;
-        QObject::connect(&engine, &QQmlEngine::warnings, &engine,
+        bindings.connect(&engine, &QQmlEngine::warnings, &engine,
                          [&](const QList<QQmlError>& errors) {
             qmlWarnings += errors.size();
             for (const auto& error : errors) diagnostics.append(error.toString());
@@ -1275,7 +1277,7 @@ int main(int argc, char* argv[]) {
             auto* window = qobject_cast<QQuickWindow*>(engine.rootObjects().first());
             if (!window) {qCritical()<<"Shell root is not a window:"<<engine.rootObjects().first()->metaObject()->className();return 2;}
             auto accountBrowser=std::make_shared<bool>(false);
-            QObject::connect(shell.backendAccount(),&BackendAccount::returnRequested,window,[&,window,accountBrowser]{
+            bindings.connect(shell.backendAccount(),&BackendAccount::returnRequested,window,[&,window,accountBrowser]{
                 if(adventureLaunch.active())return;
                 if(*accountBrowser&&!shell.apps()->current().isEmpty()){shell.apps()->control(1);return;}
                 *accountBrowser=false;
@@ -1294,9 +1296,9 @@ int main(int argc, char* argv[]) {
             shell.pcGames()->settingsGuard=[&]{
                 return adventureLaunch.active()||session.blocked()||shell.runtimeChangeBlocked()?QString("Close the game and finish the current operation before saving launch settings."):QString();
             };
-            QObject::connect(shell.apps(),&AppsController::foregroundRequested,window,[window]{window->hide();});
+            bindings.connect(shell.apps(),&AppsController::foregroundRequested,window,[window]{window->hide();});
             shell.backendAccount()->loginGuard=shell.apps()->launchGuard;
-            QObject::connect(shell.apps(),&AppsController::shellRequested,window,[&,window,accountBrowser]{
+            bindings.connect(shell.apps(),&AppsController::shellRequested,window,[&,window,accountBrowser]{
                 if(adventureLaunch.active())return;
                 if(!*accountBrowser)shell.goToSection("apps");*accountBrowser=false;
                 if(parser.isSet("windowed"))window->show();else window->showFullScreen();window->requestActivate();
@@ -1308,14 +1310,14 @@ int main(int argc, char* argv[]) {
                 shell.backendAccount()->setBrowserOpener([&,accountBrowser](QUrl url){
                     *accountBrowser=shell.apps()->openWebUrl(url);return *accountBrowser;
                 });
-                QObject::connect(shell.apps(),&AppsController::webOpenFailed,window,[&,accountBrowser](QString message){
+                bindings.connect(shell.apps(),&AppsController::webOpenFailed,window,[&,accountBrowser](QString message){
                     *accountBrowser=false;shell.backendAccount()->browserFailed(message);
                 });
             }
             auto* pointerVisibility = new PointerVisibility(*window, platform.dedicatedSession());
             if (auto* exitWindow = window->findChild<QQuickWindow*>("adventure-exit-window"))
                 new PointerVisibility(*exitWindow, platform.dedicatedSession());
-            QObject::connect(&input, &ControllerInput::observedAction, pointerVisibility,
+            bindings.connect(&input, &ControllerInput::observedAction, pointerVisibility,
                              [pointerVisibility](Action, bool fromController) {
                 if (fromController) pointerVisibility->hide();
             });
@@ -1324,7 +1326,7 @@ int main(int argc, char* argv[]) {
             const int readyDescriptor = qEnvironmentVariableIntValue("TRAINEROS_READY_FD", &readyDescriptorValid);
             if (!sessionReadyNotified && (platform.dedicatedSession() || qEnvironmentVariable("TRAINEROS_SOFTWARE_MANAGED")=="1") && readyDescriptorValid && readyDescriptor >= 3) {
                 auto notified = std::make_shared<bool>(false);
-                QObject::connect(window, &QQuickWindow::frameSwapped, window, [readyDescriptor, notified, &sessionReadyNotified] {
+                bindings.connect(window, &QQuickWindow::frameSwapped, window, [readyDescriptor, notified, &sessionReadyNotified] {
                     if (*notified) return;
                     *notified = true; sessionReadyNotified = true;
                     QFile ready;
@@ -1337,19 +1339,19 @@ int main(int argc, char* argv[]) {
             if(PerformanceTrace::enabled()) {
                 auto beat=std::make_shared<QElapsedTimer>();beat->start();
                 auto* timer=new QTimer(window);timer->setInterval(100);timer->setTimerType(Qt::PreciseTimer);
-                QObject::connect(timer,&QTimer::timeout,window,[beat]{
+                bindings.connect(timer,&QTimer::timeout,window,[beat]{
                     PerformanceTrace::sample("eventLoop.delay",qMax(0.0,beat->nsecsElapsed()/1e6-100));beat->restart();
                 });timer->start();
                 auto frame=std::make_shared<QElapsedTimer>();
-                QObject::connect(window,&QQuickWindow::frameSwapped,window,[frame]{
+                bindings.connect(window,&QQuickWindow::frameSwapped,window,[frame]{
                     if(frame->isValid())PerformanceTrace::sample("frame.interval",frame->nsecsElapsed()/1e6);
                     frame->restart();
                 },Qt::DirectConnection);
                 auto* report=new QTimer(window);report->setInterval(1000);
-                QObject::connect(report,&QTimer::timeout,window,[&shell]{PerformanceTrace::flush(shell.page());});report->start();
+                bindings.connect(report,&QTimer::timeout,window,[&shell]{PerformanceTrace::flush(shell.page());});report->start();
             }
             deviceReports.setWindow(window);
-            QObject::connect(shell.powerControl(),&PowerControl::woke,window,[&,window]{
+            bindings.connect(shell.powerControl(),&PowerControl::woke,window,[&,window]{
                 // Re-arm the existing input filter's neutral gate after resume.
                 input.setEnabled(false);
                 QTimer::singleShot(250,window,[&,window]{
@@ -1411,28 +1413,28 @@ int main(int argc, char* argv[]) {
                     const auto result=pcRuntime.launch(r->adventure);return result.success?QString():result.message;
                 };
                 auto prizesAfterGame=std::make_shared<bool>(false);
-                QObject::connect(&adventureLaunch,&AdventureLaunchController::adventureFinished,&shell,[&,prizesAfterGame](bool failed){*prizesAfterGame=true;shell.pcGames()->steam.finished(failed);});
+                bindings.connect(&adventureLaunch,&AdventureLaunchController::adventureFinished,&shell,[&,prizesAfterGame](bool failed){*prizesAfterGame=true;shell.pcGames()->steam.finished(failed);});
                 cratesRuntime.ownerId=[&]{return store->ownerId();};
                 auto* packages=shell.crates()->installer();
                 packages->replacementGuard=[&]{return adventureLaunch.active()||session.blocked()?QString("Waiting for your game or save operation to finish"):QString();};
                 auto* crateLibrary=new CratesLibrary(activeLibrary,cratesRuntime.root,&shell);
-                QObject::connect(crateLibrary,&CratesLibrary::changed,&shell,[&]{shell.refreshLibrary();shell.apps()->refresh();});
-                QObject::connect(crateLibrary,&CratesLibrary::error,&shell,&ShellController::showNotice);
+                bindings.connect(crateLibrary,&CratesLibrary::changed,&shell,[&]{shell.refreshLibrary();shell.apps()->refresh();});
+                bindings.connect(crateLibrary,&CratesLibrary::error,&shell,&ShellController::showNotice);
                 const auto syncCrateGames=[&,crateLibrary]{
                     if(store->load()&&!adventureLaunch.active())crateLibrary->update(shell.crates()->installer()->installed());
                 };
-                QObject::connect(&adventureLaunch,&AdventureLaunchController::changed,&shell,[syncCrateGames]{syncCrateGames();});
-                QObject::connect(packages,&CratesInstaller::inventoryChanged,&shell,syncCrateGames);
-                QObject::connect(store.get(),&LocalStateStore::opened,&shell,[syncCrateGames](bool ready){if(ready)syncCrateGames();});
+                bindings.connect(&adventureLaunch,&AdventureLaunchController::changed,&shell,[syncCrateGames]{syncCrateGames();});
+                bindings.connect(packages,&CratesInstaller::inventoryChanged,&shell,syncCrateGames);
+                bindings.connect(store.get(),&LocalStateStore::opened,&shell,[syncCrateGames](bool ready){if(ready)syncCrateGames();});
                 packages->configure("/var/opt/traineros/crates/installer.py","/var/opt/traineros/crates/packages.json",cratesRuntime.root);
                 shell.crates()->configureCatalogue("/var/opt/traineros/crates/catalogue.py",cratesRuntime.root+"/catalogue");
-                QObject::connect(shell.crates(),&CratesController::launchRequested,&shell,[&](QString id,QString kind){
+                bindings.connect(shell.crates(),&CratesController::launchRequested,&shell,[&](QString id,QString kind){
                     if(kind=="game")shell.launchPreparation().launch("crates:"+id);
                     else shell.apps()->openDesktopId("org.traineros.crates."+id+".desktop");
                 });
                 multiplayer.requestRuntimeLaunch = requestAdventure;
                 remotePlay.requestGuestLaunch = requestAdventure;
-                QObject::connect(&adventureLaunch, &AdventureLaunchController::changed, &session, [&] {
+                bindings.connect(&adventureLaunch, &AdventureLaunchController::changed, &session, [&] {
                     session.setAdventureActive(adventureLaunch.active());
                     session.setAdventureMinimized(adventureLaunch.minimized());
                     QVariantMap live;
@@ -1440,25 +1442,25 @@ int main(int argc, char* argv[]) {
                     shell.setLiveGame(live);
                     input.setEnabled(app.applicationState() == Qt::ApplicationActive && (!adventureLaunch.active() || adventureLaunch.preparing()));
                 });
-                QObject::connect(&adventureLaunch, &AdventureLaunchController::checkpointRequested, store.get(),
+                bindings.connect(&adventureLaunch, &AdventureLaunchController::checkpointRequested, store.get(),
                                  [&](quint64 token, const QJsonObject& state) {
                     store->saveNavigation(state, &adventureLaunch, [&, token](const QString& error) {
                         adventureLaunch.checkpointCompleted(token, error);
                     });
                 });
-                QObject::connect(&adventureLaunch, &AdventureLaunchController::suspendRequested, window, [window] { window->hide(); });
-                QObject::connect(&shell, &ShellController::changed, &adventureLaunch, [&] {
+                bindings.connect(&adventureLaunch, &AdventureLaunchController::suspendRequested, window, [window] { window->hide(); });
+                bindings.connect(&shell, &ShellController::changed, &adventureLaunch, [&] {
                     if(adventureLaunch.minimized())adventureLaunch.updateReturnContext(shell.navigationState());
                 });
                 if(adventureOverlay) {
-                    QObject::connect(adventureOverlay.get(),&AdventureOverlayService::keyboardEvent,&externalKeyboard,[&](const QJsonObject& packet){keyboardEvent(2,packet);});
-                    QObject::connect(&multiplayer,&RuntimeMultiplayer::invitationOptionsRequested,adventureOverlay.get(),&AdventureOverlayService::openOptions);
-                    QObject::connect(&multiplayer,&RuntimeMultiplayer::liveOptionsRequested,adventureOverlay.get(),[&]{
+                    bindings.connect(adventureOverlay.get(),&AdventureOverlayService::keyboardEvent,&externalKeyboard,[&](const QJsonObject& packet){keyboardEvent(2,packet);});
+                    bindings.connect(&multiplayer,&RuntimeMultiplayer::invitationOptionsRequested,adventureOverlay.get(),&AdventureOverlayService::openOptions);
+                    bindings.connect(&multiplayer,&RuntimeMultiplayer::liveOptionsRequested,adventureOverlay.get(),[&]{
                         if(shell.runtimeChangeBlocked() || !adventureOverlay->canMinimize()){multiplayer.cancelInvocation();shell.showNotice("Game controls are temporarily unavailable.");return;}
                         adventureOverlay->returnToGame(true);
                     });
-                    QObject::connect(adventureOverlay.get(),&AdventureOverlayService::handoffFailed,&multiplayer,[&](const QString&){multiplayer.cancelInvocation();});
-                    QObject::connect(adventureOverlay.get(),&AdventureOverlayService::shellRequested,window,[&,window,returnFullscreen]{
+                    bindings.connect(adventureOverlay.get(),&AdventureOverlayService::handoffFailed,&multiplayer,[&](const QString&){multiplayer.cancelInvocation();});
+                    bindings.connect(adventureOverlay.get(),&AdventureOverlayService::shellRequested,window,[&,window,returnFullscreen]{
                         if(*returnFullscreen)window->showFullScreen();else window->show();
                         window->requestActivate();
                         if(!pendingNotification.isEmpty()) {
@@ -1466,21 +1468,21 @@ int main(int argc, char* argv[]) {
                             shell.dispatch(Action::Home);shell.openNotificationById(id);
                         }
                     });
-                    QObject::connect(adventureOverlay.get(),&AdventureOverlayService::gameRequested,window,[&,window]{
+                    bindings.connect(adventureOverlay.get(),&AdventureOverlayService::gameRequested,window,[&,window]{
                         adventureLaunch.updateReturnContext(shell.navigationState());window->hide();
                     });
-                    QObject::connect(adventureOverlay.get(),&AdventureOverlayService::contentAction,&shell,[&](Action action){if(shell.social()->dispatchIncomingCall(action))return;if(shell.gameControlsOpen())shell.dispatchGameControls(action);else playerOverlay.dispatch(action);});
-                    QObject::connect(adventureOverlay.get(),&AdventureOverlayService::shellRequested,&shell,[&]{if(!pendingSystemAction.isEmpty()){const auto id=std::exchange(pendingSystemAction,QString());if(id=="current-lobby")shell.openGameHubFace("lobby");else if(id=="pc-settings")shell.gamePerformance()->begin(adventureLaunch.adventureId());else shell.systemAction(id);}});
-                    QObject::connect(adventureOverlay.get(),&AdventureOverlayService::shellAction,&session,[&](Action action){
+                    bindings.connect(adventureOverlay.get(),&AdventureOverlayService::contentAction,&shell,[&](Action action){if(shell.social()->dispatchIncomingCall(action))return;if(shell.gameControlsOpen())shell.dispatchGameControls(action);else playerOverlay.dispatch(action);});
+                    bindings.connect(adventureOverlay.get(),&AdventureOverlayService::shellRequested,&shell,[&]{if(!pendingSystemAction.isEmpty()){const auto id=std::exchange(pendingSystemAction,QString());if(id=="current-lobby")shell.openGameHubFace("lobby");else if(id=="pc-settings")shell.gamePerformance()->begin(adventureLaunch.adventureId());else shell.systemAction(id);}});
+                    bindings.connect(adventureOverlay.get(),&AdventureOverlayService::shellAction,&session,[&](Action action){
                         if(adventureLaunch.minimized())session.dispatch(action);
                     });
-                    QObject::connect(adventureOverlay.get(),&AdventureOverlayService::handoffFailed,&shell,[&](QString message){pendingNotification.clear();pendingSystemAction.clear();shell.showNotice(message);});
-                    QObject::connect(&shell,&ShellController::liveGameRequested,adventureOverlay.get(),[&](bool options){
+                    bindings.connect(adventureOverlay.get(),&AdventureOverlayService::handoffFailed,&shell,[&](QString message){pendingNotification.clear();pendingSystemAction.clear();shell.showNotice(message);});
+                    bindings.connect(&shell,&ShellController::liveGameRequested,adventureOverlay.get(),[&](bool options){
                         if(shell.runtimeChangeBlocked())return;
                         adventureOverlay->returnToGame(options);
                     });
                 }
-                QObject::connect(&adventureLaunch, &AdventureLaunchController::restoreRequested, window,
+                bindings.connect(&adventureLaunch, &AdventureLaunchController::restoreRequested, window,
                                  [&, window, returnFullscreen, returnedAdventure,prizesAfterGame](const QJsonObject& state) {
                     shell.restoreNavigation(state);
                     if (!adventureLaunch.error().isEmpty()) shell.showNotice(adventureLaunch.error());
@@ -1500,7 +1502,7 @@ int main(int argc, char* argv[]) {
                         });
                     }
                 });
-                QObject::connect(playHistory.get(), &PlayHistoryController::writeFailed, &shell, [&](const QString& error) {
+                bindings.connect(playHistory.get(), &PlayHistoryController::writeFailed, &shell, [&](const QString& error) {
                     if (!adventureLaunch.active()) shell.showNotice(error);
                 });
             }
@@ -1573,7 +1575,7 @@ int main(int argc, char* argv[]) {
                 auto drawerWait = std::make_shared<int>(0);
                 auto timer = new QTimer(&app);
                 timer->setInterval(400);
-                QObject::connect(timer, &QTimer::timeout, &app, [&, window, step, failed, savedId, drawerWait, timer, screenshotDir] {
+                bindings.connect(timer, &QTimer::timeout, &app, [&, window, step, failed, savedId, drawerWait, timer, screenshotDir] {
                     if (powerStatus.busy()) return;
                     const auto press = [&](SDL_GameControllerButton button) {
                         SDL_JoystickSetVirtualButton(joystick, button, 1); input.poll();
@@ -1859,8 +1861,14 @@ int main(int argc, char* argv[]) {
                 }
             }
             result = app.exec();
+            // Runtime-service destruction can publish Lobby/Home changes. End
+            // shell bindings before the stack data captured by them is released.
+            bindings.clear();
+            shell.prepareShutdown();
             if (smoke && !smokeCompleted) result = 2; // Early window/app exit is not a passing smoke test.
         }
+        bindings.clear();
+        shell.prepareShutdown();
     } while (restartTrainer);
     if (joystick) SDL_JoystickClose(joystick);
     if (virtualIndex >= 0) SDL_JoystickDetachVirtual(virtualIndex);

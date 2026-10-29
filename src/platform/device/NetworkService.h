@@ -18,6 +18,7 @@ signals:
     void event(const QJsonObject& value);
     void finished(const QString& error);
 private:
+    friend class ServiceTeardownTests;
     QProcess process_;
     QTimer timeout_;
     QByteArray buffer_;

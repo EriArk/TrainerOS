@@ -16,6 +16,31 @@
 #include "core/model/NavigationVersion.h"
 
 namespace trainer {
+ShellController::~ShellController() {
+    prepareShutdown();
+    // Adapter cleanup still has access to all host services and state.
+    modules_.clear();
+}
+void ShellController::prepareShutdown() {
+    // QObject's automatic disconnection happens after our members are gone.
+    // Services may emit synchronously while draining children; end all routes
+    // into the shell before dismantling its navigation/presentation state.
+    disconnect(this,nullptr,nullptr,nullptr);
+    const auto detach=[this](QObject* source) {
+        disconnect(source,nullptr,this,nullptr);
+        for(auto* child:source->findChildren<QObject*>())
+            disconnect(child,nullptr,this,nullptr);
+    };
+    // Include unparented value members as well as their QObject descendants.
+    QObject* const sources[] = {&launchPreparation_, &keyboard_,
+            &trainer_, &trainerSetup_, &worlds_, &multiverse_, &hall_,
+            &libraryManager_, &libraryTools_, &scraper_, &apps_, &crates_, &files_,
+            &pcGames_, &gamePerformance_, &browser_, &powerControl_, &downloads_,
+            &settings_, &controls_, &device_, &network_, &diagnostics_, &social_,
+            &backendAccount_, &outfits_, &visitorProfile_, &dashboard_, &album_};
+    for(auto* source:sources)detach(source);
+    for(auto& module:modules_)detach(module.get());
+}
 void ShellController::showAchievements(const QString& title,const QStringList& names) {
     if(names.isEmpty())return;
     const auto id="achievement:"+QString::fromLatin1(QCryptographicHash::hash((title+"\n"+names.join('\n')).toUtf8(),QCryptographicHash::Sha256).toHex());

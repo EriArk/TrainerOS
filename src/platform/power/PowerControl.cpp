@@ -4,7 +4,15 @@
 #include <QPointer>
 
 namespace trainer {
+PowerControl::PowerControl(QObject* parent):QObject(parent){
+    connect(&process_,&QProcess::readyReadStandardOutput,this,&PowerControl::receive);
+    connect(&process_,&QProcess::readyReadStandardError,this,[this]{process_.readAllStandardError();});
+    connect(&process_,&QProcess::finished,this,[this]{available_=busy_=keepAwake_=false;error_="Power service stopped.";emit changed();});
+}
 PowerControl::~PowerControl(){
+    // waitForFinished emits signals synchronously. The owning shell may already
+    // have destroyed its presentation state, so teardown must not notify it.
+    disconnect(&process_,nullptr,this,nullptr);
     process_.closeWriteChannel();
     if(process_.state()!=QProcess::NotRunning&&!process_.waitForFinished(300)){
         process_.kill();process_.waitForFinished(300);
@@ -16,9 +24,6 @@ void PowerControl::start(){
     const QFileInfo file(path),directory(file.absolutePath());
     if(!file.isFile()||file.isSymLink()||!file.isExecutable()||file.ownerId()!=0||directory.ownerId()!=0
        ||((file.permissions()|directory.permissions())&(QFile::WriteGroup|QFile::WriteOther)))return;
-    connect(&process_,&QProcess::readyReadStandardOutput,this,&PowerControl::receive);
-    connect(&process_,&QProcess::readyReadStandardError,this,[this]{process_.readAllStandardError();});
-    connect(&process_,&QProcess::finished,this,[this]{available_=busy_=keepAwake_=false;error_="Power service stopped.";emit changed();});
     process_.start("/usr/bin/sudo",{"-n",path});
 }
 void PowerControl::send(const QJsonObject& value){if(process_.state()==QProcess::Running)process_.write(QJsonDocument(value).toJson(QJsonDocument::Compact)+'\n');}

@@ -41,7 +41,7 @@ SocialMedia::SocialMedia(QObject* parent):QObject(parent) {
     limit_.setSingleShot(true);limit_.setInterval(120000);
     connect(&limit_,&QTimer::timeout,this,&SocialMedia::stopRecording);
 }
-SocialMedia::~SocialMedia(){clear();}
+SocialMedia::~SocialMedia(){blockSignals(true);clear();}
 bool SocialMedia::playing() const{return player_&&player_->playbackState()==QMediaPlayer::PlayingState;}
 double SocialMedia::progress() const{return player_&&player_->duration()>0?double(player_->position())/player_->duration():0.;}
 QVariantList SocialMedia::levels() const{QVariantList result;for(auto byte:waveform_)result.append(int(quint8(byte)));return result;}

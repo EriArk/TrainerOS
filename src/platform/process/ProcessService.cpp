@@ -23,6 +23,10 @@ ProcessService::ProcessService(QObject* parent) : QObject(parent), worker_(new Q
     connect(&process_, &QProcess::readyReadStandardOutput, this, &ProcessService::drainOutput);
 }
 ProcessService::~ProcessService() {
+    // QProcess is destroyed after the state used by its callbacks. Normal game
+    // finalization belongs to stop()/complete(), never to object destruction.
+    disconnect(&process_, nullptr, this, nullptr);
+    killTimer_.stop();
     if (cancelled_) *cancelled_ = true;
     if (settingsCancelled_) *settingsCancelled_ = true;
     thread_.quit(); thread_.wait();

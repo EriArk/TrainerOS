@@ -42,7 +42,8 @@ AppsController::AppsController(QObject* parent):QObject(parent) {
     connect(&process_,&QProcess::errorOccurred,this,[lost](QProcess::ProcessError error){if(error==QProcess::FailedToStart)lost();});
 }
 AppsController::~AppsController(){
-    heartbeat_.stop();process_.closeWriteChannel();
+    disconnect(&process_,nullptr,this,nullptr);
+    heartbeat_.stop();webStartTimeout_.stop();process_.closeWriteChannel();
     if(process_.state()!=QProcess::NotRunning&&!process_.waitForFinished(500)){process_.kill();process_.waitForFinished(500);}
 }
 void AppsController::configure(const QString& directory,const QString& owner) {

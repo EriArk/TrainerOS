@@ -155,6 +155,8 @@ public:
     ShellController(LibraryRepository&, TrainerRepository&, AdventureAdapter&, PlatformService&,
                     ExperienceFactory, HallOfFameRepository&,
                     AchievementProvider&, QObject* parent = nullptr);
+    ~ShellController() override;
+    void prepareShutdown();
     Q_PROPERTY(QObject* experienceModel READ experienceModel NOTIFY changed)
     Q_PROPERTY(QUrl experiencePresenter READ experiencePresenter NOTIFY changed)
     Q_PROPERTY(QVariantMap moduleInvitation READ moduleInvitation NOTIFY changed)

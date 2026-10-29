@@ -15,6 +15,33 @@ using namespace trainer;
 class ExperienceTests : public QObject {
     Q_OBJECT
 private slots:
+    void shellDisconnectsServiceAndModuleCallbacksBeforeTeardown() {
+        class ClosingExperience final : public ExperienceModule {
+        public:
+            std::function<void()> closing;
+            ~ClosingExperience() override {closing();emit changed();}
+            ExperienceDescriptor descriptor() const override {return genericExperienceDescriptor();}
+            ExperienceManifest manifest() const override {return {"generic",1,{},{}};}
+            QUrl presenter() const override {return QUrl("qrc:/TrainerOS/tests/fixtures/adapters/CounterExperience.qml");}
+        };
+        MockLibraryRepository library;MockTrainerRepository profiles;MockAdventureAdapter adapter;DevelopmentPlatformService platform;
+        MockHallOfFameRepository archive;MockAchievementProvider achievements;
+        ClosingExperience* closing=nullptr;
+        auto factory=[&](const ExperienceServices&) {
+            ExperienceModules modules;auto module=std::make_unique<ClosingExperience>();
+            closing=module.get();modules.push_back(std::move(module));return modules;
+        };
+        auto shell=std::make_unique<ShellController>(library,profiles,adapter,platform,factory,archive,achievements);
+        int callbacks=0,notifications=0,destructions=0;
+        connect(shell->apps(),&AppsController::changed,shell.get(),[&]{++callbacks;});
+        connect(shell.get(),&ShellController::changed,this,[&]{++notifications;});
+        closing->closing=[&,apps=shell->apps()]{++destructions;emit apps->changed();};
+        shell->prepareShutdown();
+        emit shell->apps()->changed();emit closing->changed();
+        QCOMPARE(callbacks,0);QCOMPARE(notifications,0);
+        shell.reset();
+        QCOMPARE(destructions,1);QCOMPARE(callbacks,0);QCOMPARE(notifications,0);
+    }
     void currentNavigationRoundTripDoesNotInventLegacySlots() {
         ExperienceNavigation navigation;
         navigation.select("owner","game",genericExperienceDescriptor());

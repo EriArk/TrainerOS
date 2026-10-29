@@ -12,7 +12,7 @@ class PowerControl final : public QObject {
     Q_PROPERTY(bool busy READ busy NOTIFY changed)
     Q_PROPERTY(QString error READ error NOTIFY changed)
 public:
-    using QObject::QObject;
+    explicit PowerControl(QObject* parent=nullptr);
     ~PowerControl() override;
     void start();
     bool available() const {return available_;}
@@ -27,6 +27,7 @@ signals:
     void menuRequested();
     void woke();
 private:
+    friend class ServiceTeardownTests;
     void send(const QJsonObject&);
     void receive();
     QProcess process_;
